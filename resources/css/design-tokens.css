@@ -1,0 +1,265 @@
+/* Design Tokens - Sistema de Diseño Minimalista OdontoSuite */
+
+:root {
+  /* Colores principales - iCloud azul vibrante */
+  --color-primary-50: #e6f0ff;
+  --color-primary-100: #cce1ff;
+  --color-primary-500: #0066CC;
+  --color-primary-600: #0052a3;
+  --color-primary-700: #003d7a;
+
+  /* Colores neutrales */
+  --color-neutral-50: #fafafa;
+  --color-neutral-100: #f5f5f5;
+  --color-neutral-200: #e5e5e5;
+  --color-neutral-600: #525252;
+  --color-neutral-900: #171717;
+
+  /* Colores semánticos */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #0066CC;
+
+  /* Espaciado (sistema 8px) */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+
+  /* Tipografía */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 28px;
+  --font-size-4xl: 34px;
+
+  /* Line heights */
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-large: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Transiciones */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
+  --transition-bounce: 200ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --transition-ios: 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+
+  /* Breakpoints */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+
+/* Utilidades de diseño */
+.ds-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-4);
+}
+
+.ds-section {
+  padding: var(--spacing-12) 0;
+}
+
+.ds-card {
+  background: var(--color-surface-elevated);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-6);
+}
+
+.ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  text-decoration: none;
+}
+
+.ds-button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.ds-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  transition: all var(--transition-normal);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+}
+
+.ds-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
+.ds-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* Estados de interacción */
+.ds-hover-lift {
+  transition: transform var(--transition-normal);
+}
+
+.ds-hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.ds-hover-scale {
+  transition: transform var(--transition-normal);
+}
+
+.ds-hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Animaciones de entrada */
+.ds-fade-in {
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+.ds-slide-up {
+  animation: slideUp var(--transition-slow) ease-out;
+}
+
+.ds-scale-in {
+  animation: scaleIn var(--transition-normal) ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive utilities */
+@media (max-width: 640px) {
+  .ds-container {
+    padding: 0 var(--spacing-3);
+  }
+
+  .ds-section {
+    padding: var(--spacing-8) 0;
+  }
+
+  .ds-card {
+    padding: var(--spacing-4);
+  }
+}
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .ds-fade-in,
+  .ds-slide-up,
+  .ds-scale-in,
+  .ds-hover-lift,
+  .ds-hover-scale {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Focus visible para mejor accesibilidad */
+.ds-focus-visible:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Estados de carga */
+.ds-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}

@@ -1,0 +1,185 @@
+@import './animations.css';
+@import './themes.css';
+@import './utilities.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Utilidades personalizadas estilo Apple */
+@layer utilities {
+    .glass-card {
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-backdrop);
+        -webkit-backdrop-filter: var(--glass-backdrop);
+        border: 1px solid var(--glass-border);
+    }
+
+    .apple-shadow {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    .apple-shadow-hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    .smooth-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+/* Responsive Design Utilities */
+@layer utilities {
+    /* Mobile-first responsive containers */
+    .container-responsive {
+        width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .container-responsive {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .container-responsive {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+
+    /* Responsive grid layouts */
+    .grid-responsive {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .grid-responsive {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .grid-responsive {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .grid-responsive {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    .grid-responsive-2 {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    @media (min-width: 1024px) {
+        .grid-responsive-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.5rem;
+        }
+    }
+
+    /* Touch-friendly buttons */
+    .btn-touch {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+    /* Ensure touch targets are at least 44px */
+    button, a, input, select, textarea {
+        min-height: 44px;
+    }
+
+    /* Improve text readability on mobile */
+    body {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+
+    /* Better scrolling on mobile */
+    .overflow-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Focus styles for accessibility */
+@layer base {
+    *:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--color-accent);
+    }
+
+    button:focus,
+    a:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--color-accent);
+    }
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-break {
+        page-break-before: always;
+    }
+}
+
+/* Estilos específicos para impresión de reportes */
+@media print {
+  /* Ocultar elementos no necesarios en impresión */
+  .no-print,
+  nav,
+  .sidebar,
+  button,
+  .action-buttons {
+    display: none !important;
+  }
+
+  /* Ajustar tamaños para impresión */
+  body {
+    font-size: 12pt;
+  }
+
+  .cash-reports {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Evitar saltos de página en elementos importantes */
+  .summary-box,
+  table {
+    page-break-inside: avoid;
+  }
+
+  /* Asegurar que las tablas se vean bien */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid #000;
+    padding: 8px;
+  }
+}
