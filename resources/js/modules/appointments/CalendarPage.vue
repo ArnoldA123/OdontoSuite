@@ -20,7 +20,7 @@
           </UiButton>
           <UiButton
             v-if="can.createAppointment?.value"
-            @click="showNewAppointmentModal = true"
+            @click="openNewAppointmentModal"
             class="flex items-center gap-2"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,6 +298,12 @@
                         <div class="text-xs opacity-75 truncate">{{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}</div>
                       </div>
                       <div
+                        v-if="day.hasMore"
+                        class="text-xs text-accent font-medium text-center mt-1"
+                      >
+                        +{{ day.appointmentCount - 3 }} más
+                      </div>
+                      <div
                         v-if="day.appointments.length === 0"
                         class="text-xs text-theme-secondary text-center py-2"
                       >
@@ -373,6 +379,40 @@
             <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
             <p class="text-theme-primary">{{ selectedAppointment.treatment_notes }}</p>
           </div>
+          <div class="flex flex-wrap gap-2 pt-2 border-t border-theme">
+            <UiButton
+              v-if="selectedAppointment.status === 'scheduled'"
+              size="sm"
+              variant="secondary"
+              @click="changeStatus(selectedAppointment, 'confirmed')"
+            >
+              Confirmar
+            </UiButton>
+            <UiButton
+              v-if="selectedAppointment.status === 'confirmed'"
+              size="sm"
+              variant="secondary"
+              @click="changeStatus(selectedAppointment, 'in_consultation')"
+            >
+              Iniciar Consulta
+            </UiButton>
+            <UiButton
+              v-if="selectedAppointment.status === 'in_consultation'"
+              size="sm"
+              variant="secondary"
+              @click="changeStatus(selectedAppointment, 'completed')"
+            >
+              Completar
+            </UiButton>
+            <UiButton
+              v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
+              size="sm"
+              variant="danger"
+              @click="changeStatus(selectedAppointment, 'cancelled')"
+            >
+              Cancelar Cita
+            </UiButton>
+          </div>
           <div class="flex justify-end gap-3 pt-4">
             <UiButton
               v-if="can.updateAppointment?.value"
@@ -397,14 +437,16 @@
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
+      :appointment="editingAppointment"
       :initial-date="getInitialDateForModal()"
-      @created="handleAppointmentCreated"
+      @created="handleAppointmentSaved"
+      @updated="handleAppointmentSaved"
     />
   </AppLayout>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
@@ -442,8 +484,27 @@ export default {
     const appointments = ref([])
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
+    const editingAppointment = ref(null)
 
-    // Función para obtener la fecha inicial del modal basada en la vista actual
+    const toLocalDateString = (date) => {
+      const d = date instanceof Date ? date : new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const getAppointmentLocalDate = (appointment) => {
+      if (!appointment || !appointment.scheduled_at) return null
+      const d = new Date(appointment.scheduled_at)
+      if (isNaN(d.getTime())) return null
+      return {
+        dateStr: toLocalDateString(d),
+        hour: d.getHours(),
+        date: d
+      }
+    }
+
     const getInitialDateForModal = () => {
       if (currentView.value === 'day') {
         const date = new Date(currentDate.value)
@@ -453,15 +514,19 @@ export default {
       return null
     }
 
-    // Manejar cuando se crea una cita desde el modal
-    const handleAppointmentCreated = async (appointmentData) => {
-      // Recargar las citas para mostrar la nueva
+    const openNewAppointmentModal = () => {
+      editingAppointment.value = null
+      showNewAppointmentModal.value = true
+    }
+
+    const handleAppointmentSaved = async () => {
+      editingAppointment.value = null
       await loadAppointments()
     }
 
     const dayHours = computed(() => {
       const hours = []
-      for (let i = 8; i <= 18; i++) {
+      for (let i = 6; i <= 21; i++) {
         hours.push(i)
       }
       return hours
@@ -469,7 +534,7 @@ export default {
 
     const weekHours = computed(() => {
       const hours = []
-      for (let i = 8; i <= 18; i++) {
+      for (let i = 6; i <= 21; i++) {
         hours.push(i)
       }
       return hours
@@ -510,7 +575,7 @@ export default {
         const day = new Date(startOfWeek)
         day.setDate(startOfWeek.getDate() + i)
         days.push({
-          date: day.toISOString().split('T')[0],
+          date: toLocalDateString(day),
           name: weekDayNames[i],
           number: day.getDate()
         })
@@ -530,65 +595,36 @@ export default {
 
       const days = []
       const now = new Date()
-      const currentDateStr = now.toISOString().split('T')[0]
-      const currentTime = now.getTime()
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+      const currentDateStr = toLocalDateString(now)
 
       for (let i = 0; i < 42; i++) {
         const day = new Date(startDate)
         day.setDate(startDate.getDate() + i)
-        const dayStr = day.toISOString().split('T')[0]
-        const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime()
+        const dayStr = toLocalDateString(day)
         const isToday = dayStr === currentDateStr
-        const isPastDay = dayStart < todayStart
 
-        // Filtrar citas del día
-        let dayAppointments = appointments.value.filter(apt => {
-          if (!apt || !apt.scheduled_at) return false
-          try {
-            const aptDate = new Date(apt.scheduled_at)
-            if (isNaN(aptDate.getTime())) return false
-            const aptDayStr = aptDate.toISOString().split('T')[0]
-            
-            // Solo citas del día actual
-            if (aptDayStr !== dayStr) return false
-            
-            // Si es el día actual, solo citas futuras desde ahora
-            if (isToday) {
-              return aptDate.getTime() > currentTime
-            }
-            
-            // Si es un día pasado, no mostrar citas
-            if (isPastDay) {
-              return false
-            }
-            
-            // Si es un día futuro, todas las citas
-            return true
-          } catch (e) {
-            console.warn('Error filtering appointment for month view:', e)
-            return false
-          }
+        const allDayAppointments = appointments.value.filter(apt => {
+          const aptInfo = getAppointmentLocalDate(apt)
+          if (!aptInfo) return false
+          return aptInfo.dateStr === dayStr
         })
 
-        // Ordenar por fecha/hora y tomar solo las 2 primeras
-        dayAppointments = dayAppointments
-          .sort((a, b) => {
-            try {
-              return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-            } catch (e) {
-              return 0
-            }
-          })
-          .slice(0, 2)
+        const sortedDayAppointments = allDayAppointments.sort((a, b) => {
+          try {
+            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
+          } catch (e) {
+            return 0
+          }
+        })
 
         days.push({
           date: dayStr,
           number: day.getDate(),
           isCurrentMonth: day.getMonth() === month,
           isToday: isToday,
-          appointments: dayAppointments,
-          appointmentCount: dayAppointments.length
+          appointments: sortedDayAppointments.slice(0, 3),
+          appointmentCount: allDayAppointments.length,
+          hasMore: allDayAppointments.length > 3
         })
       }
       return days
@@ -600,8 +636,8 @@ export default {
         const start = new Date(date)
         const end = new Date(date)
         return {
-          start_date: start.toISOString().split('T')[0],
-          end_date: end.toISOString().split('T')[0]
+          start_date: toLocalDateString(start),
+          end_date: toLocalDateString(end)
         }
       }
       if (currentView.value === 'week') {
@@ -610,16 +646,18 @@ export default {
         const endOfWeek = new Date(startOfWeek)
         endOfWeek.setDate(startOfWeek.getDate() + 6)
         return {
-          start_date: startOfWeek.toISOString().split('T')[0],
-          end_date: endOfWeek.toISOString().split('T')[0]
+          start_date: toLocalDateString(startOfWeek),
+          end_date: toLocalDateString(endOfWeek)
         }
       }
-      // month
       const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+      const startDate = new Date(firstDay)
+      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
+      const lastDay = new Date(startDate)
+      lastDay.setDate(startDate.getDate() + 41)
       return {
-        start_date: firstDay.toISOString().split('T')[0],
-        end_date: lastDay.toISOString().split('T')[0]
+        start_date: toLocalDateString(startDate),
+        end_date: toLocalDateString(lastDay)
       }
     }
 
@@ -751,19 +789,11 @@ export default {
     }
 
     const getAppointmentsForHour = (hour) => {
-      const dateStr = currentDate.value.toISOString().split('T')[0]
+      const dateStr = toLocalDateString(currentDate.value)
       const filtered = appointments.value.filter(apt => {
-        if (!apt || !apt.scheduled_at) return false
-        try {
-          const aptDate = new Date(apt.scheduled_at)
-          if (isNaN(aptDate.getTime())) return false
-          const aptDateStr = aptDate.toISOString().split('T')[0]
-          const aptHour = aptDate.getHours()
-          return aptDateStr === dateStr && aptHour === hour
-        } catch (e) {
-          console.warn('Error parsing appointment date:', apt.scheduled_at, e)
-          return false
-        }
+        const aptInfo = getAppointmentLocalDate(apt)
+        if (!aptInfo) return false
+        return aptInfo.dateStr === dateStr && aptInfo.hour === hour
       }).sort((a, b) => {
         try {
           return new Date(a.scheduled_at) - new Date(b.scheduled_at)
@@ -776,17 +806,9 @@ export default {
 
     const getAppointmentsForDayAndHour = (dateStr, hour) => {
       return appointments.value.filter(apt => {
-        if (!apt || !apt.scheduled_at) return false
-        try {
-          const aptDate = new Date(apt.scheduled_at)
-          if (isNaN(aptDate.getTime())) return false
-          const aptDateStr = aptDate.toISOString().split('T')[0]
-          const aptHour = aptDate.getHours()
-          return aptDateStr === dateStr && aptHour === hour
-        } catch (e) {
-          console.warn('Error parsing appointment date:', apt.scheduled_at, e)
-          return false
-        }
+        const aptInfo = getAppointmentLocalDate(apt)
+        if (!aptInfo) return false
+        return aptInfo.dateStr === dateStr && aptInfo.hour === hour
       }).sort((a, b) => {
         try {
           return new Date(a.scheduled_at) - new Date(b.scheduled_at)
@@ -804,7 +826,8 @@ export default {
         in_consultation: 'border-warning bg-warning-badge',
         completed: 'border-theme bg-theme-surface',
         cancelled: 'border-danger bg-danger-badge',
-        no_show: 'border-warning bg-warning-badge'
+        no_show: 'border-warning bg-warning-badge',
+        rescheduled: 'border-primary-200 bg-primary-50'
       }
       return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
     }
@@ -816,7 +839,8 @@ export default {
         in_consultation: 'bg-warning-badge',
         completed: 'bg-theme-surface text-theme-secondary',
         cancelled: 'bg-danger-badge',
-        no_show: 'bg-warning-badge'
+        no_show: 'bg-warning-badge',
+        rescheduled: 'bg-primary-50 text-primary-700'
       }
       return classes[status] || classes.scheduled
     }
@@ -828,7 +852,8 @@ export default {
         in_consultation: 'En Consulta',
         completed: 'Completada',
         cancelled: 'Cancelada',
-        no_show: 'No se presentó'
+        no_show: 'No se presentó',
+        rescheduled: 'Reprogramada'
       }
       return texts[status] || status
     }
@@ -839,8 +864,22 @@ export default {
 
 
     const editAppointment = (appointment) => {
-      // TODO: Implement edit functionality
-      console.log('Edit appointment:', appointment)
+      editingAppointment.value = appointment
+      showNewAppointmentModal.value = true
+      selectedAppointment.value = null
+    }
+
+    const changeStatus = async (appointment, newStatus) => {
+      try {
+        await put(`/api/appointments/${appointment.id}`, { status: newStatus })
+        toast.success('Estado actualizado')
+        await loadAppointments()
+        selectedAppointment.value = null
+      } catch (error) {
+        console.error('Error changing appointment status:', error)
+        const errorMessage = error?.response?.data?.message || 'Error al cambiar el estado'
+        toast.error(errorMessage)
+      }
     }
 
     const deleteAppointment = async (appointment) => {
@@ -888,6 +927,12 @@ export default {
     // WebSocket subscriptions
     let appointmentsChannel = null
 
+    watch(showNewAppointmentModal, (isOpen) => {
+      if (!isOpen) {
+        editingAppointment.value = null
+      }
+    })
+
     onMounted(() => {
       loadAppointments()
 
@@ -901,16 +946,8 @@ export default {
               await loadAppointments()
               toast.success('Nueva cita agregada')
             })
-            .listen('.appointment.updated', async (e) => {
-              console.log('Appointment updated via WebSocket:', e.appointment)
-              // Actualizar la cita en la lista si existe
-              const index = appointments.value.findIndex(apt => apt.id === e.appointment.id)
-              if (index !== -1) {
-                appointments.value[index] = e.appointment
-              } else {
-                // Si no existe, recargar todo
-                await loadAppointments()
-              }
+            .listen('.appointment.updated', async () => {
+              await loadAppointments()
               toast.success('Cita actualizada')
             })
             .listen('.appointment.deleted', async (e) => {
@@ -947,6 +984,8 @@ export default {
       appointments,
       selectedAppointment,
       showNewAppointmentModal,
+      editingAppointment,
+      openNewAppointmentModal,
       dayHours,
       weekHours,
       weekDayNames,
@@ -965,6 +1004,7 @@ export default {
       getStatusText,
       selectAppointment,
       editAppointment,
+      changeStatus,
       deleteAppointment,
       getAppointmentLabel,
       formatHour,
@@ -972,7 +1012,9 @@ export default {
       formatDateTime,
       goBack,
       getInitialDateForModal,
-      handleAppointmentCreated
+      handleAppointmentSaved,
+      toLocalDateString,
+      getAppointmentLocalDate
     }
   }
 }

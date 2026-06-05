@@ -1,14 +1,13 @@
 <template>
   <Modal
-    :show="show"
+    :model-value="show"
     title="Registrar Transacción"
     size="lg"
+    @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <ValidatedForm
-      ref="form"
-      :schema="validationSchema"
-      @submit="handleSubmit"
+    <form
+      @submit.prevent="handleSubmit"
     >
       <div class="space-y-4">
         <!-- Búsqueda de Paciente -->
@@ -244,28 +243,30 @@
         </div>
       </div>
 
-      <template #footer>
-        <div class="flex justify-end space-x-3">
-          <Button
-            type="button"
-            variant="secondary"
-            @click="$emit('close')"
-            :disabled="loading"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            :loading="loading"
-            :disabled="!canSubmit"
-          >
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Registrar Transacción
-          </Button>
-        </div>
-      </template>
-    </ValidatedForm>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end space-x-3">
+        <Button
+          type="button"
+          variant="secondary"
+          @click="$emit('close')"
+          :disabled="loading"
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          :loading="loading"
+          :disabled="!canSubmit"
+          @click="handleSubmit"
+        >
+          <PlusIcon class="w-4 h-4 mr-2" />
+          Registrar Transacción
+        </Button>
+      </div>
+    </template>
   </Modal>
 </template>
 
@@ -274,7 +275,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
-import ValidatedForm from '@/components/ValidatedForm.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { useApi } from '@/composables/useApi'
 import { usePermissions } from '@/composables/usePermissions'
@@ -321,21 +321,22 @@ const formData = ref({
   reference_number: ''
 })
 
-// Validación
-const validationSchema = {
-  patient_id: {
-    required: true,
-    message: 'El paciente es requerido'
-  },
-  payment_method_id: {
-    required: true,
-    message: 'El método de pago es requerido'
-  },
-  amount: {
-    required: true,
-    min: 0.01,
-    message: 'El monto debe ser mayor a 0'
+// Validación simple
+const validateForm = () => {
+  let valid = true
+  if (!formData.value.patient_id) {
+    errors.value.patient_id = 'El paciente es requerido'
+    valid = false
   }
+  if (!formData.value.payment_method_id) {
+    errors.value.payment_method_id = 'El método de pago es requerido'
+    valid = false
+  }
+  if (!formData.value.amount || formData.value.amount <= 0) {
+    errors.value.amount = 'El monto debe ser mayor a 0'
+    valid = false
+  }
+  return valid
 }
 
 // Computed
@@ -441,16 +442,21 @@ const calculateDiscount = () => {
   }
 }
 
-const handleSubmit = async (data) => {
+const handleSubmit = async () => {
   loading.value = true
   errors.value = {}
 
+  if (!validateForm()) {
+    loading.value = false
+    return
+  }
+
   try {
     const submitData = {
-      ...data,
+      ...formData.value,
       patient_id: selectedPatient.value.id,
       description: formData.value.type === 'payment' ?
-        (patientAppointments.value.find(a => a.id === data.appointment_id)?.description || 'Pago de servicios') :
+        (patientAppointments.value.find(a => a.id === formData.value.appointment_id)?.description || 'Pago de servicios') :
         formData.value.description
     }
 

@@ -51,6 +51,20 @@
         </table>
     </div>
 
+    @if(!empty($session->arqueo_data))
+    <div class="section">
+        <h3>Arqueo por método de pago</h3>
+        <table>
+            @foreach($session->arqueo_data as $method => $amount)
+            <tr>
+                <td>{{ ucfirst(str_replace('_', ' ', $method)) }}</td>
+                <td>S/ {{ number_format((float) $amount, 2) }}</td>
+            </tr>
+            @endforeach
+        </table>
+    </div>
+    @endif
+
     <div class="section">
         <h3>Transacciones</h3>
         <table>

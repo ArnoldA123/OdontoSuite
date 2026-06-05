@@ -38,9 +38,7 @@ const routes = [
   },
   {
     path: '/appointments/new',
-    name: 'new-appointment',
-    component: () => import('./modules/appointments/NewAppointmentPage.vue'),
-    beforeEnter: requireAuth
+    redirect: { path: '/dashboard', query: { openAppointmentModal: 'true' } }
   },
   {
     path: '/patients',

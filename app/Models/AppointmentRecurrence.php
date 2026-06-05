@@ -13,45 +13,37 @@ class AppointmentRecurrence extends Model
 
     protected $fillable = [
         'appointment_id',
-        'recurrence_type',
-        'recurrence_interval',
-        'recurrence_days',
-        'recurrence_end_date',
-        'recurrence_count',
+        'frequency',
+        'interval_value',
+        'days_of_week',
+        'day_of_month',
+        'end_date',
+        'max_occurrences',
         'is_active',
     ];
 
     protected $casts = [
-        'recurrence_days' => 'array',
-        'recurrence_end_date' => 'date',
+        'days_of_week' => 'array',
+        'end_date' => 'date',
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Get the appointment that owns the recurrence.
-     */
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
     }
 
-    /**
-     * Scope a query to only include active recurrences.
-     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Generate the next occurrence date based on the recurrence pattern.
-     */
     public function getNextOccurrence(Carbon $fromDate = null): ?Carbon
     {
         $fromDate = $fromDate ?? now();
         $baseDate = $this->appointment->scheduled_at;
 
-        switch ($this->recurrence_type) {
+        switch ($this->frequency) {
             case 'daily':
                 return $this->getNextDailyOccurrence($fromDate, $baseDate);
             case 'weekly':
@@ -66,13 +58,13 @@ class AppointmentRecurrence extends Model
     private function getNextDailyOccurrence(Carbon $fromDate, Carbon $baseDate): ?Carbon
     {
         $nextDate = $baseDate->copy();
-        $interval = $this->recurrence_interval ?? 1;
+        $interval = $this->interval_value ?? 1;
 
         while ($nextDate->lte($fromDate)) {
             $nextDate->addDays($interval);
         }
 
-        if ($this->recurrence_end_date && $nextDate->gt($this->recurrence_end_date)) {
+        if ($this->end_date && $nextDate->gt($this->end_date)) {
             return null;
         }
 
@@ -82,18 +74,17 @@ class AppointmentRecurrence extends Model
     private function getNextWeeklyOccurrence(Carbon $fromDate, Carbon $baseDate): ?Carbon
     {
         $nextDate = $baseDate->copy();
-        $interval = $this->recurrence_interval ?? 1;
-        $days = $this->recurrence_days ?? [$baseDate->dayOfWeek];
+        $interval = $this->interval_value ?? 1;
+        $days = $this->days_of_week ?? [$baseDate->dayOfWeek];
 
         while ($nextDate->lte($fromDate)) {
             $nextDate->addWeeks($interval);
         }
 
-        // Find the next valid day of week
         foreach ($days as $dayOfWeek) {
             $candidate = $nextDate->copy()->startOfWeek()->addDays($dayOfWeek);
             if ($candidate->gte($fromDate)) {
-                if (!$this->recurrence_end_date || $candidate->lte($this->recurrence_end_date)) {
+                if (!$this->end_date || $candidate->lte($this->end_date)) {
                     return $candidate;
                 }
             }
@@ -105,13 +96,13 @@ class AppointmentRecurrence extends Model
     private function getNextMonthlyOccurrence(Carbon $fromDate, Carbon $baseDate): ?Carbon
     {
         $nextDate = $baseDate->copy();
-        $interval = $this->recurrence_interval ?? 1;
+        $interval = $this->interval_value ?? 1;
 
         while ($nextDate->lte($fromDate)) {
             $nextDate->addMonths($interval);
         }
 
-        if ($this->recurrence_end_date && $nextDate->gt($this->recurrence_end_date)) {
+        if ($this->end_date && $nextDate->gt($this->end_date)) {
             return null;
         }
 

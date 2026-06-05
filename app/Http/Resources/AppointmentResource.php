@@ -20,14 +20,20 @@ class AppointmentResource extends JsonResource
             'user_id' => $this->user_id,
             'dental_chair_id' => $this->dental_chair_id,
             'appointment_type_id' => $this->appointment_type_id,
-            'scheduled_at' => $this->scheduled_at?->toISOString(),
-            'ends_at' => $this->ends_at?->toISOString(),
+            'scheduled_at' => $this->scheduled_at?->toIso8601String(),
+            'ends_at' => $this->ends_at?->toIso8601String(),
             'duration_minutes' => $this->duration_minutes,
             'status' => $this->status,
             'notes' => $this->notes,
             'treatment_notes' => $this->treatment_notes,
             'idempotency_key' => $this->idempotency_key,
-            'has_payment' => $this->when(isset($this->has_payment), $this->has_payment),
+            'has_payment' => $this->when(
+                $this->relationLoaded('transactions'),
+                fn() => $this->transactions()
+                    ->where('type', 'payment')
+                    ->where('status', '!=', 'voided')
+                    ->exists()
+            ),
             'created_by' => $this->created_by,
             'updated_by' => $this->updated_by,
             'created_at' => $this->created_at?->toISOString(),
@@ -83,9 +89,12 @@ class AppointmentResource extends JsonResource
             'recurrence' => $this->whenLoaded('recurrence', function () {
                 return [
                     'id' => $this->recurrence->id,
-                    'type' => $this->recurrence->type,
-                    'interval' => $this->recurrence->interval,
+                    'frequency' => $this->recurrence->frequency,
+                    'interval_value' => $this->recurrence->interval_value,
+                    'days_of_week' => $this->recurrence->days_of_week,
+                    'day_of_month' => $this->recurrence->day_of_month,
                     'end_date' => $this->recurrence->end_date?->toISOString(),
+                    'max_occurrences' => $this->recurrence->max_occurrences,
                 ];
             }),
         ];

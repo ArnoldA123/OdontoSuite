@@ -1,8 +1,9 @@
 <template>
   <Modal
-    :show="show"
+    :model-value="show"
     title="Cerrar Sesión de Caja"
     size="lg"
+    @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
     <div class="space-y-6">
@@ -33,10 +34,8 @@
       <div class="space-y-4">
         <h3 class="text-lg font-semibold text-theme-primary">Arqueo de Caja</h3>
 
-        <ValidatedForm
-          ref="form"
-          :schema="validationSchema"
-          @submit="handleSubmit"
+        <form
+          @submit.prevent="handleSubmit"
         >
           <!-- Monto de Cierre -->
           <div class="mb-4">
@@ -200,30 +199,32 @@
             </label>
           </div>
 
-          <template #footer>
-            <div class="flex justify-end space-x-3">
-              <Button
-                type="button"
-                variant="secondary"
-                @click="$emit('close')"
-                :disabled="loading"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                :loading="loading"
-                :disabled="!canSubmit"
-              >
-                <XMarkIcon class="w-4 h-4 mr-2" />
-                Cerrar Caja
-              </Button>
-            </div>
-          </template>
-        </ValidatedForm>
+        </form>
       </div>
     </div>
+
+    <template #footer>
+      <div class="flex justify-end space-x-3">
+        <Button
+          type="button"
+          variant="secondary"
+          @click="$emit('close')"
+          :disabled="loading"
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          :loading="loading"
+          :disabled="!canSubmit"
+          @click="handleSubmit"
+        >
+          <XMarkIcon class="w-4 h-4 mr-2" />
+          Cerrar Caja
+        </Button>
+      </div>
+    </template>
   </Modal>
 </template>
 
@@ -232,7 +233,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
-import ValidatedForm from '@/components/ValidatedForm.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useToast } from '@/composables/useToast'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
@@ -279,13 +279,17 @@ const arqueo = ref({
   otros: 0
 })
 
-// Validación
-const validationSchema = {
-  closing_amount: {
-    required: true,
-    min: 0,
-    message: 'El monto de cierre es requerido'
+// Validación simple
+const validateForm = () => {
+  let valid = true
+  if (formData.value.closing_amount === null || formData.value.closing_amount === undefined || formData.value.closing_amount === '') {
+    errors.value.closing_amount = 'El monto de cierre es requerido'
+    valid = false
+  } else if (formData.value.closing_amount < 0) {
+    errors.value.closing_amount = 'El monto no puede ser negativo'
+    valid = false
   }
+  return valid
 }
 
 // Computed
@@ -321,13 +325,18 @@ const calculateArqueoTotal = () => {
   formData.value.closing_amount = arqueoTotal.value
 }
 
-const handleSubmit = async (data) => {
+const handleSubmit = async () => {
   loading.value = true
   errors.value = {}
 
+  if (!validateForm()) {
+    loading.value = false
+    return
+  }
+
   try {
     const submitData = {
-      ...data,
+      ...formData.value,
       session_id: props.session?.id,
       arqueo: arqueo.value
     }
@@ -336,14 +345,14 @@ const handleSubmit = async (data) => {
 
     // Generar reporte PDF si está marcado
     if (formData.value.generate_report) {
-      await generateClosureReport(result.session_id)
+      await generateClosureReport(result.id || props.session?.id)
     }
 
     // Notificación de éxito
     toast.success(
       `Caja cerrada exitosamente\n` +
-      `Monto final: S/ ${data.closing_amount}\n` +
-      `Diferencia: S/ ${data.closing_amount - (props.session?.opening_amount || 0)}`,
+      `Monto final: S/ ${formData.value.closing_amount}\n` +
+      `Diferencia: S/ ${formData.value.closing_amount - (props.session?.opening_amount || 0)}`,
       {
         duration: 6000,
         title: '✓ Caja Cerrada'
