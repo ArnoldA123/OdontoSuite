@@ -22,6 +22,7 @@ class CashRegisterSession extends Model
         'closed_at',
         'opening_notes',
         'closing_notes',
+        'arqueo_data',
         'status'
     ];
 
@@ -31,7 +32,8 @@ class CashRegisterSession extends Model
         'expected_amount' => 'decimal:2',
         'difference_amount' => 'decimal:2',
         'opened_at' => 'datetime',
-        'closed_at' => 'datetime'
+        'closed_at' => 'datetime',
+        'arqueo_data' => 'array',
     ];
 
     // Relaciones

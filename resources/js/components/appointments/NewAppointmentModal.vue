@@ -7,7 +7,7 @@
     <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <div class="p-6 border-b border-theme">
         <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-theme-primary">Nueva Cita</h2>
+          <h2 class="text-xl font-semibold text-theme-primary">{{ modalTitle }}</h2>
           <button
             @click="closeModal"
             class="text-theme-secondary hover:text-theme-primary transition-colors"
@@ -108,9 +108,9 @@
             <UiButton
               type="button"
               :loading="creating"
-              @click="createAppointment"
+              @click="saveAppointment"
             >
-              Crear Cita
+              {{ submitButtonText }}
             </UiButton>
           </div>
         </form>
@@ -137,12 +137,16 @@ const props = defineProps({
   initialDate: {
     type: String,
     default: null
+  },
+  appointment: {
+    type: Object,
+    default: null
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'created'])
+const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
-const { get, post } = useApi()
+const { get, post, put } = useApi()
 const { transformPatients, transformProfessionals, transformAppointmentTypes, transformDentalChairs } = useOptionsTransform()
 const toast = useToast()
 const { channel, echo } = useEcho()
@@ -178,14 +182,49 @@ const statusOptions = computed(() => [
   { value: 'in_consultation', label: 'En Consulta' },
   { value: 'completed', label: 'Completada' },
   { value: 'cancelled', label: 'Cancelada' },
-  { value: 'no_show', label: 'No se presentó' }
+  { value: 'no_show', label: 'No se presentó' },
+  { value: 'rescheduled', label: 'Reprogramada' }
 ])
+
+const isEditMode = computed(() => !!props.appointment?.id)
+const modalTitle = computed(() => (isEditMode.value ? 'Editar Cita' : 'Nueva Cita'))
+const submitButtonText = computed(() => (isEditMode.value ? 'Guardar Cambios' : 'Crear Cita'))
+
+const toDatetimeLocal = (isoString) => {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  if (isNaN(d.getTime())) return ''
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+const populateFormFromAppointment = (appointment) => {
+  if (!appointment) return
+  form.value = {
+    patient_id: appointment.patient_id ?? appointment.patient?.id ?? '',
+    user_id: appointment.user_id ?? appointment.user?.id ?? '',
+    scheduled_at: toDatetimeLocal(appointment.scheduled_at),
+    duration_minutes: appointment.duration_minutes ?? null,
+    appointment_type_id: appointment.appointment_type_id ?? appointment.appointment_type?.id ?? '',
+    dental_chair_id: appointment.dental_chair_id ?? appointment.dental_chair?.id ?? '',
+    status: appointment.status || 'scheduled',
+    notes: appointment.notes || ''
+  }
+}
 
 const closeModal = () => {
   emit('update:modelValue', false)
 }
 
 const resetForm = () => {
+  if (props.appointment) {
+    populateFormFromAppointment(props.appointment)
+    return
+  }
   form.value = {
     patient_id: '',
     user_id: '',
@@ -250,7 +289,20 @@ const loadData = async () => {
   }
 }
 
-const createAppointment = async () => {
+const formatScheduledAtForApi = () => {
+  if (!form.value.scheduled_at) return null
+  const localDate = new Date(form.value.scheduled_at)
+  if (isNaN(localDate.getTime())) return null
+  const year = localDate.getFullYear()
+  const month = String(localDate.getMonth() + 1).padStart(2, '0')
+  const day = String(localDate.getDate()).padStart(2, '0')
+  const hours = String(localDate.getHours()).padStart(2, '0')
+  const minutes = String(localDate.getMinutes()).padStart(2, '0')
+  const seconds = String(localDate.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+}
+
+const saveAppointment = async () => {
   creating.value = true
   try {
     // Validaciones básicas en UI
@@ -285,71 +337,45 @@ const createAppointment = async () => {
       return
     }
 
-    // Asegurar que scheduled_at esté en formato ISO 8601
-    // El input datetime-local devuelve formato "YYYY-MM-DDTHH:mm" en hora local
-    // Necesitamos convertirlo a ISO 8601 manteniendo la hora local
-    let scheduledAtISO = null
-    if (form.value.scheduled_at) {
-      // El formato datetime-local es "YYYY-MM-DDTHH:mm" sin zona horaria
-      // Necesitamos agregar la zona horaria local para que Laravel la interprete correctamente
-      const localDateTime = form.value.scheduled_at
-      
-      // Crear un objeto Date desde el string local (el navegador lo interpreta como hora local)
-      const localDate = new Date(localDateTime)
-      
-      // Verificar que la fecha sea válida
-      if (isNaN(localDate.getTime())) {
-        toast.error('La fecha y hora seleccionada no es válida')
-        creating.value = false
-        return
-      }
-      
-      // Convertir a ISO string (esto incluye la zona horaria UTC)
-      // Pero Laravel debería interpretarla correctamente si está en formato ISO
-      scheduledAtISO = localDate.toISOString()
+    const scheduledAtISO = formatScheduledAtForApi()
+    if (!scheduledAtISO) {
+      toast.error('La fecha y hora seleccionada no es válida')
+      creating.value = false
+      return
     }
-    
+
     const appointmentData = {
       ...form.value,
       scheduled_at: scheduledAtISO
     }
-    
-    const now = new Date()
-    const scheduledDate = scheduledAtISO ? new Date(scheduledAtISO) : null
-    const isFuture = scheduledDate ? scheduledDate > now : false
-    const minutesDiff = scheduledDate ? Math.round((scheduledDate - now) / 60000) : null
-    
-    console.log('📤 Sending appointment data:', {
-      original: form.value.scheduled_at,
-      converted: appointmentData.scheduled_at,
-      now: now.toISOString(),
-      nowLocal: now.toLocaleString('es-PE', { timeZone: 'America/Lima' }),
-      scheduledLocal: scheduledDate ? scheduledDate.toLocaleString('es-PE', { timeZone: 'America/Lima' }) : null,
-      isFuture: isFuture,
-      minutesDifference: minutesDiff,
-      fullData: appointmentData
-    })
-    
-    // Validación adicional en el frontend antes de enviar
-    if (scheduledDate && minutesDiff < 1) {
-      toast.error(`La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`)
-      creating.value = false
-      return
+
+    if (!isEditMode.value) {
+      const now = new Date()
+      const scheduledDate = new Date(scheduledAtISO)
+      const minutesDiff = Math.round((scheduledDate - now) / 60000)
+      if (minutesDiff < 1) {
+        toast.error(`La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`)
+        creating.value = false
+        return
+      }
     }
-    
-    const response = await post('/api/appointments', appointmentData)
-    
-    toast.success('Cita creada exitosamente')
-    
-    // Emitir evento con los datos de la cita creada
-    emit('created', response?.data || form.value)
-    
-    // Resetear formulario y cerrar modal
+
+    let response
+    if (isEditMode.value) {
+      response = await put(`/api/appointments/${props.appointment.id}`, appointmentData)
+      toast.success('Cita actualizada exitosamente')
+      emit('updated', response?.data || form.value)
+    } else {
+      response = await post('/api/appointments', appointmentData)
+      toast.success('Cita creada exitosamente')
+      emit('created', response?.data || form.value)
+    }
+
     resetForm()
     closeModal()
   } catch (error) {
-    console.error('Error creating appointment:', error)
-    const errorMessage = error?.response?.data?.message || 'Error al crear la cita'
+    console.error('Error saving appointment:', error)
+    const errorMessage = error?.response?.data?.message || (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
     const errors = error?.response?.data?.errors
     if (errors) {
       const errorMessages = Object.values(errors).flat()
@@ -367,6 +393,12 @@ watch(() => props.modelValue, (isOpen) => {
   if (isOpen) {
     resetForm()
     loadData()
+  }
+})
+
+watch(() => props.appointment, () => {
+  if (props.modelValue && props.appointment) {
+    populateFormFromAppointment(props.appointment)
   }
 })
 

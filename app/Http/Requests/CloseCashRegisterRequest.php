@@ -112,14 +112,6 @@ class CloseCashRegisterRequest extends FormRequest
                 $session = CashRegisterSession::find($sessionId);
 
                 if ($session) {
-                    // Check if session belongs to current user
-                    if ($session->user_id !== Auth::id() && Auth::user()->role !== 'administrador') {
-                        $validator->errors()->add(
-                            'session',
-                            'No tienes permisos para cerrar esta sesión de caja.'
-                        );
-                    }
-
                     // Check if session is open
                     if ($session->status !== 'open') {
                         $validator->errors()->add(

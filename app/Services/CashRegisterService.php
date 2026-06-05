@@ -21,6 +21,12 @@ class CashRegisterService
      */
     public function openSession(array $data): CashRegisterSession
     {
+        if (!$this->userCanManageCashRegister()) {
+            throw ValidationException::withMessages([
+                'session' => ['No tienes permisos para abrir sesiones de caja.'],
+            ]);
+        }
+
         $this->validateOpenSession($data);
 
         // Check if there's already an open session for this user/branch
@@ -84,9 +90,9 @@ class CashRegisterService
             ]);
         }
 
-        if ($session->user_id !== Auth::id()) {
+        if (!$this->userCanManageCashRegister()) {
             throw ValidationException::withMessages([
-                'session' => ['No tienes permisos para cerrar esta sesión de caja.'],
+                'session' => ['No tienes permisos para cerrar sesiones de caja.'],
             ]);
         }
 
@@ -104,6 +110,7 @@ class CashRegisterService
                 'difference_amount' => $difference,
                 'closed_at' => now(),
                 'closing_notes' => $data['closing_notes'] ?? null,
+                'arqueo_data' => $data['arqueo'] ?? null,
                 'status' => 'closed'
             ]);
 
@@ -111,7 +118,7 @@ class CashRegisterService
             CashMovement::create([
                 'cash_register_session_id' => $session->id,
                 'created_by' => Auth::id(),
-                'type' => 'closing',
+                'type' => 'adjustment',
                 'amount' => $data['closing_amount'],
                 'description' => 'Cierre de caja',
                 'notes' => $data['closing_notes'] ?? null,
@@ -132,14 +139,22 @@ class CashRegisterService
         }
     }
 
-    /**
-     * Get current open session
-     */
-    public function getCurrentSession(): ?CashRegisterSession
+    public function getCurrentSession(?int $branchId = null): ?CashRegisterSession
     {
-        return CashRegisterSession::where('user_id', Auth::id())
-            ->where('status', 'open')
-            ->with(['user', 'branch', 'movements'])
+        $query = CashRegisterSession::where('status', 'open');
+
+        if (!$this->userCanManageCashRegister()) {
+            $query->where('user_id', Auth::id());
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        } elseif (Auth::user()?->branch_id) {
+            $query->where('branch_id', Auth::user()->branch_id);
+        }
+
+        return $query->with(['user', 'branch', 'movements'])
+            ->latest('opened_at')
             ->first();
     }
 
@@ -267,34 +282,34 @@ class CashRegisterService
     }
 
     /**
-     * Calculate expected amount for closing
+     * Calculate expected amount for closing.
+     * Uses cash movements only (transactions already create movements via TransactionService).
      */
     private function calculateExpectedAmount(CashRegisterSession $session): float
     {
-        $openingAmount = $session->opening_amount;
+        $openingAmount = (float) $session->opening_amount;
 
-        $incomeMovements = $session->movements()
+        $incomeMovements = (float) $session->movements()
             ->where('type', 'income')
             ->sum('amount');
 
-        $expenseMovements = $session->movements()
+        $expenseMovements = (float) $session->movements()
             ->where('type', 'expense')
             ->sum('amount');
 
-        $transactions = Transaction::where('cash_register_session_id', $session->id)
-            ->where('status', 'completed')
-            ->get();
+        $withdrawalMovements = (float) $session->movements()
+            ->where('type', 'withdrawal')
+            ->sum('amount');
 
-        // Buscar tanto 'payment' como 'income' para compatibilidad
-        $incomeTransactions = $transactions->filter(function($t) {
-            return in_array($t->type, ['payment', 'income']);
-        })->sum('amount');
-        
-        $expenseTransactions = $transactions->filter(function($t) {
-            return in_array($t->type, ['refund', 'expense']);
-        })->sum('amount');
+        return round($openingAmount + $incomeMovements - $expenseMovements - $withdrawalMovements, 2);
+    }
 
-        return $openingAmount + $incomeMovements + $incomeTransactions - $expenseMovements - $expenseTransactions;
+    /**
+     * Only administrador and finanzas may open or close cash register sessions.
+     */
+    private function userCanManageCashRegister(): bool
+    {
+        return in_array(Auth::user()?->role, ['administrador', 'finanzas'], true);
     }
 
     /**

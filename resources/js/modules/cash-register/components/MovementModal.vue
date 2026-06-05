@@ -1,14 +1,13 @@
 <template>
   <Modal
-    :show="show"
+    :model-value="show"
     title="Registrar Movimiento de Caja"
     size="md"
+    @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <ValidatedForm
-      ref="form"
-      :schema="validationSchema"
-      @submit="handleSubmit"
+    <form
+      @submit.prevent="handleSubmit"
     >
       <div class="space-y-4">
         <!-- Tipo de Movimiento -->
@@ -110,28 +109,30 @@
         </div>
       </div>
 
-      <template #footer>
-        <div class="flex justify-end space-x-3">
-          <Button
-            type="button"
-            variant="secondary"
-            @click="$emit('close')"
-            :disabled="loading"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            :loading="loading"
-            :disabled="!canSubmit"
-          >
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Registrar Movimiento
-          </Button>
-        </div>
-      </template>
-    </ValidatedForm>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end space-x-3">
+        <Button
+          type="button"
+          variant="secondary"
+          @click="$emit('close')"
+          :disabled="loading"
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="submit"
+          variant="primary"
+          :loading="loading"
+          :disabled="!canSubmit"
+          @click="handleSubmit"
+        >
+          <PlusIcon class="w-4 h-4 mr-2" />
+          Registrar Movimiento
+        </Button>
+      </div>
+    </template>
   </Modal>
 </template>
 
@@ -140,7 +141,6 @@ import { ref, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
-import ValidatedForm from '@/components/ValidatedForm.vue'
 import { useApi } from '@/composables/useApi'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 
@@ -172,21 +172,22 @@ const formData = ref({
   notes: ''
 })
 
-// Validación
-const validationSchema = {
-  type: {
-    required: true,
-    message: 'El tipo de movimiento es requerido'
-  },
-  amount: {
-    required: true,
-    min: 0.01,
-    message: 'El monto debe ser mayor a 0'
-  },
-  description: {
-    required: true,
-    message: 'La descripción es requerida'
+// Validación simple
+const validateForm = () => {
+  let valid = true
+  if (!formData.value.type) {
+    errors.value.type = 'El tipo de movimiento es requerido'
+    valid = false
   }
+  if (!formData.value.amount || formData.value.amount <= 0) {
+    errors.value.amount = 'El monto debe ser mayor a 0'
+    valid = false
+  }
+  if (!formData.value.description) {
+    errors.value.description = 'La descripción es requerida'
+    valid = false
+  }
+  return valid
 }
 
 // Computed
@@ -203,13 +204,18 @@ const inputClasses = computed(() => {
 })
 
 // Métodos
-const handleSubmit = async (data) => {
+const handleSubmit = async () => {
   loading.value = true
   errors.value = {}
 
+  if (!validateForm()) {
+    loading.value = false
+    return
+  }
+
   try {
     const submitData = {
-      ...data,
+      ...formData.value,
       cash_register_session_id: props.session?.id
     }
 

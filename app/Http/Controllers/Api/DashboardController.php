@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\User;
@@ -132,7 +133,7 @@ class DashboardController extends Controller
         });
 
         return response()->json([
-            'data' => $appointments,
+            'data' => AppointmentResource::collection($appointments),
             'meta' => [
                 'date' => $today->toDateString(),
                 'count' => $appointments->count(),
@@ -158,7 +159,7 @@ class DashboardController extends Controller
         });
 
         return response()->json([
-            'data' => $appointments,
+            'data' => AppointmentResource::collection($appointments),
             'meta' => [
                 'period' => 'this_week',
                 'count' => $appointments->count(),

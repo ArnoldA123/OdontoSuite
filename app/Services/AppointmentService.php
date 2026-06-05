@@ -41,8 +41,8 @@ class AppointmentService
 
             Log::info('AppointmentService::createAppointment - Data validated');
 
-            // Parse scheduled_at
-            $scheduledAt = Carbon::parse($data['scheduled_at']);
+            // Parse scheduled_at y convertir a timezone de la aplicación
+            $scheduledAt = Carbon::parse($data['scheduled_at'])->setTimezone(config('app.timezone'));
             $duration = $data['duration_minutes'] ?? 60;
 
             Log::info('AppointmentService::createAppointment - Checking conflicts', [
@@ -170,7 +170,7 @@ class AppointmentService
 
         // Check for conflicts if time is being changed
         if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
-            $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at);
+            $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
             $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
             $userId = $data['user_id'] ?? $appointment->user_id;
             $chairId = $data['dental_chair_id'] ?? $appointment->dental_chair_id;
@@ -202,7 +202,7 @@ class AppointmentService
         try {
             // Update ends_at if scheduled_at or duration changed
             if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
-                $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at);
+                $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
                 $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
                 $data['ends_at'] = $scheduledAt->copy()->addMinutes($duration);
             }
@@ -515,13 +515,13 @@ class AppointmentService
             ->orderBy('scheduled_at')
             ->get();
 
-        // Get blocks for the day
+        $dayStart = $date->copy()->startOfDay();
+        $dayEnd = $date->copy()->endOfDay();
+
         $blocks = AppointmentBlock::where('user_id', $userId)
             ->where('is_active', true)
-            ->where(function ($query) use ($date) {
-                $query->where('start_date', '<=', $date->toDateString())
-                      ->where('end_date', '>=', $date->toDateString());
-            })
+            ->where('starts_at', '<=', $dayEnd)
+            ->where('ends_at', '>=', $dayStart)
             ->get();
 
         $currentTime = $startTime->copy();
@@ -535,14 +535,7 @@ class AppointmentService
 
             // Check if slot conflicts with blocks
             $hasBlock = $blocks->some(function ($block) use ($currentTime, $slotEnd) {
-                if ($block->is_all_day) {
-                    return true;
-                }
-
-                $blockStart = $currentTime->copy()->setTimeFromTimeString($block->start_time->format('H:i'));
-                $blockEnd = $currentTime->copy()->setTimeFromTimeString($block->end_time->format('H:i'));
-
-                return $currentTime->lt($blockEnd) && $slotEnd->gt($blockStart);
+                return $block->conflictsWith($currentTime, $slotEnd);
             });
 
             if (!$hasConflict && !$hasBlock) {
@@ -569,8 +562,9 @@ class AppointmentService
             'user_id' => 'required|exists:users,id',
             'dental_chair_id' => 'required|exists:dental_chairs,id',
             'appointment_type_id' => 'required|exists:appointment_types,id',
-            'scheduled_at' => 'required|date|after:now',
+            'scheduled_at' => 'required|date',
             'duration_minutes' => 'nullable|integer|min:15|max:480',
+            'status' => 'sometimes|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show',
             'notes' => 'nullable|string|max:1000',
         ];
 

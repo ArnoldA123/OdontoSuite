@@ -14,6 +14,7 @@ use App\Models\DentalChair;
 use App\Models\AppointmentType;
 use App\Models\AuditLog;
 use App\Services\AppointmentService;
+use App\Http\Resources\AppointmentResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -52,12 +53,13 @@ class AppointmentController extends Controller
             'status',
             'notes',
             'treatment_notes',
+            'idempotency_key',
             'created_by',
             'updated_by',
             'created_at',
             'updated_at'
         ])->with([
-            'patient:id,first_name,last_name,email,phone',
+            'patient:id,first_name,last_name,document_number,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
             'appointmentType:id,name,default_duration_minutes,price,color'
@@ -144,7 +146,7 @@ class AppointmentController extends Controller
         }
 
         return response()->json([
-            'data' => $items,
+            'data' => AppointmentResource::collection($items),
             'meta' => [
                 'current_page' => $appointments->currentPage(),
                 'last_page' => $appointments->lastPage(),
@@ -166,6 +168,7 @@ class AppointmentController extends Controller
             'appointment_type_id' => 'required|exists:appointment_types,id',
             'scheduled_at' => 'required|date|after:now',
             'duration_minutes' => 'required|integer|min:15|max:480',
+            'status' => 'sometimes|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
             'idempotency_key' => 'nullable|string|max:255',
         ]);
@@ -225,7 +228,7 @@ class AppointmentController extends Controller
             }
 
             return response()->json([
-                'data' => $appointment,
+                'data' => new AppointmentResource($appointment),
                 'meta' => [
                     'message' => 'Cita creada exitosamente',
                 ],
@@ -281,7 +284,7 @@ class AppointmentController extends Controller
         ]);
 
         return response()->json([
-            'data' => $appointment,
+            'data' => new AppointmentResource($appointment),
         ]);
     }
 
@@ -306,7 +309,7 @@ class AppointmentController extends Controller
             'appointment_type_id' => 'sometimes|required|exists:appointment_types,id',
             'scheduled_at' => 'sometimes|required|date',
             'duration_minutes' => 'sometimes|required|integer|min:15|max:480',
-            'status' => 'sometimes|required|in:scheduled,confirmed,cancelled,completed,no_show,in_consultation',
+            'status' => 'sometimes|required|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
             'treatment_notes' => 'nullable|string|max:2000',
         ]);
@@ -348,7 +351,7 @@ class AppointmentController extends Controller
             ClearDashboardCache::handle();
 
             return response()->json([
-                'data' => $appointment,
+                'data' => new AppointmentResource($appointment),
                 'meta' => [
                     'message' => 'Cita actualizada exitosamente',
                 ],
@@ -378,7 +381,7 @@ class AppointmentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Appointment $appointment): JsonResponse
+    public function destroy(Request $request, Appointment $appointment): JsonResponse
     {
         DB::beginTransaction();
         try {
@@ -425,7 +428,7 @@ class AppointmentController extends Controller
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|in:scheduled,confirmed,cancelled,completed,no_show,in_consultation',
+            'status' => 'required|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
         ]);
 

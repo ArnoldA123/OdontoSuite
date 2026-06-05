@@ -48,8 +48,7 @@ class CashRegisterPolicy
      */
     public function close(User $user, CashRegisterSession $cashRegisterSession): bool
     {
-        return in_array($user->role, ['administrador', 'finanzas']) &&
-               ($user->role === 'administrador' || $cashRegisterSession->user_id === $user->id);
+        return in_array($user->role, ['administrador', 'finanzas']);
     }
 
     /**

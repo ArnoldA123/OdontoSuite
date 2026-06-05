@@ -50,16 +50,8 @@ class DashboardService
      */
     public function clearCache(): void
     {
-        // Clear all dashboard cache entries
-        // Since we use a pattern 'dashboard_data_*', we need to clear all matching keys
-        // For simplicity, we'll use Cache::flush() or a more targeted approach
-        // Using tags if available, otherwise we'll need to track keys
-        
-        // Simple approach: clear all cache (can be optimized later with cache tags)
-        Cache::flush();
-        
-        // Alternative: If using cache tags (Redis/Memcached)
-        // Cache::tags(['dashboard'])->flush();
+        // Las entradas dashboard_data_* expiran por TTL (300s).
+        // No usar Cache::flush() para no invalidar caché ajena a reportes.
     }
 
     /**

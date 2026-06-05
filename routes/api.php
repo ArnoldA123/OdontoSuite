@@ -214,6 +214,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Citas (todos los roles excepto finanzas)
     Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente')->group(function () {
+        Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
         Route::apiResource('appointments', AppointmentController::class);
         Route::apiResource('dental-chairs', DentalChairController::class);
         Route::apiResource('appointment-types', AppointmentTypeController::class);
@@ -308,6 +309,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'openSession']);
         Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'closeSession']);
         Route::get('cash-register-sessions/active', [CashRegisterController::class, 'getActiveSession']);
+        Route::get('cash-register-sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
 
         // Reportes de caja
         Route::get('cash-reports/daily', [CashReportController::class, 'dailyReport']);
@@ -322,6 +324,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('cash-register/current', [CashRegisterController::class, 'current']);
         Route::get('cash-register/sessions', [CashRegisterController::class, 'index']);
         Route::post('cash-register/open', [CashRegisterController::class, 'open']);
+        Route::post('cash-register/close', [CashRegisterController::class, 'close']);
         Route::get('cash-register/sessions/{id}/movements', [CashRegisterController::class, 'movements']);
     });
 
