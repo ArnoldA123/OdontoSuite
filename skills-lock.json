@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "comment": "Curated subset of autoskills.sh registry. Installed via 'pnpm dlx autoskills -y' on 2026-06-06, then manually trimmed. See AGENTS.md §15 for rationale and .agents/skills.disabled/ for excluded skills.",
+  "tool": "pnpm dlx autoskills",
+  "tool_version": "0.3.6",
+  "installed_at": "2026-06-06",
+  "registry": "autoskills-registry",
+  "skills": {
+    "vue": {
+      "source": "antfu/skills",
+      "sourceType": "autoskills-registry",
+      "scope": "frontend",
+      "applies_to": "Vue 3 Composition API, <script setup>, reactivity, composables",
+      "path": ".agents/skills/vue/SKILL.md"
+    },
+    "vue-best-practices": {
+      "source": "antfu/skills",
+      "sourceType": "autoskills-registry",
+      "scope": "frontend",
+      "applies_to": "Vue 3 patterns, component design, animation, async components, props/emit",
+      "path": ".agents/skills/vue-best-practices/SKILL.md"
+    },
+    "vue-debug-guides": {
+      "source": "hyf0/vue-skills",
+      "sourceType": "autoskills-registry",
+      "scope": "frontend",
+      "applies_to": "Vue 3 debugging, reactivity issues, devtools, performance",
+      "path": ".agents/skills/vue-debug-guides/SKILL.md"
+    },
+    "tailwind-css-patterns": {
+      "source": "giuseppe-trisciuoglio/developer-kit",
+      "sourceType": "autoskills-registry",
+      "scope": "styling",
+      "applies_to": "Tailwind 3, design system, responsive, accessibility, animations",
+      "path": ".agents/skills/tailwind-css-patterns/SKILL.md"
+    },
+    "vite": {
+      "source": "antfu/skills",
+      "sourceType": "autoskills-registry",
+      "scope": "build",
+      "applies_to": "Vite 5+, build config, plugin API, HMR, SSR",
+      "path": ".agents/skills/vite/SKILL.md"
+    },
+    "laravel-specialist": {
+      "source": "jeffallan/claude-skills",
+      "sourceType": "autoskills-registry",
+      "scope": "backend",
+      "applies_to": "Laravel 10+, Eloquent, Sanctum, queues, Livewire, testing, API resources",
+      "path": ".agents/skills/laravel-specialist/SKILL.md"
+    },
+    "laravel-patterns": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "autoskills-registry",
+      "scope": "backend",
+      "applies_to": "Laravel patterns, services, repositories, jobs, events, controllers",
+      "path": ".agents/skills/laravel-patterns/SKILL.md"
+    }
+  },
+  "excluded": {
+    "nodejs-backend-patterns": "Backend is PHP, not Node.js. Mavis global already has equivalent.",
+    "nodejs-best-practices": "Same as above.",
+    "seo": "Internal dental system, not a public site.",
+    "php-pro": "Security warning from autoskills (embedded secrets, broad shell commands). Mavis global has 'php-pro' and 'laravel-expert' as safer alternatives.",
+    "frontend-design": "Already exists in Mavis global (C:\\Users\\chomb\\.agents\\skills\\frontend-design).",
+    "accessibility": "Already covered by Mavis global 'accessibility-compliance-accessibility-audit' + 'fixing-accessibility'.",
+    "format-claude": "Duplicate of .agents/ in Claude Code format. Mavis uses .agents/ format.",
+    "format-codebuddy": "Duplicate of .agents/ in Codebuddy format. Mavis uses .agents/ format."
+  }
+}
