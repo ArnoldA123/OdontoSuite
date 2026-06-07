@@ -33,7 +33,8 @@ class TreatmentPlanItem extends Model
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'requires_anesthesia' => 'boolean',
-        'is_optional' => 'boolean'
+        'is_optional' => 'boolean',
+        'materials_required' => 'array',
     ];
 
     // Relaciones
@@ -56,5 +57,30 @@ class TreatmentPlanItem extends Model
     public function scopeByPhase($query, $phase)
     {
         return $query->where('phase_number', $phase);
+    }
+
+    public function procedureMaterials(): HasMany
+    {
+        return $this->hasMany(ProcedureMaterial::class, 'treatment_plan_item_id');
+    }
+
+    /**
+     * Devuelve los materiales requeridos declarados en el JSON del item.
+     *
+     * @return array<int, string>
+     */
+    public function requiredMaterialsList(): array
+    {
+        $raw = $this->materials_required;
+
+        if (is_array($raw)) {
+            return array_values(array_filter($raw, fn ($v) => is_string($v) && $v !== ''));
+        }
+
+        if (is_string($raw) && $raw !== '') {
+            return array_values(array_filter(array_map('trim', preg_split('/[,;\n]/', $raw))));
+        }
+
+        return [];
     }
 }

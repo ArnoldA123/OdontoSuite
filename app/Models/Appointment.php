@@ -25,6 +25,11 @@ class Appointment extends Model
         'notes',
         'treatment_notes',
         'idempotency_key',
+        'treatment_plan_id',
+        'final_amount',
+        'consultation_mode',
+        'checked_in_at',
+        'completed_at',
         'created_by',
         'updated_by',
     ];
@@ -32,6 +37,9 @@ class Appointment extends Model
     protected $casts = [
         'scheduled_at' => 'datetime',
         'ends_at' => 'datetime',
+        'checked_in_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'final_amount' => 'decimal:2',
     ];
 
     /**
@@ -171,5 +179,53 @@ class Appointment extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Plan de tratamiento creado o avanzado en esta cita.
+     */
+    public function treatmentPlan(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlan::class);
+    }
+
+    /**
+     * Evoluciones clínicas asociadas a esta cita.
+     */
+    public function clinicalEvolutions(): HasMany
+    {
+        return $this->hasMany(ClinicalEvolution::class);
+    }
+
+    /**
+     * Materiales consumidos durante esta cita.
+     */
+    public function procedureMaterials(): HasMany
+    {
+        return $this->hasMany(ProcedureMaterial::class);
+    }
+
+    /**
+     * Registros de odontograma hechos durante esta cita.
+     */
+    public function odontogramRecords(): HasMany
+    {
+        return $this->hasMany(OdontogramRecord::class);
+    }
+
+    /**
+     * ¿La cita está en modo consulta clínica (atendiendo)?
+     */
+    public function isInConsultation(): bool
+    {
+        return $this->status === 'in_consultation';
+    }
+
+    /**
+     * ¿La cita ya fue completada y cerrada?
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
     }
 }
