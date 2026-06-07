@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\PendingPaymentsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\OdontogramController;
+use App\Http\Controllers\Api\ConsultationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -245,6 +246,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('odontograms/{odontogram}/records', [OdontogramController::class, 'addRecord']);
         Route::put('odontograms/records/{record}', [OdontogramController::class, 'updateRecord']);
         Route::delete('odontograms/records/{record}', [OdontogramController::class, 'deleteRecord']);
+
+        // Flujo de consulta (post check-in)
+        Route::get('appointments/{appointment}/consultation-context', [ConsultationController::class, 'context']);
+        Route::post('appointments/{appointment}/check-in', [ConsultationController::class, 'checkIn']);
+        Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete']);
     });
 
     // Sucursales (solo administrador)

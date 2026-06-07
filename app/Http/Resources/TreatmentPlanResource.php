@@ -7,65 +7,39 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class TreatmentPlanResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'patient_id' => $this->patient_id,
+            'origin_appointment_id' => $this->origin_appointment_id,
+            'plan_number' => $this->plan_number,
             'title' => $this->title,
             'description' => $this->description,
             'status' => $this->status,
+            'total_cost' => (float) $this->total_cost,
+            'discount_amount' => (float) ($this->discount_amount ?? 0),
+            'final_cost' => (float) $this->final_cost,
             'estimated_duration_weeks' => $this->estimated_duration_weeks,
-            'start_date' => $this->start_date?->format('Y-m-d'),
-            'end_date' => $this->end_date?->format('Y-m-d'),
-            'total_cost' => $this->total_cost,
+            'start_date' => $this->start_date?->toDateString(),
+            'end_date' => $this->end_date?->toDateString(),
+            'last_activity_at' => $this->last_activity_at?->toIso8601String(),
             'notes' => $this->notes,
             'patient_notes' => $this->patient_notes,
-            'phases' => $this->phases,
-            'requires_anesthesia' => $this->requires_anesthesia,
-            'is_urgent' => $this->is_urgent,
-            'created_by' => $this->created_by,
-            'created_at' => $this->created_at?->toISOString(),
-            'updated_at' => $this->updated_at?->toISOString(),
-            
-            // Relaciones condicionales
-            'patient' => $this->whenLoaded('patient', function () {
-                return [
-                    'id' => $this->patient->id,
-                    'first_name' => $this->patient->first_name,
-                    'last_name' => $this->patient->last_name,
-                    'full_name' => $this->patient->full_name,
-                ];
-            }),
-            'items' => $this->whenLoaded('items', function () {
-                return $this->items->map(function ($item) {
-                    return [
-                        'id' => $item->id,
-                        'description' => $item->description,
-                        'quantity' => $item->quantity,
-                        'unit_price' => $item->unit_price,
-                        'subtotal' => $item->subtotal,
-                        'category' => $item->category,
-                        'dental_piece' => $item->dentalPiece ? [
-                            'id' => $item->dentalPiece->id,
-                            'fdi_number' => $item->dentalPiece->fdi_number,
-                            'name' => $item->dentalPiece->name,
-                        ] : null,
-                    ];
-                });
-            }),
-            'created_by_user' => $this->whenLoaded('createdBy', function () {
-                return [
-                    'id' => $this->createdBy->id,
-                    'name' => $this->createdBy->name,
-                ];
-            }),
+            'progress' => $this->progressMetrics(),
+            'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($i) => [
+                'id' => $i->id,
+                'procedure_name' => $i->procedure_name,
+                'dental_piece_id' => $i->dental_piece_id,
+                'specialty' => $i->specialty,
+                'unit_cost' => (float) $i->unit_cost,
+                'total_cost' => (float) $i->total_cost,
+                'phase_number' => $i->phase_number,
+                'status' => $i->status,
+                'materials_required' => $i->requiredMaterialsList(),
+            ])),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }
-

@@ -389,12 +389,20 @@
               Confirmar
             </UiButton>
             <UiButton
-              v-if="selectedAppointment.status === 'confirmed'"
+              v-if="selectedAppointment.status === 'confirmed' || selectedAppointment.status === 'scheduled'"
               size="sm"
               variant="secondary"
-              @click="changeStatus(selectedAppointment, 'in_consultation')"
+              @click="startConsultation(selectedAppointment)"
             >
               Iniciar Consulta
+            </UiButton>
+            <UiButton
+              v-if="selectedAppointment.status === 'in_consultation'"
+              size="sm"
+              variant="secondary"
+              @click="openConsultationWizard(selectedAppointment)"
+            >
+              Completar Consulta
             </UiButton>
             <UiButton
               v-if="selectedAppointment.status === 'in_consultation'"
@@ -437,10 +445,12 @@
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
-      :appointment="editingAppointment"
-      :initial-date="getInitialDateForModal()"
-      @created="handleAppointmentSaved"
-      @updated="handleAppointmentSaved"
+    />
+
+    <ConsultationWizard
+      :appointment="wizardAppointment"
+      @completed="onConsultationCompleted"
+      @close="wizardAppointment = null"
     />
   </AppLayout>
 </template>
@@ -458,6 +468,8 @@ import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
+import ConsultationWizard from './ConsultationWizard.vue'
+import { useConsultation } from '../../composables/useConsultation'
 
 export default {
   name: 'CalendarPage',
@@ -467,7 +479,8 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
-    NewAppointmentModal
+    NewAppointmentModal,
+    ConsultationWizard
   },
   setup() {
     const router = useRouter()
@@ -484,6 +497,28 @@ export default {
     const appointments = ref([])
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
+    const wizardAppointment = ref(null)
+    const { checkIn } = useConsultation()
+
+    const startConsultation = async (appointment) => {
+      try {
+        await checkIn(appointment)
+        await loadAppointments()
+        selectedAppointment.value = null
+      } catch (e) {
+        // toast ya se mostró en el composable
+      }
+    }
+
+    const openConsultationWizard = async (appointment) => {
+      wizardAppointment.value = appointment
+      selectedAppointment.value = null
+    }
+
+    const onConsultationCompleted = async (appointment) => {
+      wizardAppointment.value = null
+      await loadAppointments()
+    }
     const editingAppointment = ref(null)
 
     const toLocalDateString = (date) => {
