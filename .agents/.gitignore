@@ -1,0 +1,3 @@
+# Directorios de skills deshabilitadas (no aplican o duplicadas con Mavis global).
+# Restaurables: Move-Item .agents/skills.disabled/<nombre> .agents/skills/
+/skills.disabled/
