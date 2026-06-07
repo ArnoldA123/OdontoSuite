@@ -27,6 +27,11 @@ class AppointmentResource extends JsonResource
             'notes' => $this->notes,
             'treatment_notes' => $this->treatment_notes,
             'idempotency_key' => $this->idempotency_key,
+            'treatment_plan_id' => $this->treatment_plan_id,
+            'final_amount' => $this->final_amount !== null ? (float) $this->final_amount : null,
+            'consultation_mode' => $this->consultation_mode,
+            'checked_in_at' => $this->checked_in_at?->toIso8601String(),
+            'completed_at' => $this->completed_at?->toIso8601String(),
             'has_payment' => $this->when(
                 $this->relationLoaded('transactions'),
                 fn() => $this->transactions()
@@ -72,6 +77,17 @@ class AppointmentResource extends JsonResource
                     'default_duration_minutes' => $this->appointmentType->default_duration_minutes,
                     'price' => $this->appointmentType->price,
                     'color' => $this->appointmentType->color,
+                    'requires_materials' => (bool) $this->appointmentType->requires_materials,
+                    'is_consultation_mode' => (bool) $this->appointmentType->is_consultation_mode,
+                ];
+            }),
+            'treatment_plan' => $this->whenLoaded('treatmentPlan', function () {
+                return [
+                    'id' => $this->treatmentPlan->id,
+                    'plan_number' => $this->treatmentPlan->plan_number,
+                    'title' => $this->treatmentPlan->title,
+                    'status' => $this->treatmentPlan->status,
+                    'progress' => $this->treatmentPlan->progressMetrics(),
                 ];
             }),
             'created_by_user' => $this->whenLoaded('createdBy', function () {

@@ -12,6 +12,7 @@ class ProcedureMaterial extends Model
 
     protected $fillable = [
         'appointment_id',
+        'treatment_plan_item_id',
         'product_id',
         'created_by',
         'quantity_used',
@@ -42,5 +43,21 @@ class ProcedureMaterial extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function treatmentPlanItem(): BelongsTo
+    {
+        return $this->belongsTo(TreatmentPlanItem::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (ProcedureMaterial $material) {
+            $qty = (float) $material->quantity_used;
+            $cost = (float) $material->unit_cost;
+            if (empty($material->total_cost) && $qty > 0 && $cost > 0) {
+                $material->total_cost = round($qty * $cost, 2);
+            }
+        });
     }
 }
