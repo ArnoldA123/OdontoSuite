@@ -19,12 +19,16 @@ class AppointmentType extends Model
         'color',
         'requires_confirmation',
         'is_active',
+        'requires_materials',
+        'is_consultation_mode',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'requires_confirmation' => 'boolean',
         'is_active' => 'boolean',
+        'requires_materials' => 'boolean',
+        'is_consultation_mode' => 'boolean',
     ];
 
     /**

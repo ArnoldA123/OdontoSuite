@@ -13,6 +13,7 @@ class TreatmentPlan extends Model
 
     protected $fillable = [
         'patient_id',
+        'origin_appointment_id',
         'created_by',
         'plan_number',
         'title',
@@ -24,6 +25,7 @@ class TreatmentPlan extends Model
         'estimated_duration_weeks',
         'start_date',
         'end_date',
+        'last_activity_at',
         'notes',
         'patient_notes',
         'phases',
@@ -36,7 +38,8 @@ class TreatmentPlan extends Model
         'requires_anesthesia' => 'boolean',
         'is_urgent' => 'boolean',
         'start_date' => 'date',
-        'end_date' => 'date'
+        'end_date' => 'date',
+        'last_activity_at' => 'datetime',
     ];
 
     // Relaciones
@@ -63,6 +66,51 @@ class TreatmentPlan extends Model
     public function paymentPlans(): HasMany
     {
         return $this->hasMany(PaymentPlan::class);
+    }
+
+    public function originAppointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class, 'origin_appointment_id');
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * Métricas de progreso del plan (derivadas, no se persisten).
+     *
+     * @return array<string, mixed>
+     */
+    public function progressMetrics(): array
+    {
+        $items = $this->items;
+
+        $total = $items->count();
+        $completed = $items->where('status', 'completed')->count();
+        $inProgress = $items->where('status', 'in_progress')->count();
+        $pending = $items->whereIn('status', ['pending', 'proposed'])->count();
+        $cancelled = $items->where('status', 'cancelled')->count();
+
+        $progressPct = $total > 0
+            ? (int) round((($completed + ($inProgress * 0.5)) / $total) * 100)
+            : 0;
+
+        $completedCost = $items->where('status', 'completed')->sum(fn ($i) => (float) $i->total_cost);
+        $pendingCost = $items->whereIn('status', ['pending', 'in_progress'])->sum(fn ($i) => (float) $i->total_cost);
+
+        return [
+            'total_items' => $total,
+            'completed_items' => $completed,
+            'in_progress_items' => $inProgress,
+            'pending_items' => $pending,
+            'cancelled_items' => $cancelled,
+            'progress_percentage' => $progressPct,
+            'completed_cost' => round($completedCost, 2),
+            'remaining_cost' => round($pendingCost, 2),
+            'last_activity_at' => $this->last_activity_at?->toIso8601String(),
+        ];
     }
 
     // Scopes
