@@ -103,6 +103,9 @@ export function useConsultation() {
       }
 
       toast.success('Consulta completada')
+      if (data?.meta?.quotation_generated && data?.quotation) {
+        toast.success(`Cotización ${data.quotation.quotation_number} generada automáticamente`)
+      }
       return data
     } catch (error) {
       console.error('Error completing consultation:', error)

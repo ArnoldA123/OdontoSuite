@@ -515,8 +515,11 @@ export default {
       selectedAppointment.value = null
     }
 
-    const onConsultationCompleted = async (appointment) => {
+    const onConsultationCompleted = async (payload) => {
       wizardAppointment.value = null
+      if (payload?.quotation_generated && payload?.quotation) {
+        toast.info(`Cotización ${payload.quotation.quotation_number} lista en /quotations`, 6000)
+      }
       await loadAppointments()
     }
     const editingAppointment = ref(null)
