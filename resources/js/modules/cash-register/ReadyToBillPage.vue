@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 
