@@ -275,28 +275,58 @@ class PatientController extends Controller
     }
 
     /**
-     * Search patients by name or email.
+     * Search patients by name, document, email or phone.
+     * Acepta tanto ?q= como ?search= para compatibilidad.
      */
     public function search(Request $request): JsonResponse
     {
+        $term = $request->get('q') ?? $request->get('search');
+
+        $request->merge(['search' => $term]);
+
         $request->validate([
             'search' => 'required|string|min:2',
+        ], [
+            'search.required' => 'Debes escribir al menos 2 caracteres',
+            'search.min' => 'Mínimo 2 caracteres para buscar',
         ]);
 
-        $patients = Patient::where(function ($query) use ($request) {
-            $search = $request->get('search');
-            $query->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('document_number', 'like', "%{$search}%");
-        })
-        ->where('is_active', true)
-        ->limit(10)
-        ->get(['id', 'first_name', 'last_name', 'email', 'phone']);
+        $patients = Patient::where('is_active', true)
+            ->where(function ($query) use ($term) {
+                $query->where('first_name', 'like', "%{$term}%")
+                    ->orWhere('last_name', 'like', "%{$term}%")
+                    ->orWhere('email', 'like', "%{$term}%")
+                    ->orWhere('phone', 'like', "%{$term}%")
+                    ->orWhere('document_number', 'like', "%{$term}%");
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get(['id', 'first_name', 'last_name', 'email', 'phone', 'document_number', 'birth_date']);
+
+        $data = $patients->map(function ($p) {
+            $age = null;
+            if ($p->birth_date) {
+                try {
+                    $age = \Carbon\Carbon::parse($p->birth_date)->age;
+                } catch (\Throwable $e) {
+                    $age = null;
+                }
+            }
+            return [
+                'id' => $p->id,
+                'first_name' => $p->first_name,
+                'last_name' => $p->last_name,
+                'dni' => $p->document_number,
+                'document_number' => $p->document_number,
+                'email' => $p->email,
+                'phone' => $p->phone,
+                'age' => $age,
+            ];
+        });
 
         return response()->json([
-            'data' => $patients,
+            'data' => $data,
         ]);
     }
 

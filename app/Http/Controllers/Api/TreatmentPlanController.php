@@ -19,13 +19,44 @@ class TreatmentPlanController extends Controller
     }
 
     /**
+     * Convierte strings vacíos a null para que las reglas `nullable` funcionen.
+     * Sin esto, un campo `<input>` vacío envía `""` y rompe reglas como `date`.
+     */
+    protected function normalizeEmptyStrings(Request $request): void
+    {
+        $fields = [
+            'description', 'estimated_duration_weeks', 'start_date', 'end_date',
+            'notes', 'patient_notes',
+        ];
+
+        foreach ($fields as $field) {
+            if ($request->has($field) && $request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
+        if ($request->has('items') && is_array($request->input('items'))) {
+            $items = $request->input('items');
+            $items = array_map(function ($item) {
+                foreach (['description', 'procedure_name', 'specialty', 'category', 'phase_number', 'procedure_catalog_id', 'dental_piece_id'] as $k) {
+                    if (isset($item[$k]) && $item[$k] === '') {
+                        $item[$k] = null;
+                    }
+                }
+                return $item;
+            }, $items);
+            $request->merge(['items' => $items]);
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $filters = $request->only([
-                'patient_id', 'status', 'created_by', 'date_from', 'date_to'
+                'patient_id', 'patient_name', 'status', 'created_by', 'date_from', 'date_to',
             ]);
 
             $result = $this->treatmentPlanService->getPlans($filters);
@@ -52,6 +83,8 @@ class TreatmentPlanController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->normalizeEmptyStrings($request);
+
         try {
             $validated = $request->validate([
                 'patient_id' => 'required|exists:patients,id',
@@ -66,10 +99,27 @@ class TreatmentPlanController extends Controller
                 'requires_anesthesia' => 'boolean',
                 'is_urgent' => 'boolean',
                 'items' => 'nullable|array',
-                'items.*.description' => 'required_with:items|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-                'items.*.category' => 'nullable|string'
+                'items.*.description' => 'nullable|string|max:500',
+                'items.*.procedure_name' => 'required_with:items|nullable|string|max:200',
+                'items.*.quantity' => 'required_with:items|numeric|min:0.01',
+                'items.*.unit_cost' => 'required_with:items|numeric|min:0',
+                'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+                'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+                'items.*.specialty' => 'nullable|string|max:50',
+                'items.*.phase_number' => 'nullable|integer|min:1',
+                'items.*.category' => 'nullable|string|max:50',
+            ], [
+                'patient_id.required' => 'Selecciona un paciente',
+                'patient_id.exists' => 'El paciente seleccionado no existe',
+                'title.required' => 'El título del plan es obligatorio',
+                'title.max' => 'El título no puede exceder 200 caracteres',
+                'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',
+                'items.*.unit_cost.required_with' => 'El precio unitario es obligatorio',
+                'items.*.unit_cost.min' => 'El precio no puede ser negativo',
+                'items.*.quantity.required_with' => 'La cantidad es obligatoria',
+                'items.*.quantity.min' => 'La cantidad mínima es 0.01',
+                'start_date.after_or_equal' => 'La fecha de inicio no puede ser anterior a hoy',
+                'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
             ]);
 
             $plan = $this->treatmentPlanService->createPlan($validated);
@@ -104,16 +154,16 @@ class TreatmentPlanController extends Controller
                 'createdBy',
                 'items',
                 'quotations',
-                'paymentPlans'
+                'paymentPlans',
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => $plan
+                'data' => new \App\Http\Resources\TreatmentPlanResource($plan),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Plan de tratamiento no encontrado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -123,6 +173,8 @@ class TreatmentPlanController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
+        $this->normalizeEmptyStrings($request);
+
         try {
             $validated = $request->validate([
                 'title' => 'sometimes|string|max:200',
@@ -136,10 +188,21 @@ class TreatmentPlanController extends Controller
                 'requires_anesthesia' => 'boolean',
                 'is_urgent' => 'boolean',
                 'items' => 'nullable|array',
-                'items.*.description' => 'required_with:items|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-                'items.*.category' => 'nullable|string'
+                'items.*.description' => 'nullable|string|max:500',
+                'items.*.procedure_name' => 'required_with:items|nullable|string|max:200',
+                'items.*.quantity' => 'required_with:items|numeric|min:0.01',
+                'items.*.unit_cost' => 'required_with:items|numeric|min:0',
+                'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+                'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+                'items.*.specialty' => 'nullable|string|max:50',
+                'items.*.phase_number' => 'nullable|integer|min:1',
+                'items.*.category' => 'nullable|string|max:50',
+            ], [
+                'title.required' => 'El título del plan es obligatorio',
+                'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',
+                'items.*.unit_cost.required_with' => 'El precio unitario es obligatorio',
+                'items.*.unit_cost.min' => 'El precio no puede ser negativo',
+                'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
             ]);
 
             $plan = $this->treatmentPlanService->updatePlan($id, $validated);
@@ -258,10 +321,21 @@ class TreatmentPlanController extends Controller
     {
         try {
             $validated = $request->validate([
-                'description' => 'required|string',
-                'quantity' => 'required|numeric|min:1',
-                'unit_price' => 'required|numeric|min:0',
-                'category' => 'nullable|string'
+                'procedure_name' => 'required|string|max:200',
+                'description' => 'nullable|string|max:500',
+                'quantity' => 'required|numeric|min:0.01',
+                'unit_cost' => 'required|numeric|min:0',
+                'procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+                'dental_piece_id' => 'nullable|exists:dental_pieces,id',
+                'specialty' => 'nullable|string|max:50',
+                'phase_number' => 'nullable|integer|min:1',
+                'category' => 'nullable|string|max:50',
+            ], [
+                'procedure_name.required' => 'El nombre del procedimiento es obligatorio',
+                'unit_cost.required' => 'El precio unitario es obligatorio',
+                'unit_cost.min' => 'El precio no puede ser negativo',
+                'quantity.required' => 'La cantidad es obligatoria',
+                'quantity.min' => 'La cantidad mínima es 0.01',
             ]);
 
             $item = $this->treatmentPlanService->addItem($id, $validated);

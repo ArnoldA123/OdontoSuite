@@ -98,8 +98,8 @@
                       <div v-if="item.category" class="text-sm text-theme-secondary">{{ item.category }}</div>
                     </td>
                     <td class="table-cell text-center">{{ item.quantity }}</td>
-                    <td class="table-cell text-right">S/ {{ formatPrice(item.unit_price) }}</td>
-                    <td class="table-cell text-right font-medium">S/ {{ formatPrice(item.quantity * item.unit_price) }}</td>
+                    <td class="table-cell text-right">S/ {{ formatPrice(item.unit_cost) }}</td>
+                    <td class="table-cell text-right font-medium">S/ {{ formatPrice(item.quantity * item.unit_cost) }}</td>
                   </tr>
                 </tbody>
                 <tfoot>

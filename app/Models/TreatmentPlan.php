@@ -113,7 +113,19 @@ class TreatmentPlan extends Model
         ];
     }
 
-    // Scopes
+    public function isOverdue(): bool
+    {
+        if (! $this->end_date) {
+            return false;
+        }
+
+        if (in_array($this->status, ['completed', 'cancelled'], true)) {
+            return false;
+        }
+
+        return $this->end_date->lt(now()->startOfDay());
+    }
+
     public function scopeActive($query)
     {
         return $query->whereIn('status', ['draft', 'proposed', 'approved', 'in_progress']);
@@ -122,5 +134,12 @@ class TreatmentPlan extends Model
     public function scopeByStatus($query, $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function scopeOverdue($query)
+    {
+        return $query->whereNotNull('end_date')
+            ->where('end_date', '<', now()->toDateString())
+            ->whereNotIn('status', ['completed', 'cancelled']);
     }
 }

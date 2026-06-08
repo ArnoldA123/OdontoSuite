@@ -13,79 +13,78 @@ use Illuminate\Support\Str;
 
 class TreatmentPlanService
 {
-    /**
-     * Crear un nuevo plan de tratamiento
-     */
     public function createPlan(array $data): TreatmentPlan
     {
         return DB::transaction(function () use ($data) {
-            // Generar número de plan único
             $data['plan_number'] = $this->generatePlanNumber();
             $data['created_by'] = Auth::id();
+            $data['last_activity_at'] = now();
 
             $plan = TreatmentPlan::create($data);
 
-            // Si hay items, agregarlos
             if (isset($data['items']) && is_array($data['items'])) {
                 foreach ($data['items'] as $itemData) {
                     $this->addItem($plan->id, $itemData);
                 }
             }
 
-            // Recalcular totales
             $this->calculateTotals($plan->id);
 
             $plan->refresh();
             $plan->load(['items', 'patient', 'createdBy']);
 
-            // Emitir evento de WebSocket
             event(new TreatmentPlanCreated($plan));
 
             return $plan;
         });
     }
 
-    /**
-     * Actualizar un plan de tratamiento
-     */
     public function updatePlan(int $id, array $data): TreatmentPlan
     {
         return DB::transaction(function () use ($id, $data) {
             $plan = TreatmentPlan::findOrFail($id);
+            $data['last_activity_at'] = now();
             $plan->update($data);
 
-            // Recalcular totales si se modificaron items
-            if (isset($data['items'])) {
-                $this->calculateTotals($id);
+            if (isset($data['items']) && is_array($data['items'])) {
+                // Reemplazar items completos (estrategia simple y consistente con el front)
+                $plan->items()->delete();
+                foreach ($data['items'] as $itemData) {
+                    $this->addItem($plan->id, $itemData);
+                }
             }
+
+            $this->calculateTotals($id);
 
             $plan->refresh();
             $plan->load(['items', 'patient', 'createdBy']);
 
-            // Emitir evento de WebSocket
             event(new TreatmentPlanUpdated($plan));
 
             return $plan;
         });
     }
 
-    /**
-     * Agregar un item al plan
-     */
     public function addItem(int $planId, array $itemData): TreatmentPlanItem
     {
         $itemData['treatment_plan_id'] = $planId;
+
+        // Calcular total_cost del item (quantity * unit_cost) si no fue provisto
+        if (! isset($itemData['total_cost']) || $itemData['total_cost'] === null) {
+            $itemData['total_cost'] = round(
+                (float) ($itemData['quantity'] ?? 0) * (float) ($itemData['unit_cost'] ?? 0),
+                2
+            );
+        }
+
         $item = TreatmentPlanItem::create($itemData);
 
-        // Recalcular totales
         $this->calculateTotals($planId);
+        $this->touchPlanActivity($planId);
 
         return $item;
     }
 
-    /**
-     * Eliminar un item del plan
-     */
     public function removeItem(int $itemId): bool
     {
         $item = TreatmentPlanItem::findOrFail($itemId);
@@ -93,35 +92,30 @@ class TreatmentPlanService
 
         $item->delete();
 
-        // Recalcular totales
         $this->calculateTotals($planId);
+        $this->touchPlanActivity($planId);
 
         return true;
     }
 
-    /**
-     * Cambiar el estado del plan
-     */
     public function changeStatus(int $id, string $status): TreatmentPlan
     {
         $plan = TreatmentPlan::findOrFail($id);
 
-        // Validar transición de estado
         $this->validateStatusTransition($plan->status, $status);
 
-        $plan->update(['status' => $status]);
+        $plan->update([
+            'status' => $status,
+            'last_activity_at' => now(),
+        ]);
         $plan->refresh();
         $plan->load(['items', 'patient', 'createdBy']);
 
-        // Emitir evento de WebSocket
         event(new TreatmentPlanUpdated($plan));
 
         return $plan;
     }
 
-    /**
-     * Duplicar un plan de tratamiento
-     */
     public function duplicate(int $id): TreatmentPlan
     {
         return DB::transaction(function () use ($id) {
@@ -134,50 +128,56 @@ class TreatmentPlanService
             $newPlanData['title'] = $originalPlan->title . ' (Copia)';
             $newPlanData['status'] = 'draft';
             $newPlanData['created_by'] = Auth::id();
+            $newPlanData['last_activity_at'] = now();
 
             $newPlan = TreatmentPlan::create($newPlanData);
 
-            // Duplicar items
             foreach ($originalPlan->items as $item) {
                 $itemData = $item->toArray();
                 unset($itemData['id'], $itemData['treatment_plan_id'], $itemData['created_at'], $itemData['updated_at']);
                 $itemData['treatment_plan_id'] = $newPlan->id;
+                // total_cost se recalcula en addItem si hace falta
+                unset($itemData['total_cost']);
 
-                TreatmentPlanItem::create($itemData);
+                $this->addItem($newPlan->id, $itemData);
             }
 
             $this->calculateTotals($newPlan->id);
 
-            return $newPlan->load(['items', 'patient', 'createdBy']);
+            $newPlan->refresh();
+            $newPlan->load(['items', 'patient', 'createdBy']);
+
+            event(new TreatmentPlanCreated($newPlan));
+
+            return $newPlan;
         });
     }
 
-    /**
-     * Recalcular totales del plan
-     */
     public function calculateTotals(int $planId): TreatmentPlan
     {
         $plan = TreatmentPlan::findOrFail($planId);
 
         $items = $plan->items;
         $subtotal = $items->sum(function ($item) {
-            return $item->quantity * $item->unit_price;
+            return (float) $item->quantity * (float) $item->unit_cost;
         });
 
-        $discountAmount = $plan->discount_amount ?? 0;
+        $discountAmount = (float) ($plan->discount_amount ?? 0);
         $finalCost = $subtotal - $discountAmount;
 
         $plan->update([
-            'total_cost' => $subtotal,
-            'final_cost' => $finalCost
+            'total_cost' => round($subtotal, 2),
+            'final_cost' => round($finalCost, 2),
         ]);
 
         return $plan;
     }
 
-    /**
-     * Generar número de plan único
-     */
+    private function touchPlanActivity(int $planId): void
+    {
+        TreatmentPlan::where('id', $planId)->update(['last_activity_at' => now()]);
+    }
+
     private function generatePlanNumber(): string
     {
         do {
@@ -187,9 +187,6 @@ class TreatmentPlanService
         return $number;
     }
 
-    /**
-     * Validar transición de estado
-     */
     private function validateStatusTransition(string $currentStatus, string $newStatus): void
     {
         $validTransitions = [
@@ -198,22 +195,19 @@ class TreatmentPlanService
             'approved' => ['in_progress', 'cancelled'],
             'in_progress' => ['completed', 'cancelled'],
             'completed' => [],
-            'cancelled' => []
+            'cancelled' => [],
         ];
 
-        if (!in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
+        if (! in_array($newStatus, $validTransitions[$currentStatus] ?? [])) {
             throw new \InvalidArgumentException(
                 "No se puede cambiar el estado de '{$currentStatus}' a '{$newStatus}'"
             );
         }
     }
 
-    /**
-     * Obtener planes con filtros
-     */
     public function getPlans(array $filters = [])
     {
-        $query = TreatmentPlan::with(['patient', 'createdBy', 'items']);
+        $query = TreatmentPlan::with(['patient', 'createdBy']);
 
         if (isset($filters['patient_id'])) {
             $query->where('patient_id', $filters['patient_id']);
@@ -228,13 +222,24 @@ class TreatmentPlanService
         }
 
         if (isset($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+            $query->whereDate('start_date', '>=', $filters['date_from']);
         }
 
         if (isset($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+            $query->whereDate('start_date', '<=', $filters['date_to']);
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate(15);
+        if (isset($filters['patient_name']) && $filters['patient_name'] !== '') {
+            $needle = '%' . $filters['patient_name'] . '%';
+            $query->whereHas('patient', function ($q) use ($needle) {
+                $q->where('first_name', 'like', $needle)
+                    ->orWhere('last_name', 'like', $needle)
+                    ->orWhere('document_number', 'like', $needle);
+            });
+        }
+
+        return $query->orderByDesc('last_activity_at')
+            ->orderByDesc('created_at')
+            ->paginate(15);
     }
 }

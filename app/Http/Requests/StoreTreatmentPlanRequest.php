@@ -66,9 +66,14 @@ class StoreTreatmentPlanRequest extends FormRequest
             'is_urgent' => 'boolean',
             'items' => 'nullable|array|max:50',
             'items.*.description' => 'required_with:items|string|max:200',
+            'items.*.procedure_name' => 'required_with:items|string|max:200',
             'items.*.quantity' => 'required_with:items|numeric|min:0.01|max:999.99',
-            'items.*.unit_price' => 'required_with:items|numeric|min:0|max:99999.99',
-            'items.*.category' => 'nullable|string|max:50'
+            'items.*.unit_cost' => 'required_with:items|numeric|min:0|max:99999.99',
+            'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+            'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+            'items.*.specialty' => 'nullable|string|max:50',
+            'items.*.phase_number' => 'nullable|integer|min:1',
+            'items.*.category' => 'nullable|string|max:50',
         ];
     }
 
@@ -89,10 +94,11 @@ class StoreTreatmentPlanRequest extends FormRequest
             'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
             'items.max' => 'No se pueden agregar más de 50 procedimientos',
             'items.*.description.required_with' => 'La descripción del procedimiento es obligatoria',
+            'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',
             'items.*.quantity.required_with' => 'La cantidad es obligatoria',
             'items.*.quantity.min' => 'La cantidad mínima es 0.01',
-            'items.*.unit_price.required_with' => 'El precio unitario es obligatorio',
-            'items.*.unit_price.min' => 'El precio no puede ser negativo'
+            'items.*.unit_cost.required_with' => 'El precio unitario es obligatorio',
+            'items.*.unit_cost.min' => 'El precio no puede ser negativo',
         ];
     }
 }

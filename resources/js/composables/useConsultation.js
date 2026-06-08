@@ -65,22 +65,43 @@ export function useConsultation() {
     lastError.value = null
     try {
       const form = new FormData()
-      Object.entries(payload).forEach(([key, value]) => {
+
+      const appendField = (prefix, value) => {
         if (value === null || value === undefined) return
-        if (key === 'attachments' && Array.isArray(value)) {
-          value.forEach((att, idx) => {
-            if (!att || !att.file) return
-            form.append(`attachments[${idx}][file]`, att.file)
-            form.append(`attachments[${idx}][category]`, att.category || 'general')
-            if (att.description) form.append(`attachments[${idx}][description]`, att.description)
-            if (att.is_private) form.append(`attachments[${idx}][is_private]`, '1')
-          })
-        } else if (typeof value === 'object') {
-          form.append(key, JSON.stringify(value))
-        } else {
-          form.append(key, String(value))
+        if (typeof value === 'string' && value === '') return
+        if (Array.isArray(value)) {
+          value.forEach((item, idx) => appendField(`${prefix}[${idx}]`, item))
+          return
         }
-      })
+        if (value instanceof File || value instanceof Blob) {
+          form.append(prefix, value)
+          return
+        }
+        if (typeof value === 'object') {
+          Object.entries(value).forEach(([k, v]) => {
+            if (v === null || v === undefined) return
+            if (typeof v === 'string' && v === '') return
+            appendField(`${prefix}[${k}]`, v)
+          })
+          return
+        }
+        if (typeof value === 'boolean') {
+          form.append(prefix, value ? '1' : '0')
+          return
+        }
+        form.append(prefix, String(value))
+      }
+
+      const sanitizedPayload = { ...payload }
+      if (
+        sanitizedPayload.next_appointment &&
+        (!sanitizedPayload.next_appointment.scheduled_at ||
+          sanitizedPayload.next_appointment.scheduled_at === '')
+      ) {
+        delete sanitizedPayload.next_appointment
+      }
+
+      Object.entries(sanitizedPayload).forEach(([key, value]) => appendField(key, value))
 
       const token = localStorage.getItem('auth_token')
       const baseURL = import.meta.env.VITE_APP_URL || window.location.origin
@@ -96,9 +117,25 @@ export function useConsultation() {
       const data = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        const errMsg = data?.error?.message || data?.message || 'Error al completar la consulta'
+        const fieldErrors = data?.errors
+        let errMsg = data?.error?.message || data?.message || 'Error al completar la consulta'
+
+        if (fieldErrors && typeof fieldErrors === 'object') {
+          const fields = Object.entries(fieldErrors)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join(' | ')
+          errMsg = fields || errMsg
+        }
+
+        console.error('Consultation validation failed', {
+          status: response.status,
+          message: data?.message,
+          errors: fieldErrors,
+          fullResponse: data,
+        })
+
         lastError.value = errMsg
-        toast.error(errMsg)
+        toast.error(errMsg, 8000)
         throw { response: { data }, status: response.status }
       }
 
