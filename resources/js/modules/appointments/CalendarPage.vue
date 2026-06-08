@@ -399,18 +399,10 @@
             <UiButton
               v-if="selectedAppointment.status === 'in_consultation'"
               size="sm"
-              variant="secondary"
+              variant="primary"
               @click="openConsultationWizard(selectedAppointment)"
             >
               Completar Consulta
-            </UiButton>
-            <UiButton
-              v-if="selectedAppointment.status === 'in_consultation'"
-              size="sm"
-              variant="secondary"
-              @click="changeStatus(selectedAppointment, 'completed')"
-            >
-              Completar
             </UiButton>
             <UiButton
               v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
@@ -498,7 +490,7 @@ export default {
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
     const wizardAppointment = ref(null)
-    const { checkIn } = useConsultation()
+    const { checkIn, openForAppointment } = useConsultation()
 
     const startConsultation = async (appointment) => {
       try {
@@ -513,10 +505,14 @@ export default {
     const openConsultationWizard = async (appointment) => {
       wizardAppointment.value = appointment
       selectedAppointment.value = null
+      await openForAppointment(appointment)
     }
 
-    const onConsultationCompleted = async (appointment) => {
+    const onConsultationCompleted = async (payload) => {
       wizardAppointment.value = null
+      if (payload?.quotation_generated && payload?.quotation) {
+        toast.info(`Cotización ${payload.quotation.quotation_number} lista en /quotations`, 6000)
+      }
       await loadAppointments()
     }
     const editingAppointment = ref(null)
@@ -1019,8 +1015,12 @@ export default {
       appointments,
       selectedAppointment,
       showNewAppointmentModal,
+      wizardAppointment,
       editingAppointment,
       openNewAppointmentModal,
+      startConsultation,
+      openConsultationWizard,
+      onConsultationCompleted,
       dayHours,
       weekHours,
       weekDayNames,

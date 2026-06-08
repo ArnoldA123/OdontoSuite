@@ -35,6 +35,8 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\OdontogramController;
 use App\Http\Controllers\Api\ConsultationController;
+use App\Http\Controllers\Api\ProcedureCatalogController;
+use App\Http\Controllers\Api\BillingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -251,6 +253,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('appointments/{appointment}/consultation-context', [ConsultationController::class, 'context']);
         Route::post('appointments/{appointment}/check-in', [ConsultationController::class, 'checkIn']);
         Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete']);
+    });
+
+    // Catálogo de procedimientos (Sprint 2: clínicos, admin y recep consultan; solo admin edita)
+    Route::get('procedure-catalog', [ProcedureCatalogController::class, 'index']);
+    Route::get('procedure-catalog/active', [ProcedureCatalogController::class, 'active']);
+    Route::get('procedure-catalog/search', [ProcedureCatalogController::class, 'search']);
+    Route::get('procedure-catalog/{id}', [ProcedureCatalogController::class, 'show']);
+    Route::middleware('role:administrador')->group(function () {
+        Route::post('procedure-catalog', [ProcedureCatalogController::class, 'store']);
+        Route::put('procedure-catalog/{id}', [ProcedureCatalogController::class, 'update']);
+        Route::delete('procedure-catalog/{id}', [ProcedureCatalogController::class, 'destroy']);
+    });
+
+    // Billing / hook de pago (Sprint 3)
+    Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente,finanzas')->group(function () {
+        Route::get('appointments/ready-to-bill', [BillingController::class, 'readyToBill']);
+        Route::get('appointments/{appointment}/payment-preview', [BillingController::class, 'paymentPreview']);
+        Route::post('appointments/{appointment}/generate-quotation', [BillingController::class, 'generateQuotation']);
     });
 
     // Sucursales (solo administrador)
