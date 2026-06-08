@@ -131,6 +131,8 @@ class ConsultationService
                 'quotation' => $quotation,
             ];
         });
+
+        return $result;
     }
 
     /**

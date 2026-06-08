@@ -212,6 +212,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // Pacientes (todos los roles)
+    Route::get('patients/search', [PatientController::class, 'search']);
     Route::apiResource('patients', PatientController::class);
     Route::get('patients/{patient}/export', [PatientController::class, 'export']);
 

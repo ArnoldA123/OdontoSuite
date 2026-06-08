@@ -37,15 +37,15 @@ export function useTreatmentPlans() {
       })
 
       const response = await get(`/api/treatment-plans?${params.toString()}`)
-      plans.value = response.data?.data || []
-      pagination.value = response.data?.meta || {
+      plans.value = response.data || []
+      pagination.value = response.meta || {
         current_page: 1,
         last_page: 1,
         per_page: 15,
         total: 0
       }
 
-      return response.data
+      return response
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener planes de tratamiento'
       throw err
@@ -60,9 +60,9 @@ export function useTreatmentPlans() {
       error.value = null
 
       const response = await get(`/api/treatment-plans/${id}`)
-      currentPlan.value = response.data.data
+      currentPlan.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener plan de tratamiento'
       throw err
@@ -76,21 +76,23 @@ export function useTreatmentPlans() {
       loading.value = true
       error.value = null
 
-      console.log('Creando plan con datos:', data)
+      console.log('[createPlan] datos a enviar:', data)
       const response = await post('/api/treatment-plans', data)
-      console.log('Respuesta del servidor:', response)
-      const newPlan = response.data.data
+      const newPlan = response.data
 
-      // Agregar al inicio de la lista
+      if (!newPlan) {
+        throw new Error('El servidor no devolvió el plan creado')
+      }
+
       plans.value.unshift(newPlan)
-      console.log('Plan agregado a la lista. Total planes:', plans.value.length)
-
-      // Mostrar notificación de éxito
       addNotification('Plan de tratamiento creado exitosamente', 'success')
 
       return newPlan
     } catch (err) {
-      console.error('Error en createPlan:', err)
+      console.error('[createPlan] status:', err.status)
+      console.error('[createPlan] response data:', err.response?.data)
+      console.error('[createPlan] response errors:', err.response?.data?.errors)
+      console.error('[createPlan] full error:', err)
       error.value = err.response?.data?.message || 'Error al crear plan de tratamiento'
       throw err
     } finally {
@@ -104,7 +106,7 @@ export function useTreatmentPlans() {
       error.value = null
 
       const response = await put(`/api/treatment-plans/${id}`, data)
-      const updatedPlan = response.data.data
+      const updatedPlan = response.data
 
       // Actualizar en la lista
       const index = plans.value.findIndex(plan => plan.id === id)
@@ -156,7 +158,7 @@ export function useTreatmentPlans() {
       error.value = null
 
       const response = await post(`/api/treatment-plans/${id}/change-status`, { status })
-      const updatedPlan = response.data.data
+      const updatedPlan = response.data
 
       // Actualizar en la lista
       const index = plans.value.findIndex(plan => plan.id === id)
@@ -184,7 +186,7 @@ export function useTreatmentPlans() {
       error.value = null
 
       const response = await post(`/api/treatment-plans/${id}/duplicate`)
-      const duplicatedPlan = response.data.data
+      const duplicatedPlan = response.data
 
       // Agregar al inicio de la lista
       plans.value.unshift(duplicatedPlan)
@@ -204,7 +206,7 @@ export function useTreatmentPlans() {
       error.value = null
 
       const response = await post(`/api/treatment-plans/${planId}/add-item`, itemData)
-      const updatedPlan = response.data.data
+      const updatedPlan = response.data
 
       // Actualizar en la lista
       const index = plans.value.findIndex(plan => plan.id === planId)
