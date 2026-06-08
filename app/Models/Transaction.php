@@ -14,6 +14,7 @@ class Transaction extends Model
         'patient_id',
         'appointment_id',
         'treatment_plan_id',
+        'quotation_id',
         'payment_method_id',
         'created_by',
         'cash_register_session_id',
@@ -55,6 +56,11 @@ class Transaction extends Model
     public function treatmentPlan(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlan::class);
+    }
+
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class);
     }
 
     public function paymentMethod(): BelongsTo

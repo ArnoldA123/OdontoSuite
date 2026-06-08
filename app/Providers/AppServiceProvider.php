@@ -13,6 +13,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(\App\Services\ClinicalAttachmentService::class);
         $this->app->singleton(\App\Services\AiImageAnalysisService::class);
+        $this->app->singleton(\App\Services\BillingService::class);
     }
 
     /**
@@ -49,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::listen(
             \App\Events\PatientDeleted::class,
             \App\Listeners\LogPatientActivity::class
+        );
+
+        // Sprint 3: auto-crear transaction pendiente cuando se cierra una cita con monto
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\AppointmentCompleted::class,
+            \App\Listeners\CreateTransactionOnAppointmentCompleted::class
         );
     }
 }
