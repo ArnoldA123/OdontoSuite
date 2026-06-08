@@ -165,16 +165,25 @@ class ConsultationController extends Controller
             'next_appointment.appointment_type_id' => 'nullable|integer',
             'next_appointment.duration_minutes' => 'nullable|integer|min:15',
             'next_appointment.notes' => 'nullable|string',
+            'generate_quotation' => 'sometimes|boolean',
         ]);
 
         try {
-            $appointment = $this->consultations->complete($appointment, $payload);
+            $result = $this->consultations->complete($appointment, $payload);
+            $completedAppointment = $result['appointment'];
+            $quotation = $result['quotation'];
+
             return response()->json([
-                'data' => (new AppointmentResource($appointment))->resolve(),
+                'data' => (new AppointmentResource($completedAppointment))->resolve(),
+                'quotation' => $quotation
+                    ? $quotation->loadMissing(['items', 'patient', 'treatmentPlan'])
+                    : null,
                 'meta' => [
                     'message' => 'Consulta completada.',
-                    'final_amount' => (float) $appointment->final_amount,
-                    'consultation_mode' => $appointment->consultation_mode,
+                    'final_amount' => (float) $completedAppointment->final_amount,
+                    'consultation_mode' => $completedAppointment->consultation_mode,
+                    'quotation_generated' => (bool) $quotation,
+                    'quotation_id' => $quotation?->id,
                 ],
             ]);
         } catch (ConsultationException $e) {

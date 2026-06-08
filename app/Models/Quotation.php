@@ -13,6 +13,7 @@ class Quotation extends Model
 
     protected $fillable = [
         'treatment_plan_id',
+        'appointment_id',
         'patient_id',
         'created_by',
         'quotation_number',
@@ -48,6 +49,11 @@ class Quotation extends Model
         return $this->belongsTo(TreatmentPlan::class);
     }
 
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class);
+    }
+
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
@@ -66,6 +72,11 @@ class Quotation extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(QuotationApproval::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
     }
 
     // Scopes

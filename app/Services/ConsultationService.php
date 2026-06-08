@@ -18,6 +18,7 @@ use App\Models\OdontogramRecord;
 use App\Models\Patient;
 use App\Models\ProcedureMaterial;
 use App\Models\Product;
+use App\Models\Quotation;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Http\UploadedFile;
@@ -40,6 +41,10 @@ class ConsultationService
         self::MODE_PLAN_SESSION,
     ];
 
+    public function __construct(private readonly BillingService $billing)
+    {
+    }
+
     /**
      * Punto único de entrada para cerrar una consulta.
      *
@@ -47,9 +52,9 @@ class ConsultationService
      *
      * @param  array<string, mixed>  $payload  ver contrato JSON
      */
-    public function complete(Appointment $appointment, array $payload): Appointment
+    public function complete(Appointment $appointment, array $payload): array
     {
-        return DB::transaction(function () use ($appointment, $payload) {
+        $result = DB::transaction(function () use ($appointment, $payload) {
             $this->guardAppointmentIsInConsultation($appointment);
             $this->validatePayload($appointment, $payload);
 
@@ -102,6 +107,7 @@ class ConsultationService
                 'procedureMaterials.product',
                 'odontogramRecords.dentalPiece',
                 'transactions',
+                'quotations',
             ]);
 
             Log::info('Consultation completed', [
@@ -113,9 +119,17 @@ class ConsultationService
                 'materials' => $appointment->procedureMaterials->count(),
             ]);
 
+            $quotation = null;
+            if ($this->billing->shouldAutoGenerateQuotation($appointment, $payload)) {
+                $quotation = $this->billing->generateQuotationFromAppointment($appointment);
+            }
+
             event(new AppointmentCompleted($appointment));
 
-            return $appointment;
+            return [
+                'appointment' => $appointment,
+                'quotation' => $quotation,
+            ];
         });
     }
 
