@@ -101,6 +101,12 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    path: '/cash-register/ready-to-bill',
+    name: 'cash-register-ready-to-bill',
+    component: () => import('./modules/cash-register/ReadyToBillPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
     path: '/test',
     name: 'test',
     component: () => import('./modules/test/TestPage.vue'),

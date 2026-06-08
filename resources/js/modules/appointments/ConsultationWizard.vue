@@ -492,7 +492,11 @@ const handleSubmit = async () => {
   if (!canSubmit.value) return
   try {
     const result = await submit(payload.value)
-    emit('completed', result?.data ?? null)
+    emit('completed', {
+      appointment: result?.data ?? null,
+      quotation: result?.quotation ?? null,
+      quotation_generated: !!result?.meta?.quotation_generated,
+    })
     handleClose()
   } catch (e) {
     console.error('Submit failed', e)

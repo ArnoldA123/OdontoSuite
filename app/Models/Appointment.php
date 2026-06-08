@@ -182,6 +182,14 @@ class Appointment extends Model
     }
 
     /**
+     * Cotizaciones que nacen de esta cita (Sprint 3).
+     */
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    /**
      * Plan de tratamiento creado o avanzado en esta cita.
      */
     public function treatmentPlan(): BelongsTo
