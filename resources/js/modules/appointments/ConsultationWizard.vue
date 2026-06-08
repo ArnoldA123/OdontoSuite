@@ -522,7 +522,7 @@ const selectProcedure = (idx, opt) => {
   item.specialty = opt.specialty ?? item.specialty
   item.unit_cost = opt.default_cost ?? item.unit_cost
   item.estimated_duration_minutes = opt.default_duration_minutes ?? item.estimated_duration_minutes
-  item.materials_required = opt.default_materials ?? item.materials_required ?? []
+  item.materials_required = opt.materials_needed_list ?? item.materials_required ?? []
   item.requires_anesthesia = opt.requires_anesthesia ?? item.requires_anesthesia
   catalogResults[idx] = []
 }
