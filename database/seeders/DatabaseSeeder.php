@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             // 2. Configuración
             AppointmentTypeSeeder::class,
             EnvironmentSeeder::class,
+            ProcedureCatalogSeeder::class, // catálogo de procedimientos (Sprint 2)
 
             // 3. Pacientes
             PatientSeeder::class, // 100 pacientes

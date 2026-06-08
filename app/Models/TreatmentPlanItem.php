@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TreatmentPlanItem extends Model
 {
@@ -13,6 +14,7 @@ class TreatmentPlanItem extends Model
     protected $fillable = [
         'treatment_plan_id',
         'procedure_id',
+        'procedure_catalog_id',
         'dental_piece_id',
         'procedure_name',
         'procedure_description',
@@ -46,6 +48,11 @@ class TreatmentPlanItem extends Model
     public function dentalPiece(): BelongsTo
     {
         return $this->belongsTo(DentalPiece::class);
+    }
+
+    public function procedureCatalog(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureCatalog::class, 'procedure_catalog_id');
     }
 
     // Scopes
