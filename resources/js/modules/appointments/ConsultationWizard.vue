@@ -181,15 +181,52 @@
                 <div
                   v-for="(item, idx) in payload.treatment_plan.items"
                   :key="idx"
-                  class="p-3 border border-theme rounded-lg"
+                  class="p-3 border border-theme rounded-lg space-y-2"
                 >
+                  <div class="relative">
+                    <label class="block text-xs text-theme-secondary mb-1">Procedimiento (catálogo)</label>
+                    <input
+                      v-model="item.procedure_name"
+                      @input="onProcedureNameInput(idx, $event.target.value)"
+                      @focus="onProcedureNameInput(idx, item.procedure_name)"
+                      @blur="closeCatalogResults(idx)"
+                      :placeholder="'Buscar en catálogo (código o nombre)…'"
+                      autocomplete="off"
+                      class="w-full p-2 rounded border border-theme bg-theme-surface-elevated"
+                    />
+                    <ul
+                      v-if="catalogResults[idx] && catalogResults[idx].length"
+                      class="absolute z-10 left-0 right-0 mt-1 bg-theme-surface-elevated border border-theme rounded-lg shadow-lg max-h-56 overflow-y-auto"
+                    >
+                      <li
+                        v-for="opt in catalogResults[idx]"
+                        :key="opt.id"
+                        @mousedown.prevent="selectProcedure(idx, opt)"
+                        class="px-3 py-2 hover:bg-accent hover:bg-opacity-10 cursor-pointer"
+                      >
+                        <div class="text-sm font-medium text-theme-primary">{{ opt.label }}</div>
+                        <div class="text-xs text-theme-secondary">
+                          {{ opt.specialty || 'general' }} · S/ {{ opt.default_cost }} · {{ opt.default_duration_minutes || '—' }} min
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input v-model="item.procedure_name" placeholder="Procedimiento" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
                     <input v-model="item.specialty" placeholder="Especialidad" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
                     <input v-model.number="item.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="p-2 rounded border border-theme bg-theme-surface-elevated" />
                     <input v-model.number="item.quantity" type="number" min="1" placeholder="Cantidad" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
+                    <input v-model.number="item.estimated_duration_minutes" type="number" min="5" placeholder="Duración (min)" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
                   </div>
-                  <button @click="removeItem(idx)" class="mt-2 text-xs text-red-500 hover:underline">Quitar item</button>
+                  <div v-if="item.materials_required && item.materials_required.length" class="text-xs text-theme-secondary">
+                    Materiales sugeridos: {{ item.materials_required.join(', ') }}
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 text-xs text-theme-secondary">
+                      <input type="checkbox" v-model="item.requires_anesthesia" class="w-3 h-3" />
+                      Requiere anestesia
+                    </label>
+                    <button @click="removeItem(idx)" class="text-xs text-red-500 hover:underline">Quitar item</button>
+                  </div>
                 </div>
               </div>
               <button @click="addItem" class="mt-3 px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
@@ -322,8 +359,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive } from 'vue'
 import { useConsultation } from '../../composables/useConsultation'
+import { useApi } from '../../composables/useApi'
 
 const props = defineProps({
   appointment: { type: Object, default: null },
@@ -339,6 +377,8 @@ const {
   submit,
   close: closeComposable,
 } = useConsultation()
+
+const { get: apiGet } = useApi()
 
 const modeOptions = [
   { value: 'consultation', label: 'Consulta / Evaluación', icon: '🩺', description: 'No ejecuto procedimientos hoy. Puede generar plan propuesto.' },
@@ -357,6 +397,8 @@ const steps = [
 
 const currentStep = ref('mode')
 const executedItemIds = ref([])
+const catalogResults = reactive({})
+const catalogSearchTimers = reactive({})
 
 const payload = ref({
   mode: 'consultation',
@@ -434,16 +476,61 @@ const selectMode = (mode) => {
 
 const addItem = () => {
   payload.value.treatment_plan.items.push({
+    procedure_catalog_id: null,
     procedure_name: '',
     specialty: '',
     unit_cost: 0,
     quantity: 1,
     phase_number: 1,
+    estimated_duration_minutes: null,
+    materials_required: [],
+    requires_anesthesia: false,
   })
 }
 
 const removeItem = (idx) => {
+  delete catalogResults[idx]
+  delete catalogSearchTimers[idx]
   payload.value.treatment_plan.items.splice(idx, 1)
+}
+
+const onProcedureNameInput = (idx, value) => {
+  if (catalogSearchTimers[idx]) {
+    clearTimeout(catalogSearchTimers[idx])
+  }
+  const term = (value ?? '').trim()
+  if (term.length < 2) {
+    catalogResults[idx] = []
+    return
+  }
+  catalogSearchTimers[idx] = setTimeout(async () => {
+    try {
+      const response = await apiGet('/api/procedure-catalog/search', { params: { q: term, limit: 10 } })
+      catalogResults[idx] = response?.data ?? []
+    } catch (error) {
+      console.warn('Procedure catalog search failed', error)
+      catalogResults[idx] = []
+    }
+  }, 250)
+}
+
+const selectProcedure = (idx, opt) => {
+  const item = payload.value.treatment_plan.items[idx]
+  if (!item) return
+  item.procedure_catalog_id = opt.id
+  item.procedure_name = opt.name
+  item.specialty = opt.specialty ?? item.specialty
+  item.unit_cost = opt.default_cost ?? item.unit_cost
+  item.estimated_duration_minutes = opt.default_duration_minutes ?? item.estimated_duration_minutes
+  item.materials_required = opt.materials_needed_list ?? item.materials_required ?? []
+  item.requires_anesthesia = opt.requires_anesthesia ?? item.requires_anesthesia
+  catalogResults[idx] = []
+}
+
+const closeCatalogResults = (idx) => {
+  setTimeout(() => {
+    catalogResults[idx] = []
+  }, 150)
 }
 
 const addMaterial = () => {
@@ -492,7 +579,11 @@ const handleSubmit = async () => {
   if (!canSubmit.value) return
   try {
     const result = await submit(payload.value)
-    emit('completed', result?.data ?? null)
+    emit('completed', {
+      appointment: result?.data ?? null,
+      quotation: result?.quotation ?? null,
+      quotation_generated: !!result?.meta?.quotation_generated,
+    })
     handleClose()
   } catch (e) {
     console.error('Submit failed', e)
