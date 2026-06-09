@@ -24,8 +24,8 @@ importers:
         specifier: ^6.1.0
         version: 6.1.20(@fullcalendar/core@6.1.20)(vue@3.5.35)
       '@heroicons/vue':
-        specifier: ^2.0.0
-        version: 2.2.0(vue@3.5.35)
+        specifier: 2.1.5
+        version: 2.1.5(vue@3.5.35)
       chart.js:
         specifier: ^4.4.0
         version: 4.5.1
@@ -295,8 +295,8 @@ packages:
       '@fullcalendar/core': ~6.1.20
       vue: ^3.0.11
 
-  '@heroicons/vue@2.2.0':
-    resolution: {integrity: sha512-G3dbSxoeEKqbi/DFalhRxJU4mTXJn7GwZ7ae8NuEQzd1bqdd0jAbdaBZlHPcvPD2xI1iGzNVB4k20Un2AguYPw==}
+  '@heroicons/vue@2.1.5':
+    resolution: {integrity: sha512-IpqR72sFqFs55kyKfFS7tN+Ww6odFNeH/7UxycIOrlVYfj4WUGAdzQtLBnJspucSeqWFQsKM0g0YrgU655BEfA==}
     peerDependencies:
       vue: '>= 3'
 
@@ -1732,7 +1732,7 @@ snapshots:
       '@fullcalendar/core': 6.1.20
       vue: 3.5.35
 
-  '@heroicons/vue@2.2.0(vue@3.5.35)':
+  '@heroicons/vue@2.1.5(vue@3.5.35)':
     dependencies:
       vue: 3.5.35
 
