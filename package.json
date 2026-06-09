@@ -34,7 +34,7 @@
         "@fullcalendar/interaction": "^6.1.0",
         "@fullcalendar/timegrid": "^6.1.0",
         "@fullcalendar/vue3": "^6.1.0",
-        "@heroicons/vue": "^2.0.0",
+        "@heroicons/vue": "2.1.5",
         "chart.js": "^4.4.0",
         "html2canvas": "^1.4.0",
         "jspdf": "^2.5.0",
