@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -97,6 +98,27 @@ class User extends Authenticatable
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Get the specialties associated with the user.
+     */
+    public function specialties(): BelongsToMany
+    {
+        return $this->belongsToMany(Specialty::class, 'user_specialties')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the procedure catalog items marked as favorites by the user.
+     */
+    public function favoriteProcedures(): BelongsToMany
+    {
+        return $this->belongsToMany(ProcedureCatalog::class, 'user_favorite_procedures')
+            ->withPivot('position')
+            ->withTimestamps()
+            ->orderBy('user_favorite_procedures.position');
     }
 
     /**

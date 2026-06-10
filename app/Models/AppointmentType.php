@@ -16,6 +16,7 @@ class AppointmentType extends Model
         'description',
         'default_duration_minutes',
         'price',
+        'default_procedure_catalog_id',
         'color',
         'requires_confirmation',
         'is_active',
