@@ -76,12 +76,35 @@ class ProcedureCatalogController extends Controller
     {
         try {
             $procedure = $this->service->findOrFail((int) $id);
+            $procedure->load('specialty');
             return response()->json(['data' => new ProcedureCatalogResource($procedure)]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado'], 404);
         } catch (\Throwable $e) {
             Log::error('ProcedureCatalogController@show: ' . $e->getMessage());
             return response()->json(['message' => 'Error al obtener el procedimiento'], 500);
+        }
+    }
+
+    public function forMe(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $filters = $request->only(['q', 'specialty', 'per_page']);
+            $page = $this->service->forUser($user, $filters);
+
+            return response()->json([
+                'data' => ProcedureCatalogResource::collection($page->items()),
+                'meta' => [
+                    'total' => $page->total(),
+                    'per_page' => $page->perPage(),
+                    'current_page' => $page->currentPage(),
+                    'last_page' => $page->lastPage(),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('ProcedureCatalogController@forMe: ' . $e->getMessage());
+            return response()->json(['message' => 'Error al obtener procedimientos del usuario'], 500);
         }
     }
 
@@ -92,7 +115,7 @@ class ProcedureCatalogController extends Controller
             $procedure = $this->service->create($validated);
 
             $this->logAudit('procedure_catalog_created', $procedure, [], $procedure->only([
-                'code', 'name', 'specialty', 'default_cost',
+                'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost',
             ]));
 
             return response()->json([
@@ -111,13 +134,13 @@ class ProcedureCatalogController extends Controller
     {
         try {
             $procedure = $this->service->findOrFail((int) $id);
-            $old = $procedure->only(['code', 'name', 'specialty', 'default_cost', 'is_active']);
+            $old = $procedure->only(['code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active']);
 
             $validated = $this->validateProcedure($request, isUpdate: true);
             $procedure = $this->service->update($procedure, $validated);
 
             $this->logAudit('procedure_catalog_updated', $procedure, $old, $procedure->only([
-                'code', 'name', 'specialty', 'default_cost', 'is_active',
+                'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active',
             ]));
 
             return response()->json([
@@ -171,7 +194,8 @@ class ProcedureCatalogController extends Controller
             'code' => $codeRule,
             'name' => "{$required}|string|max:200",
             'description' => "{$requiredNullable}|string",
-            'specialty' => "{$requiredNullable}|string|max:50",
+            'specialty_id' => "{$requiredNullable}|integer|exists:specialties,id",
+            'legacy_specialty' => "{$requiredNullable}|string|max:50",
             'default_cost' => "{$required}|numeric|min:0",
             'default_duration_minutes' => "{$requiredNullable}|integer|min:5|max:600",
             'requirements' => "{$requiredNullable}|string",
