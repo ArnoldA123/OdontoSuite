@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\AppointmentTypeController;
+use App\Http\Controllers\Api\ProcedureCatalogController;
+use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
+use App\Http\Controllers\Api\SpecialtyController;
 use App\Http\Controllers\Api\WorkScheduleController;
 use App\Http\Controllers\Api\WaitingListController;
 use App\Http\Controllers\Api\ReminderTemplateController;
@@ -35,7 +38,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\OdontogramController;
 use App\Http\Controllers\Api\ConsultationController;
-use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\BillingController;
 
 /*
@@ -260,11 +262,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('procedure-catalog', [ProcedureCatalogController::class, 'index']);
     Route::get('procedure-catalog/active', [ProcedureCatalogController::class, 'active']);
     Route::get('procedure-catalog/search', [ProcedureCatalogController::class, 'search']);
+    Route::get('procedure-catalog/for-me', [ProcedureCatalogController::class, 'forMe']);
     Route::get('procedure-catalog/{id}', [ProcedureCatalogController::class, 'show']);
     Route::middleware('role:administrador')->group(function () {
         Route::post('procedure-catalog', [ProcedureCatalogController::class, 'store']);
         Route::put('procedure-catalog/{id}', [ProcedureCatalogController::class, 'update']);
         Route::delete('procedure-catalog/{id}', [ProcedureCatalogController::class, 'destroy']);
+    });
+
+    // Favoritos de procedimientos (solo roles clínicos)
+    Route::middleware('role:odontologo,implantologo,tecnico_dental,asistente')->group(function () {
+        Route::get('procedure-catalog-favorites', [ProcedureCatalogFavoriteController::class, 'index']);
+        Route::post('procedure-catalog/{id}/favorite', [ProcedureCatalogFavoriteController::class, 'store']);
+        Route::delete('procedure-catalog/{id}/favorite', [ProcedureCatalogFavoriteController::class, 'destroy']);
+        Route::put('procedure-catalog-favorites/reorder', [ProcedureCatalogFavoriteController::class, 'reorder']);
+    });
+
+    // Especialidades (maestro)
+    Route::get('specialties', [SpecialtyController::class, 'index']);
+    Route::get('specialties/active', [SpecialtyController::class, 'active']);
+    Route::get('specialties/{id}', [SpecialtyController::class, 'show']);
+    Route::middleware('role:administrador')->group(function () {
+        Route::post('specialties', [SpecialtyController::class, 'store']);
+        Route::put('specialties/{id}', [SpecialtyController::class, 'update']);
     });
 
     // Billing / hook de pago (Sprint 3)

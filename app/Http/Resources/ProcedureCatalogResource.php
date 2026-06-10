@@ -14,7 +14,10 @@ class ProcedureCatalogResource extends JsonResource
             'code' => $this->code,
             'name' => $this->name,
             'description' => $this->description,
-            'specialty' => $this->specialty,
+            'specialty' => $this->specialty?->code,
+            'specialty_id' => $this->specialty_id,
+            'specialty_name' => $this->specialty?->name,
+            'legacy_specialty' => $this->legacy_specialty,
             'default_cost' => (float) $this->default_cost,
             'default_duration_minutes' => $this->default_duration_minutes,
             'requirements' => $this->requirements,
@@ -26,6 +29,8 @@ class ProcedureCatalogResource extends JsonResource
             'contraindications' => $this->contraindications,
             'post_procedure_care' => $this->post_procedure_care,
             'is_active' => (bool) $this->is_active,
+            'is_favorite' => (bool) ($this->is_favorite ?? false),
+            'favorite_position' => $this->favorite_position ?? null,
         ];
     }
 }

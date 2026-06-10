@@ -18,9 +18,10 @@ class DatabaseSeeder extends Seeder
             RoleBasedUsersSeeder::class,
 
             // 2. Configuración
+            SpecialtySeeder::class,
             AppointmentTypeSeeder::class,
             EnvironmentSeeder::class,
-            ProcedureCatalogSeeder::class, // catálogo de procedimientos (Sprint 2)
+            ProcedureCatalogSeeder::class, // depende de SpecialtySeeder
 
             // 3. Pacientes
             PatientSeeder::class, // 100 pacientes

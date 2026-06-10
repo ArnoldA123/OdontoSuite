@@ -38,6 +38,10 @@ export function usePermissions() {
     manageConfig: computed(() => safeUser.value?.role === 'administrador'),
     viewAuditLogs: computed(() => safeUser.value?.role === 'administrador'),
 
+    // Catálogo de procedimientos
+    manageProcedureCatalog: computed(() => safeUser.value?.role === 'administrador'),
+    viewProcedureCatalog: computed(() => safeUser.value?.role === 'administrador'),
+
     // Calendario y agenda
     viewCalendar: computed(() => !['finanzas'].includes(safeUser.value?.role)),
     manageSchedule: computed(() => !['finanzas'].includes(safeUser.value?.role)),
