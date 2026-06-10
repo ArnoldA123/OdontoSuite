@@ -9,7 +9,7 @@
         "lint:check": "eslint . --ext .vue,.js,.jsx,.ts,.tsx",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
-        "lint:fix": "npm run lint && npm run format",
+        "lint:fix": "pnpm run lint && pnpm run format",
         "test": "php artisan test",
         "test:unit": "php artisan test --testsuite=Unit",
         "test:feature": "php artisan test --testsuite=Feature"
