@@ -575,6 +575,13 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      name: 'Catálogo de Procedimientos',
+      to: '/procedure-catalog',
+      icon: ClipboardDocumentListIcon,
+      roles: ['administrador'],
+      badge: null
+    },
+    {
       name: 'Business Intelligence',
       to: '/business-intelligence',
       icon: ChartIcon,
@@ -704,6 +711,8 @@ const getPageDescription = () => {
     '/professionals': 'Gestión de profesionales',
     '/environments': 'Configuración de ambientes',
     '/appointment-types': 'Tipos de citas disponibles',
+    '/procedure-catalog': 'Catálogo clínico de procedimientos',
+    '/procedure-catalog/': 'Detalle de procedimiento',
     '/business-intelligence': 'Análisis y reportes',
     '/treatment-plans': 'Gestión de planes de tratamiento',
     '/quotations': 'Presupuestos y cotizaciones',
