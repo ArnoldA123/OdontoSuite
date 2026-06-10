@@ -128,6 +128,7 @@ import { useEcho } from '../../composables/useEcho'
 import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'
+import ProcedureQuickPicker from '../procedures/ProcedureQuickPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -164,6 +165,9 @@ const form = ref({
   scheduled_at: '',
   duration_minutes: null,
   appointment_type_id: '',
+  procedure_id: null,
+  selected_procedure: null,
+  final_amount: null,
   dental_chair_id: '',
   status: 'scheduled',
   notes: ''
@@ -189,6 +193,21 @@ const statusOptions = computed(() => [
 const isEditMode = computed(() => !!props.appointment?.id)
 const modalTitle = computed(() => (isEditMode.value ? 'Editar Cita' : 'Nueva Cita'))
 const submitButtonText = computed(() => (isEditMode.value ? 'Guardar Cambios' : 'Crear Cita'))
+const selectedProcedure = computed(() => form.value.selected_procedure)
+const procedureSpecialtyFilter = computed(() => {
+  const user = professionals.value.find(p => p.id === form.value.user_id)
+  return user?.specialty || ''
+})
+
+const onProcedureSelected = proc => {
+  form.value.selected_procedure = proc
+  if (proc?.default_duration_minutes) {
+    form.value.duration_minutes = proc.default_duration_minutes
+  }
+  if (proc?.default_cost) {
+    form.value.final_amount = Number(proc.default_cost)
+  }
+}
 
 const toDatetimeLocal = (isoString) => {
   if (!isoString) return ''
@@ -210,6 +229,9 @@ const populateFormFromAppointment = (appointment) => {
     scheduled_at: toDatetimeLocal(appointment.scheduled_at),
     duration_minutes: appointment.duration_minutes ?? null,
     appointment_type_id: appointment.appointment_type_id ?? appointment.appointment_type?.id ?? '',
+    procedure_id: appointment.procedure_id ?? null,
+    selected_procedure: appointment.procedure ?? null,
+    final_amount: appointment.final_amount ?? null,
     dental_chair_id: appointment.dental_chair_id ?? appointment.dental_chair?.id ?? '',
     status: appointment.status || 'scheduled',
     notes: appointment.notes || ''
@@ -231,6 +253,9 @@ const resetForm = () => {
     scheduled_at: props.initialDate || '',
     duration_minutes: null,
     appointment_type_id: '',
+    procedure_id: null,
+    selected_procedure: null,
+    final_amount: null,
     dental_chair_id: '',
     status: 'scheduled',
     notes: ''
@@ -347,6 +372,13 @@ const saveAppointment = async () => {
     const appointmentData = {
       ...form.value,
       scheduled_at: scheduledAtISO
+    }
+    delete appointmentData.selected_procedure
+    if (!appointmentData.procedure_id) {
+      delete appointmentData.procedure_id
+    }
+    if (!appointmentData.final_amount) {
+      delete appointmentData.final_amount
     }
 
     if (!isEditMode.value) {
