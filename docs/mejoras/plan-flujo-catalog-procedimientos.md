@@ -359,3 +359,80 @@ php artisan route:list --path=api/procedure-catalog
 4. PR corto de Sprint 1 → revisión → merge.
 5. Continuar con Sprint 2 en rama nueva `feat/procedure-catalog-api`.
 6. Iterar Sprints 3-6 con un PR por sprint para mantener la revisión manejable (capstone, no producción).
+
+---
+
+## 7. Estado de Implementación (Actualizado 2026-06-10)
+
+### Rama: `feat/procedure-catalog-master-data` — 22 commits
+
+| Sprint | Estado | Commits | Notas |
+|--------|--------|---------|-------|
+| 0 (Plan) | ✅ | 1 | `docs/mejoras/plan-flujo-catalog-procedimientos.md` |
+| 1 (Master Data) | ✅ | 6 | 6 migraciones + 4 modelos + 3 seeders + SpecialtyResource + C-3 fix |
+| 2 (API Clínica) | ✅ | 3 | forUser(), 5 endpoints, 2 controllers, 1 service |
+| 3 (UI Admin) | ✅ | 5 | 3 componentes Vue, 2 composables, 2 rutas, sidebar + permisos |
+| 4 (UI Clínico) | ✅ | 4 | MyProceduresPage, ProcedureQuickPicker, useProcedureFavorites, integración modal |
+| 5 (UI Recepción) | ✅ | 4 | ReceptionProceduresPage, ProcedureCatalogPicker, selector contextual |
+| 6 (Hardening) | ✅ | 3 | FormRequests, 403 handler, tests HTTP |
+
+### Desvíos del plan original
+
+1. **`procedure_catalog` es global, no por sucursal**: El plan proponía FK `branch_id` pero el catálogo clínico no se particiona por sede. C-4 multi-sede no aplica aquí (sí aplica a Appointment/Patient).
+
+2. **FormRequests se implementaron en Sprint 6, no en Sprint 2**: El plan original los asignaba al Sprint 2. Se hizo primero con validación inline en el controller para avanzar rápido, y se refactorizó en Sprint 6.
+
+3. **`abort(403)` devolvía 500**: Falta de handler para `HttpException` en `bootstrap/app.php`. Se corrigió en Sprint 6.
+
+4. **Migraciones con timestamps rotos**: `2025_01_15_` y `2025_06_02_` se renombraron a `2025_10_25_030053` y `2025_10_14_123001` respectivamente para respetar dependencias.
+
+5. **`useSpecialties.getSpecialties()` (no `loadSpecialties()`)**: El composable ya existía con el nombre `getSpecialties`.
+
+6. **No hay `@` alias en Vite**: El proyecto usa imports relativos. Todos los módulos nuevos usan `../../composables/` y `../../components/`.
+
+### Cómo probarlo
+
+```bash
+# 1. Migraciones y seeders
+php artisan migrate:fresh --seed
+
+# 2. Servidor
+php artisan serve --port=8765
+
+# 3. Login admin (credenciales en CREDENTIAL.md)
+curl -X POST http://127.0.0.1:8765/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"adm1n","password":"password123"}'
+
+# 4. Endpoints disponibles
+GET    /api/procedure-catalog                    # Paginado, filtros q/specialty/is_active
+GET    /api/procedure-catalog/active             # Solo activos (para selects)
+GET    /api/procedure-catalog/for-me             # Para clínico (favoritos + especialidad)
+POST   /api/procedure-catalog/{id}/favorite      # Marcar favorito
+DELETE /api/procedure-catalog/{id}/favorite       # Quitar favorito
+PUT    /api/procedure-catalog-favorites/reorder   # Reordenar favoritos
+GET    /api/specialties                           # Catálogo de especialidades
+POST   /api/procedure-catalog                    # Crear (admin only)
+PUT    /api/procedure-catalog/{id}               # Actualizar (admin only)
+DELETE /api/procedure-catalog/{id}               # Desactivar (admin only)
+
+# 5. Frontend
+pnpm dev
+# Admin: /procedure-catalog (CRUD)
+# Clínico: /my-procedures (favoritos)
+# Recepción: /reception-procedures (consulta)
+# Cualquier role: /calendar → NewAppointmentModal con selector de procedimiento
+```
+
+### Tests HTTP ejecutados (2026-06-10)
+
+| Test | Resultado |
+|------|-----------|
+| GET /procedure-catalog/for-me (admin, 42 total) | ✅ 200 |
+| POST /procedure-catalog (body vacío) | ✅ 422 (mensajes en español) |
+| POST /procedure-catalog (código duplicado) | ✅ 422 |
+| POST /procedure-catalog (odontólogo) | ✅ 403 |
+| POST /procedure-catalog (recepcionista) | ✅ 403 |
+| GET /procedure-catalog-favorites (odontólogo) | ✅ 200 |
+| GET /audit-logs (admin) | ✅ 200 |
+| GET /procedure-catalog?q=endodoncia&per_page=3 | ✅ 200 (3 resultados) |
