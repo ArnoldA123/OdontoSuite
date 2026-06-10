@@ -107,6 +107,12 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    path: '/reception-procedures',
+    name: 'reception-procedures',
+    component: () => import('./modules/reception-procedures/ReceptionProceduresPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
     path: '/business-intelligence',
     name: 'business-intelligence',
     component: () => import('./modules/business-intelligence/BusinessIntelligencePage.vue'),

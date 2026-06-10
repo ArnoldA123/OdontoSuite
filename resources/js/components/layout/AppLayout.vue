@@ -596,6 +596,13 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      name: 'Catálogo de Procedimientos',
+      to: '/reception-procedures',
+      icon: ClipboardDocumentListIcon,
+      roles: ['recepcionista', 'finanzas'],
+      badge: null
+    },
+    {
       name: 'Business Intelligence',
       to: '/business-intelligence',
       icon: ChartIcon,
@@ -728,6 +735,7 @@ const getPageDescription = () => {
     '/procedure-catalog': 'Catálogo clínico de procedimientos',
     '/procedure-catalog/': 'Detalle de procedimiento',
     '/my-procedures': 'Mis procedimientos favoritos',
+    '/reception-procedures': 'Catálogo de procedimientos',
     '/business-intelligence': 'Análisis y reportes',
     '/treatment-plans': 'Gestión de planes de tratamiento',
     '/quotations': 'Presupuestos y cotizaciones',
