@@ -73,6 +73,25 @@
               searchable
               clearable
             />
+            <div>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Procedimiento (catalogo)</label>
+              <ProcedureQuickPicker
+                v-if="useClinicalPicker"
+                v-model="form.procedure_id"
+                :specialty="procedureSpecialtyFilter"
+                @select="onProcedureSelected"
+              />
+              <ProcedureCatalogPicker
+                v-else
+                v-model="form.procedure_id"
+                :specialty="procedureSpecialtyFilter"
+                @select="onProcedureSelected"
+              />
+              <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
+                Duracion {{ selectedProcedure.default_duration_minutes }} min ·
+                S/ {{ Number(selectedProcedure.default_cost).toFixed(2) }}
+              </p>
+            </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <UiSelect
@@ -129,6 +148,7 @@ import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'
 import ProcedureQuickPicker from '../procedures/ProcedureQuickPicker.vue'
+import ProcedureCatalogPicker from '../procedures/ProcedureCatalogPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -197,6 +217,12 @@ const selectedProcedure = computed(() => form.value.selected_procedure)
 const procedureSpecialtyFilter = computed(() => {
   const user = professionals.value.find(p => p.id === form.value.user_id)
   return user?.specialty || ''
+})
+const useClinicalPicker = computed(() => {
+  const user = professionals.value.find(p => p.id === form.value.user_id)
+  if (!user) return true
+  const clinicalRoles = ['odontologo', 'implantologo', 'tecnico_dental', 'asistente']
+  return clinicalRoles.includes(user.role)
 })
 
 const onProcedureSelected = proc => {
