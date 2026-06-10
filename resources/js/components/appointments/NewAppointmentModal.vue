@@ -73,6 +73,25 @@
               searchable
               clearable
             />
+            <div>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Procedimiento (catalogo)</label>
+              <ProcedureQuickPicker
+                v-if="useClinicalPicker"
+                v-model="form.procedure_id"
+                :specialty="procedureSpecialtyFilter"
+                @select="onProcedureSelected"
+              />
+              <ProcedureCatalogPicker
+                v-else
+                v-model="form.procedure_id"
+                :specialty="procedureSpecialtyFilter"
+                @select="onProcedureSelected"
+              />
+              <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
+                Duracion {{ selectedProcedure.default_duration_minutes }} min ·
+                S/ {{ Number(selectedProcedure.default_cost).toFixed(2) }}
+              </p>
+            </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <UiSelect
@@ -128,6 +147,8 @@ import { useEcho } from '../../composables/useEcho'
 import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'
+import ProcedureQuickPicker from '../procedures/ProcedureQuickPicker.vue'
+import ProcedureCatalogPicker from '../procedures/ProcedureCatalogPicker.vue'
 
 const props = defineProps({
   modelValue: {
@@ -164,6 +185,9 @@ const form = ref({
   scheduled_at: '',
   duration_minutes: null,
   appointment_type_id: '',
+  procedure_id: null,
+  selected_procedure: null,
+  final_amount: null,
   dental_chair_id: '',
   status: 'scheduled',
   notes: ''
@@ -189,6 +213,27 @@ const statusOptions = computed(() => [
 const isEditMode = computed(() => !!props.appointment?.id)
 const modalTitle = computed(() => (isEditMode.value ? 'Editar Cita' : 'Nueva Cita'))
 const submitButtonText = computed(() => (isEditMode.value ? 'Guardar Cambios' : 'Crear Cita'))
+const selectedProcedure = computed(() => form.value.selected_procedure)
+const procedureSpecialtyFilter = computed(() => {
+  const user = professionals.value.find(p => p.id === form.value.user_id)
+  return user?.specialty || ''
+})
+const useClinicalPicker = computed(() => {
+  const user = professionals.value.find(p => p.id === form.value.user_id)
+  if (!user) return true
+  const clinicalRoles = ['odontologo', 'implantologo', 'tecnico_dental', 'asistente']
+  return clinicalRoles.includes(user.role)
+})
+
+const onProcedureSelected = proc => {
+  form.value.selected_procedure = proc
+  if (proc?.default_duration_minutes) {
+    form.value.duration_minutes = proc.default_duration_minutes
+  }
+  if (proc?.default_cost) {
+    form.value.final_amount = Number(proc.default_cost)
+  }
+}
 
 const toDatetimeLocal = (isoString) => {
   if (!isoString) return ''
@@ -210,6 +255,9 @@ const populateFormFromAppointment = (appointment) => {
     scheduled_at: toDatetimeLocal(appointment.scheduled_at),
     duration_minutes: appointment.duration_minutes ?? null,
     appointment_type_id: appointment.appointment_type_id ?? appointment.appointment_type?.id ?? '',
+    procedure_id: appointment.procedure_id ?? null,
+    selected_procedure: appointment.procedure ?? null,
+    final_amount: appointment.final_amount ?? null,
     dental_chair_id: appointment.dental_chair_id ?? appointment.dental_chair?.id ?? '',
     status: appointment.status || 'scheduled',
     notes: appointment.notes || ''
@@ -231,6 +279,9 @@ const resetForm = () => {
     scheduled_at: props.initialDate || '',
     duration_minutes: null,
     appointment_type_id: '',
+    procedure_id: null,
+    selected_procedure: null,
+    final_amount: null,
     dental_chair_id: '',
     status: 'scheduled',
     notes: ''
@@ -347,6 +398,13 @@ const saveAppointment = async () => {
     const appointmentData = {
       ...form.value,
       scheduled_at: scheduledAtISO
+    }
+    delete appointmentData.selected_procedure
+    if (!appointmentData.procedure_id) {
+      delete appointmentData.procedure_id
+    }
+    if (!appointmentData.final_amount) {
+      delete appointmentData.final_amount
     }
 
     if (!isEditMode.value) {

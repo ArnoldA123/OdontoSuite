@@ -89,6 +89,30 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    path: '/procedure-catalog',
+    name: 'procedure-catalog',
+    component: () => import('./modules/procedure-catalog/ProcedureCatalogPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
+    path: '/procedure-catalog/:id',
+    name: 'procedure-catalog-detail',
+    component: () => import('./modules/procedure-catalog/ProcedureCatalogDetailPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
+    path: '/my-procedures',
+    name: 'my-procedures',
+    component: () => import('./modules/my-procedures/MyProceduresPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
+    path: '/reception-procedures',
+    name: 'reception-procedures',
+    component: () => import('./modules/reception-procedures/ReceptionProceduresPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
     path: '/business-intelligence',
     name: 'business-intelligence',
     component: () => import('./modules/business-intelligence/BusinessIntelligencePage.vue'),

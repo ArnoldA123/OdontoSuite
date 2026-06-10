@@ -65,7 +65,17 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Manejo genérico de excepciones para API
+        // Manejar abort(403) que lanza HttpException generico (no AccessDeniedHttpException)
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
+            if ($e->getStatusCode() === 403 && ($request->expectsJson() || $request->is('api/*'))) {
+                return response()->json([
+                    'message' => 'No tienes permisos para acceder a este recurso.',
+                    'error' => config('app.debug') ? $e->getMessage() : null,
+                ], 403);
+            }
+        });
+
+        // Manejo generico de excepciones para API
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 \Illuminate\Support\Facades\Log::error('API Exception', [

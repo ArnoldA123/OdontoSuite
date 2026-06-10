@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProcedureCatalog extends Model
@@ -17,7 +19,8 @@ class ProcedureCatalog extends Model
         'code',
         'name',
         'description',
-        'specialty',
+        'legacy_specialty',
+        'specialty_id',
         'default_cost',
         'default_duration_minutes',
         'requirements',
@@ -44,17 +47,37 @@ class ProcedureCatalog extends Model
         return $this->hasMany(TreatmentPlanItem::class, 'procedure_catalog_id');
     }
 
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class, 'specialty_id');
+    }
+
+    public function favoritedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_favorite_procedures')
+            ->withPivot('position')
+            ->withTimestamps();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }
 
-    public function scopeBySpecialty(Builder $query, ?string $specialty): Builder
+    public function scopeBySpecialtyCode(Builder $query, ?string $specialtyCode): Builder
     {
-        if (!$specialty) {
+        if (!$specialtyCode) {
             return $query;
         }
-        return $query->where('specialty', $specialty);
+        return $query->whereHas('specialty', fn ($q) => $q->where('code', $specialtyCode));
+    }
+
+    public function scopeBySpecialtyId(Builder $query, ?int $specialtyId): Builder
+    {
+        if (!$specialtyId) {
+            return $query;
+        }
+        return $query->where('specialty_id', $specialtyId);
     }
 
     /**
