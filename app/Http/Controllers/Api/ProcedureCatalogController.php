@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProcedureCatalogRequest;
+use App\Http\Requests\UpdateProcedureCatalogRequest;
 use App\Http\Resources\ProcedureCatalogResource;
 use App\Models\AuditLog;
 use App\Models\ProcedureCatalog;
@@ -11,7 +13,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ProcedureCatalogController extends Controller
@@ -108,11 +109,10 @@ class ProcedureCatalogController extends Controller
         }
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreProcedureCatalogRequest $request): JsonResponse
     {
         try {
-            $validated = $this->validateProcedure($request, isUpdate: false);
-            $procedure = $this->service->create($validated);
+            $procedure = $this->service->create($request->validated());
 
             $this->logAudit('procedure_catalog_created', $procedure, [], $procedure->only([
                 'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost',
@@ -130,14 +130,13 @@ class ProcedureCatalogController extends Controller
         }
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateProcedureCatalogRequest $request, string $id): JsonResponse
     {
         try {
             $procedure = $this->service->findOrFail((int) $id);
             $old = $procedure->only(['code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active']);
 
-            $validated = $this->validateProcedure($request, isUpdate: true);
-            $procedure = $this->service->update($procedure, $validated);
+            $procedure = $this->service->update($procedure, $request->validated());
 
             $this->logAudit('procedure_catalog_updated', $procedure, $old, $procedure->only([
                 'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active',
@@ -176,38 +175,6 @@ class ProcedureCatalogController extends Controller
             Log::error('ProcedureCatalogController@destroy: ' . $e->getMessage());
             return response()->json(['message' => 'Error al desactivar el procedimiento'], 500);
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function validateProcedure(Request $request, bool $isUpdate): array
-    {
-        $required = $isUpdate ? 'sometimes' : 'required';
-        $requiredNullable = $isUpdate ? 'sometimes' : 'nullable';
-
-        $codeRule = $isUpdate
-            ? ['sometimes', 'string', 'max:20', Rule::unique('procedure_catalog', 'code')->ignore($request->route('id'))]
-            : ['required', 'string', 'max:20', 'unique:procedure_catalog,code'];
-
-        return $request->validate([
-            'code' => $codeRule,
-            'name' => "{$required}|string|max:200",
-            'description' => "{$requiredNullable}|string",
-            'specialty_id' => "{$requiredNullable}|integer|exists:specialties,id",
-            'legacy_specialty' => "{$requiredNullable}|string|max:50",
-            'default_cost' => "{$required}|numeric|min:0",
-            'default_duration_minutes' => "{$requiredNullable}|integer|min:5|max:600",
-            'requirements' => "{$requiredNullable}|string",
-            'materials_needed' => "{$requiredNullable}|string",
-            'requires_anesthesia' => "{$requiredNullable}|boolean",
-            'requires_radiographs' => "{$requiredNullable}|boolean",
-            'steps' => "{$requiredNullable}|array",
-            'steps.*' => 'string|max:500',
-            'contraindications' => "{$requiredNullable}|string",
-            'post_procedure_care' => "{$requiredNullable}|string",
-            'is_active' => "{$requiredNullable}|boolean",
-        ]);
     }
 
     private function logAudit(string $action, ProcedureCatalog $procedure, array $old, array $new): void

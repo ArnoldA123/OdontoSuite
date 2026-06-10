@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReorderProcedureFavoritesRequest;
 use App\Models\ProcedureCatalog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -54,16 +55,11 @@ class ProcedureCatalogFavoriteController extends Controller
         }
     }
 
-    public function reorder(Request $request): JsonResponse
+    public function reorder(ReorderProcedureFavoritesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'ids' => 'required|array|min:1',
-            'ids.*' => 'integer|exists:procedure_catalog,id',
-        ]);
+        $ids = $request->validated()['ids'];
 
         $user = Auth::user();
-        $ids = $validated['ids'];
-
         DB::transaction(function () use ($user, $ids) {
             foreach ($ids as $position => $procedureId) {
                 DB::table('user_favorite_procedures')
