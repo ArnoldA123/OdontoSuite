@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
 export function useAuth() {
-  const { setToken, getHeaders, request } = useApi()
+  const { setToken, getHeaders, get, post } = useApi()
 
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const token = ref(localStorage.getItem('auth_token'))
@@ -15,7 +15,7 @@ export function useAuth() {
   const login = async (credentials) => {
     isLoading.value = true
     try {
-      const response = await request('POST', '/api/auth/login', credentials)
+      const response = await post('/api/auth/login', credentials)
 
       if (response.data && response.data.token) {
         setToken(response.data.token)
@@ -34,7 +34,7 @@ export function useAuth() {
   const logout = async () => {
     try {
       if (token.value) {
-        await request('POST', '/api/auth/logout')
+        await post('/api/auth/logout')
       }
     } catch (error) {
     } finally {
@@ -46,7 +46,7 @@ export function useAuth() {
 
   const getCurrentUser = async () => {
     try {
-      const response = await request('GET', '/api/auth/me')
+      const response = await get('/api/auth/me')
       user.value = response.data
       localStorage.setItem('user', JSON.stringify(response.data))
       return response

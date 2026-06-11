@@ -247,12 +247,16 @@ const handleLogin = async () => {
       router.push('/dashboard')
     }
   } catch (err) {
-    
+    console.error('[Login] handler error:', err)
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
       error.value = Object.values(serverErrors).flat().join(', ')
     } else if (err.response?.data?.message) {
       error.value = err.response.data.message
+    } else if (err.response) {
+      error.value = `[HTTP ${err.response.status}] ${err.response.statusText || 'Error del servidor'}`
+    } else if (err.message) {
+      error.value = `${err.name || 'Error'}: ${err.message}`
     } else {
       error.value = 'Credenciales incorrectas. Verifica tu usuario y contraseña.'
     }
