@@ -52,18 +52,15 @@ use App\Http\Controllers\Api\BillingController;
 */
 
 // Rutas públicas (sin autenticación) con rate limiting para seguridad
+// El grupo de rutas 'auth' (más abajo) provee /auth/login con el mismo handler y throttle.login.
+// Esta ruta raíz se mantiene por compatibilidad con consumers que usan /login en vez de /auth/login.
 Route::post('/login', [App\Http\Controllers\Api\AuthController::class, 'login'])
     ->middleware('throttle.login'); // Rate limiting personalizado: 3/min, bloqueo 10min después de 5 errores
-Route::post('/register', [App\Http\Controllers\Api\AuthController::class, 'register'])
-    ->middleware('throttle:3,1'); // 3 intentos por minuto
 
 // Grupo de rutas de autenticación
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle.login'); // Rate limiting personalizado
-    Route::post('/register', [AuthController::class, 'register']);
-
-    // Password recovery routes (public) con rate limiting
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
         ->middleware('throttle:3,10'); // 3 intentos cada 10 minutos
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
@@ -177,8 +174,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // Logout
-    Route::post('/logout', [App\Http\Controllers\Api\AuthController::class, 'logout']);
+    // Logout se expone como /auth/logout dentro del grupo prefix('auth') más arriba.
+    // Esta ruta /logout a nivel raíz fue eliminada por duplicidad (C-5, Sprint 0).
 
     // Rutas /active para el frontend (accesibles para todos los roles autenticados)
     Route::get('users/active', [UserController::class, 'active']);
@@ -352,15 +349,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('cash-movements', CashMovementController::class);
 
         // Sesiones de caja
-        Route::apiResource('cash-register-sessions', CashRegisterController::class);
-        Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'openSession']);
-        Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'closeSession']);
-        Route::get('cash-register-sessions/active', [CashRegisterController::class, 'getActiveSession']);
+        // IMPORTANTE: las rutas con segmentos fijos (active, closure-report) deben
+        // ir ANTES del apiResource para que no sean pisadas por
+        // GET /cash-register-sessions/{cash_register_session} -> show($id).
+        Route::get('cash-register-sessions/active', [CashRegisterController::class, 'current']);
         Route::get('cash-register-sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
+        Route::apiResource('cash-register-sessions', CashRegisterController::class);
+        Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'open']);
+        Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'close']);
 
         // Reportes de caja
-        Route::get('cash-reports/daily', [CashReportController::class, 'dailyReport']);
-        Route::get('cash-reports/period', [CashReportController::class, 'periodReport']);
+        Route::get('cash-reports/daily', [CashReportController::class, 'daily']);
+        Route::get('cash-reports/period', [CashReportController::class, 'period']);
 
         // Pagos pendientes
         Route::get('pending-payments', [PendingPaymentsController::class, 'index']);

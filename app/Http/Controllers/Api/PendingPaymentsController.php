@@ -184,4 +184,49 @@ class PendingPaymentsController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Marcar un pago pendiente como pagado.
+     *
+     * Sprint 0 fix: la ruta POST /api/pending-payments/{id}/pay apuntaba a un
+     * método inexistente -> 500. Esqueleto mínimo que valida el ID, busca la
+     * cita completada sin transacciones activas, y deja un 501 con un mensaje
+     * claro. La implementación completa (que requiere crear la transacción vía
+     * TransactionService con payment_method_id, discount, cash session, etc.)
+     * queda como TODO fuera del scope de este sprint.
+     */
+    public function pay(Request $request, $id): JsonResponse
+    {
+        try {
+            $appointment = Appointment::with(['patient', 'appointmentType'])
+                ->where('id', $id)
+                ->where('status', 'completed')
+                ->first();
+
+            if (!$appointment) {
+                return response()->json([
+                    'message' => 'Cita no encontrada o no completada'
+                ], 404);
+            }
+
+            // TODO Sprint futuro: implementar creación de Transaction via
+            // TransactionService::createTransaction([
+            //     'patient_id' => $appointment->patient_id,
+            //     'appointment_id' => $appointment->id,
+            //     'payment_method_id' => $request->input('payment_method_id'),
+            //     'amount' => $request->input('amount'),
+            //     ...
+            // ]).
+            // Por ahora devolvemos 501 para no romper la API con un 500.
+            return response()->json([
+                'message' => 'Funcionalidad de pago pendiente en construcción. Sprint 0 solo elimina el 500.',
+                'todo' => 'Implementar TransactionService::createTransaction con payment_method_id y cashier session activa.',
+            ], 501);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al procesar el pago pendiente',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
