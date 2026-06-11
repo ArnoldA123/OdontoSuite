@@ -25,7 +25,7 @@ class PatientController extends Controller
     {
         // Construir query base para contar totales (sin filtros de búsqueda)
         $baseQuery = Patient::query();
-        
+
         // Aplicar filtro de búsqueda si existe
         $searchQuery = Patient::select([
             'id',
@@ -37,6 +37,7 @@ class PatientController extends Controller
             'birth_date',
             'gender',
             'is_active',
+            'branch_id',
             'created_at',
             'updated_at'
         ]);
@@ -51,7 +52,7 @@ class PatientController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('document_number', 'like', "%{$search}%");
             });
-            
+
             // Aplicar misma búsqueda a baseQuery para contar totales
             $baseQuery->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
@@ -60,6 +61,12 @@ class PatientController extends Controller
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('document_number', 'like', "%{$search}%");
             });
+        }
+
+        // Multi-tenant: filtrar por branch_id si se envía
+        if ($request->has('branch_id')) {
+            $searchQuery->where('branch_id', $request->input('branch_id'));
+            $baseQuery->where('branch_id', $request->input('branch_id'));
         }
 
         // Calcular totales de activos e inactivos (antes de aplicar filtro de estado)

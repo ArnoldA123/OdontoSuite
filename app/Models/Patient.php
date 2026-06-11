@@ -26,6 +26,11 @@ class Patient extends Model
         'allergies',
         'notes',
         'is_active',
+        'branch_id',
+        'dni',
+        'blood_type',
+        'insurance_provider',
+        'insurance_number',
     ];
 
     protected $casts = [

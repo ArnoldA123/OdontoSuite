@@ -238,6 +238,10 @@ class TreatmentPlanService
             });
         }
 
+        if (isset($filters['branch_id'])) {
+            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+        }
+
         return $query->orderByDesc('last_activity_at')
             ->orderByDesc('created_at')
             ->paginate(15);

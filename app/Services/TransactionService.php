@@ -171,6 +171,10 @@ class TransactionService
             $query->where('cash_register_session_id', $filters['cash_register_session_id']);
         }
 
+        if (isset($filters['branch_id'])) {
+            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+        }
+
         $transactions = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return [

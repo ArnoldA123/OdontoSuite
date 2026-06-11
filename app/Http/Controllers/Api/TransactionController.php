@@ -30,7 +30,7 @@ class TransactionController extends Controller
         try {
             $filters = $request->only([
                 'patient_id', 'type', 'payment_method_id', 'status',
-                'date_from', 'date_to', 'cash_register_session_id'
+                'date_from', 'date_to', 'cash_register_session_id', 'branch_id'
             ]);
 
             // Si no se especifica sesión, usar la sesión activa del usuario

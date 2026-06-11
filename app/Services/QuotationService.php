@@ -283,6 +283,10 @@ class QuotationService
             }
         }
 
+        if (isset($filters['branch_id'])) {
+            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+        }
+
         return $query->orderBy('quotation_date', 'desc')->paginate(15);
     }
 }

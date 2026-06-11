@@ -104,6 +104,11 @@ class AppointmentController extends Controller
             $query->where('patient_id', $request->get('patient_id'));
         }
 
+        // Multi-tenant: filtrar por branch_id si se envía
+        if ($request->has('branch_id')) {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
         $perPage = $request->get('per_page', 20);
         // Si es una solicitud del calendario (con start_date y end_date), permitir más items
         if ($request->has('start_date') && $request->has('end_date')) {
