@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -147,27 +149,35 @@ class AuthController extends Controller
                 ]
             );
 
-            // In production, send email here
-            // For now, we'll return the token in the response (only for development)
-            // In production, remove the token from response and send via email
-            Log::info('Password reset token generated for user: ' . $user->email);
-            
-            // TODO: Implement email sending
-            // Mail::to($user->email)->send(new PasswordResetMail($token));
+            // Sprint 0 fix (NF-4): envío real de email implementado. Con
+            // MAIL_MAILER=log (default dev) el email se escribe a storage/logs/laravel.log.
+            // En producción, configurar MAIL_MAILER=smtp + MAIL_HOST/MAIL_PORT/MAIL_USERNAME/MAIL_PASSWORD.
+            try {
+                Mail::to($user->email)->send(new PasswordResetMail($user, $token));
+                Log::info('Password reset email sent to: ' . $user->email);
+            } catch (\Exception $e) {
+                Log::error('Failed to send password reset email to ' . $user->email . ': ' . $e->getMessage());
+            }
 
-            // TODO: Implementar envío real de email en producción
-            // Mail::to($user->email)->send(new PasswordResetMail($token));
-            
-            // En producción, nunca retornar el token en la respuesta
-            // Solo retornar mensaje genérico para evitar información sobre usuarios existentes
-            return response()->json([
+            $response = [
                 'data' => [
                     'message' => 'Si existe una cuenta con ese correo electrónico, hemos enviado un enlace de recuperación.',
                 ],
                 'meta' => [
                     'message' => 'Enlace de recuperación enviado',
                 ],
-            ]);
+            ];
+
+            if (config('app.debug')) {
+                $response['debug'] = [
+                    'token' => $token,
+                    'email' => $user->email,
+                    'mail_driver' => config('mail.default'),
+                    'note' => 'Token visible solo en APP_DEBUG=true. En producción se omite.',
+                ];
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             Log::error('Error in forgotPassword: ' . $e->getMessage());
             return response()->json([

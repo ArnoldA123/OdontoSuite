@@ -19,8 +19,11 @@ class WaitingListService
 {
     /**
      * Add patient to waiting list.
+     *
+     * Sprint 0 fix (NF-6): $createdBy ahora se recibe como parámetro desde el
+     * controller (que pasa auth()->id()) en vez de hardcodear 1.
      */
-    public function addToWaitingList(array $data): WaitingList
+    public function addToWaitingList(array $data, ?int $createdBy = null): WaitingList
     {
         $this->validateWaitingListData($data);
 
@@ -47,6 +50,9 @@ class WaitingListService
             $data['expires_at'] = now()->addDays(30);
         }
 
+        $data['created_by'] = $createdBy ?? \Illuminate\Support\Facades\Auth::id();
+        $data['updated_by'] = $data['created_by'];
+
         $waitingList = WaitingList::create($data);
         $waitingList->load('patient', 'appointmentType', 'preferredUser');
 
@@ -58,8 +64,11 @@ class WaitingListService
 
     /**
      * Convert waiting list entry to appointment.
+     *
+     * Sprint 0 fix (NF-6): $createdBy se recibe como parámetro para que la cita
+     * resultante quede asociada al usuario autenticado (antes hardcodeado en 1).
      */
-    public function convertToAppointment(WaitingList $waitingList, array $appointmentData): Appointment
+    public function convertToAppointment(WaitingList $waitingList, array $appointmentData, ?int $createdBy = null): Appointment
     {
         if ($waitingList->status !== 'active') {
             throw ValidationException::withMessages([
@@ -73,6 +82,8 @@ class WaitingListService
             ]);
         }
 
+        $createdBy = $createdBy ?? \Illuminate\Support\Facades\Auth::id();
+
         DB::beginTransaction();
         try {
             // Create appointment
@@ -85,8 +96,8 @@ class WaitingListService
                 'duration_minutes' => $appointmentData['duration_minutes'] ?? 60,
                 'notes' => $appointmentData['notes'] ?? $waitingList->notes,
                 'status' => 'scheduled',
-                'created_by' => 1, // TODO: Get from authenticated user
-                'updated_by' => 1, // TODO: Get from authenticated user
+                'created_by' => $createdBy,
+                'updated_by' => $createdBy,
                 'ends_at' => Carbon::parse($appointmentData['scheduled_at'])
                     ->addMinutes($appointmentData['duration_minutes'] ?? 60),
             ]);

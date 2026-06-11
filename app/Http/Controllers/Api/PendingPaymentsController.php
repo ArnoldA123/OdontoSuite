@@ -188,16 +188,27 @@ class PendingPaymentsController extends Controller
     /**
      * Marcar un pago pendiente como pagado.
      *
-     * Sprint 0 fix: la ruta POST /api/pending-payments/{id}/pay apuntaba a un
-     * método inexistente -> 500. Esqueleto mínimo que valida el ID, busca la
-     * cita completada sin transacciones activas, y deja un 501 con un mensaje
-     * claro. La implementación completa (que requiere crear la transacción vía
-     * TransactionService con payment_method_id, discount, cash session, etc.)
-     * queda como TODO fuera del scope de este sprint.
+     * Sprint 0 fix (NF-3): la ruta POST /api/pending-payments/{id}/pay devolvía
+     * 501 con un TODO. Implementación real que delega en TransactionService.
+     * Flujo:
+     *   1. Valida que la cita exista, esté completada y no tenga transacciones activas.
+     *   2. Valida payment_method_id y amount en el body (amount <= balance pendiente).
+     *   3. Crea la transacción (TransactionService exige caja abierta).
+     *   4. Actualiza paid_amount y balance de la cita.
+     *   5. Devuelve 200 con la transacción creada.
      */
     public function pay(Request $request, $id): JsonResponse
     {
         try {
+            $validated = $request->validate([
+                'payment_method_id' => 'required|integer|exists:payment_methods,id',
+                'amount' => 'required|numeric|min:0.01',
+                'description' => 'nullable|string|max:255',
+                'notes' => 'nullable|string|max:1000',
+                'discount_amount' => 'nullable|numeric|min:0',
+                'discount_authorized_by' => 'nullable|integer|exists:users,id',
+            ]);
+
             $appointment = Appointment::with(['patient', 'appointmentType'])
                 ->where('id', $id)
                 ->where('status', 'completed')
@@ -209,19 +220,60 @@ class PendingPaymentsController extends Controller
                 ], 404);
             }
 
-            // TODO Sprint futuro: implementar creación de Transaction via
-            // TransactionService::createTransaction([
-            //     'patient_id' => $appointment->patient_id,
-            //     'appointment_id' => $appointment->id,
-            //     'payment_method_id' => $request->input('payment_method_id'),
-            //     'amount' => $request->input('amount'),
-            //     ...
-            // ]).
-            // Por ahora devolvemos 501 para no romper la API con un 500.
+            $hasActiveTransaction = $appointment->transactions()
+                ->where('status', '!=', 'voided')
+                ->exists();
+            if ($hasActiveTransaction) {
+                return response()->json([
+                    'message' => 'La cita ya tiene una transacción activa.'
+                ], 409);
+            }
+
+            $totalCost = (float) ($appointment->total_cost ?? 0);
+            $paidAmount = (float) ($appointment->paid_amount ?? 0);
+            $pendingBalance = round($totalCost - $paidAmount, 2);
+
+            if ($pendingBalance <= 0) {
+                return response()->json([
+                    'message' => 'La cita no tiene saldo pendiente.'
+                ], 409);
+            }
+
+            if ((float) $validated['amount'] > $pendingBalance) {
+                return response()->json([
+                    'message' => "El monto ({$validated['amount']}) excede el saldo pendiente ({$pendingBalance}).",
+                ], 422);
+            }
+
+            $transaction = app(\App\Services\TransactionService::class)->createTransaction([
+                'patient_id' => $appointment->patient_id,
+                'appointment_id' => $appointment->id,
+                'payment_method_id' => $validated['payment_method_id'],
+                'amount' => $validated['amount'],
+                'type' => 'payment',
+                'description' => $validated['description']
+                    ?? "Pago de cita #{$appointment->id} - {$appointment->patient->full_name}",
+                'notes' => $validated['notes'] ?? null,
+                'discount_amount' => $validated['discount_amount'] ?? 0,
+                'discount_authorized_by' => $validated['discount_authorized_by'] ?? null,
+            ]);
+
+            $newPaidAmount = round($paidAmount + (float) $validated['amount'], 2);
+            $newBalance = round($totalCost - $newPaidAmount, 2);
+            $appointment->update([
+                'paid_amount' => $newPaidAmount,
+                'balance' => $newBalance,
+            ]);
+
             return response()->json([
-                'message' => 'Funcionalidad de pago pendiente en construcción. Sprint 0 solo elimina el 500.',
-                'todo' => 'Implementar TransactionService::createTransaction con payment_method_id y cashier session activa.',
-            ], 501);
+                'data' => $transaction->load(['patient', 'paymentMethod', 'createdBy']),
+                'meta' => [
+                    'message' => 'Pago registrado correctamente.',
+                    'appointment_balance' => $newBalance,
+                ],
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al procesar el pago pendiente',

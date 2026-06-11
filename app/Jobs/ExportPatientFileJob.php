@@ -2,7 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Events\PatientFileExported;
 use App\Models\Patient;
+use App\Models\User;
 use App\Services\PatientExportService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -60,7 +62,20 @@ class ExportPatientFileJob implements ShouldQueue
                 'file_path' => $filePath,
             ]);
 
-            // TODO: Notify user via WebSocket or email that export is ready
+            // Sprint 0 fix (NF-5): dispara PatientFileExported que notifica al usuario.
+            // Envuelto en try/catch para que un fallo en la notificación NO revierta el job.
+            try {
+                $patient = Patient::find($this->patientId);
+                $user = $this->userId ? User::find($this->userId) : null;
+                if ($patient) {
+                    event(new PatientFileExported($patient, $user, $this->format, $filePath));
+                }
+            } catch (\Exception $e) {
+                Log::warning('Failed to fire PatientFileExported event', [
+                    'patient_id' => $this->patientId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('Error in ExportPatientFileJob', [
                 'patient_id' => $this->patientId,

@@ -23,6 +23,7 @@ class WaitingList extends Model
         'status',
         'notified_at',
         'expires_at',
+        'created_by',
     ];
 
     protected $casts = [
