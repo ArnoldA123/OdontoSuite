@@ -345,8 +345,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sistema de caja (finanzas y admin)
     Route::middleware('role:administrador,finanzas')->group(function () {
         Route::apiResource('payment-methods', PaymentMethodController::class);
-        Route::apiResource('transactions', TransactionController::class);
-        Route::apiResource('cash-movements', CashMovementController::class);
+        // Transacciones y movimientos requieren sesion de caja abierta.
+        // La apertura/cierre de sesion NO requiere sesion (la crea/termina),
+        // asi que se aplica el middleware cash.session solo a los resources
+        // que necesitan caja ya abierta.
+        Route::middleware('cash.session')->apiResource('transactions', TransactionController::class);
+        Route::middleware('cash.session')->apiResource('cash-movements', CashMovementController::class);
 
         // Sesiones de caja
         // IMPORTANTE: las rutas con segmentos fijos (active, closure-report) deben

@@ -19,7 +19,10 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            'vue': 'vue/dist/vue.esm-bundler.js'
+            'vue': 'vue/dist/vue.esm-bundler.js',
+            // Sprint 3 (M-3): alias @ -> resources/js. Ya se usaba en varios
+            // componentes y Vite lo resolvia laxamente; ahora es explicito.
+            '@': '/resources/js',
         }
     }
 });
