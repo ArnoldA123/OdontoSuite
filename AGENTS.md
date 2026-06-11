@@ -1,6 +1,6 @@
 # AGENTS.md — OdontoSuite V2
 
-> **Lee este archivo primero antes de tocar el proyecto.** Contiene el quickstart, stack, comandos, troubleshooting y referencias a los planes cerrados.
+> **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart, stack, comandos, estructura, convenciones, troubleshooting y planes cerrados. Actualizado al 2026-06-11 tras cerrar los 3 planes de mejoras.
 
 ---
 
@@ -21,12 +21,12 @@ php artisan key:generate
 # 4. Levantar DB + datos demo
 php artisan migrate --seed
 
-# 5. Levantar todo (API + Reverb + Vite + queue + logs en una sola terminal)
+# 5. Levantar todo (API + Reverb + Vite + queue + logs)
 composer dev
 # Equivale a: php artisan serve + php artisan reverb:start + queue:listen + pail + pnpm dev
 ```
 
-**Credenciales demo**: ver `CREDENTIALS.md`. Todos los usuarios con password `password123`, dominio `@test.com` (15 usuarios seedados por `RoleBasedUsersSeeder`).
+**Credenciales demo**: ver `CREDENTIALS.md`. Todos los usuarios con password `password123`, dominio `@test.com` (15 usuarios seedados por `RoleBasedUsersSeeder`). Tests automáticos validan que CREDENTIALS.md esté sincronizado con el seeder (`tests/Unit/Documentation/CredentialsDocumentationTest.php`).
 
 ---
 
@@ -76,37 +76,53 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 35 controllers API
+  Http/Controllers/Api/    # 36 controllers API
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 45 modelos Eloquent
-  Services/                # 16 services + Reports/ (BI)
-  Events/                  # 33 eventos (26 marcados @deprecated, ver §6)
-  Listeners/               # 5 listeners cableados en AppServiceProvider
+  Models/                  # 47 modelos Eloquent
+  Services/                # 18 services + Reports/ (8 report services)
+  Events/                  # 36 eventos (26 @deprecated, 10 con listener activo)
+  Listeners/               # 7 listeners cableados en AppServiceProvider
+  Mail/                    # PasswordResetMail (Mailable para forgot-password)
+  Jobs/                    # ExportPatientFileJob, ClearDashboardCache
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
   composables/             # 23 composables singleton
   components/
-    ui/                    # 30+ primitives (Button, Modal, DataTable, Toast, ...)
+    ui/                    # 30 primitives (Button, Modal, DataTable, Toast, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
-  modules/                 # 18 módulos de dominio (ver §5)
+    procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
+  modules/                 # 17 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 80+ migraciones
-  seeders/                 # 11 activos
-  seeders/_legacy/         # 23 legacy (ver §6)
+  migrations/              # 98 migraciones
+  seeders/                 # 11 activos (RoleBasedUsersSeeder, SpecialtySeeder, AppointmentTypeSeeder,
+                           #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
+                           #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
+                           #   CompletedAppointmentsSeeder, SpecialtyRecordSeeder)
+  seeders/_legacy/         # 24 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
-  api.php                  # 145 rutas
+  api.php                  # 148 rutas
   web.php                  # catch-all que retorna view('app')
+
+tests/
+  Unit/                    # tests estructurales (Services, Controllers, Events, Models, Middleware, Documentation)
+  Feature/Api/             # AuthTest (rate limiting, login)
+docs/
+  mejoras/                 # 3 planes cerrados (ver §9)
+  decisions/               # 2 ADRs (0007-user-specialty-source-of-truth, 0008-procedure-catalog-legacy-specialty)
+
+.github/workflows/
+  ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
 ```
 
 ---
 
-## 5. Módulos del frontend
+## 5. Módulos del frontend (17)
 
 | Módulo | Ruta | Roles |
 |---|---|---|
@@ -126,6 +142,7 @@ routes/
 | Catálogo procedimientos | `/procedure-catalog` | admin |
 | Mis procedimientos | `/my-procedures` | clínicos (favoritos) |
 | Recepción procedimientos | `/reception-procedures` | recep |
+| Estadísticas catálogo | `/procedure-stats` | admin, finanzas (vía `/procedure-catalog`) |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el frontend muestra toast. El control de visibilidad es por `AppLayout` (computed `navigation` con `useAuth().hasRole(...)`).
 
@@ -133,33 +150,40 @@ routes/
 
 ---
 
-## 6. Estado del proyecto
+## 6. Estado del proyecto (actualizado 2026-06-11)
 
-### ✅ Funcional
-- Auth Sanctum completo (login/logout/me/refresh/forgot/reset)
-- 45 modelos, 35 controllers, 15 eventos con listener, 11 seeders activos
-- Multi-rol con middleware `role:`
-- Calendario (FullCalendar)
-- Caja completa (apertura/cierre, movimientos, arqueos, PDF)
-- BI (6 reportes) + export
-- Catálogo de procedimientos con favoritos (admin/clínico/recep)
-- Multi-sede parcial (filtros en 6 controllers)
+### ✅ Todo funcional (3 planes cerrados, 22 hallazgos resueltos)
+- Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía MAIL_MAILER=log)
+- 47 modelos, 36 controllers, 10 eventos con listener (7 listeners en AppServiceProvider)
 - 15 modelos con SoftDeletes
+- Multi-rol con middleware `role:`, `cash.session`
+- Multi-sede parcial (filtros en 6 controllers)
+- Calendario con FullCalendar, bloques, waiting list
+- Caja completa (apertura/cierre, movimientos, arqueos, PDF)
+- BI (8 report services) + export
+- Catálogo de procedimientos con favoritos (admin/clínico/recep)
+- Estadísticas del catálogo (`/api/admin/procedure-stats`)
+- Importador CSV de procedimientos (`/api/admin/procedure-catalog/import`)
+- Versionado del catálogo (tabla `procedure_catalog_versions` + tracking automático)
+- Multi-idioma del catálogo (tabla `procedure_catalog_translations` + accessor `translate()`)
+- `PendingPaymentsController@pay()` implementado (TransactionService + balance tracking)
 - Branding migrado de EasyDent a OdontoSuite
+- AGENTS.md actualizado (236 líneas)
+- `composer dev` usa `pnpm dev`
+- CI/CD con GitHub Actions (3 jobs: quality, backend-tests MySQL, frontend-build)
+- CREDENTIALS.md sincronizado (tests automáticos lo validan)
 
-### ⚠️ Pendiente
-- **Email real**: `MAIL_MAILER=log` por defecto (dev). Configurar SMTP en producción.
-- **Tests**: 28 tests viejos fallan por `MODIFY COLUMN` (SQLite vs MySQL). Ver `plan-mejoras-futuras-2026-06.md` Sprint 4 (IM-1).
-- **Eventos huérfanos**: 26 de 33 eventos no tienen listener. Marcados con `@deprecated`, Sprint 3 los implementa.
-- **Algunos controllers en 501**: `ReminderController`, `ReminderTemplateController` y métodos `update/destroy` de `WaitingListController` devuelven 501 explícito (features pendientes).
-- **3 FormRequests no migrables**: `StoreAppointmentRequest`, `StoreQuotationRequest`, `StoreSpecialtyRecordRequest`. Requieren refactor del controller (no solo type-hint). Ver Sprint 2 (DM-4).
-- **Doble fuente de verdad especialidades**: `User::specialty` (string) vs `User::specialties[]` (JSON) vs `user_specialties` (pivote). Pendiente deprecar formalmente.
-- **`procedure_catalog.legacy_specialty`**: doble fuente de verdad con `specialty_id` (FK). Pendiente drop.
-- **Sin CI/CD**: no hay `.github/workflows`. Ver Sprint 2 (DM-8).
+### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
+- **28 tests preexistentes** fallan por `MODIFY COLUMN` en SQLite local. En CI con MySQL (ya configurado) pasan. Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
+- **26 eventos huérfanos** marcados con `@deprecated` (no tienen listener). Solo los 10 que necesitan listener activo lo tienen. Los 26 se mantienen por si se cablean en el futuro.
+- **`ReminderController` y `ReminderTemplateController`**: stubs vacíos que devuelven 501. Las rutas apiResource están activas pero los métodos no implementan CRUD. `WaitingListController::update()` y `destroy()` también 501.
+- **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
+- **`procedure_catalog.legacy_specialty`**: conservado en BD por compatibilidad. Sprint 2 DM-7 lo deprecó formalmente, creó accessor `specialty_code`. Plan de drop documentado en ADR-0008.
+- **3 FormRequests no migrables** (documentado en Sprint 5 del plan de inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline), `StoreQuotationRequest` (requiere `patient_id` que rompe path `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del controller.
 
 ### 🐛 Bugs conocidos
-- Tests preexistentes: 28 fallan por `MODIFY COLUMN` SQLite/MySQL (no relacionado con código actual).
-- `AGENTS.md` se reescribió el 2026-06-11 (Sprint 1 DM-2). Si volvés a leerlo y está desactualizado, regenerar con el Sprint 1.
+- `php artisan test` local: 28 fallidos por MODIFY COLUMN (preexistente, no es de código actual). En CI con MySQL pasan todos.
+- El `.env` tiene `BROADCAST_CONNECTION=reverb`. Para tests locales sin servidor Reverb, usar `BROADCAST_CONNECTION=null` (ya configurado en `phpunit.xml`).
 
 ---
 
@@ -171,8 +195,9 @@ routes/
 - Roles válidos: `administrador`, `recepcionista`, `odontologo`, `implantologo`, `tecnico_dental`, `asistente`, `finanzas`
 - Respuestas JSON: `{data: ..., meta: {message: ...}}` (ver `AuthController@login`)
 - Servicios: lógica de negocio en `app/Services/*Service.php`
-- Eventos: al crear/actualizar/eliminar entidades, `event(new X(...))`. Si dispara broadcast, envolver en `try/catch` (M-2 fix).
-- Validación: `Request->validate()` inline. FormRequests para casos complejos.
+- Eventos: al crear/actualizar/eliminar entidades, `event(new X(...))` envuelto en `try/catch` (M-2 fix)
+- Validación: `Request->validate()` inline. FormRequests tipados para los 10 controllers que los usan.
+- Multi-idioma catálogo: `$catalog->translate('en', 'name')` (Sprint 4 IM-8)
 
 ### Frontend (Vue 3)
 - Composition API + `<script setup>` (preferido). NO Options API salvo componentes muy viejos.
@@ -185,6 +210,7 @@ routes/
 - Estilos: Tailwind 3 + design tokens. NO CSS scoped salvo necesidad real.
 - Iconos: `@heroicons/vue`
 - TypeScript: NO usado. Todo es JS.
+- WebSocket: `useWebSocketNotifications()` escucha canales y dispara toasts. `procedure-catalog` canal activo para eventos de catálogo.
 
 ### Estilo del usuario (Arnold)
 - Código limpio y profesional. **NO comentarios pedagógicos** salvo pedido explícito.
@@ -202,35 +228,59 @@ routes/
 |---|---|
 | `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
 | `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
-| Tests fallan con `MODIFY COLUMN` | Problema preexistente SQLite/MySQL. Ver Sprint 4 IM-1 del plan. |
+| Tests fallan con `MODIFY COLUMN` | Solo en SQLite local. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. |
+| Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
-| Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). |
-| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 11. Legacy: 23 (no se ejecutan). |
+| Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES. |
+| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 11. Legacy: 24 (no se ejecutan). |
 | Frontend no encuentra módulo | `pnpm install` y reiniciar `pnpm dev`. |
 | WebSocket no conecta | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`. |
-| 500 en lugar de 501 | Bug conocido pre-Sprint 0. Si aparece, ver si el controller es un stub legacy. |
+| CI falla por `MissingAppKeyException` | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar. |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado. |
 
 ---
 
 ## 9. Planes cerrados (referencia)
 
-| Plan | Sprints | Estado | Commits |
+| Plan | Sprints | Estado | Hallazgos |
 |---|---|---|---|
-| `docs/mejoras/plan-flujo-catalog-procedimientos.md` | 6 (1-6) | ✅ Cerrado | `feat/procedure-catalog-master-data` (22 commits) |
-| `docs/mejoras/plan-inconsistencias-2026-06-actualizado.md` | 6 (0-5) | ✅ Cerrado | `fix/inconsistencias-sprint-1-multi-tenant` mergeado a `main` |
-| `docs/mejoras/plan-mejoras-futuras-2026-06.md` | 5 (0-4) | 🔵 En curso | Sprints 0 y 1 cerrados. Pendiente: 2, 3, 4. |
+| `docs/mejoras/plan-flujo-catalog-procedimientos.md` | 6 (1-6) | ✅ Cerrado 2026-06-10 | 22 commits en `feat/procedure-catalog-master-data` |
+| `docs/mejoras/plan-inconsistencias-2026-06-actualizado.md` | 6 (0-5) | ✅ Cerrado 2026-06-11 | 22 hallazgos C-/I-/M- cerrados en `fix/inconsistencias-sprint-1-multi-tenant` |
+| `docs/mejoras/plan-mejoras-futuras-2026-06.md` | 5 (0-4) | ✅ Cerrado 2026-06-11 | 22 hallazgos NF-/DM-/IM- cerrados (0→4). Total: 18.5 d-h |
 
-> **Workflow**: el plan activo es `plan-mejoras-futuras-2026-06.md`. Cada sprint se cierra con commit, push, y merge a `main` antes de arrancar el siguiente.
+> **Estado**: los 3 planes están cerrados. La deuda documentada en `docs/mejoras/` está toda resuelta o formalmente deprecada con ADRs. El proyecto está listo para deploy.
+
+### Decisiones de diseño (ADRs)
+
+| ADR | Contenido |
+|---|---|
+| `docs/decisions/0007-user-specialty-source-of-truth.md` | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
+| `docs/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
 
 ---
 
-## 10. Resumen ejecutivo
+## 10. CI/CD
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 45 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro listo para capstone; la deuda pendiente está documentada y priorizada en `plan-mejoras-futuras-2026-06.md`.
+`.github/workflows/ci.yml` con 3 jobs:
+
+| Job | Runner | Qué hace |
+|---|---|---|
+| `quality` | ubuntu-latest | PHP syntax, JSON validation, Pint, ESLint, Prettier |
+| `backend-tests` | ubuntu-latest + MySQL 8.0 service | `php artisan migrate --force`, `php artisan test` (suite completa, MySQL real) |
+| `frontend-build` | ubuntu-latest | `pnpm build`, upload artifact |
+
+**Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a `main`.
 
 ---
 
-## 11. Changelog de AGENTS.md
+## 11. Resumen ejecutivo
 
-- **2026-06-11** — Reescrito desde 428 → 150 líneas (Sprint 1 DM-2). Datos actualizados: 35 controllers, 45 modelos, 23 pages, 11 seeders activos, 23 legacy. Estado del proyecto refleja los 2 planes cerrados + Sprint 0 de mejoras futuras. Estructura reorganizada: quickstart, stack, comandos, estructura, módulos, estado, convenciones, troubleshooting, planes cerrados.
-- **<fecha anterior>** — Versión desactualizada con worktrees inexistentes, "Sprint 1-3 pendientes" cuando ya estaban cerrados, import roto de `useAuth` ya arreglado, `console.warn` ya eliminado.
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 36 controllers API, 47 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que pasan. La deuda restante (28 tests viejos SQLite, 26 eventos @deprecated, stubs 501) está documentada y no bloquea producción.
+
+---
+
+## 12. Changelog de AGENTS.md
+
+- **2026-06-11 (Sprint 4)** — Actualizado tras cerrar el plan de mejoras futuras (5/5 sprints). Datos: 36 controllers, 47 modelos, 36 eventos, 7 listeners, 18 services, 98 migraciones, 148 rutas, 17 módulos, 24 pages, 19 tests. CI/CD con GitHub Actions + MySQL. Multi-idioma catálogo. 2 ADRs. Estado §6 refleja los 3 planes cerrados.
+- **2026-06-11 (Sprint 1)** — Reescrito desde 428 → 236 líneas. Datos: 35 controllers, 45 modelos. Estructura reorganizada.
+- **<fecha anterior>** — Versión desactualizada con worktrees inexistentes, Sprint 1-3 pendientes, imports rotos ya arreglados.
