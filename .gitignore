@@ -23,3 +23,7 @@ CREDENTIALS.md
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Temp files from Hermes agent
+.tmp_token.txt
+.tmp_pr_body.json
