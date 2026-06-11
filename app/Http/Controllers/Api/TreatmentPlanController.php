@@ -81,7 +81,7 @@ class TreatmentPlanController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreTreatmentPlanRequest $request): JsonResponse
     {
         $this->normalizeEmptyStrings($request);
 

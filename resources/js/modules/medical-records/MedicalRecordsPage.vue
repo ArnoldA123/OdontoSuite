@@ -278,7 +278,6 @@ const loadPatientRecords = async () => {
       getStats(selectedPatient.value.id)
     ])
   } catch (err) {
-    console.error('Error loading patient records:', err)
   }
 }
 
@@ -366,7 +365,6 @@ onMounted(() => {
     if (medicalRecordsChannel) {
       medicalRecordsChannel
         .listen('.medical-record.created', async (e) => {
-          console.log('Medical record created via WebSocket:', e.medical_record)
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.medical_record.patient_id === selectedPatient.value.id) {
             await loadPatientRecords()
@@ -374,7 +372,6 @@ onMounted(() => {
           }
         })
         .listen('.medical-record.updated', async (e) => {
-          console.log('Medical record updated via WebSocket:', e.medical_record)
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.medical_record.patient_id === selectedPatient.value.id) {
             // Actualizar el registro en la lista si existe
@@ -388,7 +385,6 @@ onMounted(() => {
           }
         })
         .listen('.clinical-evolution.created', async (e) => {
-          console.log('Clinical evolution created via WebSocket:', e.evolution)
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.evolution.medical_record?.patient_id === selectedPatient.value.id) {
             await loadPatientRecords()
@@ -396,7 +392,6 @@ onMounted(() => {
           }
         })
         .listen('.clinical-attachment.created', async (e) => {
-          console.log('Clinical attachment created via WebSocket:', e.attachment)
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.attachment.medical_record?.patient_id === selectedPatient.value.id) {
             await loadPatientRecords()
@@ -405,7 +400,6 @@ onMounted(() => {
         })
     }
   } catch (error) {
-    console.error('Error setting up WebSocket subscriptions:', error)
   }
 })
 
@@ -415,7 +409,6 @@ onUnmounted(() => {
     try {
       echo.leave('medical-records')
     } catch (e) {
-      console.error('Error leaving medical-records channel:', e)
     }
   }
 })

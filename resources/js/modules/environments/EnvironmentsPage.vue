@@ -414,7 +414,6 @@ export default {
           toast.warning('No se encontraron ambientes')
         }
       } catch (error) {
-        console.error('Error loading environments:', error)
         toast.error('Error al cargar los ambientes. Por favor, recarga la página.')
         environments.value = []
       } finally {
@@ -433,7 +432,6 @@ export default {
         const response = await get(`/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`)
         environments.value = response.data
       } catch (error) {
-        console.error('Error searching environments:', error)
       } finally {
         loading.value = false
       }
@@ -457,7 +455,6 @@ export default {
         }
         loadEnvironments()
       } catch (error) {
-        console.error('Error creating environment:', error)
       } finally {
         creating.value = false
       }
@@ -485,7 +482,6 @@ export default {
         loadEnvironments()
         alert('Ambiente actualizado exitosamente')
       } catch (error) {
-        console.error('Error updating environment:', error)
         alert('Error al actualizar el ambiente')
       }
     }
@@ -497,7 +493,6 @@ export default {
           loadEnvironments()
           alert('Ambiente eliminado exitosamente')
         } catch (error) {
-          console.error('Error deleting environment:', error)
           alert('Error al eliminar el ambiente')
         }
       }

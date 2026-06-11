@@ -60,7 +60,6 @@ const onDrop = (e) => {
     if (plan.status === props.column.value) return
     emit('drop-plan', { plan, newStatus: props.column.value })
   } catch (err) {
-    console.error('Drop parse error', err)
   }
 }
 

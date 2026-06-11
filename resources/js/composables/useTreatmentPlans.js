@@ -76,7 +76,6 @@ export function useTreatmentPlans() {
       loading.value = true
       error.value = null
 
-      console.log('[createPlan] datos a enviar:', data)
       const response = await post('/api/treatment-plans', data)
       const newPlan = response.data
 
@@ -89,10 +88,6 @@ export function useTreatmentPlans() {
 
       return newPlan
     } catch (err) {
-      console.error('[createPlan] status:', err.status)
-      console.error('[createPlan] response data:', err.response?.data)
-      console.error('[createPlan] response errors:', err.response?.data?.errors)
-      console.error('[createPlan] full error:', err)
       error.value = err.response?.data?.message || 'Error al crear plan de tratamiento'
       throw err
     } finally {

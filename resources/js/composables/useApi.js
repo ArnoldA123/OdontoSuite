@@ -23,7 +23,6 @@ export function useApi() {
     if (token.value) {
       headers['Authorization'] = `Bearer ${token.value}`
     } else {
-      console.warn('No authentication token available')
     }
 
     return headers
@@ -32,7 +31,6 @@ export function useApi() {
   const handleResponse = async (response) => {
     if (response.status === 401) {
       // Token expirado o inválido
-      console.error('Authentication failed, redirecting to login...')
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
       window.location.href = '/login'
@@ -45,9 +43,6 @@ export function useApi() {
       // Clone the response to read it without consuming the original
       const clonedResponse = response.clone()
       const text = await clonedResponse.text()
-      console.error('Non-JSON response received. Status:', response.status)
-      console.error('Content-Type:', contentType)
-      console.error('Response preview:', text.substring(0, 500))
 
       // If it's an error status, provide more context
       if (!response.ok) {
@@ -94,7 +89,6 @@ export function useApi() {
       headers: getHeaders()
     })
 
-    console.log('Response status:', response.status)
     return handleResponse(response)
   }
 

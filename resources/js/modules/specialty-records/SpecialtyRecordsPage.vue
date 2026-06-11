@@ -225,7 +225,6 @@ const loadPatientRecords = async () => {
   try {
     await getAllRecords(selectedPatient.value.id)
   } catch (err) {
-    console.error('Error loading patient records:', err)
   }
 }
 
@@ -297,7 +296,6 @@ onMounted(() => {
     if (specialtyRecordsChannel) {
       specialtyRecordsChannel
         .listen('.specialty-record.created', async (e) => {
-          console.log('Specialty record created via WebSocket:', e.record, e.specialty)
           // Solo actualizar si es del paciente seleccionado y de la especialidad activa
           if (selectedPatient.value && e.record.patient_id === selectedPatient.value.id) {
             if (e.specialty === activeSpecialty.value) {
@@ -307,7 +305,6 @@ onMounted(() => {
           }
         })
         .listen('.specialty-record.updated', async (e) => {
-          console.log('Specialty record updated via WebSocket:', e.record, e.specialty)
           // Solo actualizar si es del paciente seleccionado y de la especialidad activa
           if (selectedPatient.value && e.record.patient_id === selectedPatient.value.id) {
             if (e.specialty === activeSpecialty.value) {
@@ -324,7 +321,6 @@ onMounted(() => {
         })
     }
   } catch (error) {
-    console.error('Error setting up WebSocket subscriptions:', error)
   }
 })
 
@@ -334,7 +330,6 @@ onUnmounted(() => {
     try {
       echo.leave('specialty-records')
     } catch (e) {
-      console.error('Error leaving specialty-records channel:', e)
     }
   }
 })

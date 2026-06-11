@@ -782,7 +782,6 @@ export default {
           toast.warning('No se encontraron pacientes')
         }
       } catch (error) {
-        console.error('Error loading patients:', error)
         toast.error('Error al cargar los pacientes. Por favor, recarga la página.')
         patients.value = []
         filteredPatients.value = []
@@ -893,7 +892,6 @@ export default {
           }
         )
       } catch (error) {
-        console.error('Error creating patient:', error)
         // Notificación de error
         const errorMsg = error.response?.data?.message || 'Error al crear paciente'
         const errors = error.response?.data?.errors
@@ -952,7 +950,6 @@ export default {
           }
         )
       } catch (error) {
-        console.error('Error updating patient:', error)
         const errorMsg = error.response?.data?.message || 'Error al actualizar paciente'
         const errors = error.response?.data?.errors
         let details = ''
@@ -1013,7 +1010,6 @@ export default {
             }
           )
         } catch (error) {
-          console.error('Error deleting patient:', error)
           // Notificación de error
           const errorMessage = error.response?.data?.message
             || error.response?.data?.errors?.patient?.[0]
@@ -1068,7 +1064,6 @@ export default {
         if (patientsChannel) {
           patientsChannel
             .listen('.patient.created', async (e) => {
-              console.log('Patient created via WebSocket:', e.patient)
               const newPatient = e.patient
 
               // Agregar el paciente directamente a la lista si cumple los filtros
@@ -1124,7 +1119,6 @@ export default {
               toast.success('Nuevo paciente agregado')
             })
             .listen('.patient.updated', async (e) => {
-              console.log('Patient updated via WebSocket:', e.patient)
               // Actualizar el paciente en la lista si existe
               const index = patients.value.findIndex(p => p.id === e.patient.id)
               if (index !== -1) {
@@ -1136,7 +1130,6 @@ export default {
               toast.success('Paciente actualizado')
             })
             .listen('.patient.deleted', async (e) => {
-              console.log('Patient deleted via WebSocket:', e.patient_id)
               // Remover el paciente de la lista
               patients.value = patients.value.filter(p => p.id !== e.patient_id)
               filteredPatients.value = filteredPatients.value.filter(p => p.id !== e.patient_id)
@@ -1144,7 +1137,6 @@ export default {
             })
         }
       } catch (error) {
-        console.error('Error setting up WebSocket subscriptions:', error)
       }
     })
 
@@ -1154,7 +1146,6 @@ export default {
         try {
           echo.leave('patients')
         } catch (e) {
-          console.error('Error leaving patients channel:', e)
         }
       }
     })

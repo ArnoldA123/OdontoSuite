@@ -468,7 +468,6 @@ const loadDashboardData = async () => {
       await loadCurrentSession()
     }
   } catch (error) {
-    console.error('Error loading dashboard data:', error)
 
     if (error.status === 401) {
       router.push('/login')
@@ -505,39 +504,30 @@ onMounted(async () => {
     if (dashboardChannel) {
       dashboardChannel
         .listen('.dashboard.stats-updated', async (e) => {
-          console.log('Dashboard stats updated via WebSocket:', e)
           await loadDashboardData()
         })
         .listen('.patient.created', async (e) => {
-          console.log('Patient created via WebSocket')
           await loadDashboardData()
         })
         .listen('.patient.updated', async (e) => {
-          console.log('Patient updated via WebSocket')
           await loadDashboardData()
         })
         .listen('.patient.deleted', async (e) => {
-          console.log('Patient deleted via WebSocket')
           await loadDashboardData()
         })
         .listen('.appointment.created', async (e) => {
-          console.log('Appointment created via WebSocket')
           await loadDashboardData()
         })
         .listen('.appointment.updated', async (e) => {
-          console.log('Appointment updated via WebSocket')
           await loadDashboardData()
         })
         .listen('.appointment.deleted', async (e) => {
-          console.log('Appointment deleted via WebSocket')
           await loadDashboardData()
         })
         .listen('.user.created', async (e) => {
-          console.log('User created via WebSocket')
           await loadDashboardData()
         })
         .listen('.user.updated', async (e) => {
-          console.log('User updated via WebSocket')
           await loadDashboardData()
         })
     }
@@ -547,7 +537,6 @@ onMounted(async () => {
     if (appointmentsChannel) {
       appointmentsChannel
         .listen('.appointment.created', async (e) => {
-          console.log('New appointment:', e.appointment)
           // Actualizar lista de citas de hoy si corresponde
           if (e.appointment?.scheduled_at) {
             const appointmentDate = new Date(e.appointment.scheduled_at)
@@ -558,7 +547,6 @@ onMounted(async () => {
           }
         })
         .listen('.appointment.updated', async (e) => {
-          console.log('Appointment updated:', e.appointment)
           // Actualizar en la lista si existe
           const index = todayAppointments.value.findIndex(apt => apt.id === e.appointment.id)
           if (index !== -1) {
@@ -568,7 +556,6 @@ onMounted(async () => {
           }
         })
         .listen('.appointment.deleted', async (e) => {
-          console.log('Appointment deleted:', e.appointment_id)
           // Remover de la lista si existe
           todayAppointments.value = todayAppointments.value.filter(
             apt => apt.id !== e.appointment_id
@@ -582,28 +569,23 @@ onMounted(async () => {
     if (cashRegisterChannel) {
       cashRegisterChannel
         .listen('.cash-session.opened', async (e) => {
-          console.log('Cash session opened:', e.session)
           await loadCurrentSession()
           await loadDashboardData()
         })
         .listen('.cash-session.closed', async (e) => {
-          console.log('Cash session closed:', e.session)
           await loadCurrentSession()
           await loadDashboardData()
         })
         .listen('.payment.registered', async (e) => {
-          console.log('Payment registered:', e.transaction)
           await loadCurrentSession()
           await loadDashboardData()
         })
         .listen('.cash-movement.created', async (e) => {
-          console.log('Cash movement created:', e.movement)
           await loadCurrentSession()
           await loadDashboardData()
         })
     }
   } catch (error) {
-    console.error('Error setting up WebSocket subscriptions:', error)
   }
 })
 
@@ -615,7 +597,6 @@ onUnmounted(() => {
       echo.leave('appointments')
       echo.leave('cash-register')
     } catch (e) {
-      console.error('Error leaving channels:', e)
     }
   }
 })

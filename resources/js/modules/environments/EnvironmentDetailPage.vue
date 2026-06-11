@@ -248,7 +248,6 @@ export default {
         environment.value = response.data
       } catch (error) {
         toast.error('Error al cargar el ambiente')
-        console.error(error)
       }
     }
 
@@ -257,7 +256,6 @@ export default {
       try {
         await getDentalChairAuditLogs(environment.value.id)
       } catch (error) {
-        console.error('Error al cargar historial de auditoría:', error)
       }
     }
 

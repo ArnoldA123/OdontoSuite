@@ -486,7 +486,6 @@ export default {
           toast.warning('No se encontraron tipos de cita')
         }
       } catch (error) {
-        console.error('Error loading types:', error)
         toast.error('Error al cargar los tipos de cita. Por favor, recarga la página.')
         types.value = []
       } finally {
@@ -505,7 +504,6 @@ export default {
         const response = await get(`/api/appointment-types/search?q=${encodeURIComponent(searchQuery.value)}`)
         types.value = response.data
       } catch (error) {
-        console.error('Error searching types:', error)
       } finally {
         loading.value = false
       }
@@ -531,7 +529,6 @@ export default {
         }
         loadTypes()
       } catch (error) {
-        console.error('Error creating type:', error)
       } finally {
         creating.value = false
       }
@@ -559,7 +556,6 @@ export default {
         loadTypes()
         toast.success('Tipo de cita actualizado exitosamente')
       } catch (error) {
-        console.error('Error updating type:', error)
         handleError(error, 'Error al actualizar el tipo de cita')
       }
     }
@@ -571,7 +567,6 @@ export default {
           loadTypes()
           toast.success('Tipo de cita eliminado exitosamente')
         } catch (error) {
-          console.error('Error deleting type:', error)
           handleError(error, 'Error al eliminar el tipo de cita')
         }
       }

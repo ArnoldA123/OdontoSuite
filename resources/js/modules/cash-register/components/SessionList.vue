@@ -318,7 +318,6 @@ const loadUsers = async () => {
     const response = await get('/api/users/active')
     users.value = response.data || []
   } catch (error) {
-    console.error('Error al cargar usuarios:', error)
   }
 }
 
@@ -336,7 +335,6 @@ const viewSession = (session) => {
 
 const generateReport = (session) => {
   // Implementar generación de reporte
-  console.log('Generar reporte para sesión:', session)
 }
 
 const reopenSession = (session) => {
@@ -390,9 +388,7 @@ const exportToExcel = async () => {
   exporting.value = true
   try {
     // Implementar exportación a Excel
-    console.log('Exportar a Excel')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }
@@ -402,9 +398,7 @@ const exportToPDF = async () => {
   exporting.value = true
   try {
     // Implementar exportación a PDF
-    console.log('Exportar a PDF')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }

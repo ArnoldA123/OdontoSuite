@@ -4,7 +4,6 @@ export function useErrorHandler() {
   const { error: showError, warning: showWarning, info: showInfo } = useToast()
 
   const handleError = (err, customMessage = null) => {
-    console.error('Error:', err)
 
     let message = customMessage
 

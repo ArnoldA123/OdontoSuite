@@ -28,13 +28,9 @@ export function useCashRegister() {
     error.value = null
 
     try {
-      console.log('loadCurrentSession: Cargando sesión y resumen...')
       const response = await get('/api/cash-register/current')
       
       // Verificar estructura de respuesta
-      console.log('loadCurrentSession: Respuesta completa:', response)
-      console.log('loadCurrentSession: response.data:', response.data)
-      console.log('loadCurrentSession: response.data?.summary:', response.data?.summary)
       
       currentSession.value = response.data?.session || null
       
@@ -64,22 +60,11 @@ export function useCashRegister() {
         await nextTick()
         triggerRef(summary)
         
-        console.log('loadCurrentSession: Resumen asignado (nuevo objeto):', summary.value)
-        console.log('loadCurrentSession: summary.value después de nextTick:', summary.value)
-        console.log('loadCurrentSession: summaryUpdateKey:', summaryUpdateKey.value)
       } else {
         summary.value = null
-        console.warn('loadCurrentSession: No se recibió resumen en la respuesta')
       }
       
-      console.log('loadCurrentSession: Resumen cargado:', {
-        opening_amount: summary.value?.opening_amount,
-        total_income: summary.value?.total_income,
-        total_expenses: summary.value?.total_expenses,
-        transactions_count: summary.value?.transactions_count
-      })
     } catch (err) {
-      console.error('loadCurrentSession: Error:', err)
       error.value = err.message || 'Error al cargar la sesión de caja'
       currentSession.value = null
       summary.value = null
@@ -185,7 +170,6 @@ export function useCashRegister() {
   // Calcular totales en tiempo real
   const realTimeTotals = computed(() => {
     if (!summary.value) {
-      console.log('realTimeTotals: No hay resumen disponible')
       return null
     }
 
@@ -200,7 +184,6 @@ export function useCashRegister() {
                      parseFloat(summary.value.total_expenses || 0)
     }
     
-    console.log('realTimeTotals: Calculando totales:', totals)
     return totals
   })
 
@@ -222,38 +205,30 @@ export function useCashRegister() {
       if (cashRegisterChannel) {
         cashRegisterChannel
           .listen('.cash-session.opened', async (e) => {
-            console.log('Cash session opened via WebSocket:', e.session)
             if (e.session?.id === currentSession.value?.id) {
               await loadCurrentSession()
             }
           })
           .listen('.cash-session.closed', async (e) => {
-            console.log('Cash session closed via WebSocket:', e.session)
             if (e.session?.id === currentSession.value?.id) {
               await loadCurrentSession()
             }
           })
           .listen('.payment.registered', async (e) => {
-            console.log('Payment registered via WebSocket:', e.transaction)
             // Recargar resumen si la transacción pertenece a la sesión actual
             if (e.session_id === currentSession.value?.id || e.transaction?.cash_register_session_id === currentSession.value?.id) {
-              console.log('Recargando resumen después de pago registrado...')
               await loadCurrentSession()
             }
           })
           .listen('.cash-movement.created', async (e) => {
-            console.log('Cash movement created via WebSocket:', e.movement)
             // Recargar resumen si el movimiento pertenece a la sesión actual
             if (e.session_id === currentSession.value?.id || e.movement?.cash_register_session_id === currentSession.value?.id) {
-              console.log('Recargando resumen después de movimiento creado...')
               await loadCurrentSession()
             }
           })
           .listen('.transaction.created', async (e) => {
-            console.log('Transaction created via WebSocket:', e.transaction)
             // Recargar resumen si la transacción pertenece a la sesión actual
             if (e.transaction?.cash_register_session_id === currentSession.value?.id) {
-              console.log('Recargando resumen después de transacción creada...')
               await loadCurrentSession()
             }
           })
@@ -264,7 +239,6 @@ export function useCashRegister() {
         subscribeToSessionChannel(currentSession.value.id)
       }
     } catch (error) {
-      console.error('Error setting up WebSocket subscriptions:', error)
     }
   }
 
@@ -277,23 +251,16 @@ export function useCashRegister() {
       if (cashSessionChannel) {
         cashSessionChannel
           .listen('.payment.registered', async (e) => {
-            console.log('Payment registered in session via WebSocket:', e.transaction)
-            console.log('Recargando resumen desde canal de sesión...')
             await loadCurrentSession()
           })
           .listen('.cash-movement.created', async (e) => {
-            console.log('Cash movement created in session via WebSocket:', e.movement)
-            console.log('Recargando resumen desde canal de sesión...')
             await loadCurrentSession()
           })
           .listen('.transaction.created', async (e) => {
-            console.log('Transaction created in session via WebSocket:', e.transaction)
-            console.log('Recargando resumen desde canal de sesión...')
             await loadCurrentSession()
           })
       }
     } catch (error) {
-      console.error('Error subscribing to session channel:', error)
     }
   }
 
@@ -305,7 +272,6 @@ export function useCashRegister() {
         cashSessionChannel = null
       }
     } catch (error) {
-      console.error('Error cleaning up WebSocket subscriptions:', error)
     }
   }
 

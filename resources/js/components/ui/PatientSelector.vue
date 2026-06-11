@@ -172,7 +172,6 @@ const searchPatients = async () => {
     })
     patients.value = response.data || []
   } catch (error) {
-    console.error('Error searching patients:', error)
     // Fallback to local filtering
     await loadPatients()
   } finally {
@@ -184,10 +183,8 @@ const loadPatients = async () => {
   isLoading.value = true
   try {
     const response = await get('/api/patients')
-    console.log('Pacientes cargados:', response.data)
     patients.value = response.data || []
   } catch (error) {
-    console.error('Error loading patients:', error)
     patients.value = []
   } finally {
     isLoading.value = false

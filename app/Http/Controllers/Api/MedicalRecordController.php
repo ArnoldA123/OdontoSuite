@@ -61,7 +61,7 @@ class MedicalRecordController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreMedicalRecordRequest $request): JsonResponse
     {
         try {
             $validated = $request->validate([
@@ -210,7 +210,7 @@ class MedicalRecordController extends Controller
     /**
      * Agregar evolución a la historia clínica
      */
-    public function addEvolution(Request $request, int $id): JsonResponse
+    public function addEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validate([

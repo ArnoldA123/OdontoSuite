@@ -415,7 +415,6 @@ export default {
         // Load dashboard data
         await loadDashboardData()
       } catch (error) {
-        console.error('Error loading initial data:', error)
         toast.error('Error al cargar los datos iniciales. Por favor, recarga la página.')
         professionals.value = []
         environments.value = []
@@ -434,9 +433,6 @@ export default {
           }
         })
 
-        console.log('Dashboard response:', response)
-        console.log('Dashboard response.data:', response.data)
-        console.log('Dashboard response.data keys:', Object.keys(response.data || {}))
 
         dashboardData.value = {
           totalAppointments: response.data?.totalAppointments || 0,
@@ -448,18 +444,14 @@ export default {
           professionalPerformance: response.data?.professionalPerformance || []
         }
 
-        console.log('Dashboard data set:', dashboardData.value)
 
         // Create charts after data is loaded
         await nextTick()
         // Wait a bit more for DOM to be fully rendered
         setTimeout(async () => {
-          console.log('About to create charts, appointmentsChart:', appointmentsChart.value)
-          console.log('About to create charts, revenueChart:', revenueChart.value)
           await createCharts()
         }, 100)
       } catch (error) {
-        console.error('Error loading dashboard data:', error)
         toast.error('Error al cargar los datos del dashboard. Por favor, intenta nuevamente.')
       } finally {
         loading.value = false
@@ -483,11 +475,9 @@ export default {
           }
         })
 
-        console.log('Report response:', response)
         reportData.value = response.data?.data || []
         reportColumns.value = response.data?.columns || []
       } catch (error) {
-        console.error('Error loading report:', error)
       } finally {
         loading.value = false
       }
@@ -495,20 +485,12 @@ export default {
 
     const createCharts = async () => {
       try {
-        console.log('Creating charts...')
-        console.log('Appointments chart element:', appointmentsChart.value)
-        console.log('Revenue chart element:', revenueChart.value)
-        console.log('Dashboard data:', dashboardData.value)
 
         // Check if elements exist
         if (!appointmentsChart.value) {
-          console.error('Appointments chart element not found')
-          console.log('Available refs:', { appointmentsChart: appointmentsChart.value, revenueChart: revenueChart.value })
           return
         }
         if (!revenueChart.value) {
-          console.error('Revenue chart element not found')
-          console.log('Available refs:', { appointmentsChart: appointmentsChart.value, revenueChart: revenueChart.value })
           return
         }
 
@@ -517,7 +499,6 @@ export default {
           try {
             appointmentsChartInstance.value.destroy()
           } catch (e) {
-            console.warn('Error destroying appointments chart:', e)
           }
           appointmentsChartInstance.value = null // Nullificar después de destruir
         }
@@ -525,30 +506,24 @@ export default {
           try {
             revenueChartInstance.value.destroy()
           } catch (e) {
-            console.warn('Error destroying revenue chart:', e)
           }
           revenueChartInstance.value = null // Nullificar después de destruir
         }
 
         // Load Chart.js dynamically
-        console.log('Loading Chart.js...')
         const { Chart, registerables } = await import('chart.js')
         Chart.register(...registerables)
-        console.log('Chart.js loaded successfully')
 
         // Verificar que el canvas esté disponible antes de crear chart
         if (!appointmentsChart.value || !appointmentsChart.value.getContext) {
-          console.error('Appointments chart canvas not available')
           return
         }
 
         // Appointments Chart
         if (dashboardData.value.appointmentsByDay && dashboardData.value.appointmentsByDay.length > 0) {
-          console.log('Creating appointments chart with data:', dashboardData.value.appointmentsByDay)
           try {
             const appointmentsCtx = appointmentsChart.value.getContext('2d')
             if (!appointmentsCtx) {
-              console.error('Appointments chart 2D context is null')
             } else {
               appointmentsChartInstance.value = new Chart(appointmentsCtx, {
             type: 'line',
@@ -574,25 +549,20 @@ export default {
               })
             }
           } catch (error) {
-            console.error('Error creating appointments chart:', error)
           }
         } else {
-          console.log('Skipping appointments chart - no data or element')
         }
 
         // Verificar que el canvas esté disponible antes de crear chart
         if (!revenueChart.value || !revenueChart.value.getContext) {
-          console.error('Revenue chart canvas not available')
           return
         }
 
         // Revenue Chart
         if (dashboardData.value.revenueByMonth && dashboardData.value.revenueByMonth.length > 0) {
-          console.log('Creating revenue chart with data:', dashboardData.value.revenueByMonth)
           try {
             const revenueCtx = revenueChart.value.getContext('2d')
             if (!revenueCtx) {
-              console.error('Revenue chart 2D context is null')
             } else {
               revenueChartInstance.value = new Chart(revenueCtx, {
             type: 'bar',
@@ -618,13 +588,10 @@ export default {
               })
             }
           } catch (error) {
-            console.error('Error creating revenue chart:', error)
           }
         } else {
-          console.log('Skipping revenue chart - no data or element')
         }
       } catch (error) {
-        console.error('Error creating charts:', error)
         // Continue without charts if Chart.js fails to load
       }
     }
@@ -704,7 +671,6 @@ export default {
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
       } catch (error) {
-        console.error('Error exporting report:', error)
         const { handleError } = useErrorHandler()
         handleError(error, 'Error al exportar el reporte')
       }
@@ -732,22 +698,16 @@ export default {
 
 
     onMounted(async () => {
-      console.log('Component mounted, user:', user)
-      console.log('Component mounted, user.value:', user?.value)
 
       // Check if user exists in localStorage as fallback
       const localUser = localStorage.getItem('user')
-      console.log('Local user:', localUser)
 
       if (!user || !user.value) {
         if (!localUser) {
-          console.log('No user found, redirecting to login')
           router.push('/login')
           return
         }
-        console.log('Using local user, loading initial data')
       } else {
-        console.log('User found, loading initial data')
       }
 
       await loadInitialData()
@@ -758,74 +718,62 @@ export default {
         if (dashboardChannel) {
           dashboardChannel
             .listen('.dashboard.stats-updated', async (e) => {
-              console.log('Dashboard stats updated via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.appointment.created', async (e) => {
-              console.log('Appointment created via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.appointment.updated', async (e) => {
-              console.log('Appointment updated via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.appointment.deleted', async (e) => {
-              console.log('Appointment deleted via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.patient.created', async (e) => {
-              console.log('Patient created via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.patient.updated', async (e) => {
-              console.log('Patient updated via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.patient.deleted', async (e) => {
-              console.log('Patient deleted via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.user.created', async (e) => {
-              console.log('User created via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.user.updated', async (e) => {
-              console.log('User updated via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.transaction.created', async (e) => {
-              console.log('Transaction created via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
             .listen('.transaction.updated', async (e) => {
-              console.log('Transaction updated via WebSocket', e)
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
         }
       } catch (error) {
-        console.error('Error setting up WebSocket subscriptions:', error)
       }
     })
 
@@ -835,7 +783,6 @@ export default {
         try {
           appointmentsChartInstance.value.destroy()
         } catch (e) {
-          console.warn('Error destroying appointments chart on unmount:', e)
         }
         appointmentsChartInstance.value = null
       }
@@ -843,7 +790,6 @@ export default {
         try {
           revenueChartInstance.value.destroy()
         } catch (e) {
-          console.warn('Error destroying revenue chart on unmount:', e)
         }
         revenueChartInstance.value = null
       }
@@ -853,7 +799,6 @@ export default {
         try {
           echo.leave('dashboard-updates')
         } catch (e) {
-          console.error('Error leaving dashboard channel:', e)
         }
       }
     })

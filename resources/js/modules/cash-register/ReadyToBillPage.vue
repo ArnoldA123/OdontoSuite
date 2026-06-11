@@ -26,7 +26,6 @@ const fetchList = async (page = 1) => {
     meta.value = response?.meta ?? meta.value
   } catch (error) {
     toast.error('No se pudo cargar la lista de citas por cobrar')
-    console.error(error)
   } finally {
     loading.value = false
   }

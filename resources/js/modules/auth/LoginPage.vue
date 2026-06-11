@@ -247,7 +247,6 @@ const handleLogin = async () => {
       router.push('/dashboard')
     }
   } catch (err) {
-    console.error('Login error:', err)
     
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
@@ -282,7 +281,6 @@ const handleResetPasswordSuccess = () => {
 
 const handleHelpCenter = () => {
   // TODO: Implement help center navigation
-  console.log('Help center clicked')
   // This could open a modal or navigate to help page
 }
 </script>

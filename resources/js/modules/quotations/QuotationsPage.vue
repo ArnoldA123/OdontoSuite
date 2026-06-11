@@ -272,7 +272,6 @@ const loadQuotations = async (additionalFilters = {}) => {
     const allFilters = { ...filters.value, ...additionalFilters }
     await getQuotations(allFilters)
   } catch (err) {
-    console.error('Error loading quotations:', err)
   }
 }
 
@@ -289,13 +288,11 @@ onMounted(() => {
     if (quotationsChannel) {
       quotationsChannel
         .listen('.quotation.created', async (e) => {
-          console.log('Quotation created via WebSocket:', e.quotation)
           // Recargar lista para incluir el nuevo presupuesto
           await loadQuotations()
           toast.success('Nuevo presupuesto creado')
         })
         .listen('.quotation.updated', async (e) => {
-          console.log('Quotation updated via WebSocket:', e.quotation)
           // Actualizar el presupuesto en la lista si existe
           const index = quotations.value.findIndex(q => q.id === e.quotation.id)
           if (index !== -1) {
@@ -307,7 +304,6 @@ onMounted(() => {
           toast.success('Presupuesto actualizado')
         })
         .listen('.quotation.approved', async (e) => {
-          console.log('Quotation approved via WebSocket:', e.quotation)
           // Actualizar el presupuesto en la lista
           const index = quotations.value.findIndex(q => q.id === e.quotation.id)
           if (index !== -1) {
@@ -319,7 +315,6 @@ onMounted(() => {
         })
     }
   } catch (error) {
-    console.error('Error setting up WebSocket subscriptions:', error)
   }
 })
 
@@ -329,7 +324,6 @@ onUnmounted(() => {
     try {
       echo.leave('quotations')
     } catch (e) {
-      console.error('Error leaving quotations channel:', e)
     }
   }
 })

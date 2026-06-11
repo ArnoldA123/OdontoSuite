@@ -289,17 +289,14 @@ const paginatedPayments = computed(() => {
 
 // Métodos
 const loadPendingPayments = async () => {
-  console.log('Cargando pagos pendientes...')
   loading.value = true
   try {
     // Usar endpoint original autenticado
     const response = await get('/api/cash-register/pending-payments', { params: filters.value })
     payments.value = response.data || []
-    console.log('Pagos pendientes cargados:', payments.value.length)
     // Emitir los pagos cargados
     emit('payments-loaded', payments.value)
   } catch (error) {
-    console.error('Error cargando pagos pendientes:', error)
     // En caso de error, mostrar lista vacía
     payments.value = []
     emit('payments-loaded', [])
@@ -309,7 +306,6 @@ const loadPendingPayments = async () => {
 }
 
 const handlePayment = (payment) => {
-  console.log('Enviando datos del pago:', payment)
   emit('payment', payment)
 }
 
@@ -349,13 +345,11 @@ watch(filters, () => {
 
 // Lifecycle
 onMounted(() => {
-  console.log('PendingPaymentsList montado, cargando pagos pendientes...')
   loadPendingPayments()
 })
 
 // Watch para recargar cuando cambie la key del componente
 watch(() => props.key, () => {
-  console.log('Key del componente cambió, recargando pagos pendientes...')
   loadPendingPayments()
 })
 </script>

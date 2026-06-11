@@ -101,7 +101,6 @@ const loadAnalysis = async () => {
       hasAnalysis.value = true
     }
   } catch (error) {
-    console.error('Error loading analysis:', error)
   }
 }
 
@@ -111,7 +110,6 @@ const startAnalysis = async () => {
     hasAnalysis.value = true
     emit('analysis-completed', analysis.value)
   } catch (error) {
-    console.error('Error starting analysis:', error)
   }
 }
 

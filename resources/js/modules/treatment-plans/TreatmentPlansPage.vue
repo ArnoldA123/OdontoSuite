@@ -353,7 +353,6 @@ const loadPlans = async (additional = {}) => {
     })
     await getPlans(all)
   } catch (err) {
-    console.error('Error loading plans:', err)
   }
 }
 
@@ -412,7 +411,6 @@ onMounted(() => {
         })
     }
   } catch (err) {
-    console.error('WebSocket setup failed:', err)
   }
 })
 
@@ -422,7 +420,6 @@ onUnmounted(() => {
     try {
       echo.leave('treatment-plans')
     } catch (e) {
-      console.error(e)
     }
   }
   clearTimeout(debounceTimer)

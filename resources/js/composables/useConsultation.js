@@ -37,7 +37,6 @@ export function useConsultation() {
       const response = await get(`/api/appointments/${appointmentId}/consultation-context`)
       context.value = response?.data ?? null
     } catch (error) {
-      console.error('Error loading consultation context:', error)
       lastError.value = error?.response?.data?.error?.message || error?.response?.data?.message || 'No se pudo cargar el contexto'
       toast.error(lastError.value)
     } finally {
@@ -127,12 +126,6 @@ export function useConsultation() {
           errMsg = fields || errMsg
         }
 
-        console.error('Consultation validation failed', {
-          status: response.status,
-          message: data?.message,
-          errors: fieldErrors,
-          fullResponse: data,
-        })
 
         lastError.value = errMsg
         toast.error(errMsg, 8000)
@@ -145,7 +138,6 @@ export function useConsultation() {
       }
       return data
     } catch (error) {
-      console.error('Error completing consultation:', error)
       throw error
     } finally {
       submitting.value = false

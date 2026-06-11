@@ -71,7 +71,7 @@ class InterconsultationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreInterconsultationRequest $request): JsonResponse
     {
         try {
             $validated = $request->validate([

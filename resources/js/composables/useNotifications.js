@@ -15,7 +15,6 @@ const loadFromStorage = () => {
       notificationId.value = parsed.lastId || 0
     }
   } catch (error) {
-    console.error('Error loading notifications from storage:', error)
   }
 }
 
@@ -27,7 +26,6 @@ const saveToStorage = () => {
       lastId: notificationId.value
     }))
   } catch (error) {
-    console.error('Error saving notifications to storage:', error)
   }
 }
 
@@ -167,7 +165,6 @@ export function useNotifications() {
       }
     } catch (error) {
       // Silenciar errores de audio (puede fallar en algunos navegadores)
-      console.debug('Could not play notification sound:', error)
     }
   }
 

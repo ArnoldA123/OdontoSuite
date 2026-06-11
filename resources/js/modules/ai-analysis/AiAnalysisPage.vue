@@ -463,7 +463,6 @@ const loadData = async () => {
       getStats()
     ])
   } catch (error) {
-    console.error('Error loading data:', error)
   }
 }
 
@@ -490,7 +489,6 @@ const reviewAnalysis = async (analysisId, decision, notes) => {
     selectedAnalysis.value = null
     await loadData() // Refresh data
   } catch (error) {
-    console.error('Error reviewing analysis:', error)
   }
 }
 
@@ -500,7 +498,6 @@ const deleteAnalysis = async (analysisId) => {
       await deleteAnalysisApi(analysisId)
       await loadData() // Refresh data
     } catch (error) {
-      console.error('Error deleting analysis:', error)
     }
   }
 }
@@ -531,12 +528,6 @@ const startAnalysis = async () => {
   if (!canStartAnalysis.value) return
 
   // Validar datos antes de enviar
-  console.log('Datos del análisis:', {
-    patient: newAnalysis.value.patient,
-    file: newAnalysis.value.file,
-    description: newAnalysis.value.description,
-    category: newAnalysis.value.category
-  })
 
   if (!newAnalysis.value.patient?.id) {
     alert('Por favor selecciona un paciente')
@@ -586,7 +577,6 @@ const startAnalysis = async () => {
     await loadData()
 
   } catch (error) {
-    console.error('Error analyzing:', error)
     showAnalyzingModal.value = false
   } finally {
     analyzing.value = false

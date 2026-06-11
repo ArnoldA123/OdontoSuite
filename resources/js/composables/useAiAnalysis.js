@@ -22,7 +22,6 @@ export function useAiAnalysis() {
       success('Análisis solicitado exitosamente')
       return response.data
     } catch (err) {
-      console.error('Error analyzing image:', err)
       error(err.response?.data?.message || 'Error al analizar imagen')
       throw err
     } finally {
@@ -39,7 +38,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis/attachment/${attachmentId}`)
       return response.data
     } catch (err) {
-      console.error('Error getting analysis by attachment:', err)
       return null
     } finally {
       loading.value = false
@@ -57,7 +55,6 @@ export function useAiAnalysis() {
       analyses.value = response.data
       return response
     } catch (err) {
-      console.error('Error getting patient analyses:', err)
       error('Error al obtener análisis del paciente')
       throw err
     } finally {
@@ -76,7 +73,6 @@ export function useAiAnalysis() {
       analyses.value = response.data
       return response
     } catch (err) {
-      console.error('Error getting pending analyses:', err)
       error('Error al obtener análisis pendientes')
       throw err
     } finally {
@@ -95,7 +91,6 @@ export function useAiAnalysis() {
       analyses.value = response.data
       return response
     } catch (err) {
-      console.error('Error getting analyses:', err)
       error('Error al obtener análisis')
       throw err
     } finally {
@@ -113,7 +108,6 @@ export function useAiAnalysis() {
       analysis.value = response.data
       return response.data
     } catch (err) {
-      console.error('Error getting analysis:', err)
       error('Error al obtener análisis')
       throw err
     } finally {
@@ -135,7 +129,6 @@ export function useAiAnalysis() {
       success('Análisis revisado exitosamente')
       return response.data
     } catch (err) {
-      console.error('Error reviewing analysis:', err)
       error(err.response?.data?.message || 'Error al revisar análisis')
       throw err
     } finally {
@@ -154,7 +147,6 @@ export function useAiAnalysis() {
       stats.value = response.data
       return response.data
     } catch (err) {
-      console.error('Error getting AI stats:', err)
       error('Error al obtener estadísticas')
       throw err
     } finally {
@@ -177,7 +169,6 @@ export function useAiAnalysis() {
         analyses.value.splice(index, 1)
       }
     } catch (err) {
-      console.error('Error deleting analysis:', err)
       error(err.response?.data?.message || 'Error al eliminar análisis')
       throw err
     } finally {
@@ -193,14 +184,6 @@ export function useAiAnalysis() {
       loading.value = true
 
       // Log de datos para debugging
-      console.log('Datos enviados:', {
-        patientId: patientId,
-        patientIdType: typeof patientId,
-        patientIdParsed: parseInt(patientId),
-        file: file,
-        description: description,
-        category: category
-      })
 
       const formData = new FormData()
       formData.append('patient_id', parseInt(patientId))
@@ -218,7 +201,6 @@ export function useAiAnalysis() {
       return response.data.data
 
     } catch (err) {
-      console.error('Error uploading and analyzing:', err)
       error(err.response?.data?.message || 'Error al analizar la imagen')
       throw err
     } finally {

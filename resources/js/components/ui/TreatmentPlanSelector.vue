@@ -164,7 +164,6 @@ const searchPlans = async () => {
     })
     plans.value = response.data || []
   } catch (error) {
-    console.error('Error searching treatment plans:', error)
     // Fallback to local filtering
     await loadPlans()
   } finally {
@@ -178,7 +177,6 @@ const loadPlans = async () => {
     const response = await get('/api/treatment-plans')
     plans.value = response.data || []
   } catch (error) {
-    console.error('Error loading treatment plans:', error)
     plans.value = []
   } finally {
     isLoading.value = false

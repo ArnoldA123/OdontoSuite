@@ -384,7 +384,6 @@ const loadPaymentMethods = async () => {
     const response = await get('/api/payment-methods')
     paymentMethods.value = response.data || []
   } catch (error) {
-    console.error('Error al cargar métodos de pago:', error)
   }
 }
 
@@ -401,7 +400,6 @@ const searchPatients = async () => {
     })
     patientResults.value = response.data || []
   } catch (error) {
-    console.error('Error al buscar pacientes:', error)
   } finally {
     searchingPatients.value = false
   }
@@ -431,7 +429,6 @@ const loadPatientAppointments = async (patientId) => {
     })
     patientAppointments.value = response.data || []
   } catch (error) {
-    console.error('Error al cargar citas del paciente:', error)
   }
 }
 

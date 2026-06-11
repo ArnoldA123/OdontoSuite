@@ -188,7 +188,6 @@ const handleSubmit = async () => {
       })
     }
   } catch (err) {
-    console.error('Forgot password error:', err)
     
     if (err.response?.data?.errors?.email) {
       errors.email = err.response.data.errors.email[0]

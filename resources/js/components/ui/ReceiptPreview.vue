@@ -230,7 +230,6 @@ const handlePrint = async () => {
 
     emit('print', props.transaction)
   } catch (error) {
-    console.error('Error al imprimir:', error)
   } finally {
     printing.value = false
   }
@@ -247,7 +246,6 @@ const handleDownload = async () => {
     // Simular descarga
     await new Promise(resolve => setTimeout(resolve, 1000))
   } catch (error) {
-    console.error('Error al descargar:', error)
   } finally {
     downloading.value = false
   }

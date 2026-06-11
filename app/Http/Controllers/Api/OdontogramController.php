@@ -123,7 +123,7 @@ class OdontogramController extends Controller
     /**
      * Add a record to an odontogram.
      */
-    public function addRecord(Request $request, Odontogram $odontogram): JsonResponse
+    public function addRecord(\App\Http\Requests\StoreOdontogramRecordRequest $request, Odontogram $odontogram): JsonResponse
     {
         $validated = $request->validate([
             'dental_piece_id' => 'required|exists:dental_pieces,id',

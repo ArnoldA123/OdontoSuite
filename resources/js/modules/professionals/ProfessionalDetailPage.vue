@@ -248,7 +248,6 @@ export default {
         professional.value = response.data
       } catch (error) {
         toast.error('Error al cargar el profesional')
-        console.error(error)
       }
     }
 
@@ -257,7 +256,6 @@ export default {
       try {
         await getUserAuditLogs(professional.value.id)
       } catch (error) {
-        console.error('Error al cargar historial de auditoría:', error)
       }
     }
 

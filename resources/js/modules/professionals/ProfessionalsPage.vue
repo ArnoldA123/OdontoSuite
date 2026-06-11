@@ -471,7 +471,6 @@ export default {
           toast.warning('No se encontraron profesionales')
         }
       } catch (error) {
-        console.error('Error loading professionals:', error)
         toast.error('Error al cargar los profesionales. Por favor, recarga la página.')
         professionals.value = []
       } finally {
@@ -490,7 +489,6 @@ export default {
         const response = await get(`/api/users/search?q=${encodeURIComponent(searchQuery.value)}&role=odontologo`)
         professionals.value = response.data
       } catch (error) {
-        console.error('Error searching professionals:', error)
       } finally {
         loading.value = false
       }
@@ -520,7 +518,6 @@ export default {
         }
         loadProfessionals()
       } catch (error) {
-        console.error('Error creating professional:', error)
       } finally {
         creating.value = false
       }
@@ -548,7 +545,6 @@ export default {
         loadProfessionals()
         alert('Profesional actualizado exitosamente')
       } catch (error) {
-        console.error('Error updating professional:', error)
         alert('Error al actualizar el profesional')
       }
     }
@@ -560,7 +556,6 @@ export default {
           loadProfessionals()
           alert('Profesional eliminado exitosamente')
         } catch (error) {
-          console.error('Error deleting professional:', error)
           alert('Error al eliminar el profesional')
         }
       }

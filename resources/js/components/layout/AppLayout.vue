@@ -758,7 +758,6 @@ const handleLogout = async () => {
     // Redirigir inmediatamente al login después de cerrar sesión
     router.push('/login')
   } catch (error) {
-    console.error('Error al cerrar sesión:', error)
     // Redirigir al login incluso si hay error
     router.push('/login')
   }
