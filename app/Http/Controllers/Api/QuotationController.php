@@ -49,26 +49,27 @@ class QuotationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreQuotationRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'treatment_plan_id' => 'nullable|exists:treatment_plans,id',
-                'patient_id' => 'required|exists:patients,id',
-                'quotation_date' => 'nullable|date',
-                'valid_until' => 'nullable|date|after:quotation_date',
-                'subtotal' => 'required|numeric|min:0',
-                'discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'discount_amount' => 'nullable|numeric|min:0',
-                'tax_percentage' => 'nullable|numeric|min:0|max:100',
-                'terms_conditions' => 'nullable|string',
-                'notes' => 'nullable|string',
-                'payment_terms' => 'nullable|array',
-                'items' => 'nullable|array',
-                'items.*.description' => 'required_with:items|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0'
-            ]);
+            $validated = $request->validated();
+
+            // Si viene treatment_plan_id sin patient_id, derivar el patient del plan.
+            // Esto preserva el path generateQuotation (Sprint 0 fix C-1) sin requerir
+            // que el cliente envie ambos campos.
+            if (empty($validated['patient_id']) && !empty($validated['treatment_plan_id'])) {
+                $plan = \App\Models\TreatmentPlan::find($validated['treatment_plan_id']);
+                if ($plan) {
+                    $validated['patient_id'] = $plan->patient_id;
+                }
+            }
+
+            if (empty($validated['patient_id'])) {
+                return response()->json([
+                    'message' => 'El paciente es obligatorio (o debe venir via treatment_plan_id).',
+                    'errors' => ['patient_id' => ['El paciente es obligatorio.']]
+                ], 422);
+            }
 
             if (isset($validated['treatment_plan_id'])) {
                 $quotation = $this->quotationService->generateQuotation(

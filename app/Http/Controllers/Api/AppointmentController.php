@@ -164,19 +164,9 @@ class AppointmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreAppointmentRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'patient_id' => 'required|exists:patients,id',
-            'user_id' => 'required|exists:users,id',
-            'dental_chair_id' => 'required|exists:dental_chairs,id',
-            'appointment_type_id' => 'required|exists:appointment_types,id',
-            'scheduled_at' => 'required|date|after:now',
-            'duration_minutes' => 'required|integer|min:15|max:480',
-            'status' => 'sometimes|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
-            'notes' => 'nullable|string|max:1000',
-            'idempotency_key' => 'nullable|string|max:255',
-        ]);
+        $validated = $request->validated();
 
         // Validar que el paciente esté activo
         $patient = Patient::findOrFail($validated['patient_id']);

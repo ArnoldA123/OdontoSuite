@@ -80,7 +80,7 @@ class UserController extends Controller
                         'username' => $user->username,
                         'email' => $user->email,
                         'phone' => $user->phone,
-                        'specialty' => $user->specialty,
+                        'specialty' => $user->specialty_code ?? $user->specialty,
                         'role' => $user->role,
                         'is_active' => $user->is_active,
                     ]
@@ -162,7 +162,7 @@ class UserController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'specialty' => $user->specialty,
+                'specialty' => $user->specialty_code ?? $user->specialty,
                 'role' => $user->role,
                 'is_active' => $user->is_active,
             ];
@@ -180,7 +180,7 @@ class UserController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'specialty' => $user->specialty,
+                'specialty' => $user->specialty_code ?? $user->specialty,
                 'role' => $user->role,
                 'is_active' => $user->is_active,
             ];
@@ -235,7 +235,7 @@ class UserController extends Controller
                 'username' => $user->username,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'specialty' => $user->specialty,
+                'specialty' => $user->specialty_code ?? $user->specialty,
                 'role' => $user->role,
                 'is_active' => $user->is_active,
             ];

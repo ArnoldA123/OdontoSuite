@@ -54,34 +54,10 @@ class SpecialtyRecordController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreSpecialtyRecordRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'specialty' => 'required|in:implantologia,ortodoncia,endodoncia,rehabilitacion,cirugia_oral',
-                'patient_id' => 'required|exists:patients,id',
-                'appointment_id' => 'nullable|exists:appointments,id',
-                'dental_piece_id' => 'nullable|exists:dental_pieces,id',
-                // Campos específicos por especialidad
-                'implant_brand' => 'required_if:specialty,implantologia|string',
-                'implant_model' => 'required_if:specialty,implantologia|string',
-                'implant_diameter' => 'required_if:specialty,implantologia|string',
-                'implant_length' => 'required_if:specialty,implantologia|string',
-                'batch_number' => 'required_if:specialty,implantologia|string',
-                'placement_date' => 'required_if:specialty,implantologia|date',
-                'treatment_type' => 'required_if:specialty,ortodoncia|string',
-                'treatment_start_date' => 'required_if:specialty,ortodoncia|date',
-                'tooth_number' => 'required_if:specialty,endodoncia|string',
-                'canal_count' => 'required_if:specialty,endodoncia|integer',
-                'restoration_type' => 'required_if:specialty,rehabilitacion|string',
-                'material_type' => 'required_if:specialty,rehabilitacion|string',
-                'procedure_type' => 'required_if:specialty,cirugia_oral|string',
-                'surgery_date' => 'required_if:specialty,cirugia_oral|date',
-                // Campos comunes
-                'notes' => 'nullable|string',
-                'complications' => 'nullable|string',
-                'follow_up_notes' => 'nullable|string'
-            ]);
+            $validated = $request->validated();
 
             $specialty = $validated['specialty'];
             unset($validated['specialty']);
