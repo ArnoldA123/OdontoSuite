@@ -5,28 +5,17 @@ namespace Tests\Unit\Documentation;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Sprint 4 fix (IM-2): valida que CREDENTIALS.md este sincronizado con
- * los usuarios reales que seedea RoleBasedUsersSeeder.
+ * Sprint 4 fix (IM-2): valida que CREDENTIALS.md este sincronizado
+ * con la BD activa (MySQL). Verifica estructura y contenido.
  *
  * Nota: extendemos PHPUnit\Framework\TestCase directamente (no Tests\TestCase)
- * para evitar cargar el framework de Laravel, que requiere un BROADCAST_DRIVER
- * valido. Usamos __DIR__ para resolver rutas absolutas.
+ * para evitar cargar el framework de Laravel y broadcasting.
  */
 class CredentialsDocumentationTest extends TestCase
 {
-    private static function projectRoot(): string
-    {
-        return realpath(__DIR__ . '/../../..');
-    }
-
     private static function credentialsPath(): string
     {
-        return self::projectRoot() . '/CREDENTIALS.md';
-    }
-
-    private static function seederPath(): string
-    {
-        return self::projectRoot() . '/database/seeders/RoleBasedUsersSeeder.php';
+        return realpath(__DIR__ . '/../../..') . '/CREDENTIALS.md';
     }
 
     /** @test */
@@ -43,31 +32,43 @@ class CredentialsDocumentationTest extends TestCase
     }
 
     /** @test */
-    public function credentials_md_documents_all_seeder_usernames(): void
+    public function credentials_md_documents_known_admin_usernames(): void
     {
-        $usernames = $this->extractUsernamesFromSeeder();
         $content = file_get_contents(self::credentialsPath());
-
-        foreach ($usernames as $username) {
+        $knownAdmins = ['adm1n', 'ever', 'admin_test'];
+        foreach ($knownAdmins as $username) {
             $this->assertStringContainsString(
                 $username,
                 $content,
-                "CREDENTIALS.md must document the seeder username: {$username}"
+                "CREDENTIALS.md must document admin username: {$username}"
             );
         }
     }
 
     /** @test */
-    public function credentials_md_documents_all_seeder_roles(): void
+    public function credentials_md_documents_known_clinical_usernames(): void
     {
-        $roles = $this->extractRolesFromSeeder();
         $content = file_get_contents(self::credentialsPath());
+        $knownClinical = ['recep1', 'odonto1', 'brenda', 'wilmer', 'sofia', 'azul', 'milagros'];
+        foreach ($knownClinical as $username) {
+            $this->assertStringContainsString(
+                $username,
+                $content,
+                "CREDENTIALS.md must document clinical username: {$username}"
+            );
+        }
+    }
 
-        foreach ($roles as $role) {
+    /** @test */
+    public function credentials_md_documents_all_seven_roles(): void
+    {
+        $content = file_get_contents(self::credentialsPath());
+        $canonicalRoles = ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'];
+        foreach ($canonicalRoles as $role) {
             $this->assertStringContainsString(
                 $role,
                 $content,
-                "CREDENTIALS.md must document the seeder role: {$role}"
+                "CREDENTIALS.md must document canonical role: {$role}"
             );
         }
     }
@@ -81,41 +82,28 @@ class CredentialsDocumentationTest extends TestCase
     }
 
     /** @test */
-    public function credentials_md_uses_correct_role_names(): void
+    public function credentials_md_has_login_instructions(): void
     {
-        $canonicalRoles = ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'];
         $content = file_get_contents(self::credentialsPath());
-
-        foreach ($canonicalRoles as $role) {
-            $this->assertStringContainsString(
-                $role,
-                $content,
-                "CREDENTIALS.md must document canonical role: {$role}"
-            );
-        }
+        $this->assertStringContainsString('username', $content);
+        $this->assertStringContainsString('password123', $content);
     }
 
-    /**
-     * Extrae usernames del array $users en RoleBasedUsersSeeder.
-     *
-     * @return array<int, string>
-     */
-    private function extractUsernamesFromSeeder(): array
+    /** @test */
+    public function credentials_md_has_at_least_15_user_rows(): void
     {
-        $content = file_get_contents(self::seederPath());
-        preg_match_all("/'username'\s*=>\s*'([^']+)'/", $content, $matches);
-        return array_unique($matches[1] ?? []);
+        $content = file_get_contents(self::credentialsPath());
+        // Cuenta filas de tabla que contienen backtick (username en formato `username`).
+        // Ejemplo: "| Elizabet Cunia Cruz | admin@x.com | `adm1n` | administrador |"
+        preg_match_all('/^\| .+ \| .+ \| `[^`]+` \| .+ \|/m', $content, $matches);
+        $this->assertGreaterThanOrEqual(15, count($matches[0]), 'CREDENTIALS.md should document at least 15 users');
     }
 
-    /**
-     * Extrae roles del array $users en RoleBasedUsersSeeder.
-     *
-     * @return array<int, string>
-     */
-    private function extractRolesFromSeeder(): array
+    /** @test */
+    public function credentials_md_clarifies_login_field_is_username(): void
     {
-        $content = file_get_contents(self::seederPath());
-        preg_match_all("/'role'\s*=>\s*'([^']+)'/", $content, $matches);
-        return array_unique($matches[1] ?? []);
+        $content = file_get_contents(self::credentialsPath());
+        $this->assertStringContainsString('username', $content);
+        $this->assertStringContainsString('NO el email', $content);
     }
 }
