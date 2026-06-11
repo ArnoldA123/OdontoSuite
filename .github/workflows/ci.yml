@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [main]
 
+# Defaults: SQLite para el job de quality (rapido, sin servicios).
 env:
   APP_ENV: testing
   APP_KEY: base64:$(php -r "echo base64_encode(random_bytes(32));")
@@ -75,9 +76,37 @@ jobs:
         run: pnpm format:check || echo "Prettier issues found — non-blocking for now"
 
   backend-tests:
-    name: Backend tests
+    name: Backend tests (MySQL)
     runs-on: ubuntu-latest
     needs: quality
+
+    # Sprint 4 fix (IM-1): los 28 tests viejos fallan con SQLite por
+    # sentencias MODIFY COLUMN MySQL-specific. Usamos MySQL real como
+    # service en CI (mismo motor que produccion).
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: odontosuite_test
+          MYSQL_USER: odontosuite
+          MYSQL_PASSWORD: secret
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u odontosuite -psecret"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: odontosuite_test
+      DB_USERNAME: odontosuite
+      DB_PASSWORD: secret
+
     steps:
       - uses: actions/checkout@v4
 
@@ -85,7 +114,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, bcmath, intl, sqlite, pdo_sqlite
+          extensions: mbstring, bcmath, intl, mysql, pdo_mysql
+          coverage: none
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -97,19 +127,25 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Prepare SQLite
+      - name: Wait for MySQL ready
         run: |
-          touch database/database.sqlite
-          php artisan migrate --force
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u odontosuite -psecret --silent 2>/dev/null; then
+              echo "MySQL ready"
+              break
+            fi
+            echo "Waiting for MySQL... ($i)"
+            sleep 2
+          done
 
-      - name: Run structural + service tests
+      - name: Run migrations on MySQL
+        run: php artisan migrate --force
+
+      - name: Run full test suite (MySQL)
         run: |
-          # Sprint 0-5 tests (estructurales, no tocan BD).
-          # Los 28 tests viejos con MODIFY COLUMN son preexistentes (ver
-          # plan-mejoras-futuras-2026-06.md Sprint 4 IM-1) y se excluyen.
-          php artisan test \
-            --filter="StubsNotImplementedTest|OrphanEventsDeprecatedTest|WaitingListServiceTest|QuotationServiceTest|CashRegisterServiceTest|TransactionServiceTest|BillingServiceTest|SoftDeletesTest|RequireActiveCashSessionTest|ExampleTest" \
-            || true
+          # Sprint 4 fix (IM-1): con MySQL ya no necesitamos filtrar los
+          # tests viejos que fallaban por MODIFY COLUMN. Corremos TODO.
+          php artisan test
 
       - name: Verify routes are registered
         run: php artisan route:list --path=api | head -50
