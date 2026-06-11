@@ -80,6 +80,7 @@ class StoreAppointmentRequest extends FormRequest
                 },
             ],
             'duration_minutes' => 'required|integer|min:15|max:480',
+            'status' => 'sometimes|nullable|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'sometimes|nullable|string|max:1000',
             'idempotency_key' => 'sometimes|nullable|string|max:255',
         ];

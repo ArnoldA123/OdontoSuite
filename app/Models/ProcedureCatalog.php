@@ -19,6 +19,9 @@ class ProcedureCatalog extends Model
         'code',
         'name',
         'description',
+        // 'legacy_specialty' (string) es LEGACY. Mantenido en BD por compatibilidad
+        // con ProcedureCatalogResource y ProcedureCatalogController (auditoría).
+        // Sprint 2 (DM-7): marcado @deprecated. Usar specialty()->code (FK).
         'legacy_specialty',
         'specialty_id',
         'default_cost',
@@ -50,6 +53,22 @@ class ProcedureCatalog extends Model
     public function specialty(): BelongsTo
     {
         return $this->belongsTo(Specialty::class, 'specialty_id');
+    }
+
+    /**
+     * Devuelve el codigo de la especialidad (FK) del procedimiento.
+     * Si specialty_id es null, cae al campo legacy como ultimo recurso.
+     *
+     * Sprint 2 fix (DM-7): accessor para que el resto del código lea de la FK
+     * sin tocar la columna legacy_specialty. Una vez que specialty_id este
+     * 100% poblado en produccion, se podra hacer drop del campo legacy.
+     */
+    public function getSpecialtyCodeAttribute(): ?string
+    {
+        if ($this->specialty_id && $this->specialty) {
+            return $this->specialty->code;
+        }
+        return $this->legacy_specialty;
     }
 
     public function favoritedBy(): BelongsToMany

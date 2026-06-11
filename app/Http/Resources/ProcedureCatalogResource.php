@@ -17,6 +17,8 @@ class ProcedureCatalogResource extends JsonResource
             'specialty' => $this->specialty?->code,
             'specialty_id' => $this->specialty_id,
             'specialty_name' => $this->specialty?->name,
+            // 'legacy_specialty' (Sprint 2 DM-7) marcado deprecated. Mantenido
+            // para que consumidores existentes no rompan. Usar 'specialty' (FK).
             'legacy_specialty' => $this->legacy_specialty,
             'default_cost' => (float) $this->default_cost,
             'default_duration_minutes' => $this->default_duration_minutes,

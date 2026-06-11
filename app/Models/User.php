@@ -27,11 +27,15 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
+        // 'specialty' (string) es LEGACY. Mantenido por compatibilidad con
+        // el frontend (UserController lo expone). Usar $user->specialties()
+        // (pivote user_specialties) como source-of-truth.
         'specialty',
         'is_active',
         'branch_id',
         'professional_license',
-        'specialties',
+        // 'specialties' (JSON) NUNCA se implementó en BD. Eliminado del fillable
+        // para evitar confusion con la relacion specialties() (pivote).
         'commission_rate',
     ];
 
@@ -55,7 +59,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'specialties' => 'array',
             'commission_rate' => 'decimal:2',
         ];
     }
@@ -108,6 +111,31 @@ class User extends Authenticatable
         return $this->belongsToMany(Specialty::class, 'user_specialties')
             ->withPivot('is_primary')
             ->withTimestamps();
+    }
+
+    /**
+     * Devuelve el codigo (string) de la especialidad primaria del usuario.
+     * Si no tiene specialties asignadas, devuelve null.
+     *
+     * Sprint 2 fix (DM-6): sincroniza el campo legacy `users.specialty` con
+     * la pivote `user_specialties`. Si el campo legacy esta poblado y la pivote
+     * no, gana la pivote (vacia). El campo legacy se conserva en BD por
+     * compatibilidad con el frontend (UserController lo expone).
+     *
+     * @deprecated Usar $user->specialties() (pivote) en código nuevo.
+     *             Este accessor es solo para sincronizar el campo legacy.
+     */
+    public function getSpecialtyCodeAttribute(): ?string
+    {
+        $primary = $this->specialties()
+            ->wherePivot('is_primary', true)
+            ->first();
+        if ($primary) {
+            return $primary->code;
+        }
+
+        $first = $this->specialties()->first();
+        return $first?->code;
     }
 
     /**
