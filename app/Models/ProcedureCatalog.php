@@ -88,6 +88,56 @@ class ProcedureCatalog extends Model
             ->orderByDesc('changed_at');
     }
 
+    /**
+     * Sprint 4 fix (IM-8): traducciones del procedimiento (1 por locale).
+     */
+    public function translations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\ProcedureCatalogTranslation::class, 'procedure_catalog_id');
+    }
+
+    /**
+     * Sprint 4 fix (IM-8): resuelve un campo traducido para un locale dado.
+     *
+     * Si existe traduccion para $locale y el campo $field no es null en la
+     * traduccion, devuelve el valor traducido. Si no, devuelve el valor
+     * original del modelo.
+     *
+     * Ejemplo: $pc->translate('en', 'name') -> "Dental cleaning"
+     *          $pc->translate('es', 'name') -> "Limpieza dental" (original)
+     *          $pc->name -> "Limpieza dental" (sin argumentos, usa original)
+     *
+     * Uso recomendado en el controller/service cuando se responde al frontend:
+     *   $data['name'] = $pc->translate($locale, 'name');
+     *
+     * @param  string  $locale  Codigo de idioma (es, en, pt...)
+     * @param  string  $field   Campo del modelo (name, description, requirements, etc.)
+     * @return mixed
+     */
+    public function translate(string $locale, string $field)
+    {
+        // Eager-load caching: si ya se cargo el collection de translations
+        // (por eager load o manualmente), buscar sin query adicional.
+        if ($this->relationLoaded('translations')) {
+            $translation = $this->translations->firstWhere('locale', $locale);
+            if ($translation && $translation->{$field} !== null) {
+                return $translation->{$field};
+            }
+            return $this->getAttribute($field);
+        }
+
+        // Fallback: query directa (1 query extra).
+        $translation = $this->translations()
+            ->where('locale', $locale)
+            ->first();
+
+        if ($translation && $translation->{$field} !== null) {
+            return $translation->{$field};
+        }
+
+        return $this->getAttribute($field);
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
