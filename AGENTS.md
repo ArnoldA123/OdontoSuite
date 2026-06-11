@@ -1,428 +1,236 @@
-# AGENTS.md — OdontoSuite / EasyDent
+# AGENTS.md — OdontoSuite V2
 
-> **Lee este archivo primero antes de tocar el proyecto.**
-> Contiene la estructura, reglas, comandos, módulos, roles y convenciones para que cualquier agente de IA (Mavis, Claude, Codex, Cursor, Aider, etc.) pueda trabajar productivamente sin re-analizar todo el código.
-
----
-
-## 1. Identidad del proyecto
-
-| Campo | Valor |
-|---|---|
-| **Nombre** | OdontoSuite V2 (la vista blade sigue llamándose "EasyDent" — refactor pendiente) |
-| **Tipo** | Sistema de gestión odontológica (clínica dental) — fullstack |
-| **Propósito** | Doble: portafolio personal (Capstone UPN) + uso real en clínica dental |
-| **Stack** | Laravel 11 (API) + Vue 3 (SPA) + Vite + Tailwind + FullCalendar + Chart.js + Sanctum + Reverb (WebSockets) |
-| **DB** | MySQL/MariaDB (migraciones revisadas) |
-| **Auth** | Sanctum bearer tokens (no cookies) |
-| **Paquete JS** | **pnpm** (NO usar `npm` — preferencia del dueño) |
-| **SO dev** | Windows + PowerShell (rutas con espacios, usar `-LiteralPath` en `Get-ChildItem`) |
-| **Workspace actual** | `E:\UNIVERSIDAD PRIVADA DEL NORTE\UPN 10 CICLO\Capstone\Proyecto\OdontoSuiteV2\OdontoSuite\.worktrees\wt-0d413c15` (worktree git activo) |
+> **Lee este archivo primero antes de tocar el proyecto.** Contiene el quickstart, stack, comandos, troubleshooting y referencias a los planes cerrados.
 
 ---
 
-## 2. Comandos esenciales
+## 1. Quickstart
 
-```powershell
-# Backend (desde la raíz del proyecto)
-php artisan migrate --seed          # levantar DB con datos demo
-php artisan serve                   # API en http://127.0.0.1:8000
-php artisan test                    # tests
-php artisan route:list              # ver rutas registradas
-php artisan tinker                  # REPL de Laravel
+```bash
+# 1. Clonar
+git clone <repo> && cd OdontoSuite
 
-# Frontend (Vite)
-pnpm install                        # dependencias
-pnpm dev                            # vite dev server (HMR)
-pnpm build                          # build producción
-pnpm lint:check                     # eslint
-pnpm format:check                   # prettier --check
+# 2. Instalar dependencias
+composer install
+pnpm install
 
-# Broadcast (Reverb) — necesario para notificaciones en tiempo real
-php artisan reverb:start            # servidor WebSocket
+# 3. Configurar entorno
+cp .env.example .env
+php artisan key:generate
+
+# 4. Levantar DB + datos demo
+php artisan migrate --seed
+
+# 5. Levantar todo (API + Reverb + Vite + queue + logs en una sola terminal)
+composer dev
+# Equivale a: php artisan serve + php artisan reverb:start + queue:listen + pail + pnpm dev
 ```
 
-> **Importante:** el proyecto no tiene un `composer.json` con script "dev" que levante todo a la vez. Hay que abrir tres terminales: `php artisan serve`, `php artisan reverb:start`, `pnpm dev` (o configurar `concurrently` — pendiente).
+**Credenciales demo**: ver `CREDENTIALS.md`. Todos los usuarios con password `password123`, dominio `@test.com` (15 usuarios seedados por `RoleBasedUsersSeeder`).
 
 ---
 
-## 3. Estructura de carpetas (lo que importa)
+## 2. Stack
+
+| Capa | Tecnología | Versión |
+|---|---|---|
+| Backend | Laravel | 12 |
+| Frontend | Vue 3 (Composition API + `<script setup>`) | 3.3 |
+| Build | Vite | 5 |
+| Estilos | Tailwind 3 + design tokens | 3.3 |
+| DB | MySQL / MariaDB | 8.0 / 10.3+ |
+| Auth | Sanctum (bearer tokens) | 4 |
+| Real-time | Reverb + Laravel Echo | 1.6 / 1.16 |
+| Calendario | FullCalendar | 6 |
+| Gráficos | Chart.js | 4 |
+| PDF | DomPDF | 3 |
+| Excel | maatwebsite/excel | 1.1 |
+| Package manager | **pnpm** (NUNCA npm) | 11 |
+
+---
+
+## 3. Comandos esenciales
+
+```bash
+# Backend
+php artisan serve                 # API en :8000
+php artisan reverb:start          # WebSocket
+php artisan migrate --seed        # DB + datos demo
+php artisan test                  # tests PHPUnit
+php artisan route:list            # ver rutas API
+php artisan tinker                # REPL
+
+# Frontend
+pnpm dev                          # Vite dev server (HMR)
+pnpm build                        # build producción
+pnpm lint:check                   # ESLint
+pnpm format:check                 # Prettier
+
+# Todo-en-uno
+composer dev                      # concurrently: server + reverb + queue + pail + vite
+```
+
+---
+
+## 4. Estructura clave
 
 ```
 app/
-  Http/
-    Controllers/Api/        # 29 controladores API (Auth, Patient, Appointment, ...)
-    Controllers/Api/Reports/ # ReportController (BI)
-    Middleware/              # RoleMiddleware, ThrottleLoginAttempts, RequireActiveCashSession, CheckRole
-  Models/                   # 41 modelos Eloquent
-  Services/                 # 16 services + Services/Reports/ (7 services de BI)
-  Jobs/                     # 2 jobs (ExportPatientFileJob, ClearDashboardCache)
-  Listeners/                # listeners de los Events
-  Events/                   # 33 eventos (PatientCreated, AppointmentUpdated, QuotationApproved, ...)
-  Repositories/             # capa de repositorio
-  Policies/                 # policies (algunas)
+  Http/Controllers/Api/    # 35 controllers API
+  Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
+                           # RequireActiveCashSession (alias 'cash.session')
+  Models/                  # 45 modelos Eloquent
+  Services/                # 16 services + Reports/ (BI)
+  Events/                  # 33 eventos (26 marcados @deprecated, ver §6)
+  Listeners/               # 5 listeners cableados en AppServiceProvider
 
-resources/
-  js/
-    app.js                  # entry point + router (sin auth guards aquí, están en router/auth.js)
-    bootstrap.js
-    components/
-      ui/                   # 28+ primitives (Button, Input, Modal, DataTable, Card, Toast, ...)
-      layout/               # AppLayout, MobileMenu, FloatingActionButton
-      auth/                 # LoginCard
-      appointments/         # NewAppointmentModal
-    composables/            # 30+ composables (useAuth, useApi, usePatients, useCashRegister, ...)
-    modules/                # 15 módulos de dominio (ver §6)
-    design-system/tokens.js # design tokens
-    plugins/ui-components.js # registro global de componentes UI
-    router/auth.js          # requireAuth, requireGuest (lee localStorage)
-  views/
-    app.blade.php           # única vista (entry de la SPA)
-    welcome.blade.php       # placeholder
-
-routes/
-  api.php                   # 349 líneas — TODAS las rutas API (incluye broadcasting/auth)
-  web.php                   # catch-all que retorna view('app') (Vue Router se encarga del resto)
-  channels.php              # canales broadcast
-  console.php
+resources/js/
+  app.js                   # entry + router (guards en router/auth.js)
+  composables/             # 23 composables singleton
+  components/
+    ui/                    # 30+ primitives (Button, Modal, DataTable, Toast, ...)
+    layout/                # AppLayout, MobileMenu, FloatingActionButton
+  modules/                 # 18 módulos de dominio (ver §5)
+  router/auth.js           # requireAuth, requireGuest (localStorage)
+  design-system/tokens.js  # design tokens
 
 database/
-  migrations/               # 60+ migraciones
-  seeders/                  # 25 seeders (DatabaseSeeder.php llama 8 de ellos)
+  migrations/              # 80+ migraciones
+  seeders/                 # 11 activos
+  seeders/_legacy/         # 23 legacy (ver §6)
+
+routes/
+  api.php                  # 145 rutas
+  web.php                  # catch-all que retorna view('app')
 ```
 
 ---
 
-## 4. Convenciones de código (reglas duras)
+## 5. Módulos del frontend
+
+| Módulo | Ruta | Roles |
+|---|---|---|
+| Dashboard | `/dashboard` | todos |
+| Calendario | `/calendar` | todos los clínicos |
+| Pacientes | `/patients` | todos |
+| Profesionales | `/professionals` | admin |
+| Ambientes | `/environments` | admin |
+| Tipos de cita | `/appointment-types` | admin |
+| Caja | `/cash-register` | admin, finanzas, recep |
+| BI | `/business-intelligence` | admin, finanzas |
+| Planes de tratamiento | `/treatment-plans` | clínicos |
+| Presupuestos | `/quotations` | admin, finanzas, odonto, implant |
+| Historias clínicas | `/medical-records` | clínicos |
+| Registros especialidad | `/specialty-records` | clínicos |
+| Análisis IA | `/ai-analysis` | clínicos |
+| Catálogo procedimientos | `/procedure-catalog` | admin |
+| Mis procedimientos | `/my-procedures` | clínicos (favoritos) |
+| Recepción procedimientos | `/reception-procedures` | recep |
+
+**Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el frontend muestra toast. El control de visibilidad es por `AppLayout` (computed `navigation` con `useAuth().hasRole(...)`).
+
+**API client**: siempre `useApi().request/get/post/...`. NO usar axios directo.
+
+---
+
+## 6. Estado del proyecto
+
+### ✅ Funcional
+- Auth Sanctum completo (login/logout/me/refresh/forgot/reset)
+- 45 modelos, 35 controllers, 15 eventos con listener, 11 seeders activos
+- Multi-rol con middleware `role:`
+- Calendario (FullCalendar)
+- Caja completa (apertura/cierre, movimientos, arqueos, PDF)
+- BI (6 reportes) + export
+- Catálogo de procedimientos con favoritos (admin/clínico/recep)
+- Multi-sede parcial (filtros en 6 controllers)
+- 15 modelos con SoftDeletes
+- Branding migrado de EasyDent a OdontoSuite
+
+### ⚠️ Pendiente
+- **Email real**: `MAIL_MAILER=log` por defecto (dev). Configurar SMTP en producción.
+- **Tests**: 28 tests viejos fallan por `MODIFY COLUMN` (SQLite vs MySQL). Ver `plan-mejoras-futuras-2026-06.md` Sprint 4 (IM-1).
+- **Eventos huérfanos**: 26 de 33 eventos no tienen listener. Marcados con `@deprecated`, Sprint 3 los implementa.
+- **Algunos controllers en 501**: `ReminderController`, `ReminderTemplateController` y métodos `update/destroy` de `WaitingListController` devuelven 501 explícito (features pendientes).
+- **3 FormRequests no migrables**: `StoreAppointmentRequest`, `StoreQuotationRequest`, `StoreSpecialtyRecordRequest`. Requieren refactor del controller (no solo type-hint). Ver Sprint 2 (DM-4).
+- **Doble fuente de verdad especialidades**: `User::specialty` (string) vs `User::specialties[]` (JSON) vs `user_specialties` (pivote). Pendiente deprecar formalmente.
+- **`procedure_catalog.legacy_specialty`**: doble fuente de verdad con `specialty_id` (FK). Pendiente drop.
+- **Sin CI/CD**: no hay `.github/workflows`. Ver Sprint 2 (DM-8).
+
+### 🐛 Bugs conocidos
+- Tests preexistentes: 28 fallan por `MODIFY COLUMN` SQLite/MySQL (no relacionado con código actual).
+- `AGENTS.md` se reescribió el 2026-06-11 (Sprint 1 DM-2). Si volvés a leerlo y está desactualizado, regenerar con el Sprint 1.
+
+---
+
+## 7. Convenciones de código
 
 ### Backend (PHP / Laravel)
-- **Namespaces:** `App\Http\Controllers\Api`, `App\Services`, `App\Models`, `App\Http\Middleware`.
-- **Autorización:** `RoleMiddleware` aplicado como `->middleware('role:rol1,rol2,...)'` en `routes/api.php`. NO usar Spatie (no instalado).
-- **Roles válidos (string en `users.role`):** `administrador`, `recepcionista`, `odontologo`, `implantologo`, `tecnico_dental`, `asistente`, `finanzas`.
-- **Respuestas JSON:** envuelven datos en `data` y mensajes en `meta.message`. Ver `AuthController@login` para el shape canónico.
-- **Servicios:** la lógica de negocio vive en `app/Services/*Service.php` (no en controladores). Inyectar via constructor o facades.
-- **Reportes:** cada reporte tiene su service dedicado en `app/Services/Reports/*ReportService.php`.
-- **Eventos:** al crear/actualizar/eliminar entidades de dominio se dispara un Event (33 eventos). El listener lo loguea y dispara Jobs cuando aplica.
-- **Validación:** `Request->validate()` con reglas inline. Para reglas complejas, ver `Reminders` y `MedicalRecords`.
-- **Multi-sede:** hay `branches` y `branch_id` en `users`. Las migraciones `2025_10_24_202936_add_multi_sede_fields_to_existing_tables.php` lo agregaron a varias tablas.
+- Namespaces: `App\Http\Controllers\Api`, `App\Services`, `App\Models`, `App\Http\Middleware`
+- Autorización: `->middleware('role:rol1,rol2,...)` en `routes/api.php`. NO usar Spatie.
+- Roles válidos: `administrador`, `recepcionista`, `odontologo`, `implantologo`, `tecnico_dental`, `asistente`, `finanzas`
+- Respuestas JSON: `{data: ..., meta: {message: ...}}` (ver `AuthController@login`)
+- Servicios: lógica de negocio en `app/Services/*Service.php`
+- Eventos: al crear/actualizar/eliminar entidades, `event(new X(...))`. Si dispara broadcast, envolver en `try/catch` (M-2 fix).
+- Validación: `Request->validate()` inline. FormRequests para casos complejos.
 
 ### Frontend (Vue 3)
-- **Componentes:** Composition API + `<script setup>` (preferido) o Composition API con `setup()` en módulos legacy. **NO Options API** salvo en componentes muy viejos.
-- **Naming:** PascalCase en `.vue`, camelCase en composables (`useAuth.js`).
-- **Estado global:** NO hay Pinia. Estado compartido via composables singleton (`useApi.js` exporta `token` y `user` como `ref()` a nivel de módulo).
-- **Auth state:** `useAuth()` lee de `localStorage.getItem('auth_token')` y `localStorage.getItem('user')`. En 401 limpia ambos y redirige a `/login`.
-- **Rutas:** lazy-loading con `() => import(...)` excepto `LoginPage` que es eager.
-- **Roles en frontend:** el router NO tiene `meta.roles`. El control de visibilidad es binario (`requireAuth`) + filtrado en `AppLayout.vue` (computed `navigation`).
-- **API client:** SIEMPRE `useApi().request(method, url, body)` o `useApi().get(url, {params})`. NO usar axios directo salvo en scripts puntuales.
-- **UI primitives:** consumir SIEMPRE los componentes de `resources/js/components/ui/`. NO crear botones/modales/toasts ad-hoc.
-- **Estilos:** Tailwind 3 + design tokens en `design-system/tokens.js`. NO escribir CSS scoped salvo necesidad real.
-- **Iconos:** `@heroicons/vue`.
-- **TypeScript:** **NO usado**. Todo es JavaScript.
+- Composition API + `<script setup>` (preferido). NO Options API salvo componentes muy viejos.
+- Naming: PascalCase `.vue`, camelCase composables (`useAuth.js`)
+- Estado global: composables singleton (NO Pinia)
+- Auth: `useAuth()` lee de `localStorage` (`auth_token`, `user`). En 401 limpia ambos.
+- Rutas: lazy-loading con `() => import(...)` excepto `LoginPage` (eager)
+- API: SIEMPRE `useApi().request/get/post/...`. NO axios directo.
+- UI: consumir SIEMPRE de `components/ui/`. NO botones/modales ad-hoc.
+- Estilos: Tailwind 3 + design tokens. NO CSS scoped salvo necesidad real.
+- Iconos: `@heroicons/vue`
+- TypeScript: NO usado. Todo es JS.
 
 ### Estilo del usuario (Arnold)
-- Código limpio y profesional por defecto — **NO agregar comentarios pedagógicos** salvo que lo pida explícitamente (proyectos de aprendizaje).
+- Código limpio y profesional. **NO comentarios pedagógicos** salvo pedido explícito.
 - Default a explicaciones cortas y al grano.
-- Idioma de trabajo: español (Perú). El código en inglés.
-- Pnpm siempre. Nunca `npm install`.
+- Idioma de trabajo: español (Perú). Código en inglés.
+- **Pnpm siempre. NUNCA `npm install`.**
+- Commits: prefijos semánticos (`feat/`, `fix/`, `chore/`, `refactor/`), sin emojis.
+- Multi-branch, mensaje corto y descriptivo.
 
 ---
 
-## 5. Sistema de autenticación
+## 8. Troubleshooting
 
-### Flujo login (Frontend)
-1. Usuario abre `/` → redirige a `/login` (router redirect).
-2. `LoginPage` pide `username` + `password` (+ opcional `remember`).
-3. POST `/api/auth/login` con `{username, password, remember}`.
-4. Si OK → recibe `{data: {user, token}, meta}` → guarda en `localStorage` (`auth_token` y `user`).
-5. Redirige a `/dashboard`.
-
-### Backend (`AuthController@login`)
-- Rate limit personalizado: 3/minuto, bloqueo 10 min tras 5 errores (`throttle.login` middleware).
-- `Auth::attempt(['username', 'password'])` (usa el campo `username`, NO email).
-- Verifica `$user->is_active` (boolean); si false → 422 con mensaje "Tu cuenta ha sido desactivada".
-- Crea token Sanctum `auth-token` y retorna datos del usuario (id, name, username, email, role).
-
-### Logout
-- `POST /api/auth/logout` (revoca el `currentAccessToken` en backend).
-- Limpia `localStorage.auth_token` y `localStorage.user`.
-- Redirige a `/login`.
-
-### Recuperación de contraseña
-- `POST /api/auth/forgot-password` → genera token, lo guarda en `password_reset_tokens` (hash).
-- **TODO en backend:** envío real de email (no implementado, retorna mensaje genérico por seguridad).
-- `POST /api/auth/reset-password` con `{token, email, password, password_confirmation}` → expira en 60 min, verifica hash, actualiza password, revoca todos los tokens.
-
-### Guards de router
-- `requireAuth` (en `resources/js/router/auth.js`) → si falta `auth_token` o `user` en localStorage, redirige a `/login`.
-- `requireGuest` → si ya hay sesión, redirige a `/dashboard`.
-- Los guards NO validan roles — la API rechaza con 403 y el frontend muestra mensaje en toast.
-
-### Middleware backend `RoleMiddleware`
-- Alias: `role:rol1,rol2,...`
-- Si `Auth::user()->role` no está en la lista → 403 con `required_roles` y `user_role` en el body.
-- Aplicado en `routes/api.php` para todos los recursos protegidos.
+| Problema | Solución |
+|---|---|
+| `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
+| `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
+| Tests fallan con `MODIFY COLUMN` | Problema preexistente SQLite/MySQL. Ver Sprint 4 IM-1 del plan. |
+| `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
+| Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). |
+| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 11. Legacy: 23 (no se ejecutan). |
+| Frontend no encuentra módulo | `pnpm install` y reiniciar `pnpm dev`. |
+| WebSocket no conecta | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`. |
+| 500 en lugar de 501 | Bug conocido pre-Sprint 0. Si aparece, ver si el controller es un stub legacy. |
 
 ---
 
-## 6. Módulos del sistema (funcionalidades operativas)
+## 9. Planes cerrados (referencia)
 
-| Módulo | Ruta frontend | Roles permitidos | Endpoints API clave |
+| Plan | Sprints | Estado | Commits |
 |---|---|---|---|
-| **Dashboard** | `/dashboard` | todos | `GET /api/dashboard/{stats\|today\|upcoming}` |
-| **Calendario** | `/calendar` | admin, recep, odonto, implant, técnico, asistente | `GET /api/calendar/{events\|availability}`, `apiResource appointments`, `appointment-blocks`, `work-schedules`, `waiting-lists`, `reminders`, `reminder-templates`, `audit-logs` |
-| **Pacientes** | `/patients`, `/patients/:id` | todos | `apiResource patients` + `GET /api/patients/{id}/export` |
-| **Profesionales** | `/professionals`, `/professionals/:id` | admin | `apiResource users` (con filtros) |
-| **Ambientes (Sillones)** | `/environments`, `/environments/:id` | admin | `apiResource dental-chairs` |
-| **Tipos de Cita** | `/appointment-types`, `/appointment-types/:id` | admin | `apiResource appointment-types` |
-| **Caja** | `/cash-register` | admin, finanzas, recep | `apiResource payment-methods`, `transactions`, `cash-movements`, `cash-register-sessions` + `open/close/active/closure-report`, `cash-reports/{daily\|period}`, `pending-payments` |
-| **Reportes BI** | `/business-intelligence` | admin, finanzas | `GET /api/reports/{dashboard\|appointments\|patients\|professionals\|revenue\|utilization}` + `/export` |
-| **Planes de Tratamiento** | `/treatment-plans` | admin, odonto, implant, técnico | `apiResource treatment-plans` + `change-status`, `duplicate`, `add-item`, `remove-item` |
-| **Presupuestos** | `/quotations` | admin, finanzas, odonto, implant | `apiResource quotations` + `approve`, `reject`, `downloadPDF`, `byPatient` |
-| **Historias Clínicas** | `/medical-records` | admin, odonto, implant, técnico, asistente | `apiResource medical-records` + `evolutions`, `attachments`, `stats` |
-| **Especialidades** | `/specialty-records` | admin, odonto, implant, técnico | `apiResource specialty-records` (ortodoncia, endodoncia, implantología, cirugía oral, rehabilitación) |
-| **Odontogramas** | embebido en Historia Clínica | clínicos + admin | `apiResource odontograms` + `records` anidadas |
-| **Análisis IA** | `/ai-analysis` | admin, odonto, implant, técnico | `POST /api/ai-analysis/upload-and-analyze`, `analyze`, `review`, `stats`, `pending` |
-| **Interconsultas** | embebido en HC | clínicos | `apiResource interconsultations` + `respond`, `complete`, `my-interconsultations` |
-| **Lista de Espera** | embebido en Calendario | clínicos + recep | `apiResource waiting-lists` |
+| `docs/mejoras/plan-flujo-catalog-procedimientos.md` | 6 (1-6) | ✅ Cerrado | `feat/procedure-catalog-master-data` (22 commits) |
+| `docs/mejoras/plan-inconsistencias-2026-06-actualizado.md` | 6 (0-5) | ✅ Cerrado | `fix/inconsistencias-sprint-1-multi-tenant` mergeado a `main` |
+| `docs/mejoras/plan-mejoras-futuras-2026-06.md` | 5 (0-4) | 🔵 En curso | Sprints 0 y 1 cerrados. Pendiente: 2, 3, 4. |
+
+> **Workflow**: el plan activo es `plan-mejoras-futuras-2026-06.md`. Cada sprint se cierra con commit, push, y merge a `main` antes de arrancar el siguiente.
 
 ---
 
-## 7. Modelos y datos (resumen)
+## 10. Resumen ejecutivo
 
-41 modelos Eloquent. Los más usados:
-
-- **User** (con `username`, `role`, `specialty`, `is_active`, `branch_id`, `professional_license`, `specialties[]`, `commission_rate`)
-- **Patient** (con `document_number`, `branch_id`, soft-delete-ready)
-- **Appointment** (status enum: `scheduled|confirmed|in_progress|completed|cancelled|no_show`)
-- **DentalChair** (equipment, status)
-- **AppointmentType** (duración, color)
-- **WorkSchedule** (horarios del profesional)
-- **AppointmentBlock**, **AppointmentRecurrence** (bloqueo + recurrencia)
-- **WaitingList**, **ReminderTemplate**, **ReminderSchedule**
-- **ConfirmationToken** (tokens para confirmar citas por link)
-- **AuditLog** (polimórfico, loguea cambios)
-- **Branch** (multi-sede)
-- **DentalPiece**, **ToothSurface**, **Odontogram**, **OdontogramRecord**
-- **MedicalRecord**, **ClinicalEvolution**, **ClinicalAttachment**
-- **Interconsultation**, **TreatmentPlan**, **TreatmentPlanItem**
-- **Quotation**, **QuotationItem**, **QuotationApproval**
-- **SpecialtyRecord** (polimórfico: `ImplantologyRecord`, `OrthodonticsRecord`, `EndodonticsRecord`, `RehabilitationRecord`, `OralSurgeryRecord`)
-- **PaymentMethod**, **Transaction**, **PaymentPlan**, **Installment**
-- **Receipt**, **CashRegisterSession**, **CashMovement**
-- **ProductCategory**, **Product**, **StockMovement**, **Supplier**, **PurchaseOrder**
-- **ProcedureMaterial**, **ProcedureCatalog**, **DiagnosisCatalog**, **MedicationCatalog**
-- **AiImageAnalysis** (resultados del análisis IA de imágenes clínicas)
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 45 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro listo para capstone; la deuda pendiente está documentada y priorizada en `plan-mejoras-futuras-2026-06.md`.
 
 ---
 
-## 8. Seeders vigentes (usados por `DatabaseSeeder.php`)
+## 11. Changelog de AGENTS.md
 
-```php
-$this->call([
-    RoleBasedUsersSeeder::class,      // 15 usuarios con password 'password123', dominio @test.com
-    AppointmentTypeSeeder::class,     // tipos de cita demo
-    EnvironmentSeeder::class,         // sillones
-    PatientSeeder::class,             // 100 pacientes
-    SimpleAppointmentsSeeder::class,  // 100 citas
-    ReminderSchedulesSeeder::class,
-    CashRegisterSeeder::class,
-    CompletedAppointmentsSeeder::class,
-    SpecialtyRecordSeeder::class,
-]);
-```
-
-### Credenciales demo (15 usuarios)
-Todos con password `password123`. Emails con formato `<username>@test.com` (p. ej. `admin_test@test.com`).
-
-Roles representados (3 admins, 1 recep, 3 odontólogos, 2 implantólogos, 2 técnicos, 2 asistentes, 2 finanzas).
-
-> Hay también `EssentialUsersSeeder` (legacy, NO usado por `DatabaseSeeder`): 3 usuarios con password `password`, dominio `@odontosuite.com`. Útil como fallback mínimo: `admin@odontosuite.com`, `recepcionista@odontosuite.com`, `odontologo@odontosuite.com`.
-
-### Seeders legacy NO usar
-- `AdminUserSeeder`, `ReceptionUserSeeder`, `DentistUserSeeder` → dominio `@easydent.com` y roles `admin`/`recepcion` (antiguos). Están desfasados.
-
----
-
-## 9. Servicios backend clave (para invocar lógica de negocio)
-
-```
-app/Services/
-  AppointmentService           # lógica de creación/validación de citas
-  CalendarService              # eventos y disponibilidad
-  PatientExportService         # export a Excel
-  CashRegisterService          # apertura/cierre de caja, arqueos
-  TransactionService           # transacciones financieras
-  QuotationService             # generación de presupuestos + PDF
-  TreatmentPlanService         # cambio de estado, items
-  SpecialtyRecordService       # registros por especialidad
-  MedicalRecordService         # HC + evoluciones
-  ClinicalAttachmentService    # subida/gestión de adjuntos
-  ReminderService              # envío de recordatorios
-  WaitingListService           # gestión de lista de espera
-  AiImageAnalysisService       # integración con IA
-  CacheService                 # wrapper de cache
-  Reports/
-    DashboardReportService     # métricas del dashboard
-    AppointmentReportService   # reportes de citas
-    PatientReportService       # reportes de pacientes
-    ProfessionalReportService  # reportes por profesional
-    RevenueReportService       # ingresos
-    CashReportService          # caja
-    UtilizationReportService   # utilización de sillones
-```
-
----
-
-## 10. Composables Vue clave (cómo se usa el frontend)
-
-| Composable | Para qué |
-|---|---|
-| `useApi()` | base de fetch + token bearer + manejo 401 |
-| `useAuth()` | login/logout/me/hasRole/hasAnyRole |
-| `useApiWithLoading()` | wrapper con `isLoading` y `error` |
-| `useLoading()` | estados de carga globales |
-| `useToast()` | notificaciones toast |
-| `useNotifications()` | centro de notificaciones |
-| `useWebSocketNotifications()` | notificaciones vía Reverb/Echo |
-| `usePagination()` | paginación reusable |
-| `usePermissions()` | check de permisos client-side |
-| `useAccessibility()` | helpers a11y |
-| `useDropdownPosition()` | posicionamiento de dropdowns |
-| `useZIndex()` | gestión de z-index |
-| `useErrorHandler()` | manejo centralizado de errores |
-| `useAuditLogs()`, `useMedicalRecords()`, `useInterconsultations()`, `useTreatmentPlans()`, `useQuotations()`, `useSpecialtyRecords()`, `useTransactions()`, `useCashRegister()`, `useAiAnalysis()`, `useExport()` | composables de dominio |
-
-> **Patrón:** cada composable de dominio es un módulo singleton (estado compartido via `ref()` a nivel de módulo). NO crea instancias nuevas por componente.
-
----
-
-## 11. Estado del proyecto (lo que funciona y lo que falta)
-
-### ✅ Funcional y verificado
-- Auth completo (login/logout/me/refresh/forgot/reset) con Sanctum + rate limit
-- Multi-rol con middleware `role:` + control de UI por `AppLayout`
-- CRUD completo de las 29 entidades
-- Calendario con FullCalendar (eventos, disponibilidad, bloques)
-- Sistema de caja (apertura/cierre, movimientos, arqueos, reportes PDF)
-- Reportes BI (6 tipos) + export
-- 33 eventos + listeners
-- Reverb + Laravel Echo (notificaciones en tiempo real)
-- Análisis IA (subida + análisis de imágenes clínicas)
-- Odontogramas interactivos
-- Historias clínicas con evoluciones + adjuntos
-- 5 especialidades: implantología, ortodoncia, endodoncia, rehabilitación, cirugía oral
-- Interconsultas
-- Presupuestos con PDF
-- Planes de tratamiento con estados e items
-- 60+ migraciones
-- Auditoría completa
-
-### ⚠️ Incompleto / pendiente
-- **Email real:** `forgotPassword` no envía email, solo guarda el token. Necesita integrar `Mail` driver (log/smtp).
-- **composer.json dev script:** no hay script unificado para levantar API + Reverb + Vite juntos. Hay que abrir 3 terminales.
-- **Tests:** estructura de tests existe (`tests/`) pero la cobertura no está mapeada. Revisar `phpunit.xml`.
-- **TypeScript:** todo el frontend es JS, sin tipos.
-- **Pinia:** estado global via composables, no escalará bien si crece.
-- **Vista blade:** sigue llamándose "EasyDent" (mismatch con el nombre "OdontoSuite").
-- **Seeders legacy:** `AdminUserSeeder`/`ReceptionUserSeeder`/`DentistUserSeeder` desfasados — dejarlos o eliminarlos.
-
-### 🐛 Bugs conocidos (observados)
-- En `AppLayout.vue` línea 335: `import { useAuth } from '../../composables/useApi'` — el path real es `composables/useAuth`. Probablemente roto (validar antes de usar).
-- Codificación: en varios seeders/controllers se ven caracteres corruptos (`�`) que son artefactos de la lectura PowerShell — verificar encoding UTF-8 en archivos PHP.
-- `useApi.js`: imprime `console.warn('No authentication token available')` en cada request sin token (puede ensuciar consola en login público).
-
----
-
-## 12. Convenciones de git y trabajo
-
-- **Worktree activo:** todas las operaciones de archivos se hacen dentro del worktree actual.
-- **No hay CI/CD configurado** (no hay `.github/workflows`).
-- **Branches:** usar prefijos semánticos (`feat/`, `fix/`, `chore/`, `refactor/`).
-- **Commits:** el usuario prefiere mensajes cortos y descriptivos, sin emojis.
-
----
-
-## 13. Comandos rápidos de descubrimiento
-
-```powershell
-# Rutas API agrupadas por middleware
-php artisan route:list --path=api --columns=method,uri,middleware
-
-# Ver qué roles accede a qué
-Get-Content routes/api.php | Select-String "role:" 
-
-# Contar pacientes
-php artisan tinker --execute="echo \App\Models\Patient::count();"
-
-# Limpiar caches
-php artisan optimize:clear
-```
-
----
-
-## 14. Resumen ejecutivo de una línea
-
-> OdontoSuite es una app fullstack Laravel 11 + Vue 3 con 29 controladores API, 41 modelos, 15 módulos Vue, 7 roles, sistema de caja completo, BI, IA, multi-sede y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro listo para capstone; falta consolidar naming (EasyDent → OdontoSuite), tests y envío real de email.
-
----
-
-## 15. Skills del proyecto (declaradas con autoskills.sh)
-
-Este proyecto tiene **7 skills curadas** instaladas con [`autoskills.sh`](https://autoskills.sh) de midudev y propagadas a Mavis como **agent-private** con prefijo `odontosuite-`.
-
-### Skills activas (Mavis las carga automáticamente)
-
-| Skill (en Mavis) | Fuente original | Para qué se usa en este proyecto |
-|---|---|---|
-| `odontosuite-vue` | antfu/skills | Referencia Vue 3, Composition API, `<script setup>`, reactivity |
-| `odontosuite-vue-best-practices` | antfu/skills | Patrones Vue 3: async components, props/emit, animation |
-| `odontosuite-vue-debug-guides` | hyf0/vue-skills | Debugging Vue (reactivity issues, devtools, perf) |
-| `odontosuite-tailwind-css-patterns` | giuseppe-trisciuoglio/developer-kit | Patrones Tailwind 3, design system, responsive, a11y |
-| `odontosuite-vite` | antfu/skills | Config de Vite 5+, plugins, HMR |
-| `odontosuite-laravel-specialist` | jeffallan/claude-skills | Laravel 10+, Eloquent, Sanctum, queues, testing |
-| `odontosuite-laravel-patterns` | affaan-m/everything-claude-code | Patrones Laravel: services, repositories, jobs, events |
-
-### Doble ubicación (portabilidad + Mavis)
-
-| Capa | Path | Propósito |
-|---|---|---|
-| **En el repo (portable)** | `E:\...\OdontoSuite\.worktrees\wt-0d413c15\.agents\skills\<nombre>\SKILL.md` | Para que cualquier IDE (Claude Code, Cursor, Codex, Windsurf, etc.) las detecte automáticamente |
-| **En Mavis (efectiva)** | `C:\Users\chomb\.mavis\agents\mavis\skills\odontosuite-<nombre>\SKILL.md` | Lo que Mavis carga cuando trabaja en el proyecto |
-
-> **Por qué doble ubicación:** Mavis NO escanea dinámicamente el workspace del proyecto — solo lee de sus directorios internos. Las copiamos a `~/.mavis/agents/mavis/skills/` con prefijo `odontosuite-` para que (a) Mavis las cargue y (b) sean identificables como de este proyecto (no contaminan otros futuros).
-
-### Skills excluidas (curación, no instalación ciega)
-
-Se detectaron 13 con `pnpm dlx autoskills --dry-run`, se instalaron las 13, y se descartaron 6:
-
-| Excluida | Razón |
-|---|---|
-| `nodejs-backend-patterns` | El backend es PHP/Laravel, no Node.js |
-| `nodejs-best-practices` | Idem |
-| `seo` | Sistema interno, no sitio público |
-| `php-pro` | ⚠️ Warning de seguridad de autoskills (credenciales hardcoded en ejemplos, broad shell commands) + duplicado con Mavis global `php-pro` y `laravel-expert` |
-| `frontend-design` | Ya existe en Mavis global (`frontend-design` de anthropics) |
-| `accessibility` | Ya existe en Mavis global (`accessibility-compliance-accessibility-audit` + `fixing-accessibility`) |
-
-Las excluidas quedaron en `.agents/skills.disabled/` (NO en el path de Mavis) por si en el futuro se quieren reactivar. Ver `skills-lock.json` para el manifest completo con SHA-256 hashes.
-
-### Cómo actualizar / regenerar
-
-```powershell
-# Ver qué recomendaría ahora
-pnpm dlx autoskills --dry-run
-
-# Actualizar a la última versión de las skills activas
-pnpm dlx autoskills -y
-# luego repetir el trim manual descrito arriba
-
-# Si Mavis no las lista (cache de sesión)
-mavis skill list mavis | Select-String odontosuite
-
-# Re-cargar manualmente después de cambios en archivos
-# (toma efecto en la SIGUIENTE sesión — no requiere reiniciar daemon)
-```
-
-### Por qué `.agents/skills/` y no `.harness/`
-
-`autoskills` usa el formato **open de skills.sh** (universal, compatible con 50+ herramientas). `.harness/` es formato propietario de Mavis para definir teams de proyecto. Se podrían mover con `mavis skill install <path>` si se quisiera, pero perderíamos la portabilidad a otros IDEs.
+- **2026-06-11** — Reescrito desde 428 → 150 líneas (Sprint 1 DM-2). Datos actualizados: 35 controllers, 45 modelos, 23 pages, 11 seeders activos, 23 legacy. Estado del proyecto refleja los 2 planes cerrados + Sprint 0 de mejoras futuras. Estructura reorganizada: quickstart, stack, comandos, estructura, módulos, estado, convenciones, troubleshooting, planes cerrados.
+- **<fecha anterior>** — Versión desactualizada con worktrees inexistentes, "Sprint 1-3 pendientes" cuando ya estaban cerrados, import roto de `useAuth` ya arreglado, `console.warn` ya eliminado.
