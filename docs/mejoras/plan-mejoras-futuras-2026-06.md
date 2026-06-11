@@ -453,18 +453,18 @@ Este plan ataca todo en **5 sprints ordenados por impacto**, con el Sprint 0 ded
 
 ---
 
-### Sprint 0 — Funcionalidad rota (0.5 d-h) — **Pendiente**
+### Sprint 0 — Funcionalidad rota (0.5 d-h) — **✅ HECHO 2026-06-11**
 
 **Objetivo**: que `main` no tenga APIs rotas, eventos huérfanos, ni 501s.
 
 **Implementación** (branch: `fix/sprint-0-api-rota`):
 
-- [ ] **NF-1 (Opción A)**: en `ReminderController` y `ReminderTemplateController`, reemplazar los bodies `//` por `return response()->json(['message' => 'Reminder feature not implemented yet'], 501);`. NO eliminar las rutas (pueden ser consumidas por front en cualquier momento).
-- [ ] **NF-2 (mínimo)**: grep todos los `event(new X(...))` en el código y emparejar con listeners. Eliminar los `event(new X(...))` cuyo listener no exista Y cuyo X no aporte valor. Para los que sí aportan, **dejarlos** y abrir tickets para Sprint 3.
-- [ ] **NF-3**: implementar `PendingPaymentsController@pay()` siguiendo el TODO de L212. `TransactionService::createTransaction` con validación de `payment_method_id` y `amount > 0`.
-- [ ] **NF-4**: agregar `MAIL_MAILER=log` a `.env.example`. Implementar `Mail::send(...)` en `forgotPassword` (L155). Si `MAIL_MAILER` no es `smtp`, devolver el token en la respuesta solo si `APP_DEBUG=true`.
-- [ ] **NF-5**: agregar `event(new PatientFileExported($userId, $path))` al final de `ExportPatientFileJob::handle()`. Crear el evento y un listener que envíe `Mail::raw(...)` al user.
-- [ ] **NF-6**: cambiar firma de `WaitingListService::addToWaitingList` para recibir `$createdBy`. Pasar `auth()->id()` desde `WaitingListController::store`.
+- [x] **NF-1 (Opción A)**: en `ReminderController` y `ReminderTemplateController`, reemplazar los bodies `//` por `return response()->json(['message' => 'Reminder feature not implemented yet'], 501);`. NO eliminar las rutas (pueden ser consumidas por front en cualquier momento).
+- [x] **NF-2 (mínimo)**: grep todos los `event(new X(...))` en el código y emparejar con listeners. Eliminar los `event(new X(...))` cuyo listener no exista Y cuyo X no aporte valor. Para los que sí aportan, **dejarlos** y abrir tickets para Sprint 3.
+- [x] **NF-3**: implementar `PendingPaymentsController@pay()` siguiendo el TODO de L212. `TransactionService::createTransaction` con validación de `payment_method_id` y `amount > 0`.
+- [x] **NF-4**: agregar `MAIL_MAILER=log` a `.env.example`. Implementar `Mail::send(...)` en `forgotPassword` (L155). Si `MAIL_MAILER` no es `smtp`, devolver el token en la respuesta solo si `APP_DEBUG=true`.
+- [x] **NF-5**: agregar `event(new PatientFileExported($userId, $path))` al final de `ExportPatientFileJob::handle()`. Crear el evento y un listener que envíe `Mail::raw(...)` al user.
+- [x] **NF-6**: cambiar firma de `WaitingListService::addToWaitingList` para recibir `$createdBy`. Pasar `auth()->id()` desde `WaitingListController::store`.
 
 **Verificación**:
 ```bash
@@ -511,6 +511,30 @@ pnpm build && php artisan test
 - NF-6: si el controller no pasa `auth()->id()`, sigue hardcodeado. Verificar el call site.
 
 **Commit**: `fix(api): Sprint 0 - eliminar 500s y 501s garantizados (NF-1..NF-6)`.
+
+**Verificación** (2026-06-11, branch `fix/sprint-0-api-rota`):
+```bash
+# Smoke test controllers stub -> 501 (no 500)
+Reminder::index, store, show, update, destroy          => HTTP 501
+ReminderTemplate::index, store, show, update, destroy  => HTTP 501
+WaitingListController::update, destroy                => HTTP 501
+WaitingListController::store (sin body)               => ValidationException
+PendingPaymentsController::pay (sin body)              => ValidationException
+PendingPaymentsController::pay (body invalido)         => ValidationException
+
+# Tests nuevos (10) + viejos (16) + ExampleTest (2) = 28 pasan
+php artisan test --filter="StubsNotImplementedTest|OrphanEventsDeprecatedTest|WaitingListServiceTest"
+# Tests: 10 passed (102 assertions)
+
+# Suite completa
+php artisan test
+# 28 failed (preexistentes: MODIFY COLUMN SQLite/MySQL), 28 passed
+# 0 nuevos fallos
+
+# Frontend
+pnpm build
+# ✓ built in 12.08s (sin cambios en FE, confirma no impacto colateral)
+```
 
 ---
 
@@ -778,4 +802,5 @@ php artisan tinker
 
 ## 10. Changelog
 
+- **2026-06-11** — Sprint 0 cerrado. 6 hallazgos resueltos. 13 archivos modificados (7 controllers/services, 2 events, 1 listener, 1 job, 1 modelo, 1 mailable, 1 view blade). 10 tests nuevos pasan. `pnpm build` OK. 0 regresiones.
 - **2026-06-11** — Plan creado. 22 hallazgos nuevos identificados (6 críticos, 10 importantes, 6 mejoras). 5 sprints propuestos, 18.5 d-h estimados. Sprint 0 (0.5 d-h) es la prioridad #1.

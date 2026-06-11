@@ -57,5 +57,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\AppointmentCompleted::class,
             \App\Listeners\CreateTransactionOnAppointmentCompleted::class
         );
+
+        // Sprint 0 fix (NF-5): notifica al usuario cuando un export de paciente termina.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\PatientFileExported::class,
+            \App\Listeners\NotifyPatientFileExported::class
+        );
     }
 }
