@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'throttle.login' => \App\Http\Middleware\ThrottleLoginAttempts::class,
+            'cash.session' => \App\Http\Middleware\RequireActiveCashSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

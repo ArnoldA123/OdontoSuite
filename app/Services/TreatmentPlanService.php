@@ -8,6 +8,7 @@ use App\Events\TreatmentPlanCreated;
 use App\Events\TreatmentPlanUpdated;
 use App\Events\TreatmentPlanDeleted;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -33,8 +34,15 @@ class TreatmentPlanService
             $plan->refresh();
             $plan->load(['items', 'patient', 'createdBy']);
 
-            event(new TreatmentPlanCreated($plan));
+            try {
 
+                event(new TreatmentPlanCreated($plan));
+
+            } catch (\Throwable $e) {
+
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+            }
             return $plan;
         });
     }
@@ -59,8 +67,15 @@ class TreatmentPlanService
             $plan->refresh();
             $plan->load(['items', 'patient', 'createdBy']);
 
-            event(new TreatmentPlanUpdated($plan));
+            try {
 
+                event(new TreatmentPlanUpdated($plan));
+
+            } catch (\Throwable $e) {
+
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+            }
             return $plan;
         });
     }
@@ -111,8 +126,15 @@ class TreatmentPlanService
         $plan->refresh();
         $plan->load(['items', 'patient', 'createdBy']);
 
-        event(new TreatmentPlanUpdated($plan));
+        try {
 
+            event(new TreatmentPlanUpdated($plan));
+
+        } catch (\Throwable $e) {
+
+            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+        }
         return $plan;
     }
 
@@ -147,8 +169,15 @@ class TreatmentPlanService
             $newPlan->refresh();
             $newPlan->load(['items', 'patient', 'createdBy']);
 
-            event(new TreatmentPlanCreated($newPlan));
+            try {
 
+                event(new TreatmentPlanCreated($newPlan));
+
+            } catch (\Throwable $e) {
+
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+            }
             return $newPlan;
         });
     }

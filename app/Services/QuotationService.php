@@ -10,6 +10,7 @@ use App\Events\QuotationCreated;
 use App\Events\QuotationUpdated;
 use App\Events\QuotationApproved;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -66,8 +67,11 @@ class QuotationService
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
 
             // Emitir evento de WebSocket
-            event(new QuotationCreated($quotation));
-
+            try {
+                event(new QuotationCreated($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
             return $quotation;
         });
     }
@@ -108,8 +112,11 @@ class QuotationService
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
 
             // Emitir evento de WebSocket
-            event(new QuotationCreated($quotation));
-
+            try {
+                event(new QuotationCreated($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
             return $quotation;
         });
     }
@@ -152,8 +159,11 @@ class QuotationService
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
 
             // Emitir evento de WebSocket
-            event(new QuotationUpdated($quotation));
-
+            try {
+                event(new QuotationUpdated($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
             return $quotation;
         });
     }
@@ -181,9 +191,16 @@ class QuotationService
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy', 'approvals']);
 
             // Emitir evento de WebSocket
-            event(new QuotationApproved($quotation));
-            event(new QuotationUpdated($quotation));
-
+            try {
+                event(new QuotationApproved($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
+            try {
+                event(new QuotationUpdated($quotation));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
             return $quotation;
         });
     }

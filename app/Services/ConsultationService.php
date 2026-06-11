@@ -124,8 +124,15 @@ class ConsultationService
                 $quotation = $this->billing->generateQuotationFromAppointment($appointment);
             }
 
-            event(new AppointmentCompleted($appointment));
+            try {
 
+                event(new AppointmentCompleted($appointment));
+
+            } catch (\Throwable $e) {
+
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+            }
             return [
                 'appointment' => $appointment,
                 'quotation' => $quotation,
@@ -155,8 +162,15 @@ class ConsultationService
         $appointment->updated_by = Auth::id();
         $appointment->save();
 
-        event(new \App\Events\AppointmentCheckedIn($appointment));
+        try {
 
+            event(new \App\Events\AppointmentCheckedIn($appointment));
+
+        } catch (\Throwable $e) {
+
+            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+        }
         return $appointment->refresh();
     }
 

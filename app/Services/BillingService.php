@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class BillingService
@@ -196,8 +197,15 @@ class BillingService
                 ]);
             }
 
-            event(new QuotationCreated($quotation->load(['items', 'patient', 'treatmentPlan'])));
+            try {
 
+                event(new QuotationCreated($quotation->load(['items', 'patient', 'treatmentPlan'])));
+
+            } catch (\Throwable $e) {
+
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+            }
             return $quotation;
         });
     }

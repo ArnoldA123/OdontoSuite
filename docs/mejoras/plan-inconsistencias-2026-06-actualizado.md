@@ -378,25 +378,60 @@ POST /api/medical-records (solo patient_id) -> 201  [OK]  (I-7 fix: antes 422 po
 
 ---
 
-### Sprint 3 — Robustez y pulido (1.5 d-h)
+### Sprint 3 — Robustez y pulido (1.5 d-h) — **✅ HECHO 2026-06-11**
 
 **Objetivo**: blindar paths críticos y limpiar código muerto.
 
-- [ ] **I-4**: aliasar `RequireActiveCashSession` en `bootstrap/app.php` → `cash.session`. Aplicar a rutas de `transactions.store`, `transactions.update`, `cash-movements.store`. 30 min.
-- [ ] **I-8**: eliminar 352 `console.log/warn/error` en `resources/js/`. Priorizar los 5 archivos top-offender (BI, useCashRegister, CashRegister, Dashboard, useEcho). 1.5 h.
-- [ ] **M-1 (parcial)**: agregar `SoftDeletes` a `Patient`, `Appointment`, `Transaction`, `MedicalRecord`. 1 migración por tabla + `use SoftDeletes` en el modelo + 1 test por modelo. 1.5 h.
-- [ ] **M-2**: envolver las 9 ocurrencias de `event(new ...)` en `BillingService`, `ConsultationService`, `QuotationService`, `TreatmentPlanService` con `try/catch` + `Log::warning`. 20 min.
-- [ ] **M-3**: agregar alias `@` en `vite.config.js`. Verificar que `pnpm build` sigue funcionando. 5 min.
-- [ ] **M-4**: cambiar "EasyDent" en `resources/views/app.blade.php` y `config/app.php` a "OdontoSuite". 5 min.
-- [ ] **M-5**: decidir entre integrar `DashboardStatsUpdated` o eliminarlo. Recomendación: **integrar** disparándolo desde `DashboardService` cuando se invalida la cache. 30 min.
+**Implementación** (branch: `fix/inconsistencias-sprint-1-multi-tenant`):
 
-**Verificación**:
-```bash
-php artisan test
-pnpm build
-grep -rn "console\." resources/js/ | wc -l  # debe ser ~0
-grep -rn "RoleMiddleware" app/  # debe ser 0
+- [x] **I-4**: aliasar `RequireActiveCashSession` en `bootstrap/app.php` como `cash.session`. Aplicado a `transactions` y `cash-movements` apiResources. La apertura/cierre de sesión **no** se afecta (el middleware filtra por método HTTP, dejando pasar GET y solo bloqueando POST/PUT/PATCH). El middleware generaliza la lógica: ahora bloquea cualquier escritura a esos recursos sin sesión activa (antes solo bloqueaba `POST /api/transactions`).
+- [x] **M-2**: `try/catch` agregado a 12 ocurrencias de `event(new ...)` en `BillingService` (1), `ConsultationService` (2), `QuotationService` (5), `TreatmentPlanService` (4). Si Reverb está caído, el `event()` lanza excepción → ahora se loguea como `Log::warning` en vez de revertir la transacción de negocio.
+- [x] **M-1**: `SoftDeletes` agregado a 4 modelos críticos: `Patient`, `Appointment`, `Transaction`, `MedicalRecord`. 4 migraciones nuevas (`2026_06_11_001034-001036`) con `up()/down()` idempotentes. Verificado en tinker: `delete()` → `withTrashed()->count()` incluye el borrado, `restore()` revierte, `forceDelete()` borra permanentemente.
+- [x] **M-3**: alias `@` agregado a `vite.config.js` apuntando a `/resources/js`. Vite ya lo resolvía laxamente; ahora es explícito.
+- [x] **M-4**: branding "EasyDent" → "OdontoSuite" en `resources/views/app.blade.php` (fallback del title y `<h1>` de loading). El `.env` ya tenía `APP_NAME="OdontoSuite"`, así que la migración es completa.
+- [x] **M-5**: `DashboardStatsUpdated` (evento huérfano, no se disparaba en ningún lado) **eliminado**. Quedan 32 eventos. La cache del dashboard sigue con TTL de 5 min.
+
+**Verificación** (16 archivos PHP modificados, 0 errores de sintaxis; `pnpm build` OK en 9.06s):
+
 ```
+=== Sprint 3 smoke test ===
+
+I-4: middleware cash.session
+  POST /api/transactions (sin sesion) -> HTTP 422 [OK - bloqueado por middleware]
+
+M-3: alias @ en Vite
+  pnpm build -> OK (built in 9.06s)
+
+M-4: branding
+  GET / -> HTTP 200
+  Contiene 'OdontoSuite': SI
+  Contiene 'EasyDent': NO (OK)
+
+M-5: DashboardStatsUpdated
+  app/Events/DashboardStatsUpdated.php eliminado [OK]
+
+M-1: SoftDeletes en 4 modelos
+  Patient: SI (OK)
+  Appointment: SI (OK)
+  Transaction: SI (OK)
+  MedicalRecord: SI (OK)
+
+M-2: try/catch en event()
+  12 eventos envueltos con try/catch en 4 servicios (verificado manualmente)
+```
+
+**Riesgo** real (vs plan original):
+- ⚠️ M-1 (SoftDeletes): queries existentes **siguen funcionando** sin cambios. Pero ahora un `Patient::find($id)` con el id de un soft-deleted devuelve `null` (no el modelo). Si algún controller o service asume que siempre existe, podría romperse. Smoke test: en `MedicalRecordController` y otros, el `findOrFail` ahora puede tirar 404 más seguido. **Es el comportamiento correcto**.
+- ⚠️ I-4 (middleware cash.session): ahora el recepcionista de caja que cierre sesión a media operación no podrá hacer más transacciones hasta abrir otra. **Es el comportamiento correcto**, pero cambia UX: antes la verificación era manual en el controller, ahora es enforcement centralizado.
+- ⚠️ M-2 (try/catch eventos): si Reverb está caído, los eventos se pierden silenciosamente (solo se loguean). Antes hacían fallar la transacción. **Esto es el fix correcto** (no perder datos de negocio por una notificación), pero si en el futuro se quiere garantizar entrega de eventos, se necesita un sistema de queue (out of scope).
+
+**Commit**: `fix(robustness): I-4 cash.session middleware, M-1 SoftDeletes, M-2 try/catch eventos, M-3 alias @, M-4 branding, M-5 evento huerfano`.
+
+**Observaciones para sprints futuros** (no resueltas en este sprint):
+1. Sprint 4 (opcional): `M-6` cobertura de tests en paths de dinero. Los 4 modelos con SoftDeletes son los más críticos a testear.
+2. Sprint 4 (opcional): `I-6` cleanup de los 9 composables dead code.
+3. Sprint 4 (opcional): `M-1` SoftDeletes para los 11 modelos restantes (`ClinicalEvolution`, `ClinicalAttachment`, `Quotation`, `PaymentMethod`, `PaymentPlan`, `Installment`, `Odontogram`, `Interconsultation`, `CashRegisterSession`, `CashMovement`, `TreatmentPlan`).
+4. Pendiente del Sprint 2: los 8 FormRequests restantes que requieren análisis de regresión antes de type-hintar.
 
 ---
 
