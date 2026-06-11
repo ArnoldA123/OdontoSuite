@@ -80,8 +80,8 @@ class StoreAppointmentRequest extends FormRequest
                 },
             ],
             'duration_minutes' => 'required|integer|min:15|max:480',
-            'notes' => 'nullable|string|max:1000',
-            'idempotency_key' => 'nullable|string|max:255',
+            'notes' => 'sometimes|nullable|string|max:1000',
+            'idempotency_key' => 'sometimes|nullable|string|max:255',
         ];
     }
 

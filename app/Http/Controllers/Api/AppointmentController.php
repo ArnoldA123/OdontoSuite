@@ -296,7 +296,7 @@ class AppointmentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Appointment $appointment): JsonResponse
+    public function update(\App\Http\Requests\UpdateAppointmentRequest $request, Appointment $appointment): JsonResponse
     {
         try {
             Log::info('Update appointment request', [

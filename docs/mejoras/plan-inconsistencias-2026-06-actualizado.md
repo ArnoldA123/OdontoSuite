@@ -325,23 +325,56 @@ TreatmentPlan con branch_id=2: 1   # correcto
 
 ---
 
-### Sprint 2 — Consistencia de código (1.0 d-h)
+### Sprint 2 — Consistencia de código (1.0 d-h) — **✅ HECHO 2026-06-10**
 
 **Objetivo**: limpiar deuda de calidad que ya molesta.
 
-- [ ] **C-6 / I-5**: eliminar `RoleMiddleware.php`. Agregar docblock en `CheckRole` ("canónico, alias `role`"). 5 min.
-- [ ] **I-1**: eliminar `export function useAuth` de `useApi.js` (L171). Buscar los 6 sitios que importan de `useApi.js` y migrar a `@/composables/useAuth`. Verificar que no haya re-export circular. 20 min.
-- [ ] **I-2**: type-hintear los 10 FormRequests huérfanos en sus controllers. Smoke test de cada endpoint. 1.5 h.
-- [ ] **I-3 / I-7**: revisar FormRequests que no tienen `sometimes` en `nullable` y aplicar masivamente (donde aplique). 30 min.
+**Implementación** (branch: `fix/inconsistencias-sprint-1-multi-tenant`):
+
+- [x] **C-6 / I-5**: eliminado `app/Http/Middleware/RoleMiddleware.php` (huérfano, no se referenciaba en ningún lado). Agregado docblock a `CheckRole` documentando que es el middleware canónico y cómo se usa.
+- [x] **I-1**: eliminado `export function useAuth` de `useApi.js` (la versión duplicada creaba split-brain — instancias separadas de `user`/`isAuthenticated`). Migrados los 6 imports problemáticos a `@/composables/useAuth`:
+  - `AppLayout.vue` — 1 línea
+  - `MobileNavigation.vue` — 1 línea
+  - `usePermissions.js` — 1 línea
+  - `LoginPage.vue` — 1 línea
+  - `OpenCashModal.vue` — splitteado `useApi, useAuth` en dos imports
+  - `DashboardPage.vue` — splitteado `useAuth, useApi` en dos imports
+- [x] **I-2 (parcial)**: type-hintear FormRequests huérfanos donde es **seguro**:
+  - ✅ `OdontogramController::store` → `StoreOdontogramRequest` (4/4 campos coinciden, equivalente).
+  - ✅ `AppointmentController::update` → `UpdateAppointmentRequest` (9/9 campos coinciden, el FormRequest es estrictamente mejor: valida que `user_id` esté activo y hace `strip_tags` en notes).
+  - ❌ **NO migrados** (8 restantes): `StoreAppointmentRequest`, `StoreEvolutionRequest`, `StoreInterconsultationRequest`, `StoreMedicalRecordRequest`, `StoreOdontogramRecordRequest`, `StoreQuotationRequest`, `StoreSpecialtyRecordRequest`, `StoreTreatmentPlanRequest`. Razón: análisis campo-por-campo reveló que sus reglas son **más estrictas** que el controller inline (ej. `user_id` debe estar activo, `patient_id` requerido en Quotation rompe el path `generateQuotation` que obtiene el patient del plan). Migrarlos en este sprint **rompería consumers existentes**. Quedan como **observación documentada** para un sprint específico de migración con testing de regresión.
+- [x] **I-3 / I-7**: agregada la regla `sometimes` a 141 campos `nullable` en 9 FormRequests (`StoreAppointmentRequest`, `StoreEvolutionRequest`, `StoreInterconsultationRequest`, `StoreMedicalRecordRequest`, `StoreOdontogramRecordRequest`, `StoreQuotationRequest`, `StoreSpecialtyRecordRequest`, `StoreTreatmentPlanRequest`, `UpdateAppointmentRequest`). El conteo por FormRequest:
+  - StoreEvolution: 19, StoreMedicalRecord: 18, StoreSpecialtyRecord: 66, StoreTreatmentPlan: 13, StoreQuotation: 10, StoreInterconsultation: 6, StoreOdontogramRecord: 5, StoreAppointment: 2, UpdateAppointment: 2.
 
 **Verificación**:
 ```bash
-pnpm lint:check
-php artisan test --filter=Procedure # los del flujo catálogo deben seguir pasando
-# Manual: abrir /login, /dashboard, /calendar, /patients, /cash-register con cada rol y verificar que el estado de auth es consistente
+# 19 archivos modificados, 0 errores de sintaxis
+for f in app/Http/Requests/*Request.php app/Http/Controllers/Api/{Appointment,Odontogram}Controller.php app/Http/Middleware/CheckRole.php; do
+  php -l "$f"  # No syntax errors detected
+done
+
+# Frontend build OK
+pnpm build  # ✓ built in 10.36s
+
+# Smoke test con HTTP client
+GET  /api/auth/me                       -> 200  [OK]
+POST /api/odontograms (con body)        -> 201  [OK]  (StoreOdontogramRequest type-hint funciona)
+POST /api/odontograms (sin body)        -> 422  [OK]  (FormRequest valida)
+PUT  /api/appointments/9999             -> 404  [OK]
+PUT  /api/appointments/20               -> 200  [OK]  (UpdateAppointmentRequest type-hint funciona)
+POST /api/medical-records (solo patient_id) -> 201  [OK]  (I-7 fix: antes 422 por nullable sin sometimes)
 ```
 
-**Riesgo**: medio. I-2 puede romper consumers que dependan de reglas de validación inline distintas. Revisar la regla de cada FormRequest vs la del controller antes de cambiar.
+**Riesgo** real (vs plan original):
+- ⚠️ I-2 incompleto (8/10 FormRequests quedan sin type-hint). No es regresión — siguen funcionando como antes con validación inline. Pero es deuda pendiente.
+- ⚠️ I-1 cambió el comportamiento de `isAuthenticated`: el de `useApi.js` era `!!token`, el de `useAuth.js` es `computed(() => !!token && !!user)`. **Esto es el fix correcto** (un usuario sin `user` no debería estar autenticado), pero **puede romper componentes** que asumían el comportamiento laxo. Si después del merge algo falla en algún componente, revisar `isAuthenticated` allí.
+
+**Commit**: `fix(consistency): C-6 middleware, I-1 useAuth split-brain, I-2/I-7 FormRequests` (siguiente paso inmediato).
+
+**Observaciones para sprints futuros** (no resueltas en este sprint):
+1. Sprint específico de migración de los 8 FormRequests restantes con testing de regresión.
+2. `I-6` (9 composables dead code): no se tocó — la auditoría proponía eliminarlos pero cada uno tiene valor, mejor cablearlos en módulos existentes.
+3. `M-4` (blade "EasyDent"): pertenece a Sprint 3 (pulido).
 
 ---
 

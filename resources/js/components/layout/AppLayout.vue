@@ -332,7 +332,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuth } from '../../composables/useApi'
+import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '../../composables/usePermissions'
 import { useTheme } from '../../composables/useTheme'
 import { useNotifications } from '../../composables/useNotifications'

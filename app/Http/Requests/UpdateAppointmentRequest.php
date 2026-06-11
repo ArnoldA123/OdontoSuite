@@ -54,8 +54,8 @@ class UpdateAppointmentRequest extends FormRequest
             'scheduled_at' => 'sometimes|required|date',
             'duration_minutes' => 'sometimes|required|integer|min:15|max:480',
             'status' => 'sometimes|required|in:scheduled,confirmed,cancelled,completed,no_show,in_consultation',
-            'notes' => 'nullable|string|max:1000',
-            'treatment_notes' => 'nullable|string|max:2000',
+            'notes' => 'sometimes|nullable|string|max:1000',
+            'treatment_notes' => 'sometimes|nullable|string|max:2000',
         ];
     }
 

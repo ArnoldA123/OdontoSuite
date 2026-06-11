@@ -35,7 +35,7 @@ class OdontogramController extends Controller
     /**
      * Store a newly created odontogram.
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreOdontogramRequest $request): JsonResponse
     {
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',

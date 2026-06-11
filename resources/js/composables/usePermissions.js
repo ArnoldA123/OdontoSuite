@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useAuth } from './useApi'
+import { useAuth } from './useAuth'
 
 export function usePermissions() {
   const { user } = useAuth()
