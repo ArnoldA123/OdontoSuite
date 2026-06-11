@@ -168,7 +168,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '../../composables/useApi'
+import { useAuth } from '@/composables/useAuth'
 import LoginCard from '../../components/auth/LoginCard.vue'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'

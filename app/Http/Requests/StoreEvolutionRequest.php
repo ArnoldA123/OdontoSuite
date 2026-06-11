@@ -48,26 +48,26 @@ class StoreEvolutionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'appointment_id' => 'nullable|exists:appointments,id',
-            'evolution_date' => 'nullable|date|before_or_equal:today',
-            'specialty' => 'nullable|string|max:50',
-            'subjective' => 'nullable|string|max:2000',
-            'objective' => 'nullable|string|max:2000',
-            'assessment' => 'nullable|string|max:2000',
-            'plan' => 'nullable|string|max:2000',
-            'procedures_performed' => 'nullable|string|max:2000',
-            'materials_used' => 'nullable|string|max:1000',
-            'prescriptions' => 'nullable|string|max:1000',
-            'recommendations' => 'nullable|string|max:1000',
-            'next_appointment_notes' => 'nullable|string|max:1000',
-            'vital_signs' => 'nullable|array',
-            'vital_signs.blood_pressure' => 'nullable|string|max:20',
-            'vital_signs.heart_rate' => 'nullable|integer|min:30|max:200',
-            'vital_signs.temperature' => 'nullable|numeric|min:30|max:45',
-            'vital_signs.respiratory_rate' => 'nullable|integer|min:8|max:40',
-            'clinical_measurements' => 'nullable|array',
+            'appointment_id' => 'sometimes|nullable|exists:appointments,id',
+            'evolution_date' => 'sometimes|nullable|date|before_or_equal:today',
+            'specialty' => 'sometimes|nullable|string|max:50',
+            'subjective' => 'sometimes|nullable|string|max:2000',
+            'objective' => 'sometimes|nullable|string|max:2000',
+            'assessment' => 'sometimes|nullable|string|max:2000',
+            'plan' => 'sometimes|nullable|string|max:2000',
+            'procedures_performed' => 'sometimes|nullable|string|max:2000',
+            'materials_used' => 'sometimes|nullable|string|max:1000',
+            'prescriptions' => 'sometimes|nullable|string|max:1000',
+            'recommendations' => 'sometimes|nullable|string|max:1000',
+            'next_appointment_notes' => 'sometimes|nullable|string|max:1000',
+            'vital_signs' => 'sometimes|nullable|array',
+            'vital_signs.blood_pressure' => 'sometimes|nullable|string|max:20',
+            'vital_signs.heart_rate' => 'sometimes|nullable|integer|min:30|max:200',
+            'vital_signs.temperature' => 'sometimes|nullable|numeric|min:30|max:45',
+            'vital_signs.respiratory_rate' => 'sometimes|nullable|integer|min:8|max:40',
+            'clinical_measurements' => 'sometimes|nullable|array',
             'requires_follow_up' => 'boolean',
-            'follow_up_date' => 'nullable|date|after:evolution_date'
+            'follow_up_date' => 'sometimes|nullable|date|after:evolution_date'
         ];
     }
 

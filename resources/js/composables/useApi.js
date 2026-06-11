@@ -168,72 +168,10 @@ export function useApi() {
   }
 }
 
-export function useAuth() {
-  const { post, get, setToken } = useApi()
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  const isAuthenticated = ref(!!localStorage.getItem('auth_token'))
+// useAuth() fue eliminado de este archivo (I-1, Sprint 2 del plan maestro de
+// inconsistencias). Ahora se importa únicamente desde '@/composables/useAuth'.
+// La versión duplicada acá creaba un split-brain: el `user`/`isAuthenticated`
+// de acá era una INSTANCIA SEPARADA de los refs del useAuth.js canónico, así
+// que la mitad de la app veía al usuario logueado y la otra mitad no.
 
-  const login = async (credentials) => {
-    try {
-      const response = await post('/api/auth/login', credentials)
-      const { user: userData, token: authToken } = response.data
-
-      console.log('Login successful, token received:', authToken ? 'Yes' : 'No')
-      setToken(authToken)
-      user.value = userData
-      isAuthenticated.value = true
-      localStorage.setItem('user', JSON.stringify(userData))
-
-      return response
-    } catch (error) {
-      throw error
-    }
-  }
-
-  const logout = async () => {
-    try {
-      await post('/api/auth/logout')
-    } catch (error) {
-      console.error('Error during logout:', error)
-    } finally {
-      setToken(null)
-      user.value = null
-      isAuthenticated.value = false
-      localStorage.removeItem('user')
-    }
-  }
-
-  const getMe = async () => {
-    try {
-      const response = await get('/api/auth/me')
-      user.value = response.data
-      return response
-    } catch (error) {
-      // Token might be invalid
-      setToken(null)
-      user.value = null
-      isAuthenticated.value = false
-      throw error
-    }
-  }
-
-  const checkAuth = async () => {
-    if (token.value) {
-      try {
-        await getMe()
-      } catch (error) {
-        // Token is invalid, user will be redirected to login
-      }
-    }
-  }
-
-  return {
-    user,
-    isAuthenticated,
-    login,
-    logout,
-    getMe,
-    checkAuth
-  }
-}
 

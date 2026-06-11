@@ -52,24 +52,24 @@ class StoreMedicalRecordRequest extends FormRequest
     {
         return [
             'patient_id' => 'required|exists:patients,id',
-            'first_visit_date' => 'nullable|date|before_or_equal:today',
-            'chief_complaint' => 'nullable|string|max:1000',
-            'medical_history' => 'nullable|string|max:2000',
-            'dental_history' => 'nullable|string|max:2000',
-            'allergies' => 'nullable|string|max:1000',
-            'medications' => 'nullable|string|max:1000',
-            'systemic_conditions' => 'nullable|string|max:1000',
-            'family_history' => 'nullable|string|max:1000',
-            'social_history' => 'nullable|string|max:1000',
-            'vital_signs' => 'nullable|array',
-            'vital_signs.blood_pressure' => 'nullable|string|max:20',
-            'vital_signs.heart_rate' => 'nullable|integer|min:30|max:200',
-            'vital_signs.temperature' => 'nullable|numeric|min:30|max:45',
-            'vital_signs.respiratory_rate' => 'nullable|integer|min:8|max:40',
-            'clinical_examination' => 'nullable|string|max:2000',
-            'diagnosis' => 'nullable|string|max:1000',
-            'treatment_plan' => 'nullable|string|max:2000',
-            'notes' => 'nullable|string|max:1000'
+            'first_visit_date' => 'sometimes|nullable|date|before_or_equal:today',
+            'chief_complaint' => 'sometimes|nullable|string|max:1000',
+            'medical_history' => 'sometimes|nullable|string|max:2000',
+            'dental_history' => 'sometimes|nullable|string|max:2000',
+            'allergies' => 'sometimes|nullable|string|max:1000',
+            'medications' => 'sometimes|nullable|string|max:1000',
+            'systemic_conditions' => 'sometimes|nullable|string|max:1000',
+            'family_history' => 'sometimes|nullable|string|max:1000',
+            'social_history' => 'sometimes|nullable|string|max:1000',
+            'vital_signs' => 'sometimes|nullable|array',
+            'vital_signs.blood_pressure' => 'sometimes|nullable|string|max:20',
+            'vital_signs.heart_rate' => 'sometimes|nullable|integer|min:30|max:200',
+            'vital_signs.temperature' => 'sometimes|nullable|numeric|min:30|max:45',
+            'vital_signs.respiratory_rate' => 'sometimes|nullable|integer|min:8|max:40',
+            'clinical_examination' => 'sometimes|nullable|string|max:2000',
+            'diagnosis' => 'sometimes|nullable|string|max:1000',
+            'treatment_plan' => 'sometimes|nullable|string|max:2000',
+            'notes' => 'sometimes|nullable|string|max:1000'
         ];
     }
 

@@ -54,13 +54,13 @@ class StoreOdontogramRecordRequest extends FormRequest
     {
         return [
             'dental_piece_id' => 'required|exists:dental_pieces,id',
-            'tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+            'tooth_surface_id' => 'sometimes|nullable|exists:tooth_surfaces,id',
             'condition_code' => 'required|string|max:10',
             'condition_name' => 'required|string|max:50',
-            'diagnosis' => 'nullable|string',
-            'treatment_notes' => 'nullable|string',
-            'color' => 'nullable|string|max:7',
-            'appointment_id' => 'nullable|exists:appointments,id',
+            'diagnosis' => 'sometimes|nullable|string',
+            'treatment_notes' => 'sometimes|nullable|string',
+            'color' => 'sometimes|nullable|string|max:7',
+            'appointment_id' => 'sometimes|nullable|exists:appointments,id',
         ];
     }
 }

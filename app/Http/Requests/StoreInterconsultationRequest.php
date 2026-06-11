@@ -47,15 +47,15 @@ class StoreInterconsultationRequest extends FormRequest
         return [
             'patient_id' => 'required|exists:patients,id',
             'to_specialist_id' => 'required|exists:users,id|different:' . Auth::id(),
-            'appointment_id' => 'nullable|exists:appointments,id',
+            'appointment_id' => 'sometimes|nullable|exists:appointments,id',
             'specialty_from' => 'required|string|max:50',
             'specialty_to' => 'required|string|max:50',
-            'reason' => 'nullable|string|max:1000',
-            'clinical_question' => 'nullable|string|max:1000',
-            'clinical_data' => 'nullable|string|max:2000',
-            'requested_studies' => 'nullable|string|max:1000',
+            'reason' => 'sometimes|nullable|string|max:1000',
+            'clinical_question' => 'sometimes|nullable|string|max:1000',
+            'clinical_data' => 'sometimes|nullable|string|max:2000',
+            'requested_studies' => 'sometimes|nullable|string|max:1000',
             'priority' => 'required|in:low,medium,high,urgent',
-            'requested_date' => 'nullable|date|before_or_equal:today'
+            'requested_date' => 'sometimes|nullable|date|before_or_equal:today'
         ];
     }
 
