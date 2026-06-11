@@ -175,20 +175,73 @@ class ProcedureCatalogService
 
     public function create(array $data): ProcedureCatalog
     {
-        return ProcedureCatalog::create($this->normalize($data));
+        $procedure = ProcedureCatalog::create($this->normalize($data));
+
+        $this->fireUpdatedEvent($procedure, 'created', $procedure->getAttributes());
+
+        return $procedure;
     }
 
     public function update(ProcedureCatalog $procedure, array $data): ProcedureCatalog
     {
+        $before = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
         $procedure->update($this->normalize($data, isUpdate: true));
-        return $procedure->refresh();
+        $procedure->refresh();
+        $after = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
+
+        $changed = array_diff_assoc($after, $before);
+        if (!empty($changed)) {
+            $this->fireUpdatedEvent($procedure, 'updated', $changed);
+        }
+
+        return $procedure;
     }
 
     public function deactivate(ProcedureCatalog $procedure): ProcedureCatalog
     {
         $procedure->is_active = false;
         $procedure->save();
+
+        // Sprint 3 fix (IM-7): registra version antes de notificar.
+        $this->fireUpdatedEvent($procedure, 'deactivated', ['is_active' => false]);
+
+        // Sprint 3 fix (IM-4): notifica a los clinicos que tienen este
+        // procedimiento como favorito y transmite por Reverb.
+        try {
+            $notifiedUsers = $procedure->favoritedBy()->get();
+            event(new \App\Events\ProcedureCatalogDeactivated(
+                $procedure,
+                \Illuminate\Support\Facades\Auth::user(),
+                $notifiedUsers,
+            ));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'Failed to fire ProcedureCatalogDeactivated event',
+                ['procedure_id' => $procedure->id, 'error' => $e->getMessage()]
+            );
+        }
+
         return $procedure;
+    }
+
+    /**
+     * Helper para disparar ProcedureCatalogUpdated envuelto en try/catch.
+     */
+    private function fireUpdatedEvent(ProcedureCatalog $procedure, string $changeType, array $changedFields): void
+    {
+        try {
+            event(new \App\Events\ProcedureCatalogUpdated(
+                $procedure,
+                $changeType,
+                $changedFields,
+                \Illuminate\Support\Facades\Auth::user(),
+            ));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'Failed to fire ProcedureCatalogUpdated event',
+                ['procedure_id' => $procedure->id, 'change_type' => $changeType, 'error' => $e->getMessage()]
+            );
+        }
     }
 
     /**

@@ -75,7 +75,17 @@ class ProcedureCatalog extends Model
     {
         return $this->belongsToMany(User::class, 'user_favorite_procedures')
             ->withPivot('position')
-            ->withTimestamps();
+            ->withTimestamps()
+            ->orderBy('user_favorite_procedures.position');
+    }
+
+    /**
+     * Sprint 3 fix (IM-7): historial de versiones del procedimiento.
+     */
+    public function versions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\ProcedureCatalogVersion::class, 'procedure_catalog_id')
+            ->orderByDesc('changed_at');
     }
 
     public function scopeActive(Builder $query): Builder

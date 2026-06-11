@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\AppointmentTypeController;
 use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
+use App\Http\Controllers\Api\ProcedureStatsController;
 use App\Http\Controllers\Api\SpecialtyController;
 use App\Http\Controllers\Api\WorkScheduleController;
 use App\Http\Controllers\Api\WaitingListController;
@@ -273,6 +274,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('procedure-catalog/{id}/favorite', [ProcedureCatalogFavoriteController::class, 'store']);
         Route::delete('procedure-catalog/{id}/favorite', [ProcedureCatalogFavoriteController::class, 'destroy']);
         Route::put('procedure-catalog-favorites/reorder', [ProcedureCatalogFavoriteController::class, 'reorder']);
+    });
+
+    // Sprint 3 fix (IM-5): stats de uso del catalogo (admin y finanzas)
+    Route::middleware('role:administrador,finanzas')->group(function () {
+        Route::get('admin/procedure-stats', [ProcedureStatsController::class, 'index']);
+        Route::post('admin/procedure-catalog/import', [ProcedureCatalogController::class, 'import']);
     });
 
     // Especialidades (maestro)

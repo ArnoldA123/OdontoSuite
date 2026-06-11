@@ -9,6 +9,7 @@ use App\Http\Resources\ProcedureCatalogResource;
 use App\Models\AuditLog;
 use App\Models\ProcedureCatalog;
 use App\Services\ProcedureCatalogService;
+use App\Services\ProcedureCsvImportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,8 +18,10 @@ use Illuminate\Validation\ValidationException;
 
 class ProcedureCatalogController extends Controller
 {
-    public function __construct(private readonly ProcedureCatalogService $service)
-    {
+    public function __construct(
+        private readonly ProcedureCatalogService $service,
+        private readonly ProcedureCsvImportService $csvImport,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -174,6 +177,33 @@ class ProcedureCatalogController extends Controller
         } catch (\Throwable $e) {
             Log::error('ProcedureCatalogController@destroy: ' . $e->getMessage());
             return response()->json(['message' => 'Error al desactivar el procedimiento'], 500);
+        }
+    }
+
+    /**
+     * Sprint 3 fix (IM-6): importador CSV de procedimientos.
+     * POST /api/admin/procedure-catalog/import con form-data file=@procedures.csv
+     */
+    public function import(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120', // 5 MB
+        ]);
+
+        try {
+            $result = $this->csvImport->import($request->file('file'));
+            return response()->json([
+                'data' => $result,
+                'meta' => [
+                    'message' => "Importación completa: {$result['inserted']} insertados, {$result['updated']} actualizados, {$result['errors']} errores.",
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('ProcedureCatalogController@import: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error al importar el archivo CSV',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
