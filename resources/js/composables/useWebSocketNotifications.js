@@ -184,6 +184,14 @@ export function useWebSocketNotifications() {
           .listen('.reminder.sent', (e) => handleEvent('reminder.sent', e))
         channels.reminders = remindersChannel
       }
+
+      // Canal de catalogo de procedimientos (Sprint 3 fix IM-4)
+      const procedureCatalogChannel = channel('procedure-catalog')
+      if (procedureCatalogChannel) {
+        procedureCatalogChannel
+          .listen('.procedure.catalog.deactivated', (e) => handleEvent('procedure.catalog.deactivated', e))
+        channels.procedureCatalog = procedureCatalogChannel
+      }
     } catch (error) {
     }
   }

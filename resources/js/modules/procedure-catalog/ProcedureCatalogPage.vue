@@ -43,6 +43,12 @@
             </svg>
             Nuevo Procedimiento
           </UiButton>
+          <UiButton variant="secondary" class="flex items-center gap-2" @click="showImportModal = true">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.9 5 5 0 019.9-1A5.5 5.5 0 0118 16H7z" />
+            </svg>
+            Importar CSV
+          </UiButton>
         </div>
       </div>
     </div>
@@ -239,6 +245,13 @@
       @saved="onSaved"
     />
 
+    <ImportCsvModal
+      v-if="showImportModal"
+      :open="showImportModal"
+      @close="showImportModal = false"
+      @imported="onCsvImported"
+    />
+
     <UiModal v-model="showDeactivateConfirm" title="Desactivar procedimiento" size="sm">
       <p class="text-theme-primary">
         ¿Estás seguro de desactivar el procedimiento
@@ -271,6 +284,7 @@ import EmptyState from '../../components/ui/EmptyState.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 import ProcedureCatalogFormModal from './ProcedureCatalogFormModal.vue'
+import ImportCsvModal from '../../components/procedures/ImportCsvModal.vue'
 
 const router = useRouter()
 const toast = useToast()
@@ -295,6 +309,7 @@ const showForm = ref(false)
 const editingProcedure = ref(null)
 const showDeactivateConfirm = ref(false)
 const procedureToDeactivate = ref(null)
+const showImportModal = ref(false)
 
 let searchTimeout = null
 
@@ -346,6 +361,14 @@ const onSaved = procedure => {
       ? `Procedimiento "${procedure.name}" actualizado`
       : `Procedimiento "${procedure.name}" creado`
   )
+  load()
+}
+
+const onCsvImported = result => {
+  toast.success(
+    `Importación CSV: ${result.inserted} insertados, ${result.updated} actualizados, ${result.errors} errores.`
+  )
+  showImportModal.value = false
   load()
 }
 

@@ -63,5 +63,17 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\PatientFileExported::class,
             \App\Listeners\NotifyPatientFileExported::class
         );
+
+        // Sprint 3 fix (IM-4): notifica cuando un procedimiento se desactiva.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ProcedureCatalogDeactivated::class,
+            \App\Listeners\NotifyProcedureDeactivation::class
+        );
+
+        // Sprint 3 fix (IM-7): persiste historial de versiones.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ProcedureCatalogUpdated::class,
+            \App\Listeners\TrackProcedureVersion::class
+        );
     }
 }

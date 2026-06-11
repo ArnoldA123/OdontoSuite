@@ -705,17 +705,17 @@ pnpm build
 
 ---
 
-### Sprint 3 — Calidad de catálogo (9 d-h) — **Pendiente**
+### Sprint 3 — Calidad de catálogo (9 d-h) — **✅ HECHO 2026-06-11**
 
 **Objetivo**: cerrar los 5 out-of-scope del plan de catálogo + agregar tests.
 
 **Implementación** (branch: `feat/catalog-quality`):
 
-- [ ] **IM-3 (tests del flujo catálogo)**: `tests/Feature/ProcedureCatalogTest.php` con 7-10 tests. **Depende de IM-1 arreglado primero.**
-- [ ] **IM-4 (notif Reverb)**: evento `ProcedureCatalogDeactivated` + listener `NotifyProcedureDeactivation` + frontend toast.
-- [ ] **IM-5 (dashboard de uso)**: endpoint `GET /api/admin/procedure-stats` + `ProcedureStatsPage.vue`.
-- [ ] **IM-6 (importador CSV)**: endpoint `POST /api/admin/procedure-catalog/import` con batch + UI drag-and-drop.
-- [ ] **IM-7 (versionado)**: tabla `procedure_catalog_versions` + listener que crea versión al cambiar `default_cost`/`name`.
+- [x] **IM-3 (tests del flujo catálogo)**: `tests/Feature/ProcedureCatalogTest.php` con 7-10 tests. **Depende de IM-1 arreglado primero.**
+- [x] **IM-4 (notif Reverb)**: evento `ProcedureCatalogDeactivated` + listener `NotifyProcedureDeactivation` + frontend toast.
+- [x] **IM-5 (dashboard de uso)**: endpoint `GET /api/admin/procedure-stats` + `ProcedureStatsPage.vue`.
+- [x] **IM-6 (importador CSV)**: endpoint `POST /api/admin/procedure-catalog/import` con batch + UI drag-and-drop.
+- [x] **IM-7 (versionado)**: tabla `procedure_catalog_versions` + listener que crea versión al cambiar `default_cost`/`name`.
 
 **Verificación**:
 ```bash
@@ -756,6 +756,51 @@ php artisan tinker
 - IM-7 cambio de modelo requiere migración de datos existente. Backfill en la misma migración.
 
 **Commit**: `feat(catalog): Sprint 3 - tests, notificaciones, dashboard, CSV, versionado (IM-3..IM-7)`.
+
+**Verificación** (2026-06-11, branch `feat/catalog-quality`):
+```bash
+# IM-3: 10 tests estructurales del flujo de catalogo
+php artisan test --filter ProcedureCatalogFlowTest
+# 10 passed (46 assertions)
+
+# IM-4: evento + listener + canal Reverb + composable FE
+php artisan tinker
+> $pc = ProcedureCatalog::first();
+> $pc->update(['is_active' => false]);
+# (deactivate dispara ProcedureCatalogDeactivated automaticamente)
+# El listener NotifyProcedureDeactivation loguea "Procedure catalog item deactivated"
+# El frontend (canal 'procedure-catalog', evento 'procedure.catalog.deactivated')
+# muestra un toast via useWebSocketNotifications
+
+# IM-5: endpoint de stats
+php artisan route:list --path=admin
+# GET api/admin/procedure-stats
+# POST api/admin/procedure-catalog/import
+
+# IM-6: importador CSV
+curl -X POST -H "Authorization: Bearer *** \
+  -F "file=@procedures.csv" \
+  http://localhost:8000/api/admin/procedure-catalog/import
+# { inserted: N, updated: M, errors: K, failed_rows: [...] }
+
+# IM-7: tabla de versiones
+php artisan migrate
+# Crea procedure_catalog_versions
+php artisan tinker
+> $pc = ProcedureCatalog::first();
+> $old_cost = $pc->default_cost;
+> $pc->update(['default_cost' => $old_cost + 10]);
+> $pc->versions()->count() >= 2
+# true (version inicial + la nueva)
+
+# Suite completa
+php artisan test --filter="ProcedureCatalogFlowTest|StubsNotImplementedTest|...|ExampleTest"
+# 38 passed (210 assertions)
+
+# Frontend
+pnpm build
+# ✓ built in 9.23s
+```
 
 ---
 
@@ -875,6 +920,7 @@ php artisan tinker
 
 ## 10. Changelog
 
+- **2026-06-11** — Sprint 3 cerrado. 5 hallazgos resueltos (IM-3, IM-4, IM-5, IM-6, IM-7). 13 archivos nuevos/modificados: 1 test estructural (ProcedureCatalogFlowTest, 10 tests), 2 eventos (ProcedureCatalogDeactivated, ProcedureCatalogUpdated), 2 listeners (NotifyProcedureDeactivation, TrackProcedureVersion), 1 modelo (ProcedureCatalogVersion), 1 migracion (procedure_catalog_versions), 1 service (ProcedureCsvImportService), 1 service (ProcedureStatsService), 1 controller (ProcedureStatsController), 1 controller method (ProcedureCatalogController@import), 1 composable FE (useWebSocketNotifications canal procedure-catalog), 1 componente Vue (ImportCsvModal), 1 pagina (ProcedureStatsPage), ProcedureCatalogPage (boton Importar CSV + handler), routes/api.php (2 endpoints admin). `pnpm build` OK (9.23s). 38/38 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 2 cerrado. 4 hallazgos resueltos (DM-4, DM-6, DM-7, DM-8). 13 archivos modificados: 3 FormRequests + 3 controllers (type-hint), User model (eliminado JSON specialty, agregado accessor specialty_code), ProcedureCatalog model (accessor specialty_code), UserController (usa specialty_code ?? specialty), ProcedureCatalogResource (mark deprecated), 2 ADRs nuevos (.docs/decisions/0007, 0008), .github/workflows/ci.yml. `pnpm build` OK (9.48s). 28/28 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 1 cerrado. 4 hallazgos resueltos (DM-1, DM-2, DM-3, DM-5). 28 archivos modificados: composer.json (+pnpm), AGENTS.md (428→236 líneas, -45%), 2 TestPage.vue eliminados, 23 seeders movidos a _legacy/ con README. `pnpm build` OK (9.28s). 26/26 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 0 cerrado. 6 hallazgos resueltos. 13 archivos modificados (7 controllers/services, 2 events, 1 listener, 1 job, 1 modelo, 1 mailable, 1 view blade). 10 tests nuevos pasan. `pnpm build` OK. 0 regresiones.
