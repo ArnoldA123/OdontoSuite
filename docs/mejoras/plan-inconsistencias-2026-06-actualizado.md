@@ -488,6 +488,7 @@ pnpm build
 | 2 — Consistencia | 1.0 | 2.0 |
 | 3 — Robustez | 1.5 | 3.5 |
 | 4 — Tests + cleanup (opcional) | 4.5 | 8.0 |
+| 5 — I-2 FormRequests + console cleanup | 0.5 | 8.5 |
 
 **Core (Sprints 0-3): ~3.5 días-hombre** = ~1 semana calendario a ritmo de capstone.
 
@@ -538,5 +539,5 @@ pnpm build
 
 ## 11. Changelog
 
-- **2026-06-11** — Sprint 4 cerrado. M-1 SoftDeletes en 11 modelos restantes (15 totales), I-6 elimina 8 composables dead code, M-6 crea 16 tests estructurales. Plan maestro cerrado.
+- **2026-06-11** — Sprint 5 cerrado. I-2 type-hint en 5 FormRequests (12/10 totales, 3 no migrables documentados), console.log cleanup 347→0 (script Python multilínea). Sprint 4 cerrado (M-1 SoftDeletes 11 modelos, I-6 8 composables dead, M-6 16 tests). Plan maestro cerrado.
 - **2026-06-10** — Sprints 0, 1, 2, 3 cerrados. 22 hallazgos resueltos, 1 parcial (I-2 8/10 FormRequests quedan pendientes por análisis de regresión). 4 commits.
