@@ -24,7 +24,7 @@ class QuotationController extends Controller
     {
         try {
             $filters = $request->only([
-                'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired'
+                'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id'
             ]);
 
             $result = $this->quotationService->getQuotations($filters);

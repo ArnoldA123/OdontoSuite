@@ -56,7 +56,7 @@ class TreatmentPlanController extends Controller
     {
         try {
             $filters = $request->only([
-                'patient_id', 'patient_name', 'status', 'created_by', 'date_from', 'date_to',
+                'patient_id', 'patient_name', 'status', 'created_by', 'date_from', 'date_to', 'branch_id',
             ]);
 
             $result = $this->treatmentPlanService->getPlans($filters);

@@ -34,6 +34,11 @@ class MedicalRecordController extends Controller
                 $query->where('patient_id', $request->patient_id);
             }
 
+            // Multi-tenant: filtrar por branch_id del paciente asociado
+            if ($request->has('branch_id')) {
+                $query->whereHas('patient', fn($q) => $q->where('branch_id', $request->input('branch_id')));
+            }
+
             $records = $query->orderBy('first_visit_date', 'desc')->paginate(10);
 
             return response()->json([
