@@ -405,7 +405,6 @@ const generateClosureReport = async (sessionId) => {
       window.URL.revokeObjectURL(url)
     }
   } catch (error) {
-    console.error('Error generando reporte:', error)
     toast.error('Error al generar reporte PDF')
   }
 }

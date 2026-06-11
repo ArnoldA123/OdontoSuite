@@ -181,7 +181,6 @@ const loadBranches = async () => {
     const response = await get('/api/branches')
     branches.value = response.data || []
   } catch (error) {
-    console.error('Error al cargar sucursales:', error)
   }
 }
 
@@ -196,11 +195,6 @@ const handleSubmit = async () => {
   }
 
   try {
-    console.log('Enviando datos:', {
-      branch_id: formData.value.branch_id,
-      opening_amount: formData.value.opening_amount,
-      opening_notes: formData.value.opening_notes
-    })
 
     const result = await openSession({
       branch_id: formData.value.branch_id,
@@ -225,8 +219,6 @@ const handleSubmit = async () => {
 
     // Los eventos WebSocket se manejan automáticamente desde el backend
   } catch (error) {
-    console.error('Error completo:', error)
-    console.error('Error response:', error.response?.data)
 
     // Notificación de error
     const errorMsg = error.response?.data?.message || 'Error al abrir la caja'

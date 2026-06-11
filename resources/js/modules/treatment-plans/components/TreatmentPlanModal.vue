@@ -443,8 +443,6 @@ const handleSubmit = async () => {
 }
 
 const handleSaveError = (err) => {
-  console.error('Error saving plan:', err)
-  console.error('Response data:', err.response?.data)
 
   const data = err.response?.data
 

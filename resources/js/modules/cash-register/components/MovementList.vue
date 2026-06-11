@@ -384,7 +384,6 @@ const loadPage = (page) => {
 
 const viewMovement = (movement) => {
   // Implementar vista de detalle
-  console.log('Ver movimiento:', movement)
 }
 
 const editMovement = (movement) => {
@@ -400,9 +399,7 @@ const exportToExcel = async () => {
   exporting.value = true
   try {
     // Implementar exportación a Excel
-    console.log('Exportar a Excel')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }
@@ -412,9 +409,7 @@ const exportToPDF = async () => {
   exporting.value = true
   try {
     // Implementar exportación a PDF
-    console.log('Exportar a PDF')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }

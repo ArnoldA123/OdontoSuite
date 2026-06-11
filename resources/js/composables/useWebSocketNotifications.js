@@ -81,7 +81,6 @@ export function useWebSocketNotifications() {
         }
       )
     } catch (error) {
-      console.error('Error processing WebSocket notification:', error)
     }
   }
 
@@ -186,7 +185,6 @@ export function useWebSocketNotifications() {
         channels.reminders = remindersChannel
       }
     } catch (error) {
-      console.error('Error setting up WebSocket notification subscriptions:', error)
     }
   }
 
@@ -200,7 +198,6 @@ export function useWebSocketNotifications() {
           echo.leave(channelName.replace(/([A-Z])/g, '-$1').toLowerCase())
         })
       } catch (e) {
-        console.error('Error cleaning up WebSocket subscriptions:', e)
       }
     }
     channels = {}

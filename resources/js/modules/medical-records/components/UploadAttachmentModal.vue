@@ -258,7 +258,6 @@ const handleSubmit = async () => {
     emit('uploaded')
     closeModal()
   } catch (err) {
-    console.error('Error uploading attachment:', err)
     if (err.response?.data?.errors) {
       errors.value = err.response.data.errors
     }

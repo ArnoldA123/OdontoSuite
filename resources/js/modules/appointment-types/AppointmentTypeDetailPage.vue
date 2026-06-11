@@ -252,7 +252,6 @@ export default {
         appointmentType.value = response.data
       } catch (error) {
         toast.error('Error al cargar el tipo de cita')
-        console.error(error)
       }
     }
 
@@ -261,7 +260,6 @@ export default {
       try {
         await getAppointmentTypeAuditLogs(appointmentType.value.id)
       } catch (error) {
-        console.error('Error al cargar historial de auditoría:', error)
       }
     }
 

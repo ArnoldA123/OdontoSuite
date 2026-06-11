@@ -321,7 +321,6 @@ const loadData = async () => {
 
     // Verificar si hay datos vacíos y notificar
     if (patients.value.length === 0) {
-      console.warn('No se encontraron pacientes')
     }
     if (professionals.value.length === 0) {
       toast.warning('No se encontraron profesionales activos')
@@ -333,7 +332,6 @@ const loadData = async () => {
       toast.warning('No se encontraron sillas dentales activas')
     }
   } catch (error) {
-    console.error('Error loading data:', error)
     toast.error('Error al cargar los datos. Por favor, recarga la página.')
   } finally {
     loadingData.value = false
@@ -432,7 +430,6 @@ const saveAppointment = async () => {
     resetForm()
     closeModal()
   } catch (error) {
-    console.error('Error saving appointment:', error)
     const errorMessage = error?.response?.data?.message || (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
     const errors = error?.response?.data?.errors
     if (errors) {
@@ -481,12 +478,10 @@ onMounted(() => {
     if (patientsChannel) {
       patientsChannel
         .listen('.patient.created', async (e) => {
-          console.log('Patient created via WebSocket:', e.patient)
           // Recargar todos los pacientes para incluir el nuevo
           await loadData()
         })
         .listen('.patient.updated', async (e) => {
-          console.log('Patient updated via WebSocket:', e.patient)
           // Actualizar el paciente en la lista si existe
           const index = patients.value.findIndex(p => p.id === e.patient.id)
           if (index !== -1) {
@@ -497,13 +492,11 @@ onMounted(() => {
           }
         })
         .listen('.patient.deleted', async (e) => {
-          console.log('Patient deleted via WebSocket:', e.patient_id)
           // Remover el paciente de la lista
           patients.value = patients.value.filter(p => p.id !== e.patient_id)
         })
     }
   } catch (error) {
-    console.error('Error setting up WebSocket subscriptions:', error)
   }
 })
 
@@ -513,7 +506,6 @@ onUnmounted(() => {
     try {
       echo.leave('patients')
     } catch (e) {
-      console.error('Error leaving patients channel:', e)
     }
   }
 })

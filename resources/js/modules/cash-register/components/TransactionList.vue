@@ -299,7 +299,6 @@ const loadPaymentMethods = async () => {
     const response = await get('/api/payment-methods')
     paymentMethods.value = response.data || []
   } catch (error) {
-    console.error('Error al cargar métodos de pago:', error)
   }
 }
 
@@ -313,7 +312,6 @@ const loadPage = (page) => {
 
 const viewTransaction = (transaction) => {
   // Implementar vista de detalle
-  console.log('Ver transacción:', transaction)
 }
 
 const generateReceipt = (transaction) => {
@@ -327,7 +325,6 @@ const voidTransaction = async (transaction) => {
     await voidTransactionApi(transaction.id, 'Anulación manual')
     emit('refresh')
   } catch (error) {
-    console.error('Error al anular transacción:', error)
   }
 }
 
@@ -335,9 +332,7 @@ const exportToExcel = async () => {
   exporting.value = true
   try {
     // Implementar exportación a Excel
-    console.log('Exportar a Excel')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }
@@ -347,9 +342,7 @@ const exportToPDF = async () => {
   exporting.value = true
   try {
     // Implementar exportación a PDF
-    console.log('Exportar a PDF')
   } catch (error) {
-    console.error('Error al exportar:', error)
   } finally {
     exporting.value = false
   }

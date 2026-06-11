@@ -19,7 +19,6 @@ export function useAuditLogs() {
       auditLogs.value = response.data?.data || response.data || []
       return auditLogs.value
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {
@@ -37,7 +36,6 @@ export function useAuditLogs() {
       const response = await get(`/api/audit-logs?${queryParams}`)
       return response.data || []
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {
@@ -54,7 +52,6 @@ export function useAuditLogs() {
       const response = await get(`/api/audit-logs/${logId}`)
       return response.data
     } catch (error) {
-      console.error('Error fetching audit log:', error)
       toast.error('Error al cargar registro de auditoría')
       return null
     } finally {
@@ -72,7 +69,6 @@ export function useAuditLogs() {
       auditLogs.value = response.data?.data || response.data || []
       return auditLogs.value
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {
@@ -90,7 +86,6 @@ export function useAuditLogs() {
       auditLogs.value = response.data?.data || response.data || []
       return auditLogs.value
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {
@@ -108,7 +103,6 @@ export function useAuditLogs() {
       auditLogs.value = response.data?.data || response.data || []
       return auditLogs.value
     } catch (error) {
-      console.error('Error fetching audit logs:', error)
       toast.error('Error al cargar historial de auditoría')
       return []
     } finally {

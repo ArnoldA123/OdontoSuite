@@ -353,7 +353,6 @@ const handleSubmit = async () => {
       email: email.value
     })
   } catch (err) {
-    console.error('Reset password error:', err)
     
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors

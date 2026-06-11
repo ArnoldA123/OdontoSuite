@@ -387,13 +387,11 @@ const canClose = computed(() => {
 // Métodos
 const loadTransactions = async () => {
   if (!hasActiveSession.value) {
-    console.warn('No hay sesión activa, no se pueden cargar transacciones')
     return
   }
 
   try {
     loading.value = true
-    console.log('Cargando transacciones para sesión:', currentSession.value?.id)
 
     const response = await getTransactions({
       cash_register_session_id: currentSession.value.id
@@ -402,9 +400,7 @@ const loadTransactions = async () => {
     transactions.value = response.data || []
     pagination.value = response.meta || null
 
-    console.log('Transacciones cargadas:', transactions.value.length)
   } catch (error) {
-    console.error('Error cargando transacciones:', error)
     toast.error('Error al cargar transacciones')
   } finally {
     loading.value = false
@@ -413,21 +409,17 @@ const loadTransactions = async () => {
 
 const loadMovements = async () => {
   if (!hasActiveSession.value) {
-    console.warn('No hay sesión activa, no se pueden cargar movimientos')
     return
   }
 
   try {
-    console.log('Cargando movimientos para sesión:', currentSession.value?.id)
 
     const response = await get(`/api/cash-register/sessions/${currentSession.value.id}/movements`)
 
     movements.value = response.data || []
     movementPagination.value = response.meta || null
 
-    console.log('Movimientos cargados:', movements.value.length)
   } catch (error) {
-    console.error('Error cargando movimientos:', error)
     toast.error('Error al cargar movimientos')
   }
 }
@@ -470,13 +462,7 @@ const handleTransactionSuccess = async (transaction) => {
   await new Promise(resolve => setTimeout(resolve, 300))
   
   // Recargar sesión para actualizar el resumen (incluye las tarjetas)
-  console.log('handleTransactionSuccess: Recargando sesión y resumen...')
   await loadCurrentSession()
-  console.log('handleTransactionSuccess: Resumen después de recargar:', {
-    total_income: summary.value?.total_income,
-    total_expenses: summary.value?.total_expenses,
-    currentBalance: realTimeTotals.value?.currentBalance
-  })
   
   // Recargar lista de transacciones
   await loadTransactions()
@@ -491,9 +477,7 @@ const handleMovementSuccess = async (movement) => {
 }
 
 const handlePaymentSuccess = async (paymentData) => {
-  console.log('handlePaymentSuccess ejecutado con datos:', paymentData)
   const { patient, amount, concept, paymentMethod, transactionNumber } = paymentData
-  console.log('Mostrando toast de éxito...')
   toast.success(
     `Cobro registrado exitosamente\n` +
     `Paciente: ${patient?.name || 'N/A'}\n` +
@@ -511,36 +495,25 @@ const handlePaymentSuccess = async (paymentData) => {
   await new Promise(resolve => setTimeout(resolve, 500))
 
   // Forzar actualización de datos de caja
-  console.log('handlePaymentSuccess: Recargando sesión y resumen...')
   await loadCurrentSession()
   
   // Esperar un tick adicional para asegurar que Vue procese los cambios
   await new Promise(resolve => setTimeout(resolve, 100))
   
-  console.log('handlePaymentSuccess: Resumen después de recargar:', {
-    total_income: summary.value?.total_income,
-    total_expenses: summary.value?.total_expenses,
-    currentBalance: realTimeTotals.value?.currentBalance,
-    summary_object: summary.value
-  })
   
   // Recargar listas
   await loadTransactions()
   await loadMovements()
 
-  console.log('Recargando pagos pendientes...')
   reloadPendingPayments()
 }
 
 // Método para recargar pagos pendientes
 const reloadPendingPayments = () => {
-  console.log('Recargando pagos pendientes, key anterior:', pendingPaymentsKey.value)
   pendingPaymentsKey.value++
-  console.log('Nueva key:', pendingPaymentsKey.value)
 }
 
 const handlePaymentFromList = (payment) => {
-  console.log('Recibiendo datos del pago:', payment)
   // Pre-llenar el modal con los datos del pago pendiente
   selectedPaymentPatient.value = {
     id: payment.patient.id,
@@ -585,7 +558,6 @@ const handlePaymentModalClose = () => {
 
 const editTransaction = (transaction) => {
   // Implementar edición de transacción
-  console.log('Edit transaction:', transaction)
 }
 
 const generateReport = async () => {
@@ -609,7 +581,6 @@ const generateReport = async () => {
 
 const exportReport = async (filters) => {
   // Este método será llamado por CashReports
-  console.log('Exportando reporte con filtros:', filters)
 }
 
 const voidTransaction = async (transaction) => {
@@ -648,15 +619,11 @@ const formatCurrency = (amount) => {
 
 // Lifecycle
 onMounted(async () => {
-  console.log('CashRegisterPage montado, cargando sesión actual...')
   await loadCurrentSession()
-  console.log('Sesión activa:', hasActiveSession.value)
   if (hasActiveSession.value) {
-    console.log('Cargando transacciones y movimientos...')
     await loadTransactions()
     await loadMovements()
   } else {
-    console.log('No hay sesión activa, no se cargan transacciones')
   }
   await loadSessions()
   

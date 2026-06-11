@@ -15,7 +15,6 @@ export function useDropdownPosition(triggerRef, dropdownRef) {
     // Obtener el elemento DOM real (puede ser un componente Vue)
     const element = triggerRef.value.$el || triggerRef.value
     if (!element || typeof element.getBoundingClientRect !== 'function') {
-      console.error('Invalid trigger element:', element)
       return
     }
 

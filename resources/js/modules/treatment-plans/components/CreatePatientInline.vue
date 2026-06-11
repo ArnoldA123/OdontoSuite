@@ -148,7 +148,6 @@ const handleSubmit = async () => {
 }
 
 const handleError = (err) => {
-  console.error('Error creating patient:', err)
   const data = err.response?.data
   if (data?.errors) {
     Object.assign(errors.value, data.errors)

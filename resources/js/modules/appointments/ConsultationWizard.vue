@@ -508,7 +508,6 @@ const onProcedureNameInput = (idx, value) => {
       const response = await apiGet('/api/procedure-catalog/search', { params: { q: term, limit: 10 } })
       catalogResults[idx] = response?.data ?? []
     } catch (error) {
-      console.warn('Procedure catalog search failed', error)
       catalogResults[idx] = []
     }
   }, 250)
@@ -586,7 +585,6 @@ const handleSubmit = async () => {
     })
     handleClose()
   } catch (e) {
-    console.error('Submit failed', e)
   }
 }
 

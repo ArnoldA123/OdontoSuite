@@ -206,7 +206,6 @@ const handleSubmit = async () => {
     await addEvolution(props.record.id, form.value)
     emit('saved')
   } catch (err) {
-    console.error('Error adding evolution:', err)
     if (err.response?.data?.errors) {
       errors.value = err.response.data.errors
     }

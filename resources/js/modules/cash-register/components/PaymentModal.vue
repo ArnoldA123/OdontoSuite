@@ -311,22 +311,12 @@ const canSubmit = computed(() => {
 // Métodos
 const loadPaymentMethods = async () => {
   try {
-    console.log('Cargando métodos de pago...')
     const methodsData = await getPaymentMethods()
-    console.log('Respuesta del servidor:', methodsData)
     paymentMethods.value = methodsData.data || []
-    console.log('Métodos de pago cargados:', paymentMethods.value)
   } catch (error) {
-    console.error('Error cargando métodos de pago:', error)
-    console.error('Detalles del error:', {
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    })
 
     // Si falla la autenticación, mostrar mensaje al usuario
     if (error.response?.status === 401) {
-      console.error('Error de autenticación. Por favor, inicia sesión nuevamente.')
     }
     paymentMethods.value = []
   }
@@ -343,7 +333,6 @@ const loadPatientAppointments = async (patientId) => {
     // Por ahora lo dejamos vacío
     patientAppointments.value = []
   } catch (error) {
-    console.error('Error cargando citas del paciente:', error)
   }
 }
 
@@ -382,7 +371,6 @@ const handleSubmit = async () => {
     emit('close')
     resetForm()
   } catch (error) {
-    console.error('Error registrando pago:', error)
 
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
@@ -461,7 +449,6 @@ watch(() => formData.value.patient_id, (newPatientId) => {
 // Pre-llenar datos del paciente seleccionado
 watch(() => props.selectedPatient, (newPatient) => {
   if (newPatient && props.show) {
-    console.log('Pre-llenando datos del paciente:', newPatient)
     formData.value.patient_id = newPatient.id
     formData.value.concept = newPatient.concept || 'Consulta'
     formData.value.amount = newPatient.amount || 0

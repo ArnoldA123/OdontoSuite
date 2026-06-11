@@ -696,12 +696,6 @@ export default {
       loading.value = true
       try {
         const { start_date, end_date } = getDateRangeForCurrentView()
-        console.log('📅 Loading appointments for range:', { 
-          start_date, 
-          end_date,
-          view: currentView.value,
-          currentDate: currentDate.value.toISOString().split('T')[0]
-        })
         
         const response = await get('/api/appointments', {
           params: {
@@ -711,45 +705,15 @@ export default {
           }
         })
         
-        console.log('📦 API Response structure:', {
-          hasData: !!response?.data,
-          dataType: Array.isArray(response?.data) ? 'array' : typeof response?.data,
-          dataLength: Array.isArray(response?.data) ? response.data.length : 'N/A',
-          meta: response?.meta,
-          fullResponse: response
-        })
         
         // La API devuelve { data: [...], meta: {...} }
         // useApi ya parsea el JSON, por lo que response.data es el array directamente
         appointments.value = response?.data || []
         
-        console.log('✅ Loaded appointments:', {
-          count: appointments.value.length,
-          firstAppointment: appointments.value.length > 0 ? {
-            id: appointments.value[0].id,
-            scheduled_at: appointments.value[0].scheduled_at,
-            ends_at: appointments.value[0].ends_at,
-            patient: appointments.value[0].patient,
-            user: appointments.value[0].user,
-            appointment_type: appointments.value[0].appointment_type,
-            status: appointments.value[0].status
-          } : null,
-          lastAppointment: appointments.value.length > 0 ? {
-            id: appointments.value[appointments.value.length - 1].id,
-            scheduled_at: appointments.value[appointments.value.length - 1].scheduled_at,
-          } : null
-        })
         
         if (appointments.value.length === 0) {
-          console.warn('⚠️  No appointments found for the selected date range')
         }
       } catch (error) {
-        console.error('❌ Error loading appointments:', {
-          error,
-          message: error?.response?.data?.message || error?.message,
-          status: error?.response?.status,
-          data: error?.response?.data
-        })
         toast.error('Error al cargar las citas')
         appointments.value = []
       } finally {
@@ -907,7 +871,6 @@ export default {
         await loadAppointments()
         selectedAppointment.value = null
       } catch (error) {
-        console.error('Error changing appointment status:', error)
         const errorMessage = error?.response?.data?.message || 'Error al cambiar el estado'
         toast.error(errorMessage)
       }
@@ -921,7 +884,6 @@ export default {
           await loadAppointments()
           selectedAppointment.value = null
         } catch (error) {
-          console.error('Error deleting appointment:', error)
           const errorMessage = error?.response?.data?.message || 'Error al eliminar la cita'
           toast.error(errorMessage)
         }
@@ -973,7 +935,6 @@ export default {
         if (appointmentsChannel) {
           appointmentsChannel
             .listen('.appointment.created', async (e) => {
-              console.log('Appointment created via WebSocket:', e.appointment)
               await loadAppointments()
               toast.success('Nueva cita agregada')
             })
@@ -982,7 +943,6 @@ export default {
               toast.success('Cita actualizada')
             })
             .listen('.appointment.deleted', async (e) => {
-              console.log('Appointment deleted via WebSocket:', e.appointment_id)
               // Remover la cita de la lista
               appointments.value = appointments.value.filter(apt => apt.id !== e.appointment_id)
               if (selectedAppointment.value?.id === e.appointment_id) {
@@ -992,7 +952,6 @@ export default {
             })
         }
       } catch (error) {
-        console.error('Error setting up WebSocket subscriptions:', error)
       }
     })
 
@@ -1002,7 +961,6 @@ export default {
         try {
           echo.leave('appointments')
         } catch (e) {
-          console.error('Error leaving appointments channel:', e)
         }
       }
     })

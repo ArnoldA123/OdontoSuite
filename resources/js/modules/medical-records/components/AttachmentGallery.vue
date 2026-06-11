@@ -219,19 +219,16 @@ const deleteAttachment = async (attachment) => {
       await removeAttachment(attachment.id)
       emit('delete', attachment)
     } catch (err) {
-      console.error('Error deleting attachment:', err)
     }
   }
 }
 
 const handleAnalysisCompleted = (analysis) => {
-  console.log('Analysis completed:', analysis)
   // Emit event to parent component if needed
   emit('analysis-completed', analysis)
 }
 
 const viewAnalysis = (analysis) => {
-  console.log('View analysis:', analysis)
   // Emit event to parent component if needed
   emit('view-analysis', analysis)
 }

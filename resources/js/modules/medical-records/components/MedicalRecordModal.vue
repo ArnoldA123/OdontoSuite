@@ -219,7 +219,6 @@ const handleSubmit = async () => {
 
     emit('saved')
   } catch (err) {
-    console.error('Error saving medical record:', err)
     if (err.response?.data?.errors) {
       errors.value = err.response.data.errors
     }

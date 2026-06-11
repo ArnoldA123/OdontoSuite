@@ -221,7 +221,6 @@ const handleDownloadPDF = async () => {
   try {
     await downloadPDF(props.quotation.id)
   } catch (err) {
-    console.error('Error downloading PDF:', err)
   }
 }
 
@@ -230,7 +229,6 @@ const handleApprove = async () => {
     await approveQuotation(props.quotation.id)
     emit('close')
   } catch (err) {
-    console.error('Error approving quotation:', err)
   }
 }
 
@@ -241,7 +239,6 @@ const handleReject = async () => {
       await rejectQuotation(props.quotation.id, reason)
       emit('close')
     } catch (err) {
-      console.error('Error rejecting quotation:', err)
     }
   }
 }

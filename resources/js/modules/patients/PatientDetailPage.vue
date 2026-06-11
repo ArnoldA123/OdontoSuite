@@ -823,7 +823,6 @@ export default {
         patient.value = response.data
       } catch (error) {
         toast.error('Error al cargar el paciente')
-        console.error(error)
       }
     }
 
@@ -834,7 +833,6 @@ export default {
         const response = await get(`/api/treatment-plans?patient_id=${patient.value.id}`)
         treatmentPlans.value = response.data
       } catch (error) {
-        console.error('Error al cargar planes de tratamiento:', error)
       } finally {
         treatmentPlansLoading.value = false
       }
@@ -847,7 +845,6 @@ export default {
         const response = await get(`/api/quotations?patient_id=${patient.value.id}`)
         quotations.value = response.data
       } catch (error) {
-        console.error('Error al cargar presupuestos:', error)
       } finally {
         quotationsLoading.value = false
       }
@@ -860,7 +857,6 @@ export default {
         const response = await get(`/api/medical-records?patient_id=${patient.value.id}`)
         medicalRecords.value = response.data
       } catch (error) {
-        console.error('Error al cargar historias clínicas:', error)
       } finally {
         medicalRecordsLoading.value = false
       }
@@ -873,7 +869,6 @@ export default {
         const response = await get(`/api/specialty-records/patient/${patient.value.id}/all`)
         specialtyRecords.value = response.data
       } catch (error) {
-        console.error('Error al cargar registros de especialidades:', error)
       } finally {
         specialtyRecordsLoading.value = false
       }
@@ -972,7 +967,6 @@ export default {
 
         toast.success('Paciente actualizado exitosamente')
       } catch (error) {
-        console.error('Error updating patient:', error)
         const errorMsg = error.response?.data?.message || 'Error al actualizar paciente'
         const errors = error.response?.data?.errors
         let details = ''
@@ -1049,7 +1043,6 @@ export default {
 
         toast.success(`Ficha exportada exitosamente como ${exportFormat.toUpperCase()}`)
       } catch (error) {
-        console.error('Error exporting patient file:', error)
         toast.error('Error al exportar ficha del paciente')
       } finally {
         exporting.value = false
@@ -1280,7 +1273,6 @@ export default {
               })
           }
         } catch (error) {
-          console.error('Error setting up WebSocket subscriptions:', error)
         }
       }
     })
@@ -1295,7 +1287,6 @@ export default {
           echo.leave('medical-records')
           echo.leave('specialty-records')
         } catch (e) {
-          console.error('Error leaving channels:', e)
         }
       }
     })

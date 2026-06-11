@@ -25,7 +25,6 @@ export function useAuth() {
       }
       throw new Error('Invalid response format')
     } catch (error) {
-      console.error('Login error:', error)
       throw error
     } finally {
       isLoading.value = false
@@ -38,7 +37,6 @@ export function useAuth() {
         await request('POST', '/api/auth/logout')
       }
     } catch (error) {
-      console.error('Logout error:', error)
     } finally {
       setToken(null)
       user.value = null
@@ -53,7 +51,6 @@ export function useAuth() {
       localStorage.setItem('user', JSON.stringify(response.data))
       return response
     } catch (error) {
-      console.error('Get current user error:', error)
       throw error
     }
   }

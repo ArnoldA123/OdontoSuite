@@ -39,38 +39,27 @@ export function useEcho() {
         const pusher = echoInstance.connector.pusher
 
         pusher.connection.bind('error', (err) => {
-          console.error('❌ Echo connection error:', err)
           if (err.type === 'PusherError') {
-            console.error('Detalles del error:', err.data)
             if (err.data?.code) {
-              console.error('Código de error:', err.data.code)
             }
             if (err.data?.message) {
-              console.error('Mensaje:', err.data.message)
             }
           }
           // Solo mostrar el mensaje de Reverb si el error indica que el servidor no está disponible
           if (err.type === 'TransportError' || err.data?.code === 1006) {
-            console.warn('💡 Asegúrate de que el servidor Reverb esté corriendo: php artisan reverb:start')
           }
         })
 
         pusher.connection.bind('connected', () => {
-          console.log('✅ Echo connected successfully')
         })
 
         pusher.connection.bind('disconnected', () => {
-          console.warn('⚠️ Echo disconnected')
         })
 
         pusher.connection.bind('state_change', (states) => {
-          console.log('🔄 Echo connection state changed:', states.previous, '->', states.current)
         })
 
         pusher.connection.bind('unavailable', () => {
-          console.error('❌ Echo connection unavailable - El servidor Reverb no está disponible')
-          console.warn('💡 Inicia el servidor Reverb con: php artisan reverb:start')
-          console.warn('💡 O usa: composer run dev (inicia todo automáticamente)')
         })
 
         // Intentar reconectar automáticamente cada 5 segundos si falla
@@ -80,20 +69,15 @@ export function useEcho() {
         pusher.connection.bind('failed', () => {
           reconnectAttempts++
           if (reconnectAttempts <= maxReconnectAttempts) {
-            console.log(`🔄 Intentando reconectar... (${reconnectAttempts}/${maxReconnectAttempts})`)
             setTimeout(() => {
               if (echoInstance && pusher.connection.state !== 'connected') {
                 pusher.connect()
               }
             }, 5000)
           } else {
-            console.error('❌ Máximo de intentos de reconexión alcanzado')
-            console.warn('💡 Por favor, verifica que el servidor Reverb esté corriendo')
           }
         })
       } catch (error) {
-        console.error('❌ Error al inicializar Echo:', error)
-        console.warn('💡 Verifica la configuración de Reverb en tu archivo .env')
       }
     }
   }
@@ -101,7 +85,6 @@ export function useEcho() {
   // Función para suscribirse a un canal público
   const channel = (channelName) => {
     if (!echoInstance) {
-      console.warn('Echo not initialized')
       return null
     }
     return echoInstance.channel(channelName)
@@ -110,7 +93,6 @@ export function useEcho() {
   // Función para suscribirse a un canal privado
   const privateChannel = (channelName) => {
     if (!echoInstance) {
-      console.warn('Echo not initialized')
       return null
     }
     // Actualizar token antes de suscribirse a canal privado

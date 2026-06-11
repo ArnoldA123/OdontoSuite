@@ -132,7 +132,6 @@ const handleSubmit = async () => {
     emit('approved', props.quotation)
     closeModal()
   } catch (err) {
-    console.error('Error approving quotation:', err)
   }
 }
 
