@@ -538,16 +538,16 @@ pnpm build
 
 ---
 
-### Sprint 1 — Configuración y DX (1 d-h) — **Pendiente**
+### Sprint 1 — Configuración y DX (1 d-h) — **✅ HECHO 2026-06-11**
 
 **Objetivo**: que el setup local y la documentación del proyecto sean correctos.
 
 **Implementación** (branch: `chore/dx-cleanup`):
 
-- [ ] **DM-1**: cambiar `"npm run dev"` por `"pnpm dev"` en el script `dev` de `composer.json`. Verificar que `package.json` tiene `"dev": "vite"`.
-- [ ] **DM-2**: reescribir `AGENTS.md` desde cero (428 → ~150 líneas). Estructura: §1 quickstart, §2 stack, §3 comandos, §4 troubleshooting, §5 planes cerrados.
-- [ ] **DM-3**: eliminar `resources/js/modules/test/TestPage.vue` y `resources/js/modules/auth/TestPage.vue`. Quitar las entradas del router.
-- [ ] **DM-5**: mover 9 seeders legacy a `database/seeders/_legacy/` con un README. O eliminarlos y commitear como "chore: remove legacy EasyDent seeders".
+- [x] **DM-1**: cambiar `"npm run dev"` por `"pnpm dev"` en el script `dev` de `composer.json`. Verificar que `package.json` tiene `"dev": "vite"`.
+- [x] **DM-2**: reescribir `AGENTS.md` desde cero (428 → ~150 líneas). Estructura: §1 quickstart, §2 stack, §3 comandos, §4 troubleshooting, §5 planes cerrados.
+- [x] **DM-3**: eliminar `resources/js/modules/test/TestPage.vue` y `resources/js/modules/auth/TestPage.vue`. Quitar las entradas del router.
+- [x] **DM-5**: mover 9 seeders legacy a `database/seeders/_legacy/` con un README. O eliminarlos y commitear como "chore: remove legacy EasyDent seeders".
 
 **Verificación**:
 ```bash
@@ -578,6 +578,45 @@ ls database/seeders/_legacy
 - DM-5: si algún seeder legacy se referencia desde `DatabaseSeeder.php` (no debería), no se puede mover.
 
 **Commit**: `chore(dx): Sprint 1 - pnpm, AGENTS.md, eliminar test pages, mover seeders legacy`.
+
+**Verificación** (2026-06-11, branch `chore/dx-cleanup`):
+```bash
+# DM-1
+grep "pnpm dev\|npm run dev" composer.json
+# solo pnpm dev
+grep '"dev"' package.json
+# "dev": "vite"
+
+# DM-2
+wc -l AGENTS.md
+# 236 (era 428, -45%)
+
+# DM-3
+find resources/js/modules -name "TestPage.vue"
+# (vacio)
+grep "TestPage" resources/js/app.js
+# (sin matches)
+
+# DM-5
+ls database/seeders/_legacy/ | wc -l
+# 24 (23 seeders + 1 README)
+ls database/seeders/*.php | wc -l
+# 11 activos
+git log --diff-filter=R --name-status | grep "R  database/seeders"
+# 23 archivos renombrados (git mv preservo historial)
+
+# Validar JSONs
+python -c "import json; json.load(open('composer.json')); json.load(open('package.json'))"
+# OK
+
+# Tests
+php artisan test --filter="StubsNotImplementedTest|OrphanEventsDeprecatedTest|WaitingListServiceTest|QuotationServiceTest|..."
+# 26 passed (162 assertions)
+
+# Frontend
+pnpm build
+# ✓ built in 9.28s
+```
 
 ---
 
@@ -802,5 +841,6 @@ php artisan tinker
 
 ## 10. Changelog
 
+- **2026-06-11** — Sprint 1 cerrado. 4 hallazgos resueltos (DM-1, DM-2, DM-3, DM-5). 28 archivos modificados: composer.json (+pnpm), AGENTS.md (428→236 líneas, -45%), 2 TestPage.vue eliminados, 23 seeders movidos a _legacy/ con README. `pnpm build` OK (9.28s). 26/26 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 0 cerrado. 6 hallazgos resueltos. 13 archivos modificados (7 controllers/services, 2 events, 1 listener, 1 job, 1 modelo, 1 mailable, 1 view blade). 10 tests nuevos pasan. `pnpm build` OK. 0 regresiones.
 - **2026-06-11** — Plan creado. 22 hallazgos nuevos identificados (6 críticos, 10 importantes, 6 mejoras). 5 sprints propuestos, 18.5 d-h estimados. Sprint 0 (0.5 d-h) es la prioridad #1.
