@@ -220,23 +220,51 @@ Sí, pero priorizando. Los 4 críticos (Patient, Appointment, Transaction, Medic
 
 > Estimaciones en **días-hombre** de Arnold (1 d-h ≈ 4-5 h reales).
 
-### Sprint 0 — Quick wins críticos (0.5 d-h)
+### Sprint 0 — Quick wins críticos (0.5 d-h) — **✅ HECHO 2026-06-10**
 
-**Objetivo**: en 30 minutos, quitar los 500s visibles y los presupuestos en S/ 0.00.
+**Objetivo**: quitar los 500s visibles y los presupuestos en S/ 0.00.
 
-- [ ] **C-1**: corregir `QuotationService` L57-58, L96-97, L138-139 (mapeo `unit_cost → unit_price`, `procedure_description → item_description`). 10 min.
-- [ ] **C-2**: corregir 6 rutas en `routes/api.php` (openSession→open, closeSession→close, getActiveSession→current, dailyReport→daily, periodReport→period). Implementar 2 métodos mínimos (ReminderController@send, PendingPaymentsController@pay). 20 min.
-- [ ] **C-5**: eliminar 3 líneas duplicadas de `routes/api.php` (login L55, register L57, logout L181). 5 min.
+**Implementación** (branch: `fix/inconsistencias-sprint-1-multi-tenant`):
 
-**Verificación**:
-```bash
-php artisan route:list --path=api | grep -E "register|open|cash-reports|reminders.*send|pending-payments"
-# Esperado: cada ruta apunta a un método que existe
-php artisan tinker --execute='\App\Models\TreatmentPlanItem::first()->getAttributes()'
-# Verificar que tiene unit_cost y procedure_description
+- [x] **C-1**: corregir `QuotationService` `generateQuotation` L52-60 y los 2 sitios manuales (L93-103, L135-145).
+  - `generateQuotation`: mapeo `unit_cost → unit_price`, `procedure_name → item_name`, `procedure_description → item_description`, `specialty → specialty`. Agregado `treatment_plan_item_id` para trazabilidad.
+  - `createQuotation` / `updateQuotation`: compat con el frontend que envía `description` (campo validado en `QuotationController`) — se mapea a `item_name` + `item_description`. Acepta también `item_name`/`item_description` directamente.
+- [x] **C-2**: corregir 6 rutas en `routes/api.php` (openSession→open, closeSession→close, getActiveSession→current, dailyReport→daily, periodReport→period) + implementar 2 métodos (`ReminderController@send`, `PendingPaymentsController@pay`).
+  - **Reorden crítico de rutas**: las rutas con segmentos fijos (`cash-register-sessions/active`, `cash-register-sessions/{id}/closure-report`) deben ir **antes** del `apiResource` para no ser pisadas por `GET /cash-register-sessions/{cash_register_session}` → `show($id)`.
+  - `ReminderController@send(string $id)`: delega a `ReminderService::sendReminder()`. Requiere `auth:sanctum` (heredado del grupo de rutas). Devuelve 404 si el reminder no existe, 500 con detalle si falla.
+  - `PendingPaymentsController@pay(Request, $id)`: valida que la cita exista y esté completada; devuelve **501 Not Implemented** con `todo` claro hacia `TransactionService::createTransaction()`. Es lo mínimo para no romper la API con un 500.
+- [x] **C-5**: eliminar rutas duplicadas. Removidas: `POST /register` (raíz), `POST /auth/register` (grupo), `POST /logout` (raíz duplicado). Removida la duplicación de `POST /auth/login` y `POST /auth/forgot-password` moviendo el throttle dentro del grupo `auth`.
+
+**Verificación** (con servidor `php artisan serve` en :8765 + script PHP con HTTP client):
+
+```php
+// C-2: las 8 rutas que devolvían 500
+POST /api/cash-register-sessions/9999/open     -> 422  [OK]  (FormRequest valida primero)
+POST /api/cash-register-sessions/9999/close    -> 422  [OK]
+GET  /api/cash-register-sessions/active        -> 200  [OK]  -> current()
+GET  /api/cash-reports/daily                   -> 200  [OK]  -> daily()
+GET  /api/cash-reports/period                  -> 200  [OK]  -> period()
+POST /api/reminders/9999/send                  -> 404  [OK]  -> send() implementado
+POST /api/pending-payments/9999/pay            -> 404  [OK]  -> pay() implementado (501)
+
+// C-5: rutas duplicadas eliminadas
+POST /api/register        -> 404  [OK]
+POST /api/logout          -> 404  [OK]  (canonical: /auth/logout)
+POST /api/auth/logout     -> 200  [OK]
+
+// C-1: QuotationService con unit_cost real
+$svc->generateQuotation($plan->id) →
+  Item 1: unit_cost=0.00  -> unit_price=0.00   (dato seed vacío, esperado)
+  Item 2: unit_cost=50.00 -> unit_price=50.00  (antes NULL, ahora correcto)
+  Item 3: unit_cost=2000  -> unit_price=2000   (antes NULL, ahora correcto)
 ```
 
-**Riesgo**: bajo. C-2 podría romper consumers si el frontend ya usa la firma vieja — verificar con `git log -p routes/api.php` que no haya consumers que asuman las firmas rotas.
+**Riesgo** real (vs plan original):
+- ⚠️ `ReminderController` era un **stub completo** (50 líneas vacías). Implementé solo `send()` (mínimo para no devolver 500). El resto del resource (index, show, store, update, destroy) sigue siendo stub — observación para sprint futuro.
+- ⚠️ `PendingPaymentsController@pay()` devuelve 501. Si el frontend intenta usarlo antes de implementar, verá el 501. El grep confirmó que **no hay consumers** del frontend para esta ruta, así que es seguro por ahora.
+- ⚠️ `POST /register` se eliminó. Si en el futuro se quiere self-registration, hay que implementar `AuthController::register()` (no estaba implementado antes, solo se referenciaba). El admin sigue creando usuarios vía `/api/users` (apiResource de `UserController`).
+
+**Commit**: `fix(routes+services): C-1 unit_cost, C-2 8 rutas rotas, C-5 duplicados`.
 
 ---
 

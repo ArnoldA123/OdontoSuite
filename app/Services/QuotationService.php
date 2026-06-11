@@ -52,10 +52,13 @@ class QuotationService
             foreach ($plan->items as $item) {
                 QuotationItem::create([
                     'quotation_id' => $quotation->id,
-                    'description' => $item->description,
+                    'treatment_plan_item_id' => $item->id,
+                    'item_name' => $item->procedure_name,
+                    'item_description' => $item->procedure_description,
+                    'specialty' => $item->specialty,
                     'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'total_price' => $item->quantity * $item->unit_price
+                    'unit_price' => $item->unit_cost,
+                    'total_price' => $item->quantity * $item->unit_cost
                 ]);
             }
 
@@ -91,7 +94,9 @@ class QuotationService
                 foreach ($data['items'] as $itemData) {
                     QuotationItem::create([
                         'quotation_id' => $quotation->id,
-                        'description' => $itemData['description'],
+                        'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
+                        'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
+                        'specialty' => $itemData['specialty'] ?? null,
                         'quantity' => $itemData['quantity'],
                         'unit_price' => $itemData['unit_price'],
                         'total_price' => $itemData['quantity'] * $itemData['unit_price']
@@ -133,7 +138,9 @@ class QuotationService
                 foreach ($data['items'] as $itemData) {
                     QuotationItem::create([
                         'quotation_id' => $quotation->id,
-                        'description' => $itemData['description'],
+                        'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
+                        'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
+                        'specialty' => $itemData['specialty'] ?? null,
                         'quantity' => $itemData['quantity'],
                         'unit_price' => $itemData['unit_price'],
                         'total_price' => $itemData['quantity'] * $itemData['unit_price']
