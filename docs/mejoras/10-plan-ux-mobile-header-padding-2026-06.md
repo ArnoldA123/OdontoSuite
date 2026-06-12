@@ -134,3 +134,11 @@ Agregar `pt-16 lg:pt-0` al main wrapper. El `h-16` del header mobile (64px) coin
   - Header desktop con indicador WS + bell + avatar.
   - Sin header mobile (display: none).
 - 0 regresiones en planes #1-#9.
+
+---
+
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit en `fix/ux-sprint-0-mobile-header-padding`. 1 bug crítico cerrado (B-UX-16).
+
+**PLAN CERRADO**. Header mobile ya no tapa el contenido del main.
