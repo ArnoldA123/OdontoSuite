@@ -176,7 +176,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   v-if="p.specialty_name"
-                  class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800"
+                  class="px-2 py-1 text-xs rounded-full bg-primary-50 text-primary-700"
                 >
                   {{ p.specialty_name }}
                 </span>
@@ -198,7 +198,7 @@
                   <UiButton
                     variant="ghost"
                     size="sm"
-                    class="text-blue-600 hover:text-blue-900"
+                    class="text-accent hover:text-accent-hover"
                     @click="goDetail(p.id)"
                   >
                     Ver

@@ -5,7 +5,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 class="text-3xl font-bold text-theme-primary mb-2 flex items-center">
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mr-4 flex items-center justify-center">
+            <div class="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-xl mr-4 flex items-center justify-center">
               <CpuChipIcon class="w-6 h-6 text-white" />
             </div>
             Análisis con IA
@@ -30,7 +30,7 @@
     <UiCard variant="glass" class="mb-8">
       <div class="p-6">
         <h2 class="text-xl font-semibold mb-4 flex items-center">
-          <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg mr-3 flex items-center justify-center">
+          <div class="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-lg mr-3 flex items-center justify-center">
             <CpuChipIcon class="w-5 h-5 text-white" />
           </div>
           Nuevo Análisis de IA
@@ -152,8 +152,8 @@
             <p class="text-3xl font-bold text-theme-primary">{{ stats.completion_rate }}%</p>
             <p class="text-xs text-theme-secondary mt-1">Eficiencia</p>
           </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <ChartBarIcon class="w-6 h-6 text-purple-600" />
+          <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
+            <ChartBarIcon class="w-6 h-6 text-accent" />
           </div>
         </div>
       </UiCard>

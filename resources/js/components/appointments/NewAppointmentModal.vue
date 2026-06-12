@@ -20,10 +20,7 @@
       </div>
       <div class="p-6">
         <!-- Loading State -->
-        <div v-if="loadingData" class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600"></div>
-          <p class="mt-4 text-theme-secondary">Cargando datos...</p>
-        </div>
+        <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
 
         <!-- Form -->
         <form v-else @submit.prevent class="space-y-4" @keydown.enter.prevent>

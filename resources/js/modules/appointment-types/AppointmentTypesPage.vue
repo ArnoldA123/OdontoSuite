@@ -153,7 +153,7 @@
                         variant="ghost"
                         size="sm"
                         @click="viewDetail(type)"
-                        class="text-blue-600 hover:text-blue-900"
+                        class="text-accent hover:text-accent-hover"
                       >
                         Ver Detalle
                       </UiButton>

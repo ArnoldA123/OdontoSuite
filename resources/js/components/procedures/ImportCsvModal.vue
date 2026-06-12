@@ -35,7 +35,7 @@
         </p>
       </div>
 
-      <div v-if="result" class="p-4 rounded-lg border" :class="result.errors > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'">
+      <div v-if="result" class="p-4 rounded-lg border" :class="result.errors > 0 ? 'border-warning-100 bg-warning-50' : 'border-success-100 bg-success-50'">
         <p class="text-sm text-theme-primary font-medium">
           {{ result.inserted }} insertados, {{ result.updated }} actualizados, {{ result.errors }} errores.
         </p>

@@ -97,13 +97,13 @@
       <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-theme">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <ExclamationTriangleIcon class="w-5 h-5 text-purple-600" />
+            <div class="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+              <ExclamationTriangleIcon class="w-5 h-5 text-accent" />
             </div>
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Diferencias</p>
-            <p class="text-2xl font-bold text-purple-600">{{ formatCurrency(summary.total_difference) }}</p>
+            <p class="text-2xl font-bold text-accent">{{ formatCurrency(summary.total_difference) }}</p>
           </div>
         </div>
       </div>

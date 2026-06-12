@@ -18,7 +18,7 @@ const props = defineProps({
 defineEmits(['click'])
 
 const fabClasses = computed(() => {
-  const base = 'fixed z-50 flex items-center justify-center rounded-full shadow-2xl smooth-transition hover:scale-110 active:scale-95 bg-gradient-to-b from-purple-500 to-purple-600 text-white'
+  const base = 'fixed z-50 flex items-center justify-center rounded-full shadow-2xl smooth-transition hover:scale-110 active:scale-95 bg-gradient-to-b from-accent to-accent-hover text-white'
 
   const positions = {
     'bottom-right': 'bottom-6 right-6',

@@ -40,7 +40,7 @@ defineEmits(['update:modelValue'])
 const optionClasses = (value) => {
   const base = 'flex-1 px-4 py-3 rounded-xl border-2 cursor-pointer smooth-transition text-center font-medium'
   const selected = props.modelValue === value
-    ? 'border-purple-500 bg-purple-50 text-purple-700'
+    ? 'border-accent bg-primary-50 text-primary-700'
     : 'border-theme bg-theme-surface-elevated hover:border-theme-strong text-theme-primary'
   return [base, selected].join(' ')
 }
@@ -48,7 +48,7 @@ const optionClasses = (value) => {
 const radioIndicator = (value) => {
   const base = 'w-5 h-5 rounded-full border-2 smooth-transition'
   const selected = props.modelValue === value
-    ? 'border-purple-500 bg-purple-500 shadow-inner'
+    ? 'border-accent bg-accent shadow-inner'
     : 'border-theme bg-theme-surface-elevated'
   return [base, selected].join(' ')
 }

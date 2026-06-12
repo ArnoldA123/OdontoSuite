@@ -105,7 +105,7 @@
                 <span
                   v-for="(m, i) in procedure.materials_needed_list"
                   :key="i"
-                  class="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-800"
+                  class="px-2 py-1 text-xs rounded-full bg-primary-50 text-primary-700"
                 >
                   {{ m }}
                 </span>

@@ -45,7 +45,7 @@
               <span class="font-mono text-xs text-theme-secondary">
                 {{ fav.code }}
               </span>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
                 #{{ index + 1 }}
               </span>
             </div>
