@@ -2,22 +2,20 @@
   <AppLayout>
     <div class="specialty-records-page">
     <!-- Header -->
-    <div class="page-header">
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="page-title">Registros de Especialidades</h1>
-          <p class="page-subtitle">Gestiona los registros específicos por especialidad</p>
-        </div>
-        <button
-          @click="openCreateModal"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          <PlusIcon class="w-5 h-5 mr-2" />
+    <PageHeader
+      title="Registros de Especialidades"
+      subtitle="Gestiona los registros específicos por especialidad"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton @click="openCreateModal" :disabled="loading">
+          <template #icon-left>
+            <PlusIcon class="w-5 h-5" />
+          </template>
           Nuevo Registro
-        </button>
-      </div>
-    </div>
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Selector de paciente -->
     <div class="patient-selector-section">

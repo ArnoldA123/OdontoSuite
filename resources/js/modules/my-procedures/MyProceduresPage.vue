@@ -1,25 +1,21 @@
 <template>
   <AppLayout>
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">
-            Mis Procedimientos
-          </h1>
-          <p class="text-theme-secondary">
-            Marca tus procedimientos frecuentes como favoritos para acceder a ellos rapidamente
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <UiButton variant="secondary" class="flex items-center gap-2" @click="goBack">
+    <PageHeader
+      title="Mis Procedimientos"
+      subtitle="Marca tus procedimientos frecuentes como favoritos para acceder a ellos rapidamente"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton variant="secondary" @click="goBack">
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Volver
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <UiCard variant="glass" class="mb-6">
       <h2 class="text-lg font-semibold text-theme-primary mb-3 flex items-center gap-2">

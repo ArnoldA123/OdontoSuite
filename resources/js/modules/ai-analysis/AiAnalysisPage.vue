@@ -1,30 +1,24 @@
 <template>
   <AppLayout>
     <!-- Header Section -->
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2 flex items-center">
-            <div class="w-10 h-10 bg-gradient-to-br from-accent to-accent-hover rounded-xl mr-4 flex items-center justify-center">
-              <CpuChipIcon class="w-6 h-6 text-white" />
-            </div>
-            Análisis con IA
-          </h1>
-          <p class="text-theme-secondary">Análisis asistido de imágenes clínicas con inteligencia artificial</p>
-        </div>
-        <div class="flex gap-3">
-          <UiButton
-            variant="secondary"
-            @click="refreshData"
-            :disabled="loading"
-            class="flex items-center gap-2"
-          >
+    <PageHeader
+      title="Análisis con IA"
+      subtitle="Análisis asistido de imágenes clínicas con inteligencia artificial"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton
+          variant="secondary"
+          @click="refreshData"
+          :disabled="loading"
+        >
+          <template #icon-left>
             <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-            Actualizar
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Actualizar
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Sección: Nuevo Análisis -->
     <UiCard variant="glass" class="mb-8">

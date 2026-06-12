@@ -2,13 +2,13 @@
   <AppLayout>
     <div class="treatment-plans-page">
       <!-- Header siempre a la vista -->
-      <div class="page-header">
-        <div class="flex justify-between items-center gap-4 flex-wrap">
-          <div>
-            <h1 class="page-title">Planes de Tratamiento</h1>
-            <p class="page-subtitle">Gestiona los planes de tratamiento de tus pacientes</p>
-          </div>
-          <div class="flex items-center gap-2">
+      <PageHeader
+        title="Planes de Tratamiento"
+        subtitle="Gestiona los planes de tratamiento de tus pacientes"
+        class="mb-6"
+      >
+        <template #actions>
+          <div class="flex items-center gap-2 flex-wrap">
             <div class="counters">
               <span class="counter-pill" :class="{ active: !statusFilter }">
                 Todos <strong>{{ pagination?.total ?? 0 }}</strong>
@@ -18,18 +18,16 @@
                 Vencidos {{ counters.overdue }}
               </span>
             </div>
-            <button
-              @click="openCreateModal"
-              class="btn btn-primary"
-              :disabled="loading"
-            >
-              <PlusIcon class="w-5 h-5 mr-2" />
+            <UiButton @click="openCreateModal" :disabled="loading">
+              <template #icon-left>
+                <PlusIcon class="w-5 h-5" />
+              </template>
               Nuevo Plan
               <kbd class="kbd">N</kbd>
-            </button>
+            </UiButton>
           </div>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
       <!-- Filtros siempre visibles (no escondidos) -->
       <div class="filters-section">

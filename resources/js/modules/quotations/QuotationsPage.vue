@@ -2,22 +2,20 @@
   <AppLayout>
     <div class="quotations-page">
     <!-- Header -->
-    <div class="page-header">
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="page-title">Presupuestos</h1>
-          <p class="page-subtitle">Gestiona los presupuestos de tus pacientes</p>
-        </div>
-        <button
-          @click="openCreateModal"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          <PlusIcon class="w-5 h-5 mr-2" />
+    <PageHeader
+      title="Presupuestos"
+      subtitle="Gestiona los presupuestos de tus pacientes"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton @click="openCreateModal" :disabled="loading">
+          <template #icon-left>
+            <PlusIcon class="w-5 h-5" />
+          </template>
           Nuevo Presupuesto
-        </button>
-      </div>
-    </div>
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Filtros -->
     <div class="filters-section">
