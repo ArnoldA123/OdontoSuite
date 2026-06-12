@@ -1,30 +1,22 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">
-            {{ environment?.name }}
-          </h1>
-          <p class="text-theme-secondary">
-            ID: {{ environment?.id }} | Código: {{ environment?.code }}
-          </p>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <UiButton
-            variant="secondary"
-            @click="goBack"
-            class="flex items-center gap-2"
-          >
+    <PageHeader
+      :title="environment?.name || 'Cargando...'"
+      :subtitle="environment ? `ID: ${environment.id} | Código: ${environment.code}` : ''"
+      :breadcrumbs="[{ to: '/environments', label: 'Ambientes' }]"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton variant="secondary" @click="goBack">
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Volver
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Environment Info Card -->
     <UiCard variant="glass" class="mb-6">
