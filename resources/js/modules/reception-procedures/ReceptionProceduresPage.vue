@@ -1,25 +1,21 @@
 <template>
   <AppLayout>
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">
-            Catálogo de Procedimientos
-          </h1>
-          <p class="text-theme-secondary">
-            Consulta los procedimientos disponibles y sus precios para orientar al paciente
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <UiButton variant="secondary" class="flex items-center gap-2" @click="goBack">
+    <PageHeader
+      title="Catálogo de Procedimientos"
+      subtitle="Consulta los procedimientos disponibles y sus precios para orientar al paciente"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton variant="secondary" @click="goBack">
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Volver
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <UiCard variant="glass" class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
