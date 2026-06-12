@@ -65,8 +65,8 @@ Mismo bug. `pl-72` siempre gana.
 
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
-| 0 | Fix de especificidad CSS: sidebar y main padding dinámicos | 0.25 d-h | ⏳ Pendiente | 1 archivo: AppLayout.vue |
-| 1 | Auditoría: otros pares `class`+`:class` con misma utility | 0.25 d-h | ⏳ Pendiente | grep de todo `resources/js` |
+| 0 | Fix de especificidad CSS: sidebar y main padding dinámicos | 0.25 d-h | ✅ HECHO (commit `2288885`) | 1 archivo: AppLayout.vue |
+| 1 | Auditoría: otros pares `class`+`:class` con misma utility | 0.25 d-h | ✅ HECHO (commit auditoría) | grep de todo `resources/js`: 0 bugs reales |
 | **Total** | **2 sprints** | **~0.5 d-h** | **0 d-h ejecutados** | 1 bug crítico cerrado + auditoría preventiva |
 
 ---
@@ -185,3 +185,17 @@ Lo mismo para el main content padding:
 - Colapsar sidebar → ancho visible cambia claramente.
 - Expandir sidebar → ancho vuelve a 288px.
 - 0 regresiones en planes #1-#7.
+
+---
+
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit `2288885` en `fix/ux-sprint-0-css-specificity`. **Bug crítico cerrado**.
+
+- **2026-06-12** — Sprint 1 ✅ HECHO. Auditoría sistemática de 115 archivos `.vue` en `resources/js`. **0 bugs reales** del mismo tipo (solo 1 falso positivo en `border-primary-500` que es uso correcto de Tailwind para drag&drop).
+
+**PLAN CERRADO**. Bug crítico cerrado + auditoría preventiva completa. 0 regresiones. **Este fix DESBLOQUEA los 3 fixes anteriores (planes #5, #6, #7) que estaban sin efecto visual**.
+
+## Lección reusable (a guardar como skill)
+
+**Nunca mezclar la misma utility base (w-*, h-*, p-*, m-*, gap-*, etc.) en `class` y `:class` simultáneamente.** Tailwind compila utilities en orden numérico/alfabético en el CSS final, y en CSS gana la última declaración. Si `w-72` está en `class` y `w-14` en `:class`, `w-72` siempre sobrescribirá a `w-14` independientemente del orden en el HTML. **Una sola fuente de verdad**: o todo en `class`, o todo en `:class`.
