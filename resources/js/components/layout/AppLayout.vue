@@ -206,7 +206,7 @@
     </UiSheet>
 
     <!-- Main Content -->
-    <div class="transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
+    <div class="pt-16 lg:pt-0 transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
       <!-- Header -->
       <header class="relative z-30 bg-theme-surface-elevated/80 backdrop-blur-md shadow-subtle border-b border-theme/50">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
