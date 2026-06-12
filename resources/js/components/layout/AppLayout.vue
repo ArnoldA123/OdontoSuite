@@ -29,7 +29,7 @@
         <button
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
-          class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
           aria-label="Colapsar sidebar"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,8 +201,9 @@
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <button
+                v-if="sidebarCollapsed"
                 @click="toggleSidebar"
-                class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200"
+                class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
                 :aria-label="sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
                 :aria-expanded="!sidebarCollapsed"
               >
