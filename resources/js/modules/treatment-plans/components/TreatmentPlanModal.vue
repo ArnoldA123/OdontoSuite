@@ -292,6 +292,7 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from '@/composables/useConfirm'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
 import CreatePatientInline from './CreatePatientInline.vue'
 import {
@@ -463,9 +464,14 @@ const handleSaveError = (err) => {
   }
 }
 
-const handleClose = () => {
+const handleClose = async () => {
   if (isDirty.value) {
-    const ok = window.confirm('Tienes cambios sin guardar. ¿Cerrar de todos modos?')
+    const ok = await confirm({
+      title: 'Cambios sin guardar',
+      message: 'Tienes cambios sin guardar. ¿Cerrar de todos modos?',
+      confirmText: 'Cerrar sin guardar',
+      variant: 'danger',
+    })
     if (!ok) return
   }
   emit('close')

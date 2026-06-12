@@ -253,6 +253,7 @@ import Button from '@/components/ui/Button.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -319,7 +320,13 @@ const generateReceipt = (transaction) => {
 }
 
 const voidTransaction = async (transaction) => {
-  if (!confirm('¿Está seguro de anular esta transacción?')) return
+  const ok = await confirm({
+    title: 'Anular transacción',
+    message: '¿Está seguro de anular esta transacción?',
+    confirmText: 'Anular',
+    variant: 'danger',
+  })
+  if (!ok) return
 
   try {
     await voidTransactionApi(transaction.id, 'Anulación manual')

@@ -135,6 +135,7 @@
 import { ref, computed } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
 import { usePermissions } from '@/composables/usePermissions'
+import { useConfirm } from '@/composables/useConfirm'
 import AiAnalysisButton from '@/modules/ai-analysis/components/AiAnalysisButton.vue'
 import {
   PlusIcon,
@@ -214,7 +215,13 @@ const downloadAttachment = (attachment) => {
 }
 
 const deleteAttachment = async (attachment) => {
-  if (confirm('¿Estás seguro de que quieres eliminar este archivo?')) {
+  const ok = await confirm({
+    title: 'Eliminar archivo adjunto',
+    message: '¿Estás seguro de que quieres eliminar este archivo?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (ok) {
     try {
       await removeAttachment(attachment.id)
       emit('delete', attachment)

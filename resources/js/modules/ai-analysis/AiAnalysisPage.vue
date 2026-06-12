@@ -319,6 +319,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAiAnalysis } from '@/composables/useAiAnalysis'
 import { usePermissions } from '@/composables/usePermissions'
+import { useConfirm } from '@/composables/useConfirm'
 import AiAnalysisCard from './components/AiAnalysisCard.vue'
 import AiAnalysisModal from './components/AiAnalysisModal.vue'
 import AnalyzingModal from './components/AnalyzingModal.vue'
@@ -348,6 +349,7 @@ const {
 } = useAiAnalysis()
 
 const { can } = usePermissions()
+const { confirm } = useConfirm()
 
 // State
 const activeTab = ref('all')
@@ -493,12 +495,18 @@ const reviewAnalysis = async (analysisId, decision, notes) => {
 }
 
 const deleteAnalysis = async (analysisId) => {
-  if (confirm('¿Estás seguro de que quieres eliminar este análisis?')) {
+  const ok = await confirm({
+    title: 'Eliminar análisis',
+    message: '¿Estás seguro de que quieres eliminar este análisis?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (ok) {
     try {
       await deleteAnalysisApi(analysisId)
       await loadData() // Refresh data
-    } catch (error) {
-    }
+  } catch (error) {
+  }
   }
 }
 

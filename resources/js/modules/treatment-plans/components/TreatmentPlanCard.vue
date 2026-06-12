@@ -149,6 +149,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useConfirm } from '@/composables/useConfirm'
 import PlanStatusBadge from './PlanStatusBadge.vue'
 import {
   UserIcon,
@@ -169,6 +170,7 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'duplicate', 'change-status', 'delete'])
 
 const { user } = useAuth()
+const { confirm } = useConfirm()
 const showStatusMenu = ref(false)
 
 const canChangeStatus = computed(() =>
@@ -246,10 +248,13 @@ const changeStatus = (status) => {
   emit('change-status', props.plan.id, status)
 }
 
-const confirmDelete = () => {
-  const ok = window.confirm(
-    `¿Eliminar el plan "${props.plan.title}" (${props.plan.plan_number})?\n\nEsta acción no se puede deshacer.`
-  )
+const confirmDelete = async () => {
+  const ok = await confirm({
+    title: 'Eliminar plan de tratamiento',
+    message: `¿Eliminar el plan "${props.plan.title}" (${props.plan.plan_number})?\n\nEsta acción no se puede deshacer.`,
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
   if (ok) emit('delete', props.plan.id)
 }
 

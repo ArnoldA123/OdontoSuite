@@ -167,6 +167,8 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 import { PlusIcon, ClockIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -201,8 +203,14 @@ const formatDateTime = (date) => {
   })
 }
 
-const confirmDelete = (evolution) => {
-  if (confirm('¿Estás seguro de que quieres eliminar esta evolución?')) {
+const confirmDelete = async (evolution) => {
+  const ok = await confirm({
+    title: 'Eliminar evolución',
+    message: '¿Estás seguro de que quieres eliminar esta evolución?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (ok) {
     emit('delete', evolution.id)
   }
 }

@@ -611,6 +611,7 @@ import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { useConfirm } from '../../composables/useConfirm'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -986,7 +987,13 @@ export default {
     }
 
     const deletePatient = async (patient) => {
-      if (confirm(`¿Estás seguro de que quieres eliminar a ${patient.first_name} ${patient.last_name}?`)) {
+      const ok = await confirm({
+        title: 'Eliminar paciente',
+        message: `¿Estás seguro de que quieres eliminar a ${patient.first_name} ${patient.last_name}?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+      if (ok) {
         try {
           await del(`/api/patients/${patient.id}`)
 

@@ -280,6 +280,7 @@
 import { ref, computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { usePermissions } from '@/composables/usePermissions'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -390,8 +391,14 @@ const editMovement = (movement) => {
   emit('edit', movement)
 }
 
-const deleteMovement = (movement) => {
-  if (!confirm('¿Está seguro de eliminar este movimiento?')) return
+const deleteMovement = async (movement) => {
+  const ok = await confirm({
+    title: 'Eliminar movimiento',
+    message: '¿Está seguro de eliminar este movimiento?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (!ok) return
   emit('delete', movement)
 }
 

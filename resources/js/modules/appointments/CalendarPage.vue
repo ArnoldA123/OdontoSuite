@@ -464,6 +464,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
+import { useConfirm } from '../../composables/useConfirm'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -889,7 +890,13 @@ export default {
     }
 
     const deleteAppointment = async (appointment) => {
-      if (confirm(`¿Estás seguro de que quieres eliminar esta cita?`)) {
+      const ok = await confirm({
+        title: 'Eliminar cita',
+        message: '¿Estás seguro de que quieres eliminar esta cita?',
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+      if (ok) {
         try {
           await del(`/api/appointments/${appointment.id}`)
           toast.success('Cita eliminada exitosamente')

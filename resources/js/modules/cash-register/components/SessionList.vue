@@ -273,6 +273,7 @@ import { ref, computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
+import { useConfirm } from '@/composables/useConfirm'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -337,8 +338,14 @@ const generateReport = (session) => {
   // Implementar generación de reporte
 }
 
-const reopenSession = (session) => {
-  if (!confirm('¿Está seguro de reabrir esta sesión de caja?')) return
+const reopenSession = async (session) => {
+  const ok = await confirm({
+    title: 'Reabrir sesión de caja',
+    message: '¿Está seguro de reabrir esta sesión de caja?',
+    confirmText: 'Reabrir',
+    variant: 'danger',
+  })
+  if (!ok) return
   emit('reopen', session)
 }
 

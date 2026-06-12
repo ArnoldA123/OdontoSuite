@@ -366,6 +366,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -487,7 +488,13 @@ export default {
     }
 
     const deleteEnvironment = async (environment) => {
-      if (confirm(`¿Estás seguro de que quieres eliminar el ambiente ${environment.name}?`)) {
+      const ok = await confirm({
+        title: 'Eliminar ambiente',
+        message: `¿Estás seguro de que quieres eliminar el ambiente ${environment.name}?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+      if (ok) {
         try {
           await remove(`/api/dental-chairs/${environment.id}`)
           loadEnvironments()
