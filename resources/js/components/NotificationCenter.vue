@@ -22,35 +22,28 @@
           </div>
         </div>
 
-        <!-- Filtros -->
-        <div class="flex gap-2 mt-4">
+        <div class="flex items-center justify-between mt-4">
+          <p class="text-xs text-theme-secondary">Feed de actividad reciente del sistema</p>
           <button
-            v-for="filter in filters"
-            :key="filter.key"
-            @click="activeFilter = filter.key"
-            :class="[
-              'px-3 py-1 rounded-lg text-sm font-medium transition-colors',
-              activeFilter === filter.key
-                ? 'bg-primary-600 text-white'
-                : 'bg-theme-surface text-theme-secondary hover:bg-theme-surface-elevated'
-            ]"
+            v-if="notifications.length > 0"
+            @click="markAllAsRead"
+            class="text-xs text-theme-secondary hover:text-theme-primary transition-colors"
           >
-            {{ filter.label }}
-            <span v-if="filter.count > 0" class="ml-1">({{ filter.count }})</span>
+            Marcar todas como leídas
           </button>
         </div>
       </div>
 
       <!-- Lista de notificaciones -->
       <div class="notification-center-body">
-        <div v-if="filteredNotifications.length === 0" class="empty-state">
+        <div v-if="notifications.length === 0" class="empty-state">
           <BellIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
           <p class="text-theme-secondary">No hay notificaciones</p>
         </div>
 
         <div v-else class="notifications-list">
           <div
-            v-for="notification in filteredNotifications"
+            v-for="notification in notifications"
             :key="notification.id"
             :class="[
               'notification-item',
@@ -155,40 +148,6 @@ const {
   clearAll,
   clearRead
 } = useNotifications()
-
-const activeFilter = ref('all')
-
-const filters = computed(() => {
-  const all = notifications.value.length
-  const unread = getUnreadCount.value
-  const appointments = notifications.value.filter(n => n.category === 'appointments').length
-  const patients = notifications.value.filter(n => n.category === 'patients').length
-  const treatmentPlans = notifications.value.filter(n => n.category === 'treatment-plans').length
-  const quotations = notifications.value.filter(n => n.category === 'quotations').length
-  const medicalRecords = notifications.value.filter(n => n.category === 'medical-records').length
-  const payments = notifications.value.filter(n => n.category === 'payments').length
-
-  return [
-    { key: 'all', label: 'Todas', count: all },
-    { key: 'unread', label: 'No leídas', count: unread },
-    { key: 'appointments', label: 'Citas', count: appointments },
-    { key: 'patients', label: 'Pacientes', count: patients },
-    { key: 'treatment-plans', label: 'Planes', count: treatmentPlans },
-    { key: 'quotations', label: 'Presupuestos', count: quotations },
-    { key: 'medical-records', label: 'Historias', count: medicalRecords },
-    { key: 'payments', label: 'Pagos', count: payments }
-  ]
-})
-
-const filteredNotifications = computed(() => {
-  if (activeFilter.value === 'all') {
-    return notifications.value
-  }
-  if (activeFilter.value === 'unread') {
-    return notifications.value.filter(n => !n.read)
-  }
-  return notifications.value.filter(n => n.category === activeFilter.value)
-})
 
 const unreadCount = computed(() => getUnreadCount.value)
 const readCount = computed(() => notifications.value.filter(n => n.read).length)

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-theme-background">
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col"
+      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col transition-all duration-300"
       :class="{ 'lg:w-16': sidebarCollapsed }"
     >
       <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
@@ -39,7 +39,7 @@
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-6 space-y-2">
+        <nav class="flex-1 py-6 space-y-2 transition-all duration-300" :class="sidebarCollapsed ? 'px-2' : 'px-4'">
           <router-link
             v-for="item in navigation"
             :key="item.name"
@@ -200,10 +200,10 @@
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <button
-                v-if="sidebarCollapsed"
                 @click="toggleSidebar"
                 class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200"
-                aria-label="Expandir sidebar"
+                :aria-label="sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
+                :aria-expanded="!sidebarCollapsed"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -718,8 +718,9 @@ const navigation = computed(() => {
 // Navigation item classes
 const getNavItemClasses = (item) => {
   const base = [
-    'group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg',
+    'group flex items-center py-2.5 text-sm font-medium rounded-lg',
     'transition-all duration-200 ease-ios',
+    sidebarCollapsed.value ? 'justify-center px-2' : 'px-3',
     'text-theme-secondary hover:text-theme-primary',
     'hover:bg-theme-surface'
   ]
