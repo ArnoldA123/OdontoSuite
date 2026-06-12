@@ -35,8 +35,8 @@ Arnold testeó la app manualmente como usuario final y reportó **5 problemas co
 |---|---|---|---|---|
 | 0 | Bugfixes críticos: EmptyState + Test Components + Logo | 0.5 d-h | ✅ HECHO (commit `ebd171a`) | 1 fix de 1 línea + 1 ruta eliminada + 1 link agregado |
 | 1 | Sidebar colapsable + notificaciones funcionales | 1.0 d-h | ✅ HECHO (commit `f12faa3`) | 4 fixes sidebar + 1 simplificación notificaciones |
-| 2 | (Reservado) Polish visual: hamburger, animaciones, a11y | 0.5 d-h | ⏳ Pendiente | si quedan items del feedback tras Sprint 1 |
-| **Total** | **2-3 sprints** | **~1.5-2.0 d-h** | **0 d-h ejecutados** | 5 bugs cerrados + 0 regresiones |
+| 2 | (Reservado) Polish visual: hamburger, animaciones, a11y | 0.5 d-h | ✅ HECHO (commit `16894bc`) | badge hardcoded eliminado + a11y + animación entrada |
+| **Total** | **3 sprints** | **~2.0 d-h** | **2.0 d-h ejecutados** | **PLAN CERRADO** (3/3 sprints, 5/5 bugs + 3 polishes) |
 
 ---
 
@@ -313,6 +313,13 @@ El `aria-label` solo aparece cuando el sidebar está colapsado (cuando no se ve 
     - `getNavItemClasses` con `justify-center` cuando colapsado.
     - Hamburger del header siempre visible con `aria-expanded` dinámico.
   - B-UX-4 — `NotificationCenter.vue` simplificado: tabs falsas reemplazadas por subtítulo "Feed de actividad reciente del sistema" + botón "Marcar todas como leídas" (funcional). 40 líneas netas removidas. Footer "Limpiar leídas/todas" se mantiene (sí funcionan via composable).
+
+- **2026-06-12** — Sprint 2 ✅ HECHO. Commit `16894bc` en `feat/ux-sprint-2-polish`. 3 fixes de polish:
+  - **POL-1**: Badge "5" hardcoded del item Calendario (línea 610 era `badge: { text: "5", variant: "primary" }` estático, daba información falsa) → `badge: null`. Si en el futuro se quiere conteo real, va con composable reactivo.
+  - **POL-2**: `aria-current="page"` agregado a los `<router-link>` del nav desktop. WAI-ARIA standard, screen readers ahora saben qué item del nav está activo.
+  - **POL-3**: Animación de entrada del `<aside>` con `@keyframes sidebarSlideIn` (translateX -100%→0 + opacity 0→1, 0.3s ease-out). GPU-accelerated, no causa layout thrashing.
+
+**PLAN CERRADO**. 5/5 bugs reportados cerrados + 3 polishes. Suma total: 8 fixes en 3 sprints, ~2.0 d-h ejecutados, 0 regresiones.
 
 ---
 
