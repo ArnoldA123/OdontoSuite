@@ -46,7 +46,7 @@ Resultado:
 
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
-| 0 | Logo inteligente + quitar hamburguesa del header | 0.25 d-h | ⏳ Pendiente | 1 archivo: AppLayout.vue |
+| 0 | Logo inteligente + quitar hamburguesa del header | 0.25 d-h | ✅ HECHO (commit `a31da44`) | 1 archivo: AppLayout.vue |
 | **Total** | **1 sprint** | **~0.25 d-h** | **0 d-h ejecutados** | 2 bugs cerrados |
 
 ---
@@ -167,3 +167,13 @@ El usuario tiene que decidir cuál usar. **Patrón Gemini: solo 1 affordance con
   - Click en logo → sidebar expande (no navega). ✓
   - Hover en logo → fondo sutil, tooltip "Abrir barra lateral". ✓
 - 0 regresiones en planes #1-#8.
+
+---
+
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit `a31da44` en `fix/ux-sprint-0-smart-logo`. 2 bugs cerrados.
+  - B-UX-14: Hamburguesa del header eliminada (líneas 202-212 borradas).
+  - B-UX-15: Logo del sidebar ahora inteligente — `<router-link>` cuando expandido, `<button @click="toggleSidebar">` cuando colapsado. Chevron del sidebar: aria-label "Cerrar barra lateral" (consistente con Gemini).
+
+**PLAN CERRADO**. Patrón Gemini aplicado. 0 regresiones.
