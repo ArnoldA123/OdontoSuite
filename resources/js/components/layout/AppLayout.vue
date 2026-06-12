@@ -9,28 +9,40 @@
         <!-- Logo -->
         <div class="flex items-center flex-shrink-0 py-6 border-b border-theme/50 transition-all duration-300" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
           <router-link
+            v-if="!sidebarCollapsed"
             to="/dashboard"
-            class="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg"
-            :class="{ 'mx-auto': sidebarCollapsed }"
-            :aria-label="sidebarCollapsed ? 'Ir al Dashboard' : ''"
+            class="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-lg"
+            aria-label="Ir al Dashboard"
+            title="Ir al Dashboard"
           >
             <img
               src="/images/easy_dent.png"
               alt="OdontoSuite"
               class="h-8 w-8 transition-all duration-200"
             />
-            <span
-              v-if="!sidebarCollapsed"
-              class="text-lg font-semibold text-theme-primary transition-opacity duration-200"
-            >
+            <span class="text-lg font-semibold text-theme-primary transition-opacity duration-200">
               OdontoSuite
             </span>
           </router-link>
+          <button
+            v-else
+            @click="toggleSidebar"
+            class="flex items-center justify-center w-8 h-8 p-1 rounded-lg hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors duration-200"
+            aria-label="Abrir barra lateral"
+            title="Abrir barra lateral"
+          >
+            <img
+              src="/images/easy_dent.png"
+              alt="OdontoSuite"
+              class="h-8 w-8"
+            />
+          </button>
         <button
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
           class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-          aria-label="Colapsar sidebar"
+          aria-label="Cerrar barra lateral"
+          title="Cerrar barra lateral"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -200,17 +212,6 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
-              <button
-                v-if="sidebarCollapsed"
-                @click="toggleSidebar"
-                class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-                :aria-label="sidebarCollapsed ? 'Expandir sidebar' : 'Colapsar sidebar'"
-                :aria-expanded="!sidebarCollapsed"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
               <div>
                 <h1 class="text-xl font-semibold text-theme-primary">{{ getPageTitle() }}</h1>
                 <p v-if="getPageDescription()" class="text-sm text-theme-secondary mt-1">
