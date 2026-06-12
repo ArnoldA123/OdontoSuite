@@ -243,7 +243,7 @@
               Esta cita es de evaluación. Si no se consumieron materiales, marca "Saltar".
             </div>
 
-            <div v-if="requiresMaterials" class="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <div v-if="requiresMaterials" class="p-3 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700">
               El tipo de cita "{{ appointmentType?.name }}" requiere registrar materiales.
             </div>
 

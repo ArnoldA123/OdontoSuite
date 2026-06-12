@@ -1,12 +1,7 @@
 <template>
   <AppLayout>
     <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center min-h-[400px]">
-      <div class="text-center">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-        <p class="text-theme-secondary">Cargando dashboard...</p>
-      </div>
-    </div>
+    <LoadingSpinner v-if="loading" class="min-h-[400px]" size="lg" text="Cargando dashboard..." />
 
     <!-- Main Content -->
     <div v-else class="space-y-8">
@@ -36,8 +31,8 @@
               <p class="text-3xl font-bold text-theme-primary">{{ stats.total_patients || 0 }}</p>
               <p class="text-xs text-theme-secondary mt-1">Total registrados</p>
             </div>
-            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 bg-success-badge rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
               </svg>
             </div>
@@ -52,8 +47,8 @@
               <p class="text-3xl font-bold text-theme-primary">{{ stats.total_professionals || 0 }}</p>
               <p class="text-xs text-theme-secondary mt-1">Equipo médico</p>
             </div>
-            <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-              <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-12 h-12 bg-warning-badge rounded-xl flex items-center justify-center">
+              <svg class="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
@@ -129,8 +124,8 @@
           <!-- New Appointment -->
           <UiCard v-if="can.createAppointment?.value" variant="flat" hover clickable @click="goToNewAppointment">
             <div class="flex items-center gap-4">
-              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 bg-success-badge rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
               </div>
@@ -147,8 +142,8 @@
           <!-- Professionals -->
           <UiCard v-if="can.manageUsers?.value" variant="flat" hover clickable @click="goToProfessionals">
             <div class="flex items-center gap-4">
-              <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 bg-warning-badge rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
@@ -183,8 +178,8 @@
           <!-- Business Intelligence -->
           <UiCard v-if="can.viewReports?.value" variant="flat" hover clickable @click="goToBusinessIntelligence">
             <div class="flex items-center gap-4">
-              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-10 h-10 bg-danger-badge rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-error-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
@@ -383,20 +378,20 @@ const cashStatusText = computed(() => {
 })
 
 const cashStatusClass = computed(() => {
-  if (isOpen.value) return 'text-green-600'
-  if (hasActiveSession.value) return 'text-red-600'
+  if (isOpen.value) return 'text-success-600'
+  if (hasActiveSession.value) return 'text-error-600'
   return 'text-theme-secondary'
 })
 
 const cashStatusIconClass = computed(() => {
-  if (isOpen.value) return 'bg-green-100'
-  if (hasActiveSession.value) return 'bg-red-100'
+  if (isOpen.value) return 'bg-success-badge'
+  if (hasActiveSession.value) return 'bg-danger-badge'
   return 'bg-theme-surface'
 })
 
 const cashStatusIconColor = computed(() => {
-  if (isOpen.value) return 'text-green-600'
-  if (hasActiveSession.value) return 'text-red-600'
+  if (isOpen.value) return 'text-success-600'
+  if (hasActiveSession.value) return 'text-error-600'
   return 'text-theme-secondary'
 })
 

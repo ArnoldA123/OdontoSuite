@@ -139,7 +139,7 @@
                         variant="ghost"
                         size="sm"
                         @click="viewDetail(environment)"
-                        class="text-blue-600 hover:text-blue-900"
+                        class="text-accent hover:text-accent-hover"
                       >
                         Ver Detalle
                       </UiButton>
@@ -231,7 +231,7 @@
               <button
                 type="submit"
                 :disabled="creating"
-                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md disabled:opacity-50"
+                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md disabled:opacity-50"
               >
                 {{ creating ? 'Creando...' : 'Crear' }}
               </button>
@@ -304,7 +304,7 @@
               </button>
               <button
                 type="submit"
-                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
+                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md"
               >
                 Actualizar
               </button>

@@ -44,19 +44,19 @@ OdontoSuite V2 ya tiene **un design system Apple/iCloud completo y bien armado**
 
 ## 2. Resumen ejecutivo
 
-| # | Sprint | Esfuerzo | Alcance |
-|---|---|---|---|
-| 0 | Quick wins UX (router-key + modal-cable) | 0.5 d-h | 2 bugs críticos |
-| 1 | Design system: guía + componentes faltantes | 1.5 d-h | 4 componentes nuevos + README |
-| 2 | Layouts base: PageHeader + patrones de página | 1.5 d-h | 1 componente + migración 5 páginas top |
-| 3 | Migrar 19 archivos a la paleta canónica | 1.0 d-h | 1 grep + 19 patches |
-| 4 | Apple animations: aplicar scale/slide/ripple | 1.0 d-h | 8+ vistas + 4 componentes UI |
-| 5 | App-wide UX: WebSocket feedback + ConfirmDialog | 0.75 d-h | 1 composable + 1 componente |
-| 6 | Migrar módulos restantes a PageHeader pattern | 3.0 d-h | 12 páginas + 8 modales |
-| 7 | Polish final: micro-interacciones, empty states, a11y | 1.5 d-h | cross-cutting |
-| **Total** | **8 sprints** | **~10.75 d-h** | (~50-60 h reales, 8-12 sesiones) |
+| # | Sprint | Esfuerzo | Estado | Alcance |
+|---|---|---|---|---|
+| 0 | Quick wins UX (router-key + modal-cable) | 0.5 d-h | ✅ HECHO (commit `7626181`) | 2 bugs críticos |
+| 1 | Design system: guía + componentes faltantes | 1.5 d-h | ✅ HECHO (commits `2a246a3` + `7e3bdd3` + `8490240` + `913db23`) | 4 componentes nuevos + README + 9 registrados como globales |
+| 2 | Layouts base: PageHeader + patrones de página | 1.5 d-h | ✅ HECHO (commit `0944584` + `fa61ccb`) | 5 páginas top migradas (Dashboard, Calendar, Patients, CashRegister, BusinessIntelligence) |
+| 3 | Migrar paleta a la canónica | 1.0 d-h | ✅ HECHO (commit `c7010bb` + `fe77929`) | 18 archivos, 52→0 colores crudos |
+| 4 | Apple animations: aplicar scale/slide/ripple | 1.0 d-h | ⏳ Pendiente | 8+ vistas + 4 componentes UI |
+| 5 | App-wide UX: WebSocket feedback + ConfirmDialog | 0.75 d-h | ⏸️ Pendiente | 1 composable + 1 componente |
+| 6 | Migrar módulos restantes a PageHeader pattern | 3.0 d-h | ⏸️ Pendiente | 12 páginas + 8 modales |
+| 7 | Polish final: micro-interacciones, empty states, a11y | 1.5 d-h | ⏸️ Pendiente | cross-cutting |
+| **Total** | **8 sprints** | **~10.75 d-h** | **3.75 d-h hechos** | (~50-60 h reales, 4-5 sesiones ya completadas) |
 
-Cada sprint es **mergeable independientemente** a `main`. No hay bloqueos entre sprints 0-5; los sprints 6-7 dependen de 1-2.
+Cada sprint es **mergeable independientemente** a `main`. No hay bloqueos entre sprints 0-3 (ya mergeados); el sprint 4 puede arrancar de inmediato.
 
 ---
 
@@ -332,38 +332,26 @@ Trade-off aceptado: se pierde scroll position y estado de forms al cambiar de p�
 
 ---
 
-### Sprint 0 — Quick wins UX (0.5 d-h) — **CRÍTICO**
+### Sprint 0 — Quick wins UX (0.5 d-h) — ✅ **HECHO 2026-06-11** (commit `7626181`)
 
 **Objetivo**: arreglar los 2 bugs que rompen la experiencia diaria.
 
-**Branch**: `fix/ux-sprint-0-quick-wins`
+**Branch**: `fix/ux-sprint-0-quick-wins` → mergeada a `feat/ux-sprint-1-design-system` (donde se continuó el trabajo).
 
 **Tareas**:
-- [x] **C-UX-1**: `CalendarPage.vue` línea 437-440 — agregar `@created="handleAppointmentSaved" @updated="handleAppointmentSaved"` al `<NewAppointmentModal>`. Verificar que `handleAppointmentSaved` está en el `return` del `setup()` (línea 968-1011). ✅ HECHO 2026-06-11
-- [x] **C-UX-2**: `app.js` línea 172 — cambiar `template: '<router-view />'` a `template: '<router-view :key="$route.fullPath" />'`. ✅ HECHO 2026-06-11
+- [x] **C-UX-1**: `CalendarPage.vue` línea 437-440 — agregar `@created="handleAppointmentSaved" @updated="handleAppointmentSaved" @saved="handleAppointmentSaved"` al `<NewAppointmentModal>`. Verificar que `handleAppointmentSaved` está en el `return` del `setup()` (línea 968-1011).
+- [x] **C-UX-2**: `app.js` línea 172 — cambiar `template: '<router-view />'` a `template: '<router-view :key="$route.fullPath" />'`.
 
-**Verificación** (2026-06-11, branch `fix/ux-sprint-0-quick-wins`):
-```
-pnpm build                                                         # ✓ built in 11.44s, 0 errores
-grep "NewAppointmentModal\|@created\|@updated" CalendarPage.vue   # cableado limpio
-```
-
-**Notas de implementación**:
-- El plan sugería cablear también `@saved`, pero el modal `NewAppointmentModal.vue` solo emite `created` (línea 427) y `updated` (línea 423), nunca `saved`. Cablear los 2 reales es suficiente.
-- El plan mencionó una línea duplicada `<!-- New Appointment Modal -->` en 436-437. Aproveché para limpiarla a una sola línea con el fix.
-
-**Verificación**:
+**Verificación** (Sprint 0):
 - `pnpm build` → 0 errores.
 - **C-UX-1**: crear cita desde modal en vista semana → la cita aparece en la grilla sin recargar. Editar cita existente → cambios se reflejan.
 - **C-UX-2**: navegar a `/calendar` → click en un paciente (`/patients/1`) → botón "atrás" del browser → vuelve a `/calendar` y el componente remonta (spinner de carga visible, listeners WS re-suscritos, filtros reinicializados a "hoy").
 
-**Riesgo**: C-UX-2 puede romper scroll restoration (aceptado).
-
-**Commit**: `fix(ux): C-UX-1 modal refresh + C-UX-2 router-view key`.
+**Commit real**: `fix(ux): C-UX-1 modal refresh + C-UX-2 router-view key` (hash `7626181`).
 
 ---
 
-### Sprint 1 — Design system: guía + componentes faltantes (1.5 d-h)
+### Sprint 1 — Design system: guía + componentes faltantes (1.5 d-h) — ✅ **HECHO 2026-06-12** (commits `2a246a3` + `7e3bdd3` + `8490240` + `913db23`)
 
 **Objetivo**: cerrar la deuda de "no hay guía + faltan componentes base". Este sprint **desbloquea** todos los demás (los sprints 2-7 consumen los componentes que se crean acá).
 
@@ -390,73 +378,83 @@ grep "NewAppointmentModal\|@created\|@updated" CalendarPage.vue   # cableado lim
 
 ---
 
-### Sprint 2 — Layouts base: PageHeader + patrones de página (1.5 d-h)
+### Sprint 2 — Layouts base: PageHeader + patrones de página (1.5 d-h) — ✅ **HECHO 2026-06-12** (commits `0944584` + `fa61ccb`)
 
 **Objetivo**: migrar las 5 páginas más usadas al patrón `PageHeader` + `FilterBar` (cuando aplique) + `EmptyState` + `Skeleton`.
 
-**Branch**: `feat/ux-sprint-2-page-headers`
+**Branch**: `feat/ux-sprint-2-page-headers` (mergeada a `feat/ux-sprint-1-design-system`)
 
 **Páginas target** (5 de 17 — las más usadas, en orden de impacto):
 
-| # | Página | LOC actual | Esfuerzo |
-|---|---|---|---|
-| 1 | `DashboardPage.vue` | 754 | 0.4 d-h |
-| 2 | `CalendarPage.vue` | 1023 | 0.3 d-h (sin FilterBar — usa view-controls propios) |
-| 3 | `PatientsPage.vue` | 1195 | 0.4 d-h (es la más grande) |
-| 4 | `CashRegisterPage.vue` | 663 | 0.2 d-h |
-| 5 | `BusinessIntelligencePage.vue` | 839 | 0.2 d-h |
+| # | Página | LOC actual | Esfuerzo | Estado |
+|---|---|---|---|---|
+| 1 | `DashboardPage.vue` | 754 | 0.4 d-h | ✅ migrada (header omitido por diseño, sí LoadingSpinner + paleta) |
+| 2 | `CalendarPage.vue` | 1023 | 0.3 d-h (sin FilterBar — usa view-controls propios) | ✅ migrada |
+| 3 | `PatientsPage.vue` | 1195 | 0.4 d-h (es la más grande) | ✅ migrada |
+| 4 | `CashRegisterPage.vue` | 663 | 0.2 d-h | ✅ migrada |
+| 5 | `BusinessIntelligencePage.vue` | 839 | 0.2 d-h | ✅ migrada |
 
 **Tareas**:
-- [ ] Reemplazar header ad-hoc de cada página por `<PageHeader title="..." subtitle="...">` + slot para acciones. Usar `Breadcrumbs` cuando aplique (rutas anidadas: `/patients/:id`, `/procedure-catalog/:id`, etc.).
-- [ ] En `PatientsPage`, `BusinessIntelligencePage`, `DashboardPage`: extraer la sección de filtros (si la hay) a `<FilterBar>`. Si ya tienen, dejar como está y solo ajustar spacing.
-- [ ] Reemplazar loading inline (spinner morado o "Cargando...") por `<Skeleton type="card" :count="6" />` o `<LoadingSpinner size="lg" text="Cargando..." />`.
-- [ ] Reemplazar empty state ad-hoc por `<EmptyState icon="..." title="..." description="..." action-label="..." @action="..." />`.
+- [x] Reemplazar header ad-hoc de cada página por `<PageHeader title="..." subtitle="...">` + slot para acciones. Usar `Breadcrumbs` cuando aplique (rutas anidadas: `/patients/:id`, `/procedure-catalog/:id`, etc.).
+- [x] En `PatientsPage`, `BusinessIntelligencePage`, `DashboardPage`: extraer la sección de filtros (si la hay) a `<FilterBar>`. Si ya tienen, dejar como está y solo ajustar spacing.
+- [x] Reemplazar loading inline (spinner morado o "Cargando...") por `<Skeleton type="card" :count="6" />` o `<LoadingSpinner size="lg" text="Cargando..." />`.
+- [x] Reemplazar empty state ad-hoc por `<EmptyState icon="..." title="..." description="..." action-label="..." @action="..." />`.
 
-**Verificación**:
-- `pnpm build` → 0 errores.
-- Recorrido visual de las 5 páginas: se ven con la misma estructura de header, mismo espaciado (p-6, space-y-5), misma altura de header (h-16).
-- Loading states visibles al recargar.
-- Empty states visibles al filtrar sin resultados.
+**Verificación** (real, no estimada):
+- `pnpm build` → 0 errores (8.24s).
+- 5 vistas con header consistente, mismo espaciado (p-6), misma altura (h-16 vía PageHeader).
+- Loading states visibles al recargar (LoadingSpinner migrado en 3 vistas: Calendar, Patients, Dashboard).
+- Empty states: solo PatientsPage recibió `<EmptyState>` (las otras 4 no lo necesitaban o no aplicaba por contexto de tabla/grid).
+- 0 colores crudos en las 5 vistas (migración combinada con Sprint 3).
+- Diff stats: 5 archivos, +117 / -128 líneas.
 
-**Commit**: `feat(ux): Sprint 2 — PageHeader en Dashboard, Calendar, Patients, CashRegister, BusinessIntelligence`.
+**Commit real**: `refactor(ux): Sprint 2 - PageHeader + LoadingSpinner + EmptyState + paleta semantica en 5 vistas top` (hash `0944584`) + `docs(ux): Sprint 2 deliverable` (hash `fa61ccb`).
+
+**Deviations documentadas en `docs/mejoras/sprint-2-deliverable.md`**: DashboardPage no recibió PageHeader (entra directo a stat cards), BusinessIntelligencePage conserva 2 "No hay datos" inline (contexto tabla), CashRegisterPage sigue usando `Button` (no `UiButton`), CalendarPage no recibió EmptyState (las celdas "Sin citas" son parte del grid).
 
 ---
 
-### Sprint 3 — Migrar paleta a la canónica (1.0 d-h)
+### Sprint 3 — Migrar paleta a la canónica (1.0 d-h) — ✅ **HECHO 2026-06-12** (commits `c7010bb` + `fe77929`)
 
 **Objetivo**: 0 colores `blue/purple/indigo/cyan/violet` en `resources/js` (excepto ≤5 con justificación).
 
-**Branch**: `refactor/ux-sprint-3-palette`
+**Branch**: `refactor/ux-sprint-3-palette` (mergeada a `feat/ux-sprint-1-design-system`)
 
 **Tareas**:
-- [ ] **I-UX-2**: para cada uno de los 19 archivos offenders (verificados en §3 I-UX-2), reemplazar las clases Tailwind crudas por utilities semánticas. Reglas:
+- [x] **I-UX-2**: para cada uno de los 18 archivos offenders (verificados en §3 I-UX-2), reemplazar las clases Tailwind crudas por utilities semánticas. Reglas aplicadas:
   - `bg-purple-600` → `bg-accent` (o semántico según contexto: success/warning/error)
   - `text-purple-600` → `text-accent`
   - `bg-purple-50/100` → `bg-primary-50` (azul muy claro)
-  - `border-purple-200` → `border-theme-light`
-  - `bg-blue-500` → `bg-accent`
-  - `text-blue-600` → `text-accent`
+  - `border-purple-200` → `border-primary-200`
+  - `text-blue-600/900` → `text-accent` / `text-accent-hover`
+  - `bg-blue-50/100/200` → `bg-primary-50` / `border-primary-200`
   - `bg-indigo-500/600` → `bg-accent`
-  - `border-indigo-500` → `border-accent`
+  - `text-indigo-600/700` → `text-accent`
   - `ring-indigo-500` → `ring-accent`
-  - `bg-emerald-500` (verde success explícito) → `bg-success-500`
-  - `bg-amber-500` (amarillo warning explícito) → `bg-warning-500`
-- [ ] **I-UX-2 prioridad** (orden de migración):
+  - `text-orange-600` → `text-warning-600`
+  - `border-amber-200 bg-amber-50` → `border-warning-100 bg-warning-50`
+  - `border-green-200 bg-green-50` → `border-success-100 bg-success-50`
+  - `bg-emerald-100 text-emerald-800` → `bg-success-badge text-success-text`
+- [x] **I-UX-2 prioridad aplicada** (orden de migración):
   1. `RadioGroup.vue` (componente UI — reusado en 4+ páginas, máxima propagación).
-  2. `MovementList.vue` (5 ocurrencias).
-  3. `app.blade.php` (3 ocurrencias en loading skeleton — **M-UX-5**).
-  4. `EnvironmentsPage.vue`, `CashReports.vue`, `BusinessIntelligencePage.vue` (3 c/u).
-  5. `ProcedureCatalogPage.vue`, `AiAnalysisPage.vue` (2 c/u).
-  6. Resto (1 ocurrencia c/u).
-- [ ] **M-UX-5**: alinear `app.blade.php` con `var(--color-accent)`.
+  2. `MovementList.vue` (4 ocurrencias).
+  3. `EnvironmentsPage.vue`, `CashReports.vue`, `ProcedureCatalogPage.vue`, `AiAnalysisPage.vue` (2-3 c/u).
+  4. Resto (1 ocurrencia c/u).
+- [ ] **M-UX-5**: alinear `app.blade.php` con `var(--color-accent)`. **PENDIENTE** — `app.blade.php` sigue con `bg-blue-500` en 3 ocurrencias del loading skeleton. Decidido dejarlo para un sprint dedicado de pulido (no es bloqueador; el loading skeleton se ve ~200ms antes de montar Vue).
 
-**Verificación**:
-- `pnpm build` → 0 errores.
-- `grep -rE "(bg|text|border|ring|hover:bg|hover:text|hover:border|focus:ring|focus:border)-(blue|sky|cyan|indigo|purple|violet|emerald|amber|orange|pink|rose|teal|lime|fuchsia)-[0-9]+" resources/js resources/views --include="*.vue" --include="*.blade.php" --include="*.js" 2>/dev/null` → ≤5 ocurrencias, todas con comentario inline.
-- Recorrido visual de las 5 vistas top + 4 vistas de inventario: Dashboard, Calendar, Patients, CashRegister, BusinessIntelligence, ProcedureCatalog, MyProcedures, ReceptionProcedures — sin manchas moradas/índigo.
+**Verificación** (real, no estimada):
+- `pnpm build` → 0 errores (9.41s).
+- `grep -rE "(bg|text|border|ring|hover:bg|hover:text|hover:border|focus:ring|focus:border|from|to|via)-(blue|sky|cyan|indigo|purple|violet|emerald|amber|orange|pink|rose|teal|lime|fuchsia)-[0-9]+" resources/js --include="*.vue" --include="*.js"` → **0 ocurrencias, 0 archivos** (antes: 52 ocurrencias, 18 archivos).
+- Recorrido visual de las 17 páginas: sin manchas moradas/índigo/naranjas.
 - C-UX-1, C-UX-2, Sprints 1-2 siguen funcionando (regresión 0).
+- Diff stats: 18 archivos, +32 / -35 líneas.
 
-**Commit**: `refactor(ui): I-UX-2 unificar paleta a accent/primary/semánticos, M-UX-5 app.blade loading`.
+**Commit real**: `refactor(ux): Sprint 3 - paleta global, 0 colores crudos en resources/js` (hash `c7010bb`) + `docs(ux): Sprint 3 deliverable` (hash `fe77929`).
+
+**Observaciones documentadas en `docs/mejoras/sprint-3-deliverable.md`**:
+1. `AccessibleButton.vue` es código muerto (0 imports). Marcado para eliminar en sprint de limpieza.
+2. `total_difference` en CashReports migrado a `text-accent` (no `warning`) por convención.
+3. "Morado de marca de IA" en AiAnalysisPage migrado a accent. Si se quiere reintroducir, documentar como excepción en `docs/ux-guidelines.md` §2.
 
 ---
 

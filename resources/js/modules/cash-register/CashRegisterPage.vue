@@ -1,33 +1,29 @@
 <template>
   <AppLayout>
     <div class="cash-register-page">
-    <!-- Header Section con animación -->
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">Gestión de Caja</h1>
-          <p class="text-theme-secondary">Administra las sesiones de caja y transacciones</p>
+    <!-- Header Section -->
+    <PageHeader
+      title="Gestión de Caja"
+      subtitle="Administra las sesiones de caja y transacciones"
+      class="mb-6"
+    >
+      <template #actions>
+        <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-theme-surface">
+          <div :class="sessionStatusClass" class="w-2.5 h-2.5 rounded-full"></div>
+          <span class="text-sm font-medium text-theme-primary">
+            {{ sessionStatusText }}
+          </span>
         </div>
-        <div class="flex items-center gap-4">
-          <!-- Estado de sesión con mejor diseño -->
-          <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-theme-surface">
-            <div :class="sessionStatusClass" class="w-2.5 h-2.5 rounded-full"></div>
-            <span class="text-sm font-medium text-theme-primary">
-              {{ sessionStatusText }}
-            </span>
-          </div>
-          <!-- Botones con mejor estilo -->
-          <Button v-if="canOpen" variant="primary" @click="showOpenModal = true" :loading="loading">
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Abrir Caja
-          </Button>
-          <Button v-if="canClose" variant="danger" @click="showCloseModal = true" :loading="loading">
-            <XMarkIcon class="w-4 h-4 mr-2" />
-            Cerrar Caja
-          </Button>
-        </div>
-      </div>
-    </div>
+        <Button v-if="canOpen" variant="primary" @click="showOpenModal = true" :loading="loading">
+          <PlusIcon class="w-4 h-4 mr-2" />
+          Abrir Caja
+        </Button>
+        <Button v-if="canClose" variant="danger" @click="showCloseModal = true" :loading="loading">
+          <XMarkIcon class="w-4 h-4 mr-2" />
+          Cerrar Caja
+        </Button>
+      </template>
+    </PageHeader>
 
     <!-- Dashboard en Tiempo Real -->
     <div v-if="hasActiveSession" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -49,12 +45,12 @@
       <!-- Total Ingresos -->
       <UiCard variant="glass" class="hover-lift">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center">
             <ArrowUpIcon class="w-6 h-6 text-white" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Ingresos</p>
-            <p class="text-2xl font-bold text-green-600">
+            <p class="text-2xl font-bold text-success-600">
               {{ formatCurrency(summary?.total_income) }}
             </p>
           </div>
@@ -64,12 +60,12 @@
       <!-- Total Egresos -->
       <UiCard variant="glass" class="hover-lift">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-to-br from-error-500 to-error-600 rounded-xl flex items-center justify-center">
             <ArrowDownIcon class="w-6 h-6 text-white" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Egresos</p>
-            <p class="text-2xl font-bold text-red-600">
+            <p class="text-2xl font-bold text-error-600">
               {{ formatCurrency(summary?.total_expenses) }}
             </p>
           </div>
@@ -79,12 +75,12 @@
       <!-- Saldo Actual -->
       <UiCard variant="glass" class="hover-lift">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-accent rounded-xl flex items-center justify-center">
             <BanknotesIcon class="w-6 h-6 text-white" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Saldo Actual</p>
-            <p class="text-2xl font-bold text-purple-600">
+            <p class="text-2xl font-bold text-accent">
               {{ formatCurrency(realTimeTotals?.currentBalance) }}
             </p>
           </div>

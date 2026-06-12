@@ -22,7 +22,7 @@ const statusClasses = computed(() => {
     proposed: `${baseClasses} bg-primary-100 text-primary-800`,
     approved: `${baseClasses} bg-green-100 text-green-800`,
     in_progress: `${baseClasses} bg-yellow-100 text-yellow-800`,
-    completed: `${baseClasses} bg-emerald-100 text-emerald-800`,
+    completed: `${baseClasses} bg-success-badge text-success-text`,
     cancelled: `${baseClasses} bg-red-100 text-red-800`
   }
 

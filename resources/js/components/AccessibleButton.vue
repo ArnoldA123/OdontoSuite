@@ -128,7 +128,7 @@ export default {
 
       // Variant classes
       const variantClasses = {
-        primary: 'bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500',
+        primary: 'bg-accent text-white hover:bg-accent-hover focus:ring-accent',
         secondary: 'bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated focus:ring-primary-500',
         danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
         success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',

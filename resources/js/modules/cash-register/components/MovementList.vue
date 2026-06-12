@@ -106,14 +106,14 @@
         </div>
       </div>
 
-      <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <XMarkIcon class="w-6 h-6 text-purple-600" />
+            <XMarkIcon class="w-6 h-6 text-accent" />
           </div>
           <div class="ml-3">
-            <p class="text-sm font-medium text-purple-600">Cierre</p>
-            <p class="text-2xl font-bold text-purple-900">{{ formatCurrency(totals.closing) }}</p>
+            <p class="text-sm font-medium text-accent">Cierre</p>
+            <p class="text-2xl font-bold text-accent-active">{{ formatCurrency(totals.closing) }}</p>
           </div>
         </div>
       </div>
@@ -449,7 +449,7 @@ const getTypeClass = (type) => {
     income: 'bg-green-100 text-green-800',
     expense: 'bg-red-100 text-red-800',
     opening: 'bg-primary-100 text-primary-800',
-    closing: 'bg-purple-100 text-purple-800',
+    closing: 'bg-primary-50 text-primary-700',
     withdrawal: 'bg-yellow-100 text-yellow-800',
     deposit: 'bg-green-100 text-green-800',
     adjustment: 'bg-theme-surface text-theme-secondary'

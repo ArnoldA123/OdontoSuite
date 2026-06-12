@@ -30,7 +30,7 @@
       <!-- Última actualización -->
       <div class="stat-card">
         <div class="stat-icon">
-          <CalendarIcon class="w-8 h-8 text-purple-600" />
+          <CalendarIcon class="w-8 h-8 text-accent" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ formatLastUpdate(stats.last_updated) }}</div>
@@ -41,7 +41,7 @@
       <!-- Días desde creación -->
       <div class="stat-card">
         <div class="stat-icon">
-          <CalendarDaysIcon class="w-8 h-8 text-orange-600" />
+          <CalendarDaysIcon class="w-8 h-8 text-warning-600" />
         </div>
         <div class="stat-content">
           <div class="stat-value">{{ stats.days_since_creation || 0 }}</div>
