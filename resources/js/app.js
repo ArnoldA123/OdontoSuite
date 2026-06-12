@@ -168,8 +168,10 @@ const router = createRouter({
 });
 
 // Crear la aplicación Vue con un componente raíz
+// key=fullPath fuerza remonte del componente al cambiar ruta → arregla
+// botón "atrás" del browser que quedaba pegado (onMounted no se llamaba).
 const App = {
-  template: '<router-view />'
+  template: '<router-view :key="$route.fullPath" />'
 };
 
 const app = createApp(App);

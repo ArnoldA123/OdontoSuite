@@ -434,9 +434,10 @@
               </div>
 
     <!-- New Appointment Modal -->
-    <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
+      @created="handleAppointmentSaved"
+      @updated="handleAppointmentSaved"
     />
 
     <ConsultationWizard
