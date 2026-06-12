@@ -112,7 +112,7 @@
     </aside>
 
     <!-- Mobile Header -->
-    <div class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-theme-surface-elevated/80 backdrop-blur-md border-b border-theme/50">
+    <div class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-theme-surface-elevated border-b border-theme/50">
       <div class="flex items-center justify-between px-4 h-16">
         <div class="flex items-center gap-3">
           <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
