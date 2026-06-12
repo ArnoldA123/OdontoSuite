@@ -63,6 +63,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import UiButton from './Button.vue'
 
 const props = defineProps({

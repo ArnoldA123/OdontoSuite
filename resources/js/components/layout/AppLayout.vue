@@ -8,12 +8,16 @@
       <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
         <!-- Logo -->
         <div class="flex items-center flex-shrink-0 px-6 py-6 border-b border-theme/50">
-          <div class="flex items-center gap-3">
+          <router-link
+            to="/dashboard"
+            class="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg"
+            :class="{ 'mx-auto': sidebarCollapsed }"
+            :aria-label="sidebarCollapsed ? 'Ir al Dashboard' : ''"
+          >
             <img
               src="/images/easy_dent.png"
               alt="OdontoSuite"
               class="h-8 w-8 transition-all duration-200"
-              :class="{ 'mx-auto': sidebarCollapsed }"
             />
             <span
               v-if="!sidebarCollapsed"
@@ -21,7 +25,7 @@
             >
               OdontoSuite
             </span>
-          </div>
+          </router-link>
         <button
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
@@ -666,13 +670,6 @@ const navigation = computed(() => {
       to: '/cash-register',
       icon: BanknotesIcon,
       roles: ['administrador', 'finanzas', 'recepcionista'],
-      badge: null
-    },
-    {
-      name: 'Test Components',
-      to: '/test',
-      icon: CogIcon,
-      roles: ['administrador'],
       badge: null
     },
     {
