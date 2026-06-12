@@ -32,8 +32,8 @@ El plan #5 cerró 5 bugs y 3 polishes, pero al validar visualmente surgieron **3
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
 | 0 | Sidebar colapsado más compacto + header menos denso | 0.5 d-h | ✅ HECHO (commit `b87b2e8`) | 2 archivos: AppLayout.vue |
-| 1 | Header mobile opaco + a11y + consistencia visual | 0.5 d-h | ⏳ Pendiente | 1 archivo: AppLayout.vue |
-| **Total** | **2 sprints** | **~1.0 d-h** | **0 d-h ejecutados** | 3 bugs cerrados |
+| 1 | Header mobile opaco + a11y + consistencia visual | 0.5 d-h | ✅ HECHO (commit `9591cea`) | 1 archivo: AppLayout.vue |
+| **Total** | **2 sprints** | **~1.0 d-h** | **1.0 d-h ejecutados** | 3 bugs cerrados |
 
 ---
 
@@ -202,3 +202,16 @@ Adicional: el `focus:ring-2 focus:ring-primary-500 focus:ring-offset-2` del bot�
 - Header desktop: dot WS verde visible, sin texto "En vivo", bell y avatar como antes.
 - Header mobile (responsive < 1024px): cabecera opaca, hamburger visible, sin blur raro.
 - 0 regresiones en planes #1-#5.
+
+---
+
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit `b87b2e8` en `fix/ux-sprint-0-sidebar-compact`. B-UX-6 + B-UX-7 cerrados:
+  - B-UX-6: Sidebar `lg:w-16` → `lg:w-14` (56px). Padding del logo container condicional (px-6 expandido, px-2+justify-center colapsado). Main content padding `lg:pl-16` → `lg:pl-14`.
+  - B-UX-7: Indicador WS del header reducido de pill con texto "En vivo" a dot circular 32x32. Mantiene `aria-label` y tooltip nativo.
+
+- **2026-06-12** — Sprint 1 ✅ HECHO. Commit `9591cea` en `fix/ux-sprint-1-mobile-header`. B-UX-8 cerrado:
+  - B-UX-8: Header mobile `bg-theme-surface-elevated/80 backdrop-blur-md` → `bg-theme-surface-elevated` (opaco, sin blur). Border-b se mantiene.
+
+**PLAN CERRADO**. 3/3 bugs cerrados en 1.0 d-h. 0 regresiones.
