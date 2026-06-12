@@ -105,7 +105,7 @@ const formatPrice = (price) =>
 }
 
 .kanban-card {
-  @apply p-2.5 rounded-md cursor-pointer hover:shadow-md transition-shadow;
+  @apply p-2.5 rounded-md cursor-pointer hover-lift transition-shadow;
   background-color: var(--color-surface-elevated);
   border: 1px solid var(--color-border, transparent);
 }

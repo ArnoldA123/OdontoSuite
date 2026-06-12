@@ -214,10 +214,36 @@
             </div>
 
             <div class="flex items-center gap-3">
+              <!-- WebSocket connection indicator -->
+              <div
+                v-if="wsStatus !== 'connecting'"
+                class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+                :class="{
+                  'bg-success-badge text-success-text': wsStatus === 'connected',
+                  'bg-warning-badge text-warning-text': wsStatus === 'disconnected',
+                  'bg-danger-badge text-error-700': wsStatus === 'unavailable',
+                }"
+                :aria-label="`Estado de WebSocket: ${wsStatus}`"
+                :title="`WebSocket: ${wsStatus}`"
+              >
+                <span
+                  class="w-2 h-2 rounded-full"
+                  :class="{
+                    'bg-success-500 animate-pulse-subtle': wsStatus === 'connected',
+                    'bg-warning-500': wsStatus === 'disconnected',
+                    'bg-error-500': wsStatus === 'unavailable',
+                  }"
+                  aria-hidden="true"
+                />
+                <span class="hidden md:inline">
+                  {{ wsStatus === 'connected' ? 'En vivo' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS' }}
+                </span>
+              </div>
+
               <!-- Notifications -->
-              <UiButton 
-                variant="ghost" 
-                size="sm" 
+              <UiButton
+                variant="ghost"
+                size="sm"
                 class="relative"
                 @click="toggleNotificationCenter"
               >
@@ -317,6 +343,16 @@
 
     <!-- Toast Container -->
     <ToastContainer />
+    <UiConfirmDialog
+      v-model="confirmIsOpen"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :confirm-text="confirmText"
+      :cancel-text="confirmCancelText"
+      :variant="confirmVariant"
+      @confirm="handleGlobalConfirm"
+      @cancel="handleGlobalCancel"
+    />
 
     <!-- Notification Toast -->
     <NotificationToast />
@@ -337,6 +373,16 @@ import { usePermissions } from '../../composables/usePermissions'
 import { useTheme } from '../../composables/useTheme'
 import { useNotifications } from '../../composables/useNotifications'
 import { useWebSocketNotifications } from '../../composables/useWebSocketNotifications'
+import { useEcho } from '../../composables/useEcho'
+import {
+  confirmIsOpen,
+  confirmTitle,
+  confirmMessage,
+  confirmConfirmText,
+  confirmCancelText,
+  confirmVariant,
+  useConfirm as useConfirmComposable,
+} from '../../composables/useConfirm'
 import UiThemeSelector from '../ui/ThemeSelector.vue'
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
@@ -347,6 +393,12 @@ const route = useRoute()
 const router = useRouter()
 const { user, logout: authLogout } = useAuth()
 const { can } = usePermissions()
+const { connectionStatus: wsStatus } = useEcho()
+
+// Handlers del modal global de confirmacion (useConfirm).
+// Usamos la desestructuracion del composable para conectar los handlers del
+// <UiConfirmDialog> montado a nivel de app con el resolver de la Promise.
+const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } = useConfirmComposable()
 const { theme, setTheme, getThemeIcon, getThemeLabel, getThemeOptions } = useTheme()
 
 // State

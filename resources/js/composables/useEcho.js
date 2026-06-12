@@ -5,7 +5,12 @@ import Pusher from 'pusher-js'
 // Instancia global de Echo
 let echoInstance = null
 
-// Configuración por defecto
+// Estado reactivo de la conexion WebSocket (singleton - compartido por todos los consumidores)
+// 'connecting' | 'connected' | 'disconnected' | 'unavailable'
+const connectionStatus = ref('connecting')
+const reconnectAttempts = ref(0)
+
+// Configuracion por defecto
 const defaultConfig = {
   broadcaster: 'reverb',
   key: import.meta.env.VITE_REVERB_APP_KEY || 'local-key',
@@ -24,6 +29,15 @@ const defaultConfig = {
   },
 }
 
+// Backoff exponencial: 5s, 10s, 20s, 40s, 60s (cap)
+const getReconnectDelay = (attempt) => {
+  return Math.min(5000 * Math.pow(2, attempt - 1), 60000)
+}
+
+const setStatus = (newStatus) => {
+  connectionStatus.value = newStatus
+}
+
 export function useEcho() {
   // Inicializar Echo si no existe
   if (!echoInstance) {
@@ -35,54 +49,73 @@ export function useEcho() {
         // Crear instancia de Echo
         echoInstance = new Echo(defaultConfig)
 
-        // Configurar eventos de conexión
+        // Configurar eventos de conexion
         const pusher = echoInstance.connector.pusher
 
         pusher.connection.bind('error', (err) => {
           if (err.type === 'PusherError') {
             if (err.data?.code) {
+              console.warn('[Echo] PusherError code:', err.data.code, err.data?.message)
             }
             if (err.data?.message) {
+              console.warn('[Echo] PusherError message:', err.data.message)
             }
           }
-          // Solo mostrar el mensaje de Reverb si el error indica que el servidor no está disponible
+          // Error de transporte (Reverb no disponible)
           if (err.type === 'TransportError' || err.data?.code === 1006) {
+            console.warn('[Echo] TransportError - Reverb no disponible en', defaultConfig.wsHost + ':' + defaultConfig.wsPort)
           }
         })
 
         pusher.connection.bind('connected', () => {
+          console.info('[Echo] Conectado a Reverb')
+          reconnectAttempts.value = 0
+          setStatus('connected')
         })
 
         pusher.connection.bind('disconnected', () => {
+          console.warn('[Echo] Desconectado de Reverb')
+          setStatus('disconnected')
         })
 
         pusher.connection.bind('state_change', (states) => {
+          // Solo log en transiciones relevantes
+          if (states.current === 'unavailable' || states.current === 'failed') {
+            console.warn('[Echo] Estado:', states.previous, '->', states.current)
+          }
+          if (states.current === 'unavailable') {
+            setStatus('unavailable')
+          }
         })
 
         pusher.connection.bind('unavailable', () => {
+          console.warn('[Echo] Conexion no disponible (Reverb caido o inalcanzable)')
+          setStatus('unavailable')
         })
 
-        // Intentar reconectar automáticamente cada 5 segundos si falla
-        let reconnectAttempts = 0
-        const maxReconnectAttempts = 10
-
+        // Reconexion con backoff exponencial
         pusher.connection.bind('failed', () => {
-          reconnectAttempts++
-          if (reconnectAttempts <= maxReconnectAttempts) {
+          reconnectAttempts.value++
+          const delay = getReconnectDelay(reconnectAttempts.value)
+          console.warn(`[Echo] Reconexion intento ${reconnectAttempts.value} en ${delay / 1000}s`)
+          if (reconnectAttempts.value <= 10) {
             setTimeout(() => {
               if (echoInstance && pusher.connection.state !== 'connected') {
                 pusher.connect()
               }
-            }, 5000)
+            }, delay)
           } else {
+            console.error('[Echo] Max reintentos alcanzados (10). Reverb no se ha podido conectar.')
           }
         })
       } catch (error) {
+        console.error('[Echo] Error al inicializar:', error.message)
+        setStatus('unavailable')
       }
     }
   }
 
-  // Función para suscribirse a un canal público
+  // Funcion para suscribirse a un canal publico
   const channel = (channelName) => {
     if (!echoInstance) {
       return null
@@ -90,7 +123,7 @@ export function useEcho() {
     return echoInstance.channel(channelName)
   }
 
-  // Función para suscribirse a un canal privado
+  // Funcion para suscribirse a un canal privado
   const privateChannel = (channelName) => {
     if (!echoInstance) {
       return null
@@ -100,18 +133,18 @@ export function useEcho() {
     return echoInstance.private(channelName)
   }
 
-  // Función para obtener el token actualizado
+  // Funcion para obtener el token actualizado
   const getAuthToken = () => {
     return localStorage.getItem('auth_token') || ''
   }
 
-  // Función para actualizar el token de autenticación
+  // Funcion para actualizar el token de autenticacion
   const updateAuthToken = (token) => {
     const authToken = token || getAuthToken()
     if (echoInstance && echoInstance.connector.options.auth) {
       echoInstance.connector.options.auth.headers.Authorization = `Bearer ${authToken}`
     }
-    // También actualizar la configuración por defecto para futuras conexiones
+    // Tambien actualizar la configuracion por defecto para futuras conexiones
     defaultConfig.auth.headers.Authorization = `Bearer ${authToken}`
   }
 
@@ -120,20 +153,23 @@ export function useEcho() {
     updateAuthToken()
   }
 
-  // Función para desconectar Echo
+  // Funcion para desconectar Echo
   const disconnect = () => {
     if (echoInstance) {
       echoInstance.disconnect()
       echoInstance = null
     }
+    setStatus('disconnected')
   }
 
-  // Función para reconectar Echo
+  // Funcion para reconectar Echo (forzar reset)
   const reconnect = () => {
     if (echoInstance) {
       echoInstance.disconnect()
     }
     echoInstance = null
+    reconnectAttempts.value = 0
+    setStatus('connecting')
     return useEcho()
   }
 
@@ -145,6 +181,8 @@ export function useEcho() {
     getAuthToken,
     disconnect,
     reconnect,
+    // Estado reactivo compartido (singleton)
+    connectionStatus,
+    reconnectAttempts,
   }
 }
-

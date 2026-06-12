@@ -89,6 +89,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useConfirm } from '@/composables/useConfirm'
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -124,8 +125,14 @@ const formatDate = (date) => {
   })
 }
 
-const confirmDelete = () => {
-  if (confirm('¿Estás seguro de que quieres eliminar esta historia clínica?')) {
+const confirmDelete = async () => {
+  const ok = await confirm({
+    title: 'Eliminar historia clínica',
+    message: '¿Estás seguro de que quieres eliminar esta historia clínica?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (ok) {
     emit('delete', props.record.id)
   }
 }
@@ -133,7 +140,7 @@ const confirmDelete = () => {
 
 <style scoped>
 .medical-record-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover:shadow-md transition-shadow;
+  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-shadow;
 }
 
 .card-header {

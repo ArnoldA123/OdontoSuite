@@ -298,6 +298,14 @@ export default {
           'background-color': 'var(--color-danger-bg)',
           'color': 'var(--color-danger-text)',
         },
+        // Hover lift sutil estilo Apple (-1px translateY + shadow-medium)
+        '.hover-lift': {
+          'transition': 'transform 150ms ease-out, box-shadow 150ms ease-out',
+        },
+        '.hover-lift:hover': {
+          'transform': 'translateY(-1px)',
+          'box-shadow': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        },
       });
     },
   ],

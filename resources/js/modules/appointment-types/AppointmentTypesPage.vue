@@ -434,6 +434,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -561,7 +562,13 @@ export default {
     }
 
     const deleteType = async (type) => {
-      if (confirm(`¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}?`)) {
+      const ok = await confirm({
+        title: 'Eliminar tipo de cita',
+        message: `¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}?`,
+        confirmText: 'Eliminar',
+        variant: 'danger',
+      })
+      if (ok) {
         try {
           await remove(`/api/appointment-types/${type.id}`)
           loadTypes()

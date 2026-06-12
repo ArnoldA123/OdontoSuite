@@ -268,6 +268,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
 import { useTheme } from '@/composables/useTheme'
 import { useApi } from '@/composables/useApi'
+import { useConfirm } from '@/composables/useConfirm'
 
 // Components
 import UiCard from '@/components/ui/Card.vue'
@@ -325,6 +326,7 @@ const {
 const { createTransaction: canCreateTransaction, createMovement: canCreateMovement } = usePermissions()
 const { get } = useApi()
 const toast = useToast()
+const { confirm } = useConfirm()
 
 // Estado
 const activeTab = ref('payments')
@@ -580,7 +582,13 @@ const exportReport = async (filters) => {
 }
 
 const voidTransaction = async (transaction) => {
-  if (!confirm('¿Está seguro de anular esta transacción?')) return
+  const ok = await confirm({
+    title: 'Anular transacción',
+    message: '¿Está seguro de anular esta transacción?',
+    confirmText: 'Anular',
+    variant: 'danger',
+  })
+  if (!ok) return
 
   try {
     await voidTransactionApi(transaction.id, 'Anulación manual')

@@ -170,7 +170,7 @@ const getReviewDecisionClass = (decision) => {
 
 <style scoped>
 .analysis-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg overflow-hidden hover:shadow-lg transition-shadow;
+  @apply bg-theme-surface-elevated border border-theme rounded-lg overflow-hidden hover-lift transition-shadow;
 }
 
 .card-header {

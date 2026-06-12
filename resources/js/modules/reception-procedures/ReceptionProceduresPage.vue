@@ -51,7 +51,7 @@
     </div>
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <UiCard v-for="proc in procedures" :key="proc.id" variant="elevated" class="hover:shadow-lg transition-shadow">
+      <UiCard v-for="proc in procedures" :key="proc.id" variant="elevated" class="hover-lift transition-shadow">
         <div class="flex items-start justify-between gap-2 mb-2">
           <span class="font-mono text-xs px-2 py-0.5 rounded bg-primary-50 text-primary-700">{{ proc.code }}</span>
           <span class="text-xs text-theme-secondary">{{ proc.specialty_name || 'General' }}</span>

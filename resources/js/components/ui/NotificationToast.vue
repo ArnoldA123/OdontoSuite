@@ -1,14 +1,24 @@
 <template>
   <div class="notification-toast" v-if="notifications.length > 0">
-    <div
-      v-for="notification in notifications"
-      :key="notification.id"
-      :class="[
-        'notification-item',
-        `notification-${notification.type}`
-      ]"
-      @click="removeNotification(notification.id)"
+    <TransitionGroup
+      name="notification"
+      tag="div"
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 translate-x-full"
+      enter-to-class="opacity-100 translate-x-0"
+      leave-active-class="transition-all duration-200 ease-in absolute"
+      leave-from-class="opacity-100 translate-x-0"
+      leave-to-class="opacity-0 translate-x-full"
     >
+      <div
+        v-for="notification in notifications"
+        :key="notification.id"
+        :class="[
+          'notification-item',
+          `notification-${notification.type}`
+        ]"
+        @click="removeNotification(notification.id)"
+      >
       <div class="notification-content">
         <div class="notification-icon">
           <CheckCircleIcon v-if="notification.type === 'success'" class="w-5 h-5" />
@@ -26,7 +36,8 @@
           <XMarkIcon class="w-4 h-4" />
         </button>
       </div>
-    </div>
+      </div>
+    </TransitionGroup>
   </div>
 </template>
 

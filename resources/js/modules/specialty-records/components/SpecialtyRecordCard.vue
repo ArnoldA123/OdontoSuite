@@ -243,7 +243,7 @@ const getStatusClass = (status) => {
 
 <style scoped>
 .specialty-record-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg shadow-sm hover:shadow-md transition-shadow;
+  @apply bg-theme-surface-elevated border border-theme rounded-lg shadow-sm hover-lift transition-shadow;
 }
 
 .card-header {

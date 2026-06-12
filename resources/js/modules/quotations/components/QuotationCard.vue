@@ -114,6 +114,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useConfirm } from '@/composables/useConfirm'
 import QuotationStatusBadge from './QuotationStatusBadge.vue'
 import {
   UserIcon,
@@ -187,8 +188,14 @@ const formatDate = (date) => {
   })
 }
 
-const confirmDelete = () => {
-  if (confirm('¿Estás seguro de que quieres eliminar este presupuesto?')) {
+const confirmDelete = async () => {
+  const ok = await confirm({
+    title: 'Eliminar presupuesto',
+    message: '¿Estás seguro de que quieres eliminar este presupuesto?',
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  })
+  if (ok) {
     emit('delete', quotation.value.id)
   }
 }
@@ -196,7 +203,7 @@ const confirmDelete = () => {
 
 <style scoped>
 .quotation-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover:shadow-md transition-shadow;
+  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-shadow;
 }
 
 .card-header {
