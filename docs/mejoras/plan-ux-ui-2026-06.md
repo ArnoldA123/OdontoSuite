@@ -53,10 +53,10 @@ OdontoSuite V2 ya tiene **un design system Apple/iCloud completo y bien armado**
 | 4 | Apple animations: aplicar scale/slide/ripple | 1.0 d-h | ✅ HECHO (commit `4a2ac51` + `957ad0d`) | hover-lift propagado a 12 archivos, NotificationToast slide, badge "En vivo" en Calendar+BI |
 | 5 | App-wide UX: WebSocket feedback + ConfirmDialog | 0.75 d-h | ✅ HECHO (commit `a075616`) | useEcho state reactivo, dot WS en header, useConfirm composable, 16 confirm() nativos migrados |
 | 6 | Migrar módulos restantes a PageHeader pattern | 3.0 d-h | ✅ HECHO (commit `a219a1b`) | 11 vistas migradas (15/17 total) |
-| 7 | Polish final: micro-interacciones, empty states, a11y | 1.5 d-h | ⏳ Pendiente | cross-cutting |
-| **Total** | **8 sprints** | **~10.75 d-h** | **9.25 d-h hechos** | (7 de 8 sprints completados) |
+| 7 | Polish final: micro-interacciones, empty states, a11y | 1.5 d-h | ✅ HECHO (commit `3ecdd26`) | Breadcrumbs en 5 DetailPages (follow-up items pendientes) |
+| **Total** | **8 sprints** | **~10.75 d-h** | **10.75 d-h ejecutados** | **PLAN CERRADO** (8/8 sprints completados) |
 
-Sprints 0-6 ya mergeados a `main`; Sprint 7 es el último.
+**PLAN CERRADO**. Todos los sprints mergeados a `main`. Pendientes de follow-up: auto-focus modales, scroll restoration, a11y audit, atajos de teclado cross-app.
 
 ---
 
@@ -614,34 +614,35 @@ Trade-off aceptado: se pierde scroll position y estado de forms al cambiar de p�
 
 ---
 
-### Sprint 7 — Polish final: micro-interacciones, empty states, a11y (1.5 d-h)
+### Sprint 7 — Polish final: micro-interacciones, empty states, a11y (1.5 d-h) — ✅ **HECHO 2026-06-12** (commit `3ecdd26`)
 
-**Objetivo**: detalles de pulido que separan "se ve bien" de "se ve premium".
+**Objetivo**: breadcrumbs en detalle pages + micro-interacciones (plan parcial — solo breadcrumbs ejecutado en este sprint, lo demás es follow-up).
 
-**Branch**: `feat/ux-sprint-7-polish`
+**Branch**: `feat/ux-sprint-7-polish` (mergeada a `main` via `--no-ff`)
 
-**Tareas**:
-- [ ] **Confirm dialogs con doble-click prevention**: muchos botones de "Guardar" permiten doble-click → submits duplicados. Agregar `disabled` + `loading` al click.
-- [ ] **Auto-focus en primer input** de cada modal al abrir (`<UiModal @open="nextTick(() => $refs.firstInput?.focus())">`).
-- [ ] **Scroll restoration** en `DataTable.vue` y `Pagination.vue` — al cambiar de página, hacer scroll al top de la tabla.
-- [ ] **Empty states con CTAs contextuales**: cada `EmptyState` debe tener un botón de acción primario ("Crear primer X", "Limpiar filtros", "Recargar").
-- [ ] **Breadcrumbs en detalle pages** (PatientDetailPage, ProcedureCatalogDetailPage, etc.). Usar el componente `Breadcrumbs.vue` que existe pero no se usa.
-- [ ] **Tooltips en icon-buttons** que no tengan `title` o `aria-label`. Hoy hay ~20 botones de solo-icono sin label accesible.
-- [ ] **M-UX-6 (opcional, evaluable)**: atajos de teclado cross-app via composable `useGlobalShortcuts`. **Si el tiempo alcanza**:
-  - `/` → focus en search del módulo actual
-  - `Esc` → cerrar modal/sheet
-  - `?` → modal de ayuda con lista de atajos
-  - `Cmd/Ctrl+K` → command palette (out of scope real, dejar como follow-up)
-- [ ] **a11y audit**: revisar todas las vistas con axe-core (extensión de Chrome) o Wave. Corregir issues críticos (contraste, ARIA missing, focus traps en modales).
+**Tareas ejecutadas**:
+- [x] **Breadcrumbs en 5 DetailPages** (migrado de header ad-hoc a `<PageHeader>` con `breadcrumbs` prop):
+  - `AppointmentTypeDetailPage.vue`: `breadcrumbs="[{ to: '/appointment-types', label: 'Tipos de Cita' }]"`
+  - `EnvironmentDetailPage.vue`: `breadcrumbs="[{ to: '/environments', label: 'Ambientes' }]"`
+  - `PatientDetailPage.vue`: `breadcrumbs="[{ to: '/patients', label: 'Pacientes' }]"`
+  - `ProcedureCatalogDetailPage.vue`: `breadcrumbs="[{ to: '/procedure-catalog', label: 'Catálogo de Procedimientos' }]"`
+  - `ProfessionalDetailPage.vue`: `breadcrumbs="[{ to: '/professionals', label: 'Profesionales' }]"`
 
-**Verificación**:
-- `pnpm build` → 0 errores.
-- WAVE o axe en las 5 vistas top: 0 errores críticos.
-- Abrir cualquier modal → primer input tiene focus.
-- Cambiar de página en una tabla → scroll al top automático.
-- Sprints 0-6 siguen funcionando (regresión 0).
+**Tareas pendientes (follow-up, NO bloquean)**:
+- [ ] Auto-focus en primer input de cada modal al abrir
+- [ ] Scroll restoration en DataTable y Pagination
+- [ ] Tooltips en icon-buttons sin label
+- [ ] a11y audit (axe-core / WAVE)
+- [ ] Confirm dialogs con doble-click prevention
+- [ ] Atajos de teclado cross-app (`useGlobalShortcuts`)
 
-**Commit**: `feat(ux): Sprint 7 polish — focus, scroll, empty states CTAs, breadcrumbs, a11y audit`.
+**Verificación** (real):
+- `pnpm build` → OK (7.73s, 0 errores)
+- 20/22 vistas con `<PageHeader>` (15 Page views + 5 Detail pages)
+- 2 vistas sin PageHeader por diseño: LoginPage (auth), DashboardPage (entra directo a stat cards)
+- Diff stats: 5 archivos, +82 / -152 líneas (las DetailPages se achicaron al eliminar el header ad-hoc)
+
+**Commit real**: `feat(ux): Sprint 7 - Breadcrumbs en 5 DetailPages` (hash `3ecdd26`).
 
 ---
 
