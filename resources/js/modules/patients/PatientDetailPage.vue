@@ -1,51 +1,34 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">
-            {{ patient?.first_name }} {{ patient?.last_name }}
-          </h1>
-          <p class="text-theme-secondary">
-            ID: {{ patient?.id }} | {{ patient?.email }} | {{ patient?.phone }}
-          </p>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <UiButton
-            variant="secondary"
-            @click="goBack"
-            class="flex items-center gap-2"
-          >
+    <PageHeader
+      :title="`${patient?.first_name || ''} ${patient?.last_name || ''}`"
+      :subtitle="patient ? `ID: ${patient.id} | ${patient.email || ''} | ${patient.phone || ''}` : ''"
+      :breadcrumbs="[{ to: '/patients', label: 'Pacientes' }]"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton variant="secondary" @click="goBack">
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-          <UiButton
-            @click="exportPatientFile"
-            :disabled="exporting"
-            class="flex items-center gap-2"
-            variant="secondary"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          </template>
+          Volver
+        </UiButton>
+        <UiButton
+          @click="exportPatientFile"
+          :disabled="exporting"
+          variant="secondary"
+        >
+          <template #icon-left>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            {{ exporting ? 'Exportando...' : 'Exportar Ficha' }}
-          </UiButton>
-          <UiButton
-            v-if="can.editPatient?.value"
-            @click="editPatient"
-            class="flex items-center gap-2"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Editar
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Exportar
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Patient Info Card -->
     <UiCard variant="glass" class="mb-6">

@@ -1,51 +1,22 @@
 <template>
   <AppLayout>
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">
-            {{ procedure?.name || 'Cargando...' }}
-          </h1>
-          <p v-if="procedure" class="text-theme-secondary font-mono text-sm">
-            {{ procedure.code }}
-          </p>
-        </div>
-        <div class="flex gap-3">
-          <UiButton variant="secondary" class="flex items-center gap-2" @click="goBack">
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
+    <PageHeader
+      :title="procedure?.name || 'Cargando...'"
+      :subtitle="procedure?.code ? `Código: ${procedure.code}` : ''"
+      :breadcrumbs="[{ to: '/procedure-catalog', label: 'Catálogo de Procedimientos' }]"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton variant="secondary" @click="goBack">
+          <template #icon-left>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-          <UiButton v-if="procedure" class="flex items-center gap-2" @click="goEdit">
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
-            Editar
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Volver
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="p-8 text-center">
       <LoadingSpinner />
