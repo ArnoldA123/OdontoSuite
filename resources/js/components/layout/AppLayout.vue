@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-theme-background">
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col transition-all duration-300"
+      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col sidebar-slide transition-all duration-300"
       :class="{ 'lg:w-16': sidebarCollapsed }"
     >
       <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
@@ -46,6 +46,7 @@
             :to="item.to"
             :class="getNavItemClasses(item)"
             :title="sidebarCollapsed ? item.name : ''"
+            :aria-current="route.path === item.to ? 'page' : undefined"
           >
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
             <span
@@ -607,7 +608,7 @@ const navigation = computed(() => {
       to: '/calendar',
       icon: CalendarIcon,
       roles: ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
-      badge: { text: '5', variant: 'primary' }
+      badge: null
     },
     {
       name: 'Pacientes',
@@ -862,5 +863,21 @@ onUnmounted(() => {
 .router-link-exact-active {
   background-color: var(--color-primary-light);
   color: var(--color-primary-dark);
+}
+
+/* Sidebar entrance animation */
+@keyframes sidebarSlideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.sidebar-slide {
+  animation: sidebarSlideIn 0.3s ease-out;
 }
 </style>
