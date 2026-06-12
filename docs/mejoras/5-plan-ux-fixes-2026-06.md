@@ -33,7 +33,7 @@ Arnold testeó la app manualmente como usuario final y reportó **5 problemas co
 
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
-| 0 | Bugfixes críticos: EmptyState + Test Components + Logo | 0.5 d-h | ⏳ Pendiente | 1 fix de 1 línea + 1 ruta eliminada + 1 link agregado |
+| 0 | Bugfixes críticos: EmptyState + Test Components + Logo | 0.5 d-h | ✅ HECHO (commit `ebd171a`) | 1 fix de 1 línea + 1 ruta eliminada + 1 link agregado |
 | 1 | Sidebar colapsable + notificaciones funcionales | 1.0 d-h | ⏳ Pendiente | 2 componentes tuneados + 1 composable de notificaciones |
 | 2 | (Reservado) Polish visual: hamburger, animaciones, a11y | 0.5 d-h | ⏳ Pendiente | si quedan items del feedback tras Sprint 1 |
 | **Total** | **2-3 sprints** | **~1.5-2.0 d-h** | **0 d-h ejecutados** | 5 bugs cerrados + 0 regresiones |
@@ -299,7 +299,16 @@ El `aria-label` solo aparece cuando el sidebar está colapsado (cuando no se ve 
 
 ---
 
-## 8. Verificación global al cerrar el plan
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit `ebd171a` en `fix/ux-sprint-0-critical-bugs`. 3 bugs críticos cerrados:
+  - B-UX-5: `import { computed } from 'vue'` agregado a `EmptyState.vue` — PatientsPage y ProcedureCatalogPage ya no explotan en consola cuando la lista está vacía.
+  - B-UX-1: Item "Test Components" eliminado del array `navigation` en `AppLayout.vue` (la ruta `/test` no existía como página).
+  - B-UX-2: Logo "OdontoSuite" del sidebar ahora es un `<router-link to="/dashboard">` con `focus-ring` y `aria-label` condicional.
+
+---
+
+## 10. Verificación global al cerrar el plan
 
 - `pnpm build` sin warnings.
 - Smoke test: Dashboard, Calendar, Patients (con datos + con lista vacía), ProcedureCatalog (con datos + con lista vacía), MedicalRecords, Quotations.
