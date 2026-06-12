@@ -41,7 +41,7 @@ Adicional: agregar `focus:outline-none focus-visible:ring-2 focus-visible:ring-p
 
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
-| 0 | Un solo toggle de sidebar (header condicional + focus visible) | 0.25 d-h | ⏳ Pendiente | 1 archivo: AppLayout.vue |
+| 0 | Un solo toggle de sidebar (header condicional + focus visible) | 0.25 d-h | ✅ HECHO (commit `9a622df`) | 1 archivo: AppLayout.vue |
 | **Total** | **1 sprint** | **~0.25 d-h** | **0 d-h ejecutados** | 3 bugs cerrados |
 
 ---
@@ -151,3 +151,13 @@ Adicional: agregar `focus:outline-none focus-visible:ring-2 focus-visible:ring-p
 - Click en hamburguesa del header (colapsado) → sidebar expande + aparece chevron dentro del sidebar.
 - Tab desde el navegador: focus ring aparece en el botón (no se queda pegado al click).
 - 0 regresiones en planes #1-#6.
+
+---
+
+## 9. Changelog
+
+- **2026-06-12** — Sprint 0 ✅ HECHO. Commit `9a622df` en `fix/ux-sprint-0-single-toggle`. 3 bugs cerrados:
+  - B-UX-9 + B-UX-11: Hamburger del header ahora con `v-if="sidebarCollapsed"`. Solo aparece cuando el sidebar está colapsado. El chevron dentro del sidebar (v-if="!sidebarCollapsed") se mantiene. Resultado: **1 solo botón visible a la vez** (header si colapsado, sidebar si expandido). Patrón estándar Linear/Notion/GitHub.
+  - B-UX-10: Ambos botones con `focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2`. Ring aparece SOLO con navegación por teclado (Tab), no al click. Elimina el "marco azul" persistente.
+
+**PLAN CERRADO**. 3/3 bugs cerrados en 0.25 d-h. 0 regresiones.
