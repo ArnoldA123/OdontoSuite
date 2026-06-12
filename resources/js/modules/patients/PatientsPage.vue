@@ -1,36 +1,36 @@
 <template>
   <AppLayout>
     <!-- Header Section -->
-    <div class="mb-8 animate-fade-in">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-theme-primary mb-2">Pacientes</h1>
-          <p class="text-theme-secondary">Gestiona la información de tus pacientes</p>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-3">
-          <UiButton
-            variant="secondary"
-            @click="goBack"
-            class="flex items-center gap-2"
-          >
+    <PageHeader
+      title="Pacientes"
+      subtitle="Gestiona la información de tus pacientes"
+      class="mb-6"
+    >
+      <template #actions>
+        <UiButton
+          variant="secondary"
+          @click="goBack"
+        >
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Volver
-          </UiButton>
-          <UiButton
-            v-if="can.createPatient?.value"
-            @click="showNewPatientModal = true"
-            class="flex items-center gap-2"
-          >
+          </template>
+          Volver
+        </UiButton>
+        <UiButton
+          v-if="can.createPatient?.value"
+          @click="showNewPatientModal = true"
+        >
+          <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Nuevo Paciente
-          </UiButton>
-        </div>
-      </div>
-    </div>
+          </template>
+          Nuevo Paciente
+        </UiButton>
+      </template>
+    </PageHeader>
 
     <!-- Search and Filters -->
     <UiCard variant="glass" class="mb-6">
@@ -88,7 +88,7 @@
 
       <UiCard variant="glass" class="hover-lift">
         <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -100,7 +100,7 @@
 
       <UiCard variant="glass" class="hover-lift">
         <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
@@ -112,7 +112,7 @@
 
       <UiCard variant="glass" class="hover-lift">
         <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+          <div class="w-12 h-12 bg-gradient-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
@@ -126,24 +126,17 @@
     <!-- Patients List -->
     <UiCard variant="glass" class="overflow-hidden">
       <!-- Loading State -->
-      <div v-if="loading" class="p-12 text-center">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
-        <p class="mt-4 text-theme-secondary">Cargando pacientes...</p>
-      </div>
+      <LoadingSpinner v-if="loading" class="p-12" size="lg" text="Cargando pacientes..." />
 
       <!-- Empty State -->
-      <div v-else-if="filteredPatients.length === 0" class="p-12 text-center">
-        <div class="w-16 h-16 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-          <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-theme-primary mb-2">No se encontraron pacientes</h3>
-        <p class="text-theme-secondary mb-4">Intenta ajustar los filtros de búsqueda</p>
-        <UiButton variant="secondary" @click="resetFilters">
-          Limpiar filtros
-        </UiButton>
-      </div>
+      <EmptyState
+        v-else-if="filteredPatients.length === 0"
+        class="p-12"
+        title="No se encontraron pacientes"
+        description="Intenta ajustar los filtros de búsqueda"
+        action-label="Limpiar filtros"
+        @action="resetFilters"
+      />
 
       <!-- Desktop Table View -->
       <div v-else class="hidden lg:block overflow-x-auto">
