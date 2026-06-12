@@ -3,11 +3,11 @@
     <!-- Desktop Sidebar -->
     <aside
       class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col sidebar-slide transition-all duration-300"
-      :class="{ 'lg:w-16': sidebarCollapsed }"
+      :class="sidebarCollapsed ? 'lg:w-14' : 'lg:w-72'"
     >
       <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
         <!-- Logo -->
-        <div class="flex items-center flex-shrink-0 px-6 py-6 border-b border-theme/50">
+        <div class="flex items-center flex-shrink-0 py-6 border-b border-theme/50 transition-all duration-300" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
           <router-link
             to="/dashboard"
             class="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-lg"
@@ -194,7 +194,7 @@
     </UiSheet>
 
     <!-- Main Content -->
-    <div class="lg:pl-72 transition-all duration-300" :class="{ 'lg:pl-16': sidebarCollapsed }">
+    <div class="lg:pl-72 transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
       <!-- Header -->
       <header class="relative z-30 bg-theme-surface-elevated/80 backdrop-blur-md shadow-subtle border-b border-theme/50">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -222,14 +222,14 @@
               <!-- WebSocket connection indicator -->
               <div
                 v-if="wsStatus !== 'connecting'"
-                class="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+                class="flex items-center justify-center w-8 h-8 rounded-full"
                 :class="{
                   'bg-success-badge text-success-text': wsStatus === 'connected',
                   'bg-warning-badge text-warning-text': wsStatus === 'disconnected',
                   'bg-danger-badge text-error-700': wsStatus === 'unavailable',
                 }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
-                :title="`WebSocket: ${wsStatus}`"
+                :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
               >
                 <span
                   class="w-2 h-2 rounded-full"
@@ -240,9 +240,6 @@
                   }"
                   aria-hidden="true"
                 />
-                <span class="hidden md:inline">
-                  {{ wsStatus === 'connected' ? 'En vivo' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS' }}
-                </span>
               </div>
 
               <!-- Notifications -->
