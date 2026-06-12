@@ -31,7 +31,7 @@ El plan #5 cerró 5 bugs y 3 polishes, pero al validar visualmente surgieron **3
 
 | # | Sprint | Esfuerzo | Estado | Alcance |
 |---|---|---|---|---|
-| 0 | Sidebar colapsado más compacto + header menos denso | 0.5 d-h | ⏳ Pendiente | 2 archivos: AppLayout.vue |
+| 0 | Sidebar colapsado más compacto + header menos denso | 0.5 d-h | ✅ HECHO (commit `b87b2e8`) | 2 archivos: AppLayout.vue |
 | 1 | Header mobile opaco + a11y + consistencia visual | 0.5 d-h | ⏳ Pendiente | 1 archivo: AppLayout.vue |
 | **Total** | **2 sprints** | **~1.0 d-h** | **0 d-h ejecutados** | 3 bugs cerrados |
 
