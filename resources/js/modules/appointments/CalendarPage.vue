@@ -7,6 +7,17 @@
       class="mb-6"
     >
       <template #actions>
+        <span
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-badge text-success-text text-xs font-medium"
+          aria-label="Actualizaciones en tiempo real activas"
+          title="Actualizaciones en tiempo real activas"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-success-500 animate-pulse-subtle"
+            aria-hidden="true"
+          />
+          En vivo
+        </span>
         <UiButton
           variant="secondary"
           @click="goBack"
@@ -143,7 +154,7 @@
               <div
                 v-for="appointment in getAppointmentsForHour(hour)"
                 :key="appointment.id"
-                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm hover-lift transition-all duration-200 cursor-pointer"
                 :class="getAppointmentClasses(appointment)"
                 @click="selectAppointment(appointment)"
               >
@@ -231,7 +242,7 @@
               <div
                 v-for="appointment in getAppointmentsForDayAndHour(day.date, hour)"
                 :key="appointment.id"
-                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer hover:shadow-md transition-all duration-200 z-10"
+                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer hover-lift transition-all duration-200 z-10"
                 :class="getAppointmentClasses(appointment)"
                 @click="selectAppointment(appointment)"
               >

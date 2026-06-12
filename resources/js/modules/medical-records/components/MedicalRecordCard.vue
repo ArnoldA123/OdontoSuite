@@ -133,7 +133,7 @@ const confirmDelete = () => {
 
 <style scoped>
 .medical-record-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover:shadow-md transition-shadow;
+  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-shadow;
 }
 
 .card-header {

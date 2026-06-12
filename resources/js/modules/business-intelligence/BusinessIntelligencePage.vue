@@ -5,7 +5,21 @@
         title="Business Intelligence"
         subtitle="Analisis y reportes del sistema"
         class="mb-6"
-      />
+      >
+        <template #actions>
+          <span
+            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-badge text-success-text text-xs font-medium"
+            aria-label="Actualizaciones en tiempo real activas"
+            title="Actualizaciones en tiempo real activas"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-success-500 animate-pulse-subtle"
+              aria-hidden="true"
+            />
+            En vivo
+          </span>
+        </template>
+      </PageHeader>
         <!-- Filters Section -->
         <UiCard variant="glass">
           <template #header>

@@ -265,7 +265,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 <style scoped>
 .treatment-plan-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover:shadow-md transition-all cursor-pointer;
+  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-all cursor-pointer;
   border-left-width: 4px;
 }
 

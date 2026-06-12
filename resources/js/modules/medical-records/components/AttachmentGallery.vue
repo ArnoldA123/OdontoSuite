@@ -284,7 +284,7 @@ const viewAnalysis = (analysis) => {
 }
 
 .attachment-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer;
+  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4 hover-lift transition-shadow cursor-pointer;
 }
 
 .attachment-preview {

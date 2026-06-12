@@ -196,7 +196,7 @@ const confirmDelete = () => {
 
 <style scoped>
 .quotation-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover:shadow-md transition-shadow;
+  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-shadow;
 }
 
 .card-header {
