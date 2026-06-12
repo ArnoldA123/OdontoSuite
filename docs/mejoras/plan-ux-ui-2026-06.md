@@ -50,13 +50,13 @@ OdontoSuite V2 ya tiene **un design system Apple/iCloud completo y bien armado**
 | 1 | Design system: guía + componentes faltantes | 1.5 d-h | ✅ HECHO (commits `2a246a3` + `7e3bdd3` + `8490240` + `913db23`) | 4 componentes nuevos + README + 9 registrados como globales |
 | 2 | Layouts base: PageHeader + patrones de página | 1.5 d-h | ✅ HECHO (commit `0944584` + `fa61ccb`) | 5 páginas top migradas (Dashboard, Calendar, Patients, CashRegister, BusinessIntelligence) |
 | 3 | Migrar paleta a la canónica | 1.0 d-h | ✅ HECHO (commit `c7010bb` + `fe77929`) | 18 archivos, 52→0 colores crudos |
-| 4 | Apple animations: aplicar scale/slide/ripple | 1.0 d-h | ⏳ Pendiente | 8+ vistas + 4 componentes UI |
-| 5 | App-wide UX: WebSocket feedback + ConfirmDialog | 0.75 d-h | ⏸️ Pendiente | 1 composable + 1 componente |
-| 6 | Migrar módulos restantes a PageHeader pattern | 3.0 d-h | ⏸️ Pendiente | 12 páginas + 8 modales |
+| 4 | Apple animations: aplicar scale/slide/ripple | 1.0 d-h | ✅ HECHO (commit `4a2ac51` + `957ad0d`) | hover-lift propagado a 12 archivos, NotificationToast slide, badge "En vivo" en Calendar+BI |
+| 5 | App-wide UX: WebSocket feedback + ConfirmDialog | 0.75 d-h | ✅ HECHO (commit `a075616`) | useEcho state reactivo, dot WS en header, useConfirm composable, 16 confirm() nativos migrados |
+| 6 | Migrar módulos restantes a PageHeader pattern | 3.0 d-h | ⏳ Pendiente | 12 páginas + 8 modales |
 | 7 | Polish final: micro-interacciones, empty states, a11y | 1.5 d-h | ⏸️ Pendiente | cross-cutting |
-| **Total** | **8 sprints** | **~10.75 d-h** | **3.75 d-h hechos** | (~50-60 h reales, 4-5 sesiones ya completadas) |
+| **Total** | **8 sprints** | **~10.75 d-h** | **6.25 d-h hechos** | (~50-60 h reales, 5-6 sesiones ya completadas) |
 
-Cada sprint es **mergeable independientemente** a `main`. No hay bloqueos entre sprints 0-3 (ya mergeados); el sprint 4 puede arrancar de inmediato.
+Cada sprint es **mergeable independientemente** a `main`. Sprints 0-5 ya mergeados; Sprint 6 es el siguiente a ejecutar.
 
 ---
 
@@ -485,16 +485,46 @@ Trade-off aceptado: se pierde scroll position y estado de forms al cambiar de p�
 
 ---
 
-### Sprint 5 — App-wide UX: WebSocket feedback + ConfirmDialog (0.75 d-h)
+### Sprint 5 — App-wide UX: WebSocket feedback + ConfirmDialog (0.75 d-h) — ✅ **HECHO 2026-06-12** (commit `a075616`)
 
 **Objetivo**: feedback de WebSocket + eliminar `window.confirm()` nativos.
 
-**Branch**: `feat/ux-sprint-5-feedback`
+**Branch**: `feat/ux-sprint-5-feedback` (mergeada a `main` via `--no-ff`)
 
 **Tareas**:
-- [ ] **M-UX-2**: `useEcho.js` — agregar `console.warn` a los `catch` vacíos y un `toast.warning` (usando `useToast`) cuando Reverb falla 3+ veces. En `CalendarPage.vue`, `DashboardPage.vue`, `BusinessIntelligencePage.vue`, `TreatmentPlansPage.vue`: agregar `console.warn` al `catch` del subscribe.
-- [ ] **M-UX-2 (indicador visual)**: agregar dot pequeño en `AppLayout.vue` header (junto al avatar del usuario): verde con `animate-pulse-subtle` si WS conectado, gris si desconectado, con tooltip. Reusar `useEcho()` en el layout.
-- [ ] **M-UX-3**: `ConfirmDialog.vue` (creado en Sprint 1) — migrar los 6 sitios que usan `window.confirm()`:
+- [x] **M-UX-2**: `useEcho.js` — reescrito con:
+  - State reactivo singleton `connectionStatus` ('connecting'|'connected'|'disconnected'|'unavailable')
+  - `console.warn` en todos los `catch` vacíos (PusherError, TransportError, state_change, unavailable, failed)
+  - Backoff exponencial en reconexion: 5s → 10s → 20s → 40s → 60s (cap), max 10 reintentos
+  - Reset a `connecting` al `reconnect()` forzado
+- [x] **M-UX-2 (indicador visual)**: agregado en `AppLayout.vue` header (antes del bell de notifications):
+  - `bg-success-badge text-success-text` + `animate-pulse-subtle` cuando conectado → label "En vivo"
+  - `bg-warning-badge text-warning-text` cuando disconnected → "Reconectando"
+  - `bg-danger-badge text-error-700` cuando unavailable → "Sin WS"
+  - aria-label + title para accesibilidad
+- [x] **M-UX-3**: nuevo composable `useConfirm.js` con:
+  - Singleton state compartido (isOpen, title, message, confirmText, cancelText, variant, loading)
+  - `confirm(options)` retorna `Promise<boolean>` (api: title, message, confirmText, cancelText, variant)
+  - Helpers export para montar el modal globalmente
+- [x] **M-UX-3 (modal global)**: `<UiConfirmDialog>` montado en `AppLayout.vue` después del `<ToastContainer>`, conectado a los refs singleton del composable via import named.
+- [x] **M-UX-3 (16 migraciones)**: 16 sitios con `window.confirm()` migrados a `await confirm({...})`. **El plan estimaba 6, la realidad eran 16** (verificado con grep). Archivos: AiAnalysisPage, AppointmentTypesPage, CalendarPage, CashRegisterPage, MovementList, SessionList, TransactionList, EnvironmentsPage, AttachmentGallery, EvolutionTimeline, MedicalRecordCard, PatientsPage, ProfessionalsPage, QuotationCard, TreatmentPlanCard, TreatmentPlanModal. Todos con `variant: 'danger'`.
+
+**Verificación** (real):
+- `pnpm build` → 0 errores (9.06s).
+- `grep -rE "(window\.)?confirm[(]" resources/js --include="*.vue"` → **0 ocurrencias nativas** (antes: 16). Los matches que aparecen son del composable (`await confirm({...})`).
+- 16/16 archivos con `await confirm` también tienen el `import { useConfirm }` correspondiente.
+- Bundle principal: 480.45 KB (+0.86 KB por el modal global).
+- Diff stats: 19 archivos, +356 / -48 líneas (incluye composable nuevo).
+
+**Commit real**: `feat(ux): Sprint 5 - WebSocket feedback real + ConfirmDialog global` (hash `a075616`).
+
+**Deviations del plan**:
+1. **16 confirm() nativos en lugar de 6 estimados** (el plan subestimó). Migrados todos.
+2. **Composable nuevo `useConfirm.js` en lugar de usar `<UiConfirmDialog>` con v-model local por vista**: más DRY (1 modal global en lugar de 16 duplicados).
+3. **Solo 2 handlers en AppLayout** (handleGlobalConfirm, handleGlobalCancel) en lugar de 16 v-models: el state singleton es la fuente de verdad.
+4. **M-UX-5 (`app.blade.php`)** sigue PENDIENTE (decidido en Sprint 3). No se abordó en este sprint.
+
+**Deliverable detallado**: `docs/mejoras/sprint-5-deliverable.md` (tabla con los 16 sitios migrados, decisiones de diseño, métricas).
   1. `TreatmentPlanCard.vue:249-254` (eliminar plan)
   2. `CalendarPage.vue:880` (eliminar cita — `confirm("¿Estás seguro...")`)
   3. `PatientsPage.vue` (eliminar paciente — verificado en grep)
