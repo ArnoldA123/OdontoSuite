@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-theme-background">
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col sidebar-slide transition-all duration-300"
+      class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col sidebar-slide transition-all duration-300"
       :class="sidebarCollapsed ? 'lg:w-14' : 'lg:w-72'"
     >
       <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
@@ -194,7 +194,7 @@
     </UiSheet>
 
     <!-- Main Content -->
-    <div class="lg:pl-72 transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
+    <div class="transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
       <!-- Header -->
       <header class="relative z-30 bg-theme-surface-elevated/80 backdrop-blur-md shadow-subtle border-b border-theme/50">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
