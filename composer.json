@@ -12,7 +12,8 @@
         "laravel/reverb": "^1.6",
         "laravel/sanctum": "^4.2",
         "laravel/tinker": "^2.10.1",
-        "maatwebsite/excel": "^1.1"
+        "maatwebsite/excel": "^1.1",
+        "mercadopago/dx-php": "^3.10"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
