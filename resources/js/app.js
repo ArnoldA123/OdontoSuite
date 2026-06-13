@@ -168,6 +168,13 @@ const routes = [
     name: 'settings-branches',
     component: () => import('./modules/settings/branches/BranchesPage.vue'),
     beforeEnter: requireAuth
+  },
+  // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo administrador).
+  {
+    path: '/settings/payment-methods',
+    name: 'settings-payment-methods',
+    component: () => import('./modules/settings/payment-methods/PaymentMethodsPage.vue'),
+    beforeEnter: requireAuth
   }
 ];
 
