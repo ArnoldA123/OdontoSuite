@@ -192,8 +192,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('reports/utilization', [ReportController::class, 'utilization']);
     Route::get('reports/{reportType}/export', [ReportController::class, 'export']);
 
-    // Rutas de sucursales para el frontend (temporarily without auth for testing)
+    // Rutas de sucursales para el frontend (accesible para todos los roles autenticados)
     Route::get('branches/active', [BranchController::class, 'index']);
+
+    // Metodos de pago activos (accesible para todos los roles autenticados).
+    // Sprint 2: endpoint separado del CRUD admin para que recepcionistas
+    // y finanzas puedan listar metodos en dropdowns de cobro sin role:admin.
+    Route::get('payment-methods/active', [PaymentMethodController::class, 'index']);
 
     // Dashboard (todos los roles autenticados)
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
@@ -350,7 +355,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Sistema de caja (finanzas y admin)
     Route::middleware('role:administrador,finanzas')->group(function () {
-        Route::apiResource('payment-methods', PaymentMethodController::class);
+        // CRUD admin solo administrador (B-CASH-3, Sprint 2).
+        // El endpoint publico /payment-methods/active esta en el
+        // grupo sin role (linea ~201), Pattern L del skill.
+        Route::middleware('role:administrador')->apiResource('payment-methods', PaymentMethodController::class);
         // Transacciones y movimientos requieren sesion de caja abierta.
         // La apertura/cierre de sesion NO requiere sesion (la crea/termina),
         // asi que se aplica el middleware cash.session solo a los resources
