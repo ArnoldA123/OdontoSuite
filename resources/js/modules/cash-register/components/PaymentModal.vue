@@ -2,12 +2,34 @@
   <Modal
     :model-value="show"
     title="Registrar Cobro de Paciente"
-    size="xl"
+    :size="activeTab === 'manual' ? 'xl' : 'lg'"
     @update:model-value="$emit('close')"
     @close="$emit('close')"
     class="overflow-y-auto"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6">
+    <!-- Tabs: Manual / Mercado Pago -->
+    <div class="flex gap-0 mb-4 border-b border-theme">
+      <button
+        class="px-4 py-2 text-sm font-medium transition-colors"
+        :class="activeTab === 'manual'
+          ? 'text-accent border-b-2 border-accent'
+          : 'text-theme-secondary hover:text-theme-primary'"
+        @click="activeTab = 'manual'"
+      >
+        Cobro Manual
+      </button>
+      <button
+        class="px-4 py-2 text-sm font-medium transition-colors"
+        :class="activeTab === 'mercadopago'
+          ? 'text-accent border-b-2 border-accent'
+          : 'text-theme-secondary hover:text-theme-primary'"
+        @click="switchToMercadoPago"
+        :disabled="!canSubmit"
+      >
+        Cobro con Mercado Pago
+      </button>
+    </div>
+    <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6">
       <!-- Información del Paciente -->
       <div class="bg-theme-surface border border-theme rounded-lg p-3 md:p-4">
         <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Información del Paciente</h3>
@@ -215,6 +237,16 @@
       </div>
     </form>
 
+    <!-- Mercado Pago Checkout (Sprint 3, plan #11) -->
+    <MercadoPagoCheckout
+      v-if="activeTab === 'mercadopago' && pendingTransactionId"
+      :transaction-id="pendingTransactionId"
+      :amount="formData.amount"
+      :description="formData.concept"
+      @close="handleMpCancel"
+      @success="handleMpSuccess"
+    />
+
     <template #footer>
       <!-- Botones responsive: stack en móvil, inline en desktop -->
       <div class="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3">
@@ -252,6 +284,7 @@ import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
+import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
   show: {
@@ -294,6 +327,69 @@ const formData = ref({
   reference: '',
   notes: ''
 })
+
+// Mercado Pago (Sprint 3, plan #11)
+const activeTab = ref('manual')
+const pendingTransactionId = ref(null)
+
+const switchToMercadoPago = async () => {
+  if (!validateForm()) return
+
+  loading.value = true
+  errors.value = {}
+  try {
+    // Crear transaccion local como pendiente
+    const transactionData = {
+      patient_id: formData.value.patient_id,
+      appointment_id: formData.value.appointment_id || null,
+      description: formData.value.concept,
+      amount: formData.value.amount,
+      reference_number: null,
+      notes: formData.value.notes || null,
+      type: 'payment'
+    }
+
+    const result = await createTransaction(transactionData)
+    const txId = result?.id || result?.data?.id
+
+    if (txId) {
+      pendingTransactionId.value = txId
+      activeTab.value = 'mercadopago'
+    } else {
+      toast.error('Error al crear la transaccion para Mercado Pago')
+    }
+  } catch (error) {
+    if (error.response?.data?.errors) {
+      errors.value = error.response.data.errors
+    } else {
+      toast.error(error.response?.data?.message || 'Error al preparar pago con Mercado Pago')
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleMpCancel = () => {
+  pendingTransactionId.value = null
+  activeTab.value = 'manual'
+}
+
+const handleMpSuccess = () => {
+  toast.success('Cobro con Mercado Pago registrado exitosamente')
+
+  emit('success', {
+    transaction: { id: pendingTransactionId.value },
+    patient: selectedPatient.value,
+    amount: formData.value.amount,
+    concept: formData.value.concept,
+    paymentMethod: { name: 'Mercado Pago' },
+    transactionNumber: pendingTransactionId.value
+  })
+  emit('close')
+  resetForm()
+  pendingTransactionId.value = null
+  activeTab.value = 'manual'
+}
 
 // Datos de carga
 const paymentMethods = ref([])
