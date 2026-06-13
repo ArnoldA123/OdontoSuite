@@ -42,14 +42,14 @@ export function useBranches () {
       loading.value = true
       error.value = null
       const response = await get(`/api/branches?${buildQuery(filters)}`)
-      // El backend devuelve { data: [...] } sin paginar, o { data: { data: [...], meta: {...} } }
-      // si fuera paginado. Aceptamos ambos formatos.
-      const body = response.data
-      if (body?.data && Array.isArray(body.data)) {
-        branches.value = body.data
-      } else if (body?.data && Array.isArray(body.data.data)) {
-        branches.value = body.data.data
-        pagination.value = body.data.meta || pagination.value
+      // response = { success: true, data: [...] } (BranchController custom format)
+      // O response = { data: { data: [...], meta: {...} } } (API Resource paginated)
+      // response.data directamente es el array en el formato custom
+      if (Array.isArray(response.data)) {
+        branches.value = response.data
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        branches.value = response.data.data
+        pagination.value = response.data.meta || pagination.value
       } else {
         branches.value = []
       }

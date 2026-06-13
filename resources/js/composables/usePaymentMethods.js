@@ -35,9 +35,9 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       loading.value = true
       error.value = null
       const response = await get(`${endpoint}?${buildQuery(filters)}`)
-      const body = response.data
-      if (body?.data && Array.isArray(body.data)) {
-        methods.value = body.data
+      // response = { success: true, data: [...] } (custom) o { data: [...] } (API Resource)
+      if (Array.isArray(response.data)) {
+        methods.value = response.data
       } else {
         methods.value = []
       }
