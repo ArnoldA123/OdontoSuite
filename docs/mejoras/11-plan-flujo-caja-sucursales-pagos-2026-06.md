@@ -86,8 +86,8 @@ curl -X GET http://127.0.0.1:8000/api/payment-methods -H "Authorization: Bearer 
 | 1 | Módulo `settings/branches` (CRUD admin) | 1.5 d-h | ✅ HECHO 2026-06-13 (en verificacion visual) | 8 archivos nuevos (1 composable, 2 pages, 1 modal, 1 router, 1 menu, 1 nav, 1 store), 1 modified (apiResource) |
 | 2 | Módulo `settings/payment-methods` (CRUD admin) | 1.5 d-h | ✅ HECHO 2026-06-13 (~1.3 d-h) | 5 archivos nuevos + 5 modificados (migration, model, controller, composable, page, modal, route, sidebar) |
 | 3 | Pasarela Mercado Pago (backend + frontend Bricks) | 3 d-h | ✅ HECHO 2026-06-13 (~2 d-h, 502 esperado sin internet publico) | SDK v3.10, 2 migrations, 2 models, service, controller, webhook, event, job, composable, brick component, tab en PaymentModal |
-| 4 | Polish UX: reemplazar `<select>` nativos por `Select.vue`, empty states, validaciones inline, loading skeletons | 0.7 d-h | ⏳ Pendiente | 5 modales migrados, design system consistency |
-| **Total** | **5 sprints** | **~7 d-h** | **~4.8 d-h ejecutados** | 4 bugs cerrados, 1 feature de pago real, 2 admin modules |
+| 4 | Polish UX: reemplazar `<select>` nativos por `Select.vue`, empty states, validaciones inline, loading skeletons | 0.7 d-h | ✅ HECHO 2026-06-13 (~0.5 d-h) | 5 modales migrados, design system consistency |
+| **Total** | **5 sprints** | **~7 d-h** | **~5.3 d-h ejecutados** |
 
 **Esfuerzo neto estimado: 1 sesión larga o 2 sesiones cortas (3-4 h cada una).**
 
@@ -625,3 +625,4 @@ Si querés cambiar alguna de estas, decime antes de arrancar Sprint 3. Para Spri
 - **2026-06-13**: plan creado. 5 sprints propuestos. ~7 d-h estimados.
 - **2026-06-13**: Sprint 0 ejecutado. 2 bugs cerrados (B-CASH-1, B-CASH-2). 0.3 d-h. Verificación E2E completa (backend + browser real).
 - **2026-06-13**: Sprint 3 ejecutado. SDK MP v3.10, service + controller + webhook firmado + event + job + frontend checkout Bricks integrado con PaymentModal vía tabs. ~2 d-h. Backend E2E funcional (502 por conexion MP en entorno local sin URL publica — esperado). pnpm build exit 0 (9.05s). Verificación pendiente con ngrok + tarjeta de prueba.
+- **2026-06-13**: Sprint 4 ejecutado. Polish UX: <select> reemplazados por <Select.vue> en 5 modales, loading skeletons, empty states, mensaje de comision visible. ~0.5 d-h. pnpm build exit 0.

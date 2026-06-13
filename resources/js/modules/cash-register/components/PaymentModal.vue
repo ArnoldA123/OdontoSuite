@@ -125,22 +125,15 @@
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
               Metodo de Pago *
             </label>
-            <select
+            <UiSelect
               v-model="formData.payment_method_id"
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
-                     text-theme-primary
-                     border-theme
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.payment_method_id }"
+              :options="paymentMethodOptions"
+              placeholder="Seleccionar metodo"
+              size="md"
+              searchable
+              :error="errors.payment_method_id"
               :disabled="loadingMethods"
-              required
-            >
-              <option value="">{{ loadingMethods ? 'Cargando metodos...' : (paymentMethods.length ? 'Seleccionar metodo' : 'No hay metodos de pago activos') }}</option>
-              <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
-                {{ method.name }}{{ method.commission_percentage > 0 ? ' (comision ' + method.commission_percentage + '%)' : '' }}
-              </option>
-            </select>
+            />
             <p v-if="!loadingMethods && paymentMethods.length === 0" class="mt-1 text-xs text-amber-600">
               No hay metodos de pago activos. Contacta al administrador.
             </p>
@@ -410,6 +403,17 @@ const canSubmit = computed(() => {
          formData.value.payment_method_id &&
          formData.value.amount > 0
 })
+
+// Sprint 4: transformar payment methods al formato UiSelect
+const paymentMethodOptions = computed(() =>
+  paymentMethods.value.map(m => ({
+    value: m.id,
+    label: m.name,
+    description: m.commission_percentage > 0
+      ? `Comision: ${m.commission_percentage}%`
+      : (m.description || '')
+  }))
+)
 
 // Metodos
 const loadPaymentMethods = async () => {
