@@ -300,7 +300,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'view', 'reopen'])
 
 const { get } = useApi()
-const { can } = usePermissions()
+const { manageCashRegister } = usePermissions()
 
 // Estado
 const filters = ref({
@@ -350,7 +350,7 @@ const reopenSession = async (session) => {
 }
 
 const canReopen = (session) => {
-  return session.status === 'closed' && can.value.manageCashRegister
+  return session.status === 'closed' && manageCashRegister.value
 }
 
 const formatDate = (dateTime) => {
