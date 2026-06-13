@@ -56,8 +56,8 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       loading.value = true
       error.value = null
       const response = await get(`${endpoint}/${id}`)
-      currentMethod.value = response.data.data
-      return response.data.data
+      currentMethod.value = response.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener el metodo de pago'
       throw err
@@ -71,7 +71,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       loading.value = true
       error.value = null
       const response = await post(endpoint, data)
-      const created = response.data.data
+      const created = response.data
       methods.value.unshift(created)
       return created
     } catch (err) {
@@ -87,7 +87,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       loading.value = true
       error.value = null
       const response = await put(`${endpoint}/${id}`, data)
-      const updated = response.data.data
+      const updated = response.data
       const index = methods.value.findIndex(m => m.id === id)
       if (index !== -1) methods.value[index] = updated
       if (currentMethod.value?.id === id) currentMethod.value = updated

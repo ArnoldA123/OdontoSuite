@@ -68,8 +68,8 @@ export function useBranches () {
       loading.value = true
       error.value = null
       const response = await get(`/api/branches/${id}`)
-      currentBranch.value = response.data.data
-      return response.data.data
+      currentBranch.value = response.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener la sucursal'
       throw err
@@ -83,7 +83,7 @@ export function useBranches () {
       loading.value = true
       error.value = null
       const response = await post('/api/branches', data)
-      const created = response.data.data
+      const created = response.data
       branches.value.unshift(created)
       return created
     } catch (err) {
@@ -99,7 +99,7 @@ export function useBranches () {
       loading.value = true
       error.value = null
       const response = await put(`/api/branches/${id}`, data)
-      const updated = response.data.data
+      const updated = response.data
       const index = branches.value.findIndex(b => b.id === id)
       if (index !== -1) branches.value[index] = updated
       if (currentBranch.value?.id === id) currentBranch.value = updated
