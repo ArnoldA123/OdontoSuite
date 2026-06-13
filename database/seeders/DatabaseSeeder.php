@@ -17,26 +17,30 @@ class DatabaseSeeder extends Seeder
             // 1. Usuarios y roles
             RoleBasedUsersSeeder::class,
 
-            // 2. Configuración
+            // 2. Configuracion base (sucursales y metodos de pago)
+            BranchSeeder::class,           // Sprint 0 (B-CASH-1): 3 sedes
+            PaymentMethodSeeder::class,    // Sprint 0 (B-CASH-2): 5 metodos del sistema
+
+            // 3. Configuracion clinica
             SpecialtySeeder::class,
             AppointmentTypeSeeder::class,
             EnvironmentSeeder::class,
             ProcedureCatalogSeeder::class, // depende de SpecialtySeeder
 
-            // 3. Pacientes
+            // 4. Pacientes
             PatientSeeder::class, // 100 pacientes
 
-            // 4. Citas y recordatorios
+            // 5. Citas y recordatorios
             SimpleAppointmentsSeeder::class, // 100 citas
             ReminderSchedulesSeeder::class,
 
-            // 5. Sistema de caja
+            // 6. Sistema de caja
             CashRegisterSeeder::class,
 
-            // 6. Citas completadas con pagos pendientes
+            // 7. Citas completadas con pagos pendientes
             CompletedAppointmentsSeeder::class,
 
-            // 7. Registros de especialidades
+            // 8. Registros de especialidades
             SpecialtyRecordSeeder::class,
         ]);
     }
