@@ -101,7 +101,7 @@
 
           <div>
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
-              Método de Pago *
+              Metodo de Pago *
             </label>
             <select
               v-model="formData.payment_method_id"
@@ -111,13 +111,17 @@
                      border-theme
                      focus:ring-primary-500 focus:border-accent"
               :class="{ 'border-red-500': errors.payment_method_id }"
+              :disabled="loadingMethods"
               required
             >
-              <option value="">Seleccionar método</option>
+              <option value="">{{ loadingMethods ? 'Cargando metodos...' : (paymentMethods.length ? 'Seleccionar metodo' : 'No hay metodos de pago activos') }}</option>
               <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
-                {{ method.name }}
+                {{ method.name }}{{ method.commission_percentage > 0 ? ' (comision ' + method.commission_percentage + '%)' : '' }}
               </option>
             </select>
+            <p v-if="!loadingMethods && paymentMethods.length === 0" class="mt-1 text-xs text-amber-600">
+              No hay metodos de pago activos. Contacta al administrador.
+            </p>
             <p v-if="errors.payment_method_id" class="mt-1 text-xs md:text-sm text-red-600">
               {{ errors.payment_method_id[0] }}
             </p>
@@ -247,6 +251,7 @@ import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useTransactions } from '@/composables/useTransactions'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   show: {
@@ -272,9 +277,11 @@ const emit = defineEmits(['close', 'success'])
 // Composables
 const { getPaymentMethods } = useCashRegister()
 const { createTransaction } = useTransactions()
+const toast = useToast()
 
 // Estado
 const loading = ref(false)
+const loadingMethods = ref(false)
 const errors = ref({})
 
 // Datos del formulario
@@ -308,17 +315,21 @@ const canSubmit = computed(() => {
          formData.value.amount > 0
 })
 
-// Métodos
+// Metodos
 const loadPaymentMethods = async () => {
+  loadingMethods.value = true
   try {
     const methodsData = await getPaymentMethods()
     paymentMethods.value = methodsData.data || []
   } catch (error) {
-
-    // Si falla la autenticación, mostrar mensaje al usuario
+    toast.error('No se pudieron cargar los metodos de pago. Verifica tu conexion.')
+    // Si falla la autenticacion, mostrar mensaje al usuario
     if (error.response?.status === 401) {
+      // token expirado, redirigir a login lo maneja el guard global
     }
     paymentMethods.value = []
+  } finally {
+    loadingMethods.value = false
   }
 }
 

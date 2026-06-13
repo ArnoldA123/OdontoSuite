@@ -1,14 +1,14 @@
 <template>
   <Modal
     :model-value="show"
-    title="Abrir Sesión de Caja"
+    title="Abrir Sesion de Caja"
     size="md"
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
     <form @submit.prevent="handleSubmit" class="space-y-4">
         <!-- Sucursal -->
-        <div>
+        <div v-if="!loadingBranches && branches.length > 0">
           <label class="block text-sm font-medium text-theme-primary mb-1">
             Sucursal <span class="text-red-500">*</span>
           </label>
@@ -23,9 +23,26 @@
               :key="branch.id"
               :value="branch.id"
             >
-              {{ branch.name }}
+              {{ branch.name }} ({{ branch.code }})
             </option>
           </select>
+        </div>
+
+        <!-- Empty state: no hay sucursales cargadas -->
+        <div v-else-if="!loadingBranches && branches.length === 0">
+          <EmptyState
+            :icon="BuildingOfficeIcon"
+            title="No hay sucursales registradas"
+            description="Para abrir caja necesitas al menos una sucursal activa en el sistema."
+            :action-text="canManageBranches ? 'Ir a Configuracion de Sucursales' : ''"
+            action-variant="primary"
+            @action="goToBranchesSettings"
+          />
+        </div>
+
+        <!-- Loading state -->
+        <div v-else class="py-8 text-center text-theme-secondary text-sm">
+          Cargando sucursales...
         </div>
 
         <!-- Monto de Apertura -->
@@ -60,7 +77,7 @@
         </div>
 
         <!-- Resumen -->
-        <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
+        <div v-if="branches.length > 0" class="bg-primary-50 border border-primary-200 rounded-lg p-4">
           <h3 class="text-sm font-semibold text-primary-900 mb-2">Resumen de Apertura</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
@@ -94,6 +111,7 @@
           Cancelar
         </Button>
         <Button
+          v-if="branches.length > 0"
           type="submit"
           variant="primary"
           :loading="loading"
@@ -113,11 +131,14 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useApi } from '@/composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
-import { BanknotesIcon } from '@heroicons/vue/24/outline'
+import { usePermissions } from '@/composables/usePermissions'
+import { useRouter } from 'vue-router'
+import { BanknotesIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 
 // Configurar herencia de atributos
 defineOptions({
@@ -137,9 +158,12 @@ const { openSession } = useCashRegister()
 const { get } = useApi()
 const { user: currentUser } = useAuth()
 const toast = useToast()
+const { isAdministrador } = usePermissions()
+const router = useRouter()
 
 // Estado
 const loading = ref(false)
+const loadingBranches = ref(false)
 const errors = ref({})
 const branches = ref([])
 
@@ -150,7 +174,7 @@ const formData = ref({
   opening_notes: ''
 })
 
-// Validación simple
+// Validacion simple
 const validateForm = () => {
   if (!formData.value.branch_id) {
     errors.value.branch_id = 'La sucursal es requerida'
@@ -174,14 +198,26 @@ const canSubmit = computed(() => {
          !loading.value
 })
 
+const canManageBranches = computed(() => isAdministrador.value)
 
-// Métodos
+
+// Metodos
 const loadBranches = async () => {
+  loadingBranches.value = true
   try {
     const response = await get('/api/branches')
     branches.value = response.data || []
   } catch (error) {
+    toast.error('No se pudieron cargar las sucursales. Verifica tu conexion e intenta de nuevo.')
+    branches.value = []
+  } finally {
+    loadingBranches.value = false
   }
+}
+
+const goToBranchesSettings = () => {
+  emit('close')
+  router.push('/settings/branches')
 }
 
 const handleSubmit = async () => {
@@ -202,7 +238,7 @@ const handleSubmit = async () => {
       opening_notes: formData.value.opening_notes
     })
 
-    // Notificación de éxito
+    // Notificacion de exito
     const selectedBranch = branches.value.find(b => b.id === formData.value.branch_id)
     toast.success(
       `Caja abierta exitosamente\n` +
@@ -210,17 +246,17 @@ const handleSubmit = async () => {
       `Sucursal: ${selectedBranch?.name || 'N/A'}`,
       {
         duration: 5000,
-        title: '✓ Caja Abierta'
+        title: 'Caja Abierta'
       }
     )
 
     emit('success', result)
     emit('close')
 
-    // Los eventos WebSocket se manejan automáticamente desde el backend
+    // Los eventos WebSocket se manejan automaticamente desde el backend
   } catch (error) {
 
-    // Notificación de error
+    // Notificacion de error
     const errorMsg = error.response?.data?.message || 'Error al abrir la caja'
     const errorDetails = error.response?.data?.errors
     let details = ''
@@ -232,7 +268,7 @@ const handleSubmit = async () => {
       errorMsg + details,
       {
         duration: 8000,
-        title: '✗ Error al Abrir Caja'
+        title: 'Error al Abrir Caja'
       }
     )
 
@@ -241,7 +277,7 @@ const handleSubmit = async () => {
     } else if (error.response?.data?.message) {
       errors.value = { general: error.response.data.message }
     } else {
-      errors.value = { general: error.message || 'Error al abrir la sesión de caja' }
+      errors.value = { general: error.message || 'Error al abrir la sesion de caja' }
     }
   } finally {
     loading.value = false

@@ -18,14 +18,16 @@ class PaymentMethod extends Model
         'requires_authorization',
         'allows_change',
         'commission_percentage',
-        'is_active'
+        'is_active',
+        'is_system'
     ];
 
     protected $casts = [
         'requires_authorization' => 'boolean',
         'allows_change' => 'boolean',
         'commission_percentage' => 'decimal:2',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'is_system' => 'boolean'
     ];
 
     // Relaciones
