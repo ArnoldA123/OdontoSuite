@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\AppointmentBlockController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\CashReportController;
 use App\Http\Controllers\Api\Reports\ReportController;
@@ -57,6 +58,10 @@ use App\Http\Controllers\Api\BillingController;
 // Esta ruta raíz se mantiene por compatibilidad con consumers que usan /login en vez de /auth/login.
 Route::post('/login', [App\Http\Controllers\Api\AuthController::class, 'login'])
     ->middleware('throttle.login'); // Rate limiting personalizado: 3/min, bloqueo 10min después de 5 errores
+
+// Mercado Pago webhook (sin auth — validado por firma HMAC en el controller)
+// Sprint 3 (plan #11): MP envia notificaciones POST a esta URL.
+Route::post('payments/webhooks/mercadopago', [MercadoPagoController::class, 'webhook']);
 
 // Grupo de rutas de autenticación
 Route::prefix('auth')->group(function () {
@@ -383,6 +388,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Pagos pendientes
         Route::get('pending-payments', [PendingPaymentsController::class, 'index']);
         Route::post('pending-payments/{id}/pay', [PendingPaymentsController::class, 'pay']);
+
+        // Mercado Pago (Sprint 3, plan #11)
+        Route::post('payments/mercadopago/preference', [MercadoPagoController::class, 'createPreference']);
 
         // Rutas alias para compatibilidad con frontend
         Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index']);
