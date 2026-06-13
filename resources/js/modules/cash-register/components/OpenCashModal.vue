@@ -205,7 +205,10 @@ const canManageBranches = computed(() => isAdministrador.value)
 const loadBranches = async () => {
   loadingBranches.value = true
   try {
-    const response = await get('/api/branches')
+    // Sprint 1: usamos /branches/active (endpoint publico para todos los
+    // autenticados) en lugar de /branches, que esta protegido por
+    // role:administrador para uso admin en /settings/branches.
+    const response = await get('/api/branches/active')
     branches.value = response.data || []
   } catch (error) {
     toast.error('No se pudieron cargar las sucursales. Verifica tu conexion e intenta de nuevo.')

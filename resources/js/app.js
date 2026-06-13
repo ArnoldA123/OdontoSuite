@@ -159,6 +159,15 @@ const routes = [
     name: 'ai-analysis',
     component: () => import('./modules/ai-analysis/AiAnalysisPage.vue'),
     beforeEnter: requireAuth
+  },
+  // Sprint 1 (B-CASH-3): modulo de sucursales (solo administrador).
+  // El role gate se hace en backend (Route::middleware('role:administrador'))
+  // y en frontend con usePermissions().isAdministrador en la pagina.
+  {
+    path: '/settings/branches',
+    name: 'settings-branches',
+    component: () => import('./modules/settings/branches/BranchesPage.vue'),
+    beforeEnter: requireAuth
   }
 ];
 
