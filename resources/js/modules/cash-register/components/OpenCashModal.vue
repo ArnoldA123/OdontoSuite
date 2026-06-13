@@ -12,20 +12,15 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">
             Sucursal <span class="text-red-500">*</span>
           </label>
-          <select
+          <UiSelect
             v-model="formData.branch_id"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm bg-theme-surface-elevated text-theme-primary"
+            :options="branchOptions"
+            placeholder="Seleccionar sucursal"
+            size="md"
+            searchable
+            :error="errors.branch_id"
             :disabled="loading"
-          >
-            <option value="">Seleccionar sucursal</option>
-            <option
-              v-for="branch in branches"
-              :key="branch.id"
-              :value="branch.id"
-            >
-              {{ branch.name }} ({{ branch.code }})
-            </option>
-          </select>
+          />
         </div>
 
         <!-- Empty state: no hay sucursales cargadas -->
@@ -199,6 +194,15 @@ const canSubmit = computed(() => {
 })
 
 const canManageBranches = computed(() => isAdministrador.value)
+
+// Sprint 4: transformar branches al formato de UiSelect
+const branchOptions = computed(() =>
+  branches.value.map(b => ({
+    value: b.id,
+    label: `${b.name} (${b.code})`,
+    description: b.city || ''
+  }))
+)
 
 
 // Metodos
