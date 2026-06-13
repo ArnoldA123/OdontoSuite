@@ -84,10 +84,10 @@ curl -X GET http://127.0.0.1:8000/api/payment-methods -H "Authorization: Bearer 
 |---|---|---|---|---|
 | 0 | Seeders mínimos + UI empty state en modales | 0.3 d-h | ✅ HECHO 2026-06-13 | 2 seeders + 1 migration + 2 modales |
 | 1 | Módulo `settings/branches` (CRUD admin) | 1.5 d-h | ✅ HECHO 2026-06-13 (en verificacion visual) | 8 archivos nuevos (1 composable, 2 pages, 1 modal, 1 router, 1 menu, 1 nav, 1 store), 1 modified (apiResource) |
-| 2 | Módulo `settings/payment-methods` (CRUD admin) | 1.5 d-h | ⏳ Pendiente | 8 archivos nuevos (mismo patrón) |
+| 2 | Módulo `settings/payment-methods` (CRUD admin) | 1.5 d-h | ✅ HECHO 2026-06-13 (~1.3 d-h) | 5 archivos nuevos + 5 modificados (migration, model, controller, composable, page, modal, route, sidebar) |
 | 3 | Pasarela Mercado Pago (backend + frontend Bricks) | 3 d-h | ⏳ Pendiente | SDK install, 3 migrations, 2 controllers, 1 webhook, 2 composables, 1 modal "Cobrar con MP" |
 | 4 | Polish UX: reemplazar `<select>` nativos por `Select.vue`, empty states, validaciones inline, loading skeletons | 0.7 d-h | ⏳ Pendiente | 5 modales migrados, design system consistency |
-| **Total** | **5 sprints** | **~7 d-h** | **~1.5 d-h ejecutados** | 4 bugs cerrados, 1 feature de pago real, 2 admin modules |
+| **Total** | **5 sprints** | **~7 d-h** | **~2.8 d-h ejecutados** | 4 bugs cerrados, 1 feature de pago real, 2 admin modules |
 
 **Esfuerzo neto estimado: 1 sesión larga o 2 sesiones cortas (3-4 h cada una).**
 
@@ -624,4 +624,4 @@ Si querés cambiar alguna de estas, decime antes de arrancar Sprint 3. Para Spri
 
 - **2026-06-13**: plan creado. 5 sprints propuestos. ~7 d-h estimados.
 - **2026-06-13**: Sprint 0 ejecutado. 2 bugs cerrados (B-CASH-1, B-CASH-2). 0.3 d-h. Verificación E2E completa (backend + browser real).
-- **2026-06-13**: Sprint 1 ejecutado. B-CASH-3 cerrado. ~1.2 d-h. 8 archivos nuevos + 4 modificados. Backend E2E 11/11 + role gate verificado. Build exit 0. Verificacion visual en curso.
+- **2026-06-13**: Sprint 2 ejecutado. B-CASH-4 prep cerrado. ~1.3 d-h. 5 archivos nuevos + 5 modificados. Backend E2E 11/11 (incluyendo encrypt + role gate). Build exit 0 (8.99s). Verificacion visual pendiente.

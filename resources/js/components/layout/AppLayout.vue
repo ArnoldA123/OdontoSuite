@@ -529,6 +529,16 @@ const BuildingOfficeIcon = {
   `
 }
 
+// Sprint 2 (B-CASH-3): icono para Metodos de Pago.
+const CreditCardIcon = {
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  `
+}
+
 const ChartIcon = {
   template: `
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -652,6 +662,14 @@ const navigation = computed(() => {
       name: 'Sucursales',
       to: '/settings/branches',
       icon: BuildingOfficeIcon,
+      roles: ['administrador'],
+      badge: null
+    },
+    {
+      // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo admin).
+      name: 'Metodos de Pago',
+      to: '/settings/payment-methods',
+      icon: CreditCardIcon,
       roles: ['administrador'],
       badge: null
     },

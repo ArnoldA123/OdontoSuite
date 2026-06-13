@@ -12,21 +12,39 @@ class PaymentMethodController extends Controller
     /**
      * Display a listing of payment methods
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $paymentMethods = PaymentMethod::where('is_active', true)
-                ->orderBy('name')
-                ->get();
+            $query = PaymentMethod::query();
+
+            // Filtro por estado
+            if ($request->has('is_active') && $request->is_active !== '') {
+                $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            // Busqueda
+            if ($request->has('q') && $request->q !== '') {
+                $q = $request->q;
+                $query->where(function ($w) use ($q) {
+                    $w->where('name', 'like', "%$q%")
+                      ->orWhere('code', 'like', "%$q%")
+                      ->orWhere('description', 'like', "%$q%");
+                });
+            }
+
+            $methods = $query->orderBy('name')->get();
+
+            // Nunca devolver gateway_config en el listado (seguridad)
+            $methods->makeHidden('gateway_config');
 
             return response()->json([
                 'success' => true,
-                'data' => $paymentMethods
+                'data' => $methods
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al cargar métodos de pago',
+                'message' => 'Error al cargar metodos de pago',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -38,27 +56,48 @@ class PaymentMethodController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:500',
-                'is_active' => 'boolean'
+            $validated = $request->validate([
+                'code' => 'required|string|max:20|unique:payment_methods,code',
+                'name' => 'required|string|max:50',
+                'description' => 'sometimes|nullable|string|max:500',
+                'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
+                'gateway_config' => 'sometimes|nullable|array',
+                'requires_authorization' => 'sometimes|boolean',
+                'allows_change' => 'sometimes|boolean',
+                'commission_percentage' => 'sometimes|numeric|min:0|max:100',
+                'is_active' => 'sometimes|boolean',
+                // Los metodos custom (no-seed) no son del sistema
+                'is_system' => 'sometimes|boolean'
             ]);
 
-            $paymentMethod = PaymentMethod::create([
-                'name' => $request->name,
-                'description' => $request->description,
-                'is_active' => $request->is_active ?? true
-            ]);
+            $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['is_system'] = $validated['is_system'] ?? false;
+            $validated['commission_percentage'] = $validated['commission_percentage'] ?? 0;
+            $validated['allows_change'] = $validated['allows_change'] ?? true;
+            $validated['requires_authorization'] = $validated['requires_authorization'] ?? false;
+            $validated['gateway_type'] = $validated['gateway_type'] ?? 'manual';
+            $validated['gateway_config'] = $validated['gateway_config'] ?? null;
+
+            $method = PaymentMethod::create($validated);
+
+            // No devolver el gateway_config encriptado al cliente
+            $method->makeHidden('gateway_config');
 
             return response()->json([
                 'success' => true,
-                'data' => $paymentMethod,
-                'message' => 'Método de pago creado exitosamente'
+                'data' => $method,
+                'message' => 'Metodo de pago creado exitosamente'
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los datos proporcionados no son validos.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear método de pago',
+                'message' => 'Error al crear metodo de pago',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -69,9 +108,15 @@ class PaymentMethodController extends Controller
      */
     public function show(PaymentMethod $paymentMethod): JsonResponse
     {
+        // El admin puede ver si tiene credenciales (sin ver el valor)
+        $data = $paymentMethod->toArray();
+        $data['has_gateway_config'] = !is_null($paymentMethod->gateway_config);
+        // Nunca devolver el secret encriptado
+        $data['gateway_config'] = null;
+
         return response()->json([
             'success' => true,
-            'data' => $paymentMethod
+            'data' => $data
         ]);
     }
 
@@ -81,27 +126,37 @@ class PaymentMethodController extends Controller
     public function update(Request $request, PaymentMethod $paymentMethod): JsonResponse
     {
         try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string|max:500',
-                'is_active' => 'boolean'
+            $validated = $request->validate([
+                // code inmutable
+                'name' => 'required|string|max:50',
+                'description' => 'sometimes|nullable|string|max:500',
+                'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
+                'gateway_config' => 'sometimes|nullable|array',
+                'requires_authorization' => 'sometimes|boolean',
+                'allows_change' => 'sometimes|boolean',
+                'commission_percentage' => 'sometimes|numeric|min:0|max:100',
+                'is_active' => 'sometimes|boolean'
             ]);
 
-            $paymentMethod->update([
-                'name' => $request->name,
-                'description' => $request->description,
-                'is_active' => $request->is_active ?? $paymentMethod->is_active
-            ]);
+            $paymentMethod->update($validated);
+
+            $paymentMethod->makeHidden('gateway_config');
 
             return response()->json([
                 'success' => true,
                 'data' => $paymentMethod,
-                'message' => 'Método de pago actualizado exitosamente'
+                'message' => 'Metodo de pago actualizado exitosamente'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los datos proporcionados no son validos.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar método de pago',
+                'message' => 'Error al actualizar metodo de pago',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -113,16 +168,34 @@ class PaymentMethodController extends Controller
     public function destroy(PaymentMethod $paymentMethod): JsonResponse
     {
         try {
+            // Sprint 2: no permitir borrar metodos del sistema.
+            // Solo se pueden desactivar (is_active=false).
+            if ($paymentMethod->is_system) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar un metodo del sistema. Desactivalo en su lugar usando is_active=false.'
+                ], 403);
+            }
+
+            // Verificar que no tenga transacciones asociadas
+            $txCount = $paymentMethod->transactions()->count();
+            if ($txCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "No se puede eliminar: el metodo tiene {$txCount} transaccion(es) registrada(s). Desactivalo en su lugar."
+                ], 409);
+            }
+
             $paymentMethod->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Método de pago eliminado exitosamente'
+                'message' => 'Metodo de pago eliminado exitosamente'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar método de pago',
+                'message' => 'Error al eliminar metodo de pago',
                 'error' => $e->getMessage()
             ], 500);
         }

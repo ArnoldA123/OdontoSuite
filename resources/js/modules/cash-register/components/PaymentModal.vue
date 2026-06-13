@@ -249,7 +249,7 @@ import { BanknotesIcon } from '@heroicons/vue/24/outline'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
-import { useCashRegister } from '@/composables/useCashRegister'
+import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
 
@@ -275,7 +275,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'success'])
 
 // Composables
-const { getPaymentMethods } = useCashRegister()
+const { get } = useApi()
 const { createTransaction } = useTransactions()
 const toast = useToast()
 
@@ -319,7 +319,10 @@ const canSubmit = computed(() => {
 const loadPaymentMethods = async () => {
   loadingMethods.value = true
   try {
-    const methodsData = await getPaymentMethods()
+    // Sprint 2: usamos /payment-methods/active (endpoint publico para
+    // todos los autenticados) en lugar de /payment-methods, que esta
+    // protegido por role:administrador para uso admin.
+    const methodsData = await get('/api/payment-methods/active')
     paymentMethods.value = methodsData.data || []
   } catch (error) {
     toast.error('No se pudieron cargar los metodos de pago. Verifica tu conexion.')
