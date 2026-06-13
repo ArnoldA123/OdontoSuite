@@ -12,12 +12,28 @@ class BranchController extends Controller
     /**
      * Display a listing of branches
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $branches = Branch::where('is_active', true)
-                ->orderBy('name')
-                ->get();
+            $query = Branch::query();
+
+            // Filtro por estado (is_active)
+            if ($request->has('is_active') && $request->is_active !== '') {
+                $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+            }
+
+            // Busqueda por texto (q)
+            if ($request->has('q') && $request->q !== '') {
+                $q = $request->q;
+                $query->where(function ($w) use ($q) {
+                    $w->where('name', 'like', "%$q%")
+                      ->orWhere('code', 'like', "%$q%")
+                      ->orWhere('city', 'like', "%$q%")
+                      ->orWhere('address', 'like', "%$q%");
+                });
+            }
+
+            $branches = $query->orderBy('name')->get();
 
             return response()->json([
                 'success' => true,
@@ -38,27 +54,45 @@ class BranchController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
+                'code' => 'required|string|max:10|unique:branches,code',
                 'name' => 'required|string|max:255',
-                'address' => 'nullable|string|max:500',
-                'phone' => 'nullable|string|max:20',
-                'email' => 'nullable|email|max:255',
-                'is_active' => 'boolean'
+                'address' => 'sometimes|nullable|string|max:500',
+                'city' => 'required|string|max:100',
+                'state' => 'sometimes|nullable|string|max:100',
+                'country' => 'sometimes|nullable|string|max:100',
+                'postal_code' => 'sometimes|nullable|string|max:10',
+                'phone' => 'sometimes|nullable|string|max:20',
+                'email' => 'sometimes|nullable|email|max:255',
+                'timezone' => 'sometimes|nullable|string|max:50',
+                'latitude' => 'sometimes|nullable|numeric',
+                'longitude' => 'sometimes|nullable|numeric',
+                'description' => 'sometimes|nullable|string|max:1000',
+                'is_active' => 'sometimes|boolean'
             ]);
 
-            $branch = Branch::create([
-                'name' => $request->name,
-                'address' => $request->address,
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'is_active' => $request->is_active ?? true
-            ]);
+            // Default country/timezone si no se enviaron
+            $validated['country'] = $validated['country'] ?? 'Peru';
+            $validated['timezone'] = $validated['timezone'] ?? 'America/Lima';
+            $validated['is_active'] = $validated['is_active'] ?? true;
+            // address y state son NOT NULL en la migration original; permitimos
+            // string vacio si no se envian para no romper la API admin.
+            $validated['address'] = $validated['address'] ?? '';
+            $validated['state'] = $validated['state'] ?? '';
+
+            $branch = Branch::create($validated);
 
             return response()->json([
                 'success' => true,
                 'data' => $branch,
                 'message' => 'Sucursal creada exitosamente'
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los datos proporcionados no son validos.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -85,27 +119,36 @@ class BranchController extends Controller
     public function update(Request $request, Branch $branch): JsonResponse
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
+                // code es inmutable (es la PK logica de la sede)
                 'name' => 'required|string|max:255',
-                'address' => 'nullable|string|max:500',
-                'phone' => 'nullable|string|max:20',
-                'email' => 'nullable|email|max:255',
-                'is_active' => 'boolean'
+                'address' => 'sometimes|nullable|string|max:500',
+                'city' => 'required|string|max:100',
+                'state' => 'sometimes|nullable|string|max:100',
+                'country' => 'sometimes|nullable|string|max:100',
+                'postal_code' => 'sometimes|nullable|string|max:10',
+                'phone' => 'sometimes|nullable|string|max:20',
+                'email' => 'sometimes|nullable|email|max:255',
+                'timezone' => 'sometimes|nullable|string|max:50',
+                'latitude' => 'sometimes|nullable|numeric',
+                'longitude' => 'sometimes|nullable|numeric',
+                'description' => 'sometimes|nullable|string|max:1000',
+                'is_active' => 'sometimes|boolean'
             ]);
 
-            $branch->update([
-                'name' => $request->name,
-                'address' => $request->address,
-                'phone' => $request->phone,
-                'email' => $request->email,
-                'is_active' => $request->is_active ?? $branch->is_active
-            ]);
+            $branch->update($validated);
 
             return response()->json([
                 'success' => true,
                 'data' => $branch,
                 'message' => 'Sucursal actualizada exitosamente'
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Los datos proporcionados no son validos.',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -130,7 +173,7 @@ class BranchController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar sucursal',
+                'message' => 'No se puede eliminar la sucursal. Verifica que no tenga usuarios, pacientes o sesiones de caja asociadas.',
                 'error' => $e->getMessage()
             ], 500);
         }

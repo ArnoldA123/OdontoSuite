@@ -194,7 +194,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas de sucursales para el frontend (temporarily without auth for testing)
     Route::get('branches/active', [BranchController::class, 'index']);
-    Route::get('branches', [BranchController::class, 'index']);
 
     // Dashboard (todos los roles autenticados)
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
