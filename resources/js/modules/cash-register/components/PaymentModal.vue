@@ -7,8 +7,8 @@
     @close="$emit('close')"
     class="overflow-y-auto"
   >
-    <!-- Tabs: Manual / Mercado Pago -->
-    <div class="flex gap-0 mb-4 border-b border-theme">
+    <!-- Tabs: Manual / Mercado Pago (solo si el metodo seleccionado tiene gateway) -->
+    <div v-if="showMpTab" class="flex gap-0 mb-4 border-b border-theme">
       <button
         class="px-4 py-2 text-sm font-medium transition-colors"
         :class="activeTab === 'manual'
@@ -24,9 +24,9 @@
           ? 'text-accent border-b-2 border-accent'
           : 'text-theme-secondary hover:text-theme-primary'"
         @click="switchToMercadoPago"
-        :disabled="!canSubmit"
+        :disabled="!canSubmit || loading"
       >
-        Cobro con Mercado Pago
+        {{ selectedPaymentMethod?.name || 'Mercado Pago' }}
       </button>
     </div>
     <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6">
@@ -402,6 +402,16 @@ const canSubmit = computed(() => {
          formData.value.concept &&
          formData.value.payment_method_id &&
          formData.value.amount > 0
+})
+
+// Sprint 3 fix: la tab MP solo se muestra cuando el metodo seleccionado
+// tiene gateway_type = 'mercadopago' (configurado en settings/payment-methods)
+const showMpTab = computed(() => {
+  if (!formData.value.payment_method_id) return false
+  const method = paymentMethods.value.find(
+    m => m.id === parseInt(formData.value.payment_method_id)
+  )
+  return method?.gateway_type === 'mercadopago'
 })
 
 // Sprint 4: transformar payment methods al formato UiSelect
