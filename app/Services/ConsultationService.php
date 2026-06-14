@@ -416,13 +416,28 @@ class ConsultationService
 
         $planItemIds = $this->resolvePlanItemIds($appointment);
 
-        foreach ($materials as $m) {
+        foreach ($materials as $idx => $m) {
             $productId = $m['product_id'] ?? null;
             if (!$productId) {
                 continue;
             }
 
-            $unitCost = $m['unit_cost'] ?? (float) (Product::find($productId)?->cost ?? 0);
+            // Defensive: si el product_id no existe (BD vacia, FK rota, typo del usuario),
+            // saltamos este material y logueamos en vez de tirar 500 con FK 1452.
+            // El controlador ya valida `exists:products,id` cuando el cliente envia
+            // materiales, pero esta salvaguarda cubre el caso de products table vacia
+            // (catalogo no poblado) sin abortar la consulta completa.
+            $product = Product::find($productId);
+            if (!$product) {
+                Log::warning('Consultation: material con product_id inexistente, se omite', [
+                    'appointment_id' => $appointment->id,
+                    'material_index' => $idx,
+                    'product_id' => $productId,
+                ]);
+                continue;
+            }
+
+            $unitCost = $m['unit_cost'] ?? (float) ($product->cost_price ?? 0);
             $qty = (float) ($m['quantity_used'] ?? 1);
 
             ProcedureMaterial::create([
@@ -431,7 +446,7 @@ class ConsultationService
                     $m,
                     $planItemIds,
                 ),
-                'product_id' => $productId,
+                'product_id' => $product->id,
                 'created_by' => $userId,
                 'quantity_used' => $qty,
                 'unit_cost' => $unitCost,

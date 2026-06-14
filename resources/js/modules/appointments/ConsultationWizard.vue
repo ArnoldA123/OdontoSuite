@@ -257,12 +257,46 @@
                 <div
                   v-for="(mat, idx) in payload.materials"
                   :key="idx"
-                  class="p-3 border border-theme rounded-lg grid grid-cols-1 md:grid-cols-4 gap-2"
+                  class="p-3 border border-theme rounded-lg grid grid-cols-1 md:grid-cols-12 gap-2 relative"
                 >
-                  <input v-model.number="mat.product_id" type="number" placeholder="ID Producto" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                  <input v-model.number="mat.quantity_used" type="number" step="0.01" placeholder="Cantidad" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                  <input v-model.number="mat.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                  <button @click="removeMaterial(idx)" class="text-xs text-red-500 hover:underline">Quitar</button>
+                  <div class="md:col-span-5 relative">
+                    <input
+                      v-model="mat._label"
+                      @input="onProductSearchInput(idx, $event.target.value)"
+                      @focus="onProductSearchInput(idx, mat._label)"
+                      @blur="closeProductResults(idx)"
+                      type="text"
+                      placeholder="Buscar producto por nombre o código"
+                      class="w-full p-2 rounded border border-theme bg-theme-surface-elevated"
+                      autocomplete="off"
+                    />
+                    <div
+                      v-if="productResults[idx] && productResults[idx].length"
+                      class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border border-theme bg-theme-surface-elevated shadow-lg"
+                    >
+                      <button
+                        v-for="opt in productResults[idx]"
+                        :key="opt.id"
+                        type="button"
+                        @mousedown.prevent="selectProduct(idx, opt)"
+                        class="w-full text-left px-3 py-2 hover:bg-theme-surface text-sm flex justify-between gap-2"
+                      >
+                        <span>
+                          <span class="font-medium">{{ opt.name }}</span>
+                          <span v-if="opt.code" class="text-xs text-theme-secondary ml-1">({{ opt.code }})</span>
+                        </span>
+                        <span class="text-xs text-theme-secondary whitespace-nowrap">
+                          {{ opt.unit || '' }}<span v-if="opt.cost_price"> · S/ {{ opt.cost_price }}</span>
+                        </span>
+                      </button>
+                    </div>
+                    <p v-if="mat.product_id && mat._label" class="mt-1 text-xs text-theme-secondary">
+                      ID: {{ mat.product_id }} · {{ mat._label }}
+                    </p>
+                  </div>
+                  <input v-model.number="mat.quantity_used" type="number" step="0.01" min="0.01" placeholder="Cantidad" class="md:col-span-2 p-2 rounded border border-theme bg-theme-surface-elevated" />
+                  <input v-model.number="mat.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="md:col-span-3 p-2 rounded border border-theme bg-theme-surface-elevated" />
+                  <button @click="removeMaterial(idx)" class="md:col-span-2 text-xs text-red-500 hover:underline">Quitar</button>
                 </div>
               </div>
               <button @click="addMaterial" class="mt-3 px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
@@ -399,6 +433,8 @@ const currentStep = ref('mode')
 const executedItemIds = ref([])
 const catalogResults = reactive({})
 const catalogSearchTimers = reactive({})
+const productResults = reactive({})
+const productSearchTimers = reactive({})
 
 const payload = ref({
   mode: 'consultation',
@@ -533,11 +569,64 @@ const closeCatalogResults = (idx) => {
 }
 
 const addMaterial = () => {
-  payload.value.materials.push({ product_id: null, quantity_used: 1, unit_cost: 0 })
+  payload.value.materials.push({
+    product_id: null,
+    _label: '',
+    quantity_used: 1,
+    unit_cost: 0,
+  })
 }
 
 const removeMaterial = (idx) => {
+  if (productSearchTimers[idx]) {
+    clearTimeout(productSearchTimers[idx])
+    delete productSearchTimers[idx]
+  }
+  delete productResults[idx]
   payload.value.materials.splice(idx, 1)
+}
+
+const onProductSearchInput = (idx, value) => {
+  if (productSearchTimers[idx]) {
+    clearTimeout(productSearchTimers[idx])
+  }
+  const term = (value ?? '').trim()
+  // Si el usuario edita el label, des-sincronizamos product_id para forzar
+  // a re-seleccionar. Asi evitamos enviar un product_id con un label que
+  // no le corresponde (caso que rompia la consulta con FK 1452).
+  const mat = payload.value.materials[idx]
+  if (mat && mat.product_id) {
+    mat.product_id = null
+  }
+  if (term.length < 2) {
+    productResults[idx] = []
+    return
+  }
+  productSearchTimers[idx] = setTimeout(async () => {
+    try {
+      const response = await apiGet('/api/products/search', { params: { q: term, limit: 10 } })
+      productResults[idx] = response?.data ?? []
+    } catch (error) {
+      productResults[idx] = []
+    }
+  }, 250)
+}
+
+const selectProduct = (idx, opt) => {
+  const mat = payload.value.materials[idx]
+  if (!mat) return
+  mat.product_id = opt.id
+  mat._label = opt.name
+  if (opt.cost_price != null) {
+    mat.unit_cost = opt.cost_price
+  }
+  productResults[idx] = []
+}
+
+const closeProductResults = (idx) => {
+  setTimeout(() => {
+    productResults[idx] = []
+  }, 150)
 }
 
 const addAttachment = () => {
