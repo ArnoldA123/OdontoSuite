@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\OdontogramController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -263,6 +264,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('appointments/{appointment}/consultation-context', [ConsultationController::class, 'context']);
         Route::post('appointments/{appointment}/check-in', [ConsultationController::class, 'checkIn']);
         Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete']);
+
+        // Catalogo de productos (autocomplete para materiales en consulta)
+        Route::get('products/search', [ProductController::class, 'search']);
     });
 
     // Catálogo de procedimientos (Sprint 2: clínicos, admin y recep consultan; solo admin edita)
