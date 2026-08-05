@@ -179,6 +179,28 @@ export function useNotifications() {
     }
   }
 
+  /**
+   * Slice 11 / T-08.12: register a `visibilitychange` listener that
+   * triggers a saveToStorage() refresh when the user comes back to the
+   * tab. This re-hydrates notifications written by another tab/process
+   * without forcing a manual reload.
+   *
+   * The returned function unregisters the listener. Callers should
+   * invoke the cleanup in `onUnmounted` to avoid leaking handlers.
+   */
+  const setupVisibilityAutoRefresh = () => {
+    if (typeof document === 'undefined') {
+      return () => {}
+    }
+    const handler = () => {
+      if (document.visibilityState === 'visible') {
+        loadFromStorage()
+      }
+    }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }
+
   return {
     notifications,
     addNotification,
@@ -190,6 +212,7 @@ export function useNotifications() {
     clearByCategory,
     clearAll,
     clearRead,
-    playSound
+    playSound,
+    setupVisibilityAutoRefresh
   }
 }

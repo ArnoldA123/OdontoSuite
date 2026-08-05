@@ -161,13 +161,51 @@ export function useApi() {
     return handleResponse(response)
   }
 
+  /**
+   * Slice 11 / T-08.14: normalize an error thrown by any of the useApi
+   * verbs into a Spanish-localized user-facing string. The order of
+   * preference matches what consumers have been hand-rolling so the
+   * migration is drop-in.
+   *
+   *   1. err.response.data.errors (Laravel 422 first error)
+   *   2. err.response.data.message
+   *   3. err.response.data.meta.message
+   *   4. err.message
+   *   5. fallback
+   */
+  const normalizeError = (err, fallback = 'Ha ocurrido un error inesperado') => {
+    if (!err) {
+      return fallback
+    }
+    const data = err.response && err.response.data
+    if (data) {
+      if (data.errors) {
+        const firstKey = Object.keys(data.errors)[0]
+        if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
+          return String(data.errors[firstKey][0])
+        }
+      }
+      if (data.message) {
+        return String(data.message)
+      }
+      if (data.meta && data.meta.message) {
+        return String(data.meta.message)
+      }
+    }
+    if (err.message) {
+      return String(err.message)
+    }
+    return fallback
+  }
+
   return {
     get,
     post,
     put,
     patch,
     delete: del,
-    setToken
+    setToken,
+    normalizeError
   }
 }
 
