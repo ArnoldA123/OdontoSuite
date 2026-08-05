@@ -9,6 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // bugfix-2026-08 slice 05: driver-conditional guard so SQLite local
+        // tests do not crash on MySQL-only DATE_SUB syntax. The historical
+        // MySQL behaviour (subtract 5h from scheduled_at/ends_at) is
+        // preserved exactly when running on MySQL.
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         Schema::table('appointments', function ($table) {
             $table->dropUnique('unique_user_time_slot');
             $table->dropUnique('unique_chair_time_slot');
@@ -31,6 +39,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         Schema::table('appointments', function ($table) {
             $table->dropUnique('unique_user_time_slot');
             $table->dropUnique('unique_chair_time_slot');
