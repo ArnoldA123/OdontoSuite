@@ -124,25 +124,57 @@
 
           <!-- PASO 2: Evolución SOAP -->
           <section v-if="currentStep === 'evolution'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP) <span class="text-red-500">*</span></h3>
+            <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP) <span class="text-red-500" aria-hidden="true">*</span></h3>
             <p class="text-sm text-theme-secondary">Los 4 campos son obligatorios para cerrar la consulta.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">S — Subjetivo <span class="text-red-500">*</span></label>
-                <textarea v-model="payload.evolution.subjective" rows="3" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" placeholder="Lo que el paciente refiere"></textarea>
+                <label for="cw-soap-s" class="block text-sm font-medium text-theme-primary mb-1">S — Subjetivo <span class="text-red-500" aria-hidden="true">*</span></label>
+                <textarea
+                  id="cw-soap-s"
+                  v-model="payload.evolution.subjective"
+                  rows="3"
+                  required
+                  aria-required="true"
+                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
+                  placeholder="Lo que el paciente refiere"
+                ></textarea>
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">O — Objetivo <span class="text-red-500">*</span></label>
-                <textarea v-model="payload.evolution.objective" rows="3" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" placeholder="Hallazgos clínicos, signos vitales, examen"></textarea>
+                <label for="cw-soap-o" class="block text-sm font-medium text-theme-primary mb-1">O — Objetivo <span class="text-red-500" aria-hidden="true">*</span></label>
+                <textarea
+                  id="cw-soap-o"
+                  v-model="payload.evolution.objective"
+                  rows="3"
+                  required
+                  aria-required="true"
+                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
+                  placeholder="Hallazgos clínicos, signos vitales, examen"
+                ></textarea>
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">A — Assessment <span class="text-red-500">*</span></label>
-                <textarea v-model="payload.evolution.assessment" rows="3" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" placeholder="Diagnóstico, impresión clínica"></textarea>
+                <label for="cw-soap-a" class="block text-sm font-medium text-theme-primary mb-1">A — Assessment <span class="text-red-500" aria-hidden="true">*</span></label>
+                <textarea
+                  id="cw-soap-a"
+                  v-model="payload.evolution.assessment"
+                  rows="3"
+                  required
+                  aria-required="true"
+                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
+                  placeholder="Diagnóstico, impresión clínica"
+                ></textarea>
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">P — Plan <span class="text-red-500">*</span></label>
-                <textarea v-model="payload.evolution.plan" rows="3" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" placeholder="Tratamiento a seguir, próximas acciones"></textarea>
+                <label for="cw-soap-p" class="block text-sm font-medium text-theme-primary mb-1">P — Plan <span class="text-red-500" aria-hidden="true">*</span></label>
+                <textarea
+                  id="cw-soap-p"
+                  v-model="payload.evolution.plan"
+                  rows="3"
+                  required
+                  aria-required="true"
+                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
+                  placeholder="Tratamiento a seguir, próximas acciones"
+                ></textarea>
               </div>
             </div>
 

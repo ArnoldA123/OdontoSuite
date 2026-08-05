@@ -167,196 +167,138 @@
   </AppLayout>
 
     <!-- New Environment Modal -->
-    <div
-      v-if="showNewEnvironmentModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showNewEnvironmentModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Nuevo Ambiente</h3>
-          <form @submit.prevent="createEnvironment">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre del Ambiente</label>
-                <input
-                  v-model="newEnvironment.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-                <textarea
-                  v-model="newEnvironment.description"
-                  rows="3"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                ></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Equipamiento</label>
-                <textarea
-                  v-model="newEnvironment.equipment"
-                  rows="2"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                ></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Estado</label>
-                <select
-                  v-model="newEnvironment.status"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="active">Activo</option>
-                  <option value="inactive">Inactivo</option>
-                  <option value="maintenance">Mantenimiento</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showNewEnvironmentModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                :disabled="creating"
-                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md disabled:opacity-50"
-              >
-                {{ creating ? 'Creando...' : 'Crear' }}
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showNewEnvironmentModal" title="Nuevo Ambiente" size="md">
+      <form id="form-new-env" @submit.prevent="createEnvironment" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre del Ambiente</label>
+          <input
+            v-model="newEnvironment.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <textarea
+            v-model="newEnvironment.description"
+            rows="3"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Equipamiento</label>
+          <textarea
+            v-model="newEnvironment.equipment"
+            rows="2"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <select
+            v-model="newEnvironment.status"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          >
+            <option value="active">Activo</option>
+            <option value="inactive">Inactivo</option>
+            <option value="maintenance">Mantenimiento</option>
+          </select>
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showNewEnvironmentModal = false" :disabled="creating">
+          Cancelar
+        </UiButton>
+        <UiButton type="submit" :loading="creating" @click="createEnvironment">
+          Crear
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Edit Environment Modal -->
-    <div
-      v-if="showEditEnvironmentModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showEditEnvironmentModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Editar Ambiente</h3>
-          <form @submit.prevent="updateEnvironment">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-                <input
-                  v-model="editingEnvironment.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Código</label>
-                <input
-                  v-model="editingEnvironment.code"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-                <textarea
-                  v-model="editingEnvironment.description"
-                  rows="3"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                ></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Estado</label>
-                <select
-                  v-model="editingEnvironment.status"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="active">Activo</option>
-                  <option value="inactive">Inactivo</option>
-                  <option value="maintenance">Mantenimiento</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showEditEnvironmentModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md"
-              >
-                Actualizar
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showEditEnvironmentModal" title="Editar Ambiente" size="md">
+      <form id="form-edit-env" v-if="editingEnvironment" @submit.prevent="updateEnvironment" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <input
+            v-model="editingEnvironment.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Código</label>
+          <input
+            v-model="editingEnvironment.code"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <textarea
+            v-model="editingEnvironment.description"
+            rows="3"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <select
+            v-model="editingEnvironment.status"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          >
+            <option value="active">Activo</option>
+            <option value="inactive">Inactivo</option>
+            <option value="maintenance">Mantenimiento</option>
+          </select>
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showEditEnvironmentModal = false" :disabled="updating">
+          Cancelar
+        </UiButton>
+        <UiButton type="submit" :loading="updating" @click="updateEnvironment">
+          Actualizar
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- View Environment Modal -->
-    <div
-      v-if="showViewEnvironmentModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showViewEnvironmentModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Ver Ambiente</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment?.name }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Código</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment?.code }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment?.description || 'Sin descripción' }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Estado</label>
-              <p class="mt-1 text-sm text-theme-primary">
-                <span :class="getStatusColor(viewingEnvironment?.status)" class="px-2 py-1 rounded-full text-xs">
-                  {{ getStatusText(viewingEnvironment?.status) }}
-                </span>
-              </p>
-            </div>
-          </div>
-          <div class="flex justify-end mt-6">
-            <button
-              @click="showViewEnvironmentModal = false"
-              class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-            >
-              Cerrar
-            </button>
-          </div>
+    <UiModal v-model="showViewEnvironmentModal" title="Ver Ambiente" size="md">
+      <div v-if="viewingEnvironment" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment.name }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Código</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment.code }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingEnvironment.description || 'Sin descripción' }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <p class="mt-1 text-sm text-theme-primary">
+            <span :class="getStatusColor(viewingEnvironment.status)" class="px-2 py-1 rounded-full text-xs">
+              {{ getStatusText(viewingEnvironment.status) }}
+            </span>
+          </p>
         </div>
       </div>
-    </div>
+      <template #footer>
+        <UiButton variant="secondary" @click="showViewEnvironmentModal = false">
+          Cerrar
+        </UiButton>
+      </template>
+    </UiModal>
 </template>
 
 <script>
@@ -365,11 +307,14 @@ import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
+import { useErrorHandler } from '../../composables/useErrorHandler'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'EnvironmentsPage',
@@ -378,15 +323,19 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
-    UiCard
+    UiCard,
+    UiModal,
+    UiEmptyState
   },
   setup() {
     const router = useRouter()
     const { get, post, put, delete: remove } = useApi()
     const toast = useToast()
+    const { handleError } = useErrorHandler()
 
     const loading = ref(false)
     const creating = ref(false)
+    const updating = ref(false)
     const environments = ref([])
     const searchQuery = ref('')
     const statusFilter = ref('')
@@ -410,10 +359,10 @@ export default {
         environments.value = response?.data || []
 
         if (environments.value.length === 0) {
-          toast.warning('No se encontraron ambientes')
+          toast.info('Aún no hay ambientes registrados')
         }
       } catch (error) {
-        toast.error('Error al cargar los ambientes. Por favor, recarga la página.')
+        handleError(error, 'Error al cargar los ambientes. Por favor, recarga la página.')
         environments.value = []
       } finally {
         loading.value = false
@@ -431,6 +380,7 @@ export default {
         const response = await get(`/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`)
         environments.value = response.data
       } catch (error) {
+        handleError(error, 'Error al buscar ambientes')
       } finally {
         loading.value = false
       }
@@ -442,6 +392,7 @@ export default {
     }
 
     const createEnvironment = async () => {
+      if (creating.value) return
       creating.value = true
       try {
         await post('/api/dental-chairs', newEnvironment.value)
@@ -452,8 +403,10 @@ export default {
           equipment: '',
           status: 'active'
         }
+        toast.success('Ambiente creado exitosamente')
         loadEnvironments()
       } catch (error) {
+        handleError(error, 'Error al crear el ambiente')
       } finally {
         creating.value = false
       }
@@ -474,14 +427,18 @@ export default {
     }
 
     const updateEnvironment = async () => {
+      if (updating.value) return
+      updating.value = true
       try {
         await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
         showEditEnvironmentModal.value = false
         editingEnvironment.value = null
         loadEnvironments()
-        alert('Ambiente actualizado exitosamente')
+        toast.success('Ambiente actualizado exitosamente')
       } catch (error) {
-        alert('Error al actualizar el ambiente')
+        handleError(error, 'Error al actualizar el ambiente')
+      } finally {
+        updating.value = false
       }
     }
 
@@ -496,9 +453,9 @@ export default {
         try {
           await remove(`/api/dental-chairs/${environment.id}`)
           loadEnvironments()
-          alert('Ambiente eliminado exitosamente')
+          toast.success('Ambiente eliminado exitosamente')
         } catch (error) {
-          alert('Error al eliminar el ambiente')
+          handleError(error, 'Error al eliminar el ambiente')
         }
       }
     }
@@ -522,7 +479,7 @@ export default {
     }
 
     const goBack = () => {
-      router.push('/dashboard')
+      router.back()
     }
 
     onMounted(() => {
@@ -532,6 +489,7 @@ export default {
     return {
       loading,
       creating,
+      updating,
       environments,
       searchQuery,
       statusFilter,

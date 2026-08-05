@@ -13,7 +13,6 @@
         v-if="modelValue"
         :class="backdropClasses"
         @click="handleBackdropClick"
-        @keydown.esc="handleEscape"
       >
         <Transition
           name="modal-content"
@@ -26,10 +25,13 @@
         >
           <div
             v-if="modelValue"
+            ref="modalRef"
             :class="modalClasses"
             :role="role"
+            tabindex="-1"
             :aria-labelledby="titleId"
             :aria-describedby="descriptionId"
+            :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
           >
             <!-- Modal header -->
@@ -67,7 +69,8 @@
 </template>
 
 <script setup>
-import { computed, ref, nextTick, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount, useId } from 'vue'
+import { useFocusTrap } from '../../composables/useFocusTrap'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -91,9 +94,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
 
-// Generate unique IDs
-const titleId = computed(() => `modal-title-${Math.random().toString(36).substr(2, 9)}`)
-const descriptionId = computed(() => `modal-description-${Math.random().toString(36).substr(2, 9)}`)
+// Stable IDs across re-renders (Vue 3.5+ useId); fallback to a per-instance ref
+// so SSR / older toolchains still produce deterministic values.
+const _id = useId ? useId() : `modal-${Math.random().toString(36).slice(2, 10)}`
+const titleId = computed(() => `modal-title-${_id}`)
+const descriptionId = computed(() => `modal-description-${_id}`)
 
 const closeLabel = computed(() => 'Cerrar modal')
 
@@ -134,6 +139,10 @@ const closeButtonClasses = computed(() => [
   'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
 ])
 
+// Focus management (WCAG 2.1.1 + 2.4.3)
+const modalRef = ref(null)
+const focusTrap = useFocusTrap()
+
 // Event handlers
 const handleBackdropClick = () => {
   if (props.closeOnBackdrop && !props.persistent) {
@@ -141,8 +150,10 @@ const handleBackdropClick = () => {
   }
 }
 
-const handleEscape = () => {
+const handleEscape = (event) => {
   if (props.closeOnEscape && !props.persistent) {
+    event.preventDefault()
+    event.stopPropagation()
     handleClose()
   }
 }
@@ -153,24 +164,35 @@ const handleClose = () => {
 }
 
 // Watch for modelValue changes
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    emit('open')
-    // Focus the modal when it opens
-    nextTick(() => {
-      const modal = document.querySelector('[role="dialog"]')
-      if (modal) modal.focus()
-    })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      emit('open')
+      document.addEventListener('keydown', handleDocumentEscape)
+      document.body.style.overflow = 'hidden'
+      focusTrap.activate(modalRef.value)
+    } else {
+      document.removeEventListener('keydown', handleDocumentEscape)
+      document.body.style.overflow = ''
+      focusTrap.release()
+    }
   }
-})
+)
 
-// Prevent body scroll when modal is open
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
+// Use document-level listener so Escape is captured even when focus is on a
+// nested control (e.g. select dropdown). The Modal listens via document so the
+// keydown is decoupled from the focused element.
+function handleDocumentEscape(event) {
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    handleEscape(event)
   }
+}
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleDocumentEscape)
+  document.body.style.overflow = ''
+  focusTrap.release()
 })
 </script>
 

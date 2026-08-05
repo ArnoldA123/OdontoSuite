@@ -1,10 +1,10 @@
 <template>
   <Modal
-    :model-value="show"
+    :model-value="modelValue"
     title="Registrar Cobro de Paciente"
     :size="activeTab === 'manual' ? 'xl' : 'lg'"
-    @update:model-value="$emit('close')"
-    @close="$emit('close')"
+    @update:model-value="$emit('update:modelValue', $event)"
+    @close="$emit('update:modelValue', false)"
     class="overflow-y-auto"
   >
     <!-- Tabs: Manual / Mercado Pago (solo si el metodo seleccionado tiene gateway) -->
@@ -246,7 +246,7 @@
         <Button
           type="button"
           variant="secondary"
-          @click="$emit('close')"
+          @click="$emit('update:modelValue', false)"
           :disabled="loading"
           class="w-full sm:w-auto px-4 py-2 text-sm md:text-base"
         >
@@ -280,9 +280,16 @@ import { useToast } from '@/composables/useToast'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
-  show: {
+  modelValue: {
     type: Boolean,
     default: false
+  },
+  // Alias kept for backward compatibility — slice 07 unifies the modal
+  // contract on modelValue, but we accept `show` as a fallback so existing
+  // callers do not break during the transition.
+  show: {
+    type: Boolean,
+    default: undefined
   },
   selectedPatient: {
     type: Object,
@@ -298,7 +305,13 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'success'])
+const emit = defineEmits(['update:modelValue', 'close', 'success'])
+
+// Resolve the actual open-state. modelValue wins when explicitly bound;
+// otherwise fall back to the legacy `show` prop.
+const isOpen = computed(() =>
+  props.modelValue !== undefined ? props.modelValue : !!props.show
+)
 
 // Composables
 const { get } = useApi()
@@ -383,7 +396,7 @@ const handleMpSuccess = () => {
     paymentMethod: { name: 'Mercado Pago' },
     transactionNumber: pendingTransactionId.value
   })
-  emit('close')
+  emit('update:modelValue', false)
   resetForm()
   pendingTransactionId.value = null
   activeTab.value = 'manual'
@@ -440,10 +453,16 @@ const loadPaymentMethods = async () => {
     const methodsData = await get('/api/payment-methods/active')
     paymentMethods.value = methodsData.data || []
   } catch (error) {
-    toast.error('No se pudieron cargar los metodos de pago. Verifica tu conexion.')
-    // Si falla la autenticacion, mostrar mensaje al usuario
+    // Surface the backend message so the user knows the failure shape
+    // (e.g. 401 Sesión expirada) instead of a generic "verifica tu conexion".
     if (error.response?.status === 401) {
-      // token expirado, redirigir a login lo maneja el guard global
+      toast.error('Sesión expirada. Vuelve a iniciar sesión para registrar el cobro.')
+    } else {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.meta?.message ||
+        'No se pudieron cargar los métodos de pago. Verifica tu conexión.'
+      toast.error(message)
     }
     paymentMethods.value = []
   } finally {
@@ -458,10 +477,25 @@ const loadPatientAppointments = async (patientId) => {
   }
 
   try {
-    // Aquí implementarías la carga de citas del paciente
-    // Por ahora lo dejamos vacío
-    patientAppointments.value = []
+    // Carga real desde backend; el endpoint devuelve solo las citas
+    // pendientes/sin-pago del paciente para mantener el selector acotado.
+    const response = await get(`/api/patients/${patientId}/appointments`, {
+      params: { status: 'pending' }
+    })
+    patientAppointments.value = response?.data || []
   } catch (error) {
+    // No silenciar: si la lista falla, el usuario debe saber que el selector
+    // se queda vacío por un error de red, no por falta de citas.
+    console.error('[PaymentModal] loadPatientAppointments failed', error)
+    if (error.response?.status === 401) {
+      toast.error('Sesión expirada. Vuelve a iniciar sesión.')
+    } else {
+      const message =
+        error.response?.data?.message ||
+        'No se pudieron cargar las citas del paciente.'
+      toast.warning(message)
+    }
+    patientAppointments.value = []
   }
 }
 
@@ -497,9 +531,13 @@ const handleSubmit = async () => {
       paymentMethod: paymentMethods.value.find(pm => pm.id === formData.value.payment_method_id),
       transactionNumber: result.transaction_number
     })
-    emit('close')
+    emit('update:modelValue', false)
     resetForm()
   } catch (error) {
+    // 401 — surface it; do not let a silent catch hide a session expiry.
+    if (error.response?.status === 401) {
+      toast.error('Sesión expirada. Vuelve a iniciar sesión para registrar el cobro.')
+    }
 
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
@@ -577,7 +615,7 @@ watch(() => formData.value.patient_id, (newPatientId) => {
 
 // Pre-llenar datos del paciente seleccionado
 watch(() => props.selectedPatient, (newPatient) => {
-  if (newPatient && props.show) {
+  if (newPatient && isOpen.value) {
     formData.value.patient_id = newPatient.id
     formData.value.concept = newPatient.concept || 'Consulta'
     formData.value.amount = newPatient.amount || 0
@@ -591,20 +629,20 @@ watch(() => props.selectedPatient, (newPatient) => {
 
 // Pre-llenar datos de la cita seleccionada
 watch(() => props.selectedAppointment, (newAppointment) => {
-  if (newAppointment && props.show) {
+  if (newAppointment && isOpen.value) {
     formData.value.appointment_id = newAppointment.id
   }
 }, { immediate: true })
 
 // Lifecycle
 onMounted(() => {
-  if (props.show) {
+  if (isOpen.value) {
     loadPaymentMethods()
   }
 })
 
-watch(() => props.show, (newShow) => {
-  if (newShow) {
+watch(isOpen, (newOpen) => {
+  if (newOpen) {
     loadPaymentMethods()
     // NO resetear si hay paciente seleccionado
     if (!props.selectedPatient) {

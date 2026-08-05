@@ -210,49 +210,44 @@
       </div>
     </div>
 
-    <!-- Modales -->
+    <!-- Modales (slice 07 / T-07.19: unify modal contract on v-model) -->
     <OpenCashModal
-      :show="showOpenModal"
-      @close="showOpenModal = false"
+      v-model="showOpenModal"
       @success="handleOpenSuccess"
     />
 
     <CloseCashModal
-      :show="showCloseModal"
+      v-model="showCloseModal"
       :session="currentSession"
       :summary="summary"
-      @close="showCloseModal = false"
       @success="handleCloseSuccess"
     />
 
     <TransactionModal
-      :show="showTransactionModal"
-      @close="showTransactionModal = false"
+      v-model="showTransactionModal"
       @success="handleTransactionSuccess"
     />
 
     <MovementModal
-      :show="showMovementModal"
+      v-model="showMovementModal"
       :session="currentSession"
-      @close="showMovementModal = false"
       @success="handleMovementSuccess"
     />
 
     <ReceiptPreview
-      :show="showReceiptModal"
+      v-model="showReceiptModal"
       :transaction="selectedTransaction"
-      @close="showReceiptModal = false"
       @print="handlePrint"
       @download="handleDownload"
     />
 
     <!-- Modal de Pagos -->
     <PaymentModal
-      :show="showPaymentModal"
+      v-model="showPaymentModal"
       :selected-patient="selectedPaymentPatient"
       :selected-appointment="selectedPaymentAppointment"
       :pending-patients="pendingPatientsForModal"
-      @close="handlePaymentModalClose"
+      @update:model-value="handlePaymentModalClose"
       @success="handlePaymentSuccess"
     />
     </div>
@@ -546,8 +541,8 @@ const pendingPatientsForModal = computed(() => {
 })
 
 const handlePaymentModalClose = () => {
-  showPaymentModal.value = false
-  // Limpiar después de un delay para evitar parpadeo
+  // v-model handles the boolean now; only the cleanup of the selected
+  // patient/appointment refs remains.
   setTimeout(() => {
     selectedPaymentPatient.value = null
     selectedPaymentAppointment.value = null

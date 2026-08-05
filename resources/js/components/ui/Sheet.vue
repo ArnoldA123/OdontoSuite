@@ -13,7 +13,6 @@
         v-if="modelValue"
         :class="backdropClasses"
         @click="handleBackdropClick"
-        @keydown.esc="handleEscape"
       >
         <Transition
           :name="sheetTransition"
@@ -26,10 +25,13 @@
         >
           <div
             v-if="modelValue"
+            ref="sheetRef"
             :class="sheetClasses"
             :role="role"
+            tabindex="-1"
             :aria-labelledby="titleId"
             :aria-describedby="descriptionId"
+            :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
           >
             <!-- Handle for mobile -->
@@ -70,7 +72,8 @@
 </template>
 
 <script setup>
-import { computed, watch, nextTick } from 'vue'
+import { computed, watch, ref, onBeforeUnmount, useId } from 'vue'
+import { useFocusTrap } from '../../composables/useFocusTrap'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -95,9 +98,10 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
 
-// Generate unique IDs
-const titleId = computed(() => `sheet-title-${Math.random().toString(36).substr(2, 9)}`)
-const descriptionId = computed(() => `sheet-description-${Math.random().toString(36).substr(2, 9)}`)
+// Stable IDs (Vue 3.5+ useId) with fallback for older toolchains.
+const _id = useId ? useId() : `sheet-${Math.random().toString(36).slice(2, 10)}`
+const titleId = computed(() => `sheet-title-${_id}`)
+const descriptionId = computed(() => `sheet-description-${_id}`)
 
 const closeLabel = computed(() => 'Cerrar panel')
 
@@ -207,14 +211,19 @@ const closeButtonClasses = computed(() => [
 ])
 
 // Event handlers
+const sheetRef = ref(null)
+const focusTrap = useFocusTrap()
+
 const handleBackdropClick = () => {
   if (props.closeOnBackdrop && !props.persistent) {
     handleClose()
   }
 }
 
-const handleEscape = () => {
+const handleEscape = (event) => {
   if (props.closeOnEscape && !props.persistent) {
+    event.preventDefault()
+    event.stopPropagation()
     handleClose()
   }
 }
@@ -224,25 +233,33 @@ const handleClose = () => {
   emit('close')
 }
 
-// Watch for modelValue changes
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    emit('open')
-    // Focus the sheet when it opens
-    nextTick(() => {
-      const sheet = document.querySelector('[role="dialog"]')
-      if (sheet) sheet.focus()
-    })
+function handleDocumentEscape(event) {
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    handleEscape(event)
   }
-})
+}
 
-// Prevent body scroll when sheet is open
-watch(() => props.modelValue, (newValue) => {
-  if (newValue) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
+// Watch for modelValue changes
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      emit('open')
+      document.addEventListener('keydown', handleDocumentEscape)
+      document.body.style.overflow = 'hidden'
+      focusTrap.activate(sheetRef.value)
+    } else {
+      document.removeEventListener('keydown', handleDocumentEscape)
+      document.body.style.overflow = ''
+      focusTrap.release()
+    }
   }
+)
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleDocumentEscape)
+  document.body.style.overflow = ''
+  focusTrap.release()
 })
 </script>
 

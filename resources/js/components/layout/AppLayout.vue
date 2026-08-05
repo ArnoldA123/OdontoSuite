@@ -2,6 +2,7 @@
   <div class="min-h-screen bg-theme-background">
     <!-- Desktop Sidebar -->
     <aside
+      id="primary-sidebar"
       class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col sidebar-slide transition-all duration-300"
       :class="sidebarCollapsed ? 'lg:w-14' : 'lg:w-72'"
     >
@@ -30,6 +31,8 @@
             class="flex items-center justify-center w-8 h-8 p-1 rounded-lg hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors duration-200"
             aria-label="Abrir barra lateral"
             title="Abrir barra lateral"
+            aria-expanded="false"
+            aria-controls="primary-sidebar"
           >
             <img
               src="/images/easy_dent.png"
@@ -41,8 +44,9 @@
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
           class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-          aria-label="Cerrar barra lateral"
-          title="Cerrar barra lateral"
+          :aria-label="sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
+          :aria-expanded="!sidebarCollapsed"
+          aria-controls="primary-sidebar"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -134,6 +138,8 @@
           @click="mobileMenuOpen = true"
           class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           aria-label="Abrir menú"
+          aria-haspopup="dialog"
+          aria-expanded="mobileMenuOpen"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -223,19 +229,20 @@
             <div class="flex items-center gap-3">
               <!-- WebSocket connection indicator -->
               <div
-                v-if="wsStatus !== 'connecting'"
                 class="flex items-center justify-center w-8 h-8 rounded-full"
                 :class="{
+                  'bg-info-100 text-info-700': wsStatus === 'connecting',
                   'bg-success-100 text-success-700': wsStatus === 'connected',
                   'bg-warning-100 text-warning-700': wsStatus === 'disconnected',
                   'bg-error-100 text-error-700': wsStatus === 'unavailable',
                 }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
-                :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
+                :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'connecting' ? 'Conectando' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
               >
                 <span
                   class="w-2 h-2 rounded-full"
                   :class="{
+                    'bg-info-500 animate-pulse': wsStatus === 'connecting',
                     'bg-success-500 animate-pulse-subtle': wsStatus === 'connected',
                     'bg-warning-500': wsStatus === 'disconnected',
                     'bg-error-500': wsStatus === 'unavailable',
@@ -250,6 +257,9 @@
                 size="sm"
                 class="relative"
                 @click="toggleNotificationCenter"
+                aria-label="Centro de notificaciones"
+                :aria-expanded="notificationCenterOpen"
+                aria-haspopup="dialog"
               >
                 <template #icon-left>
                   <BellIcon class="w-5 h-5" />
@@ -259,6 +269,7 @@
                   variant="error"
                   size="xs"
                   class="absolute -top-1 -right-1"
+                  :aria-label="`${unreadNotificationCount} notificaciones sin leer`"
                 >
                   {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
                 </UiBadge>
@@ -272,6 +283,9 @@
                   size="sm"
                   @click="toggleUserMenu"
                   class="flex items-center gap-2"
+                  :aria-expanded="userMenuOpen"
+                  aria-haspopup="menu"
+                  aria-controls="user-menu-dropdown"
                 >
                   <UiAvatar
                     :src="user?.avatar"
@@ -298,9 +312,13 @@
                   <div
                     ref="userMenuDropdownRef"
                     v-if="userMenuOpen"
+                    id="user-menu-dropdown"
                     class="fixed z-50 w-64 bg-theme-surface-elevated rounded-xl shadow-2xl border border-theme py-2 origin-top-right"
                     :style="userMenuStyle"
+                    role="menu"
+                    aria-label="Menú de usuario"
                     @click.stop
+                    @keydown.esc="closeUserMenu"
                   >
                     <div class="px-4 py-3 border-b border-theme">
                       <p class="text-sm font-medium text-theme-primary">{{ safeUser.name || 'Usuario' }}</p>
@@ -834,7 +852,11 @@ const getPageDescription = () => {
 // Sidebar functions
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
-  localStorage.setItem('sidebar-collapsed', sidebarCollapsed.value.toString())
+  // Sanitize: only persist when the new value is a real boolean. Anything
+  // coming from localStorage on next load is also sanitized (see onMounted)
+  // so a tampered storage value cannot force an attacker-controlled string
+  // back into the persisted state.
+  localStorage.setItem('sidebar-collapsed', sidebarCollapsed.value ? 'true' : 'false')
 }
 
 // Event handlers
@@ -856,20 +878,48 @@ const handleClickOutside = (event) => {
   }
 }
 
+// Close user menu on Escape (WCAG 2.1.1)
+const handleUserMenuEscape = (event) => {
+  if (event.key === 'Escape' || event.key === 'Esc') {
+    if (userMenuOpen.value) {
+      event.preventDefault()
+      closeUserMenu()
+    }
+  }
+}
+
+// Close mobile menu on route change so it does not bleed across pages.
+watch(
+  () => route.path,
+  () => {
+    if (mobileMenuOpen.value) {
+      mobileMenuOpen.value = false
+    }
+  }
+)
+
 // Lifecycle
 onMounted(() => {
-  // Load sidebar state from localStorage
+  // Load sidebar state from localStorage with explicit sanitization. The
+  // value must be exactly 'true' or 'false'; anything else is treated as
+  // missing to avoid persisting attacker-controlled strings or coercing
+  // an unexpected value to a boolean.
   const savedState = localStorage.getItem('sidebar-collapsed')
-  if (savedState !== null) {
+  if (savedState === 'true' || savedState === 'false') {
     sidebarCollapsed.value = savedState === 'true'
+  } else if (savedState !== null) {
+    // Tampered value — rewrite it to a known good value.
+    localStorage.setItem('sidebar-collapsed', 'false')
   }
 
-  // Add click outside listener
+  // Add click outside + Escape listeners
   document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleUserMenuEscape)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleUserMenuEscape)
 })
 </script>
 

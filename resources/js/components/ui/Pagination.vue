@@ -1,10 +1,11 @@
 <template>
-  <div class="pagination">
+  <div class="pagination" role="navigation" aria-label="Paginación">
     <div class="pagination-mobile">
       <button
         @click="goToPage(currentPage - 1)"
         :disabled="currentPage <= 1"
         class="btn btn-outline"
+        aria-label="Página anterior"
       >
         Anterior
       </button>
@@ -12,6 +13,7 @@
         @click="goToPage(currentPage + 1)"
         :disabled="currentPage >= totalPages"
         class="btn btn-outline"
+        aria-label="Página siguiente"
       >
         Siguiente
       </button>
@@ -29,11 +31,12 @@
         </p>
       </div>
       <div class="pagination-nav">
-        <nav class="pagination-nav-container" aria-label="Pagination">
+        <nav class="pagination-nav-container" aria-label="Paginación de resultados">
           <button
             @click="goToPage(currentPage - 1)"
             :disabled="currentPage <= 1"
             class="pagination-nav-button pagination-nav-button--prev"
+            :aria-label="`Ir a la página ${currentPage - 1}`"
           >
             <span class="sr-only">Anterior</span>
             <svg class="pagination-nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -49,12 +52,15 @@
                 'pagination-page-button',
                 page === currentPage ? 'pagination-page-button--active' : 'pagination-page-button--inactive'
               ]"
+              :aria-label="`Ir a la página ${page}`"
+              :aria-current="page === currentPage ? 'page' : undefined"
             >
               {{ page }}
             </button>
             <span
               v-else
               class="pagination-ellipsis"
+              aria-hidden="true"
             >
               ...
             </span>
@@ -64,6 +70,7 @@
             @click="goToPage(currentPage + 1)"
             :disabled="currentPage >= totalPages"
             class="pagination-nav-button pagination-nav-button--next"
+            :aria-label="`Ir a la página ${currentPage + 1}`"
           >
             <span class="sr-only">Siguiente</span>
             <svg class="pagination-nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

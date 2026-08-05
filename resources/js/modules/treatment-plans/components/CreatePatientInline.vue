@@ -101,11 +101,13 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useToast } from '@/composables/useToast'
 import { XMarkIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 
 const emit = defineEmits(['close', 'created'])
 
 const { post } = useApi()
+const toast = useToast()
 const loading = ref(false)
 const generalError = ref('')
 const errors = ref({})
@@ -139,6 +141,7 @@ const handleSubmit = async () => {
   try {
     const response = await post('/api/patients', form.value)
     const newPatient = response.data?.data ?? response.data
+    toast.success('Paciente creado exitosamente')
     emit('created', newPatient)
   } catch (err) {
     handleError(err)

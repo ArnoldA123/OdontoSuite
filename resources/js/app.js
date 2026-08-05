@@ -5,6 +5,7 @@ import LoginPage from './modules/auth/LoginPage.vue';
 import { requireAuth, requireGuest } from './router/auth';
 import uiComponents from './plugins/ui-components';
 import { useEcho } from './composables/useEcho';
+import { useToast } from './composables/useToast';
 
 // Inicializar Echo para WebSockets
 if (typeof window !== 'undefined') {
@@ -175,12 +176,54 @@ const routes = [
     name: 'settings-payment-methods',
     component: () => import('./modules/settings/payment-methods/PaymentMethodsPage.vue'),
     beforeEnter: requireAuth
+  },
+  // Catch-all 404 route. Rendered in-place so the user keeps the existing
+  // app shell (header / sidebar) and can navigate back without a hard reload.
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('./modules/errors/NotFoundPage.vue'),
+    meta: { title: 'Página no encontrada' }
   }
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+});
+
+// Global error handler — recovers from lazy-chunk load failures (e.g. after a
+// new deploy that invalidated a previously cached chunk) by reloading the
+// current route once. Without this, users on a stale tab would see a blank
+// page after a deployment. The single reload is intentional: a loop would
+// indicate a real bug, not a chunk mismatch.
+router.onError((error, to) => {
+  const isChunkError =
+    /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk \S+ failed/i.test(
+      error?.message || ''
+    )
+  const navKey = '__sdd_lazy_reload'
+
+  if (isChunkError && typeof window !== 'undefined' && !sessionStorage.getItem(navKey)) {
+    sessionStorage.setItem(navKey, '1')
+    window.location.assign(to.fullPath)
+  } else if (typeof window !== 'undefined') {
+    // Surface a non-fatal toast so the user knows something failed.
+    try {
+      const { error: showError } = useToast()
+      showError('No se pudo cargar la página. Intenta recargar.')
+    } catch (e) {
+      // toast not yet wired — silent fallback
+    }
+  }
+});
+
+router.afterEach(() => {
+  if (typeof window !== 'undefined') {
+    // Reset the lazy-reload guard so a future chunk error on a different
+    // route can still recover.
+    sessionStorage.removeItem('__sdd_lazy_reload')
+  }
 });
 
 // Crear la aplicación Vue con un componente raíz

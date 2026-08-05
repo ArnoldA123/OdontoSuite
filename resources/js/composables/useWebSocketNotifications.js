@@ -2,6 +2,7 @@ import { onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useEcho } from './useEcho'
 import { useNotifications } from './useNotifications'
+import { useToast } from './useToast'
 import { NotificationService } from '@/services/NotificationService'
 
 /**
@@ -11,6 +12,7 @@ export function useWebSocketNotifications() {
   const route = useRoute()
   const { channel, echo } = useEcho()
   const { addNotification } = useNotifications()
+  const { error: showErrorToast } = useToast()
 
   let channels = {}
 
@@ -80,6 +82,11 @@ export function useWebSocketNotifications() {
         }
       )
     } catch (error) {
+      // Log the failure so an empty catch never masks a real bug; surface
+      // a one-shot toast so the user knows the WebSocket listener chain is
+      // dropping an event instead of failing silently.
+      console.error('[WebSocket] handler error for', eventName, error)
+      showErrorToast('No se pudo procesar una notificación en vivo.')
     }
   }
 
@@ -174,6 +181,8 @@ export function useWebSocketNotifications() {
         channels.procedureCatalog = procedureCatalogChannel
       }
     } catch (error) {
+      console.error('[WebSocket] setupSubscriptions failed', error)
+      showErrorToast('No se pudieron activar las notificaciones en vivo.')
     }
   }
 
@@ -187,6 +196,7 @@ export function useWebSocketNotifications() {
           echo.leave(channelName.replace(/([A-Z])/g, '-$1').toLowerCase())
         })
       } catch (e) {
+        console.error('[WebSocket] cleanup failed', e)
       }
     }
     channels = {}

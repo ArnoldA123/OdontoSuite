@@ -172,243 +172,185 @@
   </AppLayout>
 
     <!-- New Professional Modal -->
-    <div
-      v-if="showNewProfessionalModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showNewProfessionalModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Nuevo Profesional</h3>
-          <form @submit.prevent="createProfessional">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre Completo</label>
-                <input
-                  v-model="newProfessional.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Usuario</label>
-                <input
-                  v-model="newProfessional.username"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Email</label>
-                <input
-                  v-model="newProfessional.email"
-                  type="email"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
-                <input
-                  v-model="newProfessional.phone"
-                  type="tel"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
-                <select
-                  v-model="newProfessional.specialty"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="">Seleccionar especialidad</option>
-                  <option value="general">Odontología General</option>
-                  <option value="orthodontics">Ortodoncia</option>
-                  <option value="endodontics">Endodoncia</option>
-                  <option value="periodontics">Periodoncia</option>
-                  <option value="oral_surgery">Cirugía Oral</option>
-                  <option value="pediatric">Odontopediatría</option>
-                  <option value="prosthodontics">Prótesis Dental</option>
-                  <option value="cosmetic">Odontología Estética</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Contraseña</label>
-                <input
-                  v-model="newProfessional.password"
-                  type="password"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showNewProfessionalModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                :disabled="creating"
-                class="px-4 py-2 text-sm font-medium text-white bg-success-600 hover:bg-success-700 rounded-md disabled:opacity-50"
-              >
-                {{ creating ? 'Creando...' : 'Crear' }}
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showNewProfessionalModal" title="Nuevo Profesional" size="md">
+      <form id="form-new-prof" @submit.prevent="createProfessional" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre Completo</label>
+          <input
+            v-model="newProfessional.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Usuario</label>
+          <input
+            v-model="newProfessional.username"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Email</label>
+          <input
+            v-model="newProfessional.email"
+            type="email"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
+          <input
+            v-model="newProfessional.phone"
+            type="tel"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
+          <select
+            v-model="newProfessional.specialty"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          >
+            <option value="">Seleccionar especialidad</option>
+            <option value="general">Odontología General</option>
+            <option value="orthodontics">Ortodoncia</option>
+            <option value="endodontics">Endodoncia</option>
+            <option value="periodontics">Periodoncia</option>
+            <option value="oral_surgery">Cirugía Oral</option>
+            <option value="pediatric">Odontopediatría</option>
+            <option value="prosthodontics">Prótesis Dental</option>
+            <option value="cosmetic">Odontología Estética</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Contraseña</label>
+          <input
+            v-model="newProfessional.password"
+            type="password"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showNewProfessionalModal = false" :disabled="creating">
+          Cancelar
+        </UiButton>
+        <UiButton type="submit" :loading="creating" @click="createProfessional">
+          Crear
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Edit Professional Modal -->
-    <div
-      v-if="showEditProfessionalModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showEditProfessionalModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Editar Profesional</h3>
-          <form @submit.prevent="updateProfessional">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-                <input
-                  v-model="editingProfessional.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Usuario</label>
-                <input
-                  v-model="editingProfessional.username"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Email</label>
-                <input
-                  v-model="editingProfessional.email"
-                  type="email"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
-                <input
-                  v-model="editingProfessional.phone"
-                  type="tel"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
-                <select
-                  v-model="editingProfessional.specialty"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="">Seleccionar especialidad</option>
-                  <option value="general">Odontología General</option>
-                  <option value="orthodontics">Ortodoncia</option>
-                  <option value="endodontics">Endodoncia</option>
-                  <option value="periodontics">Periodoncia</option>
-                  <option value="oral_surgery">Cirugía Oral</option>
-                  <option value="pediatric">Odontopediatría</option>
-                  <option value="prosthodontics">Prótesis Dental</option>
-                  <option value="cosmetic">Odontología Estética</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showEditProfessionalModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 text-sm font-medium text-white bg-success-600 hover:bg-success-700 rounded-md"
-              >
-                Actualizar
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showEditProfessionalModal" title="Editar Profesional" size="md">
+      <form id="form-edit-prof" v-if="editingProfessional" @submit.prevent="updateProfessional" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <input
+            v-model="editingProfessional.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Usuario</label>
+          <input
+            v-model="editingProfessional.username"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Email</label>
+          <input
+            v-model="editingProfessional.email"
+            type="email"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
+          <input
+            v-model="editingProfessional.phone"
+            type="tel"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
+          <select
+            v-model="editingProfessional.specialty"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          >
+            <option value="">Seleccionar especialidad</option>
+            <option value="general">Odontología General</option>
+            <option value="orthodontics">Ortodoncia</option>
+            <option value="endodontics">Endodoncia</option>
+            <option value="periodontics">Periodoncia</option>
+            <option value="oral_surgery">Cirugía Oral</option>
+            <option value="pediatric">Odontopediatría</option>
+            <option value="prosthodontics">Prótesis Dental</option>
+            <option value="cosmetic">Odontología Estética</option>
+          </select>
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showEditProfessionalModal = false" :disabled="updating">
+          Cancelar
+        </UiButton>
+        <UiButton type="submit" :loading="updating" @click="updateProfessional">
+          Actualizar
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- View Professional Modal -->
-    <div
-      v-if="showViewProfessionalModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showViewProfessionalModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Ver Profesional</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional?.name }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Usuario</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional?.username }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Email</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional?.email }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional?.phone || 'Sin teléfono' }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ getSpecialtyText(viewingProfessional?.specialty) }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Estado</label>
-              <p class="mt-1 text-sm text-theme-primary">
-                <span :class="viewingProfessional?.is_active ? 'text-green-600' : 'text-red-600'">
-                  {{ viewingProfessional?.is_active ? 'Activo' : 'Inactivo' }}
-                </span>
-              </p>
-            </div>
-          </div>
-          <div class="flex justify-end mt-6">
-            <button
-              @click="showViewProfessionalModal = false"
-              class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-            >
-              Cerrar
-            </button>
-          </div>
+    <UiModal v-model="showViewProfessionalModal" title="Ver Profesional" size="md">
+      <div v-if="viewingProfessional" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional.name }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Usuario</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional.username }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Email</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional.email }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Teléfono</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingProfessional.phone || 'Sin teléfono' }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Especialidad</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ getSpecialtyText(viewingProfessional.specialty) }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <p class="mt-1 text-sm text-theme-primary">
+            <span :class="viewingProfessional.is_active ? 'text-success-700' : 'text-error-700'">
+              {{ viewingProfessional.is_active ? 'Activo' : 'Inactivo' }}
+            </span>
+          </p>
         </div>
       </div>
-    </div>
+      <template #footer>
+        <UiButton variant="secondary" @click="showViewProfessionalModal = false">
+          Cerrar
+        </UiButton>
+      </template>
+    </UiModal>
 </template>
 
 <script>
@@ -417,11 +359,14 @@ import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
+import { useErrorHandler } from '../../composables/useErrorHandler'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'ProfessionalsPage',
@@ -430,15 +375,19 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
-    UiCard
+    UiCard,
+    UiModal,
+    UiEmptyState
   },
   setup() {
     const router = useRouter()
     const { get, post, put, delete: remove } = useApi()
     const toast = useToast()
+    const { handleError } = useErrorHandler()
 
     const loading = ref(false)
     const creating = ref(false)
+    const updating = ref(false)
     const professionals = ref([])
     const searchQuery = ref('')
     const specialtyFilter = ref('')
@@ -464,10 +413,10 @@ export default {
         professionals.value = response?.data || []
 
         if (professionals.value.length === 0) {
-          toast.warning('No se encontraron profesionales')
+          toast.info('Aún no hay profesionales registrados')
         }
       } catch (error) {
-        toast.error('Error al cargar los profesionales. Por favor, recarga la página.')
+        handleError(error, 'Error al cargar los profesionales. Por favor, recarga la página.')
         professionals.value = []
       } finally {
         loading.value = false
@@ -485,6 +434,7 @@ export default {
         const response = await get(`/api/users/search?q=${encodeURIComponent(searchQuery.value)}&role=odontologo`)
         professionals.value = response.data
       } catch (error) {
+        handleError(error, 'Error al buscar profesionales')
       } finally {
         loading.value = false
       }
@@ -496,6 +446,7 @@ export default {
     }
 
     const createProfessional = async () => {
+      if (creating.value) return
       creating.value = true
       try {
         const professionalData = {
@@ -512,8 +463,10 @@ export default {
           specialty: '',
           password: ''
         }
+        toast.success('Profesional creado exitosamente')
         loadProfessionals()
       } catch (error) {
+        handleError(error, 'Error al crear el profesional')
       } finally {
         creating.value = false
       }
@@ -534,14 +487,18 @@ export default {
     }
 
     const updateProfessional = async () => {
+      if (updating.value) return
+      updating.value = true
       try {
         await put(`/api/users/${editingProfessional.value.id}`, editingProfessional.value)
         showEditProfessionalModal.value = false
         editingProfessional.value = null
         loadProfessionals()
-        alert('Profesional actualizado exitosamente')
+        toast.success('Profesional actualizado exitosamente')
       } catch (error) {
-        alert('Error al actualizar el profesional')
+        handleError(error, 'Error al actualizar el profesional')
+      } finally {
+        updating.value = false
       }
     }
 
@@ -556,9 +513,9 @@ export default {
         try {
           await remove(`/api/users/${professional.id}`)
           loadProfessionals()
-          alert('Profesional eliminado exitosamente')
+          toast.success('Profesional eliminado exitosamente')
         } catch (error) {
-          alert('Error al eliminar el profesional')
+          handleError(error, 'Error al eliminar el profesional')
         }
       }
     }
@@ -578,7 +535,7 @@ export default {
     }
 
     const goBack = () => {
-      router.push('/dashboard')
+      router.back()
     }
 
     onMounted(() => {
@@ -588,6 +545,7 @@ export default {
     return {
       loading,
       creating,
+      updating,
       professionals,
       searchQuery,
       specialtyFilter,

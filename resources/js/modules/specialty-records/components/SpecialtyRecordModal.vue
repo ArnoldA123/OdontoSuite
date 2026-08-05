@@ -301,6 +301,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useSpecialtyRecords } from '@/composables/useSpecialtyRecords'
+import { useToast } from '@/composables/useToast'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
 import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
 
@@ -318,6 +319,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const { createRecord, updateRecord, loading } = useSpecialtyRecords()
+const toast = useToast()
 
 const selectedPatient = ref(null)
 
@@ -391,14 +393,27 @@ const handleSubmit = async () => {
 
     if (props.isEdit) {
       await updateRecord(props.record.id, form.value)
+      toast.success('Registro de especialidad actualizado exitosamente')
     } else {
       await createRecord(form.value)
+      toast.success('Registro de especialidad creado exitosamente')
     }
 
     emit('saved')
   } catch (err) {
     if (err.response?.data?.errors) {
       errors.value = err.response.data.errors
+      const firstField = Object.keys(err.response.data.errors)[0]
+      const firstMessage = err.response.data.errors[firstField]?.[0]
+      if (firstMessage) {
+        toast.error(firstMessage)
+      } else {
+        toast.error('No se pudo guardar el registro. Revisa los campos.')
+      }
+    } else if (err.response?.data?.message) {
+      toast.error(err.response.data.message)
+    } else {
+      toast.error('No se pudo guardar el registro. Intenta nuevamente.')
     }
   }
 }

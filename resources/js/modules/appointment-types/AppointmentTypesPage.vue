@@ -181,250 +181,200 @@
   </AppLayout>
 
     <!-- New Type Modal -->
-    <div
-      v-if="showNewTypeModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showNewTypeModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Nuevo Tipo de Cita</h3>
-          <form @submit.prevent="createType">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre del Tipo</label>
-                <input
-                  v-model="newType.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-                <textarea
-                  v-model="newType.description"
-                  rows="3"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                ></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
-                <input
-                  v-model="newType.duration_minutes"
-                  type="number"
-                  min="15"
-                  max="480"
-                  step="15"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Precio (S/)</label>
-                <input
-                  v-model="newType.price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Color</label>
-                <div class="flex items-center space-x-2">
-                  <input
-                    v-model="newType.color"
-                    type="color"
-                    class="w-12 h-8 border border-theme rounded"
-                  />
-                  <input
-                    v-model="newType.color"
-                    type="text"
-                    placeholder="#0066CC"
-                    class="flex-1 px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                  />
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showNewTypeModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                :disabled="creating"
-                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md disabled:opacity-50"
-              >
-                {{ creating ? 'Creando...' : 'Crear' }}
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showNewTypeModal" title="Nuevo Tipo de Cita" size="md">
+      <form id="form-new-type" @submit.prevent="createType" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre del Tipo</label>
+          <input
+            v-model="newType.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <textarea
+            v-model="newType.description"
+            rows="3"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
+          <input
+            v-model="newType.duration_minutes"
+            type="number"
+            min="15"
+            max="480"
+            step="15"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Precio (S/)</label>
+          <input
+            v-model="newType.price"
+            type="number"
+            min="0"
+            step="0.01"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Color</label>
+          <div class="flex items-center space-x-2">
+            <input
+              v-model="newType.color"
+              type="color"
+              class="w-12 h-8 border border-theme rounded"
+            />
+            <input
+              v-model="newType.color"
+              type="text"
+              placeholder="#0066CC"
+              class="flex-1 px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            />
+          </div>
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showNewTypeModal = false" :disabled="creating">
+          Cancelar
+        </UiButton>
+        <UiButton
+          type="submit"
+          :loading="creating"
+          @click="createType"
+        >
+          Crear
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Edit Type Modal -->
-    <div
-      v-if="showEditTypeModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showEditTypeModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Editar Tipo de Cita</h3>
-          <form @submit.prevent="updateType">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-                <input
-                  v-model="editingType.name"
-                  type="text"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-                <textarea
-                  v-model="editingType.description"
-                  rows="3"
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                ></textarea>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
-                <input
-                  v-model="editingType.duration_minutes"
-                  type="number"
-                  min="15"
-                  max="480"
-                  step="15"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Precio</label>
-                <input
-                  v-model="editingType.price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Color</label>
-                <input
-                  v-model="editingType.color"
-                  type="color"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary">Estado</label>
-                <select
-                  v-model="editingType.is_active"
-                  required
-                  class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option :value="true">Activo</option>
-                  <option :value="false">Inactivo</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex justify-end space-x-3 mt-6">
-              <button
-                type="button"
-                @click="showEditTypeModal = false"
-                class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-md"
-              >
-                Actualizar
-              </button>
-            </div>
-          </form>
+    <UiModal v-model="showEditTypeModal" title="Editar Tipo de Cita" size="md">
+      <form id="form-edit-type" v-if="editingType" @submit.prevent="updateType" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <input
+            v-model="editingType.name"
+            type="text"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <textarea
+            v-model="editingType.description"
+            rows="3"
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          ></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
+          <input
+            v-model="editingType.duration_minutes"
+            type="number"
+            min="15"
+            max="480"
+            step="15"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Precio</label>
+          <input
+            v-model="editingType.price"
+            type="number"
+            min="0"
+            step="0.01"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Color</label>
+          <input
+            v-model="editingType.color"
+            type="color"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <select
+            v-model="editingType.is_active"
+            required
+            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          >
+            <option :value="true">Activo</option>
+            <option :value="false">Inactivo</option>
+          </select>
+        </div>
+      </form>
+      <template #footer>
+        <UiButton variant="secondary" @click="showEditTypeModal = false" :disabled="updating">
+          Cancelar
+        </UiButton>
+        <UiButton
+          type="submit"
+          :loading="updating"
+          @click="updateType"
+        >
+          Actualizar
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- View Type Modal -->
-    <div
-      v-if="showViewTypeModal"
-      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
-      @click="showViewTypeModal = false"
-    >
-      <div
-        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-theme-surface-elevated"
-        @click.stop
-      >
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-theme-primary mb-4">Ver Tipo de Cita</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingType?.name }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingType?.description || 'Sin descripción' }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Duración</label>
-              <p class="mt-1 text-sm text-theme-primary">{{ viewingType?.duration_minutes }} minutos</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Precio</label>
-              <p class="mt-1 text-sm text-theme-primary">S/ {{ viewingType?.price }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Color</label>
-              <div class="mt-1 flex items-center">
-                <div
-                  class="w-6 h-6 rounded border border-theme mr-2"
-                  :style="{ backgroundColor: viewingType?.color }"
-                ></div>
-                <span class="text-sm text-theme-primary">{{ viewingType?.color }}</span>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary">Estado</label>
-              <p class="mt-1 text-sm text-theme-primary">
-                <span :class="viewingType?.is_active ? 'text-green-600' : 'text-red-600'">
-                  {{ viewingType?.is_active ? 'Activo' : 'Inactivo' }}
-                </span>
-              </p>
-            </div>
-          </div>
-          <div class="flex justify-end mt-6">
-            <button
-              @click="showViewTypeModal = false"
-              class="px-4 py-2 text-sm font-medium text-theme-primary bg-theme-surface hover:bg-theme-surface-elevated rounded-md"
-            >
-              Cerrar
-            </button>
+    <UiModal v-model="showViewTypeModal" title="Ver Tipo de Cita" size="md">
+      <div v-if="viewingType" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Nombre</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingType.name }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Descripción</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingType.description || 'Sin descripción' }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Duración</label>
+          <p class="mt-1 text-sm text-theme-primary">{{ viewingType.duration_minutes }} minutos</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Precio</label>
+          <p class="mt-1 text-sm text-theme-primary">S/ {{ viewingType.price }}</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Color</label>
+          <div class="mt-1 flex items-center">
+            <div
+              class="w-6 h-6 rounded border border-theme mr-2"
+              :style="{ backgroundColor: viewingType.color }"
+            ></div>
+            <span class="text-sm text-theme-primary">{{ viewingType.color }}</span>
           </div>
         </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary">Estado</label>
+          <p class="mt-1 text-sm text-theme-primary">
+            <span :class="viewingType.is_active ? 'text-success-700' : 'text-error-700'">
+              {{ viewingType.is_active ? 'Activo' : 'Inactivo' }}
+            </span>
+          </p>
+        </div>
       </div>
-    </div>
+      <template #footer>
+        <UiButton variant="secondary" @click="showViewTypeModal = false">
+          Cerrar
+        </UiButton>
+      </template>
+    </UiModal>
 </template>
 
 <script>
@@ -439,6 +389,8 @@ import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'AppointmentTypesPage',
@@ -447,7 +399,9 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
-    UiCard
+    UiCard,
+    UiModal,
+    UiEmptyState
   },
   setup() {
     const router = useRouter()
@@ -457,6 +411,7 @@ export default {
 
     const loading = ref(false)
     const creating = ref(false)
+    const updating = ref(false)
     const types = ref([])
     const searchQuery = ref('')
     const statusFilter = ref('')
@@ -482,10 +437,10 @@ export default {
         types.value = response?.data || []
 
         if (types.value.length === 0) {
-          toast.warning('No se encontraron tipos de cita')
+          toast.info('Aún no hay tipos de cita registrados')
         }
       } catch (error) {
-        toast.error('Error al cargar los tipos de cita. Por favor, recarga la página.')
+        handleError(error, 'Error al cargar los tipos de cita. Por favor, recarga la página.')
         types.value = []
       } finally {
         loading.value = false
@@ -503,6 +458,7 @@ export default {
         const response = await get(`/api/appointment-types/search?q=${encodeURIComponent(searchQuery.value)}`)
         types.value = response.data
       } catch (error) {
+        handleError(error, 'Error al buscar tipos de cita')
       } finally {
         loading.value = false
       }
@@ -514,6 +470,7 @@ export default {
     }
 
     const createType = async () => {
+      if (creating.value) return
       creating.value = true
       try {
         await post('/api/appointment-types', newType.value)
@@ -526,8 +483,10 @@ export default {
           color: '#0066CC',
           is_active: true
         }
+        toast.success('Tipo de cita creado exitosamente')
         loadTypes()
       } catch (error) {
+        handleError(error, 'Error al crear el tipo de cita')
       } finally {
         creating.value = false
       }
@@ -548,6 +507,8 @@ export default {
     }
 
     const updateType = async () => {
+      if (updating.value) return
+      updating.value = true
       try {
         await put(`/api/appointment-types/${editingType.value.id}`, editingType.value)
         showEditTypeModal.value = false
@@ -556,6 +517,8 @@ export default {
         toast.success('Tipo de cita actualizado exitosamente')
       } catch (error) {
         handleError(error, 'Error al actualizar el tipo de cita')
+      } finally {
+        updating.value = false
       }
     }
 
@@ -578,7 +541,7 @@ export default {
     }
 
     const goBack = () => {
-      router.push('/dashboard')
+      router.back()
     }
 
     onMounted(() => {
@@ -588,6 +551,7 @@ export default {
     return {
       loading,
       creating,
+      updating,
       types,
       searchQuery,
       statusFilter,

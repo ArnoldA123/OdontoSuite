@@ -139,13 +139,12 @@
         <p class="copyright">
           © 2023 OdontoSuite. Todos los derechos reservados. Versión 2.0 - Sistema de gestión dental
         </p>
-        <button
-          type="button"
+        <a
+          href="mailto:soporte@odontosuite.local"
           class="help-center-link"
-          @click="handleHelpCenter"
         >
           Centro Ayuda
-        </button>
+        </a>
       </div>
     </div>
 
@@ -281,11 +280,6 @@ const handleResetPasswordSuccess = () => {
   resetEmail.value = ''
   resetToken.value = ''
   // Optionally redirect to login or show success message
-}
-
-const handleHelpCenter = () => {
-  // TODO: Implement help center navigation
-  // This could open a modal or navigate to help page
 }
 </script>
 
