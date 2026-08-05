@@ -130,7 +130,7 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span
-                      :class="professional.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      :class="professional.is_active ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'"
                       class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                     >
                       {{ professional.is_active ? 'Activo' : 'Inactivo' }}
@@ -174,7 +174,7 @@
     <!-- New Professional Modal -->
     <div
       v-if="showNewProfessionalModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showNewProfessionalModal = false"
     >
       <div
@@ -259,7 +259,7 @@
               <button
                 type="submit"
                 :disabled="creating"
-                class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
+                class="px-4 py-2 text-sm font-medium text-white bg-success-600 hover:bg-success-700 rounded-md disabled:opacity-50"
               >
                 {{ creating ? 'Creando...' : 'Crear' }}
               </button>
@@ -272,7 +272,7 @@
     <!-- Edit Professional Modal -->
     <div
       v-if="showEditProfessionalModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showEditProfessionalModal = false"
     >
       <div
@@ -346,7 +346,7 @@
               </button>
               <button
                 type="submit"
-                class="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                class="px-4 py-2 text-sm font-medium text-white bg-success-600 hover:bg-success-700 rounded-md"
               >
                 Actualizar
               </button>
@@ -359,7 +359,7 @@
     <!-- View Professional Modal -->
     <div
       v-if="showViewProfessionalModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showViewProfessionalModal = false"
     >
       <div

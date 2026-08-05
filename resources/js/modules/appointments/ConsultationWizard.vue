@@ -239,7 +239,7 @@
           <section v-if="currentStep === 'materials'" class="space-y-4">
             <h3 class="text-lg font-semibold text-theme-primary">Materiales e insumos</h3>
 
-            <div v-if="payload.mode === 'consultation'" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            <div v-if="payload.mode === 'consultation'" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-warning-700">
               Esta cita es de evaluación. Si no se consumieron materiales, marca "Saltar".
             </div>
 
@@ -381,7 +381,7 @@
               v-else
               @click="handleSubmit"
               :disabled="!canSubmit || submitting"
-              class="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+              class="px-5 py-2 text-sm font-semibold bg-success-600 text-white rounded-lg hover:bg-success-700 disabled:opacity-50"
             >
               {{ submitting ? 'Completando…' : '✓ Completar consulta' }}
             </button>

@@ -287,6 +287,6 @@ const getReviewDecisionClass = (decision) => {
 }
 
 .action-btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700;
+  @apply bg-error-600 text-white hover:bg-error-700;
 }
 </style>

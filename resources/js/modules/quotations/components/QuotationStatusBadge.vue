@@ -19,9 +19,9 @@ const statusClasses = computed(() => {
 
   const statusMap = {
     draft: `${baseClasses} bg-theme-surface text-theme-secondary`,
-    sent: `${baseClasses} bg-primary-100 text-primary-800`,
-    approved: `${baseClasses} bg-green-100 text-green-800`,
-    rejected: `${baseClasses} bg-red-100 text-red-800`
+    sent: `${baseClasses} bg-primary-100 text-primary-700`,
+    approved: `${baseClasses} bg-success-100 text-success-700`,
+    rejected: `${baseClasses} bg-error-100 text-error-700`
   }
 
   return statusMap[props.status] || `${baseClasses} bg-theme-surface text-theme-secondary`

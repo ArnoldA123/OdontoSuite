@@ -225,25 +225,25 @@ const getImageUrl = (filePath) => {
 
 const getStatusClass = (status) => {
   const classes = {
-    pending: 'bg-yellow-100 text-yellow-800',
+    pending: 'bg-warning-100 text-warning-700',
     processing: 'bg-primary-100 text-primary-800',
-    completed: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800'
+    completed: 'bg-success-100 text-success-700',
+    failed: 'bg-error-100 text-error-700'
   }
   return classes[status] || 'bg-theme-surface text-theme-secondary'
 }
 
 const getConfidenceClass = (confidence) => {
-  if (confidence >= 90) return 'bg-green-100 text-green-800'
-  if (confidence >= 70) return 'bg-yellow-100 text-yellow-800'
-  return 'bg-red-100 text-red-800'
+  if (confidence >= 90) return 'bg-success-100 text-success-700'
+  if (confidence >= 70) return 'bg-warning-100 text-warning-700'
+  return 'bg-error-100 text-error-700'
 }
 
 const getSeverityClass = (severity) => {
   const classes = {
-    leve: 'bg-green-100 text-green-800',
-    moderado: 'bg-yellow-100 text-yellow-800',
-    severo: 'bg-red-100 text-red-800'
+    leve: 'bg-success-100 text-success-700',
+    moderado: 'bg-warning-100 text-warning-700',
+    severo: 'bg-error-100 text-error-700'
   }
   return classes[severity] || 'bg-theme-surface text-theme-secondary'
 }
@@ -259,9 +259,9 @@ const getSeverityLabel = (severity) => {
 
 const getReviewDecisionClass = (decision) => {
   const classes = {
-    accepted: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    partial: 'bg-yellow-100 text-yellow-800'
+    accepted: 'bg-success-100 text-success-700',
+    rejected: 'bg-error-100 text-error-700',
+    partial: 'bg-warning-100 text-warning-700'
   }
   return classes[decision] || 'bg-theme-surface text-theme-secondary'
 }

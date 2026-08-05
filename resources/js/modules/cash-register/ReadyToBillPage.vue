@@ -129,7 +129,7 @@ watch(filters, () => fetchList(1), { deep: true })
             <td class="p-3 text-right text-green-600">{{ formatCurrency(row.paid_amount) }}</td>
             <td class="p-3 text-right text-red-600 font-medium">{{ formatCurrency(row.balance) }}</td>
             <td class="p-3">
-              <span v-if="row.has_quotation" class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">Sí</span>
+              <span v-if="row.has_quotation" class="text-xs px-2 py-0.5 rounded bg-success-100 text-green-700">Sí</span>
               <span v-else class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">No</span>
             </td>
             <td class="p-3 space-x-1 whitespace-nowrap">

@@ -382,11 +382,11 @@ const getStatusText = (status) => {
 
 const getStatusClass = (status) => {
   const classes = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    completed: 'bg-green-100 text-green-800',
-    failed: 'bg-red-100 text-red-800',
+    pending: 'bg-warning-100 text-warning-700',
+    completed: 'bg-success-100 text-success-700',
+    failed: 'bg-error-100 text-error-700',
     cancelled: 'bg-theme-surface text-theme-secondary',
-    voided: 'bg-red-100 text-red-800'
+    voided: 'bg-error-100 text-error-700'
   }
   return classes[status] || 'bg-theme-surface text-theme-secondary'
 }

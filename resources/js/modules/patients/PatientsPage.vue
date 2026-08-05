@@ -50,15 +50,13 @@
           </UiInput>
         </div>
         <div class="flex gap-3">
-          <select
+          <UiSelect
             v-model="statusFilter"
-            @change="loadPatients(1)"
-            class="min-w-[140px] px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todos</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-          </select>
+            :options="statusFilterOptions"
+            size="sm"
+            class="min-w-[140px]"
+            @update:model-value="loadPatients(1)"
+          />
           <UiButton
             variant="secondary"
             @click="resetFilters"
@@ -392,15 +390,12 @@
                 <label class="block text-sm font-medium text-theme-primary mb-2">
                   Género
                 </label>
-                <select
-                v-model="newPatient.gender"
-                  class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
-              >
-                <option value="">Seleccionar</option>
-                <option value="male">Masculino</option>
-                <option value="female">Femenino</option>
-                  <option value="other">Otro</option>
-                </select>
+                <UiSelect
+                  v-model="newPatient.gender"
+                  :options="genderOptions"
+                  placeholder="Seleccionar"
+                  class="w-full"
+                />
               </div>
             </div>
             <UiInput
@@ -524,27 +519,23 @@
                 <label class="block text-sm font-medium text-theme-primary mb-2">
                   Género
                 </label>
-                <select
+                <UiSelect
                   v-model="editPatientData.gender"
-                  class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="male">Masculino</option>
-                  <option value="female">Femenino</option>
-                  <option value="other">Otro</option>
-                </select>
+                  :options="genderOptions"
+                  placeholder="Seleccionar"
+                  class="w-full"
+                />
               </div>
               <div>
                 <label class="block text-sm font-medium text-theme-primary mb-2">
                   Estado
                 </label>
-                <select
+                <UiSelect
                   v-model="editPatientData.is_active"
-                  class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option :value="true">Activo</option>
-                  <option :value="false">Inactivo</option>
-                </select>
+                  :options="statusOptions"
+                  placeholder="Seleccionar"
+                  class="w-full"
+                />
               </div>
             </div>
             <UiInput
@@ -651,6 +642,21 @@ export default {
     })
     const searchQuery = ref('')
     const statusFilter = ref('')
+    const statusFilterOptions = [
+      { value: '', label: 'Todos' },
+      { value: 'active', label: 'Activos' },
+      { value: 'inactive', label: 'Inactivos' }
+    ]
+    const genderOptions = [
+      { value: '', label: 'Seleccionar' },
+      { value: 'male', label: 'Masculino' },
+      { value: 'female', label: 'Femenino' },
+      { value: 'other', label: 'Otro' }
+    ]
+    const statusOptions = [
+      { value: true, label: 'Activo' },
+      { value: false, label: 'Inactivo' }
+    ]
     const showNewPatientModal = ref(false)
     const showEditPatientModal = ref(false)
     const editingPatientId = ref(null)

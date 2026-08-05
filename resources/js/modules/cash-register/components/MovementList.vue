@@ -453,12 +453,12 @@ const getTypeText = (type) => {
 
 const getTypeClass = (type) => {
   const classes = {
-    income: 'bg-green-100 text-green-800',
-    expense: 'bg-red-100 text-red-800',
+    income: 'bg-success-100 text-success-700',
+    expense: 'bg-error-100 text-error-700',
     opening: 'bg-primary-100 text-primary-800',
     closing: 'bg-primary-50 text-primary-700',
-    withdrawal: 'bg-yellow-100 text-yellow-800',
-    deposit: 'bg-green-100 text-green-800',
+    withdrawal: 'bg-warning-100 text-warning-700',
+    deposit: 'bg-success-100 text-success-700',
     adjustment: 'bg-theme-surface text-theme-secondary'
   }
   return classes[type] || 'bg-theme-surface text-theme-secondary'

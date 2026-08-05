@@ -6,7 +6,7 @@
         <div class="flex flex-col h-full">
           <!-- Mobile Header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-theme">
-            <img src="/images/easy_dent.png" alt="EasyDent" class="h-8 w-auto" />
+            <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-auto" />
             <button @click="$emit('close')" class="p-2 rounded-xl hover:bg-theme-surface">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

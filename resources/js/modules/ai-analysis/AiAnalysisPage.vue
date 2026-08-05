@@ -60,13 +60,11 @@
           <label class="block text-sm font-medium text-theme-primary mb-2">
             3. Tipo de Imagen
           </label>
-          <select
+          <UiSelect
             v-model="newAnalysis.category"
-            class="w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="radiografia">Radiografía</option>
-            <option value="foto_clinica">Foto Clínica</option>
-          </select>
+            :options="categoryOptions"
+            class="w-full"
+          />
         </div>
 
         <div class="mb-4" v-if="newAnalysis.file">
@@ -118,7 +116,7 @@
             <p class="text-3xl font-bold text-theme-primary">{{ stats.completed_analyses }}</p>
             <p class="text-xs text-theme-secondary mt-1">Listos para revisar</p>
           </div>
-          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+          <div class="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
           </div>
         </div>
@@ -132,7 +130,7 @@
             <p class="text-3xl font-bold text-theme-primary">{{ stats.pending_review }}</p>
             <p class="text-xs text-theme-secondary mt-1">Por revisar</p>
           </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+          <div class="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
             <ClockIcon class="w-6 h-6 text-yellow-600" />
           </div>
         </div>
@@ -170,24 +168,18 @@
           </UiInput>
         </div>
         <div class="flex gap-3">
-          <select
+          <UiSelect
             v-model="filters.status"
-            class="min-w-[140px] px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todos los estados</option>
-            <option value="pending">Pendiente</option>
-            <option value="processing">Procesando</option>
-            <option value="completed">Completado</option>
-            <option value="failed">Fallido</option>
-          </select>
-          <select
+            :options="statusFilterOptions"
+            size="sm"
+            class="min-w-[140px]"
+          />
+          <UiSelect
             v-model="filters.reviewed"
-            class="min-w-[140px] px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todos</option>
-            <option value="true">Revisados</option>
-            <option value="false">Sin Revisar</option>
-          </select>
+            :options="reviewedFilterOptions"
+            size="sm"
+            class="min-w-[140px]"
+          />
           <UiButton
             variant="secondary"
             @click="clearFilters"
@@ -320,6 +312,7 @@ import AnalyzingModal from './components/AnalyzingModal.vue'
 import FileUpload from '@/components/ui/FileUpload.vue'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
+import UiSelect from '@/components/ui/Select.vue'
 import {
   CpuChipIcon,
   ArrowPathIcon,
@@ -369,6 +362,24 @@ const filters = ref({
   date_from: '',
   date_to: ''
 })
+
+// UiSelect option lists
+const categoryOptions = [
+  { value: 'radiografia', label: 'Radiografía' },
+  { value: 'foto_clinica', label: 'Foto Clínica' }
+]
+const statusFilterOptions = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'pending', label: 'Pendiente' },
+  { value: 'processing', label: 'Procesando' },
+  { value: 'completed', label: 'Completado' },
+  { value: 'failed', label: 'Fallido' }
+]
+const reviewedFilterOptions = [
+  { value: '', label: 'Todos' },
+  { value: 'true', label: 'Revisados' },
+  { value: 'false', label: 'Sin Revisar' }
+]
 
 // Tabs configuration
 const tabs = computed(() => [

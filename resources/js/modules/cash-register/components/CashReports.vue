@@ -69,7 +69,7 @@
       <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-theme">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+            <div class="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center">
               <ArrowUpIcon class="w-5 h-5 text-green-600" />
             </div>
           </div>
@@ -83,7 +83,7 @@
       <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-theme">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+            <div class="w-8 h-8 bg-error-100 rounded-lg flex items-center justify-center">
               <ArrowDownIcon class="w-5 h-5 text-red-600" />
             </div>
           </div>
@@ -217,7 +217,7 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="session.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-theme-surface text-theme-secondary'"
+                  :class="session.status === 'open' ? 'bg-success-100 text-success-700' : 'bg-theme-surface text-theme-secondary'"
                 >
                   {{ session.status === 'open' ? 'Abierta' : 'Cerrada' }}
                 </span>

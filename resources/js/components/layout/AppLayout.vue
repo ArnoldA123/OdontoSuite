@@ -226,9 +226,9 @@
                 v-if="wsStatus !== 'connecting'"
                 class="flex items-center justify-center w-8 h-8 rounded-full"
                 :class="{
-                  'bg-success-badge text-success-text': wsStatus === 'connected',
-                  'bg-warning-badge text-warning-text': wsStatus === 'disconnected',
-                  'bg-danger-badge text-error-700': wsStatus === 'unavailable',
+                  'bg-success-100 text-success-700': wsStatus === 'connected',
+                  'bg-warning-100 text-warning-700': wsStatus === 'disconnected',
+                  'bg-error-100 text-error-700': wsStatus === 'unavailable',
                 }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
                 :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"

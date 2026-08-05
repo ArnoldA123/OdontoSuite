@@ -164,7 +164,7 @@ watch(file, (newFile) => {
 }
 
 .clear-btn {
-  @apply absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors;
+  @apply absolute top-2 right-2 bg-error-500 text-white rounded-full p-1 hover:bg-error-600 transition-colors;
 }
 
 .upload-prompt {

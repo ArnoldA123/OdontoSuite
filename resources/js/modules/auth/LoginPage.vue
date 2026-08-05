@@ -12,9 +12,9 @@
       <!-- Logo and Brand -->
       <div class="login-header">
         <div class="logo-container">
-          <img src="/images/easy_dent.png" alt="Easydents" class="logo-image" />
+          <img src="/images/easy_dent.png" alt="OdontoSuite" class="logo-image" />
         </div>
-        <h1 class="brand-name">Easydents</h1>
+        <h1 class="brand-name">OdontoSuite</h1>
       </div>
 
       <!-- Welcome Message -->
@@ -469,7 +469,7 @@ const handleHelpCenter = () => {
 }
 
 .error-text {
-  @apply text-sm text-red-800;
+  @apply text-sm text-error-700;
 }
 
 /* Login Button */

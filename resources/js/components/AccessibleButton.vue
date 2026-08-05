@@ -126,13 +126,13 @@ export default {
         xl: 'px-8 py-4 text-lg'
       }
 
-      // Variant classes
+      // Variant classes — semantic tokens from design-system/tokens.js
       const variantClasses = {
         primary: 'bg-accent text-white hover:bg-accent-hover focus:ring-accent',
         secondary: 'bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated focus:ring-primary-500',
-        danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-        success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
-        warning: 'bg-yellow-600 text-white hover:bg-yellow-700 focus:ring-yellow-500',
+        danger: 'bg-error-600 text-white hover:bg-error-700 focus:ring-error-500',
+        success: 'bg-success-600 text-white hover:bg-success-700 focus:ring-success-500',
+        warning: 'bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500',
         ghost: 'bg-transparent text-theme-primary hover:bg-theme-surface focus:ring-primary-500'
       }
 

@@ -377,10 +377,10 @@ const handleReject = async () => {
 }
 
 .btn-success {
-  @apply bg-green-600 text-white hover:bg-green-700;
+  @apply bg-success-600 text-white hover:bg-success-700;
 }
 
 .btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700;
+  @apply bg-error-600 text-white hover:bg-error-700;
 }
 </style>

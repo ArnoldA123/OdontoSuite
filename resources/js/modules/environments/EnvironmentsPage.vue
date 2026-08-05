@@ -169,7 +169,7 @@
     <!-- New Environment Modal -->
     <div
       v-if="showNewEnvironmentModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showNewEnvironmentModal = false"
     >
       <div
@@ -242,7 +242,7 @@
     <!-- Edit Environment Modal -->
     <div
       v-if="showEditEnvironmentModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showEditEnvironmentModal = false"
     >
       <div
@@ -315,7 +315,7 @@
     <!-- View Environment Modal -->
     <div
       v-if="showViewEnvironmentModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showViewEnvironmentModal = false"
     >
       <div
@@ -505,9 +505,9 @@ export default {
 
     const getStatusColor = (status) => {
       const colors = {
-        active: 'bg-green-100 text-green-800',
+        active: 'bg-success-100 text-success-700',
         inactive: 'bg-theme-surface text-theme-primary',
-        maintenance: 'bg-yellow-100 text-yellow-800'
+        maintenance: 'bg-warning-100 text-warning-700'
       }
       return colors[status] || 'bg-theme-surface text-theme-primary'
     }

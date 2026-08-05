@@ -8,7 +8,7 @@
     >
       <template #actions>
         <span
-          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-badge text-success-text text-xs font-medium"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-100 text-success-700 text-xs font-medium"
           aria-label="Actualizaciones en tiempo real activas"
           title="Actualizaciones en tiempo real activas"
         >

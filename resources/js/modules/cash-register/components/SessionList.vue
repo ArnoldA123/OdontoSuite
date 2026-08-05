@@ -385,7 +385,7 @@ const getStatusText = (status) => {
 
 const getStatusClass = (status) => {
   const classes = {
-    open: 'bg-green-100 text-green-800',
+    open: 'bg-success-100 text-success-700',
     closed: 'bg-theme-surface text-theme-secondary'
   }
   return classes[status] || 'bg-theme-surface text-theme-secondary'

@@ -139,7 +139,7 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <span
-                      :class="type.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      :class="type.is_active ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'"
                       class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                     >
                       {{ type.is_active ? 'Activo' : 'Inactivo' }}
@@ -183,7 +183,7 @@
     <!-- New Type Modal -->
     <div
       v-if="showNewTypeModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showNewTypeModal = false"
     >
       <div
@@ -274,7 +274,7 @@
     <!-- Edit Type Modal -->
     <div
       v-if="showEditTypeModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showEditTypeModal = false"
     >
       <div
@@ -369,7 +369,7 @@
     <!-- View Type Modal -->
     <div
       v-if="showViewTypeModal"
-      class="fixed inset-0 bg-black bg-black/50 overflow-y-auto h-full w-full z-50"
+      class="fixed inset-0 bg-black/50 overflow-y-auto h-full w-full z-50"
       @click="showViewTypeModal = false"
     >
       <div

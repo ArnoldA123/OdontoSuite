@@ -111,15 +111,15 @@ const toastClasses = computed(() => {
   const types = {
     success: [
       'bg-green-50 border border-green-200',
-      'text-green-800'
+      'text-success-700'
     ],
     error: [
       'bg-red-50 border border-red-200',
-      'text-red-800'
+      'text-error-700'
     ],
     warning: [
       'bg-yellow-50 border border-yellow-200',
-      'text-yellow-800'
+      'text-warning-700'
     ],
     info: [
       'bg-primary-50 border border-primary-200',

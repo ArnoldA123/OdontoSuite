@@ -184,7 +184,7 @@
           <div v-if="requiresAuthorization" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <div class="flex items-center">
               <ExclamationTriangleIcon class="w-5 h-5 text-yellow-600 mr-2" />
-              <span class="text-sm text-yellow-800">
+              <span class="text-sm text-warning-700">
                 Descuento mayor al 10% requiere autorización del administrador
               </span>
             </div>
