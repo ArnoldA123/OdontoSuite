@@ -45,13 +45,12 @@ class OrphanEventsDeprecatedTest extends TestCase
         $orphans = [
             'AppointmentCheckedIn', 'CashMovementCreated', 'CashSessionClosed',
             'CashSessionOpened', 'ClinicalAttachmentCreated', 'ClinicalEvolutionCreated',
-            'InterconsultationCreated', 'InterconsultationResponded',
             'MedicalRecordCreated', 'MedicalRecordUpdated',
             'PaymentRegistered', 'QuotationApproved', 'QuotationCreated',
             'QuotationUpdated', 'ReminderSent', 'SpecialtyRecordCreated',
             'SpecialtyRecordUpdated', 'TransactionCreated', 'TransactionUpdated',
             'TreatmentPlanCreated', 'TreatmentPlanDeleted', 'TreatmentPlanUpdated',
-            'UserCreated', 'UserUpdated', 'WaitingListCreated', 'WaitingListFilled',
+            'UserCreated', 'UserUpdated',
         ];
         foreach ($orphans as $eventClass) {
             $file = app_path("Events/{$eventClass}.php");

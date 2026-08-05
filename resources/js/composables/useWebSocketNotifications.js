@@ -23,7 +23,6 @@ export function useWebSocketNotifications() {
     // Siempre mostrar notificaciones importantes
     const importantEvents = [
       'quotation.approved',
-      'interconsultation.created',
       'cash-session.closed',
       'payment.registered'
     ]
@@ -149,15 +148,6 @@ export function useWebSocketNotifications() {
         channels.specialtyRecords = specialtyRecordsChannel
       }
 
-      // Canal de interconsultas
-      const interconsultationsChannel = channel('interconsultations')
-      if (interconsultationsChannel) {
-        interconsultationsChannel
-          .listen('.interconsultation.created', (e) => handleEvent('interconsultation.created', e))
-          .listen('.interconsultation.responded', (e) => handleEvent('interconsultation.responded', e))
-        channels.interconsultations = interconsultationsChannel
-      }
-
       // Canal de caja
       const cashRegisterChannel = channel('cash-register')
       if (cashRegisterChannel) {
@@ -166,15 +156,6 @@ export function useWebSocketNotifications() {
           .listen('.cash-session.opened', (e) => handleEvent('cash-session.opened', e))
           .listen('.cash-session.closed', (e) => handleEvent('cash-session.closed', e))
         channels.cashRegister = cashRegisterChannel
-      }
-
-      // Canal de lista de espera
-      const waitingListsChannel = channel('waiting-lists')
-      if (waitingListsChannel) {
-        waitingListsChannel
-          .listen('.waiting-list.created', (e) => handleEvent('waiting-list.created', e))
-          .listen('.waiting-list.filled', (e) => handleEvent('waiting-list.filled', e))
-        channels.waitingLists = waitingListsChannel
       }
 
       // Canal de recordatorios

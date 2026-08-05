@@ -236,33 +236,6 @@ export class NotificationService {
   }
 
   /**
-   * Mapear evento de interconsulta a notificación
-   */
-  static mapInterconsultationEvent(eventName, data) {
-    const interconsultation = data.interconsultation || data
-    const patientName = interconsultation.patient?.full_name || interconsultation.patient?.name || 'Paciente'
-    const fromSpecialist = interconsultation.referredBy?.name || 'Especialista'
-
-    const mappings = {
-      'interconsultation.created': {
-        title: 'Nueva interconsulta',
-        message: `Nueva interconsulta de ${fromSpecialist} para ${patientName}`,
-        type: 'info',
-        category: 'medical-records',
-        sound: true
-      },
-      'interconsultation.responded': {
-        title: 'Interconsulta respondida',
-        message: `La interconsulta de ${patientName} ha sido respondida`,
-        type: 'success',
-        category: 'medical-records'
-      }
-    }
-
-    return mappings[eventName] || null
-  }
-
-  /**
    * Convertir evento WebSocket a notificación
    */
   static convertEventToNotification(eventName, data) {
@@ -287,9 +260,6 @@ export class NotificationService {
     }
     if (eventName.includes('payment') || eventName.includes('cash-session')) {
       return this.mapPaymentEvent(eventName, data)
-    }
-    if (eventName.includes('interconsultation')) {
-      return this.mapInterconsultationEvent(eventName, data)
     }
 
     // Notificación genérica

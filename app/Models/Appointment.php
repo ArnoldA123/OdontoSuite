@@ -39,11 +39,6 @@ class Appointment extends Model
         'paid_amount',
         'balance',
         'requires_payment',
-        'specialty',
-        'requires_anesthesia',
-        'treatment_plan_item_id',
-        'origin_appointment_id',
-        'last_activity_at',
     ];
 
     protected $casts = [
@@ -51,13 +46,11 @@ class Appointment extends Model
         'ends_at' => 'datetime',
         'checked_in_at' => 'datetime',
         'completed_at' => 'datetime',
-        'last_activity_at' => 'datetime',
         'final_amount' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'paid_amount' => 'decimal:2',
         'balance' => 'decimal:2',
         'requires_payment' => 'boolean',
-        'requires_anesthesia' => 'boolean',
     ];
 
     /**

@@ -100,25 +100,6 @@ class AuthController extends Controller
     }
 
     /**
-     * Refresh user token.
-     */
-    public function refresh(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        $user->currentAccessToken()->delete();
-        $token = $user->createToken('auth-token')->plainTextToken;
-
-        return response()->json([
-            'data' => [
-                'token' => $token,
-            ],
-            'meta' => [
-                'message' => 'Token actualizado exitosamente',
-            ],
-        ]);
-    }
-
-    /**
      * Send password reset link to user's email.
      */
     public function forgotPassword(Request $request): JsonResponse

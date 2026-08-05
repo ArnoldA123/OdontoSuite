@@ -129,63 +129,6 @@ class PendingPaymentsController extends Controller
     }
 
     /**
-     * Obtener detalles de un pago pendiente específico
-     */
-    public function show($id): JsonResponse
-    {
-        try {
-            $appointment = Appointment::with([
-                'patient',
-                'appointmentType',
-                'transactions'
-            ])
-            ->where('id', $id)
-            ->where('status', 'completed')
-            ->first();
-
-            if (!$appointment) {
-                return response()->json([
-                    'message' => 'Cita no encontrada o no completada'
-                ], 404);
-            }
-
-            $payment = [
-                'id' => $appointment->id,
-                'patient' => [
-                    'id' => $appointment->patient->id,
-                    'name' => $appointment->patient->name,
-                    'document_number' => $appointment->patient->document_number,
-                    'email' => $appointment->patient->email,
-                    'phone' => $appointment->patient->phone,
-                ],
-                'appointment' => [
-                    'id' => $appointment->id,
-                    'date' => $appointment->scheduled_at,
-                    'appointment_type' => [
-                        'id' => $appointment->appointmentType->id,
-                        'name' => $appointment->appointmentType->name,
-                    ],
-                ],
-                'treatment_plan' => null,
-                'concept' => $appointment->appointmentType->name,
-                'amount' => $appointment->appointmentType->price ?? 0,
-                'status' => 'pending',
-                'created_at' => $appointment->created_at,
-            ];
-
-            return response()->json([
-                'data' => $payment
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener el pago pendiente',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Marcar un pago pendiente como pagado.
      *
      * Sprint 0 fix (NF-3): la ruta POST /api/pending-payments/{id}/pay devolvía

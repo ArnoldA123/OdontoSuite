@@ -12,13 +12,10 @@ use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
 use App\Http\Controllers\Api\ProcedureStatsController;
 use App\Http\Controllers\Api\SpecialtyController;
-use App\Http\Controllers\Api\WorkScheduleController;
-use App\Http\Controllers\Api\WaitingListController;
 use App\Http\Controllers\Api\ReminderTemplateController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\MedicalRecordController;
-use App\Http\Controllers\Api\InterconsultationController;
 use App\Http\Controllers\Api\TreatmentPlanController;
 use App\Http\Controllers\Api\QuotationController;
 use App\Http\Controllers\Api\SpecialtyRecordController;
@@ -26,10 +23,7 @@ use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\CashMovementController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\CalendarController;
-use App\Http\Controllers\Api\AppointmentBlockController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\CashRegisterController;
@@ -38,7 +32,6 @@ use App\Http\Controllers\Api\Reports\ReportController;
 use App\Http\Controllers\Api\PendingPaymentsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
-use App\Http\Controllers\Api\OdontogramController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ProductController;
@@ -215,7 +208,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Usuarios (solo administrador)
     Route::middleware('role:administrador')->group(function () {
         Route::apiResource('users', UserController::class);
-        Route::get('roles', [RoleController::class, 'index']);
     });
 
 
@@ -232,8 +224,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('appointments', AppointmentController::class);
         Route::apiResource('dental-chairs', DentalChairController::class);
         Route::apiResource('appointment-types', AppointmentTypeController::class);
-        Route::apiResource('work-schedules', WorkScheduleController::class);
-        Route::apiResource('waiting-lists', WaitingListController::class);
         Route::apiResource('reminder-templates', ReminderTemplateController::class)->middleware('role:administrador');
 
         // Audit logs: read-only (BF-004). Previously apiResource('audit-logs')
@@ -252,21 +242,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Recordatorios
         Route::apiResource('reminders', ReminderController::class);
         Route::post('reminders/{id}/send', [ReminderController::class, 'send']);
-
-        // Calendario
-        Route::get('calendar/events', [CalendarController::class, 'getEvents']);
-        Route::get('calendar/availability', [CalendarController::class, 'getAvailability']);
-
-        // Bloques de citas
-        Route::apiResource('appointment-blocks', AppointmentBlockController::class);
-
-        // Odontogramas
-        Route::apiResource('odontograms', OdontogramController::class);
-        Route::get('odontograms/patient/{patientId}', [OdontogramController::class, 'index']);
-        Route::get('odontograms/active', [OdontogramController::class, 'getActive']);
-        Route::post('odontograms/{odontogram}/records', [OdontogramController::class, 'addRecord']);
-        Route::put('odontograms/records/{record}', [OdontogramController::class, 'updateRecord']);
-        Route::delete('odontograms/records/{record}', [OdontogramController::class, 'deleteRecord']);
 
         // Flujo de consulta (post check-in)
         Route::get('appointments/{appointment}/consultation-context', [ConsultationController::class, 'context']);
@@ -364,14 +339,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
         Route::get('specialty-records/patient/{patientId}/all', [SpecialtyRecordController::class, 'getAllByPatient']);
         Route::get('specialty-records/patient/{patientId}/{specialty}/stats', [SpecialtyRecordController::class, 'getStats']);
-    });
-
-    // Interconsultas (clínicos)
-    Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
-        Route::apiResource('interconsultations', InterconsultationController::class);
-        Route::post('interconsultations/{id}/respond', [InterconsultationController::class, 'respond']);
-        Route::post('interconsultations/{id}/complete', [InterconsultationController::class, 'complete']);
-        Route::get('my-interconsultations', [InterconsultationController::class, 'myInterconsultations']);
     });
 
     // Sistema de caja (finanzas y admin)

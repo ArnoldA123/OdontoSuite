@@ -49,9 +49,6 @@ export function usePermissions() {
     // Recordatorios
     manageReminders: computed(() => !['finanzas'].includes(safeUser.value?.role)),
 
-    // Lista de espera
-    manageWaitingList: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-
     // Gestión de caja
     openCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     closeCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
@@ -109,13 +106,6 @@ export function usePermissions() {
       return isClinical.value || isAdministrador.value ||
              ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty)
     }),
-
-    // Interconsultas
-    createInterconsultation: computed(() => isClinical.value || isAdministrador.value),
-    viewInterconsultation: computed(() => isClinical.value || isAdministrador.value),
-    respondInterconsultation: computed(() => isClinical.value || isAdministrador.value),
-    completeInterconsultation: computed(() => isClinical.value || isAdministrador.value),
-    deleteInterconsultation: computed(() => isClinical.value || isAdministrador.value),
 
     // IA Asistiva - Solo odontólogos y especialistas
     'ai-analysis.analyze': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role)),

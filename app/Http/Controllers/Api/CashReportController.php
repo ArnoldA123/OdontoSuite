@@ -48,6 +48,10 @@ class CashReportController extends Controller
      * Slice 01 / T-01.1 (API-005): unified export endpoint.
      * Accepts a {format} whitelist (excel|pdf|csv) and dispatches to the
      * existing per-format helpers. Returns 400 for unsupported formats.
+     *
+     * Slice 04 / T-04.6: the legacy exportExcel/exportPdf methods were
+     * removed because the frontend (CashReports.vue) calls the unified
+     * /api/cash-register/reports/export/{format} endpoint wired in slice 01.
      */
     public function export(Request $request, string $format)
     {
@@ -74,47 +78,6 @@ class CashReportController extends Controller
                 'message' => 'Formato de exportacion no soportado. Use excel, pdf o csv.',
             ], 400),
         };
-    }
-
-    public function exportExcel(Request $request)
-    {
-        $filters = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'branch_id' => 'nullable|integer',
-            'report_type' => 'required|in:daily,period,summary'
-        ]);
-
-        $report = $this->cashReportService->getPeriodReport(
-            $filters['start_date'],
-            $filters['end_date'],
-            $filters['branch_id'] ?? null
-        );
-
-        return Excel::download(
-            new CashReportExport($report),
-            'reporte-caja-' . now()->format('Y-m-d') . '.xlsx'
-        );
-    }
-
-    public function exportPdf(Request $request)
-    {
-        $filters = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'branch_id' => 'nullable|integer',
-            'report_type' => 'required|in:daily,period,summary'
-        ]);
-
-        $report = $this->cashReportService->getPeriodReport(
-            $filters['start_date'],
-            $filters['end_date'],
-            $filters['branch_id'] ?? null
-        );
-
-        $pdf = Pdf::loadView('reports.cash-report-pdf', ['report' => $report]);
-
-        return $pdf->download('reporte-caja-' . now()->format('Y-m-d') . '.pdf');
     }
 }
 
