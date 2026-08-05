@@ -1,0 +1,19 @@
+phase: apply
+status: ready-for-verify
+change_name: hotfix-migration-eloquent-softdeletes-2026-08
+artifact_store: hybrid
+preflight: { pace: auto, artifact_store: hybrid, delivery_strategy: ask-on-risk, review_budget: 400 }
+parent_change: bugfix-2026-08
+trigger: NEW-002 (migrate:fresh broken by Eloquent + SoftDeletes inside 2025 migration)
+sibling_change: hotfix-audit-log-immutable-2026-08
+slices_total: 1
+forecast:
+  decision_needed_before_apply: No
+  chained_prs_recommended: No
+  budget_risk: Low
+delivery_resolved: single-pr
+apply_progress_topic_key: sdd/hotfix-migration-eloquent-softdeletes-2026-08/apply-progress
+applied_at: 2026-08-05
+applied_commits: []
+risks_outstanding:
+  - Pre-existing duplicate-column bug in database/migrations/2026_08_05_020000_add_channel_and_error_to_reminder_schedules.php blocks migrate:fresh --seed exit 0 on a fresh DB after this hotfix lands. OUT OF SCOPE for this change.

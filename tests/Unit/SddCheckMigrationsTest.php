@@ -16,12 +16,17 @@ use PHPUnit\Framework\TestCase;
  *  - Non-nullable column additions must be paired with a default or follow-up
  *    backfill (Laravel Blueprint nullable() default is OK; otherwise default()).
  *  - DATE_SUB / DATE_ADD raw SQL (MySQL-specific) must be driver-conditional.
+ *  - NO migration may reference `App\Models\` (Eloquent) — the source of NEW-002.
+ *    The Eloquent guard scans **all** migration files (no cutoff) because the
+ *    regression is retroactive (the buggy file predates the 2026-08-05 cutoff).
  *
- * Historical migrations dated before the slice are exempt (debt documented in
- * AGENTS.md §6).
+ * Historical migrations dated before the slice are exempt from the additive-only
+ * rules (debt documented in AGENTS.md §6), but ALL historical migrations are
+ * subject to the no-Eloquent guard.
  *
  * Failure indicates a forbidden migration pattern was introduced — the developer
- * must rewrite the migration to be additive or driver-conditional.
+ * must rewrite the migration to be additive or driver-conditional, or replace the
+ * Eloquent reference with raw `DB::table(...)` Query Builder.
  */
 class SddCheckMigrationsTest extends TestCase
 {
@@ -49,6 +54,24 @@ class SddCheckMigrationsTest extends TestCase
         }
         sort($guarded);
         return $guarded;
+    }
+
+    /**
+     * Every migration under `database/migrations/*.php`.
+     *
+     * Unlike `guardedMigrations()`, this helper imposes NO date cutoff — the
+     * Eloquent-reference guard scans historical files too because the NEW-002
+     * bug was retroactive (the offending migration predates the 2026_08_05
+     * slice by design). This deliberate departure from the additive-only
+     * pattern is documented in design.md Decision 4.
+     *
+     * @return string[]
+     */
+    private static function allMigrations(): array
+    {
+        $all = glob(self::migrationsDir() . '/*.php') ?: [];
+        sort($all);
+        return $all;
     }
 
     /**
@@ -199,5 +222,50 @@ class SddCheckMigrationsTest extends TestCase
             );
         }
         $this->assertNotEmpty($guarded, 'Expected at least one migration in the guard window');
+    }
+
+    /**
+     * Regression guard for NEW-002: NO migration file in `database/migrations/`
+     * may reference `App\Models\` (Eloquent). Historical migrations are NOT
+     * exempt — the bug is retroactive, so this scan covers every file.
+     *
+     * See design.md Decision 4 (Eloquent guard scans unconditionally) and
+     * the spec scenario `migration-portability Eloquent guard → guard fails if
+     * violation is reintroduced`.
+     *
+     * @test
+     */
+    public function no_migration_references_eloquent_models(): void
+    {
+        $violations = [];
+        $stripPatterns = [
+            '/\/\/.*$/m',
+            '/\/\*.*?\*\//s',
+            "/'(?:\\\\.|[^'\\\\])*'/s",
+            '/"(?:\\\\.|[^"\\\\])*"/s',
+        ];
+        foreach (self::allMigrations() as $file) {
+            $name = basename($file);
+            $source = file_get_contents($file);
+            if ($source === false) {
+                continue;
+            }
+            // Walk line-by-line so the failure report carries the original
+            // file's 1-indexed line number, not a derived offset.
+            $lines = explode("\n", $source);
+            foreach ($lines as $i => $line) {
+                $stripped = preg_replace($stripPatterns, '', $line) ?? $line;
+                if (str_contains($stripped, 'App\\Models\\')) {
+                    $lineNumber = $i + 1;
+                    $violations[] = "{$name}:{$lineNumber} references App\\Models\\";
+                }
+            }
+        }
+        $this->assertSame(
+            [],
+            $violations,
+            "No migration may reference App\\Models\\ (NEW-002 regression). Offending files:\n"
+                . implode("\n", $violations)
+        );
     }
 }
