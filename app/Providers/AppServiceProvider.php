@@ -81,5 +81,18 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\ReminderSent::class,
             \App\Listeners\TrackReminderDelivery::class
         );
+
+        // Slice 10 (T-10.3): audit trail for PaymentReceived (MercadoPago + others).
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\PaymentReceived::class,
+            \App\Listeners\LogPaymentReceived::class
+        );
+
+        // Slice 10 (T-10.3 + T-10.4): audit trail for AppointmentCheckedIn
+        // and the broadcast moved to a PrivateChannel.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\AppointmentCheckedIn::class,
+            \App\Listeners\LogAppointmentCheckedIn::class
+        );
     }
 }

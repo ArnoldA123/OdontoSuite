@@ -10,7 +10,8 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sprint 0 fix (NF-2): este evento no tiene listener registrado en AppServiceProvider. Si implementa ShouldBroadcast, igual intenta transmitir por Reverb (sin consumidor registrado en frontend por defecto). Sprint 3 lo cablea correctamente (ver plan-mejoras-futuras-2026-06.md).
+ * Slice 10: TrackReminderDelivery listener was wired in slice 09 (commit
+ * aafb9ed). The NF-2 marker is stale; removed for clarity.
  */
 class ReminderSent implements ShouldBroadcast
 {

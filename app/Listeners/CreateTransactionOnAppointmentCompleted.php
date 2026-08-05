@@ -27,13 +27,23 @@ class CreateTransactionOnAppointmentCompleted
 {
     public function handle(AppointmentCompleted $event): void
     {
-        $appointment = $event->appointment;
-        $finalAmount = (float) ($appointment->final_amount ?? 0);
+        try {
+            $appointment = $event->appointment;
+            $finalAmount = (float) ($appointment->final_amount ?? 0);
 
-        Log::info('Appointment completed event received', [
-            'appointment_id' => $appointment->id,
-            'final_amount' => $finalAmount,
-            'consultation_mode' => $appointment->consultation_mode,
-        ]);
+            Log::info('Appointment completed event received', [
+                'appointment_id' => $appointment->id,
+                'final_amount' => $finalAmount,
+                'consultation_mode' => $appointment->consultation_mode,
+            ]);
+        } catch (\Throwable $e) {
+            // AGENTS.md §7: listener MUST swallow + log + report. Failure
+            // here MUST NOT crash the consultation flow.
+            Log::error('CreateTransactionOnAppointmentCompleted failed: ' . $e->getMessage(), [
+                'appointment_id' => $event->appointment->id ?? null,
+                'exception' => $e,
+            ]);
+            report($e);
+        }
     }
 }

@@ -3,14 +3,16 @@
 namespace App\Events;
 
 use App\Models\Appointment;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sprint 0 fix (NF-2): este evento no tiene listener registrado en AppServiceProvider. Si implementa ShouldBroadcast, igual intenta transmitir por Reverb (sin consumidor registrado en frontend por defecto). Sprint 3 lo cablea correctamente (ver plan-mejoras-futuras-2026-06.md).
+ * Slice 10 (T-10.4): broadcast moved to a PrivateChannel to avoid leaking
+ * patient appointment data on a public channel (BF-018). Authorization for
+ * the private channel lives in routes/channels.php.
  */
 class AppointmentCheckedIn implements ShouldBroadcast
 {
@@ -23,8 +25,7 @@ class AppointmentCheckedIn implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('appointments'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('private-appointment.' . $this->appointment->id),
         ];
     }
 

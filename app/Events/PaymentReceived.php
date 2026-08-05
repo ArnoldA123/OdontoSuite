@@ -3,12 +3,19 @@
 namespace App\Events;
 
 use App\Models\Transaction;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Slice 10 (T-10.3 + T-10.4): broadcast moved to a PrivateChannel so
+ * patient transaction data (patient_name, amount, status) is not exposed
+ * on a public channel. The LogPaymentReceived listener records an audit
+ * log entry per external payment. Authorization for the private channel
+ * lives in routes/channels.php.
+ */
 class PaymentReceived implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
@@ -24,11 +31,11 @@ class PaymentReceived implements ShouldBroadcast
         $this->externalStatus = $externalStatus;
     }
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): PrivateChannel
     {
-        // Canal privado para la sucursal de la transaccion
+        // Canal privado por sucursal de la transaccion.
         $branchId = $this->transaction->branch_id ?? 'global';
-        return new Channel("cash-register.{$branchId}");
+        return new PrivateChannel("private-cash-register.{$branchId}");
     }
 
     public function broadcastWith(): array
