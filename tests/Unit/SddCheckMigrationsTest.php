@@ -19,10 +19,16 @@ use PHPUnit\Framework\TestCase;
  *  - NO migration may reference `App\Models\` (Eloquent) — the source of NEW-002.
  *    The Eloquent guard scans **all** migration files (no cutoff) because the
  *    regression is retroactive (the buggy file predates the 2026-08-05 cutoff).
+ *  - NO migration may re-add a column that an EARLIER migration already created
+ *    via `Schema::create(...)` inside a `Schema::table(...)` closure without a
+ *    `Schema::hasColumn(...)` guard in the same closure — the source of NEW-003.
+ *    The re-add guard scans **all** migration files (no cutoff) because the bug
+ *    class is retroactive (the offending `error_message` add is dated 2026-08-05,
+ *    but the column it duplicates was created 11 months earlier).
  *
  * Historical migrations dated before the slice are exempt from the additive-only
  * rules (debt documented in AGENTS.md §6), but ALL historical migrations are
- * subject to the no-Eloquent guard.
+ * subject to the no-Eloquent and re-add guards.
  *
  * Failure indicates a forbidden migration pattern was introduced — the developer
  * must rewrite the migration to be additive or driver-conditional, or replace the
@@ -265,6 +271,205 @@ class SddCheckMigrationsTest extends TestCase
             [],
             $violations,
             "No migration may reference App\\Models\\ (NEW-002 regression). Offending files:\n"
+                . implode("\n", $violations)
+        );
+    }
+
+    /**
+     * Regression guard for NEW-003: NO migration file in `database/migrations/`
+     * may add a column that an EARLIER migration already created via
+     * `Schema::create(...)` inside a `Schema::table(...)` closure without a
+     * `Schema::hasColumn(...)` guard in the same closure.
+     *
+     * Scans ALL migrations (no GUARD_CUTOFF_PREFIX) because the bug class is
+     * retroactive (the offending `error_message` add in 2026_08_05_020000
+     * duplicates a column created in 2025_09_20_082355 — an 11-month
+     * regression window). First-add columns that have no prior CREATE in
+     * any earlier migration are NOT flagged.
+     *
+     * See design.md Decision 3 (re-add guard scans unconditionally) and
+     * Decision 4 (line-by-line walk, not whole-file regex).
+     *
+     * @test
+     */
+    public function no_migration_re_adds_already_known_column(): void
+    {
+        $violations = [];
+        $stripPatterns = [
+            '/\/\/.*$/m',
+            '/\/\*.*?\*\//s',
+            "/'(?:\\\\.|[^'\\\\])*'/s",
+            '/"(?:\\\\.|[^"\\\\])*"/s',
+        ];
+
+        // Column-add call shape with the column identifier in capture group 1.
+        // Mirrors design §Decision 4 + §Interfaces/Contracts.
+        $addCallRegex = '/->(?:string|text|integer|bigInteger|json|dateTime|timestamp|boolean|foreignId|addColumn)\s*\(\s*[\'"]([^\'"]+)[\'"]/i';
+
+        // Closure entry-shape regexes operate on the RAW line (not the
+        // fully-stripped line) so the table-name string literal survives
+        // the capture. The capture group is the table identifier.
+        $createEntryRegex = "/Schema::create\\s*\\(\\s*['\"]([^'\"]+)['\"]/i";
+        $tableEntryRegex = "/Schema::table\\s*\\(\\s*['\"]([^'\"]+)['\"]/i";
+
+        $allFiles = self::allMigrations();
+        sort($allFiles);
+
+        // Pass 1 — build per-table known-column map by walking every
+        // `Schema::create(...)` closure in chronological order. We use a
+        // brace-counted walk of the stripped source so strings/comments
+        // cannot poison the brace counter.
+        $knownColumnsByTable = []; // table => [col => true]
+
+        foreach ($allFiles as $file) {
+            $source = file_get_contents($file);
+            if ($source === false) {
+                continue;
+            }
+            $lines = explode("\n", $source);
+            $lineCount = count($lines);
+
+            for ($i = 0; $i < $lineCount; $i++) {
+                // Match against the RAW line so the table name survives.
+                if (! preg_match($createEntryRegex, $lines[$i], $mCreate)) {
+                    continue;
+                }
+                $currentTable = $mCreate[1];
+
+                // Brace-count forward on the stripped source so strings /
+                // comments inside the closure cannot poison the counter.
+                $closureStart = $i;
+                $braceDepth = 0;
+                $closureEnd = -1;
+                $enteredClosure = false;
+                for ($j = $i; $j < $lineCount; $j++) {
+                    $strippedJ = preg_replace($stripPatterns, '', $lines[$j]) ?? $lines[$j];
+                    foreach (str_split($strippedJ) as $ch) {
+                        if ($ch === '{') {
+                            $braceDepth++;
+                            $enteredClosure = true;
+                        } elseif ($ch === '}') {
+                            $braceDepth--;
+                        }
+                    }
+                    if ($enteredClosure && $braceDepth <= 0) {
+                        $closureEnd = $j;
+                        break;
+                    }
+                }
+                if ($closureEnd === -1) {
+                    continue;
+                }
+
+                // Walk the un-stripped lines inside the closure; capture the
+                // column name from each column-add call shape.
+                for ($k = $closureStart; $k <= $closureEnd; $k++) {
+                    $lineK = $lines[$k];
+                    if (preg_match($addCallRegex, $lineK, $mAdd)) {
+                        $col = $mAdd[1];
+                        $knownColumnsByTable[$currentTable][$col] = true;
+                    }
+                }
+                $i = $closureEnd;
+            }
+        }
+
+        // Pass 2 — for each `Schema::table(...)` closure, every column-add
+        // call that targets a column already known for the same table from a
+        // prior migration MUST be guarded by `Schema::hasColumn(...)` in the
+        // same closure; otherwise emit a violation with filename + 1-indexed
+        // line + column identifier.
+        foreach ($allFiles as $file) {
+            $name = basename($file);
+            $source = file_get_contents($file);
+            if ($source === false) {
+                continue;
+            }
+            $lines = explode("\n", $source);
+            $lineCount = count($lines);
+
+            for ($i = 0; $i < $lineCount; $i++) {
+                // Match against the RAW line so the table name survives.
+                if (! preg_match($tableEntryRegex, $lines[$i], $mTable)) {
+                    continue;
+                }
+                $currentTable = $mTable[1];
+
+                $closureStart = $i;
+                $braceDepth = 0;
+                $closureEnd = -1;
+                $enteredClosure = false;
+                for ($j = $i; $j < $lineCount; $j++) {
+                    $strippedJ = preg_replace($stripPatterns, '', $lines[$j]) ?? $lines[$j];
+                    foreach (str_split($strippedJ) as $ch) {
+                        if ($ch === '{') {
+                            $braceDepth++;
+                            $enteredClosure = true;
+                        } elseif ($ch === '}') {
+                            $braceDepth--;
+                        }
+                    }
+                    if ($enteredClosure && $braceDepth <= 0) {
+                        $closureEnd = $j;
+                        break;
+                    }
+                }
+                if ($closureEnd === -1) {
+                    continue;
+                }
+
+                // Build a stripped copy of the closure so the brace-counting
+                // walk in pass 1 (already done) and a future re-check could
+                // rely on it; here we need the RAW closure for the guard
+                // search because the table/column arguments are themselves
+                // string literals — stripping them would defeat the check.
+                $closureRaw = '';
+                for ($m = $closureStart; $m <= $closureEnd; $m++) {
+                    $closureRaw .= $lines[$m] . "\n";
+                }
+
+                // For each column-add call inside the closure, if the column
+                // is already known for this table, require a guard. Modify
+                // operations (chained `->change()`) are NOT flagged — they
+                // mutate an existing column, which is a fundamentally different
+                // operation that the NEW-003 regression is not concerned with.
+                for ($k = $closureStart; $k <= $closureEnd; $k++) {
+                    $lineK = $lines[$k];
+                    if (! preg_match($addCallRegex, $lineK, $mAdd)) {
+                        continue;
+                    }
+                    if (preg_match('/->change\s*\(\s*\)/i', $lineK)) {
+                        continue;
+                    }
+                    $col = $mAdd[1];
+                    if (! isset($knownColumnsByTable[$currentTable][$col])) {
+                        // First-add column (no prior CREATE in chain). Legit.
+                        continue;
+                    }
+                    // Anchor the guard pattern so an unrelated
+                    // `Schema::hasColumn($otherTable, 'error_message')` does
+                    // not satisfy the check for `reminder_schedules`.
+                    $guardPattern = "/Schema::hasColumn\\s*\\(\\s*['\"]"
+                        . preg_quote($currentTable, '/')
+                        . "['\"]\\s*,\\s*['\"]"
+                        . preg_quote($col, '/')
+                        . "['\"]/";
+                    if (preg_match($guardPattern, $closureRaw)) {
+                        // Guard present in the same closure. Pass.
+                        continue;
+                    }
+                    $lineNumber = $k + 1;
+                    $violations[] = "{$name}:{$lineNumber} adds column '{$col}' without hasColumn guard";
+                }
+
+                $i = $closureEnd;
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $violations,
+            "No migration may re-add a column that an earlier migration already created without a Schema::hasColumn(...) guard in the same closure (NEW-003 regression). Offending files:\n"
                 . implode("\n", $violations)
         );
     }
