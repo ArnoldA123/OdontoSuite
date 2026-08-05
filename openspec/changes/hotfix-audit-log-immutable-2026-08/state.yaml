@@ -1,0 +1,12 @@
+phase: apply
+status: in-progress
+change_name: hotfix-audit-log-immutable-2026-08
+artifact_store: hybrid
+preflight: { pace: auto, artifact_store: hybrid, delivery_strategy: ask-on-risk, review_budget: 400 }
+parent_change: bugfix-2026-08
+trigger: NEW-001 (audit_log_immutable migration fails)
+slices_total: 1
+forecast:
+  decision_needed_before_apply: No
+  chained_prs_recommended: No
+  budget_risk: Low
