@@ -14,6 +14,7 @@ use App\Models\Patient;
 use App\Models\Appointment;
 use App\Models\TreatmentPlan;
 use App\Models\PaymentMethod;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -210,6 +211,36 @@ class TransactionService
         ];
 
         return $receiptData;
+    }
+
+    /**
+     * Render the transaction receipt as a PDF binary string.
+     * Verify-correction slice: aligns with the POST /transactions/{id}/receipt
+     * route contract (Content-Type: application/pdf).
+     */
+    public function generateReceiptPdf(Transaction $transaction): string
+    {
+        $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy']);
+
+        $receiptData = [
+            'transaction' => $transaction,
+            'clinic' => [
+                'name' => 'OdontoSuite',
+                'address' => 'Dirección de la clínica',
+                'phone' => 'Teléfono de la clínica',
+                'ruc' => 'RUC de la clínica'
+            ],
+            'receipt_number' => $transaction->transaction_number,
+            'date' => $transaction->created_at->format('d/m/Y H:i:s'),
+            'total' => $transaction->amount,
+            'subtotal' => $transaction->subtotal,
+            'discount' => $transaction->discount_amount,
+            'payment_method' => $transaction->paymentMethod->name ?? 'N/A'
+        ];
+
+        $pdf = Pdf::loadView('reports.receipt', ['receiptData' => $receiptData]);
+
+        return $pdf->output();
     }
 
     /**

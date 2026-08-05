@@ -201,15 +201,18 @@ class TransactionController extends Controller
     }
 
     /**
-     * Generate receipt for transaction
+     * Generate receipt for transaction (PDF)
      */
-    public function generateReceipt(Transaction $transaction): JsonResponse
+    public function generateReceipt(Transaction $transaction)
     {
         try {
-            $receiptData = $this->transactionService->generateReceipt($transaction);
+            $pdfContent = $this->transactionService->generateReceiptPdf($transaction);
 
-            return response()->json([
-                'data' => $receiptData
+            $filename = 'comprobante_' . $transaction->transaction_number . '.pdf';
+
+            return response($pdfContent, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"'
             ]);
         } catch (\Exception $e) {
             return response()->json([

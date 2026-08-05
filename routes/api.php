@@ -265,8 +265,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // que necesitan caja ya abierta.
         // Slice 01 / T-01.1: register `transactions/list` BEFORE apiResource so
         // the fixed segment is not swallowed by `{transaction}` model binding.
+        // Verify-correction slice: register `void` and `receipt` BEFORE apiResource
+        // so the fixed segments are not swallowed by `{transaction}` model binding.
         Route::middleware('cash.session')->group(function () {
             Route::get('transactions/list', [TransactionController::class, 'list']);
+            Route::post('transactions/{transaction}/void', [TransactionController::class, 'void']);
+            Route::post('transactions/{transaction}/receipt', [TransactionController::class, 'generateReceipt']);
             Route::apiResource('transactions', TransactionController::class);
         });
         Route::middleware('cash.session')->apiResource('cash-movements', CashMovementController::class);
