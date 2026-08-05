@@ -17,15 +17,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('reminder_schedules', function (Blueprint $table) {
-            $table->string('channel', 20)->nullable()->after('scheduled_at');
-            $table->text('error_message')->nullable()->after('status');
+            if (! Schema::hasColumn('reminder_schedules', 'channel')) {
+                $table->string('channel', 20)->nullable()->after('scheduled_at');
+            }
+            if (! Schema::hasColumn('reminder_schedules', 'error_message')) {
+                $table->text('error_message')->nullable()->after('status');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('reminder_schedules', function (Blueprint $table) {
-            $table->dropColumn(['channel', 'error_message']);
+            $cols = array_values(array_filter(
+                ['channel', 'error_message'],
+                fn ($c) => Schema::hasColumn('reminder_schedules', $c)
+            ));
+            if ($cols) {
+                $table->dropColumn($cols);
+            }
         });
     }
 };
