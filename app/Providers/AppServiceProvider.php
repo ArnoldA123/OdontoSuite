@@ -75,5 +75,11 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\ProcedureCatalogUpdated::class,
             \App\Listeners\TrackProcedureVersion::class
         );
+
+        // Slice 03 (T-03.9): audit trail for ReminderSent deliveries.
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Events\ReminderSent::class,
+            \App\Listeners\TrackReminderDelivery::class
+        );
     }
 }

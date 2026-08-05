@@ -234,7 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('appointment-types', AppointmentTypeController::class);
         Route::apiResource('work-schedules', WorkScheduleController::class);
         Route::apiResource('waiting-lists', WaitingListController::class);
-        Route::apiResource('reminder-templates', ReminderTemplateController::class);
+        Route::apiResource('reminder-templates', ReminderTemplateController::class)->middleware('role:administrador');
 
         // Audit logs: read-only (BF-004). Previously apiResource('audit-logs')
         // registered POST/PUT/PATCH/DELETE which 500'd because AuditLogController

@@ -3,61 +3,103 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreReminderRequest;
+use App\Http\Requests\UpdateReminderRequest;
 use App\Models\ReminderSchedule;
 use App\Services\ReminderService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
+/**
+ * Slice 03 (BF-001): full CRUD on /api/reminders. Reuses ReminderService
+ * (no new abstraction). Channel whitelist enforced via StoreReminderRequest.
+ * Status transitions go through ReminderSchedule::transitionTo().
+ */
 class ReminderController extends Controller
 {
     public function __construct(private readonly ReminderService $reminderService)
     {
     }
 
-    /**
-     * Sprint 0 fix (NF-1): los bodies estaban vacios (//) y devolvian 500.
-     * Las rutas apiResource quedan activas pero cada metodo responde 501
-     * con un mensaje claro mientras no se implemente el CRUD completo.
-     * El feature real queda documentado en docs/mejoras/plan-mejoras-futuras-2026-06.md
-     * como Opcion B del hallazgo NF-1.
-     */
-    private function notImplemented(string $feature): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $perPage = (int) min((int) $request->get('per_page', 25), 100);
+
+        $query = ReminderSchedule::with(['appointment.patient:id,first_name,last_name', 'reminderTemplate:id,name,type']);
+
+        if ($status = $request->get('status')) {
+            $query->where('status', $status);
+        }
+        if ($appointmentId = $request->get('appointment_id')) {
+            $query->where('appointment_id', $appointmentId);
+        }
+
+        $items = $query->orderBy('scheduled_at', 'desc')->paginate($perPage);
+
         return response()->json([
-            'message' => "Funcionalidad de {$feature} pendiente de implementacion.",
-            'todo' => 'Ver plan-mejoras-futuras-2026-06.md, hallazgo NF-1.',
-        ], 501);
+            'data' => $items->items(),
+            'meta' => [
+                'message' => 'Recordatorios cargados exitosamente',
+                'current_page' => $items->currentPage(),
+                'last_page' => $items->lastPage(),
+                'per_page' => $items->perPage(),
+                'total' => $items->total(),
+            ],
+        ]);
     }
 
-    public function index(): JsonResponse
+    public function store(StoreReminderRequest $request): JsonResponse
     {
-        return $this->notImplemented('listado de recordatorios');
-    }
+        $reminder = ReminderSchedule::create(array_merge(
+            $request->validated(),
+            ['status' => $request->input('status', 'pending')]
+        ));
 
-    public function store(Request $request): JsonResponse
-    {
-        return $this->notImplemented('creacion de recordatorios');
+        return response()->json([
+            'data' => $reminder->load(['appointment.patient:id,first_name,last_name', 'reminderTemplate:id,name,type']),
+            'meta' => ['message' => 'Recordatorio creado exitosamente'],
+        ], 201);
     }
 
     public function show(string $id): JsonResponse
     {
-        return $this->notImplemented('consulta de recordatorio');
+        $reminder = ReminderSchedule::with(['appointment.patient:id,first_name,last_name', 'reminderTemplate:id,name,type'])
+            ->findOrFail($id);
+
+        return response()->json(['data' => $reminder]);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateReminderRequest $request, string $id): JsonResponse
     {
-        return $this->notImplemented('actualizacion de recordatorio');
+        $reminder = ReminderSchedule::findOrFail($id);
+
+        $data = $request->validated();
+
+        if (isset($data['status'])) {
+            $reminder->transitionTo($data['status']);
+            unset($data['status']);
+        }
+
+        if (!empty($data)) {
+            $reminder->fill($data)->save();
+        }
+
+        return response()->json([
+            'data' => $reminder->fresh()->load(['appointment.patient:id,first_name,last_name', 'reminderTemplate:id,name,type']),
+            'meta' => ['message' => 'Recordatorio actualizado exitosamente'],
+        ]);
     }
 
     public function destroy(string $id): JsonResponse
     {
-        return $this->notImplemented('eliminacion de recordatorio');
+        $reminder = ReminderSchedule::findOrFail($id);
+        $reminder->delete();
+
+        return response()->json(null, 204);
     }
 
     /**
-     * Enviar un recordatorio ahora (dispara ReminderService::sendReminder).
-     * Sprint 0 fix del plan de inconsistencias: la ruta POST /api/reminders/{id}/send
-     * apuntaba a un metodo inexistente -> 500. Implementacion minima que delega al service.
+     * Send a reminder immediately. Delegated to ReminderService::sendReminder.
      */
     public function send(string $id): JsonResponse
     {

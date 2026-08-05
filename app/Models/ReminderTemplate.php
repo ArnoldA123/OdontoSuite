@@ -10,11 +10,16 @@ class ReminderTemplate extends Model
 {
     use HasFactory;
 
+    /**
+     * Slice 03 (T-03.4): fillable corrected to match the real
+     * reminder_templates table (body_html / body_text, NOT body).
+     */
     protected $fillable = [
         'name',
         'type',
         'subject',
-        'body',
+        'body_html',
+        'body_text',
         'variables',
         'is_active',
     ];
@@ -54,11 +59,12 @@ class ReminderTemplate extends Model
     public function render(array $variables = []): array
     {
         $subject = $this->subject;
-        $body = $this->body;
+        $body = $this->body_text ?? $this->body_html ?? '';
 
         foreach ($variables as $key => $value) {
-            $subject = str_replace("{{$key}}", $value, $subject);
-            $body = str_replace("{{$key}}", $value, $body);
+            $placeholder = '{{' . $key . '}}';
+            $subject = str_replace($placeholder, (string) $value, $subject);
+            $body = str_replace($placeholder, (string) $value, $body);
         }
 
         return [

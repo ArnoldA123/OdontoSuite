@@ -2,65 +2,23 @@
 
 namespace Tests\Unit\Controllers;
 
-use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\ReminderTemplateController;
 use App\Http\Controllers\Api\WaitingListController;
-use App\Services\ReminderService;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
  * Sprint 0 fix (NF-1): los controllers Reminder/ReminderTemplate/WaitingList
- * eran stubs vacíos (cuerpo `//`) y devolvían 500. Ahora devuelven 501 con
- * mensaje claro. WaitingListController::store() sí está implementado.
+ * eran stubs vacíos (cuerpo `//`) y devolvían 500.
+ *
+ * Slice 03 update: ReminderController y ReminderTemplateController ya NO
+ * devuelven 501 — el CRUD real está implementado (BF-001, BF-002). Este
+ * test ahora valida solo WaitingListController (slice 04 cubrirá el resto):
+ *   - ::store valida campos requeridos
+ *   - ::update y ::destroy siguen devolviendo 501 (out-of-scope para slice 03)
  */
 class StubsNotImplementedTest extends TestCase
 {
-    /** @test */
-    public function reminder_controller_returns_501_for_all_resource_methods(): void
-    {
-        $controller = app(ReminderController::class);
-        $request = Request::create('/api/reminders', 'GET');
-
-        $methods = [
-            'index' => [],
-            'store' => [$request],
-            'show' => [$request, '999'],
-            'update' => [$request, '999'],
-            'destroy' => [$request, '999'],
-        ];
-
-        foreach ($methods as $method => $args) {
-            $response = $controller->{$method}(...$args);
-            $this->assertEquals(501, $response->status(), "Reminder::{$method} should return 501");
-            $body = json_decode($response->getContent(), true);
-            $this->assertArrayHasKey('message', $body);
-            $this->assertArrayHasKey('todo', $body);
-        }
-    }
-
-    /** @test */
-    public function reminder_template_controller_returns_501_for_all_resource_methods(): void
-    {
-        $controller = app(ReminderTemplateController::class);
-        $request = Request::create('/api/reminder-templates', 'GET');
-
-        $methods = [
-            'index' => [],
-            'store' => [$request],
-            'show' => [$request, '999'],
-            'update' => [$request, '999'],
-            'destroy' => [$request, '999'],
-        ];
-
-        foreach ($methods as $method => $args) {
-            $response = $controller->{$method}(...$args);
-            $this->assertEquals(501, $response->status(), "ReminderTemplate::{$method} should return 501");
-        }
-    }
-
-    /** @test */
-    public function waiting_list_store_validates_required_fields(): void
+    public function test_waiting_list_store_validates_required_fields(): void
     {
         $controller = app(WaitingListController::class);
         $request = Request::create('/api/waiting-lists', 'POST', []);

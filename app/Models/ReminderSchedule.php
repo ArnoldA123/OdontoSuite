@@ -6,24 +6,45 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use InvalidArgumentException;
 
 class ReminderSchedule extends Model
 {
     use HasFactory;
 
+    /**
+     * Slice 03 (T-03.1 + T-03.6 + T-03.7): fillable now matches the real
+     * table columns (channel, error_message added) plus the historical
+     * columns the model has been using (type, anticipation_hours).
+     */
     protected $fillable = [
         'appointment_id',
         'reminder_template_id',
         'scheduled_at',
         'sent_at',
+        'channel',
         'status',
         'type',
         'anticipation_hours',
+        'error_message',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
+    ];
+
+    /**
+     * Allowed transitions for the reminder status state machine.
+     * Slice 03 (T-03.7): pending -> queued -> sent|failed, plus
+     * pending -> cancelled (used by ReminderService::cancelReminders).
+     */
+    public const STATUS_TRANSITIONS = [
+        'pending' => ['queued', 'sent', 'failed', 'cancelled'],
+        'queued' => ['sent', 'failed'],
+        'sent' => [],
+        'failed' => ['queued'],
+        'cancelled' => [],
     ];
 
     /**
@@ -76,14 +97,38 @@ class ReminderSchedule extends Model
     }
 
     /**
-     * Mark the reminder as sent.
+     * Mark the reminder as sent. Kept for back-compat with ReminderService.
      */
     public function markAsSent(): void
     {
-        $this->update([
-            'status' => 'sent',
-            'sent_at' => now(),
-        ]);
+        $this->transitionTo('sent');
+        $this->update(['sent_at' => now()]);
+    }
+
+    /**
+     * Slice 03 (T-03.7): explicit state machine. Rejects invalid transitions
+     * with InvalidArgumentException so callers must use a valid next state.
+     *
+     * @throws InvalidArgumentException
+     */
+    public function transitionTo(string $newStatus): bool
+    {
+        $current = $this->status ?? 'pending';
+
+        if (!array_key_exists($current, self::STATUS_TRANSITIONS)) {
+            throw new InvalidArgumentException("Unknown current status: {$current}");
+        }
+
+        $allowed = self::STATUS_TRANSITIONS[$current];
+
+        if (!in_array($newStatus, $allowed, true) && $newStatus !== $current) {
+            throw new InvalidArgumentException(
+                "Invalid reminder status transition: {$current} -> {$newStatus}"
+            );
+        }
+
+        $this->status = $newStatus;
+        return $this->save();
     }
 
     /**
