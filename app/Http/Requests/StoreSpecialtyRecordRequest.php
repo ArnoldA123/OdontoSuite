@@ -2,19 +2,42 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LocalizedErrors;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
+/**
+ * FormRequest for creating a SpecialtyRecord.
+ *
+ * Slice 02 / T-02.4, T-02.10 — BF-010 fix + new optional procedure_id:
+ *  - authorize() is null-safe when `specialty` is absent (returns false)
+ *  - procedure_id → integer, nullable, exists:procedure_catalog,id
+ *
+ * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
+ */
 class StoreSpecialtyRecordRequest extends FormRequest
 {
+    use LocalizedErrors;
+
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * BF-010: when `specialty` is null/absent, accessing $specialtyMap[null]
+     * produced an undefined-key warning that Laravel surfaced as 500. The
+     * null-coalesce ensures we always reach in_array() with an empty array.
      */
     public function authorize(): bool
     {
         $user = Auth::user();
+        if ($user === null) {
+            return false;
+        }
+
         $specialty = $this->input('specialty');
+        if ($specialty === null || $specialty === '') {
+            return false;
+        }
 
         // Verificar que el usuario tenga la especialidad correspondiente
         $specialtyMap = [
@@ -62,7 +85,9 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'dental_piece_id' => 'sometimes|nullable|exists:dental_pieces,id',
             'notes' => 'sometimes|nullable|string|max:1000',
             'complications' => 'sometimes|nullable|string|max:1000',
-            'follow_up_notes' => 'sometimes|nullable|string|max:1000'
+            'follow_up_notes' => 'sometimes|nullable|string|max:1000',
+            // Slice 02 / T-02.10 — BF-007 related: optional procedure.
+            'procedure_id' => 'nullable|exists:procedure_catalog,id',
         ];
 
         // Reglas específicas por especialidad
@@ -170,6 +195,8 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'patient_id.exists' => 'El paciente seleccionado no existe',
             'appointment_id.exists' => 'La cita seleccionada no existe',
             'dental_piece_id.exists' => 'La pieza dental seleccionada no existe',
+            // Slice 02 / T-02.10 — es message for the new optional field.
+            'procedure_id.exists' => 'El procedimiento seleccionado no existe',
             'implant_brand.required' => 'La marca del implante es obligatoria',
             'implant_model.required' => 'El modelo del implante es obligatorio',
             'placement_date.required' => 'La fecha de colocación es obligatoria',

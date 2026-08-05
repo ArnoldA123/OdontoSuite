@@ -29,7 +29,10 @@ class Quotation extends Model
         'status',
         'terms_conditions',
         'notes',
-        'payment_terms'
+        'payment_terms',
+        // Slice 02 / T-02.7 — optional procedure + payment method.
+        'procedure_id',
+        'payment_method_id',
     ];
 
     protected $casts = [

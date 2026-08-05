@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LocalizedErrors;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Patient;
 use App\Models\PaymentMethod;
@@ -11,8 +12,19 @@ use App\Models\CashRegisterSession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
+/**
+ * FormRequest for creating a Transaction.
+ *
+ * Slice 02 / T-02.8 — API-045 fix: payment_method_id is required and validated
+ * via exists:payment_methods,id. (The frontend's PaymentModal already supplies
+ * this value; the field was also declared in the original FormRequest, but
+ * the slice explicitly re-affirms the rule and provides a clear es message.)
+ *
+ * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
+ */
 class StoreTransactionRequest extends FormRequest
 {
+    use LocalizedErrors;
     /**
      * Determine if the user is authorized to make this request.
      */

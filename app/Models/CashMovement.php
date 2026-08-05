@@ -20,7 +20,10 @@ class CashMovement extends Model
         'description',
         'notes',
         'reference',
-        'metadata'
+        'metadata',
+        // Slice 02 / T-02.9 — optional branch association.
+        'branch_id',
+        'concept',
     ];
 
     protected $casts = [

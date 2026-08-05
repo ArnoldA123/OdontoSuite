@@ -336,6 +336,11 @@ const switchToMercadoPago = async () => {
       patient_id: formData.value.patient_id,
       appointment_id: formData.value.appointment_id || null,
       description: formData.value.concept,
+      // Slice 02 / T-02.3 — API-045 fix: payment_method_id must be sent in the
+      // MP-preference transaction too, otherwise backend StoreTransactionRequest
+      // either drops the field (if nullable) or rejects the call. We send the
+      // same id selected in the UI as for manual capture.
+      payment_method_id: formData.value.payment_method_id,
       amount: formData.value.amount,
       reference_number: null,
       notes: formData.value.notes || null,

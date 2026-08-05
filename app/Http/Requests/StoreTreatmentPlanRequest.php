@@ -2,12 +2,21 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LocalizedErrors;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
+/**
+ * FormRequest for creating a TreatmentPlan.
+ *
+ * Slice 02 / T-02.9 — add nullable branch_id (multi-sede backend support).
+ *
+ * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
+ */
 class StoreTreatmentPlanRequest extends FormRequest
 {
+    use LocalizedErrors;
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -54,6 +63,8 @@ class StoreTreatmentPlanRequest extends FormRequest
         return [
             'patient_id' => 'required|exists:patients,id',
             'title' => 'required|string|max:200',
+            // Slice 02 / T-02.9 — optional branch association.
+            'branch_id' => 'nullable|exists:branches,id',
             'description' => 'sometimes|nullable|string',
             'estimated_duration_weeks' => 'sometimes|nullable|integer|min:1|max:104',
             'start_date' => 'sometimes|nullable|date|after_or_equal:today',
@@ -85,6 +96,8 @@ class StoreTreatmentPlanRequest extends FormRequest
         return [
             'patient_id.required' => 'El paciente es obligatorio',
             'patient_id.exists' => 'El paciente seleccionado no existe',
+            // Slice 02 — es message for new optional field.
+            'branch_id.exists' => 'La sucursal seleccionada no existe',
             'title.required' => 'El título del plan es obligatorio',
             'title.max' => 'El título no puede exceder 200 caracteres',
             'estimated_duration_weeks.integer' => 'La duración debe ser un número entero',

@@ -2,13 +2,24 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LocalizedErrors;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\CashRegisterSession;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
+/**
+ * FormRequest for closing a cash register session.
+ *
+ * Slice 02 / T-02.6 — API-014 fix: closing_amount must be > 0. The frontend
+ * already required `> 0`, but the backend allowed `min:0` which silently
+ * accepted zero-amount closes that broke reconciliation reports.
+ *
+ * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
+ */
 class CloseCashRegisterRequest extends FormRequest
 {
+    use LocalizedErrors;
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -43,7 +54,9 @@ class CloseCashRegisterRequest extends FormRequest
             'closing_amount' => [
                 'required',
                 'numeric',
-                'min:0'
+                // Slice 02 / T-02.6 — API-014 fix: frontend enforces > 0; backend
+                // was `min:0` allowing zero-amount closes. Now requires at least 0.01.
+                'min:0.01'
             ],
             'closing_notes' => [
                 'nullable',
@@ -92,7 +105,7 @@ class CloseCashRegisterRequest extends FormRequest
             'session_id.exists' => 'La sesión de caja no existe.',
             'closing_amount.required' => 'El monto de cierre es requerido.',
             'closing_amount.numeric' => 'El monto de cierre debe ser un número.',
-            'closing_amount.min' => 'El monto de cierre debe ser mayor o igual a 0.',
+            'closing_amount.min' => 'El monto de cierre debe ser mayor a 0 (mínimo 0.01).',
             'closing_notes.max' => 'Las notas de cierre no pueden exceder los 500 caracteres.',
             'arqueo.array' => 'Los datos de arqueo deben ser un objeto.',
             'arqueo.*.numeric' => 'Los valores de arqueo deben ser números.',

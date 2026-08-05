@@ -2,12 +2,25 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\LocalizedErrors;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
+/**
+ * FormRequest for creating a Quotation.
+ *
+ * Slice 02 / T-02.5, T-02.7 — BF-009 fix + new optional fields:
+ *  - procedure_id      → integer, nullable, exists:procedure_catalog,id
+ *  - payment_method_id → integer, nullable, exists:payment_methods,id
+ *  - patient_id is sometimes|nullable → no 'required' message.
+ *
+ * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
+ */
 class StoreQuotationRequest extends FormRequest
 {
+    use LocalizedErrors;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -26,7 +39,7 @@ class StoreQuotationRequest extends FormRequest
                 'terms_conditions' => Str::limit(strip_tags($this->terms_conditions), 2000),
             ]);
         }
-        
+
         if ($this->has('notes')) {
             $this->merge([
                 'notes' => Str::limit(strip_tags($this->notes), 1000),
@@ -55,18 +68,24 @@ class StoreQuotationRequest extends FormRequest
             'items' => 'sometimes|nullable|array|max:50',
             'items.*.description' => 'required_with:items|string|max:200',
             'items.*.quantity' => 'required_with:items|numeric|min:0.01|max:999.99',
-            'items.*.unit_price' => 'required_with:items|numeric|min:0|max:99999.99'
+            'items.*.unit_price' => 'required_with:items|numeric|min:0|max:99999.99',
+            // Slice 02 / T-02.7 — optional procedure + payment method.
+            'procedure_id' => 'nullable|exists:procedure_catalog,id',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
         ];
     }
 
     /**
      * Get custom messages for validator errors.
+     *
+     * BF-009 fix: patient_id.message describes the optional behavior rather than
+     * requiring it (the rule is sometimes|nullable, so 'required' was misleading).
      */
     public function messages(): array
     {
         return [
-            'patient_id.required' => 'El paciente es obligatorio',
             'patient_id.exists' => 'El paciente seleccionado no existe',
+            // BF-009 — no 'patient_id.required' message; rule is sometimes|nullable.
             'treatment_plan_id.exists' => 'El plan de tratamiento seleccionado no existe',
             'subtotal.required' => 'El subtotal es obligatorio',
             'subtotal.min' => 'El subtotal no puede ser negativo',
@@ -74,6 +93,9 @@ class StoreQuotationRequest extends FormRequest
             'discount_percentage.max' => 'El descuento no puede exceder 100%',
             'tax_percentage.max' => 'El impuesto no puede exceder 100%',
             'valid_until.after' => 'La fecha de vencimiento debe ser posterior a la fecha del presupuesto',
+            // Slice 02 / T-02.7 — es messages for new optional fields.
+            'procedure_id.exists' => 'El procedimiento seleccionado no existe',
+            'payment_method_id.exists' => 'El método de pago seleccionado no existe',
             'items.max' => 'No se pueden agregar más de 50 items',
             'items.*.description.required_with' => 'La descripción del item es obligatoria',
             'items.*.quantity.required_with' => 'La cantidad es obligatoria',

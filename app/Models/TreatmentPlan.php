@@ -31,7 +31,9 @@ class TreatmentPlan extends Model
         'patient_notes',
         'phases',
         'requires_anesthesia',
-        'is_urgent'
+        'is_urgent',
+        // Slice 02 / T-02.9 — optional branch association.
+        'branch_id',
     ];
 
     protected $casts = [

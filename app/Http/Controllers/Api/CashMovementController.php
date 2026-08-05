@@ -69,18 +69,16 @@ class CashMovementController extends Controller
 
     /**
      * Store a newly created cash movement
+     *
+     * Slice 02: validates with StoreCashMovementRequest (concept whitelist +
+     * branch_id support). The FormRequest returns a 422 envelope directly
+     * via Laravel's default validation flow; we only branch here for the
+     * post-validation business checks (session open + permission).
      */
-    public function store(Request $request): JsonResponse
+    public function store(\App\Http\Requests\StoreCashMovementRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'cash_register_session_id' => 'required|exists:cash_register_sessions,id',
-                'type' => 'required|in:income,expense',
-                'amount' => 'required|numeric|min:0.01',
-                'description' => 'required|string|max:255',
-                'notes' => 'nullable|string|max:500',
-                'reference' => 'nullable|string|max:100'
-            ]);
+            $validated = $request->validated();
 
             // Check if the cash register session is open
             $session = CashRegisterSession::findOrFail($validated['cash_register_session_id']);
