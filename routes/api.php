@@ -235,11 +235,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('work-schedules', WorkScheduleController::class);
         Route::apiResource('waiting-lists', WaitingListController::class);
         Route::apiResource('reminder-templates', ReminderTemplateController::class);
-        Route::apiResource('audit-logs', AuditLogController::class);
-        Route::get('audit-logs/patient/{patientId}', [AuditLogController::class, 'byPatient']);
-        Route::get('audit-logs/user/{userId}', [AuditLogController::class, 'byUser']);
-        Route::get('audit-logs/dental-chair/{chairId}', [AuditLogController::class, 'byDentalChair']);
-        Route::get('audit-logs/appointment-type/{typeId}', [AuditLogController::class, 'byAppointmentType']);
+
+        // Audit logs: read-only (BF-004). Previously apiResource('audit-logs')
+        // registered POST/PUT/PATCH/DELETE which 500'd because AuditLogController
+        // does not implement store/update/destroy. Slice 01 restricts to admin
+        // and exposes only the GET verbs explicitly.
+        Route::middleware('role:administrador')->group(function () {
+            Route::get('audit-logs', [AuditLogController::class, 'index']);
+            Route::get('audit-logs/patient/{patientId}', [AuditLogController::class, 'byPatient']);
+            Route::get('audit-logs/user/{userId}', [AuditLogController::class, 'byUser']);
+            Route::get('audit-logs/dental-chair/{chairId}', [AuditLogController::class, 'byDentalChair']);
+            Route::get('audit-logs/appointment-type/{typeId}', [AuditLogController::class, 'byAppointmentType']);
+            Route::get('audit-logs/{id}', [AuditLogController::class, 'show']);
+        });
 
         // Recordatorios
         Route::apiResource('reminders', ReminderController::class);
@@ -340,6 +348,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('medical-records', MedicalRecordController::class);
         Route::post('medical-records/{id}/evolutions', [MedicalRecordController::class, 'addEvolution']);
         Route::get('medical-records/{id}/evolutions', [MedicalRecordController::class, 'getEvolutions']);
+        // Slice 01 / T-01.3 (API-001): DELETE attachment. Declared BEFORE
+        // apiResource so the fixed `attachments` segment is not swallowed
+        // by `{medical_record}` model binding.
+        Route::delete('medical-records/attachments/{attachment}', [MedicalRecordController::class, 'deleteAttachment']);
         Route::post('medical-records/attachments', [MedicalRecordController::class, 'uploadAttachment']);
         Route::get('medical-records/patient/{patientId}/stats', [MedicalRecordController::class, 'getStats']);
         Route::get('medical-records/patient/{patientId}/attachments', [MedicalRecordController::class, 'getAttachmentsByCategory']);
@@ -372,7 +384,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // La apertura/cierre de sesion NO requiere sesion (la crea/termina),
         // asi que se aplica el middleware cash.session solo a los resources
         // que necesitan caja ya abierta.
-        Route::middleware('cash.session')->apiResource('transactions', TransactionController::class);
+        // Slice 01 / T-01.1: register `transactions/list` BEFORE apiResource so
+        // the fixed segment is not swallowed by `{transaction}` model binding.
+        Route::middleware('cash.session')->group(function () {
+            Route::get('transactions/list', [TransactionController::class, 'list']);
+            Route::apiResource('transactions', TransactionController::class);
+        });
         Route::middleware('cash.session')->apiResource('cash-movements', CashMovementController::class);
 
         // Sesiones de caja
@@ -403,6 +420,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cash-register/open', [CashRegisterController::class, 'open']);
         Route::post('cash-register/close', [CashRegisterController::class, 'close']);
         Route::get('cash-register/sessions/{id}/movements', [CashRegisterController::class, 'movements']);
+
+        // Slice 01 / T-01.1: 5 cash-register endpoints previously 404.
+        Route::get('cash-register/summary', [CashRegisterController::class, 'summary']);
+        Route::get('cash-register/reports/period', [CashReportController::class, 'period']);
+        Route::post('cash-register/reports/export/{format}', [CashReportController::class, 'export'])
+            ->where('format', 'excel|pdf|csv');
+        Route::get('cash-register/sessions/{id}', [CashRegisterController::class, 'show']);
+        Route::get('cash-register/sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
     });
 
     // IA Asistiva (solo odontólogos y especialistas)

@@ -879,7 +879,12 @@ export default {
 
     const changeStatus = async (appointment, newStatus) => {
       try {
-        await put(`/api/appointments/${appointment.id}`, { status: newStatus })
+        // Slice 01 / T-01.5 (API-018): use the dedicated PATCH route for
+        // status updates instead of PUT to /appointments/{id} (which only
+        // persists `notes` on completed appointments and silently ignores
+        // `status`).
+        const { patch } = useApi()
+        await patch(`/api/appointments/${appointment.id}/status`, { status: newStatus })
         toast.success('Estado actualizado')
         await loadAppointments()
         selectedAppointment.value = null

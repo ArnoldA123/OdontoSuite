@@ -142,12 +142,21 @@ export function useApi() {
     return handleResponse(response)
   }
 
-  const del = async (url) => {
+  const del = async (url, options = {}) => {
     const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
-    const response = await fetch(fullUrl, {
+    const fetchOptions = {
       method: 'DELETE',
       headers: getHeaders()
-    })
+    }
+
+    // Some DELETE callsites (e.g. useSpecialtyRecords.deleteRecord) need to
+    // send a request body. Slice 01 / T-01.5 fixes the wrapper to forward
+    // options.data so fetch passes it along.
+    if (options.data !== undefined && options.data !== null) {
+      fetchOptions.body = JSON.stringify(options.data)
+    }
+
+    const response = await fetch(fullUrl, fetchOptions)
 
     return handleResponse(response)
   }

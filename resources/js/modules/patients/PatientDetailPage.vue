@@ -1052,8 +1052,39 @@ export default {
       router.push(`/quotations/${id}`)
     }
 
-    const downloadQuotationPDF = (id) => {
-      window.open(`/api/quotations/${id}/pdf`, '_blank')
+    const downloadQuotationPDF = async (id) => {
+      try {
+        // Slice 01 / T-01.4 (API-012): window.open strips the Authorization
+        // header in Sanctum cookie/session hybrid, causing a 401 on PDF
+        // downloads. Use fetch + blob + temporary anchor click instead.
+        const token = localStorage.getItem('auth_token')
+        const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin
+        const url = `${baseUrl}/api/quotations/${id}/pdf`
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/pdf',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Error ${response.status} al descargar el PDF`)
+        }
+
+        const blob = await response.blob()
+        const downloadUrl = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = `presupuesto_${id}_${new Date().toISOString().split('T')[0]}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(downloadUrl)
+      } catch (error) {
+        toast.error('Error al descargar el PDF del presupuesto')
+      }
     }
 
     const createMedicalRecord = () => {

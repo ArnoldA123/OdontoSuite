@@ -38,7 +38,42 @@ class CashReportController extends Controller
 
         $report = $this->cashReportService->getPeriodReport($startDate, $endDate, $branchId);
 
-        return response()->json(['data' => $report]);
+        return response()->json([
+            'data' => $report,
+            'meta' => ['message' => 'Reporte por periodo generado exitosamente'],
+        ]);
+    }
+
+    /**
+     * Slice 01 / T-01.1 (API-005): unified export endpoint.
+     * Accepts a {format} whitelist (excel|pdf|csv) and dispatches to the
+     * existing per-format helpers. Returns 400 for unsupported formats.
+     */
+    public function export(Request $request, string $format)
+    {
+        $filters = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'branch_id' => 'nullable|integer',
+            'report_type' => 'required|in:daily,period,summary',
+        ]);
+
+        $report = $this->cashReportService->getPeriodReport(
+            $filters['start_date'],
+            $filters['end_date'],
+            $filters['branch_id'] ?? null
+        );
+
+        $filename = 'reporte-caja-' . now()->format('Y-m-d');
+
+        return match (strtolower($format)) {
+            'excel' => Excel::download(new CashReportExport($report), $filename . '.xlsx'),
+            'pdf' => Pdf::loadView('reports.cash-report-pdf', ['report' => $report])
+                ->download($filename . '.pdf'),
+            default => response()->json([
+                'message' => 'Formato de exportacion no soportado. Use excel, pdf o csv.',
+            ], 400),
+        };
     }
 
     public function exportExcel(Request $request)

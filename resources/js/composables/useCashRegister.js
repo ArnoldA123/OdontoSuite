@@ -132,7 +132,9 @@ export function useCashRegister() {
 
     try {
       const response = await get('/api/cash-register/sessions', { params: filters })
-      return response
+      // Slice 01 / T-01.7 (API-011): backend returns {data, meta}. Return the
+      // unwrapped data array so callers can iterate `.sessions`-like lists.
+      return response.data || response
     } catch (err) {
       error.value = err.message || 'Error al obtener las sesiones de caja'
       throw err

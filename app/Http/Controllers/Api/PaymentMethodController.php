@@ -38,8 +38,10 @@ class PaymentMethodController extends Controller
             $methods->makeHidden('gateway_config');
 
             return response()->json([
-                'success' => true,
-                'data' => $methods
+                'data' => $methods,
+                'meta' => [
+                    'message' => 'Metodos de pago cargados exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -84,9 +86,10 @@ class PaymentMethodController extends Controller
             $method->makeHidden('gateway_config');
 
             return response()->json([
-                'success' => true,
                 'data' => $method,
-                'message' => 'Metodo de pago creado exitosamente'
+                'meta' => [
+                    'message' => 'Metodo de pago creado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -115,8 +118,10 @@ class PaymentMethodController extends Controller
         $data['gateway_config'] = null;
 
         return response()->json([
-            'success' => true,
-            'data' => $data
+            'data' => $data,
+            'meta' => [
+                'message' => 'Metodo de pago obtenido exitosamente',
+            ],
         ]);
     }
 
@@ -143,9 +148,10 @@ class PaymentMethodController extends Controller
             $paymentMethod->makeHidden('gateway_config');
 
             return response()->json([
-                'success' => true,
                 'data' => $paymentMethod,
-                'message' => 'Metodo de pago actualizado exitosamente'
+                'meta' => [
+                    'message' => 'Metodo de pago actualizado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -189,8 +195,10 @@ class PaymentMethodController extends Controller
             $paymentMethod->delete();
 
             return response()->json([
-                'success' => true,
-                'message' => 'Metodo de pago eliminado exitosamente'
+                'data' => null,
+                'meta' => [
+                    'message' => 'Metodo de pago eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([

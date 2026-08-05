@@ -36,8 +36,10 @@ class BranchController extends Controller
             $branches = $query->orderBy('name')->get();
 
             return response()->json([
-                'success' => true,
-                'data' => $branches
+                'data' => $branches,
+                'meta' => [
+                    'message' => 'Sucursales cargadas exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -83,9 +85,10 @@ class BranchController extends Controller
             $branch = Branch::create($validated);
 
             return response()->json([
-                'success' => true,
                 'data' => $branch,
-                'message' => 'Sucursal creada exitosamente'
+                'meta' => [
+                    'message' => 'Sucursal creada exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -108,8 +111,10 @@ class BranchController extends Controller
     public function show(Branch $branch): JsonResponse
     {
         return response()->json([
-            'success' => true,
-            'data' => $branch
+            'data' => $branch,
+            'meta' => [
+                'message' => 'Sucursal obtenida exitosamente',
+            ],
         ]);
     }
 
@@ -139,9 +144,10 @@ class BranchController extends Controller
             $branch->update($validated);
 
             return response()->json([
-                'success' => true,
                 'data' => $branch,
-                'message' => 'Sucursal actualizada exitosamente'
+                'meta' => [
+                    'message' => 'Sucursal actualizada exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -167,8 +173,10 @@ class BranchController extends Controller
             $branch->delete();
 
             return response()->json([
-                'success' => true,
-                'message' => 'Sucursal eliminada exitosamente'
+                'data' => null,
+                'meta' => [
+                    'message' => 'Sucursal eliminada exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([

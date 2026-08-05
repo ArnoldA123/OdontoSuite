@@ -105,6 +105,7 @@ class DashboardController extends Controller
             return response()->json([
                 'data' => $stats,
                 'meta' => [
+                    'message' => 'Estadísticas del dashboard cargadas exitosamente',
                     'generated_at' => now()->toISOString(),
                     'cached' => true
                 ]
@@ -135,6 +136,7 @@ class DashboardController extends Controller
         return response()->json([
             'data' => AppointmentResource::collection($appointments),
             'meta' => [
+                'message' => 'Citas de hoy cargadas exitosamente',
                 'date' => $today->toDateString(),
                 'count' => $appointments->count(),
                 'cached' => true
@@ -161,6 +163,7 @@ class DashboardController extends Controller
         return response()->json([
             'data' => AppointmentResource::collection($appointments),
             'meta' => [
+                'message' => 'Próximas citas cargadas exitosamente',
                 'period' => 'this_week',
                 'count' => $appointments->count(),
                 'cached' => true

@@ -329,6 +329,30 @@ class MedicalRecordController extends Controller
     }
 
     /**
+     * Eliminar (soft) un archivo adjunto (slice 01, T-01.3 / API-001).
+     * Returns 204 on success, 403 if caller is not clinical staff (handled
+     * at middleware level), 404 if attachment does not exist.
+     */
+    public function deleteAttachment(int $attachmentId): \Illuminate\Http\Response|JsonResponse
+    {
+        try {
+            $attachment = \App\Models\ClinicalAttachment::findOrFail($attachmentId);
+            $attachment->update(['is_active' => false]);
+
+            return response()->noContent();
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Adjunto no encontrado',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al eliminar adjunto',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Obtener estadísticas de la historia clínica
      */
     public function getStats(int $patientId): JsonResponse

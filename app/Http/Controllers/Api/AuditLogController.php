@@ -59,6 +59,7 @@ class AuditLogController extends Controller
         return response()->json([
             'data' => $logs->items(),
             'meta' => [
+                'message' => 'Historial de auditoría cargado exitosamente',
                 'current_page' => $logs->currentPage(),
                 'last_page' => $logs->lastPage(),
                 'per_page' => $logs->perPage(),

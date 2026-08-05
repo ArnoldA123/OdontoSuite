@@ -19,7 +19,7 @@ export function useMercadoPago () {
    */
   let sdkPromise = null
 
-  const loadSdk = (publicKey) => {
+  const loadSdk = (publicKey = null) => {
     if (sdkLoaded.value) return Promise.resolve(window.MercadoPago)
     if (sdkPromise) return sdkPromise
 
@@ -36,7 +36,9 @@ export function useMercadoPago () {
       script.async = true
       script.onload = () => {
         try {
-          window.MercadoPago.setPublishableKey(publicKey)
+          // Slice 01 / T-01.5 (FF-002): SDK v2 has no setPublishableKey. The
+          // public key is consumed by `createBrick` via the `preferenceId`
+          // flow on the backend, so this is intentionally a no-op now.
           sdkLoaded.value = true
           resolve(window.MercadoPago)
         } catch (err) {

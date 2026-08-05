@@ -21,7 +21,10 @@ class SpecialtyController extends Controller
 
         return response()->json([
             'data' => $specialties,
-            'meta' => ['total' => $specialties->count()],
+            'meta' => [
+                'message' => 'Especialidades cargadas exitosamente',
+                'total' => $specialties->count(),
+            ],
         ]);
     }
 
@@ -31,7 +34,10 @@ class SpecialtyController extends Controller
 
         return response()->json([
             'data' => $specialties,
-            'meta' => ['total' => $specialties->count()],
+            'meta' => [
+                'message' => 'Especialidades activas cargadas exitosamente',
+                'total' => $specialties->count(),
+            ],
         ]);
     }
 
@@ -39,7 +45,10 @@ class SpecialtyController extends Controller
     {
         $specialty = Specialty::findOrFail($id);
 
-        return response()->json(['data' => $specialty]);
+        return response()->json([
+            'data' => $specialty,
+            'meta' => ['message' => 'Especialidad obtenida exitosamente'],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

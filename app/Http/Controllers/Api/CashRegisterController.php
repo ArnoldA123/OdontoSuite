@@ -215,7 +215,8 @@ class CashRegisterController extends Controller
             );
 
             return response()->json([
-                'data' => $summary
+                'data' => $summary,
+                'meta' => ['message' => 'Resumen de caja generado exitosamente'],
             ]);
         } catch (\Exception $e) {
             return response()->json([
