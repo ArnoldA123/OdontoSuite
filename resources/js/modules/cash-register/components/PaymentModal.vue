@@ -270,6 +270,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { BanknotesIcon } from '@heroicons/vue/24/outline'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
@@ -277,6 +278,7 @@ import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
+import { useAuth } from '@/composables/useAuth'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
@@ -317,6 +319,24 @@ const isOpen = computed(() =>
 const { get } = useApi()
 const { createTransaction } = useTransactions()
 const toast = useToast()
+// Slice 09 / UXF-021: 401 must tear down the session and bounce to /login
+// instead of leaving the user staring at a half-broken modal.
+const { authLogout } = useAuth()
+const router = useRouter()
+
+/**
+ * Handle a confirmed 401 from any PaymentModal fetch: show a session-
+ * expired toast, drop the local auth state, and force the router back to
+ * /login so the auth gate re-evaluates on the next render.
+ *
+ * Idempotent: the toast + logout + push is cheap to repeat across the
+ * three 401 sites (loadPaymentMethods, loadPatientAppointments, handleSubmit).
+ */
+const handleSessionExpired = () => {
+  toast.error('Tu sesión expiró. Vuelve a iniciar sesión.')
+  authLogout()
+  router.push('/login')
+}
 
 // Estado
 const loading = ref(false)
@@ -456,7 +476,7 @@ const loadPaymentMethods = async () => {
     // Surface the backend message so the user knows the failure shape
     // (e.g. 401 Sesión expirada) instead of a generic "verifica tu conexion".
     if (error.response?.status === 401) {
-      toast.error('Sesión expirada. Vuelve a iniciar sesión para registrar el cobro.')
+      handleSessionExpired()
     } else {
       const message =
         error.response?.data?.message ||
@@ -488,7 +508,7 @@ const loadPatientAppointments = async (patientId) => {
     // se queda vacío por un error de red, no por falta de citas.
     console.error('[PaymentModal] loadPatientAppointments failed', error)
     if (error.response?.status === 401) {
-      toast.error('Sesión expirada. Vuelve a iniciar sesión.')
+      handleSessionExpired()
     } else {
       const message =
         error.response?.data?.message ||
@@ -536,7 +556,7 @@ const handleSubmit = async () => {
   } catch (error) {
     // 401 — surface it; do not let a silent catch hide a session expiry.
     if (error.response?.status === 401) {
-      toast.error('Sesión expirada. Vuelve a iniciar sesión para registrar el cobro.')
+      handleSessionExpired()
     }
 
     if (error.response?.data?.errors) {

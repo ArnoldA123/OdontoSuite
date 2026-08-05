@@ -44,6 +44,12 @@ export function useAuth() {
     }
   }
 
+  // Slice 09 / UXF-021 — alias for `logout`. Centralized auth-flow callers
+  // (e.g. PaymentModal on 401) use `authLogout()` to make the intent
+  // explicit: this is the session-expiry-driven sign-out, not a user-
+  // initiated logout click. Behaviourally identical to `logout`.
+  const authLogout = logout
+
   const getCurrentUser = async () => {
     try {
       const response = await get('/api/auth/me')
@@ -70,6 +76,7 @@ export function useAuth() {
     isLoading: computed(() => isLoading.value),
     login,
     logout,
+    authLogout,
     getCurrentUser,
     hasRole,
     hasAnyRole

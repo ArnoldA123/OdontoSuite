@@ -55,6 +55,12 @@ export function usePermissions() {
     viewCashRegister: computed(() => ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)),
     manageCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     createTransaction: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
+    // Slice 09 / FF-001 — RBAC bypass fix. The "Nuevo Movimiento" button in
+    // CashRegisterPage used to render for every role because this permission
+    // was missing. Allowed roles mirror the backend middleware at
+    // routes/api.php:345 (`role:administrador,finanzas`) and the new
+    // CashMovementPolicy::create().
+    createMovement: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     voidTransaction: computed(() => safeUser.value?.role === 'administrador'),
     applyDiscount: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     applyLargeDiscount: computed(() => safeUser.value?.role === 'administrador'),
