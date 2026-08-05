@@ -13,7 +13,7 @@ export function useSpecialties () {
       error.value = null
       const url = activeOnly ? '/api/specialties/active' : '/api/specialties'
       const response = await get(url)
-      specialties.value = response.data?.data || []
+      specialties.value = response.data || []
       return specialties.value
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener especialidades'

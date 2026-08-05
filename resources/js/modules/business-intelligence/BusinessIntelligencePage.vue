@@ -492,8 +492,8 @@ export default {
           }
         })
 
-        reportData.value = response.data?.data || []
-        reportColumns.value = response.data?.columns || []
+        reportData.value = response.data || []
+        reportColumns.value = response.columns || []
       } catch (error) {
       } finally {
         loading.value = false

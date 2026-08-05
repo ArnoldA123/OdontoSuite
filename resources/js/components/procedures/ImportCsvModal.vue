@@ -107,7 +107,7 @@ const upload = async () => {
     const response = await post('/api/admin/procedure-catalog/import', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    result.value = response.data?.data || null
+    result.value = response.data || null
     emit('imported', result.value)
   } catch (err) {
     error.value = err.response?.data?.message || 'Error al importar'

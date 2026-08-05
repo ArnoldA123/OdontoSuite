@@ -140,7 +140,7 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const response = await post('/api/patients', form.value)
-    const newPatient = response.data?.data ?? response.data
+    const newPatient = response.data
     toast.success('Paciente creado exitosamente')
     emit('created', newPatient)
   } catch (err) {

@@ -35,8 +35,8 @@ export function useQuotations() {
       })
 
       const response = await get(`/api/quotations?${params.toString()}`)
-      quotations.value = response.data?.data || []
-      pagination.value = response.data?.meta || {
+      quotations.value = response.data || []
+      pagination.value = response.meta || {
         current_page: 1,
         last_page: 1,
         per_page: 15,
@@ -58,9 +58,9 @@ export function useQuotations() {
       error.value = null
 
       const response = await get(`/api/quotations/${id}`)
-      currentQuotation.value = response.data.data
+      currentQuotation.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener presupuesto'
       throw err
@@ -75,7 +75,7 @@ export function useQuotations() {
       error.value = null
 
       const response = await post('/api/quotations', data)
-      const newQuotation = response.data.data
+      const newQuotation = response.data
 
       // Agregar al inicio de la lista
       quotations.value.unshift(newQuotation)
@@ -95,7 +95,7 @@ export function useQuotations() {
       error.value = null
 
       const response = await put(`/api/quotations/${id}`, data)
-      const updatedQuotation = response.data.data
+      const updatedQuotation = response.data
 
       // Actualizar en la lista
       const index = quotations.value.findIndex(quotation => quotation.id === id)
@@ -147,7 +147,7 @@ export function useQuotations() {
       error.value = null
 
       const response = await post(`/api/quotations/${id}/approve`, approvalData)
-      const updatedQuotation = response.data.data
+      const updatedQuotation = response.data
 
       // Actualizar en la lista
       const index = quotations.value.findIndex(quotation => quotation.id === id)
@@ -175,7 +175,7 @@ export function useQuotations() {
       error.value = null
 
       const response = await post(`/api/quotations/${id}/reject`, { reason })
-      const updatedQuotation = response.data.data
+      const updatedQuotation = response.data
 
       // Actualizar en la lista
       const index = quotations.value.findIndex(quotation => quotation.id === id)
@@ -232,9 +232,9 @@ export function useQuotations() {
       error.value = null
 
       const response = await get(`/api/quotations/patient/${patientId}`)
-      quotations.value = response.data.data
+      quotations.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener presupuestos del paciente'
       throw err

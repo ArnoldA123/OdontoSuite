@@ -198,7 +198,7 @@ export function useAiAnalysis() {
       const response = await post('/api/ai-analysis/upload-and-analyze', formData)
 
       success('Análisis completado exitosamente')
-      return response.data.data
+      return response.data
 
     } catch (err) {
       error(err.response?.data?.message || 'Error al analizar la imagen')

@@ -154,7 +154,7 @@ const loadStats = async () => {
   error.value = null
   try {
     const response = await get(`/api/admin/procedure-stats?${buildQuery()}`)
-    stats.value = response.data?.data || null
+    stats.value = response.data || null
   } catch (err) {
     error.value = err.response?.data?.message || 'Error al cargar estadísticas'
     stats.value = null

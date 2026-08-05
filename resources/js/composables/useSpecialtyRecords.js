@@ -22,9 +22,9 @@ export function useSpecialtyRecords() {
       error.value = null
 
       const response = await get(`/api/specialty-records/patient/${patientId}/${specialty}`)
-      records.value = response.data?.data || []
+      records.value = response.data || []
 
-      return response.data?.data || []
+      return response.data || []
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener registros de especialidad'
       throw err
@@ -39,9 +39,9 @@ export function useSpecialtyRecords() {
       error.value = null
 
       const response = await get(`/api/specialty-records/${id}`)
-      currentRecord.value = response.data.data
+      currentRecord.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener registro de especialidad'
       throw err
@@ -56,7 +56,7 @@ export function useSpecialtyRecords() {
       error.value = null
 
       const response = await post('/api/specialty-records', data)
-      const newRecord = response.data.data
+      const newRecord = response.data
 
       // Agregar al inicio de la lista
       records.value.unshift(newRecord)
@@ -76,7 +76,7 @@ export function useSpecialtyRecords() {
       error.value = null
 
       const response = await put(`/api/specialty-records/${id}`, data)
-      const updatedRecord = response.data.data
+      const updatedRecord = response.data
 
       // Actualizar en la lista
       const index = records.value.findIndex(record => record.id === id)
@@ -130,9 +130,9 @@ export function useSpecialtyRecords() {
       error.value = null
 
       const response = await get(`/api/specialty-records/patient/${patientId}/all`)
-      allRecords.value = response.data.data
+      allRecords.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener todos los registros'
       throw err
@@ -148,7 +148,7 @@ export function useSpecialtyRecords() {
 
       const response = await get(`/api/specialty-records/patient/${patientId}/${specialty}/stats`)
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener estadísticas'
       throw err

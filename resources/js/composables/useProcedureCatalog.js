@@ -34,8 +34,8 @@ export function useProcedureCatalog () {
       loading.value = true
       error.value = null
       const response = await get(`/api/procedure-catalog?${buildQuery(filters)}`)
-      procedures.value = response.data?.data || []
-      pagination.value = response.data?.meta || pagination.value
+      procedures.value = response.data || []
+      pagination.value = response.meta || pagination.value
       return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener procedimientos'
@@ -51,8 +51,8 @@ export function useProcedureCatalog () {
       loading.value = true
       error.value = null
       const response = await get(`/api/procedure-catalog/${id}`)
-      currentProcedure.value = response.data.data
-      return response.data.data
+      currentProcedure.value = response.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener el procedimiento'
       throw err
@@ -66,7 +66,7 @@ export function useProcedureCatalog () {
       loading.value = true
       error.value = null
       const response = await post('/api/procedure-catalog', data)
-      const created = response.data.data
+      const created = response.data
       procedures.value.unshift(created)
       return created
     } catch (err) {
@@ -82,7 +82,7 @@ export function useProcedureCatalog () {
       loading.value = true
       error.value = null
       const response = await put(`/api/procedure-catalog/${id}`, data)
-      const updated = response.data.data
+      const updated = response.data
       const index = procedures.value.findIndex(p => p.id === id)
       if (index !== -1) procedures.value[index] = updated
       if (currentProcedure.value?.id === id) currentProcedure.value = updated

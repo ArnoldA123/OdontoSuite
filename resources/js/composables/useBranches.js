@@ -43,15 +43,15 @@ export function useBranches () {
       error.value = null
       const response = await get(`/api/branches?${buildQuery(filters)}`)
       // response = { success: true, data: [...] } (BranchController custom format)
-      // O response = { data: { data: [...], meta: {...} } } (API Resource paginated)
-      // response.data directamente es el array en el formato custom
+      // O response = { data: [...], meta: {...} } (API Resource paginated via flat envelope)
+      // response.data directamente es el array en ambos formatos
       if (Array.isArray(response.data)) {
         branches.value = response.data
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-        branches.value = response.data.data
-        pagination.value = response.data.meta || pagination.value
       } else {
         branches.value = []
+      }
+      if (response.meta) {
+        pagination.value = response.meta
       }
       return response.data
     } catch (err) {

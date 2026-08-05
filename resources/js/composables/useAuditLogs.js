@@ -16,7 +16,7 @@ export function useAuditLogs() {
       loading.value = true
       const response = await get(`/api/audit-logs/patient/${patientId}`)
       // The endpoint returns { data: [...], meta: {...} }
-      auditLogs.value = response.data?.data || response.data || []
+      auditLogs.value = response.data || []
       return auditLogs.value
     } catch (error) {
       toast.error('Error al cargar historial de auditoría')
@@ -66,7 +66,7 @@ export function useAuditLogs() {
     try {
       loading.value = true
       const response = await get(`/api/audit-logs/user/${userId}`)
-      auditLogs.value = response.data?.data || response.data || []
+      auditLogs.value = response.data || []
       return auditLogs.value
     } catch (error) {
       toast.error('Error al cargar historial de auditoría')
@@ -83,7 +83,7 @@ export function useAuditLogs() {
     try {
       loading.value = true
       const response = await get(`/api/audit-logs/dental-chair/${chairId}`)
-      auditLogs.value = response.data?.data || response.data || []
+      auditLogs.value = response.data || []
       return auditLogs.value
     } catch (error) {
       toast.error('Error al cargar historial de auditoría')
@@ -100,7 +100,7 @@ export function useAuditLogs() {
     try {
       loading.value = true
       const response = await get(`/api/audit-logs/appointment-type/${typeId}`)
-      auditLogs.value = response.data?.data || response.data || []
+      auditLogs.value = response.data || []
       return auditLogs.value
     } catch (error) {
       toast.error('Error al cargar historial de auditoría')

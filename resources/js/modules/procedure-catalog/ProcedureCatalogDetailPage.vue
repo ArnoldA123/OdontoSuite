@@ -205,7 +205,7 @@ const loadAudit = async id => {
     const response = await get(
       `/api/audit-logs?model_type=${encodeURIComponent('App\\\\Models\\\\ProcedureCatalog')}&auditable_id=${id}`
     )
-    auditLogs.value = response.data?.data || []
+    auditLogs.value = response.data || []
   } catch (err) {
     auditLogs.value = []
   } finally {

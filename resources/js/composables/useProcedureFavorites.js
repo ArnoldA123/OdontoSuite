@@ -23,7 +23,7 @@ export function useProcedureFavorites () {
       loading.value = true
       error.value = null
       const response = await get('/api/procedure-catalog-favorites')
-      favorites.value = response.data?.data || []
+      favorites.value = response.data || []
       return favorites.value
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener favoritos'
@@ -46,8 +46,8 @@ export function useProcedureFavorites () {
       })
       const qs = params.toString()
       const response = await get(`/api/procedure-catalog/for-me${qs ? `?${qs}` : ''}`)
-      forMe.value = response.data?.data || []
-      pagination.value = response.data?.meta || pagination.value
+      forMe.value = response.data || []
+      pagination.value = response.meta || pagination.value
       return forMe.value
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener procedimientos'
@@ -63,7 +63,7 @@ export function useProcedureFavorites () {
       loading.value = true
       error.value = null
       const response = await post(`/api/procedure-catalog/${procedureId}/favorite`)
-      const created = response.data?.data
+      const created = response.data
       if (created)
         favorites.value.push({
           id: created.id,
@@ -104,7 +104,7 @@ export function useProcedureFavorites () {
       loading.value = true
       error.value = null
       const response = await put('/api/procedure-catalog-favorites/reorder', { ids: orderedIds })
-      favorites.value = response.data?.data || favorites.value
+      favorites.value = response.data || favorites.value
       return favorites.value
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al reordenar favoritos'

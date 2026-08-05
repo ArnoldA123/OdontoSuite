@@ -24,9 +24,9 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await get(`/api/medical-records?patient_id=${patientId}`)
-      records.value = response.data?.data || []
+      records.value = response.data || []
 
-      return response.data?.data || []
+      return response.data || []
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener historias clínicas'
       throw err
@@ -41,9 +41,9 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await get(`/api/medical-records/${id}`)
-      currentRecord.value = response.data.data
+      currentRecord.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener historia clínica'
       throw err
@@ -58,7 +58,7 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await post('/api/medical-records', data)
-      const newRecord = response.data.data
+      const newRecord = response.data
 
       // Agregar al inicio de la lista
       records.value.unshift(newRecord)
@@ -78,7 +78,7 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await put(`/api/medical-records/${id}`, data)
-      const updatedRecord = response.data.data
+      const updatedRecord = response.data
 
       // Actualizar en la lista
       const index = records.value.findIndex(record => record.id === id)
@@ -130,7 +130,7 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await post(`/api/medical-records/${recordId}/evolutions`, data)
-      const newEvolution = response.data.data
+      const newEvolution = response.data
 
       // Agregar al inicio de la lista de evoluciones
       evolutions.value.unshift(newEvolution)
@@ -158,9 +158,9 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await get(`/api/medical-records/${recordId}/evolutions`)
-      evolutions.value = response.data.data
+      evolutions.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener evoluciones'
       throw err
@@ -186,7 +186,7 @@ export function useMedicalRecords() {
           'Content-Type': 'multipart/form-data'
         }
       })
-      const newAttachment = response.data.data
+      const newAttachment = response.data
 
       // Agregar a la lista de adjuntos
       attachments.value.unshift(newAttachment)
@@ -207,7 +207,7 @@ export function useMedicalRecords() {
 
       const response = await get(`/api/medical-records/patient/${patientId}/stats`)
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener estadísticas'
       throw err
@@ -222,9 +222,9 @@ export function useMedicalRecords() {
       error.value = null
 
       const response = await get(`/api/medical-records/patient/${patientId}/attachments?category=${category}`)
-      attachments.value = response.data.data
+      attachments.value = response.data
 
-      return response.data.data
+      return response.data
     } catch (err) {
       error.value = err.response?.data?.message || 'Error al obtener archivos'
       throw err
