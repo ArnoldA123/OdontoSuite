@@ -1,0 +1,23 @@
+phase: archived
+status: complete
+change_name: hotfix-migration-chain-full-sweep-2026-08
+artifact_store: hybrid
+preflight: { pace: auto, artifact_store: hybrid, delivery_strategy: ask-on-risk, review_budget: 400 }
+parent_changes:
+  - bugfix-2026-08
+  - hotfix-audit-log-immutable-2026-08
+  - hotfix-migration-eloquent-softdeletes-2026-08
+siblings_not_modified_by_this_archive:
+  - hotfix-audit-log-immutable-2026-08
+  - hotfix-migration-eloquent-softdeletes-2026-08
+trigger: NEW-003 (the only in-scope blocker from the 4-lens full sweep)
+verify_verdict: PASS
+verify_critical: 0
+verify_warning: 0
+verify_suggestion: 0
+final_commits:
+  - sha: dfcb55c
+    subject: fix(migrations): make add_channel_and_error_to_reminder_schedules idempotent with hasColumn guards
+  - sha: 17f5b77
+    subject: test(sdd-check): guard against re-adding columns already created in earlier migrations
+closed_on: 2026-08-05
