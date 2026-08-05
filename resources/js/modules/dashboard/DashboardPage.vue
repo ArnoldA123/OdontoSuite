@@ -477,6 +477,30 @@ let dashboardChannel = null
 let appointmentsChannel = null
 let cashRegisterChannel = null
 
+// Slice 08 / FF-015: 14 WS listeners all called loadDashboardData()
+// directly. A burst (e.g. 5 events within 50ms after a payment + a
+// patient update) hit the API 5 times. Coalesce them into a single
+// fetch with a 300ms trailing-edge debounce.
+let dashboardDebounceTimer = null
+const debouncedLoadDashboardData = () => {
+  if (dashboardDebounceTimer !== null) {
+    clearTimeout(dashboardDebounceTimer)
+  }
+  dashboardDebounceTimer = setTimeout(async () => {
+    dashboardDebounceTimer = null
+    await loadDashboardData()
+  }, 300)
+}
+
+onUnmounted(() => {
+  // Clear any pending debounced fetch on unmount so we don't fire
+  // against a torn-down component.
+  if (dashboardDebounceTimer !== null) {
+    clearTimeout(dashboardDebounceTimer)
+    dashboardDebounceTimer = null
+  }
+})
+
 // Lifecycle
 onMounted(async () => {
   // Verificar si se debe abrir el modal de nueva cita (desde redirección de /appointments/new)
@@ -488,7 +512,7 @@ onMounted(async () => {
 
   // Cargar sesión de caja primero
   await loadCurrentSession()
-  
+
   // Luego cargar datos del dashboard
   await loadDashboardData()
 
@@ -498,64 +522,47 @@ onMounted(async () => {
     dashboardChannel = channel('dashboard-updates')
     if (dashboardChannel) {
       dashboardChannel
-        .listen('.dashboard.stats-updated', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.patient.created', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.patient.updated', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.patient.deleted', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.appointment.created', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.appointment.updated', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.appointment.deleted', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.user.created', async (e) => {
-          await loadDashboardData()
-        })
-        .listen('.user.updated', async (e) => {
-          await loadDashboardData()
-        })
+        .listen('.dashboard.stats-updated', () => debouncedLoadDashboardData())
+        .listen('.patient.created', () => debouncedLoadDashboardData())
+        .listen('.patient.updated', () => debouncedLoadDashboardData())
+        .listen('.patient.deleted', () => debouncedLoadDashboardData())
+        .listen('.appointment.created', () => debouncedLoadDashboardData())
+        .listen('.appointment.updated', () => debouncedLoadDashboardData())
+        .listen('.appointment.deleted', () => debouncedLoadDashboardData())
+        .listen('.user.created', () => debouncedLoadDashboardData())
+        .listen('.user.updated', () => debouncedLoadDashboardData())
     }
 
     // Canal para citas (actualizaciones en tiempo real)
     appointmentsChannel = channel('appointments')
     if (appointmentsChannel) {
       appointmentsChannel
-        .listen('.appointment.created', async (e) => {
-          // Actualizar lista de citas de hoy si corresponde
+        .listen('.appointment.created', (e) => {
+          // Slice 08 / FF-015: same-day created appointments still need
+          // a refresh, but coalesce the burst.
           if (e.appointment?.scheduled_at) {
             const appointmentDate = new Date(e.appointment.scheduled_at)
             const today = new Date()
             if (appointmentDate.toDateString() === today.toDateString()) {
-              await loadDashboardData()
+              debouncedLoadDashboardData()
             }
           }
         })
         .listen('.appointment.updated', async (e) => {
-          // Actualizar en la lista si existe
+          // Actualizar en la lista si existe (cheap, no refetch needed)
           const index = todayAppointments.value.findIndex(apt => apt.id === e.appointment.id)
           if (index !== -1) {
             todayAppointments.value[index] = e.appointment
           } else {
-            await loadDashboardData()
+            debouncedLoadDashboardData()
           }
         })
         .listen('.appointment.deleted', async (e) => {
-          // Remover de la lista si existe
+          // Remover de la lista si existe (cheap, no refetch needed)
           todayAppointments.value = todayAppointments.value.filter(
             apt => apt.id !== e.appointment_id
           )
-          await loadDashboardData()
+          debouncedLoadDashboardData()
         })
     }
 
@@ -563,21 +570,21 @@ onMounted(async () => {
     cashRegisterChannel = channel('cash-register')
     if (cashRegisterChannel) {
       cashRegisterChannel
-        .listen('.cash-session.opened', async (e) => {
+        .listen('.cash-session.opened', async () => {
           await loadCurrentSession()
-          await loadDashboardData()
+          debouncedLoadDashboardData()
         })
-        .listen('.cash-session.closed', async (e) => {
+        .listen('.cash-session.closed', async () => {
           await loadCurrentSession()
-          await loadDashboardData()
+          debouncedLoadDashboardData()
         })
-        .listen('.payment.registered', async (e) => {
+        .listen('.payment.registered', async () => {
           await loadCurrentSession()
-          await loadDashboardData()
+          debouncedLoadDashboardData()
         })
-        .listen('.cash-movement.created', async (e) => {
+        .listen('.cash-movement.created', async () => {
           await loadCurrentSession()
-          await loadDashboardData()
+          debouncedLoadDashboardData()
         })
     }
   } catch (error) {

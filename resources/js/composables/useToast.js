@@ -74,7 +74,13 @@ export function useToast() {
   }
 
   return {
-    toasts: toasts.value,
+    // Slice 08 / FF-003: return the Ref itself (was `toasts.value` — a
+    // plain array snapshot that broke reactivity in consumers). Callers
+    // must now read `.value` when destructuring: `const { toasts } =
+    // useToast(); toasts.value.push(...)`. The dedicated
+    // `globalToasts` export below remains the canonical handle used by
+    // ToastContainer.vue.
+    toasts,
     addToast,
     removeToast,
     clearAll,

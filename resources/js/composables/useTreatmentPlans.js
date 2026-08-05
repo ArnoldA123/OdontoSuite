@@ -262,8 +262,9 @@ export function useTreatmentPlans() {
   }
 
   return {
-    // Estado
+    // Estado — Slice 08 / T-08.10 + T-08.11 canonical shape.
     plans,
+    data: plans, // alias (T-08.10)
     currentPlan,
     loading,
     error,
@@ -285,6 +286,10 @@ export function useTreatmentPlans() {
     addItem,
     removeItem,
     clearError,
-    reset
+    reset,
+
+    // Slice 08 / T-08.11: refresh + retry aliases.
+    refresh: getPlans,
+    retry: getPlans,
   }
 }

@@ -7,8 +7,14 @@ const MAX_NOTIFICATIONS = 100
 
 // Cargar notificaciones desde localStorage al iniciar
 const loadFromStorage = () => {
+  // Slice 08 / FF-013: SSR / non-browser environments (Vite SSR, tests
+  // in Node) don't have `window.localStorage` and the unguarded top-level
+  // call crashed module evaluation. Guard before touching storage.
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return
+  }
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
       notifications.value = parsed.notifications || []
@@ -20,8 +26,11 @@ const loadFromStorage = () => {
 
 // Guardar notificaciones en localStorage
 const saveToStorage = () => {
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+    return
+  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
       notifications: notifications.value,
       lastId: notificationId.value
     }))
@@ -29,8 +38,10 @@ const saveToStorage = () => {
   }
 }
 
-// Cargar al inicializar
-loadFromStorage()
+// Cargar al inicializar — guarded for SSR per FF-013
+if (typeof window !== 'undefined') {
+  loadFromStorage()
+}
 
 export function useNotifications() {
   const addNotification = (message, type = 'success', options = {}) => {

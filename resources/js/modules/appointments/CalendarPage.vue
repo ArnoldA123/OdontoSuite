@@ -1,11 +1,7 @@
 <template>
   <AppLayout>
     <!-- Header Section -->
-    <PageHeader
-      title="Agenda"
-      subtitle="Gestiona las citas y horarios"
-      class="mb-6"
-    >
+    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6">
       <template #actions>
         <span
           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-100 text-success-700 text-xs font-medium"
@@ -18,24 +14,28 @@
           />
           En vivo
         </span>
-        <UiButton
-          variant="secondary"
-          @click="goBack"
-        >
+        <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
         </UiButton>
-        <UiButton
-          v-if="can.createAppointment?.value"
-          @click="openNewAppointmentModal"
-        >
+        <UiButton v-if="can.createAppointment?.value" @click="openNewAppointmentModal">
           <template #icon-left>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
           </template>
           Nueva Cita
@@ -59,47 +59,40 @@
             :variant="currentView === 'week' ? 'primary' : 'ghost'"
             size="sm"
           >
-                Semana
+            Semana
           </UiButton>
           <UiButton
-                @click="changeView('month')"
+            @click="changeView('month')"
             :variant="currentView === 'month' ? 'primary' : 'ghost'"
             size="sm"
           >
             Mes
           </UiButton>
-            </div>
+        </div>
         <div class="flex items-center gap-3">
-          <UiButton
-            variant="ghost"
-            size="sm"
-                  @click="previousPeriod"
-            class="p-2"
-                >
+          <UiButton variant="ghost" size="sm" @click="previousPeriod" class="p-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
           </UiButton>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="goToToday"
-            class="px-4"
-          >
-            Hoy
-          </UiButton>
-          <UiButton
-            variant="ghost"
-            size="sm"
-                  @click="nextPeriod"
-            class="p-2"
-                >
+          <UiButton variant="ghost" size="sm" @click="goToToday" class="px-4">Hoy</UiButton>
+          <UiButton variant="ghost" size="sm" @click="nextPeriod" class="p-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
           </UiButton>
-              </div>
-            </div>
+        </div>
+      </div>
     </UiCard>
 
     <!-- Calendar Header -->
@@ -114,7 +107,7 @@
           <div class="flex items-center gap-2">
             <div class="w-3 h-3 rounded-full bg-green-500"></div>
             <span>Confirmada</span>
-        </div>
+          </div>
           <div class="flex items-center gap-2">
             <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
             <span>En Consulta</span>
@@ -133,23 +126,19 @@
 
     <!-- Calendar Content -->
     <UiCard variant="glass" class="overflow-hidden">
-            <!-- Loading State -->
+      <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center">
         <LoadingSpinner size="lg" text="Cargando agenda..." />
         <p class="mt-4 text-theme-secondary">Cargando agenda...</p>
-            </div>
+      </div>
 
-              <!-- Day View -->
+      <!-- Day View -->
       <div v-else-if="currentView === 'day'" class="p-6">
         <div class="space-y-4">
-          <div
-            v-for="hour in dayHours"
-            :key="hour"
-            class="flex items-start gap-4"
-          >
+          <div v-for="hour in dayHours" :key="hour" class="flex items-start gap-4">
             <div class="w-16 text-sm text-theme-secondary font-medium pt-2">
               {{ formatHour(hour) }}
-                </div>
+            </div>
             <div class="flex-1 min-h-[60px] border-l-2 border-theme pl-4">
               <div
                 v-for="appointment in getAppointmentsForHour(hour)"
@@ -163,7 +152,10 @@
                     <div class="font-semibold text-base">
                       {{ appointment.appointment_type?.name || 'Cita' }}
                     </div>
-                    <div class="text-xs px-2 py-1 rounded-full" :class="getStatusClasses(appointment.status)">
+                    <div
+                      class="text-xs px-2 py-1 rounded-full"
+                      :class="getStatusClasses(appointment.status)"
+                    >
                       {{ getStatusText(appointment.status) }}
                     </div>
                   </div>
@@ -201,12 +193,12 @@
         </div>
       </div>
 
-              <!-- Week View -->
+      <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
         <div class="grid grid-cols-8 gap-1 border border-theme rounded-lg overflow-hidden">
           <!-- Time column header -->
           <div class="p-2 border-b border-theme bg-theme-surface"></div>
-          
+
           <!-- Day headers -->
           <div
             v-for="day in weekDays"
@@ -246,18 +238,24 @@
                 :class="getAppointmentClasses(appointment)"
                 @click="selectAppointment(appointment)"
               >
-                <div class="font-medium truncate">{{ appointment.appointment_type?.name || 'Cita' }}</div>
-                <div class="text-xs opacity-75 truncate">{{ formatTime(appointment.scheduled_at) }}</div>
-                <div class="text-xs opacity-75 truncate">{{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}</div>
+                <div class="font-medium truncate">
+                  {{ appointment.appointment_type?.name || 'Cita' }}
+                </div>
+                <div class="text-xs opacity-75 truncate">
+                  {{ formatTime(appointment.scheduled_at) }}
+                </div>
+                <div class="text-xs opacity-75 truncate">
+                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-              <!-- Month View -->
+      <!-- Month View -->
       <div v-else-if="currentView === 'month'" class="p-6">
-                <div class="grid grid-cols-7 gap-1">
+        <div class="grid grid-cols-7 gap-1">
           <!-- Day headers -->
           <div
             v-for="day in weekDayNames"
@@ -265,12 +263,12 @@
             class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-theme"
           >
             {{ day }}
-    </div>
+          </div>
 
-                  <!-- Calendar days -->
-                  <div
-                    v-for="day in monthDays"
-                    :key="day.date"
+          <!-- Calendar days -->
+          <div
+            v-for="day in monthDays"
+            :key="day.date"
             class="min-h-[120px] border border-theme p-2 hover:bg-theme-surface transition-colors"
             :class="{
               'bg-theme-surface': !day.isCurrentMonth,
@@ -293,37 +291,40 @@
                 class="text-xs bg-primary-50 text-accent px-2 py-1 rounded-full"
               >
                 {{ day.appointmentCount }}
-                      </span>
-                    </div>
+              </span>
+            </div>
 
-                    <div class="space-y-1">
-                      <div
-                        v-for="appointment in day.appointments"
-                        :key="appointment.id"
-                        class="p-1.5 rounded text-xs cursor-pointer hover:shadow-sm transition-all duration-200"
-                        :class="getAppointmentClasses(appointment)"
-                        @click="selectAppointment(appointment)"
-                      >
-                        <div class="font-medium truncate">{{ appointment.appointment_type?.name || 'Cita' }}</div>
-                        <div class="text-xs opacity-75 truncate">{{ formatTime(appointment.scheduled_at) }}</div>
-                        <div class="text-xs opacity-75 truncate">{{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}</div>
-                      </div>
-                      <div
-                        v-if="day.hasMore"
-                        class="text-xs text-accent font-medium text-center mt-1"
-                      >
-                        +{{ day.appointmentCount - 3 }} más
-                      </div>
-                      <div
-                        v-if="day.appointments.length === 0"
-                        class="text-xs text-theme-secondary text-center py-2"
-                      >
-                        Sin citas
-                      </div>
-                    </div>
-                  </div>
+            <div class="space-y-1">
+              <div
+                v-for="appointment in day.appointments"
+                :key="appointment.id"
+                class="p-1.5 rounded text-xs cursor-pointer hover:shadow-sm transition-all duration-200"
+                :class="getAppointmentClasses(appointment)"
+                @click="selectAppointment(appointment)"
+              >
+                <div class="font-medium truncate">
+                  {{ appointment.appointment_type?.name || 'Cita' }}
+                </div>
+                <div class="text-xs opacity-75 truncate">
+                  {{ formatTime(appointment.scheduled_at) }}
+                </div>
+                <div class="text-xs opacity-75 truncate">
+                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
                 </div>
               </div>
+              <div v-if="day.hasMore" class="text-xs text-accent font-medium text-center mt-1">
+                +{{ day.appointmentCount - 3 }} más
+              </div>
+              <div
+                v-if="day.appointments.length === 0"
+                class="text-xs text-theme-secondary text-center py-2"
+              >
+                Sin citas
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </UiCard>
 
     <!-- Appointment Details Modal -->
@@ -332,7 +333,9 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       @click.self="selectedAppointment = null"
     >
-      <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
         <div class="p-6 border-b border-theme">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-theme-primary">Detalles de la Cita</h2>
@@ -341,7 +344,12 @@
               class="text-theme-secondary hover:text-theme-primary transition-colors"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -350,25 +358,30 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="text-sm font-medium text-theme-secondary">Paciente</label>
-              <p class="text-theme-primary">{{ selectedAppointment.patient.first_name }} {{ selectedAppointment.patient.last_name }}</p>
+              <p class="text-theme-primary">
+                {{ selectedAppointment.patient.first_name }}
+                {{ selectedAppointment.patient.last_name }}
+              </p>
             </div>
             <div>
               <label class="text-sm font-medium text-theme-secondary">Profesional</label>
               <p class="text-theme-primary">{{ selectedAppointment.user.name }}</p>
             </div>
           </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
-              <p class="text-theme-primary">{{ formatDateTime(selectedAppointment.scheduled_at) }}</p>
-              </div>
-              <div>
+              <p class="text-theme-primary">
+                {{ formatDateTime(selectedAppointment.scheduled_at) }}
+              </p>
+            </div>
+            <div>
               <label class="text-sm font-medium text-theme-secondary">Duración</label>
               <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
-              </div>
+            </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+            <div>
               <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
               <p class="text-theme-primary">{{ selectedAppointment.appointment_type.name }}</p>
             </div>
@@ -400,7 +413,10 @@
               Confirmar
             </UiButton>
             <UiButton
-              v-if="selectedAppointment.status === 'confirmed' || selectedAppointment.status === 'scheduled'"
+              v-if="
+                selectedAppointment.status === 'confirmed' ||
+                selectedAppointment.status === 'scheduled'
+              "
               size="sm"
               variant="secondary"
               @click="startConsultation(selectedAppointment)"
@@ -442,7 +458,7 @@
           </div>
         </div>
       </div>
-              </div>
+    </div>
 
     <!-- New Appointment Modal -->
     <NewAppointmentModal
@@ -505,7 +521,7 @@ export default {
     const wizardAppointment = ref(null)
     const { checkIn, openForAppointment } = useConsultation()
 
-    const startConsultation = async (appointment) => {
+    const startConsultation = async appointment => {
       try {
         await checkIn(appointment)
         await loadAppointments()
@@ -515,13 +531,13 @@ export default {
       }
     }
 
-    const openConsultationWizard = async (appointment) => {
+    const openConsultationWizard = async appointment => {
       wizardAppointment.value = appointment
       selectedAppointment.value = null
       await openForAppointment(appointment)
     }
 
-    const onConsultationCompleted = async (payload) => {
+    const onConsultationCompleted = async payload => {
       wizardAppointment.value = null
       if (payload?.quotation_generated && payload?.quotation) {
         toast.info(`Cotización ${payload.quotation.quotation_number} lista en /quotations`, 6000)
@@ -530,7 +546,7 @@ export default {
     }
     const editingAppointment = ref(null)
 
-    const toLocalDateString = (date) => {
+    const toLocalDateString = date => {
       const d = date instanceof Date ? date : new Date(date)
       const year = d.getFullYear()
       const month = String(d.getMonth() + 1).padStart(2, '0')
@@ -538,7 +554,7 @@ export default {
       return `${year}-${month}-${day}`
     }
 
-    const getAppointmentLocalDate = (appointment) => {
+    const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
       const d = new Date(appointment.scheduled_at)
       if (isNaN(d.getTime())) return null
@@ -709,7 +725,7 @@ export default {
       loading.value = true
       try {
         const { start_date, end_date } = getDateRangeForCurrentView()
-        
+
         const response = await get('/api/appointments', {
           params: {
             start_date,
@@ -717,13 +733,11 @@ export default {
             per_page: 1000 // Obtener todas las citas del rango sin paginación
           }
         })
-        
-        
+
         // La API devuelve { data: [...], meta: {...} }
         // useApi ya parsea el JSON, por lo que response.data es el array directamente
         appointments.value = response?.data || []
-        
-        
+
         if (appointments.value.length === 0) {
         }
       } catch (error) {
@@ -746,13 +760,13 @@ export default {
       return `${startStr}-${endStr}`
     }
 
-    const getAppointmentLabel = (apt) => {
+    const getAppointmentLabel = apt => {
       const type = apt?.appointment_type?.name || 'Cita'
       const range = formatTimeRange(apt.scheduled_at, apt.ends_at || apt.scheduled_at)
       return `${type} ${range}`
     }
 
-    const changeView = (view) => {
+    const changeView = view => {
       currentView.value = view
       loadAppointments()
     }
@@ -796,37 +810,41 @@ export default {
       loadAppointments()
     }
 
-    const getAppointmentsForHour = (hour) => {
+    const getAppointmentsForHour = hour => {
       const dateStr = toLocalDateString(currentDate.value)
-      const filtered = appointments.value.filter(apt => {
-        const aptInfo = getAppointmentLocalDate(apt)
-        if (!aptInfo) return false
-        return aptInfo.dateStr === dateStr && aptInfo.hour === hour
-      }).sort((a, b) => {
-        try {
-          return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-        } catch (e) {
-          return 0
-        }
-      })
+      const filtered = appointments.value
+        .filter(apt => {
+          const aptInfo = getAppointmentLocalDate(apt)
+          if (!aptInfo) return false
+          return aptInfo.dateStr === dateStr && aptInfo.hour === hour
+        })
+        .sort((a, b) => {
+          try {
+            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
+          } catch (e) {
+            return 0
+          }
+        })
       return filtered
     }
 
     const getAppointmentsForDayAndHour = (dateStr, hour) => {
-      return appointments.value.filter(apt => {
-        const aptInfo = getAppointmentLocalDate(apt)
-        if (!aptInfo) return false
-        return aptInfo.dateStr === dateStr && aptInfo.hour === hour
-      }).sort((a, b) => {
-        try {
-          return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-        } catch (e) {
-          return 0
-        }
-      })
+      return appointments.value
+        .filter(apt => {
+          const aptInfo = getAppointmentLocalDate(apt)
+          if (!aptInfo) return false
+          return aptInfo.dateStr === dateStr && aptInfo.hour === hour
+        })
+        .sort((a, b) => {
+          try {
+            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
+          } catch (e) {
+            return 0
+          }
+        })
     }
 
-    const getAppointmentClasses = (appointment) => {
+    const getAppointmentClasses = appointment => {
       const baseClasses = 'bg-theme-surface-elevated border border-theme'
       const statusClasses = {
         scheduled: 'border-primary-200 bg-primary-50',
@@ -840,7 +858,7 @@ export default {
       return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
     }
 
-    const getStatusClasses = (status) => {
+    const getStatusClasses = status => {
       const classes = {
         scheduled: 'bg-primary-50 text-primary-700',
         confirmed: 'bg-success-badge',
@@ -853,7 +871,7 @@ export default {
       return classes[status] || classes.scheduled
     }
 
-    const getStatusText = (status) => {
+    const getStatusText = status => {
       const texts = {
         scheduled: 'Programada',
         confirmed: 'Confirmada',
@@ -866,12 +884,11 @@ export default {
       return texts[status] || status
     }
 
-    const selectAppointment = (appointment) => {
+    const selectAppointment = appointment => {
       selectedAppointment.value = appointment
     }
 
-
-    const editAppointment = (appointment) => {
+    const editAppointment = appointment => {
       editingAppointment.value = appointment
       showNewAppointmentModal.value = true
       selectedAppointment.value = null
@@ -894,12 +911,12 @@ export default {
       }
     }
 
-    const deleteAppointment = async (appointment) => {
+    const deleteAppointment = async appointment => {
       const ok = await confirm({
         title: 'Eliminar cita',
         message: '¿Estás seguro de que quieres eliminar esta cita?',
         confirmText: 'Eliminar',
-        variant: 'danger',
+        variant: 'danger'
       })
       if (ok) {
         try {
@@ -914,19 +931,18 @@ export default {
       }
     }
 
-
-    const formatHour = (hour) => {
+    const formatHour = hour => {
       return `${hour.toString().padStart(2, '0')}:00`
     }
 
-    const formatTime = (dateTime) => {
+    const formatTime = dateTime => {
       return new Date(dateTime).toLocaleTimeString('es-ES', {
         hour: '2-digit',
         minute: '2-digit'
       })
     }
 
-    const formatDateTime = (dateTime) => {
+    const formatDateTime = dateTime => {
       return new Date(dateTime).toLocaleString('es-ES', {
         year: 'numeric',
         month: 'long',
@@ -944,7 +960,7 @@ export default {
     // WebSocket subscriptions
     let appointmentsChannel = null
 
-    watch(showNewAppointmentModal, (isOpen) => {
+    watch(showNewAppointmentModal, isOpen => {
       if (!isOpen) {
         editingAppointment.value = null
       }
@@ -958,7 +974,7 @@ export default {
         appointmentsChannel = channel('appointments')
         if (appointmentsChannel) {
           appointmentsChannel
-            .listen('.appointment.created', async (e) => {
+            .listen('.appointment.created', async e => {
               await loadAppointments()
               toast.success('Nueva cita agregada')
             })
@@ -966,7 +982,7 @@ export default {
               await loadAppointments()
               toast.success('Cita actualizada')
             })
-            .listen('.appointment.deleted', async (e) => {
+            .listen('.appointment.deleted', async e => {
               // Remover la cita de la lista
               appointments.value = appointments.value.filter(apt => apt.id !== e.appointment_id)
               if (selectedAppointment.value?.id === e.appointment_id) {
@@ -975,8 +991,7 @@ export default {
               toast.success('Cita eliminada')
             })
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     })
 
     onUnmounted(() => {
@@ -984,8 +999,7 @@ export default {
       if (echo) {
         try {
           echo.leave('appointments')
-        } catch (e) {
-        }
+        } catch (e) {}
       }
     })
 

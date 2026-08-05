@@ -266,8 +266,9 @@ export function useTransactions() {
   }
 
   return {
-    // Estado
+    // Estado — Slice 08 / T-08.10 + T-08.11 canonical shape.
     transactions,
+    data: transactions, // alias (T-08.10)
     loading,
     error,
     pagination,
@@ -290,7 +291,11 @@ export function useTransactions() {
     formatAmount,
     filterTransactions,
     getTransactionStats,
-    clearState
+    clearState,
+
+    // Slice 08 / T-08.11: refresh + retry aliases.
+    refresh: getTransactions,
+    retry: getTransactions,
   }
 }
 

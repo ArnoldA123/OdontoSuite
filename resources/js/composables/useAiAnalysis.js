@@ -191,11 +191,11 @@ export function useAiAnalysis() {
       formData.append('description', description || '')
       formData.append('category', category)
 
-      const response = await post('/api/ai-analysis/upload-and-analyze', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
+      // Slice 08 / FF-006: useApi.post() detects FormData and lets the
+      // browser set Content-Type automatically. The `options.headers`
+      // 3rd argument was silently ignored by useApi, so removing it here
+      // makes the call signature honest.
+      const response = await post('/api/ai-analysis/upload-and-analyze', formData)
 
       success('Análisis completado exitosamente')
       return response.data.data
@@ -264,10 +264,11 @@ export function useAiAnalysis() {
   }
 
   return {
-    // State
+    // Slice 08 / T-08.10 + T-08.11 canonical shape.
     loading,
     analysis,
     analyses,
+    data: analyses, // alias (T-08.10) — primary collection
     stats,
 
     // Actions
@@ -295,6 +296,10 @@ export function useAiAnalysis() {
     getConfidenceLabel,
     getStatusLabel,
     getReviewDecisionLabel,
-    formatDate
+    formatDate,
+
+    // Slice 08 / T-08.11: refresh + retry aliases.
+    refresh: getAnalyses,
+    retry: getAnalyses,
   }
 }

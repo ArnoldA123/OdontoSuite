@@ -2,13 +2,18 @@ import { ref, computed, watch, onUnmounted, nextTick, triggerRef } from 'vue'
 import { useApi } from './useApi'
 import { useEcho } from './useEcho'
 
+// Slice 08 / FF-007: promote the channel refs to MODULE scope so multiple
+// `useCashRegister()` callers (CashRegisterPage, DashboardPage, the app
+// shell indicator) share one subscription instead of stacking duplicate
+// listeners on every mount.
+let cashRegisterChannel = null
+let cashSessionChannel = null
+let subscribedSessionId = null
+let subscriberCount = 0
+
 export function useCashRegister() {
   const { get, post } = useApi()
   const { channel, privateChannel } = useEcho()
-  
-  // WebSocket subscriptions
-  let cashRegisterChannel = null
-  let cashSessionChannel = null
 
   // Estado reactivo
   const currentSession = ref(null)
@@ -196,13 +201,26 @@ export function useCashRegister() {
     }
   }
 
-  // Configurar WebSocket subscriptions
+  // Configurar WebSocket subscriptions (singleton)
   const setupWebSocketSubscriptions = () => {
-    // Limpiar suscripciones previas
+    // Slice 08 / FF-007: previously this function called cleanup+rebind
+    // on every mount, stacking duplicate listeners when both DashboardPage
+    // and CashRegisterPage consumed the composable. Now it guards on the
+    // active session id so the second caller reuses the same channel and
+    // the listeners are bound exactly once.
+    const sessionId = currentSession.value?.id || null
+    if (subscribedSessionId === sessionId && cashRegisterChannel) {
+      // Nothing to do — already subscribed for this session.
+      subscriberCount += 1
+      return
+    }
+
+    // Session changed (or first time): tear down the previous session's
+    // private channel if any and bind fresh listeners.
     cleanupWebSocketSubscriptions()
 
     try {
-      // Canal público para caja registradora
+      // Canal público para caja registradora — bound exactly once.
       cashRegisterChannel = channel('cash-register')
       if (cashRegisterChannel) {
         cashRegisterChannel
@@ -237,9 +255,12 @@ export function useCashRegister() {
       }
 
       // Canal privado para la sesión específica si hay sesión activa
-      if (currentSession.value?.id) {
-        subscribeToSessionChannel(currentSession.value.id)
+      if (sessionId) {
+        subscribeToSessionChannel(sessionId)
       }
+
+      subscribedSessionId = sessionId
+      subscriberCount = Math.max(subscriberCount, 1)
     } catch (error) {
     }
   }
@@ -273,6 +294,12 @@ export function useCashRegister() {
         // Laravel Echo maneja automáticamente el leave cuando se desuscribe
         cashSessionChannel = null
       }
+      // Public cash-register channel is intentionally kept because it
+      // outlives the active session: the SPA wants to know about
+      // session open/close events even when no session is active.
+      cashRegisterChannel = null
+      subscribedSessionId = null
+      subscriberCount = 0
     } catch (error) {
     }
   }
@@ -287,9 +314,15 @@ export function useCashRegister() {
     }
   })
 
-  // Limpiar al desmontar
+  // Slice 08 / FF-007: only tear down when the LAST subscriber unmounts.
+  // CashRegisterPage on /cash-register AND DashboardPage on /dashboard
+  // both call useCashRegister(); both must decrement before we leave the
+  // channel.
   onUnmounted(() => {
-    cleanupWebSocketSubscriptions()
+    subscriberCount = Math.max(0, subscriberCount - 1)
+    if (subscriberCount === 0) {
+      cleanupWebSocketSubscriptions()
+    }
   })
 
   // Obtener pacientes
@@ -336,8 +369,9 @@ export function useCashRegister() {
   }
 
   return {
-    // Estado
+    // Estado — Slice 08 / T-08.10 + T-08.11: standardised shape.
     currentSession,
+    data: currentSession, // alias for { data } consumers (T-08.10)
     loading,
     error,
     summary,
@@ -361,7 +395,13 @@ export function useCashRegister() {
     getBranches,
     forceRefresh,
     clearState,
-    setupWebSocketSubscriptions
+    setupWebSocketSubscriptions,
+
+    // Slice 08 / T-08.10 + T-08.11: refresh + retry aliases. Components
+    // and the AppLayout retry button can wire a single handler
+    // regardless of which composable owns the data.
+    refresh: loadCurrentSession,
+    retry: loadCurrentSession,
   }
 }
 

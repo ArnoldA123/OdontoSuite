@@ -145,7 +145,9 @@ export function useBranches () {
   }
 
   return {
+    // Slice 08 / T-08.10 + T-08.11 canonical shape.
     branches,
+    data: branches, // alias (T-08.10)
     currentBranch,
     loading,
     error,
@@ -161,6 +163,10 @@ export function useBranches () {
     deleteBranch,
     toggleActive,
     clearError,
-    reset
+    reset,
+
+    // Slice 08 / T-08.11: refresh + retry aliases.
+    refresh: getBranches,
+    retry: getBranches,
   }
 }

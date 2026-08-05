@@ -24,5 +24,16 @@ export function useSpecialties () {
     }
   }
 
-  return { specialties, loading, error, getSpecialties }
+  return {
+    // Slice 08 / T-08.10 + T-08.11 canonical shape.
+    specialties,
+    data: specialties, // alias (T-08.10)
+    loading,
+    error,
+    getSpecialties,
+
+    // Slice 08 / T-08.11: refresh + retry aliases.
+    refresh: getSpecialties,
+    retry: getSpecialties,
+  }
 }

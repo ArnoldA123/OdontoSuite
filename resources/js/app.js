@@ -4,13 +4,28 @@ import { createRouter, createWebHistory } from 'vue-router';
 import LoginPage from './modules/auth/LoginPage.vue';
 import { requireAuth, requireGuest } from './router/auth';
 import uiComponents from './plugins/ui-components';
+import { useAuth } from './composables/useAuth';
 import { useEcho } from './composables/useEcho';
 import { useToast } from './composables/useToast';
 
-// Inicializar Echo para WebSockets
+// Slice 08 / FF-009: useEcho() must NOT run at module load with an empty
+// auth token. Previously app.js eagerly bootstrapped Echo, sending
+// `Authorization: Bearer ` (empty) to /api/broadcasting/auth on first
+// load — Reverb correctly rejected the connection.
+//
+// The right primitive: lazy-init Echo only once auth has been confirmed.
+// Components that need Echo (DashboardPage, AppLayout indicator) call
+// useEcho() themselves and benefit from the same singleton.
 if (typeof window !== 'undefined') {
-  const { echo } = useEcho();
-  window.Echo = echo;
+  const { isAuthenticated } = useAuth();
+  // Gate the Echo warm-up behind authentication. Components still call
+  // useEcho() on demand; this block just seeds window.Echo with a
+  // properly-authenticated handle so the AppLayout WS indicator
+  // reports the right state immediately after login.
+  if (isAuthenticated.value) {
+    const { echo } = useEcho();
+    window.Echo = echo;
+  }
 }
 
 // Configuración del router
