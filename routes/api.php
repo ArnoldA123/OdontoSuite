@@ -75,99 +75,10 @@ Route::prefix('auth')->group(function () {
 
 // Rutas protegidas por autenticación
 Route::middleware('auth:sanctum')->group(function () {
-    // Broadcasting authentication (necesario para canales privados de WebSocket)
-    // Esta ruta maneja la autenticación de canales privados usando las definiciones en routes/channels.php
-    Route::post('/broadcasting/auth', function (Request $request) {
-        try {
-            // Verificar que el usuario esté autenticado
-            $user = $request->user();
-            if (!$user) {
-                return response()->json(['message' => 'Unauthenticated'], 401);
-            }
-
-            // Obtener parámetros de la solicitud
-            $channelName = $request->input('channel_name');
-            $socketId = $request->input('socket_id');
-            
-            if (!$channelName || !$socketId) {
-                return response()->json(['message' => 'Invalid request'], 400);
-            }
-
-            // Remover el prefijo "private-" si existe (Laravel Echo lo agrega automáticamente)
-            $cleanChannelName = preg_replace('/^private-/', '', $channelName);
-            
-            // Verificar autorización usando las definiciones en routes/channels.php
-            $authorized = false;
-
-            // Verificar según el tipo de canal definido en routes/channels.php
-            if (preg_match('/^cash-session\.(\d+)$/', $cleanChannelName, $matches)) {
-                $sessionId = $matches[1];
-                // Usar la lógica definida en routes/channels.php: permitir si está autenticado
-                $authorized = true;
-            } elseif (preg_match('/^App\.Models\.User\.(\d+)$/', $cleanChannelName, $matches)) {
-                $userId = $matches[1];
-                // Solo el usuario puede acceder a su propio canal
-                $authorized = (int) $user->id === (int) $userId;
-            } elseif (preg_match('/^user\.(\d+)$/', $cleanChannelName, $matches)) {
-                $userId = $matches[1];
-                // Solo el usuario puede acceder a su propio canal
-                $authorized = (int) $user->id === (int) $userId;
-            } else {
-                // Canal no reconocido
-                \Log::warning('Broadcasting auth: Canal no reconocido', ['channel' => $cleanChannelName]);
-                return response()->json(['message' => 'Channel not found'], 404);
-            }
-
-            if (!$authorized) {
-                return response()->json(['message' => 'Forbidden'], 403);
-            }
-
-            // Generar la firma de autenticación para Reverb/Pusher
-            // Para canales PRIVADOS: string_to_sign = socket_id:channel_name
-            // Para canales PRESENCE: string_to_sign = socket_id:channel_name:channel_data
-            $secret = config('broadcasting.connections.reverb.secret');
-            if (!$secret) {
-                \Log::error('Broadcasting auth: REVERB_APP_SECRET no configurado');
-                return response()->json(['message' => 'Server configuration error'], 500);
-            }
-
-            $key = config('broadcasting.connections.reverb.key');
-            if (!$key) {
-                \Log::error('Broadcasting auth: REVERB_APP_KEY no configurado');
-                return response()->json(['message' => 'Server configuration error'], 500);
-            }
-
-            // Para canales privados, solo usar socket_id:channel_name
-            // IMPORTANTE: Usar el channelName completo con el prefijo "private-" si existe
-            $stringToSign = $socketId . ':' . $channelName;
-
-            // Generar la firma HMAC
-            $signature = hash_hmac('sha256', $stringToSign, $secret, false);
-
-            // Formato de respuesta que espera Pusher/Reverb para canales privados
-            // Solo necesita 'auth' con formato: key:signature
-            $response = [
-                'auth' => $key . ':' . $signature
-            ];
-
-            \Log::info('Broadcasting auth success', [
-                'channel' => $channelName,
-                'clean_channel' => $cleanChannelName,
-                'user_id' => $user->id,
-                'socket_id' => $socketId,
-                'string_to_sign' => $stringToSign,
-                'key' => $key,
-                'signature_length' => strlen($signature)
-            ]);
-
-            return response()->json($response);
-        } catch (\Exception $e) {
-            \Log::error('Broadcasting auth error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json(['message' => 'Internal server error'], 500);
-        }
-    });
+    // Slice 11 / BF-025: the inline broadcasting/auth closure was extracted
+    // into App\Http\Controllers\Api\BroadcastingAuthController so the
+    // handler can be unit-tested and tightened (503 on misconfig).
+    Route::post('/broadcasting/auth', \App\Http\Controllers\Api\BroadcastingAuthController::class);
 
     // Información del usuario autenticado
     Route::get('/user', function (Request $request) {
@@ -201,7 +112,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard (todos los roles autenticados)
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
-    Route::get('dashboard/today', [DashboardController::class, 'today']);
+    // BF-026 (slice 11): removed duplicate `dashboard/today` alias. Frontend
+    // already uses the canonical `dashboard/appointments-today` endpoint.
     Route::get('dashboard/appointments-today', [DashboardController::class, 'today']);
     Route::get('dashboard/upcoming', [DashboardController::class, 'upcoming']);
 

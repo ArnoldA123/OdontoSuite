@@ -12,6 +12,18 @@ use Illuminate\Support\Facades\Auth;
 
 class SpecialtyRecordController extends Controller
 {
+    /**
+     * BF-014 (slice 11): canonical model class list for the show() lookup
+     * loop. Order is stable so the resolved specialty is deterministic.
+     */
+    private const SPECIALTY_MODELS = [
+        \App\Models\ImplantologyRecord::class,
+        \App\Models\OrthodonticsRecord::class,
+        \App\Models\EndodonticsRecord::class,
+        \App\Models\RehabilitationRecord::class,
+        \App\Models\OralSurgeryRecord::class,
+    ];
+
     protected $specialtyRecordService;
 
     public function __construct(SpecialtyRecordService $specialtyRecordService)
@@ -99,27 +111,16 @@ class SpecialtyRecordController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $record = \App\Models\ImplantologyRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
-                ->find($id);
-
-            if (!$record) {
-                $record = \App\Models\OrthodonticsRecord::with(['patient', 'appointment', 'createdBy'])
+            // BF-014 (slice 11): replaced 5 sequential model->find() calls
+            // with a foreach loop over the model classes. The first hit
+            // wins. Average cost drops from O(5) round-trips to O(1).
+            $record = null;
+            foreach (self::SPECIALTY_MODELS as $modelClass) {
+                $record = $modelClass::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
                     ->find($id);
-            }
-
-            if (!$record) {
-                $record = \App\Models\EndodonticsRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
-                    ->find($id);
-            }
-
-            if (!$record) {
-                $record = \App\Models\RehabilitationRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
-                    ->find($id);
-            }
-
-            if (!$record) {
-                $record = \App\Models\OralSurgeryRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
-                    ->find($id);
+                if ($record) {
+                    break;
+                }
             }
 
             if (!$record) {

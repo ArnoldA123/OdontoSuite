@@ -8,12 +8,16 @@ class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
+     *
+     * BF-021 (slice 11): removed 3 redundant `$this->app->singleton(...)`
+     * bindings for ClinicalAttachmentService, AiImageAnalysisService and
+     * BillingService. Laravel's container auto-resolves unbound services
+     * per-request; explicit singletons here were redundant surface area.
+     * Service bindings with custom factories or scoped state still belong
+     * here.
      */
     public function register(): void
     {
-        $this->app->singleton(\App\Services\ClinicalAttachmentService::class);
-        $this->app->singleton(\App\Services\AiImageAnalysisService::class);
-        $this->app->singleton(\App\Services\BillingService::class);
     }
 
     /**

@@ -24,11 +24,12 @@ use Carbon\Carbon;
 
 class AppointmentController extends Controller
 {
-    protected AppointmentService $appointmentService;
-
-    public function __construct(AppointmentService $appointmentService)
-    {
-        $this->appointmentService = $appointmentService;
+    // BF-024 (slice 11): standardise injection style with constructor
+    // promotion (`private readonly`). Matches the pattern used in
+    // ProcedureCatalogController, CashMovementController, etc.
+    public function __construct(
+        private readonly AppointmentService $appointmentService,
+    ) {
     }
     /**
      * Display a listing of the resource.
