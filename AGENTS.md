@@ -1,6 +1,6 @@
 # AGENTS.md — OdontoSuite V2
 
-> **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart, stack, comandos, estructura, convenciones, troubleshooting y planes cerrados. Actualizado al 2026-06-11 tras cerrar los 3 planes de mejoras.
+> **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart, stack, comandos, estructura, convenciones, troubleshooting y planes cerrados. Actualizado al 2026-08-05 tras aplicar el slice 11 del change `bugfix-2026-08` (docs sync + polish).
 
 ---
 
@@ -81,8 +81,8 @@ app/
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 47 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 36 eventos (26 @deprecated, 10 con listener activo)
-  Listeners/               # 7 listeners cableados en AppServiceProvider
+  Events/                  # 33 eventos (10 con listener cableado + 21 con consumer WS, 2 sin dispatch)
+  Listeners/               # 9 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
 
@@ -99,10 +99,11 @@ resources/js/
 
 database/
   migrations/              # 98 migraciones
-  seeders/                 # 11 activos (RoleBasedUsersSeeder, SpecialtySeeder, AppointmentTypeSeeder,
-                           #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
-                           #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
-                           #   CompletedAppointmentsSeeder, SpecialtyRecordSeeder)
+  seeders/                 # 13 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+                           #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
+                           #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
+                           #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
+                           #   SpecialtyRecordSeeder)
   seeders/_legacy/         # 24 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
@@ -154,7 +155,7 @@ docs/
 
 ### ✅ Todo funcional (3 planes cerrados, 22 hallazgos resueltos)
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía MAIL_MAILER=log)
-- 47 modelos, 36 controllers, 10 eventos con listener (7 listeners en AppServiceProvider)
+- 47 modelos, 36 controllers, 33 eventos (9 listener classes / 13 cableos en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
@@ -174,7 +175,7 @@ docs/
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
-- **28 tests preexistentes** fallan por `MODIFY COLUMN` en SQLite local. En CI con MySQL (ya configurado) pasan. Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
+- **28 tests preexistentes** fallan por `MODIFY COLUMN` en SQLite local. En CI con MySQL (ya configurado) pasan. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
 - **26 eventos huérfanos** marcados con `@deprecated` (no tienen listener). Solo los 10 que necesitan listener activo lo tienen. Los 26 se mantienen por si se cablean en el futuro.
 - **`ReminderController` y `ReminderTemplateController`**: stubs vacíos que devuelven 501. Las rutas apiResource están activas pero los métodos no implementan CRUD. `WaitingListController::update()` y `destroy()` también 501.
 - **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
@@ -228,7 +229,7 @@ docs/
 |---|---|
 | `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
 | `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
-| Tests fallan con `MODIFY COLUMN` | Solo en SQLite local. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. |
+| Tests fallan con `MODIFY COLUMN` | Solo en SQLite local. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
 | Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
 | Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES. |
@@ -281,6 +282,7 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 36 controllers API, 47 m
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-08-05 (Slice 11)** — Actualizado tras aplicar slice 11 de `bugfix-2026-08`. Datos: §4 lista ahora 13 seeders activos (antes 11 — añadidos `BranchSeeder` + `PaymentMethodSeeder`), §4 listeners corregido a "9 listener classes, 13 cableos" (antes "7 listeners"), §6 añade workaround SQLite (`docker compose up -d mysql` + `--group=mysql`), §12 changelog sincronizado. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida los 4 invariantes en CI.
 - **2026-06-11 (Sprint 4)** — Actualizado tras cerrar el plan de mejoras futuras (5/5 sprints). Datos: 36 controllers, 47 modelos, 36 eventos, 7 listeners, 18 services, 98 migraciones, 148 rutas, 17 módulos, 24 pages, 19 tests. CI/CD con GitHub Actions + MySQL. Multi-idioma catálogo. 2 ADRs. Estado §6 refleja los 3 planes cerrados.
 - **2026-06-11 (Sprint 1)** — Reescrito desde 428 → 236 líneas. Datos: 35 controllers, 45 modelos. Estructura reorganizada.
 - **<fecha anterior>** — Versión desactualizada con worktrees inexistentes, Sprint 1-3 pendientes, imports rotos ya arreglados.
