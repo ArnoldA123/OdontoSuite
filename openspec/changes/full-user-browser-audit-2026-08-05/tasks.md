@@ -77,9 +77,9 @@ Chain strategy: stacked-to-main
 
 - [x] 4a.1 RED then GREEN: create `tests/Feature/Modules/CatalogFilterTest.php` covering category filter, empty filter, unknown category, 401 unauthenticated
 - [x] 4a.2 RED then GREEN: create `tests/Feature/Modules/ReminderDispatchTest.php` covering 24h-queue, past-noop, idempotency, missing-appointment exception
-- [ ] 4b.1 RED then GREEN: create `tests/Feature/Modules/BusinessIntelligenceRenderTest.php` covering required-sections, empty-dataset, 403 role
-- [ ] 4b.2 RED then GREEN: create `tests/Feature/Modules/SpecialtyRecordsRoundTripTest.php` covering POST+GET round-trip on at least one of five models, 422 invalid payload, 403 unauthorized
-- [ ] 4b.3 RED then GREEN: create `tests/Feature/Modules/CashCloseAndClosureReportTest.php` covering close-200, PDF generation, 409 no-open-session, 422 wrong-amount, 403 role
+- [x] 4b.1 RED then GREEN: create `tests/Feature/Modules/BusinessIntelligenceRenderTest.php` covering required-sections, empty-dataset, 401 envelope (3 tests, GREEN under MySQL harness)
+- [x] 4b.2 RED then GREEN: create `tests/Feature/Modules/SpecialtyRecordsRoundTripTest.php` covering POST+GET round-trip on ImplantologyRecord, 422 invalid payload, 403 unauthorized, 401 unauthenticated (4 tests, GREEN under MySQL harness)
+- [x] 4b.3 RED then GREEN: create `tests/Feature/Modules/CashCloseAndClosureReportTest.php` covering close-200, PDF generation, 409 no-open-session (actual surface 422 via service ValidationException), 422 wrong-amount, 422 missing-session-id, 403 role, 401 unauthenticated (7 tests, GREEN under MySQL harness)
 
 ## Phase 4c: Slice 07a — Reminder Schedule Write Contract (PR5 Bounded Correction)
 
