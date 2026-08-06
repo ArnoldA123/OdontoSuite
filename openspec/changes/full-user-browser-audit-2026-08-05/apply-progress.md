@@ -17,6 +17,7 @@
 | PR7b | 07b | `api-authentication-error-envelope` | Shipped — `8e525d7` |
 | **PR7c** | **07c** | **`test-fixture-user-uniqueness`** | **Shipped — `66011f0`** |
 | **PR6 (4b)** | **04b** | **Module validation tests B (BI + Specialty + Cash)** | **Shipped — this batch** |
+| **PR7d** | **07d** | **Pagination-meta test phone-unique collision fix** | **Shipped — `3965278`** |
 
 ---
 
@@ -197,3 +198,98 @@ isolation.
 3. **Cash 409 surface.** Spec wants 409 for "no open session"; production surfaces as 422. Either rename to a typed conflict exception (bounded fix in `CashRegisterService`) or update the spec.
 4. **Specialty records full validation envelope.** The controller's in-body try/catch never runs for `ValidationException` failures. Either drop the dead catch or migrate it into `bootstrap/app.php` as a custom 422 renderer for `SpecialtyRecord` payloads.
 5. **Uncommitted working-tree changes predate this batch.** Several files (PatientController, PatientResource, OralSurgeryRecord, RehabilitationRecord, ReminderSchedule, ReminderService, seeders, Vue files) were already modified before this batch started. They were deliberately NOT staged; this commit contains only the three PR6 test files plus artifact updates.
+
+---
+
+## PR7d / Slice 07d — Pagination-Meta Test Phone-Unique Collision (this batch, 7d.1–7d.9)
+
+**What**: Appended `uniqid()` suffix to the phone string in
+`PatientControllerAgeTest::seedAdultPatient()` and
+`seedPatientWithoutBirthDate()` so each helper invocation produces a
+unique phone, closing verify-report-post-pr6 CRITICAL C1. The 20-row
+bulk insert in `test_index_preserves_pagination_meta_envelope` was
+tripping `patients_phone_unique` because both helpers hardcoded the
+same phone value. Production `PatientController`, `PatientResource`,
+and `Patient` model stay byte-identical.
+
+**Why**: Verify-report #337 (post-PR6) marked the pagination-meta
+Feature test as RED under MySQL harness (1 error / 70 + 1 in the
+focused suite) despite the production behaviour being correct per live
+curl evidence. The defect was test-infrastructure only — same class as
+PR7c (UserFactory username), one table over.
+
+**Where**:
+
+| File | Action | LOC |
+|------|--------|----:|
+| `tests/Feature/Api/PatientControllerAgeTest.php` | Modified — `uniqid()` suffix on the phone value in both helpers + 4-line docblock on `seedAdultPatient` naming the slice | +5 effective lines (file is now 307 lines; the rest of the file was untracked prior to this slice, so the slice authored delta is +5) |
+| `openspec/changes/.../tasks.md` | Modified — Phase 4c (cont.) Slice 07d, tasks 7d.1–7d.9 `[x]` | +18 / -1 |
+| `openspec/changes/.../apply-progress.md` | Modified — this section | n/a |
+
+**Authored slice size**: 5 effective code lines. By far the smallest
+slice in the change; under the 400-line review budget.
+
+### TDD Cycle Evidence (Strict TDD active)
+
+| Task | Test | Layer | RED (captured) | GREEN (verified) | REFACTOR |
+|------|------|-------|----------------|------------------|----------|
+| 7d.1 + 7d.2 | `PatientControllerAgeTest::test_index_preserves_pagination_meta_envelope` | Feature, MySQL harness | `Illuminate\Database\UniqueConstraintViolationException: SQLSTATE[23000]: 1062 Duplicate entry '+51 987 654 321' for key 'patients_phone_unique'` on `seedAdultPatient('Bulk1', …)` (the second of 20 calls) | `Tests: 1, Assertions: 9, OK` — pagination-meta test now green | n/a |
+| 7d.3 | defensive: `seedPatientWithoutBirthDate()` | Feature, MySQL harness | n/a (no test bulk-seeds it) | Applied `uniqid()` suffix defensively so future bulk seeding cannot collide | n/a |
+| 7d.4 + 7d.5 | full `PatientControllerAgeTest` | Feature, MySQL harness | n/a | `Tests: 8, Assertions: 43, OK` — all 8 scenarios green; the other 7 unaffected | n/a |
+| 7d.6 | cumulative 12-class focused suite | Feature + Unit, MySQL harness | n/a | `Tests: 93, Assertions: 403, OK` (was 70 passes + 1 error = 71 in verify-report) | n/a |
+| 7d.7 | prior-slice guard (`UserFactoryContractTest\|AuthenticationEnvelopeTest\|ReminderDispatchTest\|ReminderScheduleFillableContractTest\|CatalogFilterTest`) | Feature + Unit, MySQL harness | n/a | `Tests: 37, Assertions: 133, OK` — slices 07a/07b/07c/4a/4b unaffected | n/a |
+
+### Work Unit Evidence
+
+| Evidence | Value |
+|----------|-------|
+| Focused test command + result (RED) | `vendor/bin/phpunit -c phpunit.mysql.xml --filter='PatientControllerAgeTest::test_index_preserves_pagination_meta_envelope'` → **1 error** on `UniqueConstraintViolationException: 1062 Duplicate entry '+51 987 654 321' for key 'patients_phone_unique'` |
+| Focused test command + result (GREEN) | same → `Tests: 1, Assertions: 9, OK` |
+| Full-file regression | `vendor/bin/phpunit -c phpunit.mysql.xml --filter='PatientControllerAgeTest'` → **8 tests, 43 assertions, OK** (no regression in the other 7 scenarios) |
+| Cumulative regression | `vendor/bin/phpunit -c phpunit.mysql.xml --filter='FormatPENLabelTest\|PatientResourceAgeTest\|PatientControllerResourceWireUpTest\|SpecialtyRecordSeederFieldContractTest\|ReminderScheduleFillableContractTest\|AuthenticationEnvelopeTest\|UserFactoryContractTest\|CatalogFilterTest\|ReminderDispatchTest\|BusinessIntelligenceRenderTest\|SpecialtyRecordsRoundTripTest\|CashCloseAndClosureReportTest\|PatientControllerAgeTest'` → **93 tests, 403 assertions, OK** (was 70 passes + 1 error = 71 in verify-report #337) |
+| Prior-slice guard | `vendor/bin/phpunit -c phpunit.mysql.xml --filter='UserFactoryContractTest\|AuthenticationEnvelopeTest\|ReminderDispatchTest\|ReminderScheduleFillableContractTest\|CatalogFilterTest'` → **37 tests, 133 assertions, OK** |
+| Runtime harness | The MySQL `phpunit.mysql.xml` harness exercises the real `PatientController::index` path against dev MySQL `odontosuite_test`. No additional runtime harness beyond PHPUnit — this is the same harness that surfaced the C1 defect in verify-report #337, so the GREEN evidence is authoritative. |
+| Rollback boundary | Revert `tests/Feature/Api/PatientControllerAgeTest.php` (the only touched file). Production code untouched, so no rollback risk on the controller / resource / model. The test returns to its pre-slice RED state on the same `patients_phone_unique` collision — fully reversible. |
+
+### Byte-identity guard (production patient handling untouched)
+
+`git hash-object`, identical before and after the slice:
+
+| File | Hash |
+|------|------|
+| `app/Http/Controllers/Api/PatientController.php` | `13dcab2071a04c4fadde6252dc69fb1553a47538` |
+| `app/Http/Resources/PatientResource.php` | `0403de6835a9ceb430edc161d4f5734088f40266` |
+| `app/Models/Patient.php` | `a26d4e6bf5f04ee7c07d7390202a9120913ece7b` |
+
+`git diff --stat` (post-commit): the only file in this slice is
+`tests/Feature/Api/PatientControllerAgeTest.php`. Production
+byte-identical.
+
+### Deviations
+
+1. **`tests/Feature/Api/PatientControllerAgeTest.php` was untracked prior to this slice.** Prior batches touched the file content but never staged it (per PR7c deviation #5 in the previous apply-progress). This is the first commit that stages it; the staged file is the post-edit content. Authored delta is therefore +5 effective lines (4-line docblock + 1-line phone change per helper × 2 helpers), not the full 307-line file size.
+2. **`seedPatientWithoutBirthDate` defensive `uniqid()` fix is not required by any current test.** No Feature test currently bulk-seeds it; the fix is preventive to match the same defect class as `seedAdultPatient`. Documented as a deviation rather than a separate RED cycle.
+
+### Native review ledger — NOT settled
+
+`gentle-ai review mode status` → **`receipt-driven development: off (decided by global)`**. `gentle-ai review status --contract gentle-ai.review-integration/v2 --next-transition` reports `applicability: unrelated`, `receipt.status: not_applicable`. The global kill switch is OFF (user-owned). No review was started, no receipt exists. Delivery reports **`disabled/unmanaged`** per ordinary repository policy. **This is NOT an approval** — the user's instruction explicitly says to record the blocker and proceed with commit + apply-progress so the work is durable, and to NOT claim ledger success.
+
+### Issues found (out of scope, filed as follow-ups)
+
+1. **C1 closed by this slice.** The verify-report-post-pr6 CRITICAL C1 (pagination-meta Feature test RED on `patients_phone_unique`) is now GREEN. Spec scenario "Pagination meta envelope preserved" is proven at the Feature layer.
+2. **C1 closure does not close the Phase 3b tasks.md drift.** Phase 3b tasks 3b.1–3b.7 remain `[ ]` on disk despite the seeder code being GREEN (per verify-report S1). Out of scope for this slice.
+3. **Phase 5 cleanup checklist** (4 boxes) still un-checked; non-blocking.
+4. **Native review ledger OFF** — no review receipt exists for any of the 10 PRs.
+5. **`AppointmentServiceTest` constructor arity** (`tests/Unit/Services/AppointmentServiceTest.php:25` instantiates `new AppointmentService()` against a 1-arg constructor) — pre-existing test bug, unrelated to this slice.
+6. **`AuditLogMigrationTest::test_migration_source_anchors_on_existing_user_agent_column`** remains red — pre-existing string-stripping bug, unchanged by this slice.
+
+### Remaining tasks (change-wide)
+
+- [ ] 3b.1–3b.7 Specialty seeder GREEN rewrite (Phase 3) — code is GREEN per verify-report, filesystem tasks.md still `[ ]`
+- [ ] 5.1–5.4 Cleanup and final whole-suite run (Phase 5)
+
+### Next recommended
+
+`sdd-verify` (slice 07d should be re-verified end-to-end against
+verify-report-post-pr6 CRITICAL C1) followed by `sdd-archive` to
+close this change.
