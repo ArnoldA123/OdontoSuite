@@ -76,6 +76,20 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
+        // Slice 07b: explicit AuthenticationException renderer. MUST run before
+        // the generic Throwable renderer below so Sanctum-protected routes
+        // return 401 (canonical envelope) instead of 500. Web (non-JSON /
+        // non-api/*) requests still defer to Laravel's default redirect to
+        // route('login') because the closure returns null for them.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'No autenticado.',
+                    'error' => config('app.debug') ? $e->getMessage() : null,
+                ], 401)->header('WWW-Authenticate', 'Bearer realm="api"');
+            }
+        });
+
         // Manejo generico de excepciones para API
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
