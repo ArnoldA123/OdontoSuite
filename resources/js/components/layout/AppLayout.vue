@@ -336,8 +336,6 @@
                     <!-- Theme Selector -->
                     <div class="border-t border-theme px-4 py-3">
                       <p class="text-xs text-theme-secondary mb-2 uppercase tracking-wide">Apariencia</p>
-                      <!-- ThemeSelector oculto - solo tema claro -->
-                      <!-- <UiThemeSelector compact /> -->
                     </div>
 
                     <div class="border-t border-theme py-2">
@@ -392,7 +390,6 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '../../composables/usePermissions'
-import { useTheme } from '../../composables/useTheme'
 import { useNotifications } from '../../composables/useNotifications'
 import { useWebSocketNotifications } from '../../composables/useWebSocketNotifications'
 import { useEcho } from '../../composables/useEcho'
@@ -405,7 +402,6 @@ import {
   confirmVariant,
   useConfirm as useConfirmComposable,
 } from '../../composables/useConfirm'
-import UiThemeSelector from '../ui/ThemeSelector.vue'
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
 import NotificationCenter from '../NotificationCenter.vue'
@@ -421,12 +417,10 @@ const { connectionStatus: wsStatus } = useEcho()
 // Usamos la desestructuracion del composable para conectar los handlers del
 // <UiConfirmDialog> montado a nivel de app con el resolver de la Promise.
 const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } = useConfirmComposable()
-const { theme, setTheme, getThemeIcon, getThemeLabel, getThemeOptions } = useTheme()
 
 // State
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(false)
-const themeMenuOpen = ref(false)
 const notificationCenterOpen = ref(false)
 
 // Notifications

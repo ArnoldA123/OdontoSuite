@@ -258,16 +258,4 @@ const handleImageLoad = () => {
     min-height: 32px;
   }
 }
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .avatar {
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-  }
-
-  .fallback {
-    background: linear-gradient(to bottom right, var(--color-surface), var(--color-background-secondary));
-  }
-}
 </style>

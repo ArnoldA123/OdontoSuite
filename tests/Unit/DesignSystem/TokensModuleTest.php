@@ -216,6 +216,118 @@ JS;
     }
 
     /**
+     * Shell out to ripgrep against `resources/` and return the number of
+     * matching lines. `rg` is preferred over PowerShell `Select-String`
+     * because the latter parses `|` as a pipeline token even inside quoted
+     * regex patterns.
+     */
+    private static function grepResourceCount(string $pattern): int
+    {
+        $cmd = sprintf(
+            'rg --no-heading --count-matches --no-messages %s %s/resources 2>&1',
+            escapeshellarg($pattern),
+            escapeshellarg(self::PROJECT_ROOT)
+        );
+        $output = (string) shell_exec($cmd);
+        if ($output === '') {
+            return 0;
+        }
+        // rg --count-matches emits one line per file as `path:count` (or just
+        // the count when stdin / single file). Strip the file prefix and sum.
+        $total = 0;
+        foreach (preg_split('/\r?\n/', $output) as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
+            $total += $count;
+        }
+        return $total;
+    }
+
+    /**
+     * Assert a grep over `resources/` returns exactly zero matches. Fails
+     * loudly with the pattern + actual count so the next operator can see
+     * which file still ships the dead code.
+     */
+    private static function assertResourceGrepReturnsZero(string $pattern, string $message): void
+    {
+        $count = self::grepResourceCount($pattern);
+        self::assertSame(
+            0,
+            $count,
+            $message . " (pattern: {$pattern}, count: {$count})"
+        );
+    }
+
+    /**
+     * Task 1.1.1 — anti-requirement guard. After PR1 the dark-mode
+     * machinery is fully gone: `useTheme`, the `setTheme` /
+     * `getThemeOptions` exports, the `ThemeSelector` UI, the stale
+     * `design-system.js` duplicate, and the dead `MobileNavigation`
+     * component must all be absent from `resources/`.
+     *
+     * @test
+     */
+    public function theme_machinery_removed(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'useTheme|setTheme|getThemeOptions|ThemeSelector|design-system.js|MobileNavigation',
+            'PR1 must remove every dark-mode / dead-component reference from resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.2 — anti-requirement guard. No `@media
+     * (prefers-color-scheme: dark)` block may remain anywhere under
+     * `resources/` once the design system is light-only.
+     *
+     * @test
+     */
+    public function no_dark_mode_blocks_in_resources(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'prefers-color-scheme: dark',
+            'PR1 must delete every prefers-color-scheme: dark block from resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.3 — guard that no code writes a `theme` key into
+     * `localStorage`. Per orchestrator correction (2026-08-10): the
+     * pre-existing `useTheme.js` wrote `odontosuite-theme` but the
+     * spec key is the bare `'theme'` — once `useTheme.js` is deleted,
+     * no theme key (any flavor) may be written. A stale `theme` key in
+     * a user's browser is intentionally inert on next visit; no
+     * read-once bootstrap is required.
+     *
+     * @test
+     */
+    public function app_bootstrap_ignores_stale_theme_localstorage_key(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            "setItem\\('theme'",
+            'PR1 must delete every localStorage theme write; stale keys become inert naturally'
+        );
+    }
+
+    /**
+     * Task 1.1.4 — guard that `Avatar.vue` no longer carries its own
+     * `@media (prefers-color-scheme: dark)` block. The Avatar was the
+     * only file under `resources/js/components/ui/` that had one.
+     *
+     * @test
+     */
+    public function avatar_dark_mode_blocks_removed(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'prefers-color-scheme: dark',
+            'Avatar.vue must drop its prefers-color-scheme: dark block'
+        );
+    }
+
+    /**
      * Parse tailwind.config.js palette blocks by string extraction. This is a
      * brittle but acceptable check since the file format is hand-curated and
      * under our control.

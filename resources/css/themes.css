@@ -78,15 +78,6 @@
 }
 
 
-/* Transiciones globales */
-* {
-  transition:
-    background-color var(--transition-theme),
-    border-color var(--transition-theme),
-    color var(--transition-theme),
-    box-shadow var(--transition-theme);
-}
-
 /* Utilidades personalizadas */
 .glass-card {
   background: var(--glass-bg);
