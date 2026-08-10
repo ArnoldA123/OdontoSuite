@@ -43,3 +43,6 @@ storage/logs/vite.log
 
 # Heavy Pexels media - never ship
 public/images/pexels/
+.tmp_chrome_profile/
+.tmp_cookies.json
+tests/visual/

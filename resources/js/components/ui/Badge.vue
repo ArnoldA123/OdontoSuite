@@ -47,7 +47,7 @@ const dismissLabel = computed(() => 'Eliminar badge')
 
 const badgeClasses = computed(() => {
   const base = [
-    'inline-flex items-center gap-1.5 font-medium transition-all duration-200',
+    'inline-flex items-center gap-1.5 font-medium',
     'select-none'
   ]
 
@@ -66,6 +66,8 @@ const badgeClasses = computed(() => {
   }
 
   // Color variants
+  // `info` is an alias for the medical-state clinicalTeal ramp (PR2 Decision
+  // 3) so 76+ existing call sites render as before without a code change.
   const variants = {
     default: [
       'bg-theme-surface text-theme-secondary',
@@ -88,8 +90,8 @@ const badgeClasses = computed(() => {
       'border border-danger'
     ],
     info: [
-      'bg-primary-50 text-primary-700',
-      'border border-primary-200'
+      'bg-clinicalTeal-50 text-clinicalTeal-700',
+      'border border-clinicalTeal-200'
     ],
     neutral: [
       'bg-theme-surface text-theme-secondary',
@@ -148,9 +150,15 @@ const handleDismiss = () => {
   outline-offset: 1px;
 }
 
-/* Animation for dismiss */
+/* Scoped transitions — badge hover + dismiss.
+   Replaces the removed global `* { transition }` rule. */
 .badge {
-  transition: all 200ms ease-out;
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
 }
 
 .badge.dismissing {

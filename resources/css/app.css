@@ -1,5 +1,4 @@
-@import './animations.css';
-@import './themes.css';
+@import './tokens.generated.css';
 @import './utilities.css';
 
 @tailwind base;
@@ -8,13 +7,6 @@
 
 /* Utilidades personalizadas estilo Apple */
 @layer utilities {
-    .glass-card {
-        background: var(--glass-bg);
-        backdrop-filter: var(--glass-backdrop);
-        -webkit-backdrop-filter: var(--glass-backdrop);
-        border: 1px solid var(--glass-border);
-    }
-
     .apple-shadow {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
     }

@@ -238,7 +238,6 @@ const dropdownClasses = computed(() => [
 const getBreadcrumbClasses = (isLast, isLink) => {
   const base = [
     'flex items-center gap-2',
-    'transition-colors duration-200',
     'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
     'rounded-md'
   ]
@@ -270,7 +269,6 @@ const getBreadcrumbClasses = (isLast, isLink) => {
 const getDropdownItemClasses = (isLink) => {
   const base = [
     'w-full text-left px-4 py-3',
-    'transition-colors duration-150',
     'hover:bg-theme-surface',
     'focus:bg-theme-surface',
     'focus:outline-none',
@@ -331,9 +329,15 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Smooth transitions */
-* {
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+/* Scoped transitions — replaces the removed global `* { transition }` rule
+   from PR1. The breadcrumbs only animate color / background-color /
+   border-color. */
+a,
+button {
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
 }
 
 /* Responsive adjustments */

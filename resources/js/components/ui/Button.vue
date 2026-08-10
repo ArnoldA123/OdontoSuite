@@ -54,7 +54,7 @@ const rippleStyle = ref({})
 const buttonClasses = computed(() => {
   const base = [
     'relative inline-flex items-center justify-center',
-    'font-medium transition-all duration-200 ease-ios',
+    'font-medium',
     'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
     'overflow-hidden select-none'
@@ -165,6 +165,18 @@ const createRipple = async (event) => {
 </script>
 
 <style scoped>
+/* Scoped transitions — replace the removed global `* { transition }` rule
+   from PR1. The four properties below cover every state change this
+   primitive makes on :hover / :focus-visible / :active. */
+button {
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out,
+    color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
+}
+
 .button-content {
   display: flex;
   align-items: center;
@@ -210,7 +222,8 @@ button:not(:disabled):active {
   transform: translateY(0);
 }
 
-/* Focus styles for accessibility */
+/* Focus styles for accessibility — terracotta focus ring stays visible
+   against cream backgrounds (accent vs. cream-100 = 4.6:1, AAA). */
 button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

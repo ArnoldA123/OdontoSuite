@@ -1,5 +1,9 @@
 /* ========================================
    UTILIDADES CSS - OdontoSuite Design System
+   ========================================
+   PR2 slim: only the utilities with non-token-driven values remain here.
+   Token-driven values (shadows, glass chrome, ramps, aliases) live in
+   resources/css/tokens.generated.css and are imported first by app.css.
    ======================================== */
 
 /* Z-index utilities */
@@ -39,69 +43,44 @@
   right: 100%;
 }
 
-/* Glass effect utilities */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-
 /* Focus states */
 .focus-ring {
   outline: 2px solid transparent;
   outline-offset: 2px;
-  transition: outline-color 150ms ease-out;
+  transition: outline-color var(--transition-fast);
 }
 
 .focus-ring:focus-visible {
   outline-color: var(--color-accent);
 }
 
-
-/* Hover states */
+/* Hover lift — kept for the 17 un-migrated modules that use this class.
+   The terracotta brand accent drives the box-shadow on hover. */
 .hover-lift {
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .hover-lift:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-lg);
 }
 
-
-/* Button states */
+/* Button hover state — preserved for existing call sites */
 .btn-hover {
-  transition: all 150ms ease-out;
+  transition: all var(--transition-fast);
 }
 
 .btn-hover:hover {
   transform: translateY(-0.5px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-hover:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Loading states */
-.loading-shimmer {
-  background: linear-gradient(90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0) 100%);
-  animation: shimmer 1.5s infinite;
-}
-
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-/* Skeleton loaders */
+/* Skeleton shimmer — kept for Skeleton primitive. Reads token vars. */
 .skeleton {
   background: linear-gradient(90deg,
     var(--color-background-secondary) 25%,
@@ -116,59 +95,29 @@
   100% { background-position: -200% 0; }
 }
 
-/* Animations */
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+/* Spinner keyframes — used by LoadingSpinner primitive */
+.spinner-ring {
+  display: inline-block;
+  border-style: solid;
+  border-color: var(--spinner-color);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
 }
 
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
+@keyframes spinner-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.animate-slide-down {
-  animation: slideDown 0.3s ease-out;
+/* Pulse subtle — used by WS indicator on Dashboard */
+.pulse-subtle {
+  animation: pulse-subtle-keyframes 2s ease-in-out infinite;
 }
 
-.animate-scale-in {
-  animation: scaleIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+@keyframes pulse-subtle-keyframes {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
 /* Ripple effect */
@@ -215,13 +164,11 @@
   background: var(--color-text-tertiary);
 }
 
-
-/* Text selection */
+/* Text selection — preserved for design consistency */
 ::selection {
-  background: var(--color-primary-light);
+  background: var(--color-accent-light);
   color: var(--color-primary-dark);
 }
-
 
 /* Safe area for mobile */
 .safe-top {
@@ -250,23 +197,20 @@
   scroll-behavior: smooth;
 }
 
-/* Reduced motion support */
+/* Reduced motion support — kill all keyframe animations and transitions
+   on the small set of classes still wired through Tailwind animate-* */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-fade-out,
-  .animate-slide-up,
-  .animate-slide-down,
-  .animate-slide-left,
-  .animate-slide-right,
-  .animate-scale-in,
-  .animate-scale-out,
-  .animate-bounce-subtle,
-  .animate-pulse-subtle,
-  .animate-ripple {
+  .pulse-subtle,
+  .ripple,
+  .skeleton,
+  .spinner-ring {
     animation: none !important;
   }
 
-  .smooth-transition {
+  .smooth-transition,
+  .btn-hover,
+  .hover-lift,
+  .focus-ring {
     transition: none !important;
   }
 }

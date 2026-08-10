@@ -61,7 +61,7 @@ const { notifications, removeNotification } = useNotifications()
 
 .notification-item {
   @apply bg-theme-surface-elevated border border-theme rounded-lg shadow-lg p-4 min-w-80 max-w-96 cursor-pointer;
-  @apply transform transition-all duration-300 ease-in-out;
+  @apply transform;
   @apply hover:shadow-xl hover:scale-105;
 }
 
@@ -110,6 +110,17 @@ const { notifications, removeNotification } = useNotifications()
 }
 
 .notification-close {
-  @apply flex-shrink-0 text-theme-secondary hover:text-theme-primary transition-colors;
+  @apply flex-shrink-0 text-theme-secondary hover:text-theme-primary;
+}
+
+/* Scoped transitions — replaces the removed global `* { transition }` rule. */
+.notification-item,
+.notification-close {
+  transition:
+    background-color 300ms ease-in-out,
+    color 300ms ease-in-out,
+    border-color 300ms ease-in-out,
+    box-shadow 300ms ease-in-out,
+    transform 300ms ease-in-out;
 }
 </style>

@@ -65,7 +65,8 @@ const out = {
   radius: tokens.radius,
   typography: tokens.typography,
   shadow: tokens.shadow,
-  breakpoint: tokens.breakpoint
+  breakpoint: tokens.breakpoint,
+  motion: tokens.motion
 };
 process.stdout.write(JSON.stringify(out));
 JS;
@@ -138,7 +139,9 @@ JS;
         $colors = $tokens['colors'];
 
         // FF-004 / UXT-001 — semantic palette must exist with all documented states.
-        $required = ['primary', 'neutral', 'success', 'warning', 'error', 'info'];
+        // PR2: `info` was folded into `clinicalTeal`; `primary` kept as deprecated
+        // alias for the 17 un-migrated modules until PR3 retires them.
+        $required = ['primary', 'neutral', 'success', 'warning', 'error'];
         foreach ($required as $state) {
             $this->assertArrayHasKey($state, $colors, "tokens.colors.{$state} must exist");
         }
@@ -324,6 +327,182 @@ JS;
         self::assertResourceGrepReturnsZero(
             'prefers-color-scheme: dark',
             'Avatar.vue must drop its prefers-color-scheme: dark block'
+        );
+    }
+
+    /**
+     * Task 2.1.1 — token surface must expose the new ramps (terracotta, cream,
+     * ink, clinicalTeal) with the documented steps. The `primary` ramp is
+     * renamed to `terracotta`; `info` is removed (see 2.1.2).
+     *
+     * @test
+     */
+    public function tokens_module_exposes_new_ramps(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        // All four new ramps must exist.
+        foreach (['terracotta', 'cream', 'ink', 'clinicalTeal'] as $ramp) {
+            $this->assertArrayHasKey(
+                $ramp,
+                $colors,
+                "tokens.colors.{$ramp} must exist (PR2 token surface)"
+            );
+        }
+
+        // terracotta must include steps {400, 500, 600, 700}.
+        foreach (['400', '500', '600', '700'] as $step) {
+            $this->assertArrayHasKey(
+                $step,
+                $colors['terracotta'],
+                "tokens.colors.terracotta.{$step} must exist"
+            );
+            $this->assertMatchesRegularExpression(
+                '/^#[0-9A-Fa-f]{6}$/',
+                (string) $colors['terracotta'][$step],
+                "tokens.colors.terracotta.{$step} must be a 6-digit hex value"
+            );
+        }
+
+        // cream must include steps {50, 100, 200}.
+        foreach (['50', '100', '200'] as $step) {
+            $this->assertArrayHasKey(
+                $step,
+                $colors['cream'],
+                "tokens.colors.cream.{$step} must exist"
+            );
+        }
+
+        // ink must include steps {700, 800, 900}.
+        foreach (['700', '800', '900'] as $step) {
+            $this->assertArrayHasKey(
+                $step,
+                $colors['ink'],
+                "tokens.colors.ink.{$step} must exist"
+            );
+        }
+
+        // clinicalTeal must include steps {500, 600}.
+        foreach (['500', '600'] as $step) {
+            $this->assertArrayHasKey(
+                $step,
+                $colors['clinicalTeal'],
+                "tokens.colors.clinicalTeal.{$step} must exist"
+            );
+        }
+    }
+
+    /**
+     * Task 2.1.2 — anti-requirement guard. The `info` ramp is folded into
+     * `clinicalTeal` per the proposal. Any dark-suffix key (per-PR1 cleanup
+     * rule) must also be absent.
+     *
+     * @test
+     */
+    public function tokens_module_drops_info_and_dark_suffixes(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        // colors.info is gone.
+        $this->assertArrayNotHasKey(
+            'info',
+            $colors,
+            'tokens.colors.info must be removed (folded into clinicalTeal)'
+        );
+
+        // No key in colors ends in -dark, Dark, or _dark.
+        foreach (array_keys($colors) as $rampName) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/(^|_|-)(dark|Dark|DARK)$/',
+                (string) $rampName,
+                "tokens.colors.{$rampName} ends with a dark-suffix and must be removed"
+            );
+        }
+
+        // Recurse into each ramp and assert the same for step keys.
+        foreach ($colors as $rampName => $steps) {
+            if (!is_array($steps)) {
+                continue;
+            }
+            foreach (array_keys($steps) as $stepName) {
+                $this->assertDoesNotMatchRegularExpression(
+                    '/(^|_|-)(dark|Dark|DARK)$/',
+                    (string) $stepName,
+                    "tokens.colors.{$rampName}.{$stepName} ends with a dark-suffix and must be removed"
+                );
+            }
+        }
+    }
+
+    /**
+     * Task 2.1.3 — typography must expose a Newsreader-first serif family
+     * and the per-step tracking contract. The display step must declare a
+     * tracking of -0.03em.
+     *
+     * @test
+     */
+    public function tokens_module_typography_has_serif_and_per_step_tracking(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $typography = $tokens['typography'];
+        $this->assertIsArray($typography, 'tokens.typography must be an object');
+
+        $fontFamily = $typography['fontFamily'] ?? null;
+        $this->assertIsArray($fontFamily, 'tokens.typography.fontFamily must exist');
+        $this->assertArrayHasKey('serif', $fontFamily, 'tokens.typography.fontFamily.serif must exist');
+        $this->assertIsArray($fontFamily['serif'], 'tokens.typography.fontFamily.serif must be an array');
+        $this->assertNotEmpty($fontFamily['serif'], 'tokens.typography.fontFamily.serif must not be empty');
+        $this->assertSame(
+            'Newsreader',
+            (string) $fontFamily['serif'][0],
+            'tokens.typography.fontFamily.serif must start with Newsreader'
+        );
+
+        $fontSize = $typography['fontSize'] ?? null;
+        $this->assertIsArray($fontSize, 'tokens.typography.fontSize must exist');
+        $this->assertArrayHasKey('display', $fontSize, 'tokens.typography.fontSize.display must exist');
+        $display = $fontSize['display'];
+        $this->assertIsArray($display, 'tokens.typography.fontSize.display must be a tuple [size, opts]');
+        $this->assertCount(2, $display, 'tokens.typography.fontSize.display must be [size, opts]');
+        $opts = $display[1];
+        $this->assertIsArray($opts, 'tokens.typography.fontSize.display[1] must be an object');
+        $this->assertArrayHasKey('letterSpacing', $opts, 'display step must declare letterSpacing');
+        $this->assertSame(
+            '-0.03em',
+            (string) $opts['letterSpacing'],
+            'tokens.typography.fontSize.display[1].letterSpacing must be -0.03em'
+        );
+    }
+
+    /**
+     * Task 2.1.4 — motion tokens section must exist with the documented
+     * defaults. Used by useSpring (PR2) and by the generated CSS emitter.
+     *
+     * @test
+     */
+    public function tokens_module_motion_section_present(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('motion', $tokens, 'tokens.motion section must exist');
+        $motion = $tokens['motion'];
+        $this->assertIsArray($motion, 'tokens.motion must be an object');
+        $this->assertArrayHasKey('response', $motion, 'tokens.motion.response must exist');
+        $this->assertArrayHasKey('damping', $motion, 'tokens.motion.damping must exist');
+        $this->assertSame(
+            0.35,
+            (float) $motion['response'],
+            'tokens.motion.response must be 0.35'
+        );
+        $this->assertSame(
+            1.0,
+            (float) $motion['damping'],
+            'tokens.motion.damping must be 1.0'
         );
     }
 

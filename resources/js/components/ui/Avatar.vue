@@ -68,8 +68,7 @@ const avatarClasses = computed(() => {
   const base = [
     'relative inline-flex items-center justify-center',
     'bg-theme-surface text-theme-secondary',
-    'overflow-hidden select-none',
-    'transition-all duration-200'
+    'overflow-hidden select-none'
   ]
 
   // Size variants
@@ -123,8 +122,7 @@ const loadingClasses = computed(() => [
 
 const statusClasses = computed(() => {
   const base = [
-    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white',
-    'transition-all duration-200'
+    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white'
   ]
 
   const statusColors = {
@@ -185,6 +183,17 @@ const handleImageLoad = () => {
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* Scoped transitions — avatar hover / active / focus. Replaces the
+   removed global `* { transition }` rule. */
+.avatar {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
 }
 
 /* Status indicator animations */

@@ -43,15 +43,24 @@ const cardClasses = computed(() => {
   ]
 
   // Variant styles
+  // Historical name: kept for compat. The `glass` variant is OPAQUE
+  // (cream-100 surface, ink-200 hairline, shadow-medium) — 76 call sites
+  // across 21 module files depend on this rendering as an ordinary data
+  // card. Translucent chrome surfaces use the `.surface-glass` class from
+  // resources/css/tokens.generated.css (AppLayout sidebar / top bar /
+  // mobile Sheet wrapper only). Do NOT add a blur effect here — see
+  // design Decision 5.
   const variants = {
     default: [
       'bg-theme-surface-elevated shadow-soft',
       'hover:shadow-medium'
     ],
     glass: [
-      'glass-card backdrop-blur-md',
-      'shadow-glass',
-      'hover:bg-theme-surface-elevated/80'
+      'bg-cream-100',
+      'border border-ink-200',
+      'shadow-medium',
+      'rounded-xl',
+      'hover:shadow-large'
     ],
     flat: [
       'bg-theme-surface border-theme',
@@ -120,12 +129,13 @@ const cardClasses = computed(() => {
   flex: 1;
 }
 
-/* Glass variant specific styles */
+/* Glass variant specific styles — opaque data card. See the comment in
+   <script setup> for why the `glass` name is kept and why no blur
+   declaration appears here. */
 [data-variant="glass"] {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  -webkit-backdrop-filter: var(--glass-backdrop);
-  border: 1px solid var(--glass-border);
+  background: var(--color-cream-100);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-medium);
 }
 
 /* Loading state */

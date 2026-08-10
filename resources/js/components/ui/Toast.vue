@@ -103,7 +103,6 @@ const toastClasses = computed(() => {
   const base = [
     'relative flex items-start gap-3 p-4 rounded-lg shadow-lg',
     'max-w-sm w-full',
-    'transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
   ]
 
@@ -146,7 +145,7 @@ const iconComponent = computed(() => {
 const dismissButtonClasses = computed(() => [
   'p-1 rounded-md',
   'text-current/60 hover:text-current',
-  'hover:bg-current/10 transition-colors duration-200',
+  'hover:bg-current/10',
   'focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1'
 ])
 
@@ -268,6 +267,23 @@ const handleMouseLeave = () => {
   .toast {
     border-width: 2px;
   }
+}
+
+/* Scoped transitions — toast hover and dismiss. Replaces the removed
+   global `* { transition }` rule. */
+.toast {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
+}
+
+button {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out;
 }
 
 /* Reduced motion support */

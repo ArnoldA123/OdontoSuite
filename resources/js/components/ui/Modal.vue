@@ -135,7 +135,7 @@ const modalClasses = computed(() => {
 const closeButtonClasses = computed(() => [
   'absolute top-4 right-4 p-2 rounded-lg',
   'text-theme-secondary hover:text-theme-primary',
-  'hover:bg-theme-surface transition-colors duration-200',
+  'hover:bg-theme-surface',
   'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
 ])
 
@@ -279,15 +279,25 @@ onBeforeUnmount(() => {
   }
 }
 
-/* High contrast mode support */
+/* High contrast mode support — boundary ink-900 lifts the modal edge
+   against the cream-100 surface for high-contrast users. */
 @media (prefers-contrast: high) {
   .modal {
-    border: 2px solid var(--color-neutral-900);
+    border: 2px solid var(--color-ink-900);
   }
 
   .modal-header,
   .modal-footer {
-    border-color: var(--color-neutral-900);
+    border-color: var(--color-ink-900);
   }
+}
+
+/* Scoped transitions — close button hover/focus colors. */
+button.modal-close {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out;
 }
 </style>

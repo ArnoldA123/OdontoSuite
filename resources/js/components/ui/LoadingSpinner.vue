@@ -86,7 +86,7 @@ const spinnerStyle = computed(() => {
   const colors = {
     primary: 'var(--color-accent)',
     secondary: 'var(--color-text-secondary)',
-    white: '#ffffff',
+    white: 'var(--color-cream-50)',
     gray: 'var(--color-text-secondary)'
   }
 

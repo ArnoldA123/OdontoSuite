@@ -31,6 +31,17 @@ export default defineConfig(({ mode }) => {
             }
         },
         server: {
+            watch: {
+                // Browser-automation profiles and vendor dirs hold OS-locked files.
+                // Watching them crashes the dev server with EBUSY on Windows.
+                ignored: [
+                    '**/.tmp_chrome_profile/**',
+                    '**/.playwright-cli/**',
+                    '**/vendor/**',
+                    '**/storage/**',
+                    '**/public/images/pexels/**',
+                ],
+            },
             proxy: {
                 // Proxy API requests to Laravel backend during development.
                 // Permite acceder via localhost:5173 y que /api/* se reenvie
