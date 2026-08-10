@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PatientResource;
 use App\Models\Patient;
 use App\Models\AuditLog;
 use App\Services\PatientExportService;
@@ -84,8 +85,14 @@ class PatientController extends Controller
 
         $patients = $searchQuery->orderBy('last_name')->orderBy('first_name')->paginate($perPage);
 
+        // Bounded PR2 follow-up (verify-report #337 CRITICAL): wrap the
+        // paginated items in PatientResource so the `age` key (and every
+        // other derived field) reaches the JSON contract consumed by
+        // PatientsPage.vue and PatientSelector.vue. The custom active_count /
+        // inactive_count meta is preserved by merging after the collection
+        // call so the SPA's filter counters keep working.
         return response()->json([
-            'data' => $patients->items(),
+            'data' => PatientResource::collection($patients->getCollection())->resolve(),
             'meta' => [
                 'current_page' => $patients->currentPage(),
                 'last_page' => $patients->lastPage(),
@@ -126,12 +133,14 @@ class PatientController extends Controller
 
         // Emitir evento de WebSocket (el listener se encargará de la auditoría)
         event(new PatientCreated($patient));
-        
+
         // Limpiar cache del dashboard
         ClearDashboardCache::handle();
 
+        // Bounded PR2 follow-up: wrap the created patient in PatientResource
+        // so the 201 response includes the derived `age` key.
         return response()->json([
-            'data' => $patient,
+            'data' => PatientResource::make($patient)->resolve(),
             'meta' => [
                 'message' => 'Paciente creado exitosamente',
             ],
@@ -176,7 +185,7 @@ class PatientController extends Controller
         ]);
 
         return response()->json([
-            'data' => $patient,
+            'data' => PatientResource::make($patient)->resolve(),
         ]);
     }
 
@@ -239,7 +248,7 @@ class PatientController extends Controller
         ClearDashboardCache::handle();
 
         return response()->json([
-            'data' => $patient,
+            'data' => PatientResource::make($patient)->resolve(),
             'meta' => [
                 'message' => 'Paciente actualizado exitosamente',
             ],

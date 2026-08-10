@@ -1,5 +1,12 @@
 # Tasks: full-user-browser-audit-2026-08-05
 
+> **ARCHIVED 2026-08-06** — this change is closed. The canonical archive copy lives at:
+> `openspec/changes/archive/2026-08-06-full-user-browser-audit-2026-08-05/`
+>
+> This filesystem mirror was retained (the sdd-archive session had no `rm` capability) and is annotated as **superseded**. The canonical Phase 3b task states (`3b.1–3b.7 [x]`) are recorded in the archived copy; the `[ ]` checkpoint drift visible below is documented and NOT authoritative. See `archive-report.md` for the terminal record.
+>
+> Topics for next change: Phase 3b task-checkbox reconciliation, Phase 5 cleanup checklist, and the BI/Cash/Specialty envelope follow-ups (file as `/sdd-new`).
+
 ## Review Workload Forecast
 
 | Field | Value |

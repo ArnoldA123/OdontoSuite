@@ -1,0 +1,121 @@
+phase: archived
+status: passed
+change_name: bugfix-2026-08
+artifact_store: hybrid
+preflight:
+  pace: auto
+  artifact_store: hybrid
+  delivery_strategy: ask-on-risk
+  review_budget: 400
+  cached_at: 2026-08-05
+dependencies_locked: false
+findings_total: 138
+findings_by_severity:
+  critical: 10
+  high: 23
+  medium: 31
+  low: 73
+findings_by_cluster:
+  api-mismatch: 42
+  visual-flow: 28
+  visual-tokens: 14
+  stubs-501: 11
+  state-handling: 8
+  docs-drift: 7
+  form-requests: 6
+  migration-drift: 3
+  auth-rbac: 2
+  events-orphans: 2
+  seeders: 1
+  other: 12
+slices_total: 11
+slices:
+  - id: 01-critical-api-mismatch
+    name: Critical API Mismatch
+    findings: "10 criticals + API-001..007 (BF-004, FF-001, FF-002, API-001..007)"
+  - id: 02-form-requests
+    name: FormRequests
+    findings: "BF-007..010, API-014, API-045"
+  - id: 03-stubs-501-implement
+    name: Stubs-501 Implement
+    findings: "ReminderController, ReminderTemplateController, ReminderProvider, audit-log filters"
+  - id: 04-stubs-501-remove
+    name: Stubs-501 Remove
+    findings: "WaitingListController + 6 others (Grep-then-decide)"
+  - id: 05-migration-drift
+    name: Migration Drift
+    findings: "driver-conditional guards + drop specialties JSON + SddCheckMigrationsTest"
+  - id: 06-ux-visual-tokens
+    name: UX Visual Tokens
+    findings: "tokens.js source-of-truth + UiSelect + color/badge hardcoded replacements"
+  - id: 07-ux-visual-flow
+    name: UX Visual Flow
+    findings: "modal focus trap + escape + aria + toast alerts + router back"
+  - id: 08-state-handling
+    name: State Handling
+    findings: "useToast reactivity + useEcho timing + dashboard debounce + router auth"
+  - id: 09-auth-rbac
+    name: Auth / RBAC
+    findings: "usePermissions.createMovement + CashMovementPolicy + 401 redirect"
+  - id: 10-events-orphans
+    name: Events / Orphans
+    findings: "LogPaymentReceived + LogAppointmentCheckedIn listeners + PrivateChannel + sdd:check-events CI gate"
+  - id: 11-docs-drift-polish
+    name: Docs Drift + Polish
+    findings: "AGENTS.md sync + SQLite workaround + controllers refactor + visibility/normalizeError + polish"
+review_budget_per_slice: 400
+tasks_total: 141
+tasks_closed: 141
+specs_total: 11
+commits_total: 16
+forecast:
+  decision_needed_before_apply: Yes
+  chained_prs_recommended: Yes
+  chain_strategy: stacked-to-main
+  budget_risk: High
+  delivery_strategy: ask-on-risk
+created_at: 2026-08-05
+phase_history:
+  - phase: proposal
+    status: pending-review
+    completed_at: 2026-08-05
+  - phase: spec
+    status: in-review
+    completed_at: 2026-08-05
+  - phase: design
+    status: in-review
+    completed_at: 2026-08-05
+  - phase: tasks
+    status: in-review
+    completed_at: 2026-08-05
+  - phase: apply
+    status: success
+    started_at: 2026-08-05
+    completed_at: 2026-08-05
+    notes: "11 slices + 1 corrective = 16 commits stacked on main"
+  - phase: verify
+    status: passed
+    started_at: 2026-08-05
+    completed_at: 2026-08-05
+    verdict: pass
+    blockers: 0
+    critical_findings: 0
+    warnings: 3
+    suggestions: 2
+  - phase: archive
+    status: archived
+    completed_at: 2026-08-05
+verify:
+  verdict: pass
+  blockers: 0
+  critical_findings: 0
+  warnings: 3
+  suggestions: 2
+  test_passed: 178
+  test_failed_pre_existing: 104
+  build_passed: true
+  gate_check_events: pass
+  gate_check_migrations: pass-via-phpunit
+ready_for_archive: true
+archived: true
+archived_at: 2026-08-05

@@ -158,7 +158,7 @@
                   {{ formatTime(session.opened_at) }}
                 </div>
                 <div class="text-sm text-theme-secondary">
-                  S/ {{ formatCurrency(session.opening_amount) }}
+                  {{ formatPENLabel(session.opening_amount) }}
                 </div>
               </td>
 
@@ -170,7 +170,7 @@
                   -
                 </div>
                 <div v-if="session.closing_amount" class="text-sm text-theme-secondary">
-                  S/ {{ formatCurrency(session.closing_amount) }}
+                  {{ formatPENLabel(session.closing_amount) }}
                 </div>
               </td>
 
@@ -181,7 +181,7 @@
                            session.difference_amount > 0 ? 'text-accent' : 'text-red-600'"
                   >
                     {{ session.difference_amount === 0 ? 'Conforme' :
-                       session.difference_amount > 0 ? '+' : '' }}{{ formatCurrency(session.difference_amount) }}
+                       session.difference_amount > 0 ? '+' : '' }}{{ formatPENLabel(session.difference_amount) }}
                   </span>
                 </div>
                 <div v-else class="text-sm text-theme-secondary">
@@ -274,6 +274,7 @@ import Button from '@/components/ui/Button.vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
+import { formatPENLabel } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -366,13 +367,6 @@ const formatTime = (dateTime) => {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
 }
 
 const getStatusText = (status) => {

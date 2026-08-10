@@ -362,6 +362,6 @@ const confirmDelete = async (evolution) => {
 }
 
 .btn-danger {
-  @apply bg-red-100 text-red-700 hover:bg-red-200;
+  @apply bg-error-100 text-red-700 hover:bg-red-200;
 }
 </style>

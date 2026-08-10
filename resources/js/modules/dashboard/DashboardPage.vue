@@ -254,6 +254,7 @@ import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
+import { formatPENLabel } from '@/composables/useFormatters'
 
 const router = useRouter()
 const route = useRoute()
@@ -397,20 +398,13 @@ const cashStatusIconColor = computed(() => {
 
 const cashBalanceText = computed(() => {
   if (isOpen.value && realTimeTotals.value) {
-    return `Saldo: S/ ${formatCurrency(realTimeTotals.value.currentBalance)}`
+    return `Saldo: ${formatPENLabel(realTimeTotals.value.currentBalance)}`
   }
   if (hasActiveSession.value) {
     return 'Sesión cerrada'
   }
   return 'No hay sesión activa'
 })
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
 
 const goToEnvironments = () => {
   router.push('/environments')

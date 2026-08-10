@@ -106,7 +106,7 @@ const statusClasses = computed(() => {
   const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'
 
   if (props.record.is_active) {
-    return `${baseClasses} bg-green-100 text-green-800`
+    return `${baseClasses} bg-success-100 text-success-700`
   } else {
     return `${baseClasses} bg-theme-surface text-theme-secondary`
   }
@@ -216,6 +216,6 @@ const confirmDelete = async () => {
 }
 
 .btn-danger {
-  @apply bg-red-100 text-red-700 hover:bg-red-200;
+  @apply bg-error-100 text-red-700 hover:bg-red-200;
 }
 </style>

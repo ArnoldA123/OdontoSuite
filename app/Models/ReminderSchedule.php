@@ -13,19 +13,24 @@ class ReminderSchedule extends Model
     use HasFactory;
 
     /**
-     * Slice 03 (T-03.1 + T-03.6 + T-03.7): fillable now matches the real
-     * table columns (channel, error_message added) plus the historical
-     * columns the model has been using (type, anticipation_hours).
+     * Slice 07a (reminder-schedule-write-contract): $fillable is the union
+     * of columns declared by the two migrations touching reminder_schedules:
+     *   - 2025_09_20_082355_create_reminder_schedules_table.php (original)
+     *   - 2026_08_05_020000_add_channel_and_error_to_reminder_schedules.php
+     * The canonical anticipation column is `hours_before` (NOT the phantom
+     * `anticipation_hours` that the previous model carried). `type` was
+     * removed because no migration ever added the column to this table
+     * (the kind label is derived from `ReminderTemplate::type` instead).
+     * Regression guard: tests/Unit/Models/ReminderScheduleFillableContractTest.
      */
     protected $fillable = [
         'appointment_id',
         'reminder_template_id',
+        'hours_before',
         'scheduled_at',
         'sent_at',
         'channel',
         'status',
-        'type',
-        'anticipation_hours',
         'error_message',
     ];
 
@@ -86,14 +91,6 @@ class ReminderSchedule extends Model
     {
         return $query->where('status', 'pending')
                     ->where('scheduled_at', '<=', now());
-    }
-
-    /**
-     * Scope a query to only include reminders for a specific type.
-     */
-    public function scopeOfType($query, string $type)
-    {
-        return $query->where('type', $type);
     }
 
     /**

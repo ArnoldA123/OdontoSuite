@@ -15,12 +15,14 @@ class RehabilitationRecord extends Model
         'appointment_id',
         'dental_piece_id',
         'created_by',
+        'prosthesis_type',
         'restoration_type',
         'material_type',
         'color_shade',
         'laboratory_name',
         'laboratory_contact',
         'impression_date',
+        'delivery_date',
         'try_in_date',
         'cementation_date',
         'occlusion_type',
@@ -37,6 +39,7 @@ class RehabilitationRecord extends Model
 
     protected $casts = [
         'impression_date' => 'date',
+        'delivery_date' => 'date',
         'try_in_date' => 'date',
         'cementation_date' => 'date',
         'photographic_records' => 'array',
