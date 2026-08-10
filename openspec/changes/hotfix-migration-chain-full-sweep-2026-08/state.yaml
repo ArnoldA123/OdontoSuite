@@ -1,0 +1,7 @@
+phase: verify
+status: passed
+change_name: hotfix-migration-chain-full-sweep-2026-08
+artifact_store: hybrid
+preflight: { pace: auto, artifact_store: hybrid, delivery_strategy: ask-on-risk, review_budget: 400 }
+parent_changes: [bugfix-2026-08, hotfix-audit-log-immutable-2026-08, hotfix-migration-eloquent-softdeletes-2026-08]
+trigger: NEW-003 (the only in-scope blocker from the 4-lens full sweep)

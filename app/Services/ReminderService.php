@@ -42,6 +42,13 @@ class ReminderService
 
     /**
      * Schedule a specific reminder.
+     *
+     * Slice 07a (reminder-schedule-write-contract): writes the canonical
+     * `hours_before` column (NOT the phantom `anticipation_hours` / `type`
+     * columns that the previous implementation carried). Idempotent on
+     * `(appointment_id, hours_before)` via `updateOrCreate`, so re-dispatching
+     * the same kind of reminder for the same appointment is a no-op and
+     * never produces duplicates.
      */
     public function scheduleReminder(Appointment $appointment, string $type, int $hoursBefore): void
     {
@@ -54,19 +61,26 @@ class ReminderService
 
         $scheduledAt = $appointment->scheduled_at->copy()->subHours($hoursBefore);
 
-        // Don't schedule if the reminder time has already passed
-        if ($scheduledAt->isPast()) {
+        // Don't schedule if the reminder time has clearly passed (use a
+        // 1-second grace period so microsecond clock drift between
+        // appointment creation and the service call does NOT silently
+        // swallow the boundary case where the appointment is exactly
+        // `$hoursBefore` hours away).
+        if ($scheduledAt->lessThan(now()->subSecond())) {
             return;
         }
 
-        ReminderSchedule::create([
-            'appointment_id' => $appointment->id,
-            'reminder_template_id' => $template->id,
-            'scheduled_at' => $scheduledAt,
-            'status' => 'pending',
-            'type' => $type,
-            'anticipation_hours' => $hoursBefore,
-        ]);
+        ReminderSchedule::updateOrCreate(
+            [
+                'appointment_id' => $appointment->id,
+                'hours_before' => $hoursBefore,
+            ],
+            [
+                'reminder_template_id' => $template->id,
+                'scheduled_at' => $scheduledAt,
+                'status' => 'pending',
+            ]
+        );
     }
 
     /**
@@ -194,6 +208,9 @@ class ReminderService
 
     /**
      * Create a custom reminder.
+     *
+     * Slice 07a: writes the canonical `hours_before` column. Idempotent on
+     * `(appointment_id, hours_before)` via `updateOrCreate`.
      */
     public function createCustomReminder(Appointment $appointment, string $type, int $hoursBefore, string $customMessage = null): ReminderSchedule
     {
@@ -209,18 +226,27 @@ class ReminderService
             throw new \Exception("Cannot schedule reminder in the past");
         }
 
-        return ReminderSchedule::create([
-            'appointment_id' => $appointment->id,
-            'reminder_template_id' => $template->id,
-            'scheduled_at' => $scheduledAt,
-            'status' => 'pending',
-            'type' => $type,
-            'anticipation_hours' => $hoursBefore,
-        ]);
+        return ReminderSchedule::updateOrCreate(
+            [
+                'appointment_id' => $appointment->id,
+                'hours_before' => $hoursBefore,
+            ],
+            [
+                'reminder_template_id' => $template->id,
+                'scheduled_at' => $scheduledAt,
+                'status' => 'pending',
+            ]
+        );
     }
 
     /**
      * Send immediate reminder.
+     *
+     * Slice 07a: writes `hours_before = 0` (the canonical zero-anticipation
+     * value) instead of the phantom `anticipation_hours` / `type` columns.
+     * The dispatch is intentionally NOT idempotent on
+     * (appointment_id, hours_before=0) because each `sendImmediate` call
+     * materialises a fresh reminder row (the original semantics).
      */
     public function sendImmediateReminder(Appointment $appointment, string $type = 'immediate'): void
     {
@@ -230,14 +256,13 @@ class ReminderService
             throw new \Exception("No reminder template found for type: {$type}");
         }
 
-        // Create a temporary reminder schedule for immediate sending
+        // Create a temporary reminder schedule for immediate sending.
         $reminder = ReminderSchedule::create([
             'appointment_id' => $appointment->id,
             'reminder_template_id' => $template->id,
+            'hours_before' => 0,
             'scheduled_at' => now(),
             'status' => 'pending',
-            'type' => $type,
-            'anticipation_hours' => 0,
         ]);
 
         $this->sendReminder($reminder);

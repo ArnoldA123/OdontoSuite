@@ -23,6 +23,7 @@ class PatientResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'birth_date' => $this->birth_date?->format('Y-m-d'),
+            'age' => $this->birth_date ? (int) $this->birth_date->diffInYears(now()) : null,
             'gender' => $this->gender,
             'address' => $this->address,
             'emergency_contact_name' => $this->emergency_contact_name,

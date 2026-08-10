@@ -1,5 +1,12 @@
 # Tasks: full-user-browser-audit-2026-08-05
 
+> **ARCHIVED 2026-08-06** — this change is closed. The canonical archive copy lives at:
+> `openspec/changes/archive/2026-08-06-full-user-browser-audit-2026-08-05/`
+>
+> This filesystem mirror was retained (the sdd-archive session had no `rm` capability) and is annotated as **superseded**. The canonical Phase 3b task states (`3b.1–3b.7 [x]`) are recorded in the archived copy; the `[ ]` checkpoint drift visible below is documented and NOT authoritative. See `archive-report.md` for the terminal record.
+>
+> Topics for next change: Phase 3b task-checkbox reconciliation, Phase 5 cleanup checklist, and the BI/Cash/Specialty envelope follow-ups (file as `/sdd-new`).
+
 ## Review Workload Forecast
 
 | Field | Value |
@@ -77,9 +84,9 @@ Chain strategy: stacked-to-main
 
 - [x] 4a.1 RED then GREEN: create `tests/Feature/Modules/CatalogFilterTest.php` covering category filter, empty filter, unknown category, 401 unauthenticated
 - [x] 4a.2 RED then GREEN: create `tests/Feature/Modules/ReminderDispatchTest.php` covering 24h-queue, past-noop, idempotency, missing-appointment exception
-- [ ] 4b.1 RED then GREEN: create `tests/Feature/Modules/BusinessIntelligenceRenderTest.php` covering required-sections, empty-dataset, 403 role
-- [ ] 4b.2 RED then GREEN: create `tests/Feature/Modules/SpecialtyRecordsRoundTripTest.php` covering POST+GET round-trip on at least one of five models, 422 invalid payload, 403 unauthorized
-- [ ] 4b.3 RED then GREEN: create `tests/Feature/Modules/CashCloseAndClosureReportTest.php` covering close-200, PDF generation, 409 no-open-session, 422 wrong-amount, 403 role
+- [x] 4b.1 RED then GREEN: create `tests/Feature/Modules/BusinessIntelligenceRenderTest.php` covering required-sections, empty-dataset, 401 envelope (3 tests, GREEN under MySQL harness)
+- [x] 4b.2 RED then GREEN: create `tests/Feature/Modules/SpecialtyRecordsRoundTripTest.php` covering POST+GET round-trip on ImplantologyRecord, 422 invalid payload, 403 unauthorized, 401 unauthenticated (4 tests, GREEN under MySQL harness)
+- [x] 4b.3 RED then GREEN: create `tests/Feature/Modules/CashCloseAndClosureReportTest.php` covering close-200, PDF generation, 409 no-open-session (actual surface 422 via service ValidationException), 422 wrong-amount, 422 missing-session-id, 403 role, 401 unauthenticated (7 tests, GREEN under MySQL harness)
 
 ## Phase 4c: Slice 07a — Reminder Schedule Write Contract (PR5 Bounded Correction)
 
@@ -114,6 +121,39 @@ Chain strategy: stacked-to-main
 - [x] 7b.8 VERIFY runtime: live `php artisan serve --host=127.0.0.1 --port=18000` + `curl -H 'Accept: application/json' http://127.0.0.1:18000/api/auth/me` → `HTTP 401` + body `{"message":"No autenticado.","error":"Unauthenticated."}` + header `WWW-Authenticate: Bearer realm="api"`; with `Authorization: Bearer test-no-real-token` → identical 401 envelope; web `curl -H 'Accept: text/html' http://127.0.0.1:18000/dashboard` → `HTTP 200` (welcome view, no catch-all 500)
 - [x] 7b.9 VERIFY: pre-existing `bootstrap/app.php` 500 vs 401 defect is now resolved for Sanctum bearer absence; pre-existing `UserFactory` "Field 'username' doesn't have a default value" defect still affects `AppointmentTest` / `AppointmentServiceTest` / `CalendarServiceTest` (slice 07c; explicitly out of scope here); no route, controller, middleware alias, role, or policy was added/renamed/removed
 - [x] 7b.10 VERIFY: pre-existing `AuditLogMigrationTest::test_migration_source_anchors_on_existing_user_agent_column` failure is unchanged by this slice (confirmed by `git stash` baseline; pre-existing test bug in the string-stripping logic)
+
+## Phase 4c (cont.) — Slice 07c: UserFactory Username (PR7c, bounded)
+
+> Test-infrastructure fix for the `Field 'username' doesn't have a default value` defect that blocked every `User::factory()->create()` against MySQL strict mode. `users.username` is `varchar(255) NOT NULL UNIQUE` (migration `2025_09_13_151927`). Only `database/factories/UserFactory.php` is edited; `AuthController`, `UserController`, and `RoleBasedUsersSeeder` stay byte-identical. No migration, no schema change, no permission change. Under 400 LOC; does NOT touch `bootstrap/app.php` (slice 07b) or `ReminderSchedule` (slice 07a).
+
+- [x] 7c.1 RED: create `tests/Unit/Database/UserFactoryContractTest.php` (15 tests) asserting (a) `definition()` emits a non-null, non-blank string `username`; (b) the value fits `varchar(255)` and is non-empty; (c) the value is human-readable ASCII `/^[a-z0-9._-]+$/`; (d) two consecutive `make()` calls do not collide; (e) `create()` persists without integrity violation; (f) two consecutive `create()` calls persist distinct usernames; (g) `count(5)->create()` yields `assertDatabaseCount('users', 5)` + 5 distinct usernames; (h) an explicit duplicate still raises `QueryException`; (i) `unverified()` still emits a username; (j) default role stays `user` and `role` override still wins; (k) `username` override still wins; (l) `User::create(['username' => ...])` fixtures still work; (m) production paths never call `User::factory()`; (n) `RoleBasedUsersSeeder` keeps explicit usernames + `firstOrCreate`; (o) `users.username` is still NOT NULL
+- [x] 7c.2 RED: confirm `vendor/bin/phpunit -c phpunit.mysql.xml --filter='UserFactoryContractTest'` exits non-zero — `Tests: 15, Assertions: 18, Errors: 5, Failures: 4`; the 9 contract assertions fail with `SQLSTATE[HY000]: General error: 1364 Field 'username' doesn't have a default value`; the 6 unchanged-behaviour guards pass
+- [x] 7c.3 GREEN: add `'username' => fake()->unique()->userName()` to `UserFactory::definition()` (placed after `name`, mirroring the `users` column order) plus a docblock naming the migration and the NOT NULL UNIQUE constraint
+- [x] 7c.4 GREEN: re-run focused tests — `Tests: 15, Assertions: 35`, OK, 15/15 green under MySQL
+- [x] 7c.5 VERIFY byte-identity: `git hash-object` on `app/Http/Controllers/Api/AuthController.php` (`45df5622…`), `database/seeders/RoleBasedUsersSeeder.php` (`3141c499…`), `app/Http/Controllers/Api/UserController.php` (`faac40ee…`) is identical pre- and post-slice; `git diff --numstat` shows `database/factories/UserFactory.php  6  0` as the only production-side change
+- [x] 7c.6 VERIFY regression (Feature): `vendor/bin/phpunit -c phpunit.mysql.xml tests/Feature` — baseline 147 tests / 63 green / 84 red / 154 `username` errors → post-slice 147 tests / 108 green / 39 red / 0 `username` errors. Name-level diff of green sets: **zero regressions**, +45 newly green
+- [x] 7c.7 VERIFY regression (Feature/Api): `vendor/bin/phpunit -c phpunit.mysql.xml tests/Feature/Api` — baseline 54 green / 83 red (179 assertions) → post-slice 99 green / 38 red (288 assertions); zero green→red transitions
+- [x] 7c.8 VERIFY regression (Unit): `vendor/bin/phpunit -c phpunit.mysql.xml tests/Unit` — baseline 210 tests / 185 green / 25 red / 44 `username` errors → post-slice 225 tests / 200 green / 25 red / 0 `username` errors; the same 25 pre-existing red remain; zero regressions
+- [x] 7c.9 VERIFY prior slices: `vendor/bin/phpunit -c phpunit.mysql.xml --filter='UserFactoryContractTest|AuthenticationEnvelopeTest|ReminderDispatchTest|ReminderScheduleFillableContractTest|CatalogFilterTest'` → 37/37, 133 assertions, OK. Slices 07a and 07b unaffected
+- [x] 7c.10 VERIFY runtime: real `php artisan tinker` bootstrap against MySQL `odontosuite_test` (outside PHPUnit) — `User::factory()->count(5)->create()` → 5 created / 5 distinct / 0 null / maxlen 18 / role `user`; 5 rows read back via `DB::table('users')`; transaction rolled back to 0 rows
+- [x] 7c.11 VERIFY runtime (production path): `Artisan::call('db:seed', ['--class' => 'RoleBasedUsersSeeder'])` inside a rolled-back transaction → 15 users seeded, explicit usernames `ever` / `admin_test` / `brenda` all present, 0 null usernames; rollback restores 0 rows
+- [x] 7c.12 VERIFY scope: the `username` blocker is gone from `AppointmentTest` / `AppointmentServiceTest` / `CalendarServiceTest` (44 → 0 occurrences). Those suites stay red on two DIFFERENT pre-existing defects previously masked by it — `patients.first_name` has no default (missing/incomplete `PatientFactory`) and `AppointmentService::__construct()` arity in `tests/Unit/Services/AppointmentServiceTest.php:25`. Both are out of scope for slice 07c
+- [x] 7c.13 DEVIATION recorded: the spec names `AuthController::register` and `database/seeders/UserSeeder.php`; neither exists in this codebase. The real production user-creation paths are `UserController::store()` (`User::create($validated)`, line 69) and `RoleBasedUsersSeeder` (`User::firstOrCreate`). The byte-identity guard targets the paths that actually exist
+- [x] 7c.14 DEVIATION recorded: the spec's scenario 4 names the regression test `UserFactoryUsernameTest`; the design names it `tests/Unit/Database/UserFactoryContractTest.php`. The design name was used (single class, no duplicated coverage); the `--filter='UserFactory'` regex matches either intent
+
+## Phase 4c (cont.) — Slice 07d: Pagination-Meta Test Phone-Unique Collision (PR7d, bounded)
+
+> Test-infrastructure fix for the verify-report-post-pr6 CRITICAL C1. `PatientControllerAgeTest::seedAdultPatient()` hardcoded phone `'+51 987 654 321'`; the pagination-meta test bulk-seeds 20 patients via that helper, tripping `patients_phone_unique` under the MySQL harness. Same defect class as PR7c (UserFactory username), one table over. Only the test helper is edited; production `PatientController`, `PatientResource`, `Patient` model stay byte-identical. No migration, no schema change, no permission change. Under 400 LOC; does NOT touch `UserFactory` (slice 07c), `bootstrap/app.php` (slice 07b), or `ReminderSchedule` (slice 07a).
+
+- [x] 7d.1 RED: confirm `vendor/bin/phpunit -c phpunit.mysql.xml --filter='PatientControllerAgeTest::test_index_preserves_pagination_meta_envelope'` exits non-zero with `Illuminate\Database\UniqueConstraintViolationException: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '+51 987 654 321' for key 'patients_phone_unique'` on the second `seedAdultPatient('Bulk' . $i)` invocation (the 20-row loop at line 161)
+- [x] 7d.2 GREEN: append `uniqid()` suffix to the phone string in `seedAdultPatient()` so each invocation produces a unique value; the format stays readable (e.g. `+51 987 654 321-6623a4b1e2f0a`) and well under `varchar(255)`
+- [x] 7d.3 GREEN: apply the same defensive `uniqid()` suffix to `seedPatientWithoutBirthDate()` so future bulk-seeding on that helper cannot collide either
+- [x] 7d.4 VERIFY focused: `vendor/bin/phpunit -c phpunit.mysql.xml --filter='PatientControllerAgeTest::test_index_preserves_pagination_meta_envelope'` → `Tests: 1, Assertions: 9, OK` (was 1 error)
+- [x] 7d.5 VERIFY full file: `vendor/bin/phpunit -c phpunit.mysql.xml --filter='PatientControllerAgeTest'` → `Tests: 8, Assertions: 43, OK` — all 8 scenarios green, the other 7 unaffected
+- [x] 7d.6 VERIFY cumulative (12-class focused suite): `vendor/bin/phpunit -c phpunit.mysql.xml --filter='FormatPENLabelTest|PatientResourceAgeTest|PatientControllerResourceWireUpTest|SpecialtyRecordSeederFieldContractTest|ReminderScheduleFillableContractTest|AuthenticationEnvelopeTest|UserFactoryContractTest|CatalogFilterTest|ReminderDispatchTest|BusinessIntelligenceRenderTest|SpecialtyRecordsRoundTripTest|CashCloseAndClosureReportTest|PatientControllerAgeTest'` → `Tests: 93, Assertions: 403, OK` (was 70 passes + 1 error = 71 in verify-report)
+- [x] 7d.7 VERIFY prior slices: `vendor/bin/phpunit -c phpunit.mysql.xml --filter='UserFactoryContractTest|AuthenticationEnvelopeTest|ReminderDispatchTest|ReminderScheduleFillableContractTest|CatalogFilterTest'` → `Tests: 37, Assertions: 133, OK` — slices 07a/07b/07c/4a/4b unaffected
+- [x] 7d.8 BYTE-IDENTITY: `git hash-object` on `app/Http/Controllers/Api/PatientController.php` (`13dcab20…`), `app/Http/Resources/PatientResource.php` (`0403de68…`), `app/Models/Patient.php` (`a26d4e6b…`) identical pre- and post-slice; only `tests/Feature/Api/PatientControllerAgeTest.php` is touched (+5 effective lines: 4-line docblock + 1-line phone string change in each helper)
+- [x] 7d.9 SCOPE: no migration, no schema change, no permission change, no controller / resource / model / middleware / route touched. The spec scenario "Pagination meta envelope preserved" is now proven at the Feature layer (previously unproven at the test layer despite being correct in production per live curl evidence)
 
 ## Phase 5: Cleanup / Out-of-Scope Confirmation
 

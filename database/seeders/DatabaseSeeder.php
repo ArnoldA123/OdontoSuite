@@ -40,6 +40,10 @@ class DatabaseSeeder extends Seeder
             // 7. Citas completadas con pagos pendientes
             CompletedAppointmentsSeeder::class,
 
+            // 7b. Piezas dentales (FK previa para endodoncia / rehabilitación /
+            //     cirugía oral / implantología). Idempotente (32 FDI permanentes).
+            DentalPieceSeeder::class,
+
             // 8. Registros de especialidades
             SpecialtyRecordSeeder::class,
         ]);

@@ -27,3 +27,9 @@ Thumbs.db
 # Temp files from Hermes agent
 .tmp_token.txt
 .tmp_pr_body.json
+
+# Tooling caches and local artifacts
+/.atl/
+/.codegraph/
+/_strip_check.php
+/odontosuite

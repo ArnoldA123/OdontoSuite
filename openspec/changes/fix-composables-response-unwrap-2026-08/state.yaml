@@ -1,0 +1,6 @@
+phase: apply
+status: done
+change_name: fix-composables-response-unwrap-2026-08
+artifact_store: hybrid
+preflight: { pace: auto, artifact_store: hybrid, delivery_strategy: ask-on-risk, review_budget: 400 }
+trigger: NEW-005

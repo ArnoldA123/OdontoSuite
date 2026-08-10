@@ -20,10 +20,10 @@ const statusClasses = computed(() => {
   const statusMap = {
     draft: `${baseClasses} bg-theme-surface text-theme-secondary`,
     proposed: `${baseClasses} bg-primary-100 text-primary-800`,
-    approved: `${baseClasses} bg-green-100 text-green-800`,
-    in_progress: `${baseClasses} bg-yellow-100 text-yellow-800`,
+    approved: `${baseClasses} bg-success-100 text-success-700`,
+    in_progress: `${baseClasses} bg-warning-100 text-warning-700`,
     completed: `${baseClasses} bg-success-badge text-success-text`,
-    cancelled: `${baseClasses} bg-red-100 text-red-800`
+    cancelled: `${baseClasses} bg-error-100 text-error-700`
   }
 
   return statusMap[props.status] || `${baseClasses} bg-theme-surface text-theme-secondary`
