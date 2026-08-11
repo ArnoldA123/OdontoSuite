@@ -133,9 +133,9 @@ const tabListClasses = computed(() => {
 
   const variants = {
     default: [],
-    pills: ['bg-theme-surface rounded-lg p-1'],
+    pills: ['bg-theme-surface rounded-ios p-1'],
     underline: [],
-    cards: ['bg-theme-surface rounded-lg p-1']
+    cards: ['bg-theme-surface rounded-ios p-1']
   }
 
   return [
@@ -147,7 +147,7 @@ const tabListClasses = computed(() => {
 const indicatorClasses = computed(() => {
   const base = [
     'absolute',
-    'bg-accent'
+    'bg-systemBlue-500'
   ]
 
   if (props.orientation === 'vertical') {
@@ -190,14 +190,14 @@ const getTabClasses = (tab, index) => {
     default: [
       'text-theme-secondary',
       'hover:text-theme-primary',
-      activeTab.value === tab.id ? 'text-accent' : ''
+      activeTab.value === tab.id ? 'text-systemBlue-600' : ''
     ],
     pills: [
       'rounded-md',
       'text-theme-secondary',
       'hover:text-theme-primary hover:bg-theme-surface',
       activeTab.value === tab.id
-        ? 'bg-theme-surface-elevated text-accent shadow-sm'
+        ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm'
         : ''
     ],
     underline: [
@@ -205,7 +205,7 @@ const getTabClasses = (tab, index) => {
       'hover:text-theme-primary',
       'border-b-2 border-transparent',
       activeTab.value === tab.id
-        ? 'text-accent border-accent'
+        ? 'text-systemBlue-600 border-systemBlue-500'
         : 'hover:border-theme'
     ],
     cards: [
@@ -213,7 +213,7 @@ const getTabClasses = (tab, index) => {
       'text-theme-secondary',
       'hover:text-theme-primary',
       activeTab.value === tab.id
-        ? 'bg-theme-surface-elevated text-accent shadow-sm'
+        ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm'
         : 'hover:bg-theme-surface'
     ]
   }

@@ -116,11 +116,9 @@ const goHome = () => {
 }
 
 .not-found-headline {
-  font-family: var(--font-serif);
   @apply text-3xl sm:text-4xl font-medium leading-[1.1];
-  color: var(--color-ink-900);
-  letter-spacing: -0.025em;
-  font-optical-sizing: auto;
+  color: var(--color-label-label);
+  letter-spacing: -0.022em;
 }
 
 .not-found-subhead {

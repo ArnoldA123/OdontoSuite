@@ -80,7 +80,7 @@ const observer = ref(null)
 const containerClasses = computed(() => [
   'lazy-image-container',
   'relative overflow-hidden',
-  props.rounded ? 'rounded-lg' : ''
+  props.rounded ? 'rounded-ios' : ''
 ])
 
 const containerStyle = computed(() => ({

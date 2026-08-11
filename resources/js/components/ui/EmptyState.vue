@@ -131,9 +131,9 @@ const containerClasses = computed(() => {
   }
 
   const variants = {
-    default: 'bg-theme-surface-elevated rounded-lg border border-theme',
+    default: 'bg-theme-surface-elevated rounded-ios border border-theme',
     minimal: 'bg-transparent',
-    centered: 'bg-theme-surface rounded-lg'
+    centered: 'bg-theme-surface rounded-ios'
   }
 
   return [

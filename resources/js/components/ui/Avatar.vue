@@ -85,7 +85,7 @@ const avatarClasses = computed(() => {
   const shapes = {
     circle: 'rounded-full',
     square: 'rounded-md',
-    rounded: 'rounded-lg'
+    rounded: 'rounded-ios'
   }
 
   // Interactive states
@@ -106,7 +106,7 @@ const imageClasses = computed(() => [
   'w-full h-full object-cover',
   props.variant === 'circle' ? 'rounded-full' : '',
   props.variant === 'square' ? 'rounded-md' : '',
-  props.variant === 'rounded' ? 'rounded-lg' : ''
+  props.variant === 'rounded' ? 'rounded-ios' : ''
 ])
 
 const fallbackClasses = computed(() => [

@@ -157,15 +157,15 @@ const inputClasses = computed(() => {
   // Size variants
   const sizes = {
     sm: 'px-3 py-2 text-sm rounded-md min-h-[36px]',
-    md: 'px-4 py-3 text-base rounded-lg min-h-[44px]',
-    lg: 'px-5 py-4 text-lg rounded-lg min-h-[52px]'
+    md: 'px-4 py-3 text-base rounded-ios min-h-[44px]',
+    lg: 'px-5 py-4 text-lg rounded-ios min-h-[52px]'
   }
 
   // Variant styles
   const variants = {
-    default: 'bg-theme-surface-elevated border-theme focus:border-accent focus:ring-primary-500/20',
-    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent focus:ring-primary-500/20',
-    outlined: 'bg-transparent border-2 border-theme focus:border-accent focus:ring-primary-500/20'
+    default: 'bg-theme-surface-elevated border-theme focus:border-accent focus:ring-systemBlue-500/20',
+    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent focus:ring-systemBlue-500/20',
+    outlined: 'bg-transparent border-2 border-theme focus:border-accent focus:ring-systemBlue-500/20'
   }
 
   // State styles
@@ -194,7 +194,7 @@ const inputClasses = computed(() => {
 const clearButtonClasses = computed(() => [
   'absolute inset-y-0 right-0 flex items-center pr-3',
   'text-theme-secondary hover:text-theme-primary',
-  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2',
   'rounded-md'
 ])
 

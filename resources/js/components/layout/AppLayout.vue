@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-[100dvh] bg-cream-50">
+  <div class="min-h-[100dvh] bg-systemBackground">
     <!-- Desktop Sidebar -->
     <aside
       id="primary-sidebar"
@@ -13,7 +13,7 @@
           <router-link
             v-if="!sidebarCollapsed"
             to="/dashboard"
-            class="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-lg"
+            class="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2 rounded-ios"
             aria-label="Ir al Dashboard"
             title="Ir al Dashboard"
           >
@@ -29,7 +29,7 @@
           <button
             v-else
             @click="toggleSidebar"
-            class="flex items-center justify-center w-8 h-8 p-1 rounded-lg hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors duration-200"
+            class="flex items-center justify-center w-8 h-8 p-1 rounded-ios hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2 transition-colors duration-200"
             aria-label="Abrir barra lateral"
             title="Abrir barra lateral"
             aria-expanded="false"
@@ -44,7 +44,7 @@
         <button
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
-          class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+          class="ml-auto p-1.5 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
           :aria-label="sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
           :aria-expanded="!sidebarCollapsed"
           aria-controls="primary-sidebar"
@@ -137,7 +137,7 @@
         </div>
         <button
           @click="mobileMenuOpen = true"
-          class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          class="p-2 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2"
           aria-label="Abrir menú"
           aria-haspopup="dialog"
           aria-expanded="mobileMenuOpen"
@@ -232,10 +232,10 @@
               <div
                 class="flex items-center justify-center w-8 h-8 rounded-full"
                 :class="{
-                  'bg-info-100 text-info-700': wsStatus === 'connecting',
-                  'bg-success-100 text-success-700': wsStatus === 'connected',
-                  'bg-warning-100 text-warning-700': wsStatus === 'disconnected',
-                  'bg-error-100 text-error-700': wsStatus === 'unavailable',
+                  'bg-systemBlue-100 text-systemBlue-700': wsStatus === 'connecting',
+                  'bg-systemGreen-100 text-systemGreen-700': wsStatus === 'connected',
+                  'bg-systemYellow-100 text-systemYellow-700': wsStatus === 'disconnected',
+                  'bg-systemRed-100 text-systemRed-700': wsStatus === 'unavailable',
                 }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
                 :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'connecting' ? 'Conectando' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
@@ -243,10 +243,10 @@
                 <span
                   class="w-2 h-2 rounded-full"
                   :class="{
-                    'bg-info-500 animate-pulse': wsStatus === 'connecting',
-                    'bg-success-500 animate-pulse-subtle': wsStatus === 'connected',
-                    'bg-warning-500': wsStatus === 'disconnected',
-                    'bg-error-500': wsStatus === 'unavailable',
+                    'bg-systemBlue-500 animate-pulse': wsStatus === 'connecting',
+                    'bg-systemGreen-500 animate-pulse-subtle': wsStatus === 'connected',
+                    'bg-systemYellow-500': wsStatus === 'disconnected',
+                    'bg-systemRed-500': wsStatus === 'unavailable',
                   }"
                   aria-hidden="true"
                 />
@@ -764,10 +764,10 @@ const navigation = computed(() => {
   )
 })
 
-// Navigation item classes
+// Navigation item classes (iOS clinical: systemBlue for active nav).
 const getNavItemClasses = (item) => {
   const base = [
-    'group flex items-center py-2.5 text-sm font-medium rounded-lg',
+    'group flex items-center py-2.5 text-sm font-medium rounded-ios',
     'transition-all duration-200 ease-ios',
     sidebarCollapsed.value ? 'justify-center px-2' : 'px-3',
     'text-theme-secondary hover:text-theme-primary',
@@ -775,8 +775,8 @@ const getNavItemClasses = (item) => {
   ]
 
   const active = route.path === item.to ? [
-    'bg-primary-50 text-primary-700',
-    'border border-primary-200',
+    'bg-systemBlue-50 text-systemBlue-700',
+    'border border-systemBlue-200',
     'shadow-subtle'
   ] : []
 
@@ -785,15 +785,15 @@ const getNavItemClasses = (item) => {
 
 const getMobileNavItemClasses = (item) => {
   const base = [
-    'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg',
+    'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-ios',
     'transition-all duration-200',
     'text-theme-secondary hover:text-theme-primary',
     'hover:bg-theme-surface'
   ]
 
   const active = route.path === item.to ? [
-    'bg-primary-50 text-primary-700',
-    'border border-primary-200'
+    'bg-systemBlue-50 text-systemBlue-700',
+    'border border-systemBlue-200'
   ] : []
 
   return [...base, ...active].join(' ')
@@ -948,12 +948,12 @@ onUnmounted(() => {
   }
 }
 
-/* Router-link active state - clinical teal-ish accent for the active
+/* Router-link active state - iOS clinical systemBlue for the active
    nav item; visually unmistakable per the design wayfinding goal. */
 .router-link-exact-active {
-  background-color: var(--color-terracotta-50);
-  color: var(--color-terracotta-700);
-  border-color: var(--color-terracotta-200);
+  background-color: var(--color-system-blue-50);
+  color: var(--color-system-blue-700);
+  border-color: var(--color-system-blue-200);
 }
 
 /* Sidebar entrance animation: small slide-in from the left. Disabled

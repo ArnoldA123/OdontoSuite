@@ -8,132 +8,232 @@
  * from this same module so the build and runtime never drift.
  *
  * Token surfaces:
- *   - colors      Semantic + brand + state palettes (Tailwind 50-900 scale).
+ *   - colors      iOS 13+ system colors + background + label + separator + fill.
  *   - spacing     4px-grid spacing scale.
- *   - radius      Border-radius scale (none, sm, md, lg, full).
- *   - typography  Font family + size scale (Newsreader serif, system sans).
- *   - shadow      Box-shadow elevation tokens.
+ *   - radius      iOS radius scale (none/sm/md/ios/modal/full).
+ *   - typography  System font (sans only); per-step letterSpacing for SF.
+ *   - shadow      Box-shadow elevation tokens (pure-black rgba).
  *   - breakpoint  Responsive breakpoints (sm/md/lg/xl/2xl).
  *   - motion      Spring/response/damping/easing tokens (useSpring consumer).
  *
  * Conventions:
  *   - All hex values are 6-digit lowercase (#rrggbb) — matches tailwind config.
- *   - `info` ramp was removed (folded into `clinicalTeal` per PR2 spec).
- *   - The `primary` ramp was renamed to `terracotta`; `primary` is kept as a
- *     deprecated alias so the 17 un-migrated modules keep their class names
- *     resolving until PR3 retires them.
- *   - The neutral scale is the iCloud minimalist grayscale (50–900).
- *   - Serif surface is `Newsreader`, self-hosted variable OFL woff2 in
- *     public/fonts/, no Google Fonts CDN.
+ *   - `terracotta` / `cream` / `clinicalTeal` / `info` are kept as
+ *     DEPRECATED ALIAS keys so the 17 un-migrated modules' Tailwind classes
+ *     keep resolving (e.g. `bg-cream-50` -> `bg-systemGray-50`,
+ *     `bg-terracotta-500` -> `bg-systemBlue-500`). Do NOT add new consumers.
+ *   - `info` re-keys to systemBlue (iOS convention: blue = info).
+ *   - Serif surface is REMOVED entirely (system font only, design
+ *     Decision 6). System font has zero FOUT risk — no replacement
+ *     composable ships.
+ *   - The design system is light-only (no dark-mode media query).
  *
  * Audit trail:
  *   - FF-004 — file was referenced in AGENTS.md §2 but did not exist.
- *   - UXT-001/002 — info/neutral/motion/glass/ease tokens now declared
- *     AND documented.
- *   - PR2-2026-08-10 — new ramps (terracotta/cream/ink/clinicalTeal), serif
- *     family, per-step tracking, motion section.
+ *   - UXT-001/002 — info/neutral/motion/glass/ease tokens documented.
+ *   - PR2-2026-08-10 — terracotta/cream/ink/clinicalTeal ramps (retired).
+ *   - PR3-2026-08-10 (this change, ui-refresh-apple-clinical-2026-08) —
+ *     iOS 13+ system color ramps, background/label/separator/fill ramps,
+ *     radius.ios/radius.modal, serif dropped, deprecated aliases kept,
+ *     pure-black shadow ramp, white-on-white chrome.
  */
 
 const tokens = {
   colors: {
-    // Brand accent — terracotta. Apple-inspired warm hue, NOT iCloud blue.
-    // CTA bg, link, focus ring, badge accent, button border on cream-50.
-    terracotta: {
-      50: '#fbeee7',
-      100: '#f4d9c7',
-      200: '#e9b89e',
-      300: '#dd9775',
-      400: '#d27a52',
-      500: '#c96442',
-      600: '#b05432',
-      700: '#8c3f25',
-      800: '#652c1b',
-      900: '#3f1a11'
+    // iOS 13+ system color ramps. Spec-required steps are 50/100/500/600/700;
+    // 200/300/400 added so Tailwind generates all utility classes
+    // (`border-systemGreen-200`, `ring-systemBlue-400`, etc.) the existing
+    // call sites consume.
+    systemBlue: {
+      50: '#e5f1ff',
+      100: '#cce4ff',
+      200: '#99c8ff',
+      300: '#66adff',
+      400: '#3392ff',
+      500: '#007aff',
+      600: '#0062cc',
+      700: '#004999'
     },
-    // Deprecated alias — kept so existing `bg-primary-*` classes resolve
-    // until PR3 retires them. Do NOT add new consumers of `primary`.
-    primary: {
-      50: '#fbeee7',
-      100: '#f4d9c7',
-      200: '#e9b89e',
-      300: '#dd9775',
-      400: '#d27a52',
-      500: '#c96442',
-      600: '#b05432',
-      700: '#8c3f25',
-      800: '#652c1b',
-      900: '#3f1a11'
+    systemRed: {
+      50: '#ffebea',
+      100: '#ffd9d7',
+      200: '#ffb8b3',
+      300: '#ff9890',
+      400: '#ff776c',
+      500: '#ff3b30',
+      600: '#d70015',
+      700: '#a50e10'
     },
-    // Surface ramp — warm cream. Page bg = 50, card surface = 100,
-    // divider = 200, decorative = 300.
+    systemOrange: {
+      50: '#fff1e5',
+      100: '#ffe2c7',
+      200: '#ffd09d',
+      300: '#ffbd73',
+      400: '#ffab49',
+      500: '#ff9500',
+      600: '#c93400',
+      700: '#9a2700'
+    },
+    systemYellow: {
+      50: '#fff9d6',
+      100: '#fff1ad',
+      200: '#ffe57f',
+      300: '#ffd84f',
+      400: '#ffd11f',
+      500: '#ffcc00',
+      600: '#a57000',
+      700: '#7a5200'
+    },
+    systemGreen: {
+      50: '#e8f5e9',
+      100: '#cdedcf',
+      200: '#a4d8a8',
+      300: '#7dc285',
+      400: '#56ac63',
+      500: '#34c759',
+      600: '#248a3d',
+      700: '#1a6530'
+    },
+    systemIndigo: {
+      50: '#efe9ff',
+      100: '#dfd2ff',
+      200: '#c8b6ff',
+      300: '#b09aff',
+      400: '#997eff',
+      500: '#5856d6',
+      600: '#3f3dab',
+      700: '#2d2b80'
+    },
+    systemPurple: {
+      50: '#f6e9ff',
+      100: '#ecd2ff',
+      200: '#dfaeff',
+      300: '#d189ff',
+      400: '#c365ff',
+      500: '#af52de',
+      600: '#7a38a1',
+      700: '#55276f'
+    },
+    systemPink: {
+      50: '#ffe9f0',
+      100: '#ffd2dd',
+      200: '#ffa9b8',
+      300: '#ff7f93',
+      400: '#ff556e',
+      500: '#ff2d55',
+      600: '#c30039',
+      700: '#8e0028'
+    },
+    systemGray: {
+      50: '#f2f2f7',
+      100: '#e5e5ea',
+      200: '#d1d1d6',
+      300: '#c7c7cc',
+      400: '#aeaeb2',
+      500: '#8e8e93',
+      600: '#636366',
+      700: '#3a3a3c'
+    },
+
+    // iOS background ramp (UIKit: systemBackground etc.).
+    background: {
+      systemBackground: '#ffffff',
+      secondaryBackground: '#f2f2f7',
+      tertiaryBackground: '#ffffff',
+      groupedBackground: '#f2f2f7'
+    },
+
+    // iOS label ramp (UIKit: label etc.).
+    label: {
+      label: '#000000',
+      secondaryLabel: '#3c3c43',
+      tertiaryLabel: 'rgba(60, 60, 67, 0.30)',
+      quaternaryLabel: 'rgba(60, 60, 67, 0.18)'
+    },
+
+    // iOS hairline separator + opaque variants.
+    separator: {
+      separator: '#c6c6c8'
+    },
+
+    // iOS system fill (opaque-ish overlays for grouped rows).
+    fill: {
+      systemFill: 'rgba(120, 120, 128, 0.20)',
+      secondarySystemFill: 'rgba(120, 120, 128, 0.16)',
+      tertiarySystemFill: 'rgba(118, 118, 128, 0.12)'
+    },
+
+    // Deprecated alias keys — kept so the 17 un-migrated modules' Tailwind
+    // classes keep resolving without churn. Do NOT add new consumers.
     cream: {
-      50: '#faf9f7',
-      100: '#f2efe9',
-      200: '#e8e3d8',
-      300: '#d8d1c0'
+      50: '#f2f2f7',  // -> systemGray-50
+      100: '#e5e5ea', // -> systemGray-100
+      200: '#d1d1d6'  // -> systemGray-200
     },
-    // Text ramp. Body uses 800 on cream-50 (~13.6:1, AAA). Display uses
-    // 900. Borders use 200 (subtle) and 300 (strong).
-    ink: {
-      50: '#f7f5f2',
-      100: '#dad5cd',
-      200: '#b0a99d',
-      300: '#847c6e',
-      500: '#5a5247',
-      600: '#423a30',
-      700: '#2a2622',
-      800: '#1f1b17',
-      900: '#14110e'
+    terracotta: {
+      500: '#007aff', // -> systemBlue-500
+      600: '#0062cc'  // -> systemBlue-600
     },
-    // Medical-state semantics: appointment-confirmed, in-consultation,
-    // prescription-sent. Never body. `info` was folded into this ramp.
     clinicalTeal: {
-      50: '#e6f2f2',
-      100: '#c8e0e0',
-      300: '#74b4b4',
-      500: '#2c7a7b',
-      600: '#226466',
-      700: '#1a4f51'
+      50: '#e5f1ff',  // -> systemBlue-50
+      500: '#007aff', // -> systemBlue-500
+      600: '#0062cc'  // -> systemBlue-600
     },
-    // Kept for the 17 un-migrated modules that reference neutral.
+    info: {
+      500: '#007aff'  // -> systemBlue-500 (iOS convention: blue = info)
+    },
+    // Deprecated alias for terracotta (kept for the 17 un-migrated
+    // modules' bg-primary-* Tailwind classes; do NOT add new consumers).
+    primary: {
+      50: '#e5f1ff',  // -> systemBlue-50
+      100: '#cce4ff', // -> systemBlue-100
+      200: '#99c8ff', // -> systemBlue-200
+      300: '#66adff', // -> systemBlue-300
+      400: '#3392ff', // -> systemBlue-400
+      500: '#007aff', // -> systemBlue-500
+      600: '#0062cc', // -> systemBlue-600
+      700: '#004999', // -> systemBlue-700
+      800: '#003066', // -> systemBlue-800
+      900: '#001833'  // -> systemBlue-900
+    },
+    // Deprecated alias for systemGray (kept for the 17 un-migrated
+    // modules' bg-neutral-* Tailwind classes; do NOT add new consumers).
     neutral: {
-      50: '#ffffff',
-      100: '#f5f5f7',
-      200: '#e5e5e7',
-      300: '#d2d2d7',
-      400: '#a3a3a8',
-      500: '#86868b',
-      600: '#525252',
-      700: '#404040',
-      800: '#262626',
-      900: '#1d1d1f'
+      50: '#ffffff',  // pure white (systemBackground)
+      100: '#f2f2f7', // -> systemGray-50
+      200: '#e5e5ea', // -> systemGray-100
+      500: '#8e8e93', // -> systemGray-500
+      700: '#3a3a3c', // -> systemGray-700
+      900: '#1d1d1f'  // near-black (label / display)
     },
+    // Deprecated semantic aliases — kept so bg-success-* / bg-warning-* /
+    // bg-error-* Tailwind classes resolve for the 17 un-migrated modules.
     success: {
-      50: '#f0fdf4',
-      100: '#dcfce7',
-      300: '#86efac',
-      500: '#10b981',
-      600: '#059669',
-      700: '#047857',
-      900: '#14532d'
+      50: '#e8f5e9',  // -> systemGreen-50
+      100: '#cdedcf', // -> systemGreen-100
+      300: '#a4d8a8', // -> systemGreen-200 ish
+      500: '#34c759', // -> systemGreen-500
+      600: '#248a3d', // -> systemGreen-600
+      700: '#1a6530', // -> systemGreen-700
+      900: '#0f4520'  // darker green for legacy contrast
     },
     warning: {
-      50: '#fffbeb',
-      100: '#fef3c7',
-      300: '#fcd34d',
-      500: '#f59e0b',
-      600: '#d97706',
-      700: '#b45309',
-      900: '#78350f'
+      50: '#fff9d6',  // -> systemYellow-50
+      100: '#fff1ad', // -> systemYellow-100
+      300: '#ffe07a', // -> systemYellow-200 ish
+      500: '#ffcc00', // -> systemYellow-500
+      600: '#a57000', // -> systemYellow-600
+      700: '#7a5200', // -> systemYellow-700
+      900: '#4d3300'  // darker yellow
     },
     error: {
-      50: '#fef2f2',
-      100: '#fee2e2',
-      300: '#fca5a5',
-      500: '#ef4444',
-      600: '#dc2626',
-      700: '#b91c1c',
-      900: '#7f1d1d'
+      50: '#ffebea',  // -> systemRed-50
+      100: '#ffd9d7', // -> systemRed-100
+      300: '#ffaaa6', // -> systemRed-200 ish
+      500: '#ff3b30', // -> systemRed-500
+      600: '#d70015', // -> systemRed-600
+      700: '#a50e10', // -> systemRed-700
+      900: '#5a0608'  // darker red
     }
   },
   spacing: {
@@ -153,17 +253,16 @@ const tokens = {
   },
   radius: {
     none: '0',
-    sm: '4px',
-    DEFAULT: '8px',
-    md: '10px',
-    lg: '12px',
-    xl: '16px',
-    '2xl': '20px',
-    '3xl': '24px',
-    full: '9999px'
+    sm: '4px',    // small chips
+    md: '8px',    // inputs (slight inset)
+    ios: '10px',  // cards, buttons, status chips (iOS standard)
+    modal: '14px',// Modal, Sheet, bottom pickers (iOS standard)
+    full: '9999px'// pills
+    // lg/2xl/3xl removed — see Decision 3.
   },
   typography: {
     fontFamily: {
+      // System font only. No serif. No fallback chain.
       sans: [
         '-apple-system',
         'BlinkMacSystemFont',
@@ -172,36 +271,35 @@ const tokens = {
         'Helvetica Neue',
         'Arial',
         'sans-serif'
-      ],
-      // Newsreader self-hosted (variable, opsz + wght axes), OFL.
-      // No Google Fonts CDN. Fallback chain matches Newsreader's
-      // metrics at opsz=16: same x-height, similar advance widths.
-      serif: ['Newsreader', 'ui-serif', 'New York', 'Georgia', 'serif']
+      ]
+      // serif: REMOVED (system font only per Decision 6).
     },
-    // Per-step tracking table (design Decision 3). Negative tracking on
-    // large display; positive tracking on small text. The generator emits
-    // these as CSS rules so Tailwind class names like .text-display carry
-    // the right tracking automatically.
+    // Per-step tracking tuned for SF / system font. Less aggressive
+    // negative tracking than the previous serif table because SF's
+    // advance widths are tighter; body is `0`, large display goes to
+    // `-0.022em` only.
     fontSize: {
-      xs: ['12px', { lineHeight: '16px', letterSpacing: '0.01em' }],
+      xs: ['12px', { lineHeight: '16px', letterSpacing: '0' }],
       sm: ['13px', { lineHeight: '18px', letterSpacing: '0' }],
       base: ['15px', { lineHeight: '22px', letterSpacing: '0' }],
       lg: ['17px', { lineHeight: '24px', letterSpacing: '0' }],
       xl: ['20px', { lineHeight: '28px', letterSpacing: '-0.01em' }],
       '2xl': ['24px', { lineHeight: '32px', letterSpacing: '-0.015em' }],
       '3xl': ['30px', { lineHeight: '36px', letterSpacing: '-0.02em' }],
-      '4xl': ['36px', { lineHeight: '40px', letterSpacing: '-0.025em' }],
-      display: ['48px', { lineHeight: '48px', letterSpacing: '-0.03em' }],
-      hero: ['64px', { lineHeight: '64px', letterSpacing: '-0.035em' }]
+      '4xl': ['36px', { lineHeight: '40px', letterSpacing: '-0.022em' }],
+      display: ['48px', { lineHeight: '48px', letterSpacing: '-0.022em' }],
+      hero: ['64px', { lineHeight: '64px', letterSpacing: '-0.022em' }]
+      // font-optical-sizing REMOVED — system font has no opsz axis.
     }
   },
   shadow: {
+    // Pure-black rgba (Decision 5). No warm-black tints.
     subtle: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
     soft: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     medium: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     large: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
     elevated: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    glass: '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
+    glass: '0 8px 32px 0 rgba(0, 0, 0, 0.18)'
   },
   breakpoint: {
     sm: '640px',

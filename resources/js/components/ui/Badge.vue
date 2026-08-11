@@ -65,33 +65,31 @@ const badgeClasses = computed(() => {
     square: 'rounded-sm'
   }
 
-  // Color variants
-  // `info` is an alias for the medical-state clinicalTeal ramp (PR2 Decision
-  // 3) so 76+ existing call sites render as before without a code change.
+  // Color variants (iOS filled pattern: 100 background + 600 text).
   const variants = {
     default: [
       'bg-theme-surface text-theme-secondary',
       'border border-theme'
     ],
     primary: [
-      'bg-primary-50 text-primary-700',
-      'border border-primary-200'
+      'bg-systemBlue-100 text-systemBlue-700',
+      'border border-systemBlue-200'
     ],
     success: [
-      'bg-success-badge',
-      'border border-success'
+      'bg-systemGreen-100 text-systemGreen-700',
+      'border border-systemGreen-200'
     ],
     warning: [
-      'bg-warning-badge',
-      'border border-warning'
+      'bg-systemYellow-100 text-systemYellow-700',
+      'border border-systemYellow-200'
     ],
     error: [
-      'bg-danger-badge',
-      'border border-danger'
+      'bg-systemRed-100 text-systemRed-700',
+      'border border-systemRed-200'
     ],
     info: [
-      'bg-clinicalTeal-50 text-clinicalTeal-700',
-      'border border-clinicalTeal-200'
+      'bg-systemBlue-100 text-systemBlue-700',
+      'border border-systemBlue-200'
     ],
     neutral: [
       'bg-theme-surface text-theme-secondary',

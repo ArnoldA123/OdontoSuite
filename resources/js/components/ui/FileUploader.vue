@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-uploader">
     <div
       :class="[
@@ -44,7 +44,7 @@
               :key="index"
               class="file-item"
             >
-              <div class="flex items-center justify-between p-3 bg-theme-surface rounded-lg">
+              <div class="flex items-center justify-between p-3 bg-theme-surface rounded-ios">
                 <div class="flex items-center space-x-3">
                   <div class="file-icon">
                     <DocumentIcon v-if="isDocument(file)" class="w-5 h-5 text-accent" />
@@ -81,7 +81,7 @@
           <img
             :src="file.preview"
             :alt="file.name"
-            class="w-full h-24 object-cover rounded-lg border border-theme"
+            class="w-full h-24 object-cover rounded-ios border border-theme"
           />
           <button
             @click="removeFile(getFileIndex(file))"
@@ -310,7 +310,7 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .upload-area {
-  @apply border-2 border-dashed border-theme rounded-lg p-8 text-center cursor-pointer transition-all duration-200;
+  @apply border-2 border-dashed border-theme rounded-ios p-8 text-center cursor-pointer transition-all duration-200;
 }
 
 .upload-area:hover {

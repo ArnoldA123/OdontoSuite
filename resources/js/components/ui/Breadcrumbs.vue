@@ -15,7 +15,7 @@
 
       <!-- Separator after home -->
       <li v-if="showHome && items.length > 0" class="flex items-center">
-        <component :is="separator" class="w-4 h-4 text-theme-secondary" />
+        <component :is="separator" class="w-4 h-4 text-systemGray-500" />
       </li>
 
       <!-- Breadcrumb items -->
@@ -56,7 +56,7 @@
           <component
             v-if="index < visibleItems.length - 1"
             :is="separator"
-            class="w-4 h-4 text-theme-secondary ml-2"
+            class="w-4 h-4 text-systemGray-500 ml-2"
           />
       </li>
 
@@ -216,7 +216,7 @@ const breadcrumbsClasses = computed(() => {
   const variants = {
     default: 'text-theme-secondary',
     minimal: 'text-theme-secondary',
-    solid: 'bg-theme-surface px-4 py-2 rounded-lg'
+    solid: 'bg-theme-surface px-4 py-2 rounded-ios'
   }
 
   return [
@@ -230,7 +230,7 @@ const dropdownClasses = computed(() => [
   'absolute top-full left-0 mt-2 w-64',
   'bg-theme-surface-elevated',
   'border border-theme',
-  'rounded-lg shadow-lg',
+  'rounded-ios shadow-lg',
   'z-dropdown'
 ])
 

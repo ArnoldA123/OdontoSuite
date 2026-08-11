@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="rich-text-editor">
     <div class="editor-toolbar">
       <div class="toolbar-group">
@@ -283,7 +283,7 @@ defineExpose({
 
 <style scoped>
 .rich-text-editor {
-  @apply border border-theme rounded-lg overflow-hidden;
+  @apply border border-theme rounded-ios overflow-hidden;
 }
 
 .editor-toolbar {

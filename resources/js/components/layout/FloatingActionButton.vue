@@ -22,15 +22,15 @@ const props = defineProps({
 
 defineEmits(['click'])
 
-// Solid terracotta fill, no gradient. Per design contract, gradients are
+// Solid systemBlue fill, no gradient. Per design contract, gradients are
 // decoration, this is a clinical tool used all day - so the FAB is a
 // flat, single-token fill with shadow + hover scale.
 const fabClasses = computed(() => {
   const base =
     'fixed z-50 flex items-center justify-center rounded-full shadow-large smooth-transition ' +
     'hover:scale-105 active:scale-95 ' +
-    'bg-terracotta-500 text-cream-50 border border-terracotta-600 ' +
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta-500 focus-visible:ring-offset-2'
+    'bg-systemBlue-500 text-systemBackground border border-systemBlue-600 ' +
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2'
 
   const positions = {
     'bottom-right': 'bottom-6 right-6',

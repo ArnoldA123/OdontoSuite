@@ -44,10 +44,10 @@ const cardClasses = computed(() => {
 
   // Variant styles
   // Historical name: kept for compat. The `glass` variant is OPAQUE
-  // (cream-100 surface, ink-200 hairline, shadow-medium) — 76 call sites
-  // across 21 module files depend on this rendering as an ordinary data
-  // card. Translucent chrome surfaces use the `.surface-glass` class from
-  // resources/css/tokens.generated.css (AppLayout sidebar / top bar /
+  // (systemBackground surface, separator hairline, shadow-medium) — 76 call
+  // sites across 21 module files depend on this rendering as an ordinary
+  // data card. Translucent chrome surfaces use the `.surface-glass` class
+  // from resources/css/tokens.generated.css (AppLayout sidebar / top bar /
   // mobile Sheet wrapper only). Do NOT add a blur effect here — see
   // design Decision 5.
   const variants = {
@@ -56,10 +56,10 @@ const cardClasses = computed(() => {
       'hover:shadow-medium'
     ],
     glass: [
-      'bg-cream-100',
-      'border border-ink-200',
+      'bg-systemBackground',
+      'border border-separator',
       'shadow-medium',
-      'rounded-xl',
+      'rounded-ios',
       'hover:shadow-large'
     ],
     flat: [
@@ -99,8 +99,8 @@ const cardClasses = computed(() => {
     interactive.push('opacity-75 pointer-events-none')
   }
 
-  // Border radius
-  const radius = 'rounded-xl'
+  // Border radius — iOS clinical standard (10 px).
+  const radius = 'rounded-ios'
 
   return [
     ...base,
@@ -133,8 +133,8 @@ const cardClasses = computed(() => {
    <script setup> for why the `glass` name is kept and why no blur
    declaration appears here. */
 [data-variant="glass"] {
-  background: var(--color-cream-100);
-  border: 1px solid var(--color-border);
+  background: var(--color-background-system-background);
+  border: 1px solid var(--color-separator-separator);
   box-shadow: var(--shadow-medium);
 }
 

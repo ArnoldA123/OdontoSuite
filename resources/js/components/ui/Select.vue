@@ -318,8 +318,8 @@ const triggerClasses = computed(() => {
   // Size variants
   const sizes = {
     sm: 'px-3 py-2 text-sm rounded-md min-h-[36px]',
-    md: 'px-4 py-3 text-base rounded-lg min-h-[44px]',
-    lg: 'px-5 py-4 text-lg rounded-lg min-h-[52px]'
+    md: 'px-4 py-3 text-base rounded-ios min-h-[44px]',
+    lg: 'px-5 py-4 text-lg rounded-ios min-h-[52px]'
   }
 
   // Variant styles
@@ -345,7 +345,7 @@ const dropdownClasses = computed(() => [
   'absolute z-dropdown mt-1 w-full',
   'bg-theme-surface-elevated',
   'border border-theme',
-  'rounded-lg shadow-lg',
+  'rounded-ios shadow-lg',
   'origin-top-left',
   'dropdown-position'
 ])

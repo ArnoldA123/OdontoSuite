@@ -84,9 +84,9 @@ const textClasses = computed(() => {
 
 const spinnerStyle = computed(() => {
   const colors = {
-    primary: 'var(--color-accent)',
+    primary: 'var(--color-system-blue-500)',
     secondary: 'var(--color-text-secondary)',
-    white: 'var(--color-cream-50)',
+    white: 'var(--color-background-system-background)',
     gray: 'var(--color-text-secondary)'
   }
 

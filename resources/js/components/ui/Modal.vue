@@ -112,7 +112,7 @@ const backdropClasses = computed(() => [
 
 const modalClasses = computed(() => {
   const base = [
-    'relative bg-theme-surface-elevated rounded-xl shadow-2xl',
+    'relative bg-theme-surface-elevated rounded-modal shadow-2xl',
     'max-h-screen overflow-hidden',
     'focus:outline-none'
   ]
@@ -133,10 +133,10 @@ const modalClasses = computed(() => {
 })
 
 const closeButtonClasses = computed(() => [
-  'absolute top-4 right-4 p-2 rounded-lg',
+  'absolute top-4 right-4 p-2 rounded-ios',
   'text-theme-secondary hover:text-theme-primary',
   'hover:bg-theme-surface',
-  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
+  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2'
 ])
 
 // Focus management (WCAG 2.1.1 + 2.4.3)
@@ -279,16 +279,16 @@ onBeforeUnmount(() => {
   }
 }
 
-/* High contrast mode support — boundary ink-900 lifts the modal edge
-   against the cream-100 surface for high-contrast users. */
+/* High contrast mode support — boundary label-label lifts the modal edge
+   against the systemBackground surface for high-contrast users. */
 @media (prefers-contrast: high) {
   .modal {
-    border: 2px solid var(--color-ink-900);
+    border: 2px solid var(--color-label-label);
   }
 
   .modal-header,
   .modal-footer {
-    border-color: var(--color-ink-900);
+    border-color: var(--color-label-label);
   }
 }
 
