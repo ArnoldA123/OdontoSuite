@@ -44,7 +44,7 @@ const projectRoot = resolve(__dirname, '..')
 const tokensModulePath = resolve(projectRoot, 'resources/js/design-system/tokens.js')
 const outputCssPath = resolve(projectRoot, 'resources/css/tokens.generated.css')
 
-const { default: tokens, colors, spacing, radius, shadow, motion } = await import(pathToFileURL(tokensModulePath).href)
+const { default: tokens, colors, spacing, radius, shadow, motion, focusRing, fontFeatures, elevation, topbar } = await import(pathToFileURL(tokensModulePath).href)
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                            */
@@ -75,6 +75,14 @@ push(':root {')
 const toKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 
 for (const rampName of Object.keys(colors)) {
+  // PR1 (ui-premium-microdetail-2026-08): the `border` ramp is not a real
+  // ramp — it exists only to anchor `tokens.colors.border.hairline`. Emit
+  // that value as the semantic alias `--color-hairline` below; skipping it
+  // here prevents the doubled `--color-border-hairline` and the
+  // `--color-hairline-hairline` regression the design flagged.
+  if (rampName === 'border') {
+    continue
+  }
   const ramp = colors[rampName]
   const cssName = toKebab(rampName)
   push(`  /* ${rampName} */`)
@@ -102,6 +110,12 @@ push('  --color-background-secondary: var(--color-background-secondary-backgroun
 push('  --color-surface: var(--color-background-secondary-background);')
 push('  --color-surface-elevated: var(--color-background-system-background);')
 push('')
+// PR1 (ui-premium-microdetail-2026-08) — semantic alias for the canvas
+// token. `tokens.colors.background.canvas` is iterated by the colors loop
+// above and emitted as `--color-background-canvas`; this alias gives
+// consumers a stable public name (`var(--color-canvas)`).
+push('  --color-canvas: var(--color-background-canvas);')
+push('')
 
 push('  --color-text-primary: var(--color-label-label);')
 push('  --color-text-secondary: var(--color-label-secondary-label);')
@@ -112,6 +126,12 @@ push('')
 push('  --color-border: var(--color-separator-separator);')
 push('  --color-border-light: var(--color-system-gray-100);')
 push('  --color-border-strong: var(--color-system-gray-500);')
+push('')
+// PR1 (ui-premium-microdetail-2026-08) — hairline alpha-border semantic
+// alias. The colors loop skips `border` (above), so this is the only
+// public declaration of the hairline. Emitted as `rgba(60, 60, 67, 0.12)`
+// (iOS separator opacity).
+push('  --color-hairline: rgba(60, 60, 67, 0.12);')
 push('')
 
 push('  --color-info: var(--color-info-500);')
@@ -165,10 +185,13 @@ for (const step of Object.keys(spacing)) {
 }
 push('')
 
-// Radius aliases — iOS clinical scale.
+// Radius aliases — iOS clinical scale. Apply toKebab() so camelCase JS
+// keys (e.g. `cardLg`) become kebab-case CSS names (`--radius-card-lg`).
+// The previous radii were all single-word, so toKebab was a no-op; PR1
+// (ui-premium-microdetail-2026-08) introduces `cardLg`.
 push('  /* radius */')
 for (const name of Object.keys(radius)) {
-  push(`  --radius-${name}: ${radius[name]};`)
+  push(`  --radius-${toKebab(name)}: ${radius[name]};`)
 }
 push('')
 
@@ -202,10 +225,60 @@ push(`  --motion-response-default: ${motion.response}s;`)
 push(`  --motion-damping-default: ${motion.damping};`)
 push(`  --motion-damping-bounce: ${motion.dampingBounce};`)
 push(`  --motion-stiffness-default: ${motion.stiffness};`)
+// PR1 (ui-premium-microdetail-2026-08) — motion.duration ramp (exactly three
+// keys). `instant` and `spring` were dropped (dead tokens). The ramp emits
+// `--motion-duration-fast|normal|slow`.
+push('  /* motion.duration (PR1) */')
+for (const step of Object.keys(motion.duration)) {
+  push(`  --motion-duration-${step}: ${motion.duration[step]};`)
+}
 push('  --motion-easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);')
 push('  --motion-easing-decel: cubic-bezier(0.0, 0.0, 0.2, 1);')
 push('  --motion-easing-accel: cubic-bezier(0.4, 0.0, 1, 1);')
 push('  --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);')
+push('')
+
+// PR1 (ui-premium-microdetail-2026-08) — tinted, layered elevation ramp
+// using the iOS label/separator hue family `rgba(60, 60, 67, α)`. Rungs
+// 2..4 are two layers per Apple rule that bigger surfaces read thicker.
+// NO rung uses `rgba(0,0,0,α)` — that was the cheap-looking defect being
+// fixed.
+push('  /* elevation (PR1) */')
+for (const rung of Object.keys(elevation)) {
+  push(`  --elevation-${rung}: ${elevation[rung]};`)
+}
+push('')
+
+// PR1 (ui-premium-microdetail-2026-08) — composed focus ring. Emit parts
+// first (so consumers can compose their own colours, e.g. error states),
+// then the composed `--focus-ring-default` shorthand.
+push('  /* focus ring (PR1) */')
+push(`  --focus-ring-width: ${focusRing.width};`)
+// `focusRing.color` is the hex form `#007AFF`; the shorthand below uses
+// rgba() to apply the alpha slot. The colour var keeps the hex for parity
+// with `tokens.colors.systemBlue[500]`; both forms are accepted by the
+// generated-CSS test.
+push(`  --focus-ring-color: ${focusRing.color};`)
+push(`  --focus-ring-alpha: ${focusRing.alpha};`)
+push(`  --focus-ring-offset: ${focusRing.offset};`)
+push(`  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(0, 122, 255, var(--focus-ring-alpha));`)
+push('')
+
+// PR1 (ui-premium-microdetail-2026-08) — font features for tabular nums.
+// The value is a valid CSS `font-feature-settings` declaration; the literal
+// Tailwind utility name `tabular-nums` is NOT a valid value.
+push('  /* font features (PR1) */')
+push(`  --font-features-tabular-nums: ${fontFeatures.tabularNums};`)
+
+// PR4 (ui-premium-microdetail-2026-08) — topbar control tokens. The WS
+// dot, bell, and avatar consume the same size + weight so the row reads
+// as one optical unit (defect 10 fix).
+push('')
+push('  /* topbar (PR4) */')
+push(`  --topbar-icon-size: ${topbar.iconSize};`)
+push(`  --topbar-icon-weight: ${topbar.iconWeight};`)
+push(`  --topbar-control: ${topbar.control};`)
+push(`  --topbar-control-lg: ${topbar.controlLg};`)
 
 push('}')
 

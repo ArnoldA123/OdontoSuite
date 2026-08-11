@@ -22,6 +22,14 @@ use PHPUnit\Framework\TestCase;
  *  - 2.1.10 primitives_have_no_backdrop_filter_outside_chrome
  *  - 2.1.11 no_universal_transition_selector_in_css
  *  - 2.1.12 generated_css_only_contains_token_hex_literals
+ *
+ * PR1 (ui-premium-microdetail-2026-08) — the `test_*` methods at the end of
+ * this class pin the emission contract settled by reconciliation rulings
+ * R1-R12. Every custom-property name and value below is a pinned invariant,
+ * so re-read the ruling before editing an expectation. Several are
+ * anti-requirements (a value that must NOT be emitted); each of those guards
+ * a defect the generator previously shipped. The task ID on each method maps
+ * to that change's tasks.md.
  */
 class GeneratedTokensCssTest extends TestCase
 {
@@ -410,6 +418,215 @@ JS;
             [],
             $camelCased,
             'Custom properties must be kebab-case; found: ' . implode(', ', $camelCased)
+        );
+    }
+
+    /** Task 1.2.1 — motion.duration emitted as --motion-duration-fast|normal|slow. */
+    public function test_generated_css_emits_motion_duration_ramp(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        foreach (['fast' => '120ms', 'normal' => '200ms', 'slow' => '320ms'] as $step => $value) {
+            $this->assertMatchesRegularExpression(
+                '/--motion-duration-' . $step . '\s*:\s*' . $value . '\s*;/',
+                (string) $css,
+                "tokens.generated.css must declare --motion-duration-{$step}: {$value};"
+            );
+        }
+    }
+
+    /** Task 1.2.3 — focus-ring parts plus the composed --focus-ring-default shorthand. */
+    public function test_generated_css_emits_focus_ring_parts_and_composed(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression('/--focus-ring-width\s*:\s*3px\s*;/', (string) $css);
+        $this->assertMatchesRegularExpression(
+            '/--focus-ring-color\s*:\s*(?:#007AFF|rgba\(\s*0\s*,\s*122\s*,\s*255)\s*[;)]/',
+            (string) $css,
+            'tokens.generated.css must declare --focus-ring-color as systemBlue-500 (#007AFF or rgba(0, 122, 255))'
+        );
+        $this->assertMatchesRegularExpression('/--focus-ring-alpha\s*:\s*0\.2(?:0)?\s*;/', (string) $css);
+        $this->assertMatchesRegularExpression('/--focus-ring-offset\s*:\s*2px\s*;/', (string) $css);
+        $this->assertMatchesRegularExpression(
+            '/--focus-ring-default\s*:\s*0\s+0\s+0\s+var\(--focus-ring-width\)\s+rgba\(\s*0\s*,\s*122\s*,\s*255\s*,\s*var\(--focus-ring-alpha\)\)\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare the composed --focus-ring-default shorthand'
+        );
+    }
+
+    /** Task 1.2.5 — tabular numerals emit the CSS value, never the Tailwind utility name. */
+    public function test_generated_css_emits_font_features_tabular_nums(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression(
+            '/--font-features-tabular-nums\s*:\s*"tnum"\s+1,\s+"lnum"\s+1\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare --font-features-tabular-nums with the valid CSS value'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/--font-features-tabular-nums\s*:\s*tabular-nums\s*;/',
+            (string) $css,
+            'tokens.generated.css must NOT emit the literal Tailwind utility name "tabular-nums" as a value'
+        );
+    }
+
+    /** Task 1.2.7 — --elevation-0 is none and rungs 1..4 are all emitted. */
+    public function test_generated_css_emits_elevation_ramp(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression(
+            '/--elevation-0\s*:\s*none\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare --elevation-0: none;'
+        );
+
+        for ($rung = 1; $rung <= 4; $rung++) {
+            $this->assertMatchesRegularExpression(
+                '/--elevation-' . $rung . '\s*:/',
+                (string) $css,
+                "tokens.generated.css must declare --elevation-{$rung}"
+            );
+        }
+    }
+
+    /** Task 1.2.9 — the colors loop must not double the prefix on colors.border.hairline. */
+    public function test_generated_css_does_not_emit_color_hairline_hairline(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/--color-hairline-hairline\s*:/',
+            (string) $css,
+            'tokens.generated.css must NOT emit --color-hairline-hairline (would be a double-prefix bug)'
+        );
+    }
+
+    /** Task 1.2.11 — the semantic alias --color-canvas ships alongside the ramp property. */
+    public function test_generated_css_emits_color_canvas_semantic_alias(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression(
+            '/--color-canvas\s*:/',
+            (string) $css,
+            'tokens.generated.css must declare the semantic alias --color-canvas'
+        );
+        $this->assertMatchesRegularExpression(
+            '/--color-background-canvas\s*:/',
+            (string) $css,
+            'tokens.generated.css must declare the ramp --color-background-canvas (emitted via the colors loop)'
+        );
+    }
+
+    /** Task 1.2 — the hairline value is pinned to the --color-hairline name. */
+    public function test_generated_css_emits_color_hairline(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression(
+            '/--color-hairline\s*:\s*rgba\(\s*60\s*,\s*60\s*,\s*67\s*,\s*0\.12\s*\)\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare --color-hairline: rgba(60, 60, 67, 0.12);'
+        );
+    }
+
+    /** Task 1.2 — radius.cardLg and radius.control reach the generated CSS. */
+    public function test_generated_css_emits_radius_card_lg_and_control(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        $this->assertMatchesRegularExpression(
+            '/--radius-card-lg\s*:\s*16px\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare --radius-card-lg: 16px;'
+        );
+        $this->assertMatchesRegularExpression(
+            '/--radius-control\s*:\s*8px\s*;/',
+            (string) $css,
+            'tokens.generated.css must declare --radius-control: 8px;'
+        );
+    }
+
+    /** Task 1.2 — no elevation rung may fall back to the pure-black shadow being retired. */
+    public function test_generated_css_no_elevation_uses_pure_black_rgba(): void
+    {
+        $css = self::readGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        if (preg_match_all('/--elevation-[0-9]+\s*:\s*([^;]+);/', (string) $css, $matches) > 0) {
+            foreach ($matches[1] as $value) {
+                self::assertDoesNotMatchRegularExpression(
+                    '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/',
+                    (string) $value,
+                    'No elevation rung may use rgba(0, 0, 0, ...) — must use rgba(60, 60, 67, α)'
+                );
+            }
+        } else {
+            self::fail('No elevation rungs found in tokens.generated.css — generator regressed');
+        }
+    }
+
+    /**
+     * Vue component styles must not reference a retired colour token.
+     *
+     * The sibling `generated_css_has_no_dangling_var_references` test only
+     * scans tokens.generated.css, so a `var(--color-ink-500)` left behind in
+     * a component's <style scoped> block resolved to `unset` at runtime and
+     * silently fell back to the browser default. That is exactly how the
+     * login subtitle ended up rendering pure black instead of the secondary
+     * label tone, collapsing the hierarchy against the headline. A green
+     * suite proved nothing because no test looked at component styles.
+     */
+    public function test_vue_components_have_no_dangling_color_var_references(): void
+    {
+        $root = self::projectRoot();
+
+        $defined = [];
+        foreach (glob($root . '/resources/css/*.css') ?: [] as $cssFile) {
+            preg_match_all('/(--color-[a-z0-9-]+)\s*:/i', (string) file_get_contents($cssFile), $m);
+            foreach ($m[1] as $name) {
+                $defined[$name] = true;
+            }
+        }
+        $this->assertNotEmpty($defined, 'No --color-* definitions found under resources/css/');
+
+        $dangling = [];
+        $rii = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root . '/resources/js', \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($rii as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'vue') {
+                continue;
+            }
+            preg_match_all('/var\(\s*(--color-[a-z0-9-]+)/i', (string) file_get_contents($file->getPathname()), $m);
+            foreach ($m[1] as $name) {
+                if (!isset($defined[$name])) {
+                    $dangling[$name][] = basename($file->getPathname());
+                }
+            }
+        }
+
+        $report = '';
+        foreach ($dangling as $name => $files) {
+            $report .= sprintf("\n  %s  <- %s", $name, implode(', ', array_unique($files)));
+        }
+
+        $this->assertSame(
+            [],
+            $dangling,
+            'Vue components reference colour custom properties that no stylesheet defines. '
+                . 'They resolve to `unset` at runtime and fall back to the browser default:' . $report
         );
     }
 }

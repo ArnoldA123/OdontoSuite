@@ -140,7 +140,12 @@ const tokens = {
       systemBackground: '#ffffff',
       secondaryBackground: '#f2f2f7',
       tertiaryBackground: '#ffffff',
-      groupedBackground: '#f2f2f7'
+      groupedBackground: '#f2f2f7',
+      // PR1 (ui-premium-microdetail-2026-08) — alias of secondaryBackground
+      // for the canvas/surface separation on the three exemplar screens.
+      // `systemBackground` MUST stay `#FFFFFF` (consumed by all 20 modules;
+      // mutating it would repaint the whole app).
+      canvas: '#f2f2f7'
     },
 
     // iOS label ramp (UIKit: label etc.).
@@ -154,6 +159,14 @@ const tokens = {
     // iOS hairline separator + opaque variants.
     separator: {
       separator: '#c6c6c8'
+    },
+
+    // PR1 (ui-premium-microdetail-2026-08) — hairline alpha-border token.
+    // iOS separator opacity (R2 ruling). Emitted by build-tokens-css.mjs as
+    // `--color-hairline`. The hex-parity test only scans `#RRGGBB` literals,
+    // so the rgba value passes through cleanly.
+    border: {
+      hairline: 'rgba(60, 60, 67, 0.12)'
     },
 
     // iOS system fill (opaque-ish overlays for grouped rows).
@@ -257,7 +270,14 @@ const tokens = {
     md: '8px',    // inputs (slight inset)
     ios: '10px',  // cards, buttons, status chips (iOS standard)
     modal: '14px',// Modal, Sheet, bottom pickers (iOS standard)
-    full: '9999px'// pills
+    full: '9999px',// pills
+    // PR1 (ui-premium-microdetail-2026-08) — nested radius rhythm.
+    // cardLg is for the outer card surface (KPI cards, hero photo);
+    // control is for the inner interactive element (input, button).
+    // The JS key is camelCase; the build script's toKebab() converts it to
+    // CSS kebab-case automatically (`--radius-card-lg`).
+    cardLg: '16px',
+    control: '8px'
     // lg/2xl/3xl removed — see Decision 3.
   },
   typography: {
@@ -315,20 +335,78 @@ const tokens = {
   motion: {
     response: 0.35,
     damping: 1.0,
+    // PR1 (ui-premium-microdetail-2026-08) — `motion.dampingBounce = 0.8` is
+    // DELIBERATELY UNCONSUMED. Nothing in this slice is a momentum-driven
+    // gesture (no drag/flick/swipe). Apple's guidance: bounce on a non-
+    // momentum entrance is wrong; honest choice = no consumer.
     dampingBounce: 0.8,
     stiffness: 1.0,
+    // PR1 (ui-premium-microdetail-2026-08) — exactly three duration keys.
+    // `instant` (0ms) and `spring` (label-only) are DEAD tokens and dropped.
+    duration: {
+      fast: '120ms',
+      normal: '200ms',
+      slow: '320ms'
+    },
     easings: {
       standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
       decel: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
       accel: 'cubic-bezier(0.4, 0.0, 1, 1)',
       ios: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
     }
+  },
+
+  // PR1 (ui-premium-microdetail-2026-08) — composed focus-ring token.
+  // Parts (width / color / alpha / offset) are emitted individually so
+  // consumers can compose their own colours (e.g. error states); the
+  // generator also emits the composed `--focus-ring-default`.
+  focusRing: {
+    width: '3px',
+    color: '#007AFF', // systemBlue-500
+    alpha: 0.20,
+    offset: '2px'
+  },
+
+  // PR1 (ui-premium-microdetail-2026-08) — font features for tabular nums.
+  // The value is a valid CSS `font-feature-settings` declaration; the literal
+  // Tailwind utility name `tabular-nums` is NOT a valid value. Emitted by the
+  // build script as `--font-features-tabular-nums`.
+  // `proportionalNums` is dropped — no consumer in this slice.
+  fontFeatures: {
+    tabularNums: '"tnum" 1, "lnum" 1'
+  },
+
+  // PR1 (ui-premium-microdetail-2026-08) — tinted, layered elevation ramp.
+  // Five rungs using the iOS label/separator hue family `rgba(60, 60, 67, α)`.
+  // Rungs 2..4 are two layers per Apple's rule that bigger surfaces read
+  // thicker (stronger blur AND a deeper shadow). NO rung uses `rgba(0,0,0,α)`
+  // — that was the cheap-looking defect being fixed.
+  elevation: {
+    0: 'none',
+    1: '0 1px 3px rgba(60, 60, 67, 0.04)',
+    2: '0 2px 8px rgba(60, 60, 67, 0.06), 0 1px 2px rgba(60, 60, 67, 0.04)',
+    3: '0 8px 16px rgba(60, 60, 67, 0.08), 0 2px 6px rgba(60, 60, 67, 0.06)',
+    4: '0 16px 24px rgba(60, 60, 67, 0.12), 0 4px 8px rgba(60, 60, 67, 0.08)'
+  },
+
+  // PR4 (ui-premium-microdetail-2026-08) — topbar control tokens. The
+  // previous topbar mixed three optical weights (WS dot at 2 px diameter
+  // inside an 8 px pill, BellIcon stroke 2.0, Avatar at 32 px). The
+  // defect: a single row of three controls reading as three different
+  // fonts. The fix: pin icon size to 20 px (SF's `text-xl`) and the
+  // outline stroke to 1.5 (Apple's outline-icon convention) so the three
+  // controls share one optical weight.
+  topbar: {
+    iconSize: '20px',
+    iconWeight: 1.5,
+    control: '20px',  // dot diameter + bell glyph cap (one shared size class)
+    controlLg: '32px' // avatar diameter (one shared size class for the Lg slot)
   }
 }
 
 export default tokens
 
-const { colors, spacing, radius, typography, shadow, breakpoint, motion } = tokens
+const { colors, spacing, radius, typography, shadow, breakpoint, motion, focusRing, fontFeatures, elevation, topbar } = tokens
 const { fontFamily, fontSize } = typography
 
 export {
@@ -340,5 +418,9 @@ export {
   fontSize,
   shadow,
   breakpoint,
-  motion
+  motion,
+  focusRing,
+  fontFeatures,
+  elevation,
+  topbar
 }

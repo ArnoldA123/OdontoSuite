@@ -16,6 +16,13 @@ use PHPUnit\Framework\TestCase;
  *
  * Failure indicates the design-system foundation regressed: a missing export,
  * a missing palette step, or a value drift between tokens.js and tailwind.
+ *
+ * PR1 (ui-premium-microdetail-2026-08) — the `test_*` methods at the end of
+ * this class pin the token surface settled by reconciliation rulings R1-R12.
+ * Every literal in them is a pinned invariant rather than a preference: a
+ * failing expectation means the code diverged from a ruling, so re-read the
+ * ruling before editing the expectation. The task ID on each method maps to
+ * that change's tasks.md.
  */
 class TokensModuleTest extends TestCase
 {
@@ -66,7 +73,10 @@ const out = {
   typography: tokens.typography,
   shadow: tokens.shadow,
   breakpoint: tokens.breakpoint,
-  motion: tokens.motion
+  motion: tokens.motion,
+  focusRing: tokens.focusRing ?? null,
+  fontFeatures: tokens.fontFeatures ?? null,
+  elevation: tokens.elevation ?? null
 };
 process.stdout.write(JSON.stringify(out));
 JS;
@@ -924,5 +934,214 @@ JS;
             }
         }
         return $palette;
+    }
+
+    /** Task 1.1.1 — canvas aliases secondaryBackground, and systemBackground stays pinned. */
+    public function test_canvas_token_aliases_secondary_background(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('background', $tokens['colors'], 'tokens.colors.background must exist');
+
+        $background = $tokens['colors']['background'];
+        $this->assertArrayHasKey('canvas', $background, 'tokens.colors.background.canvas must exist');
+        $this->assertSame(
+            '#F2F2F7',
+            strtoupper((string) $background['canvas']),
+            'tokens.colors.background.canvas must equal #F2F2F7 (alias of secondaryBackground)'
+        );
+        $this->assertSame(
+            '#FFFFFF',
+            strtoupper((string) $background['systemBackground']),
+            'tokens.colors.background.systemBackground must remain #FFFFFF (consumed by all 20 modules)'
+        );
+    }
+
+    /** Task 1.1.3 — hairline alpha-border token. */
+    public function test_hairline_alpha_token_present(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $this->assertArrayHasKey('border', $tokens['colors'], 'tokens.colors.border must exist');
+        $this->assertArrayHasKey('hairline', $tokens['colors']['border'], 'tokens.colors.border.hairline must exist');
+        $this->assertSame(
+            'rgba(60, 60, 67, 0.12)',
+            (string) $tokens['colors']['border']['hairline'],
+            'tokens.colors.border.hairline must equal rgba(60, 60, 67, 0.12) (iOS separator opacity)'
+        );
+    }
+
+    /** Task 1.1.5 — nested radius keys; the legacy lg/2xl/3xl scale stays retired. */
+    public function test_nested_radius_keys_added(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $this->assertArrayHasKey('cardLg', $tokens['radius'], 'tokens.radius.cardLg must exist');
+        $this->assertSame('16px', $tokens['radius']['cardLg'], 'tokens.radius.cardLg must be 16px');
+        $this->assertArrayHasKey('control', $tokens['radius'], 'tokens.radius.control must exist');
+        $this->assertSame('8px', $tokens['radius']['control'], 'tokens.radius.control must be 8px');
+
+        foreach (['lg', '2xl', '3xl'] as $legacy) {
+            $this->assertArrayNotHasKey(
+                $legacy,
+                $tokens['radius'],
+                "tokens.radius.{$legacy} must remain absent (replaced by radius.ios/modal/cardLg/control)"
+            );
+        }
+    }
+
+    /** Task 1.1.7 — motion.duration holds exactly three keys; instant/base/spring are dead tokens. */
+    public function test_motion_duration_has_exactly_three_keys(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('duration', $tokens['motion'], 'tokens.motion.duration must exist');
+
+        $duration = $tokens['motion']['duration'];
+        $this->assertSame(
+            ['fast', 'normal', 'slow'],
+            array_keys($duration),
+            'tokens.motion.duration keys must be exactly [fast, normal, slow]'
+        );
+        $this->assertSame('120ms', $duration['fast'], 'tokens.motion.duration.fast must be 120ms');
+        $this->assertSame('200ms', $duration['normal'], 'tokens.motion.duration.normal must be 200ms');
+        $this->assertSame('320ms', $duration['slow'], 'tokens.motion.duration.slow must be 320ms');
+
+        foreach (['instant', 'base', 'spring'] as $dead) {
+            $this->assertArrayNotHasKey($dead, $duration, "tokens.motion.duration.{$dead} must be absent (dead token)");
+        }
+    }
+
+    /** Task 1.1.9 — focusRing composed shape. */
+    public function test_focus_ring_token_composed_shape(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['focusRing'] ?? null, 'tokens.focusRing must exist');
+
+        $this->assertSame('3px', $tokens['focusRing']['width'], 'tokens.focusRing.width must be 3px');
+        $this->assertSame(
+            '#007AFF',
+            strtoupper((string) $tokens['focusRing']['color']),
+            'tokens.focusRing.color must be #007AFF (systemBlue-500)'
+        );
+        $this->assertSame(0.20, (float) $tokens['focusRing']['alpha'], 'tokens.focusRing.alpha must be 0.20');
+        $this->assertSame('2px', $tokens['focusRing']['offset'], 'tokens.focusRing.offset must be 2px');
+    }
+
+    /** Task 1.1.11 — fontFeatures.tabularNums is a valid CSS value; proportionalNums is dropped. */
+    public function test_font_features_tabular_nums_value(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['fontFeatures'] ?? null, 'tokens.fontFeatures must exist');
+
+        $this->assertArrayHasKey('tabularNums', $tokens['fontFeatures'], 'tokens.fontFeatures.tabularNums must exist');
+        $this->assertSame(
+            '"tnum" 1, "lnum" 1',
+            (string) $tokens['fontFeatures']['tabularNums'],
+            'tokens.fontFeatures.tabularNums must be a valid CSS font-feature-settings value'
+        );
+        $this->assertArrayNotHasKey(
+            'proportionalNums',
+            $tokens['fontFeatures'],
+            'tokens.fontFeatures.proportionalNums must be absent (no consumer)'
+        );
+    }
+
+    /** Task 1.1.13 — five-rung elevation ramp in the iOS label hue family, two-layer from rung 2 up. */
+    public function test_elevation_ramp_five_rungs_label_hue_family(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['elevation'] ?? null, 'tokens.elevation must exist');
+
+        $this->assertArrayHasKey(0, $tokens['elevation'], 'tokens.elevation.0 must exist');
+        $this->assertSame('none', (string) $tokens['elevation'][0], 'tokens.elevation.0 must be "none"');
+
+        for ($rung = 1; $rung <= 4; $rung++) {
+            $this->assertArrayHasKey($rung, $tokens['elevation'], "tokens.elevation.{$rung} must exist");
+            $value = (string) $tokens['elevation'][$rung];
+            $this->assertMatchesRegularExpression(
+                '/rgba\(\s*60\s*,\s*60\s*,\s*67\s*,/',
+                $value,
+                "tokens.elevation.{$rung} must use rgba(60, 60, 67, α) (iOS label/separator hue family)"
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/',
+                $value,
+                "tokens.elevation.{$rung} must NOT use rgba(0, 0, 0, ...) (defect being fixed)"
+            );
+
+            if ($rung >= 2) {
+                $this->assertGreaterThanOrEqual(
+                    2,
+                    substr_count($value, 'rgba('),
+                    "tokens.elevation.{$rung} must declare at least two comma-separated shadow layers"
+                );
+            }
+        }
+    }
+
+    /** Task 1.3.1 — tailwind spreads tokenRadius into borderRadius, so cardLg/control resolve. */
+    public function test_tailwind_config_exposes_radius_card_lg_and_control(): void
+    {
+        $source = file_get_contents(self::tailwindPath());
+        $this->assertNotNull($source, 'tailwind.config.js must be readable');
+        $this->assertStringContainsString(
+            'borderRadius: tokenRadius',
+            (string) $source,
+            'tailwind.config.js must spread tokenRadius into borderRadius so radius.cardLg / radius.control resolve'
+        );
+
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('cardLg', $tokens['radius'], 'tokens.radius.cardLg must exist (consumed by tailwind)');
+        $this->assertArrayHasKey('control', $tokens['radius'], 'tokens.radius.control must exist (consumed by tailwind)');
+    }
+
+    /** Task 1.3.3 — tailwind transitionDuration mirrors motion.duration. */
+    public function test_tailwind_config_exposes_transition_duration_motion_duration(): void
+    {
+        $source = file_get_contents(self::tailwindPath());
+        $this->assertNotNull($source, 'tailwind.config.js must be readable');
+        $this->assertStringContainsString(
+            'transitionDuration',
+            (string) $source,
+            'tailwind.config.js must define a transitionDuration block sourced from motion.duration'
+        );
+
+        // A conditional assertion block would let this test pass silently if the
+        // regex ever stopped matching. Assert the match itself, so a shape change
+        // in tailwind.config.js fails loudly instead of asserting nothing.
+        //
+        // The config does NOT inline the ms literals: it spreads the token ramp
+        // (`const transitionDuration = { ...tokenMotion.duration }`) and registers
+        // that const under `theme.extend`. Asserting the spread is what actually
+        // proves the wiring; the literal values are pinned against tokens.js below.
+        $matched = preg_match(
+            '/const\s+transitionDuration\s*=\s*\{\s*\.\.\.\s*tokenMotion\.duration\s*,?\s*\}/s',
+            (string) $source,
+            $m
+        );
+        $this->assertSame(
+            1,
+            $matched,
+            'tailwind.config.js must define `const transitionDuration = { ...tokenMotion.duration }` (regex found none — the config shape changed)'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/theme\s*:\s*\{.*\bextend\s*:\s*\{.*\btransitionDuration\b/s',
+            (string) $source,
+            'tailwind.config.js must register transitionDuration under theme.extend so duration-fast|normal|slow resolve'
+        );
+
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertSame('120ms', $tokens['motion']['duration']['fast'], 'tokens.motion.duration.fast must be 120ms');
+        $this->assertSame('200ms', $tokens['motion']['duration']['normal'], 'tokens.motion.duration.normal must be 200ms');
+        $this->assertSame('320ms', $tokens['motion']['duration']['slow'], 'tokens.motion.duration.slow must be 320ms');
     }
 }

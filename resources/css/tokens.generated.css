@@ -96,6 +96,7 @@
   --color-background-secondary-background: #f2f2f7;
   --color-background-tertiary-background: #ffffff;
   --color-background-grouped-background: #f2f2f7;
+  --color-background-canvas: #f2f2f7;
 
   /* label */
   --color-label-label: #000000;
@@ -191,6 +192,8 @@
   --color-surface: var(--color-background-secondary-background);
   --color-surface-elevated: var(--color-background-system-background);
 
+  --color-canvas: var(--color-background-canvas);
+
   --color-text-primary: var(--color-label-label);
   --color-text-secondary: var(--color-label-secondary-label);
   --color-text-tertiary: var(--color-label-tertiary-label);
@@ -199,6 +202,8 @@
   --color-border: var(--color-separator-separator);
   --color-border-light: var(--color-system-gray-100);
   --color-border-strong: var(--color-system-gray-500);
+
+  --color-hairline: rgba(60, 60, 67, 0.12);
 
   --color-info: var(--color-info-500);
   --color-info-light: var(--color-system-blue-50);
@@ -257,6 +262,8 @@
   --radius-ios: 10px;
   --radius-modal: 14px;
   --radius-full: 9999px;
+  --radius-card-lg: 16px;
+  --radius-control: 8px;
 
   /* shadow */
   --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -279,10 +286,37 @@
   --motion-damping-default: 1;
   --motion-damping-bounce: 0.8;
   --motion-stiffness-default: 1;
+  /* motion.duration (PR1) */
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-duration-slow: 320ms;
   --motion-easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
   --motion-easing-decel: cubic-bezier(0.0, 0.0, 0.2, 1);
   --motion-easing-accel: cubic-bezier(0.4, 0.0, 1, 1);
   --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* elevation (PR1) */
+  --elevation-0: none;
+  --elevation-1: 0 1px 3px rgba(60, 60, 67, 0.04);
+  --elevation-2: 0 2px 8px rgba(60, 60, 67, 0.06), 0 1px 2px rgba(60, 60, 67, 0.04);
+  --elevation-3: 0 8px 16px rgba(60, 60, 67, 0.08), 0 2px 6px rgba(60, 60, 67, 0.06);
+  --elevation-4: 0 16px 24px rgba(60, 60, 67, 0.12), 0 4px 8px rgba(60, 60, 67, 0.08);
+
+  /* focus ring (PR1) */
+  --focus-ring-width: 3px;
+  --focus-ring-color: #007AFF;
+  --focus-ring-alpha: 0.2;
+  --focus-ring-offset: 2px;
+  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(0, 122, 255, var(--focus-ring-alpha));
+
+  /* font features (PR1) */
+  --font-features-tabular-nums: "tnum" 1, "lnum" 1;
+
+  /* topbar (PR4) */
+  --topbar-icon-size: 20px;
+  --topbar-icon-weight: 1.5;
+  --topbar-control: 20px;
+  --topbar-control-lg: 32px;
 }
 
 /* Liquid-Glass chrome class — web approximation (chrome only) */
