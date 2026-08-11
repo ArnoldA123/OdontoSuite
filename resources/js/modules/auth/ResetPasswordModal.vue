@@ -373,12 +373,12 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .instructions {
-  color: var(--color-ink-700);
+  color: var(--color-label-secondary-label);
 }
 
 .password-toggle {
   @apply p-1 focus:outline-none rounded-md;
-  color: var(--color-ink-500);
+  color: var(--color-label-secondary-label);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -387,7 +387,7 @@ watch(() => props.modelValue, (newValue) => {
 
 .password-toggle:hover,
 .password-toggle:focus-visible {
-  color: var(--color-ink-800);
+  color: var(--color-label-label);
   background: var(--color-cream-200);
 }
 
@@ -431,7 +431,7 @@ watch(() => props.modelValue, (newValue) => {
 @media (prefers-contrast: more) {
   .success-text,
   .error-text {
-    color: var(--color-ink-900);
+    color: var(--color-label-label);
   }
 }
 </style>

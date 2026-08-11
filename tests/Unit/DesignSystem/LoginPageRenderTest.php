@@ -364,4 +364,56 @@ class LoginPageRenderTest extends TestCase
             'No references to images/pexels/ allowed in resources/js/modules/errors/ (directory is gitignored)'
         );
     }
+
+    public function testPr5_login_inputs_have_placeholders(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+        preg_match_all('/<input\\b[^>]*id="login-(?:username|password)"[^>]*>/i', $source, $inputs);
+        $this->assertCount(2, $inputs[0]);
+        foreach ($inputs[0] as $input) {
+            $this->assertMatchesRegularExpression('/placeholder\\s*=\\s*"[^"]+"/i', $input);
+        }
+    }
+
+    public function testPr5_login_has_no_redundant_helper_text(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+        preg_match_all('/<p\\s+[^>]*class="field-hint"[^>]*>(.*?)<\\/p>/is', $source, $hints);
+        $this->assertCount(0, $hints[1]);
+        foreach ($hints[1] as $hint) {
+            $this->assertDoesNotMatchRegularExpression('/usuario|contraseña/i', strip_tags($hint));
+        }
+    }
+
+    public function testPr5_login_password_reveal_is_inside_frame(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+        $this->assertMatchesRegularExpression('/\\.password-toggle\\s*\\{[^}]*right:\\s*12px/s', $source);
+    }
+
+    public function testPr5_login_primary_button_has_elevation_and_highlight(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+        $this->assertStringContainsString('var(--elevation-3)', $source);
+        $this->assertStringContainsString('inset 0 1px 0 rgba(255, 255, 255, 0.30)', $source);
+    }
+
+    public function testPr5_login_hero_uses_neutral_scrim_and_contrast_eyebrow(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+        $this->assertStringContainsString('rgba(60, 60, 67, 0.05)', $source);
+        $this->assertStringContainsString('rgba(60, 60, 67, 0.55)', $source);
+        $this->assertStringContainsString('var(--color-system-gray-50)', $source);
+        $this->assertStringContainsString('border-radius: var(--radius-card-lg)', $source);
+    }
+
+    public function testPr5_not_found_hero_uses_card_radius_hairline_and_scrim(): void
+    {
+        $source = (string) file_get_contents(self::notFoundPath());
+        $this->assertStringContainsString('border-radius: var(--radius-card-lg)', $source);
+        $this->assertStringContainsString('border: 1px solid var(--color-hairline)', $source);
+        $this->assertStringContainsString('rgba(60, 60, 67, 0.55)', $source);
+        $this->assertStringContainsString('var(--elevation-2)', $source);
+    }
+
 }

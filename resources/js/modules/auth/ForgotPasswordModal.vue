@@ -222,7 +222,7 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .text-ink-700 {
-  color: var(--color-ink-700);
+  color: var(--color-label-secondary-label);
 }
 
 .success-panel {
@@ -247,17 +247,17 @@ watch(() => props.modelValue, (newValue) => {
 
 .success-detail {
   @apply text-sm leading-snug;
-  color: var(--color-ink-700);
+  color: var(--color-label-secondary-label);
 }
 
 .success-email {
   @apply font-medium;
-  color: var(--color-ink-900);
+  color: var(--color-label-label);
 }
 
 .success-cta {
   @apply text-sm;
-  color: var(--color-ink-700);
+  color: var(--color-label-secondary-label);
 }
 
 .reset-link {
@@ -300,7 +300,7 @@ watch(() => props.modelValue, (newValue) => {
   .success-title,
   .success-detail,
   .error-text {
-    color: var(--color-ink-900);
+    color: var(--color-label-label);
   }
 }
 </style>
