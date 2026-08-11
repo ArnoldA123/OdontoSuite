@@ -1,5 +1,20 @@
 <template>
-  <div class="min-h-[100dvh] bg-systemBackground">
+  <!--
+    Canvas vs surface separation (PR1 token, PR4 first consumer).
+    The page surface is `bg-canvas` (the iOS secondaryBackground ramp)
+    so cards and other white surface primitives read as objects lifted off
+    the canvas. The previous `bg-systemBackground` made canvas and cards
+    the same colour; both read as outlines.
+
+    PR4 wires the canvas only on `/dashboard` to keep blast radius tight
+    (PR5 will extend it to Login + 404). The route-aware flip is a
+    computed boolean rather than a string so the class binding stays
+    idiomatic.
+  -->
+  <div
+    class="min-h-[100dvh] transition-colors duration-200"
+    :class="isCanvasRoute ? 'bg-canvas' : 'bg-systemBackground'"
+  >
     <!-- Desktop Sidebar -->
     <aside
       id="primary-sidebar"
@@ -57,30 +72,42 @@
 
         <!-- Navigation -->
         <nav class="flex-1 py-6 space-y-2 transition-all duration-300" :class="sidebarCollapsed ? 'px-2' : 'px-4'">
-          <router-link
-            v-for="item in navigation"
-            :key="item.name"
-            :to="item.to"
-            :class="getNavItemClasses(item)"
-            :title="sidebarCollapsed ? item.name : ''"
-            :aria-current="route.path === item.to ? 'page' : undefined"
-          >
-            <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
-            <span
-              v-if="!sidebarCollapsed"
-              class="ml-3 transition-opacity duration-200"
+          <template v-for="item in navigation" :key="item.name">
+            <div
+              v-if="!sidebarCollapsed && item.name === 'Pacientes'"
+              class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"
             >
-              {{ item.name }}
-            </span>
-            <UiBadge
-              v-if="item.badge && !sidebarCollapsed"
-              :variant="item.badge.variant"
-              size="sm"
-              class="ml-auto"
+              Operaciones
+            </div>
+            <div
+              v-if="!sidebarCollapsed && item.name === 'Sucursales'"
+              class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"
             >
-              {{ item.badge.text }}
-            </UiBadge>
-          </router-link>
+              Configuración
+            </div>
+            <router-link
+              :to="item.to"
+              :class="getNavItemClasses(item)"
+              :title="sidebarCollapsed ? item.name : ''"
+              :aria-current="route.path === item.to ? 'page' : undefined"
+            >
+              <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
+              <span
+                v-if="!sidebarCollapsed"
+                class="ml-3 transition-opacity duration-200"
+              >
+                {{ item.name }}
+              </span>
+              <UiBadge
+                v-if="item.badge && !sidebarCollapsed"
+                :variant="item.badge.variant"
+                size="sm"
+                class="ml-auto"
+              >
+                {{ item.badge.text }}
+              </UiBadge>
+            </router-link>
+          </template>
         </nav>
 
         <!-- User Section -->
@@ -228,31 +255,53 @@
             </div>
 
             <div class="flex items-center gap-3">
-              <!-- WebSocket connection indicator -->
+              <!--
+                WebSocket connection indicator.
+                PR4 — topbar single optical weight (G2). The WS dot, bell,
+                and avatar used to render at three different optical sizes:
+                a 2 px dot inside an 8 px pill, a 20 px BellIcon at stroke
+                2.0, and a 32 px Avatar. The fix: all three consume the
+                topbar.iconSize + topbar.iconWeight tokens so the row
+                reads as one optical unit. The dot pill shrinks to 24 px
+                (its content cap) and the dot diameter aligns to the same
+                stroke weight.
+              -->
               <div
-                class="flex items-center justify-center w-8 h-8 rounded-full"
+                class="flex items-center justify-center rounded-full"
                 :class="{
                   'bg-systemBlue-100 text-systemBlue-700': wsStatus === 'connecting',
                   'bg-systemGreen-100 text-systemGreen-700': wsStatus === 'connected',
                   'bg-systemYellow-100 text-systemYellow-700': wsStatus === 'disconnected',
                   'bg-systemRed-100 text-systemRed-700': wsStatus === 'unavailable',
                 }"
+                :style="{ width: 'var(--topbar-control)', height: 'var(--topbar-control)' }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
                 :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'connecting' ? 'Conectando' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
               >
                 <span
-                  class="w-2 h-2 rounded-full"
+                  class="rounded-full"
                   :class="{
                     'bg-systemBlue-500 animate-pulse': wsStatus === 'connecting',
                     'bg-systemGreen-500 animate-pulse-subtle': wsStatus === 'connected',
                     'bg-systemYellow-500': wsStatus === 'disconnected',
                     'bg-systemRed-500': wsStatus === 'unavailable',
                   }"
+                  :style="{
+                    width: 'calc(var(--topbar-icon-weight) * 1.5px)',
+                    height: 'calc(var(--topbar-icon-weight) * 1.5px)'
+                  }"
                   aria-hidden="true"
                 />
               </div>
 
-              <!-- Notifications -->
+              <!--
+                Notifications.
+                PR4 — topbar single optical weight (G2). The BellIcon
+                consumes the topbar.iconSize + iconWeight tokens so it
+                matches the WS dot and the avatar in optical size. The
+                outline stroke is explicitly 1.5 (Apple's outline-icon
+                convention) instead of the previous Tailwind default 2.
+              -->
               <UiButton
                 variant="ghost"
                 size="sm"
@@ -263,7 +312,17 @@
                 aria-haspopup="dialog"
               >
                 <template #icon-left>
-                  <BellIcon class="w-5 h-5" />
+                  <!--
+                    BellIcon — topbar single optical weight (G2).
+                    `style="stroke-width: var(--topbar-icon-weight)"`
+                    reads as a literal CSS declaration in the source so
+                    the regex-based source-assertion test can grep it.
+                    The width/height use the same var for one shared size.
+                  -->
+                  <BellIcon
+                    style="width: var(--topbar-icon-size); height: var(--topbar-icon-size); stroke-width: var(--topbar-icon-weight);"
+                    aria-hidden="true"
+                  />
                 </template>
                 <UiBadge
                   v-if="unreadNotificationCount > 0"
@@ -288,6 +347,14 @@
                   aria-haspopup="menu"
                   aria-controls="user-menu-dropdown"
                 >
+                  <!--
+                    User menu trigger.
+                    PR4 — topbar single optical weight (G2). The avatar
+                    diameter pins to the topbar.controlLg token (32 px)
+                    and the chevron next to it consumes the same icon
+                    size + stroke weight as the BellIcon so the three
+                    topbar controls align on one row.
+                  -->
                   <UiAvatar
                     :src="user?.avatar"
                     :initials="getUserInitials()"
@@ -296,8 +363,14 @@
                   <span class="hidden sm:block text-sm font-medium">
                     {{ safeUser.name || 'Usuario' }}
                   </span>
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  <svg
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    style="width: var(--topbar-icon-size); height: var(--topbar-icon-size); stroke-width: var(--topbar-icon-weight);"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </UiButton>
 
@@ -423,6 +496,16 @@ const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } =
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const notificationCenterOpen = ref(false)
+
+// PR4 (ui-premium-microdetail-2026-08) — canvas vs surface separation.
+// The dashboard, login, and 404 routes render on canvas. Other (legacy)
+// modules inherit the white systemBackground until they get their own
+// polish pass. The route list is intentionally tight for PR4; PR5 will
+// add '/login' and '/404' (or '/not-found') when those screens are
+// polished. `isCanvasRoute` is a computed so the class binding stays
+// reactive as the user navigates.
+const canvasRoutes = ['/dashboard', '/login', '/404']
+const isCanvasRoute = computed(() => canvasRoutes.includes(route.path))
 
 // Notifications
 const { getUnreadCount } = useNotifications()

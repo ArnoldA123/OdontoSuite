@@ -664,4 +664,685 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue stat-card numbers must use tabular-nums (font-variant-numeric: tabular-nums).'
         );
     }
+
+    /* ============================================================ */
+    /* PR4 — Dashboard exemplar polish slice                        */
+    /*                                                                */
+    /* These tests assert the dashboard polish tokens + grid fixed    */
+    /* slots + greeting hierarchy + topbar optical weight +          */
+    /* quick-action keyhint affordance + empty-state illustration    */
+    /* are present in the source. They are RED before the PR4         */
+    /* implementation lands and GREEN after.                          */
+    /* ============================================================ */
+
+    /**
+     * 4.1.1 — Each of the 5 stat cards carries the four-row fixed-slot
+     * grid (h-4 / h-12 / h-6 / h-4) plus a `data-stat-card` attribute
+     * so Playwright can verify the row baseline.
+     */
+    public function test_dashboard_stat_cards_use_fixed_slot_grid(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // Every stat card must declare the fixed-slot four-row grid via
+        // the explicit Tailwind row-heights, in this exact order:
+        //   eyebrow (h-4) / number (h-12) / chip (h-6) / caption (h-4)
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>([\s\S]*?)<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 stat cards carrying data-stat-card.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            // The slot order matters: h-4 must precede h-12, h-12 must
+            // precede h-6, h-6 must precede h-4. Strict strpos checks
+            // enforce the slot order; they do NOT enforce equal margins.
+            $eyebrowPos = strpos($card, 'h-4');
+            $numberPos  = strpos($card, 'h-12');
+            $chipPos    = strpos($card, 'h-6');
+            $captionPos = strpos($card, 'h-4', $chipPos === false ? 0 : $chipPos);
+
+            $this->assertNotFalse(
+                $eyebrowPos,
+                "Stat card #{$idx} must reserve an eyebrow slot (h-4)."
+            );
+            $this->assertNotFalse(
+                $numberPos,
+                "Stat card #{$idx} must reserve a number slot (h-12)."
+            );
+            $this->assertNotFalse(
+                $chipPos,
+                "Stat card #{$idx} must reserve a chip slot (h-6) — even when empty, the slot must exist."
+            );
+            $this->assertNotFalse(
+                $captionPos,
+                "Stat card #{$idx} must reserve a caption slot (h-4)."
+            );
+            $this->assertLessThan(
+                $numberPos,
+                $eyebrowPos,
+                "Stat card #{$idx} eyebrow slot must come before the number slot."
+            );
+            $this->assertLessThan(
+                $chipPos,
+                $numberPos,
+                "Stat card #{$idx} number slot must come before the chip slot."
+            );
+            $this->assertLessThan(
+                $captionPos,
+                $chipPos,
+                "Stat card #{$idx} chip slot must come before the caption slot."
+            );
+        }
+    }
+
+    /**
+     * 4.1.3 — Each of the 5 stat cards renders the chip slot as an
+     * empty `<div class="h-6">` (no chip) when `comparisons[statKey]
+     * .delta_label` is null. Only cards with a non-null delta_label
+     * render a `<span>` chip.
+     *
+     * Source-level assertion: the chip-slot element renders a Tailwind
+     * `h-6 min-h-[24px]` (or equivalent fixed-height) container so the
+     * reserved slot does not collapse.
+     */
+    public function test_dashboard_chip_slot_is_reserved_height(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // At least 5 cards must carry a chip slot class binding.
+        $chipSlotCount = preg_match_all('/h-6\s+min-h-\[24px\]/', $src);
+        $this->assertGreaterThanOrEqual(
+            5,
+            (int) $chipSlotCount,
+            'DashboardPage.vue must reserve the chip slot for each of the 5 stat cards (h-6 min-h-[24px]).'
+        );
+
+        // The chip span (when delta_label is non-null) is rendered
+        // conditionally; the source must contain at least one template
+        // expression binding to comparisons[statKey].delta_label.
+        $this->assertMatchesRegularExpression(
+            '/comparisons\[[^\]]+\]\.delta_label/',
+            $src,
+            'DashboardPage.vue must bind the chip to comparisons[statKey].delta_label.'
+        );
+    }
+
+    /**
+     * 4.1.5 — Each of the 5 stat cards carries a `data-stat-card` attribute
+     * whose value equals the stat key (`appointments-today`, `total-patients`,
+     * `total-professionals`, `total-appointments-month`, `cash-status`).
+     * This is the test handle the Playwright run uses to assert row baseline.
+     */
+    public function test_dashboard_five_stat_cards_carry_data_stat_card_attribute(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $expectedKeys = [
+            'appointments-today',
+            'total-patients',
+            'total-professionals',
+            'total-appointments-month',
+            'cash-status',
+        ];
+        foreach ($expectedKeys as $key) {
+            $this->assertStringContainsString(
+                'data-stat-card="' . $key . '"',
+                $src,
+                "DashboardPage.vue must mark the \"{$key}\" card with data-stat-card=\"{$key}\"."
+            );
+        }
+    }
+
+    /**
+     * 4.2.1 — The greeting "Buenos días, Admin" must NOT be rendered as an
+     * `<h1>` or `<h2>` (it competes with the topbar's `<h1>`), and its
+     * size must be `text-lg font-medium` (NOT the previous `text-2xl font-semibold`).
+     */
+    public function test_dashboard_greeting_not_h2_or_h1_uses_text_lg_font_medium(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // The greeting must be a <p> with text-lg font-medium text-theme-secondary.
+        // We assert on the class binding the template emits.
+        $this->assertMatchesRegularExpression(
+            '/<p[^>]*class="[^"]*text-lg[^"]*font-medium[^"]*text-theme-secondary[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
+            $src,
+            'DashboardPage.vue greeting must be a <p class="text-lg font-medium text-theme-secondary">{{ getGreeting() }}, ...'
+        );
+
+        // The previous text-2xl font-semibold greeting size is forbidden
+        // (defect 7 — two competing headings).
+        $this->assertDoesNotMatchRegularExpression(
+            '/text-2xl[^"]*font-semibold[^"]*text-ink-800/',
+            $src,
+            'DashboardPage.vue greeting must not use the previous text-2xl font-semibold text-ink-800 (would compete with topbar h1).'
+        );
+
+        // Only one h1 in the dashboard page source — the dashboard route's
+        // <h1> lives in AppLayout.vue, but the page source itself must
+        // not contain any other h1 to keep the page heading hierarchy
+        // unambiguous.
+        $h1Count = preg_match_all('/<h1\b/i', $src);
+        $this->assertSame(
+            0,
+            (int) $h1Count,
+            'DashboardPage.vue must not declare its own <h1> (the page <h1> lives in AppLayout.vue).'
+        );
+
+        // No h2 carrying the greeting either.
+        $this->assertDoesNotMatchRegularExpression(
+            '/<h2[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
+            $src,
+            'DashboardPage.vue greeting must not be wrapped in <h2>.'
+        );
+    }
+
+    /**
+     * 4.3.1 — The topbar (AppLayout.vue) consumes the new topbar tokens
+     * for icon size and stroke weight so the WS dot, bell, and avatar all
+     * share one optical weight.
+     */
+    public function test_app_layout_topbar_consumes_topbar_icon_size_and_weight(): void
+    {
+        $path = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // The topbar must consume the new tokens via CSS variables.
+        $this->assertStringContainsString(
+            '--topbar-icon-size',
+            $src,
+            'AppLayout.vue topbar must consume the --topbar-icon-size token (G2 single optical weight).'
+        );
+        $this->assertStringContainsString(
+            '--topbar-icon-weight',
+            $src,
+            'AppLayout.vue topbar must consume the --topbar-icon-weight token (G2 single optical weight).'
+        );
+
+        // The BellIcon glyph in the topbar must carry the stroke-width
+        // attribute that consumes the icon-weight token.
+        $this->assertMatchesRegularExpression(
+            '/BellIcon[^>]*style="[^"]*stroke-width:\s*var\(--topbar-icon-weight\)/',
+            $src,
+            'AppLayout.vue BellIcon must declare style="stroke-width: var(--topbar-icon-weight)" on the topbar control.'
+        );
+    }
+
+    /**
+     * 4.4.2 — Each quick-action card carries a `data-keyhint` attribute
+     * and renders a `<kbd>` element with a keyhint class binding in the
+     * top-right corner. The keyhint is the non-chevron affordance device
+     * (G4 — banned SVG path `M9 5l7 7-7 7`).
+     */
+    public function test_quick_action_cards_carry_keyhint_chip_no_chevron(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // Reuse the existing chevron path ban — extend its scope to the
+        // whole quick-action region (it already covers data-action cards).
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must contain at least 5 data-action cards (5 verified action labels).'
+        );
+
+        foreach ($cards as $idx => $card) {
+            // The banned chevron path must remain absent (PR3 contract).
+            $this->assertDoesNotMatchRegularExpression(
+                '/M9 5l7 7-7 7/',
+                $card,
+                "Quick-action card #{$idx} must not contain the banned chevron path (G4 — replace with keyhint)."
+            );
+
+            // Each card must carry a data-keyhint attribute that names
+            // the keyboard shortcut for the action (G4 device).
+            $this->assertMatchesRegularExpression(
+                '/data-keyhint="[A-Z]"/',
+                $card,
+                "Quick-action card #{$idx} must carry data-keyhint=\"<single uppercase letter>\" (G4)."
+            );
+
+            // The card body must render a <kbd> chip element with the
+            // keyhint letter visible to the user (not just as data).
+            $this->assertMatchesRegularExpression(
+                '/<kbd\b[^>]*class="[^"]*rounded[^"]*"[^>]*>[^<]+<\/kbd>/',
+                $card,
+                "Quick-action card #{$idx} must render a visible <kbd> keyhint chip in the top-right corner."
+            );
+        }
+    }
+
+    /**
+     * 4.5.1 (revised in correction round) — The today-appointments
+     * `<EmptyState>` for the empty case must NOT carry a remote
+     * illustration. The previous Picsum-seeded URL resolved to an
+     * unrelated stock photo (a sunset over a pier), and clinical
+     * products must not leak requests to third-party hosts. The
+     * empty state is composed from what is already in the design
+     * system: the EmptyState primitive with its default icon, a
+     * one-line Spanish message, and a real call-to-action.
+     *
+     * The previous `illustration="https://picsum.photos/..."` binding
+     * was the wrong tool here: the design-taste-frontend skill
+     * explicitly scopes Picsum to landing pages and portfolios and
+     * lists dashboards as OUT OF SCOPE.
+     */
+    public function test_dashboard_empty_state_picsum_illustration(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // The EmptyState for today-appointments must still be present
+        // (the no-CTA bug from PR3 stays fixed), but it MUST NOT carry
+        // an illustration attribute pointing to a third-party host.
+        $this->assertMatchesRegularExpression(
+            '/<EmptyState[^>]*data-state="empty-appointments"[^>]*>/',
+            $src,
+            'DashboardPage.vue must render <EmptyState data-state="empty-appointments"> for the today-appointments empty case.'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<EmptyState\b[^>]*\billustration="[^"]*picsum\.photos/i',
+            $src,
+            'DashboardPage.vue <EmptyState> must NOT carry a Picsum illustration (correction round; clinical products cannot reach out to third-party image hosts).'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/<EmptyState\b[^>]*\billustration="https?:\/\//i',
+            $src,
+            'DashboardPage.vue <EmptyState> must NOT carry a remote illustration (correction round; air-gapped deployments would render broken images).'
+        );
+    }
+
+    /**
+     * Project-wide guard — NO `.vue` / `.js` / `.ts` file under
+     * `resources/js/` may reference a third-party image host. Clinical
+     * deployments are often air-gapped; even on connected networks,
+     * a request from a patient-scheduling surface to picsum.photos /
+     * unsplash / pexels is an unnecessary leak. If an illustration is
+     * ever needed, it must be a committed local asset under
+     * `public/images/ui/` (the same rule the login-hero and
+     * not-found images follow). This test catches the regression at
+     * the source level so the previous Picsum bug cannot return.
+     */
+    public function test_no_external_image_host_anywhere_in_js_source(): void
+    {
+        $dir = self::projectRootPath() . '/resources/js/';
+        $this->assertDirectoryExists($dir);
+
+        // The banned hosts. Picsum is the most recent offender;
+        // the others are listed explicitly so a future contributor
+        // who reaches for "stock photo service X" fails the same test.
+        $bannedHosts = [
+            'picsum.photos',
+            'unsplash.com',
+            'images.unsplash.com',
+            'pexels.com',
+            'images.pexels.com',
+        ];
+
+        foreach ($bannedHosts as $host) {
+            $count = self::grepCount($host, $dir);
+            $this->assertSame(
+                0,
+                $count,
+                "resources/js/ must not reference the external image host `{$host}` "
+                    . "(clinical products cannot reach out to third-party image hosts). "
+                    . "Found: {$count} occurrences."
+            );
+        }
+    }
+
+    /**
+     * Defect 2 — chip layout. The comparison pill MUST contain only
+     * the delta value. The `period_label` is a separate muted caption
+     * SIBLING of the pill, NOT a child. The previous anatomy nested
+     * both inside the pill, which overflowed the reserved h-6 slot
+     * and collided with the caption row.
+     */
+    public function test_dashboard_chip_period_label_is_outside_the_pill(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // For each stat card that carries a chip, the chip slot must
+        // wrap a <span> pill + a <span> muted text in a flex container,
+        // NOT nest the muted text inside the pill.
+        $chipStats = [
+            'appointments_today',
+            'total_patients',
+            'total_appointments_this_month',
+        ];
+
+        foreach ($chipStats as $statKey) {
+            // Find the chip slot block for this stat key. The `v-if` guard
+            // uses optional chaining (`comparisons?.appointments_today?.…`),
+            // so every dot here is optionally preceded by `?`. The window to
+            // the closing </div> must clear the pill <span> plus the sibling
+            // caption <span>, which together run to roughly 550 characters.
+            $pattern = '/comparisons\??\.' . preg_quote($statKey, '/')
+                . '\??\.delta_label[\s\S]{0,80}?class="h-6 min-h-\[24px\] flex items-center gap-1\.5"[\s\S]{0,900}?<\/div>/';
+            $this->assertMatchesRegularExpression(
+                $pattern,
+                $src,
+                "DashboardPage.vue chip slot for `{$statKey}` must be a flex row with gap (defect 2 fix)."
+            );
+
+            // The chip slot must contain the pill <span> AND the
+            // muted caption <span> as siblings, not nested. The
+            // pill <span> carries `rounded-full`; the muted <span>
+            // carries `truncate` (no rounded-full).
+            $pillWithNestedCaption = '/<span[^>]*rounded-full[\s\S]*?<span[^>]*\bperiod_label\b[\s\S]*?<\/span>\s*<\/span>/';
+            $this->assertDoesNotMatchRegularExpression(
+                $pillWithNestedCaption,
+                $src,
+                "DashboardPage.vue chip pill must NOT nest the period_label inside it (defect 2)."
+            );
+        }
+    }
+
+    /**
+     * Defect 4 — eyebrow row rhythm. Every one of the five KPI
+     * eyebrows must use the SAME text size so the row baseline is
+     * uniform. The previous `text-xs ... tracking-wide` wrapped the
+     * longest label ("Estado de Caja") onto two lines while the
+     * shorter labels sat on one, breaking the rhythm. PR4 reduces
+     * every eyebrow to `text-[11px]` with no tracking and adds
+     * `whitespace-nowrap` so all five labels fit on a single line.
+     */
+    public function test_dashboard_five_eyebrows_use_uniform_text_size(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // All five labels must be present and rendered with text-[11px].
+        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Profesionales', 'Total Citas', 'Estado de Caja'];
+        foreach ($expectedLabels as $label) {
+            // The eyebrow pattern: <p class="text-[11px] ... uppercase ... {{ label }} </p>
+            $pattern = '/<p[^>]*\btext-\[11px\][^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';
+            $this->assertMatchesRegularExpression(
+                $pattern,
+                $src,
+                "DashboardPage.vue eyebrow for \"{$label}\" must use text-[11px] + uppercase + whitespace-nowrap (defect 4 row-rhythm fix)."
+            );
+        }
+
+        // No eyebrow may use the previous text-xs (12 px) class.
+        // Scope to the data-stat-card blocks so the assertion does
+        // not catch unrelated text-xs utility uses elsewhere.
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 data-stat-card elements for the eyebrow uniformity check.'
+        );
+        foreach ($cards as $idx => $card) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\btracking-wide\b[^>]*>/',
+                $card,
+                "KPI card #{$idx} eyebrow must NOT use the previous text-xs + tracking-wide (would wrap \"Estado de Caja\")."
+            );
+        }
+    }
+
+    /**
+     * Defect 3 — date caption truncation. The Citas Hoy caption slot
+     * must use the short `11 de ago` format via `getShortTodayDate()`,
+     * NOT the full `martes, 11 de agosto de 2026` format via
+     * `getTodayDate()`. The full format overflowed the KPI card's
+     * caption slot at 5-up width and `truncate` clipped it mid-word.
+     */
+    public function test_dashboard_citas_hoy_caption_uses_short_date(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // The Citas Hoy card's caption slot must bind to
+        // getShortTodayDate(), not getTodayDate().
+        $this->assertStringContainsString(
+            'getShortTodayDate',
+            $src,
+            'DashboardPage.vue must define and consume getShortTodayDate() for the Citas Hoy caption (defect 3).'
+        );
+
+        // The Citas Hoy card must NOT render the long getTodayDate()
+        // binding in its caption slot (it is reserved for the
+        // topbar page description under AppLayout).
+        $citasHoyCard = '';
+        if (preg_match(
+            '/<UiCard[^>]*\bdata-stat-card="appointments-today"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $m
+        )) {
+            $citasHoyCard = $m[0];
+        }
+        $this->assertNotEmpty(
+            $citasHoyCard,
+            'DashboardPage.vue must contain a data-stat-card="appointments-today" card.'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/\{\{\s*getTodayDate\(\)\s*\}\}/',
+            $citasHoyCard,
+            'DashboardPage.vue Citas Hoy caption must not bind to getTodayDate() (full format overflows the slot at 5-up; defect 3).'
+        );
+    }
+
+    /**
+     * Defect 1 — The dashboard page wrapper (or the AppLayout root when
+     * the route is /dashboard) consumes the canvas token so the page
+     * surface is `bg-canvas`. The card surfaces stay `bg-systemBackground`.
+     */
+    public function test_dashboard_uses_canvas_token_for_page_surface(): void
+    {
+        $layoutPath = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $dashboardPath = self::projectRootPath() . self::DASHBOARD_FILE;
+
+        $layoutSrc = (string) self::readFile($layoutPath);
+        $dashboardSrc = (string) self::readFile($dashboardPath);
+        $this->assertNotNull($layoutSrc);
+
+        // The dashboard route must drive the canvas surface. The two
+        // allowed implementations: (a) AppLayout.vue consumes bg-canvas
+        // route-aware; or (b) the DashboardPage root consumes bg-canvas.
+        // We assert on the AppLayout root because that is the structural
+        // wrapper (the dashboard content rides a <slot/> inside it).
+        $appLayoutHasCanvas = (bool) preg_match(
+            '/class="[^"]*bg-canvas[^"]*"/',
+            $layoutSrc
+        );
+        $dashboardHasCanvas = (bool) preg_match(
+            '/class="[^"]*bg-canvas[^"]*"/',
+            $dashboardSrc
+        );
+        $this->assertTrue(
+            $appLayoutHasCanvas || $dashboardHasCanvas,
+            'The dashboard surface must consume bg-canvas (canvas vs surface separation; PR1 token).'
+        );
+    }
+
+    /**
+     * Defect 2 + 3 — KPI cards consume the PR1 hairline border and the
+     * PR1 elevation-2 rung for the shadow. The hairline replaces the
+     * opaque `border-separator` outline; the elevation-2 rung replaces
+     * the pure-black `shadow-medium`.
+     */
+    public function test_dashboard_kpi_cards_consume_hairline_and_elevation(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // The 5 KPI cards must each reference the hairline token via the
+        // arbitrary-value Tailwind syntax (border-color: var(--color-hairline))
+        // OR via a custom CSS variable indirection. We assert on the
+        // token reference (the only reliable source-level marker).
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 data-stat-card elements for the KPI hairline/elevation check.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $hasHairline = (bool) preg_match(
+                '/--color-hairline/',
+                $card
+            );
+            $this->assertTrue(
+                $hasHairline,
+                "KPI card #{$idx} must consume var(--color-hairline) on its border (PR1 hairline token; defect 2)."
+            );
+
+            $hasElevation = (bool) preg_match(
+                '/--elevation-2/',
+                $card
+            );
+            $this->assertTrue(
+                $hasElevation,
+                "KPI card #{$idx} must consume var(--elevation-2) for its shadow (PR1 elevation ramp; defect 3)."
+            );
+        }
+    }
+
+    /**
+     * Defect 6 — The five icon plates (the small square containing the
+     * card icon) MUST share one coherent tint. The previous mix
+     * (systemBlue-100 / success-50 / warning-50 / cream-200 / systemGreen-100)
+     * was random colour noise. The fix: every plate uses the same tint.
+     *
+     * Source-level: every plate <div> emits the same bg-* and text-*
+     * class pair. We allow the chosen pair to be either
+     * (bg-systemGray-100 + text-systemGray-600) — iOS Settings — or
+     * (bg-systemBlue-50 + text-systemBlue-600) — accent treatment.
+     */
+    public function test_dashboard_kpi_icon_plates_share_one_tint(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        // Scope: the icon-plate <div> lives inside each data-stat-card.
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 data-stat-card elements for the icon-plate tint check.'
+        );
+
+        // Each plate must carry exactly ONE pair (the "tint class") so
+        // a future contributor who adds a coloured tint to a single
+        // card fails the test. We assert the tint pair is present and
+        // that the legacy multi-tint strings are gone from the
+        // icon-plate regions.
+        $tintPairs = [
+            ['bg-systemGray-100', 'text-systemGray-600'],
+            ['bg-systemBlue-50',  'text-systemBlue-600'],
+        ];
+        $foundTint = null;
+        foreach ($cards as $idx => $card) {
+            $cardTint = null;
+            foreach ($tintPairs as $pair) {
+                if (
+                    str_contains($card, $pair[0]) &&
+                    str_contains($card, $pair[1])
+                ) {
+                    $cardTint = $pair;
+                    break;
+                }
+            }
+            $this->assertNotNull(
+                $cardTint,
+                "KPI card #{$idx} icon plate must use a unified tint "
+                    . "(bg-systemGray-100 + text-systemGray-600, or bg-systemBlue-50 + text-systemBlue-600)."
+            );
+            if ($foundTint === null) {
+                $foundTint = $cardTint;
+            } else {
+                $this->assertSame(
+                    $foundTint,
+                    $cardTint,
+                    "KPI card #{$idx} icon plate must use the SAME tint as the other four cards (defect 6 — coherent treatment)."
+                );
+            }
+        }
+
+        // Belt-and-braces: the legacy multi-tint classes must be absent
+        // from the data-stat-card regions. They were the noise the fix
+        // removes.
+        $legacyTints = [
+            'bg-success-50 text-success-600',   // Pacientes old green
+            'bg-warning-50 text-warning-600',   // Profesionales old yellow
+            'bg-cream-200 text-ink-500',        // Total Citas old cream
+            'bg-systemGreen-100 text-systemGreen-600', // Caja old green-bordered
+        ];
+        foreach ($cards as $idx => $card) {
+            foreach ($legacyTints as $legacy) {
+                $this->assertStringNotContainsString(
+                    $legacy,
+                    $card,
+                    "KPI card #{$idx} icon plate must not use the legacy tint `{$legacy}` (defect 6 fix)."
+                );
+            }
+        }
+    }
+    public function testPr5SidebarGroupHeadersAdded(): void
+    {
+        $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $this->assertSame(2, substr_count($source, 'class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"'));
+        $this->assertMatchesRegularExpression('/>\s*Operaciones\s*<\/div>/', $source);
+        $this->assertMatchesRegularExpression('/>\s*Configuración\s*<\/div>/', $source);
+    }
+
+    public function testPr5NavLabelsRemainInFrozenOrder(): void
+    {
+        $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Metodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
+        $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
+        $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
+        $sorted = $positions;
+        sort($sorted);
+        $this->assertSame($sorted, $positions);
+    }
+
 }
