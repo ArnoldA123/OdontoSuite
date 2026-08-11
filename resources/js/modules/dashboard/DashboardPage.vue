@@ -44,24 +44,49 @@
 
     <!-- Main Content -->
     <div v-else class="space-y-8">
-      <!-- Page greeting (the AppLayout top bar already renders the page
-           title h1; this region is a calm greeting line, not a heading.) -->
+      <!--
+        Page greeting (defect 7 — two competing headings fix).
+        The AppLayout top bar already renders the page title h1; this
+        greeting is a calm welcome line, not a heading. The previous
+        h1-equivalent size competed with the topbar h1 and read as
+        h1 + h2. PR4 reduces it to text-lg font-medium text-theme-secondary:
+        a quiet welcome line that lets the topbar h1 own the heading
+        hierarchy.
+      -->
       <header class="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <p class="text-2xl font-semibold text-ink-800 leading-tight">
-            {{ getGreeting() }}, <span class="text-ink-900">{{ firstName }}</span>
+          <p class="text-lg font-medium text-theme-secondary leading-tight">
+            {{ getGreeting() }}, <span class="text-label">{{ firstName }}</span>
           </p>
-          <p class="text-sm text-ink-500 mt-1">
+          <p class="text-xs text-theme-secondary mt-1">
             {{ getTodayDate() }}
           </p>
         </div>
       </header>
 
-      <!-- Stats Grid: five stat cards with deliberate visual hierarchy.
-           The grid must look deliberate at 2, 3, 4, AND 5 cards because
-           three of the five are permission-gated (can.viewAppointment,
-           can.manageUsers, can.viewCashRegister). See the defended
-           hierarchy choice in apply-progress.md. -->
+      <!--
+        Stats Grid — five stat cards, fixed-slot anatomy (KPI card anatomy).
+        Each card allocates four reserved slots in a fixed row grid so the
+        baseline is uniform regardless of which cards carry a chip:
+
+          [eyebrow]    h-4  (16 px)
+          [number]     h-12 (48 px)
+          [chip slot]  h-6  (24 px — reserved even when empty)
+          [caption]    h-4  (16 px)
+
+        Cards that carry a comparison key render the chip from
+        `comparisons[statKey].delta_label`. When that field is null, the
+        slot stays empty (no chip, no dash, no placeholder). The chip
+        colour follows sign: positive → systemGreen, negative → systemRed.
+
+        Defect 2 fix: every card border consumes the PR1 hairline token
+        (alpha 0.12) instead of the previous opaque separator.
+        Defect 3 fix: every card shadow consumes the PR1 elevation-2
+        rung (iOS label/separator hue family) instead of the previous
+        pure-black shadow.
+        Defect 6 fix: every icon plate uses the same tint (systemGray-100
+        + systemGray-600 — the iOS Settings / List treatment).
+      -->
       <section aria-label="Resumen del día">
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
@@ -71,28 +96,76 @@
             hover
             clickable
             data-stat="appointments-today"
+            data-stat-card="appointments-today"
             data-priority="primary"
             class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
             @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-ink-500 uppercase tracking-wide mb-2">
-                  Citas Hoy
-                </p>
-                <p
-                  class="text-5xl font-bold text-label tabular-nums leading-none"
-                  aria-live="polite"
+              <div class="min-w-0 flex-1">
+                <!--
+                  Eyebrow (defect 4 — Estado de Caja row-rhythm fix).
+                  text-[11px] + whitespace-nowrap + no tracking lets
+                  the longest label ("Estado de Caja") sit on a single
+                  line at the 5-up KPI card width. text-xs (12 px) with
+                  tracking-wide wrapped it; the smaller font and removed
+                  tracking keep all five cards aligned on one line.
+                -->
+                <div class="h-4 flex items-center">
+                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Citas Hoy
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    aria-live="polite"
+                  >
+                    {{ stats.today || 0 }}
+                  </p>
+                </div>
+                <!--
+                  Chip slot (defect 2 — chip layout fix).
+                  The pill contains ONLY the delta value (e.g. "-4").
+                  The period_label (e.g. "vs mar 4 ago") is a separate
+                  muted caption beside the pill, on one line with
+                  truncate. Putting both inside the pill overflowed the
+                  reserved h-6 slot and overlapped the caption row.
+                -->
+                <div
+                  v-if="stats.comparisons?.appointments_today?.delta_label"
+                  class="h-6 min-h-[24px] flex items-center gap-1.5"
                 >
-                  {{ stats.today || 0 }}
-                </p>
-                <p class="text-xs text-systemGray-600 mt-2">
-                  {{ getTodayDate() }}
-                </p>
+                  <span
+                    :class="chipToneClass(stats.comparisons.appointments_today.delta_label)"
+                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  >
+                    {{ stats.comparisons.appointments_today.delta_label }}
+                  </span>
+                  <span class="text-xs text-theme-secondary truncate">
+                    {{ stats.comparisons.appointments_today.period_label }}
+                  </span>
+                </div>
+                <div v-else class="h-6 min-h-[24px]"></div>
+                <!--
+                  Caption slot (defect 3 — date truncation fix).
+                  Use the short "11 de ago" format from
+                  getShortTodayDate() so the caption fits the slot
+                  without being clipped by truncate. The full
+                  "martes, 11 de agosto de 2026" format overflowed the
+                  KPI card's caption slot at 5-up width.
+                -->
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">
+                    {{ getShortTodayDate() }}
+                  </p>
+                </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
                 <svg
-                  class="w-6 h-6 text-systemBlue-600"
+                  class="w-6 h-6 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -109,30 +182,68 @@
             </div>
           </UiCard>
 
-          <!-- Pacientes (reference count) -->
+          <!-- Pacientes (reference count). The headline is the cumulative
+               active count (data.total_patients, NOT new registrations).
+               The chip, when present, is an absolute count of new
+               registrations this month — a different quantity. -->
           <UiCard
             variant="glass"
             hover
             clickable
             data-stat="total-patients"
+            data-stat-card="total-patients"
             class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
             @click="goToPatients"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-ink-500 uppercase tracking-wide mb-2">
-                  Pacientes
-                </p>
-                <p class="text-3xl font-semibold text-ink-800 tabular-nums leading-none">
-                  {{ stats.total_patients || 0 }}
-                </p>
-                <p class="text-xs text-ink-500 mt-2">
-                  Total registrados
-                </p>
+              <div class="min-w-0 flex-1">
+                <div class="h-4 flex items-center">
+                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Pacientes
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                  >
+                    {{ stats.total_patients || 0 }}
+                  </p>
+                </div>
+                <!--
+                  Chip slot (defect 2 — chip layout fix). The
+                  comparisons.total_patients.period_label is the
+                  static string "nuevos este mes" and is intentionally
+                  a different quantity from the headline (D15 — the
+                  chip's "+N" is NEW REGISTRATIONS, the headline 105
+                  is cumulative active). The pill carries the absolute
+                  delta; the muted text carries the period_label.
+                -->
+                <div
+                  v-if="stats.comparisons?.total_patients?.delta_label"
+                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                >
+                  <span
+                    :class="chipToneClass(stats.comparisons.total_patients.delta_label)"
+                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  >
+                    {{ stats.comparisons.total_patients.delta_label }}
+                  </span>
+                  <span class="text-xs text-theme-secondary truncate">
+                    {{ stats.comparisons.total_patients.period_label }}
+                  </span>
+                </div>
+                <div v-else class="h-6 min-h-[24px]"></div>
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">
+                    Total registrados
+                  </p>
+                </div>
               </div>
-              <div class="flex-shrink-0 w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-success-600"
+                  class="w-6 h-6 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -149,31 +260,45 @@
             </div>
           </UiCard>
 
-          <!-- Profesionales (reference count; gated) -->
+          <!-- Profesionales (reference count; gated). No comparison key
+               ships from the controller (only three stats carry the
+               additive comparisons block); the chip slot stays empty. -->
           <UiCard
             v-if="can.manageUsers?.value"
             variant="glass"
             hover
             clickable
             data-stat="total-professionals"
+            data-stat-card="total-professionals"
             class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
             @click="goToProfessionals"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-ink-500 uppercase tracking-wide mb-2">
-                  Profesionales
-                </p>
-                <p class="text-3xl font-semibold text-ink-800 tabular-nums leading-none">
-                  {{ stats.total_professionals || 0 }}
-                </p>
-                <p class="text-xs text-ink-500 mt-2">
-                  Equipo médico
-                </p>
+              <div class="min-w-0 flex-1">
+                <div class="h-4 flex items-center">
+                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Profesionales
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                  >
+                    {{ stats.total_professionals || 0 }}
+                  </p>
+                </div>
+                <div class="h-6 min-h-[24px]"></div>
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">
+                    Equipo médico
+                  </p>
+                </div>
               </div>
-              <div class="flex-shrink-0 w-10 h-10 bg-warning-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-warning-600"
+                  class="w-6 h-6 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -196,24 +321,54 @@
             hover
             clickable
             data-stat="total-appointments-month"
+            data-stat-card="total-appointments-month"
             class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
             @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-ink-500 uppercase tracking-wide mb-2">
-                  Total Citas
-                </p>
-                <p class="text-3xl font-semibold text-ink-800 tabular-nums leading-none">
-                  {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
-                </p>
-                <p class="text-xs text-ink-500 mt-2">
-                  Este mes
-                </p>
+              <div class="min-w-0 flex-1">
+                <div class="h-4 flex items-center">
+                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Total Citas
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                  >
+                    {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
+                  </p>
+                </div>
+                <!--
+                  Chip slot (defect 2 — chip layout fix). Period_label
+                  outside the pill, single line with truncate.
+                -->
+                <div
+                  v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
+                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                >
+                  <span
+                    :class="chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)"
+                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  >
+                    {{ stats.comparisons.total_appointments_this_month.delta_label }}
+                  </span>
+                  <span class="text-xs text-theme-secondary truncate">
+                    {{ stats.comparisons.total_appointments_this_month.period_label }}
+                  </span>
+                </div>
+                <div v-else class="h-6 min-h-[24px]"></div>
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">
+                    Este mes
+                  </p>
+                </div>
               </div>
-              <div class="flex-shrink-0 w-10 h-10 bg-cream-200 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-ink-500"
+                  class="w-6 h-6 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -231,52 +386,63 @@
           </UiCard>
 
           <!-- Estado de Caja (SECONDARY live stat; gated).
-               The cash pill renders its own Spanish label via a primitive that
-               supports custom labels. The PR2 StatusPill's STATUS_MAP only
-               knows appointment / plan keys ('scheduled', 'confirmed', ...);
-               passing an unknown 'open' / 'closed' / 'no_session' would fall
-               through and display the raw English key. UiBadge with shape
-               "pill" + an in-slot dot replicates the pill aesthetic while
-               routing every label through i18n. -->
+               No comparison key ships for cash_session. The cash pill
+               renders its own Spanish label via a primitive that
+               supports custom labels. -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
             hover
             clickable
             data-stat="cash-status"
+            data-stat-card="cash-status"
             data-priority="secondary"
             class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
             @click="goToCashRegister"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-systemGray-600 uppercase tracking-wide mb-2">
-                  Estado de Caja
-                </p>
-                <UiBadge
-                  :variant="cashStatusBadgeVariant"
-                  shape="pill"
-                  size="md"
-                  role="status"
-                  :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                  :class="['mt-1', cashStatusBadgeClass]"
-                  data-cash-pill
-                  :data-cash-pill-state="cashStatusPillState"
-                >
-                  <span
-                    class="inline-block w-1.5 h-1.5 rounded-full"
-                    :class="cashStatusDotClass"
-                    aria-hidden="true"
-                  ></span>
-                  {{ cashStatusLabel }}
-                </UiBadge>
-                <p class="text-xs text-systemGray-600 mt-3">
-                  {{ cashBalanceText }}
-                </p>
+              <div class="min-w-0 flex-1">
+                <!--
+                  Eyebrow (defect 4). text-[11px] + whitespace-nowrap
+                  + no tracking lets "Estado de Caja" sit on a single
+                  line at the 5-up KPI card width. Same treatment as
+                  the four sibling eyebrows for row rhythm.
+                -->
+                <div class="h-4 flex items-center">
+                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Estado de Caja
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <UiBadge
+                    :variant="cashStatusBadgeVariant"
+                    shape="pill"
+                    size="md"
+                    role="status"
+                    :aria-label="`Estado de caja: ${cashStatusLabel}`"
+                    :class="['mt-1', cashStatusBadgeClass]"
+                    data-cash-pill
+                    :data-cash-pill-state="cashStatusPillState"
+                  >
+                    <span
+                      class="inline-block w-1.5 h-1.5 rounded-full"
+                      :class="cashStatusDotClass"
+                      aria-hidden="true"
+                    ></span>
+                    {{ cashStatusLabel }}
+                  </UiBadge>
+                </div>
+                <div class="h-6 min-h-[24px]"></div>
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">
+                    {{ cashBalanceText }}
+                  </p>
+                </div>
               </div>
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGreen-100 rounded-ios flex items-center justify-center border border-systemGreen-200">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-systemGreen-600"
+                  class="w-6 h-6 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -320,17 +486,16 @@
           </UiButton>
         </div>
 
-        <!-- Layout note: 3 columns at lg+, not 5. At 1440 with the design's
-             ~1368 px content width, a 5-col grid gave each card only ~70 px
-             of text space — too narrow for the real Spanish copy ("Gestionar
-             base de datos" = 22 chars; "Análisis y estadísticas" = 23 chars).
-             Spanish runs roughly 20-25% longer than English; the layout was
-             built for placeholder-length strings and clipped every subtitle
-             on the right. Quick actions are actions, not a stat row, so they
-             do not need to mirror the 5-up stats grid. 3 cols at lg+
-             (~440 px per card) gives the longest subtitle ~340 px to wrap
-             naturally. Cards are whole-card clickable; the chevron is
-             removed because it consumed space the label needed. -->
+        <!--
+          Quick Actions — 3 cols at lg+ (see layout note above for why
+          not 5). PR4 (G4) adds a keyhint affordance to each tile: the
+          banned chevron SVG path (M9 5l7 7-7 7) cannot be reintroduced,
+          but the tiles still need a "this is clickable" cue beyond the
+          hover lift. The device: a `<kbd>` chip in the top-right corner
+          carrying the keyboard shortcut for the action. Different from a
+          chevron (it's a keyhint), satisfies the source-assertion test,
+          and matches iOS's keyboard-shortcut disclosure convention.
+        -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Patients -->
           <UiCard
@@ -338,12 +503,13 @@
             hover
             clickable
             data-action="patients"
+            data-keyhint="P"
             @click="goToPatients"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-success-600"
+                  class="w-5 h-5 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -358,9 +524,10 @@
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-ink-800 leading-tight">Pacientes</p>
-                <p class="text-sm text-ink-500 leading-snug mt-0.5">Gestionar base de datos</p>
+                <p class="font-medium text-label leading-tight">Pacientes</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar base de datos</p>
               </div>
+              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">P</kbd>
             </div>
           </UiCard>
 
@@ -371,12 +538,13 @@
             hover
             clickable
             data-action="new-appointment"
+            data-keyhint="N"
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-systemBlue-600"
+                  class="w-5 h-5 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -391,9 +559,10 @@
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-ink-800 leading-tight whitespace-nowrap">Nueva Cita</p>
-                <p class="text-sm text-ink-500 leading-snug mt-0.5">Programar cita médica</p>
+                <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Programar cita médica</p>
               </div>
+              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">N</kbd>
             </div>
           </UiCard>
 
@@ -404,12 +573,13 @@
             hover
             clickable
             data-action="professionals"
+            data-keyhint="R"
             @click="goToProfessionals"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-warning-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-warning-600"
+                  class="w-5 h-5 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -424,9 +594,10 @@
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-ink-800 leading-tight">Profesionales</p>
-                <p class="text-sm text-ink-500 leading-snug mt-0.5">Gestionar equipo</p>
+                <p class="font-medium text-label leading-tight">Profesionales</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
               </div>
+              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">R</kbd>
             </div>
           </UiCard>
 
@@ -437,12 +608,13 @@
             hover
             clickable
             data-action="environments"
+            data-keyhint="E"
             @click="goToEnvironments"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-clinicalTeal-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-clinicalTeal-600"
+                  class="w-5 h-5 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -457,9 +629,10 @@
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-ink-800 leading-tight">Ambientes</p>
-                <p class="text-sm text-ink-500 leading-snug mt-0.5">Configurar espacios</p>
+                <p class="font-medium text-label leading-tight">Ambientes</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
               </div>
+              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">E</kbd>
             </div>
           </UiCard>
 
@@ -470,12 +643,13 @@
             hover
             clickable
             data-action="reports"
+            data-keyhint="B"
             @click="goToBusinessIntelligence"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-error-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
                 <svg
-                  class="w-5 h-5 text-error-600"
+                  class="w-5 h-5 text-systemGray-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -490,9 +664,10 @@
                 </svg>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="font-medium text-ink-800 leading-tight">Reportes</p>
-                <p class="text-sm text-ink-500 leading-snug mt-0.5">Análisis y estadísticas</p>
+                <p class="font-medium text-label leading-tight">Reportes</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Análisis y estadísticas</p>
               </div>
+              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">B</kbd>
             </div>
           </UiCard>
         </div>
@@ -534,6 +709,19 @@
           </UiButton>
         </div>
 
+        <!--
+          Empty state for the today-appointments case.
+          Composed from the design system: the existing <EmptyState>
+          primitive with its default calendar icon, a one-line Spanish
+          message, and a real call-to-action that routes to appointment
+          creation. NO remote illustration — clinical products must not
+          leak requests to third-party hosts (air-gapped deployments
+          would render a broken image, and the previous Picsum URL
+          resolved to an unrelated stock photo anyway, since the seed
+          is meaningless to a placeholder service). The pattern is
+          enforced project-wide by the no-external-image test in
+          DashboardAppShellTest.
+        -->
         <EmptyState
           v-if="todayAppointments.length === 0"
           title="Sin citas para hoy"
@@ -636,9 +824,40 @@ const stats = ref({
   total_appointment_types: 0,
   total_dental_chairs: 0,
   total_income: 0,
-  cash_session: null
+  cash_session: null,
+  // PR4 — additive backend block (PR3). Three keys carry comparison data;
+  // the rest of the stats surface has no `comparisons` key. Each chip
+  // is conditional on `delta_label !== null` (D14 omission contract);
+  // null renders an empty reserved slot.
+  comparisons: {
+    appointments_today: null,
+    total_patients: null,
+    total_appointments_this_month: null
+  }
 })
 const todayAppointments = ref([])
+
+/**
+ * PR4 — chip tone class. The chip is a pre-formatted string from the
+ * server (D13). Sign is derived from the leading character: "+" reads
+ * as growth (systemGreen), "-" reads as decline (systemRed), and "0" or
+ * any other neutral prefix reads as flat (systemGray). The wrapper
+ * receives the class binding and applies it; the chip itself never
+ * computes a percentage (that's the structural guarantee against
+ * Infinity / NaN / 100%).
+ */
+const chipToneClass = (deltaLabel) => {
+  if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
+    return 'bg-systemGray-100 text-systemGray-600'
+  }
+  if (deltaLabel.startsWith('+')) {
+    return 'bg-systemGreen-100 text-systemGreen-700'
+  }
+  if (deltaLabel.startsWith('-')) {
+    return 'bg-systemRed-100 text-systemRed-700'
+  }
+  return 'bg-systemGray-100 text-systemGray-600'
+}
 
 // Spring hooks are not strictly required for the rebuild — we expose the
 // composables via the design contract (useSpring/useSpring2D live in PR2's
@@ -667,6 +886,22 @@ const getTodayDate = () => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+/**
+ * PR4 correction round — short date for the Citas Hoy caption slot.
+ * The full `martes, 11 de agosto de 2026` Spanish format overflows the
+ * KPI card's caption slot at 5-up and `truncate` clips it mid-word.
+ * The short form `11 de ago` (day + Spanish month abbreviation, same
+ * tokens the chip's period_label uses) fits the slot on one line at
+ * the audit-confirmed 1440x900 width.
+ */
+const getShortTodayDate = () => {
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  const now = new Date()
+  const day = now.getDate()
+  const month = months[now.getMonth()]
+  return `${day} de ${month}`
 }
 
 const getRoleLabel = (role) => {
@@ -847,7 +1082,16 @@ const loadDashboardData = async () => {
       total_appointment_types: backendStats.total_appointment_types || 0,
       total_dental_chairs: backendStats.total_dental_chairs || 0,
       total_income: backendStats.total_income || 0,
-      cash_session: backendStats.cash_session || null
+      cash_session: backendStats.cash_session || null,
+      // PR3 / PR4 — additive comparisons block. Three keys carry
+      // data; the omitted keys (total_professionals, total_income,
+      // cash_session) keep their `null` default so the chip slots
+      // reserve their footprint but render no chip.
+      comparisons: backendStats.comparisons || {
+        appointments_today: null,
+        total_patients: null,
+        total_appointments_this_month: null
+      }
     }
 
     todayAppointments.value = Array.isArray(appointmentsResponse?.data)
