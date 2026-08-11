@@ -274,32 +274,43 @@ JS;
         $this->assertFalse($r['undefined'], 'prefersReducedMotion must default to false when matchMedia is missing');
     }
 
-    /** @test */
-    public function useFontsLoaded_composable_exists_and_exports(): void
+    /**
+     * Anti-requirement (ui-refresh-apple-clinical-2026-08): the
+     * `useFontsLoaded` composable was deleted in PR1 — Newsreader is gone,
+     * the system font has no FOUT risk, no replacement composable ships.
+     * The file must be absent from `resources/js/composables/` and the
+     * `grep` audit over `resources/` must return zero hits.
+     *
+     * @test
+     */
+    public function useFontsLoaded_composable_is_absent(): void
     {
-        $body = <<<'JS'
-import { pathToFileURL } from 'node:url';
-import fs from 'node:fs';
-const path = 'FONTS_PATH';
-const exists = fs.existsSync(path);
-const url = pathToFileURL(path).href;
-const mod = await import(url);
-const result = { exists, hasDefault: typeof mod.default === 'function' || typeof mod.default === 'object' };
-process.stdout.write(JSON.stringify(result));
-JS;
-        $body = str_replace('FONTS_PATH', str_replace('\\', '\\\\', self::projectRootPath() . '/resources/js/composables/useFontsLoaded.js'), $body);
+        $composablePath = self::projectRootPath() . '/resources/js/composables/useFontsLoaded.js';
+        $this->assertFalse(
+            is_file($composablePath),
+            'resources/js/composables/useFontsLoaded.js must be deleted (Newsreader retired per Decision 6)'
+        );
 
-        $tmp = tempnam(sys_get_temp_dir(), 'fonts_loaded_');
-        $loaderFile = $tmp . '.mjs';
-        file_put_contents($loaderFile, $body);
-        @unlink($tmp);
-
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
-        $output = shell_exec($cmd);
-        @unlink($loaderFile);
-
-        $r = json_decode(trim((string) $output), true);
-        $this->assertTrue($r['exists'] ?? false, 'useFontsLoaded.js must exist');
-        $this->assertTrue($r['hasDefault'] ?? false, 'useFontsLoaded.js must export a default (the composable)');
+        // Source-level grep audit.
+        $cmd = sprintf(
+            'rg --no-heading --count-matches --no-messages %s %s 2>&1',
+            escapeshellarg('useFontsLoaded'),
+            escapeshellarg(self::projectRootPath() . '/resources')
+        );
+        $output = (string) shell_exec($cmd);
+        $total = 0;
+        foreach (preg_split('/\r?\n/', $output) as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
+            $total += $count;
+        }
+        $this->assertSame(
+            0,
+            $total,
+            'No `useFontsLoaded` references may remain under resources/'
+        );
     }
 }

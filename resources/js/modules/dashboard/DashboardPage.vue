@@ -81,18 +81,18 @@
                   Citas Hoy
                 </p>
                 <p
-                  class="text-5xl font-bold text-terracotta-600 tabular-nums leading-none"
+                  class="text-5xl font-bold text-label tabular-nums leading-none"
                   aria-live="polite"
                 >
                   {{ stats.today || 0 }}
                 </p>
-                <p class="text-xs text-ink-500 mt-2">
+                <p class="text-xs text-systemGray-600 mt-2">
                   {{ getTodayDate() }}
                 </p>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-terracotta-50 rounded-xl flex items-center justify-center border border-terracotta-100">
+              <div class="flex-shrink-0 w-12 h-12 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
                 <svg
-                  class="w-6 h-6 text-terracotta-600"
+                  class="w-6 h-6 text-systemBlue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -250,7 +250,7 @@
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="text-xs font-medium text-ink-500 uppercase tracking-wide mb-2">
+                <p class="text-xs font-medium text-systemGray-600 uppercase tracking-wide mb-2">
                   Estado de Caja
                 </p>
                 <UiBadge
@@ -259,7 +259,7 @@
                   size="md"
                   role="status"
                   :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                  class="mt-1"
+                  :class="['mt-1', cashStatusBadgeClass]"
                   data-cash-pill
                   :data-cash-pill-state="cashStatusPillState"
                 >
@@ -270,13 +270,13 @@
                   ></span>
                   {{ cashStatusLabel }}
                 </UiBadge>
-                <p class="text-xs text-ink-500 mt-3">
+                <p class="text-xs text-systemGray-600 mt-3">
                   {{ cashBalanceText }}
                 </p>
               </div>
-              <div class="flex-shrink-0 w-10 h-10 bg-clinicalTeal-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemGreen-100 rounded-ios flex items-center justify-center border border-systemGreen-200">
                 <svg
-                  class="w-5 h-5 text-clinicalTeal-600"
+                  class="w-5 h-5 text-systemGreen-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -374,9 +374,9 @@
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-terracotta-50 rounded-lg flex items-center justify-center">
+              <div class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
                 <svg
-                  class="w-5 h-5 text-terracotta-600"
+                  class="w-5 h-5 text-systemBlue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -554,9 +554,9 @@
           >
             <div class="flex items-center justify-between gap-4">
               <div class="flex items-center gap-4 min-w-0">
-                <div class="flex-shrink-0 w-10 h-10 bg-terracotta-50 rounded-lg flex items-center justify-center">
+                <div class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
                   <svg
-                    class="w-5 h-5 text-terracotta-600"
+                    class="w-5 h-5 text-systemBlue-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -750,10 +750,11 @@ const goToCashRegister = () => {
 // only maps appointment / plan statuses and fell through to render the raw
 // English key on the page. The state is now used purely as a data
 // attribute (data-cash-pill-state) for testability; the user-visible
-// label and aria-label are always Spanish.
-//   - open        → label "Abierta",     variant "success", dot success-500
-//   - closed      → label "Cerrada",     variant "error",   dot error-500
-//   - no_session  → label "Sin sesión",  variant "neutral", dot ink-300
+// label and aria-label are always Spanish. iOS filled pattern per
+// Decision 7:
+//   - open        → label "Abierta",     bg-systemGreen-100 text-systemGreen-600
+//   - closed      → label "Cerrada",     bg-systemRed-100 text-systemRed-600
+//   - no_session  → label "Sin sesión",  bg-systemGray-100 text-systemGray-600
 const cashStatusPillState = computed(() => {
   if (isOpen.value) return 'open'
   if (hasActiveSession.value) return 'closed'
@@ -772,10 +773,16 @@ const cashStatusBadgeVariant = computed(() => {
   return 'neutral'
 })
 
+const cashStatusBadgeClass = computed(() => {
+  if (isOpen.value) return 'bg-systemGreen-100 text-systemGreen-600'
+  if (hasActiveSession.value) return 'bg-systemRed-100 text-systemRed-600'
+  return 'bg-systemGray-100 text-systemGray-600'
+})
+
 const cashStatusDotClass = computed(() => {
-  if (isOpen.value) return 'bg-success-500'
-  if (hasActiveSession.value) return 'bg-error-500'
-  return 'bg-ink-300'
+  if (isOpen.value) return 'bg-systemGreen-500'
+  if (hasActiveSession.value) return 'bg-systemRed-500'
+  return 'bg-systemGray-500'
 })
 
 const cashBalanceText = computed(() => {

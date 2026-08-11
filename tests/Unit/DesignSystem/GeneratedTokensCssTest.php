@@ -141,46 +141,21 @@ class GeneratedTokensCssTest extends TestCase
     }
 
     /**
-     * Task 2.1.7 — the @font-face block must declare Newsreader, reference
-     * the self-hosted woff2 in public/fonts/, and use font-display: swap.
+     * Anti-requirement (ui-refresh-apple-clinical-2026-08, design Decision 6):
+     * the @font-face block is GONE. The system font has no FOUT risk; no
+     * replacement woff2 binary ships; no replacement composable ships.
      *
      * @test
      */
-    public function generated_css_has_font_face_swap(): void
+    public function generated_css_has_no_font_face_block(): void
     {
         $css = self::readGeneratedCss();
         $this->assertNotNull($css, 'tokens.generated.css must exist');
 
-        // Locate the @font-face block. Brace-count from `{` to closing `}`.
-        $this->assertMatchesRegularExpression(
+        $this->assertDoesNotMatchRegularExpression(
             '/@font-face\s*\{/',
-            $css,
-            'tokens.generated.css must contain an @font-face block'
-        );
-
-        // Extract every @font-face block (one expected).
-        preg_match_all('/@font-face\s*\{([^}]*)\}/s', $css, $matches);
-        $this->assertGreaterThanOrEqual(
-            1,
-            count($matches[0]),
-            'tokens.generated.css must contain at least one @font-face block'
-        );
-        $block = $matches[1][0];
-
-        $this->assertStringContainsString(
-            'Newsreader',
-            $block,
-            '@font-face font-family must reference Newsreader'
-        );
-        $this->assertStringContainsString(
-            '/fonts/newsreader-latin.woff2',
-            $block,
-            '@font-face src must reference /fonts/newsreader-latin.woff2 (self-hosted)'
-        );
-        $this->assertStringContainsString(
-            'font-display: swap',
-            $block,
-            '@font-face must declare font-display: swap for FOUT behavior'
+            (string) $css,
+            'tokens.generated.css must not contain any @font-face block (Newsreader retired per Decision 6)'
         );
     }
 

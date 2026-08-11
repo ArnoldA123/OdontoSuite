@@ -92,24 +92,24 @@
   --color-system-gray-700: #3a3a3c;
 
   /* background */
-  --color-background-systemBackground: #ffffff;
-  --color-background-secondaryBackground: #f2f2f7;
-  --color-background-tertiaryBackground: #ffffff;
-  --color-background-groupedBackground: #f2f2f7;
+  --color-background-system-background: #ffffff;
+  --color-background-secondary-background: #f2f2f7;
+  --color-background-tertiary-background: #ffffff;
+  --color-background-grouped-background: #f2f2f7;
 
   /* label */
   --color-label-label: #000000;
-  --color-label-secondaryLabel: #3c3c43;
-  --color-label-tertiaryLabel: rgba(60, 60, 67, 0.30);
-  --color-label-quaternaryLabel: rgba(60, 60, 67, 0.18);
+  --color-label-secondary-label: #3c3c43;
+  --color-label-tertiary-label: rgba(60, 60, 67, 0.30);
+  --color-label-quaternary-label: rgba(60, 60, 67, 0.18);
 
   /* separator */
   --color-separator-separator: #c6c6c8;
 
   /* fill */
-  --color-fill-systemFill: rgba(120, 120, 128, 0.20);
-  --color-fill-secondarySystemFill: rgba(120, 120, 128, 0.16);
-  --color-fill-tertiarySystemFill: rgba(118, 118, 128, 0.12);
+  --color-fill-system-fill: rgba(120, 120, 128, 0.20);
+  --color-fill-secondary-system-fill: rgba(120, 120, 128, 0.16);
+  --color-fill-tertiary-system-fill: rgba(118, 118, 128, 0.12);
 
   /* cream */
   --color-cream-50: #f2f2f7;

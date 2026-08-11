@@ -79,7 +79,7 @@ for (const rampName of Object.keys(colors)) {
   const cssName = toKebab(rampName)
   push(`  /* ${rampName} */`)
   for (const step of Object.keys(ramp)) {
-    push(`  --color-${cssName}-${step}: ${ramp[step]};`)
+    push(`  --color-${cssName}-${toKebab(step)}: ${ramp[step]};`)
   }
   push('')
 }
