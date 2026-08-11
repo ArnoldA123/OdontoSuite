@@ -1,5 +1,5 @@
 <template>
-  <div :class="cardClasses" :data-variant="variant">
+  <div :class="cardClasses" :data-variant="variant" :data-clickable="clickable">
     <!-- Card header -->
     <div v-if="$slots.header" class="card-header">
       <slot name="header" />
@@ -37,8 +37,11 @@ const props = defineProps({
 })
 
 const cardClasses = computed(() => {
+  // PR2 (D8/D10): the blanket `transition-all duration-200` utility is replaced
+  // by an explicit property list in <style scoped> so the transform rides the
+  // fast rung on the iOS curve while colour washes keep standard easing.
   const base = [
-    'relative overflow-hidden transition-all duration-200',
+    'relative overflow-hidden',
     'border-theme'
   ]
 
@@ -113,6 +116,19 @@ const cardClasses = computed(() => {
 </script>
 
 <style scoped>
+/* PR2 (D8) — explicit transition list replacing the removed `transition-all`
+   utility. Colour and shadow washes keep the standard curve (Apple does this
+   deliberately); only the transform adopts the iOS curve on the fast rung.
+   `[data-variant]` is the card root: it is always bound, so it is the only
+   stable scoped handle this component has. */
+[data-variant] {
+  transition:
+    background-color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out,
+    box-shadow var(--motion-duration-normal) ease-out,
+    transform var(--motion-duration-fast) var(--motion-easing-ios);
+}
+
 .card-header {
   border-bottom: 1px solid var(--color-border);
   margin: calc(-1 * var(--spacing-6)) calc(-1 * var(--spacing-6)) var(--spacing-6);
@@ -177,14 +193,24 @@ const cardClasses = computed(() => {
   user-select: none;
 }
 
+/* Hover lift — one elevation rung up (PR1 --elevation-* ramp). The layered
+   opacity technique (a ::before carrying the target shadow) is NOT usable
+   here: the card root is `overflow: hidden`, which clips a pseudo-element's
+   outer shadow to nothing. A single hover-only box-shadow transition is the
+   correct trade — it repaints one element on pointer entry, not per frame of
+   a running animation. */
+[data-clickable="true"]:hover {
+  box-shadow: var(--elevation-2);
+}
+
 [data-clickable="true"]:active {
   transform: scale(0.98);
 }
 
-/* Focus styles for accessibility */
+/* Focus styles for accessibility — the ring is the PR1 token (D6). */
 [data-clickable="true"]:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Responsive adjustments */
@@ -200,10 +226,17 @@ const cardClasses = computed(() => {
 
 /* Glass variant usa variables CSS que ya manejan dark mode */
 
-/* Reduced motion support */
+/* Reduced motion (D11) — the movement goes, the feedback stays. The press
+   transform is swapped for an opacity dip on the same fast rung, and the
+   hover lift keeps its (non-vestibular) shadow change. Durations are NOT
+   flipped to 0: that would remove the feedback rather than gentle it. */
 @media (prefers-reduced-motion: reduce) {
-  .card {
-    transition: none;
+  [data-variant] {
+    transition:
+      background-color var(--motion-duration-normal) ease-out,
+      border-color var(--motion-duration-normal) ease-out,
+      box-shadow var(--motion-duration-normal) ease-out,
+      opacity var(--motion-duration-normal) ease-out;
   }
 
   [data-hover="true"]:hover {
@@ -212,6 +245,7 @@ const cardClasses = computed(() => {
 
   [data-clickable="true"]:active {
     transform: none;
+    opacity: 0.72;
   }
 }
 </style>

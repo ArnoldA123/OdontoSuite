@@ -78,15 +78,15 @@ const ariaLabel = computed(() => `${props.label}: ${Math.round(clampedValue.valu
 }
 
 .progress-fill.is-mid {
-  background-color: var(--color-warning);
+  background-color: var(--color-warning-500);
 }
 
 .progress-fill.is-high {
-  background-color: var(--color-success-light);
+  background-color: var(--color-success-100);
 }
 
 .progress-fill.is-complete {
-  background-color: var(--color-success);
+  background-color: var(--color-success-500);
 }
 
 .progress-text {

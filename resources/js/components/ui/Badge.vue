@@ -112,8 +112,10 @@ const badgeClasses = computed(() => {
 const dismissButtonClasses = computed(() => [
   'ml-1 -mr-1 p-0.5 rounded-full',
   'hover:bg-black/10 focus:bg-black/10',
-  'transition-colors duration-200',
-  'focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1'
+  'transition-colors duration-normal',
+  // PR2 (D6): the tokenised ring lives in <style scoped>; Tailwind's ring
+  // utility would out-specify it.
+  'focus:outline-none'
 ])
 
 const handleDismiss = () => {
@@ -142,21 +144,24 @@ const handleDismiss = () => {
   box-shadow: var(--shadow-subtle);
 }
 
-/* Focus styles for dismissible badges */
-.dismiss-button:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 1px;
+/* Focus styles for dismissible badges — PR2 (D6) tokenised ring. */
+.dismiss-button:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Scoped transitions — badge hover + dismiss.
-   Replaces the removed global `* { transition }` rule. */
+   Replaces the removed global `* { transition }` rule.
+   PR2 (D8): the transform takes the iOS curve; the colour wash keeps standard
+   easing. A badge is decorative — it carries no press transform (D10). */
 .badge {
   transition:
-    background-color 200ms ease-out,
-    color 200ms ease-out,
-    border-color 200ms ease-out,
-    box-shadow 200ms ease-out,
-    transform 150ms ease-out;
+    background-color var(--motion-duration-normal) ease-out,
+    color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out,
+    box-shadow var(--motion-duration-normal) ease-out,
+    transform var(--motion-duration-fast) var(--motion-easing-ios);
 }
 
 .badge.dismissing {

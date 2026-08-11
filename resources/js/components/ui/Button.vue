@@ -55,7 +55,10 @@ const buttonClasses = computed(() => {
   const base = [
     'relative inline-flex items-center justify-center',
     'font-medium',
-    'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2',
+    // PR2 (D6): the Tailwind `focus:ring-*` trio is dropped in favour of the
+    // tokenised `:focus-visible` ring declared in <style scoped>. Tailwind's
+    // `focus:` variant also fires on pointer press; `:focus-visible` does not.
+    'focus:outline-none',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
     'overflow-hidden select-none'
   ]
@@ -167,14 +170,16 @@ const createRipple = async (event) => {
 <style scoped>
 /* Scoped transitions — replace the removed global `* { transition }` rule
    from PR1. The four properties below cover every state change this
-   primitive makes on :hover / :focus-visible / :active. */
+   primitive makes on :hover / :focus-visible / :active.
+   PR2 (D8): the transform adopts the iOS curve; colour washes keep standard
+   easing deliberately. Durations read from PR1's motion ramp. */
 button {
   transition:
-    background-color 200ms ease-out,
-    border-color 200ms ease-out,
-    color 200ms ease-out,
-    box-shadow 200ms ease-out,
-    transform 150ms ease-out;
+    background-color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out,
+    color var(--motion-duration-normal) ease-out,
+    box-shadow var(--motion-duration-normal) ease-out,
+    transform var(--motion-duration-fast) var(--motion-easing-ios);
 }
 
 .button-content {
@@ -222,11 +227,12 @@ button:not(:disabled):active {
   transform: translateY(0);
 }
 
-/* Focus styles for accessibility — systemBlue focus ring stays visible
-   against systemBackground (accent vs. systemBackground = 4.6:1, AAA). */
+/* Focus styles for accessibility — PR2 (D6) replaces the inline outline with
+   the tokenised ring. `:focus-visible` (not `:focus`) so a pointer press does
+   not paint a ring. */
 button:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Loading state */
@@ -238,5 +244,34 @@ button:disabled {
 /* Icon variant specific styles */
 button[data-variant="icon"] {
   aspect-ratio: 1;
+}
+
+/* Reduced motion (D11) — the hover lift and press settle are movement, so they
+   collapse to an opacity change on the same rung. Feedback survives; the
+   translate goes. Durations are never zeroed. */
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition:
+      background-color var(--motion-duration-normal) ease-out,
+      border-color var(--motion-duration-normal) ease-out,
+      color var(--motion-duration-normal) ease-out,
+      box-shadow var(--motion-duration-normal) ease-out,
+      opacity var(--motion-duration-normal) ease-out;
+  }
+
+  button:not(:disabled):hover {
+    transform: none;
+    opacity: 0.88;
+  }
+
+  button:not(:disabled):active {
+    transform: none;
+    opacity: 0.72;
+  }
+
+  .spinner,
+  .ripple {
+    animation: none;
+  }
 }
 </style>
