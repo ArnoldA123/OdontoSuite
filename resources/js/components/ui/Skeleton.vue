@@ -92,8 +92,8 @@ const items = computed(() => {
 
 const getItemClasses = (item) => [
   'skeleton-item',
-  'bg-theme-surface',
-  props.rounded ? 'rounded' : 'rounded-none',
+  'bg-systemGray-100',
+  props.rounded ? 'rounded-ios' : 'rounded-none',
   props.animation === 'pulse' ? 'animate-pulse' : '',
   props.animation === 'wave' ? 'skeleton-wave' : ''
 ]

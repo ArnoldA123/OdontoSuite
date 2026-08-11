@@ -33,3 +33,16 @@ Thumbs.db
 /.codegraph/
 /_strip_check.php
 /odontosuite
+
+# Browser automation artifacts and captured sessions
+.playwright-cli/
+tests/visual/auth-admin.json
+tests/visual/baselines/
+storage/logs/serve.log
+storage/logs/vite.log
+
+# Heavy Pexels media - never ship
+public/images/pexels/
+.tmp_chrome_profile/
+.tmp_cookies.json
+tests/visual/

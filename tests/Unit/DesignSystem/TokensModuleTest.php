@@ -16,6 +16,13 @@ use PHPUnit\Framework\TestCase;
  *
  * Failure indicates the design-system foundation regressed: a missing export,
  * a missing palette step, or a value drift between tokens.js and tailwind.
+ *
+ * PR1 (ui-premium-microdetail-2026-08) — the `test_*` methods at the end of
+ * this class pin the token surface settled by reconciliation rulings R1-R12.
+ * Every literal in them is a pinned invariant rather than a preference: a
+ * failing expectation means the code diverged from a ruling, so re-read the
+ * ruling before editing the expectation. The task ID on each method maps to
+ * that change's tasks.md.
  */
 class TokensModuleTest extends TestCase
 {
@@ -26,16 +33,16 @@ class TokensModuleTest extends TestCase
     private const TAILWIND_REL_PATH = '/tailwind.config.js';
 
     /** Project root absolute path. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private static function tokensPath(): string
     {
-        return self::PROJECT_ROOT . self::TOKENS_REL_PATH;
+        return self::projectRootPath() . self::TOKENS_REL_PATH;
     }
 
     private static function tailwindPath(): string
     {
-        return self::PROJECT_ROOT . self::TAILWIND_REL_PATH;
+        return self::projectRootPath() . self::TAILWIND_REL_PATH;
     }
 
     /**
@@ -65,7 +72,11 @@ const out = {
   radius: tokens.radius,
   typography: tokens.typography,
   shadow: tokens.shadow,
-  breakpoint: tokens.breakpoint
+  breakpoint: tokens.breakpoint,
+  motion: tokens.motion,
+  focusRing: tokens.focusRing ?? null,
+  fontFeatures: tokens.fontFeatures ?? null,
+  elevation: tokens.elevation ?? null
 };
 process.stdout.write(JSON.stringify(out));
 JS;
@@ -138,7 +149,9 @@ JS;
         $colors = $tokens['colors'];
 
         // FF-004 / UXT-001 — semantic palette must exist with all documented states.
-        $required = ['primary', 'neutral', 'success', 'warning', 'error', 'info'];
+        // PR2: `info` was folded into `clinicalTeal`; `primary` kept as deprecated
+        // alias for the 17 un-migrated modules until PR3 retires them.
+        $required = ['primary', 'neutral', 'success', 'warning', 'error'];
         foreach ($required as $state) {
             $this->assertArrayHasKey($state, $colors, "tokens.colors.{$state} must exist");
         }
@@ -187,7 +200,8 @@ JS;
 
         $this->assertArrayHasKey('sm', $tokens['radius']);
         $this->assertArrayHasKey('md', $tokens['radius']);
-        $this->assertArrayHasKey('lg', $tokens['radius']);
+        $this->assertArrayHasKey('ios', $tokens['radius']);
+        $this->assertArrayHasKey('modal', $tokens['radius']);
         $this->assertArrayHasKey('full', $tokens['radius']);
     }
 
@@ -216,6 +230,687 @@ JS;
     }
 
     /**
+     * Shell out to ripgrep against `resources/` and return the number of
+     * matching lines. `rg` is preferred over PowerShell `Select-String`
+     * because the latter parses `|` as a pipeline token even inside quoted
+     * regex patterns.
+     */
+    private static function grepResourceCount(string $pattern): int
+    {
+        $cmd = sprintf(
+            'rg --no-heading --count-matches --no-messages %s %s/resources 2>&1',
+            escapeshellarg($pattern),
+            escapeshellarg(self::projectRootPath())
+        );
+        $output = (string) shell_exec($cmd);
+        if ($output === '') {
+            return 0;
+        }
+        // rg --count-matches emits one line per file as `path:count` (or just
+        // the count when stdin / single file). Strip the file prefix and sum.
+        $total = 0;
+        foreach (preg_split('/\r?\n/', $output) as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
+            $total += $count;
+        }
+        return $total;
+    }
+
+    /**
+     * Assert a grep over `resources/` returns exactly zero matches. Fails
+     * loudly with the pattern + actual count so the next operator can see
+     * which file still ships the dead code.
+     */
+    private static function assertResourceGrepReturnsZero(string $pattern, string $message): void
+    {
+        $count = self::grepResourceCount($pattern);
+        self::assertSame(
+            0,
+            $count,
+            $message . " (pattern: {$pattern}, count: {$count})"
+        );
+    }
+
+    /**
+     * Task 1.1.1 — anti-requirement guard. After PR1 the dark-mode
+     * machinery is fully gone: `useTheme`, the `setTheme` /
+     * `getThemeOptions` exports, the `ThemeSelector` UI, the stale
+     * `design-system.js` duplicate, and the dead `MobileNavigation`
+     * component must all be absent from `resources/`.
+     *
+     * @test
+     */
+    public function theme_machinery_removed(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'useTheme|setTheme|getThemeOptions|ThemeSelector|design-system.js|MobileNavigation',
+            'PR1 must remove every dark-mode / dead-component reference from resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.2 — anti-requirement guard. No `@media
+     * (prefers-color-scheme: dark)` block may remain anywhere under
+     * `resources/` once the design system is light-only.
+     *
+     * @test
+     */
+    public function no_dark_mode_blocks_in_resources(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'prefers-color-scheme: dark',
+            'PR1 must delete every prefers-color-scheme: dark block from resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.3 — guard that no code writes a `theme` key into
+     * `localStorage`. Per orchestrator correction (2026-08-10): the
+     * pre-existing `useTheme.js` wrote `odontosuite-theme` but the
+     * spec key is the bare `'theme'` — once `useTheme.js` is deleted,
+     * no theme key (any flavor) may be written. A stale `theme` key in
+     * a user's browser is intentionally inert on next visit; no
+     * read-once bootstrap is required.
+     *
+     * @test
+     */
+    public function app_bootstrap_ignores_stale_theme_localstorage_key(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            "setItem\\('theme'",
+            'PR1 must delete every localStorage theme write; stale keys become inert naturally'
+        );
+    }
+
+    /**
+     * Task 1.1.4 — guard that `Avatar.vue` no longer carries its own
+     * `@media (prefers-color-scheme: dark)` block. The Avatar was the
+     * only file under `resources/js/components/ui/` that had one.
+     *
+     * @test
+     */
+    public function avatar_dark_mode_blocks_removed(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'prefers-color-scheme: dark',
+            'Avatar.vue must drop its prefers-color-scheme: dark block'
+        );
+    }
+
+    /**
+     * Task 2.1.1 — DEPRECATED: previous design's terracotta/cream/ink/clinicalTeal
+     * ramps are replaced by iOS 13+ system color ramps + background/label/separator/fill
+     * ramps + deprecated alias keys. The new ramps are asserted in
+     * tokens_module_exposes_ios_system_color_ramps (Task 1.1.1) and
+     * tokens_module_deprecated_aliases_resolve (Task 1.1.9).
+     *
+     * @test
+     */
+    public function tokens_module_exposes_ios_ramps_with_aliases(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        // New primary ramps (iOS system colors).
+        foreach ([
+            'systemBlue', 'systemRed', 'systemOrange', 'systemYellow',
+            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray'
+        ] as $ramp) {
+            $this->assertArrayHasKey(
+                $ramp,
+                $colors,
+                "tokens.colors.{$ramp} must exist (iOS 13+ system colors)"
+            );
+        }
+
+        // iOS background ramp.
+        $this->assertArrayHasKey('background', $colors, 'tokens.colors.background must exist');
+        foreach (['systemBackground', 'secondaryBackground', 'tertiaryBackground', 'groupedBackground'] as $k) {
+            $this->assertArrayHasKey(
+                $k,
+                $colors['background'],
+                "tokens.colors.background.{$k} must exist"
+            );
+        }
+
+        // iOS label ramp.
+        $this->assertArrayHasKey('label', $colors, 'tokens.colors.label must exist');
+        foreach (['label', 'secondaryLabel', 'tertiaryLabel', 'quaternaryLabel'] as $k) {
+            $this->assertArrayHasKey(
+                $k,
+                $colors['label'],
+                "tokens.colors.label.{$k} must exist"
+            );
+        }
+
+        // iOS separator and fill ramps.
+        $this->assertArrayHasKey('separator', $colors, 'tokens.colors.separator must exist');
+        $this->assertArrayHasKey('separator', $colors['separator'], 'separator.separator must exist');
+        $this->assertArrayHasKey('fill', $colors, 'tokens.colors.fill must exist');
+        foreach (['systemFill', 'secondarySystemFill', 'tertiarySystemFill'] as $k) {
+            $this->assertArrayHasKey(
+                $k,
+                $colors['fill'],
+                "tokens.colors.fill.{$k} must exist"
+            );
+        }
+
+        // Deprecated alias keys must exist (preserve 17 un-migrated modules).
+        foreach (['cream', 'terracotta', 'clinicalTeal', 'info'] as $alias) {
+            $this->assertArrayHasKey(
+                $alias,
+                $colors,
+                "tokens.colors.{$alias} deprecated alias must exist"
+            );
+        }
+    }
+
+    /**
+     * Task 2.1.2 — anti-requirement guard. The `info` ramp survives as a
+     * single-step deprecated alias (info.500 -> systemBlue.500). The
+     * `terracotta`/`cream`/`clinicalTeal` aliases carry only the steps the
+     * 17 un-migrated modules actually consume. No ramp key ends in a
+     * dark-suffix anywhere.
+     *
+     * @test
+     */
+    public function tokens_module_aliases_shape_and_no_dark_suffixes(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        // info ramp survives ONLY as a single-step alias (500).
+        $this->assertArrayHasKey('info', $colors, 'tokens.colors.info alias must exist');
+        $this->assertSame(
+            [500],
+            array_keys($colors['info']),
+            'tokens.colors.info must contain only the [500] step (single-step alias)'
+        );
+
+        // No key in colors ends in -dark, Dark, or _dark.
+        foreach (array_keys($colors) as $rampName) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/(^|_|-)(dark|Dark|DARK)$/',
+                (string) $rampName,
+                "tokens.colors.{$rampName} ends with a dark-suffix and must be removed"
+            );
+        }
+
+        foreach ($colors as $rampName => $steps) {
+            if (!is_array($steps)) {
+                continue;
+            }
+            foreach (array_keys($steps) as $stepName) {
+                $this->assertDoesNotMatchRegularExpression(
+                    '/(^|_|-)(dark|Dark|DARK)$/',
+                    (string) $stepName,
+                    "tokens.colors.{$rampName}.{$stepName} ends with a dark-suffix and must be removed"
+                );
+            }
+        }
+    }
+
+    /**
+     * Task 1.1.1 — token surface must expose the iOS 13+ system color ramps
+     * at steps {50, 100, 500, 600, 700} plus background / label / separator /
+     * fill ramps. Each ramp step is a 6-digit lowercase hex literal.
+     *
+     * @test
+     */
+    public function tokens_module_exposes_ios_system_color_ramps(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        foreach ([
+            'systemBlue', 'systemRed', 'systemOrange', 'systemYellow',
+            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray'
+        ] as $ramp) {
+            $this->assertArrayHasKey(
+                $ramp,
+                $colors,
+                "tokens.colors.{$ramp} must exist (iOS 13+ system color ramp)"
+            );
+            foreach (['50', '100', '500', '600', '700'] as $step) {
+                $this->assertArrayHasKey(
+                    $step,
+                    $colors[$ramp],
+                    "tokens.colors.{$ramp}.{$step} must exist"
+                );
+                $this->assertMatchesRegularExpression(
+                    '/^#[0-9A-Fa-f]{6}$/',
+                    (string) $colors[$ramp][$step],
+                    "tokens.colors.{$ramp}.{$step} must be a 6-digit hex literal"
+                );
+            }
+        }
+    }
+
+    /**
+     * Task 1.1.2 — literal hex checks: every iOS system color hex matches
+     * the canonical iOS 13+ reference value, plus background/label/separator.
+     *
+     * @test
+     */
+    public function tokens_module_hex_literals_match_ios_palette(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        $cases = [
+            ['systemBlue', '500', '#007AFF'],
+            ['systemRed', '500', '#FF3B30'],
+            ['systemOrange', '500', '#FF9500'],
+            ['systemYellow', '500', '#FFCC00'],
+            ['systemGreen', '500', '#34C759'],
+            ['systemIndigo', '500', '#5856D6'],
+            ['systemPurple', '500', '#AF52DE'],
+            ['systemPink', '500', '#FF2D55'],
+        ];
+        foreach ($cases as [$ramp, $step, $hex]) {
+            $this->assertSame(
+                $hex,
+                strtoupper((string) $colors[$ramp][$step]),
+                "tokens.colors.{$ramp}.{$step} must equal {$hex}"
+            );
+        }
+
+        $this->assertSame(
+            '#FFFFFF',
+            strtoupper((string) $colors['background']['systemBackground']),
+            'tokens.colors.background.systemBackground must be #FFFFFF'
+        );
+        $this->assertSame(
+            '#000000',
+            strtoupper((string) $colors['label']['label']),
+            'tokens.colors.label.label must be #000000'
+        );
+        $this->assertSame(
+            '#C6C6C8',
+            strtoupper((string) $colors['separator']['separator']),
+            'tokens.colors.separator.separator must be #C6C6C8'
+        );
+    }
+
+    /**
+     * Task 1.1.3 — radius scale: `ios` (10 px) for cards/buttons/chips,
+     * `modal` (14 px) for Modal/Sheet. `lg/2xl/3xl` are removed.
+     *
+     * @test
+     */
+    public function tokens_module_radius_ios_and_modal(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $this->assertSame('10px', $tokens['radius']['ios'], 'tokens.radius.ios must be 10px');
+        $this->assertSame('14px', $tokens['radius']['modal'], 'tokens.radius.modal must be 14px');
+        $this->assertSame('4px', $tokens['radius']['sm'], 'tokens.radius.sm must be 4px');
+        $this->assertSame('9999px', $tokens['radius']['full'], 'tokens.radius.full must be 9999px');
+
+        foreach (['lg', '2xl', '3xl'] as $legacy) {
+            $this->assertArrayNotHasKey(
+                $legacy,
+                $tokens['radius'],
+                "tokens.radius.{$legacy} must be removed (replaced by radius.ios/modal)"
+            );
+        }
+    }
+
+    /**
+     * Task 1.1.4 — typography.fontFamily.serif is removed. fontFamily.sans
+     * remains as a non-empty array starting with -apple-system.
+     *
+     * @test
+     */
+    public function tokens_module_font_family_sans_only(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $fontFamily = $tokens['typography']['fontFamily'];
+        $this->assertIsArray($fontFamily, 'tokens.typography.fontFamily must be an object');
+        $this->assertArrayHasKey('sans', $fontFamily, 'tokens.typography.fontFamily.sans must exist');
+        $this->assertIsArray($fontFamily['sans'], 'tokens.typography.fontFamily.sans must be an array');
+        $this->assertNotEmpty($fontFamily['sans'], 'tokens.typography.fontFamily.sans must not be empty');
+        $this->assertSame(
+            '-apple-system',
+            (string) $fontFamily['sans'][0],
+            'tokens.typography.fontFamily.sans[0] must be -apple-system'
+        );
+        $this->assertArrayNotHasKey(
+            'serif',
+            $fontFamily,
+            'tokens.typography.fontFamily.serif must be removed (Newsreader retired)'
+        );
+    }
+
+    /**
+     * Task 1.1.5 — letterSpacing table tuned for SF/system: xs/sm/base/lg = 0,
+     * xl = -0.01em, 2xl = -0.015em, 3xl = -0.02em, 4xl/display/hero = -0.022em.
+     * No fontSize step sets font-optical-sizing (system font has no opsz axis).
+     *
+     * @test
+     */
+    public function tokens_module_letter_spacing_table(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $fontSize = $tokens['typography']['fontSize'];
+        $expected = [
+            'xs' => '0',
+            'sm' => '0',
+            'base' => '0',
+            'lg' => '0',
+            'xl' => '-0.01em',
+            '2xl' => '-0.015em',
+            '3xl' => '-0.02em',
+            '4xl' => '-0.022em',
+            'display' => '-0.022em',
+            'hero' => '-0.022em',
+        ];
+        foreach ($expected as $step => $ls) {
+            $this->assertArrayHasKey($step, $fontSize, "tokens.typography.fontSize.{$step} must exist");
+            $opts = $fontSize[$step][1] ?? [];
+            $this->assertSame(
+                $ls,
+                (string) ($opts['letterSpacing'] ?? null),
+                "tokens.typography.fontSize.{$step}.letterSpacing must equal {$ls}"
+            );
+            $this->assertArrayNotHasKey(
+                'font-optical-sizing',
+                $opts,
+                "tokens.typography.fontSize.{$step} must not set font-optical-sizing"
+            );
+        }
+    }
+
+    /**
+     * Read `resources/css/tokens.generated.css` and return its raw bytes.
+     */
+    private static function loadGeneratedCss(): ?string
+    {
+        $path = self::projectRootPath() . '/resources/css/tokens.generated.css';
+        if (!is_file($path)) {
+            return null;
+        }
+        return (string) file_get_contents($path);
+    }
+
+    /**
+     * Run `git ls-files <path>` and return true when the file is tracked.
+     */
+    private static function gitLsFilesTracked(string $relPath): bool
+    {
+        $cmd = sprintf(
+            'git ls-files --error-unmatch -- %s 1>nul 2>nul',
+            escapeshellarg($relPath)
+        );
+        $rc = 0;
+        $output = [];
+        $exe = self::projectRootPath() . DIRECTORY_SEPARATOR;
+        // chdir to project root so git picks up the right repo.
+        $prev = getcwd();
+        if ($prev !== false) {
+            chdir($exe);
+        }
+        exec('git ls-files --error-unmatch ' . escapeshellarg($relPath) . ' 1>nul 2>nul', $output, $rc);
+        if ($prev !== false) {
+            chdir($prev);
+        }
+        return $rc === 0;
+    }
+
+    /**
+     * Task 1.1.6 — Newsreader binary + useFontsLoaded composable absent.
+     * No `Newsreader`/`useFontsLoaded`/`var(--font-serif)` references remain
+     * under `resources/`.
+     *
+     * @test
+     */
+    public function tokens_module_no_newsreader_no_use_fonts_loaded(): void
+    {
+        // File absence.
+        $this->assertFalse(
+            self::gitLsFilesTracked('public/fonts/newsreader-latin.woff2'),
+            'public/fonts/newsreader-latin.woff2 must be deleted'
+        );
+        $this->assertFalse(
+            self::gitLsFilesTracked('resources/js/composables/useFontsLoaded.js'),
+            'resources/js/composables/useFontsLoaded.js must be deleted'
+        );
+
+        // Source-level grep absence.
+        self::assertResourceGrepReturnsZero(
+            'Newsreader',
+            'No `Newsreader` references may remain under resources/'
+        );
+        self::assertResourceGrepReturnsZero(
+            'useFontsLoaded',
+            'No `useFontsLoaded` references may remain under resources/'
+        );
+        self::assertResourceGrepReturnsZero(
+            'var\(--font-serif\)',
+            'No `var(--font-serif)` references may remain under resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.7 — forbidden cream / terracotta / clinicalTeal hex literals
+     * must not appear anywhere in `resources/` outside the SoT files
+     * (tokens.js + tokens.generated.css).
+     *
+     * @test
+     */
+    public function tokens_module_no_cream_terracotta_clinical_teal_literals(): void
+    {
+        // Strip tokens.js + tokens.generated.css (allowed SoT files) from the
+        // project root and grep the rest of resources/.
+        $root = self::projectRootPath();
+        $cmd = sprintf(
+            'rg --no-heading --count-matches --no-messages %s %s 2>&1',
+            escapeshellarg('#FAF9F7|#F2EFE9|#E8E3D8|#C96442|#B05432|#2C7A7B'),
+            escapeshellarg($root . '/resources')
+        );
+        $output = (string) shell_exec($cmd);
+        $total = 0;
+        foreach (preg_split('/\r?\n/', $output) as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+            if (str_contains($line, 'tokens.js') || str_contains($line, 'tokens.generated.css')) {
+                continue;
+            }
+            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
+            $total += $count;
+        }
+        $this->assertSame(
+            0,
+            $total,
+            'Forbidden cream/terracotta/clinicalTeal hex literals must be absent outside tokens.js + tokens.generated.css'
+        );
+    }
+
+    /**
+     * Task 1.1.8 — anti-requirement guard. No `prefers-color-scheme: dark`
+     * block may exist under `resources/` (light-only design system).
+     *
+     * @test
+     */
+    public function tokens_module_no_dark_mode_blocks(): void
+    {
+        self::assertResourceGrepReturnsZero(
+            'prefers-color-scheme: dark',
+            'PR1+ must remove every prefers-color-scheme: dark block from resources/'
+        );
+    }
+
+    /**
+     * Task 1.1.9 — deprecated alias keys resolve to iOS system colors. The
+     * 17 un-migrated modules' Tailwind classes keep rendering without churn.
+     *
+     * @test
+     */
+    public function tokens_module_deprecated_aliases_resolve(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $colors = $tokens['colors'];
+
+        // cream -> systemGray family.
+        $this->assertSame(
+            '#F2F2F7',
+            strtoupper((string) $colors['cream']['50']),
+            'tokens.colors.cream.50 must alias systemGray-50 (#F2F2F7)'
+        );
+        $this->assertSame(
+            '#E5E5EA',
+            strtoupper((string) $colors['cream']['100']),
+            'tokens.colors.cream.100 must alias systemGray-100 (#E5E5EA)'
+        );
+        $this->assertSame(
+            '#D1D1D6',
+            strtoupper((string) $colors['cream']['200']),
+            'tokens.colors.cream.200 must alias systemGray-200 (#D1D1D6)'
+        );
+
+        // terracotta -> systemBlue.
+        $this->assertSame(
+            '#007AFF',
+            strtoupper((string) $colors['terracotta']['500']),
+            'tokens.colors.terracotta.500 must alias systemBlue-500 (#007AFF)'
+        );
+        $this->assertSame(
+            '#0062CC',
+            strtoupper((string) $colors['terracotta']['600']),
+            'tokens.colors.terracotta.600 must alias systemBlue-600 (#0062CC)'
+        );
+
+        // clinicalTeal -> systemBlue.
+        $this->assertSame(
+            '#E5F1FF',
+            strtoupper((string) $colors['clinicalTeal']['50']),
+            'tokens.colors.clinicalTeal.50 must alias systemBlue-50 (#E5F1FF)'
+        );
+        $this->assertSame(
+            '#007AFF',
+            strtoupper((string) $colors['clinicalTeal']['500']),
+            'tokens.colors.clinicalTeal.500 must alias systemBlue-500 (#007AFF)'
+        );
+
+        // info -> systemBlue-500 (iOS convention: blue = info).
+        $this->assertSame(
+            '#007AFF',
+            strtoupper((string) $colors['info']['500']),
+            'tokens.colors.info.500 must alias systemBlue-500 (#007AFF)'
+        );
+    }
+
+    /**
+     * Task 1.1.10 — generated CSS contains no `@font-face` block, no
+     * `--font-serif` declaration, and no `newsreader` reference anywhere.
+     *
+     * @test
+     */
+    public function generated_css_has_no_font_face_no_font_serif(): void
+    {
+        $css = self::loadGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist (run `pnpm tokens:build`)');
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/@font-face/i',
+            (string) $css,
+            'tokens.generated.css must not contain any @font-face block'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/--font-serif\s*:/i',
+            (string) $css,
+            'tokens.generated.css must not contain --font-serif declaration'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/newsreader/i',
+            (string) $css,
+            'tokens.generated.css must not reference newsreader'
+        );
+    }
+
+    /**
+     * Task 1.1.11 — generated CSS `.surface-glass` rgba is white-on-white
+     * (rgb(255 255 255 / ...)). Shadow ramp uses rgba(0, 0, 0, ...).
+     *
+     * @test
+     */
+    public function generated_css_surface_glass_uses_white_on_white_and_pure_black_shadow(): void
+    {
+        $css = self::loadGeneratedCss();
+        $this->assertNotNull($css, 'tokens.generated.css must exist');
+
+        // .surface-glass background must match white-on-white rgba.
+        $this->assertMatchesRegularExpression(
+            '/\.surface-glass\s*\{[^}]*rgb\(\s*255\s+255\s+255\s*\/\s*0\.78\s*\)/i',
+            (string) $css,
+            '.surface-glass background must be rgb(255 255 255 / 0.78)'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/\.surface-glass\s*\{[^}]*rgb\(\s*250\s+249\s+247/i',
+            (string) $css,
+            '.surface-glass must not carry cream-on-cream rgba'
+        );
+
+        // No warm-black rgba(20, 17, 14, ...) anywhere.
+        $this->assertDoesNotMatchRegularExpression(
+            '/rgba\(\s*20\s*,\s*17\s*,\s*14\b/i',
+            (string) $css,
+            'tokens.generated.css must not use warm-black rgba(20, 17, 14, ...) shadows'
+        );
+
+        // Shadow ramp uses rgba(0, 0, 0, ...).
+        $this->assertMatchesRegularExpression(
+            '/--shadow-(sm|md|lg|xl)\s*:\s*[^;]*rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/i',
+            (string) $css,
+            'tokens.generated.css shadow ramp must use rgba(0, 0, 0, ...) (pure black)'
+        );
+    }
+
+    /**
+     * Task 2.1.4 — motion tokens section remains intact (consumed by
+     * useSpring / useSpring2D / generator). The values are unchanged from
+     * the previous design; this test guards against accidental removal.
+     *
+     * @test
+     */
+    public function tokens_module_motion_section_present(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('motion', $tokens, 'tokens.motion section must exist');
+        $motion = $tokens['motion'];
+        $this->assertIsArray($motion, 'tokens.motion must be an object');
+        $this->assertArrayHasKey('response', $motion, 'tokens.motion.response must exist');
+        $this->assertArrayHasKey('damping', $motion, 'tokens.motion.damping must exist');
+        $this->assertSame(
+            0.35,
+            (float) $motion['response'],
+            'tokens.motion.response must be 0.35'
+        );
+        $this->assertSame(
+            1.0,
+            (float) $motion['damping'],
+            'tokens.motion.damping must be 1.0'
+        );
+    }
+
+    /**
      * Parse tailwind.config.js palette blocks by string extraction. This is a
      * brittle but acceptable check since the file format is hand-curated and
      * under our control.
@@ -239,5 +934,214 @@ JS;
             }
         }
         return $palette;
+    }
+
+    /** Task 1.1.1 — canvas aliases secondaryBackground, and systemBackground stays pinned. */
+    public function test_canvas_token_aliases_secondary_background(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('background', $tokens['colors'], 'tokens.colors.background must exist');
+
+        $background = $tokens['colors']['background'];
+        $this->assertArrayHasKey('canvas', $background, 'tokens.colors.background.canvas must exist');
+        $this->assertSame(
+            '#F2F2F7',
+            strtoupper((string) $background['canvas']),
+            'tokens.colors.background.canvas must equal #F2F2F7 (alias of secondaryBackground)'
+        );
+        $this->assertSame(
+            '#FFFFFF',
+            strtoupper((string) $background['systemBackground']),
+            'tokens.colors.background.systemBackground must remain #FFFFFF (consumed by all 20 modules)'
+        );
+    }
+
+    /** Task 1.1.3 — hairline alpha-border token. */
+    public function test_hairline_alpha_token_present(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $this->assertArrayHasKey('border', $tokens['colors'], 'tokens.colors.border must exist');
+        $this->assertArrayHasKey('hairline', $tokens['colors']['border'], 'tokens.colors.border.hairline must exist');
+        $this->assertSame(
+            'rgba(60, 60, 67, 0.12)',
+            (string) $tokens['colors']['border']['hairline'],
+            'tokens.colors.border.hairline must equal rgba(60, 60, 67, 0.12) (iOS separator opacity)'
+        );
+    }
+
+    /** Task 1.1.5 — nested radius keys; the legacy lg/2xl/3xl scale stays retired. */
+    public function test_nested_radius_keys_added(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+
+        $this->assertArrayHasKey('cardLg', $tokens['radius'], 'tokens.radius.cardLg must exist');
+        $this->assertSame('16px', $tokens['radius']['cardLg'], 'tokens.radius.cardLg must be 16px');
+        $this->assertArrayHasKey('control', $tokens['radius'], 'tokens.radius.control must exist');
+        $this->assertSame('8px', $tokens['radius']['control'], 'tokens.radius.control must be 8px');
+
+        foreach (['lg', '2xl', '3xl'] as $legacy) {
+            $this->assertArrayNotHasKey(
+                $legacy,
+                $tokens['radius'],
+                "tokens.radius.{$legacy} must remain absent (replaced by radius.ios/modal/cardLg/control)"
+            );
+        }
+    }
+
+    /** Task 1.1.7 — motion.duration holds exactly three keys; instant/base/spring are dead tokens. */
+    public function test_motion_duration_has_exactly_three_keys(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('duration', $tokens['motion'], 'tokens.motion.duration must exist');
+
+        $duration = $tokens['motion']['duration'];
+        $this->assertSame(
+            ['fast', 'normal', 'slow'],
+            array_keys($duration),
+            'tokens.motion.duration keys must be exactly [fast, normal, slow]'
+        );
+        $this->assertSame('120ms', $duration['fast'], 'tokens.motion.duration.fast must be 120ms');
+        $this->assertSame('200ms', $duration['normal'], 'tokens.motion.duration.normal must be 200ms');
+        $this->assertSame('320ms', $duration['slow'], 'tokens.motion.duration.slow must be 320ms');
+
+        foreach (['instant', 'base', 'spring'] as $dead) {
+            $this->assertArrayNotHasKey($dead, $duration, "tokens.motion.duration.{$dead} must be absent (dead token)");
+        }
+    }
+
+    /** Task 1.1.9 — focusRing composed shape. */
+    public function test_focus_ring_token_composed_shape(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['focusRing'] ?? null, 'tokens.focusRing must exist');
+
+        $this->assertSame('3px', $tokens['focusRing']['width'], 'tokens.focusRing.width must be 3px');
+        $this->assertSame(
+            '#007AFF',
+            strtoupper((string) $tokens['focusRing']['color']),
+            'tokens.focusRing.color must be #007AFF (systemBlue-500)'
+        );
+        $this->assertSame(0.20, (float) $tokens['focusRing']['alpha'], 'tokens.focusRing.alpha must be 0.20');
+        $this->assertSame('2px', $tokens['focusRing']['offset'], 'tokens.focusRing.offset must be 2px');
+    }
+
+    /** Task 1.1.11 — fontFeatures.tabularNums is a valid CSS value; proportionalNums is dropped. */
+    public function test_font_features_tabular_nums_value(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['fontFeatures'] ?? null, 'tokens.fontFeatures must exist');
+
+        $this->assertArrayHasKey('tabularNums', $tokens['fontFeatures'], 'tokens.fontFeatures.tabularNums must exist');
+        $this->assertSame(
+            '"tnum" 1, "lnum" 1',
+            (string) $tokens['fontFeatures']['tabularNums'],
+            'tokens.fontFeatures.tabularNums must be a valid CSS font-feature-settings value'
+        );
+        $this->assertArrayNotHasKey(
+            'proportionalNums',
+            $tokens['fontFeatures'],
+            'tokens.fontFeatures.proportionalNums must be absent (no consumer)'
+        );
+    }
+
+    /** Task 1.1.13 — five-rung elevation ramp in the iOS label hue family, two-layer from rung 2 up. */
+    public function test_elevation_ramp_five_rungs_label_hue_family(): void
+    {
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertNotNull($tokens['elevation'] ?? null, 'tokens.elevation must exist');
+
+        $this->assertArrayHasKey(0, $tokens['elevation'], 'tokens.elevation.0 must exist');
+        $this->assertSame('none', (string) $tokens['elevation'][0], 'tokens.elevation.0 must be "none"');
+
+        for ($rung = 1; $rung <= 4; $rung++) {
+            $this->assertArrayHasKey($rung, $tokens['elevation'], "tokens.elevation.{$rung} must exist");
+            $value = (string) $tokens['elevation'][$rung];
+            $this->assertMatchesRegularExpression(
+                '/rgba\(\s*60\s*,\s*60\s*,\s*67\s*,/',
+                $value,
+                "tokens.elevation.{$rung} must use rgba(60, 60, 67, α) (iOS label/separator hue family)"
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/',
+                $value,
+                "tokens.elevation.{$rung} must NOT use rgba(0, 0, 0, ...) (defect being fixed)"
+            );
+
+            if ($rung >= 2) {
+                $this->assertGreaterThanOrEqual(
+                    2,
+                    substr_count($value, 'rgba('),
+                    "tokens.elevation.{$rung} must declare at least two comma-separated shadow layers"
+                );
+            }
+        }
+    }
+
+    /** Task 1.3.1 — tailwind spreads tokenRadius into borderRadius, so cardLg/control resolve. */
+    public function test_tailwind_config_exposes_radius_card_lg_and_control(): void
+    {
+        $source = file_get_contents(self::tailwindPath());
+        $this->assertNotNull($source, 'tailwind.config.js must be readable');
+        $this->assertStringContainsString(
+            'borderRadius: tokenRadius',
+            (string) $source,
+            'tailwind.config.js must spread tokenRadius into borderRadius so radius.cardLg / radius.control resolve'
+        );
+
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertArrayHasKey('cardLg', $tokens['radius'], 'tokens.radius.cardLg must exist (consumed by tailwind)');
+        $this->assertArrayHasKey('control', $tokens['radius'], 'tokens.radius.control must exist (consumed by tailwind)');
+    }
+
+    /** Task 1.3.3 — tailwind transitionDuration mirrors motion.duration. */
+    public function test_tailwind_config_exposes_transition_duration_motion_duration(): void
+    {
+        $source = file_get_contents(self::tailwindPath());
+        $this->assertNotNull($source, 'tailwind.config.js must be readable');
+        $this->assertStringContainsString(
+            'transitionDuration',
+            (string) $source,
+            'tailwind.config.js must define a transitionDuration block sourced from motion.duration'
+        );
+
+        // A conditional assertion block would let this test pass silently if the
+        // regex ever stopped matching. Assert the match itself, so a shape change
+        // in tailwind.config.js fails loudly instead of asserting nothing.
+        //
+        // The config does NOT inline the ms literals: it spreads the token ramp
+        // (`const transitionDuration = { ...tokenMotion.duration }`) and registers
+        // that const under `theme.extend`. Asserting the spread is what actually
+        // proves the wiring; the literal values are pinned against tokens.js below.
+        $matched = preg_match(
+            '/const\s+transitionDuration\s*=\s*\{\s*\.\.\.\s*tokenMotion\.duration\s*,?\s*\}/s',
+            (string) $source,
+            $m
+        );
+        $this->assertSame(
+            1,
+            $matched,
+            'tailwind.config.js must define `const transitionDuration = { ...tokenMotion.duration }` (regex found none — the config shape changed)'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/theme\s*:\s*\{.*\bextend\s*:\s*\{.*\btransitionDuration\b/s',
+            (string) $source,
+            'tailwind.config.js must register transitionDuration under theme.extend so duration-fast|normal|slow resolve'
+        );
+
+        $tokens = self::loadTokens();
+        $this->assertNotNull($tokens, 'loadTokens() must succeed');
+        $this->assertSame('120ms', $tokens['motion']['duration']['fast'], 'tokens.motion.duration.fast must be 120ms');
+        $this->assertSame('200ms', $tokens['motion']['duration']['normal'], 'tokens.motion.duration.normal must be 200ms');
+        $this->assertSame('320ms', $tokens['motion']['duration']['slow'], 'tokens.motion.duration.slow must be 320ms');
     }
 }

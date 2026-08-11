@@ -123,10 +123,10 @@ const sheetClasses = computed(() => {
 
   // Position-specific classes
   const positions = {
-    top: 'w-full rounded-b-2xl',
-    bottom: 'w-full rounded-t-2xl',
-    left: 'h-full rounded-r-2xl',
-    right: 'h-full rounded-l-2xl'
+    top: 'w-full rounded-b-modal',
+    bottom: 'w-full rounded-t-modal',
+    left: 'h-full rounded-r-modal',
+    right: 'h-full rounded-l-modal'
   }
 
   // Size variants
@@ -204,10 +204,10 @@ const leaveToClass = computed(() => {
 })
 
 const closeButtonClasses = computed(() => [
-  'p-2 rounded-lg',
+  'p-2 rounded-ios',
   'text-theme-secondary hover:text-theme-primary',
-  'hover:bg-theme-surface transition-colors duration-200',
-  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
+  'hover:bg-theme-surface',
+  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2'
 ])
 
 // Event handlers
@@ -414,5 +414,15 @@ onBeforeUnmount(() => {
   .sheet-footer {
     border-color: var(--color-neutral-900);
   }
+}
+
+/* Scoped transitions — close button hover/focus colors.
+   Replaces the removed global `* { transition }` rule. */
+button {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out;
 }
 </style>

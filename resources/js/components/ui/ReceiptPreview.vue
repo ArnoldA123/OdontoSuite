@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="receipt-preview">
     <!-- Modal -->
     <Modal
@@ -32,7 +32,7 @@
         <!-- Patient Info -->
         <div class="patient-info mb-6">
           <h3 class="text-lg font-semibold mb-2">Datos del Paciente</h3>
-          <div class="bg-theme-surface p-4 rounded-lg">
+          <div class="bg-theme-surface p-4 rounded-ios">
             <p class="font-medium">{{ transaction.patient?.name }} {{ transaction.patient?.last_name }}</p>
             <p class="text-sm text-theme-secondary">{{ transaction.patient?.email }}</p>
             <p class="text-sm text-theme-secondary">{{ transaction.patient?.phone }}</p>
@@ -42,7 +42,7 @@
         <!-- Transaction Details -->
         <div class="transaction-details mb-6">
           <h3 class="text-lg font-semibold mb-2">Detalle de la Transacción</h3>
-          <div class="bg-theme-surface-elevated border border-theme rounded-lg overflow-hidden">
+          <div class="bg-theme-surface-elevated border border-theme rounded-ios overflow-hidden">
             <div class="px-4 py-3 bg-theme-surface border-b border-theme">
               <div class="flex justify-between items-center">
                 <span class="font-medium">Descripción</span>
@@ -98,7 +98,7 @@
 
         <!-- Total -->
         <div class="total-section mb-6">
-          <div class="bg-primary-50 border-2 border-primary-200 rounded-lg p-4">
+          <div class="bg-primary-50 border-2 border-primary-200 rounded-ios p-4">
             <div class="flex justify-between items-center">
               <span class="text-xl font-bold text-primary-900">TOTAL A PAGAR:</span>
               <span class="text-2xl font-bold text-primary-900">{{ formatCurrency(transaction.amount) }}</span>
@@ -109,14 +109,14 @@
         <!-- Notes -->
         <div v-if="transaction.notes" class="notes mb-6">
           <h3 class="text-lg font-semibold mb-2">Notas</h3>
-          <div class="bg-theme-surface p-4 rounded-lg">
+          <div class="bg-theme-surface p-4 rounded-ios">
             <p class="text-sm">{{ transaction.notes }}</p>
           </div>
         </div>
 
         <!-- QR Code (placeholder) -->
         <div class="qr-section text-center mb-6">
-          <div class="inline-block bg-theme-surface p-4 rounded-lg">
+          <div class="inline-block bg-theme-surface p-4 rounded-ios">
             <div class="w-24 h-24 bg-theme-surface-elevated rounded flex items-center justify-center">
               <span class="text-xs text-theme-secondary">QR Code</span>
             </div>

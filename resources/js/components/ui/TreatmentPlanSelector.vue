@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="treatment-plan-selector">
     <!-- Campo de búsqueda -->
     <div class="mb-4">
@@ -10,7 +10,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="block w-full pl-10 pr-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          class="block w-full pl-10 pr-3 py-2 border border-theme rounded-ios focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           placeholder="Buscar plan de tratamiento..."
           @input="handleSearch"
         />
@@ -29,7 +29,7 @@
       </p>
     </div>
 
-    <div v-else class="max-h-48 overflow-y-auto border border-theme rounded-lg">
+    <div v-else class="max-h-48 overflow-y-auto border border-theme rounded-ios">
       <div
         v-for="plan in filteredPlans"
         :key="plan.id"
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Información del plan seleccionado -->
-    <div v-if="selectedPlan" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+    <div v-if="selectedPlan" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-ios">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-primary-900">

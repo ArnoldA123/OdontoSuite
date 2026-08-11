@@ -1,18 +1,19 @@
 <template>
-  <div class="min-h-screen bg-theme-background">
+  <div class="min-h-[100dvh] bg-systemBackground">
     <!-- Desktop Sidebar -->
     <aside
       id="primary-sidebar"
       class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col sidebar-slide transition-all duration-300"
       :class="sidebarCollapsed ? 'lg:w-14' : 'lg:w-72'"
+      data-app-chrome="sidebar"
     >
-      <div class="flex flex-col flex-grow bg-theme-surface-elevated/80 backdrop-blur-md border-r border-theme/50 overflow-y-auto">
+      <div class="surface-glass flex flex-col flex-grow overflow-y-auto chrome-fade-right">
         <!-- Logo -->
         <div class="flex items-center flex-shrink-0 py-6 border-b border-theme/50 transition-all duration-300" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
           <router-link
             v-if="!sidebarCollapsed"
             to="/dashboard"
-            class="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rounded-lg"
+            class="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2 rounded-ios"
             aria-label="Ir al Dashboard"
             title="Ir al Dashboard"
           >
@@ -28,7 +29,7 @@
           <button
             v-else
             @click="toggleSidebar"
-            class="flex items-center justify-center w-8 h-8 p-1 rounded-lg hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors duration-200"
+            class="flex items-center justify-center w-8 h-8 p-1 rounded-ios hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2 transition-colors duration-200"
             aria-label="Abrir barra lateral"
             title="Abrir barra lateral"
             aria-expanded="false"
@@ -43,7 +44,7 @@
         <button
           v-if="!sidebarCollapsed"
           @click="toggleSidebar"
-          class="ml-auto p-1.5 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+          class="ml-auto p-1.5 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
           :aria-label="sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
           :aria-expanded="!sidebarCollapsed"
           aria-controls="primary-sidebar"
@@ -128,7 +129,7 @@
     </aside>
 
     <!-- Mobile Header -->
-    <div class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-theme-surface-elevated border-b border-theme/50">
+    <div class="lg:hidden surface-glass fixed top-0 left-0 right-0 z-40 chrome-fade-bottom" data-app-chrome="mobile-header">
       <div class="flex items-center justify-between px-4 h-16">
         <div class="flex items-center gap-3">
           <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
@@ -136,7 +137,7 @@
         </div>
         <button
           @click="mobileMenuOpen = true"
-          class="p-2 rounded-lg hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          class="p-2 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2"
           aria-label="Abrir menú"
           aria-haspopup="dialog"
           aria-expanded="mobileMenuOpen"
@@ -213,8 +214,8 @@
 
     <!-- Main Content -->
     <div class="pt-16 lg:pt-0 transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
-      <!-- Header -->
-      <header class="relative z-30 bg-theme-surface-elevated/80 backdrop-blur-md shadow-subtle border-b border-theme/50">
+      <!-- Header (top bar). Translucent chrome per design Decision 5. -->
+      <header class="surface-glass relative z-30 shadow-subtle chrome-fade-bottom" data-app-chrome="topbar">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
@@ -231,10 +232,10 @@
               <div
                 class="flex items-center justify-center w-8 h-8 rounded-full"
                 :class="{
-                  'bg-info-100 text-info-700': wsStatus === 'connecting',
-                  'bg-success-100 text-success-700': wsStatus === 'connected',
-                  'bg-warning-100 text-warning-700': wsStatus === 'disconnected',
-                  'bg-error-100 text-error-700': wsStatus === 'unavailable',
+                  'bg-systemBlue-100 text-systemBlue-700': wsStatus === 'connecting',
+                  'bg-systemGreen-100 text-systemGreen-700': wsStatus === 'connected',
+                  'bg-systemYellow-100 text-systemYellow-700': wsStatus === 'disconnected',
+                  'bg-systemRed-100 text-systemRed-700': wsStatus === 'unavailable',
                 }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
                 :title="`WebSocket: ${wsStatus === 'connected' ? 'En vivo' : wsStatus === 'connecting' ? 'Conectando' : wsStatus === 'disconnected' ? 'Reconectando' : 'Sin WS'}`"
@@ -242,10 +243,10 @@
                 <span
                   class="w-2 h-2 rounded-full"
                   :class="{
-                    'bg-info-500 animate-pulse': wsStatus === 'connecting',
-                    'bg-success-500 animate-pulse-subtle': wsStatus === 'connected',
-                    'bg-warning-500': wsStatus === 'disconnected',
-                    'bg-error-500': wsStatus === 'unavailable',
+                    'bg-systemBlue-500 animate-pulse': wsStatus === 'connecting',
+                    'bg-systemGreen-500 animate-pulse-subtle': wsStatus === 'connected',
+                    'bg-systemYellow-500': wsStatus === 'disconnected',
+                    'bg-systemRed-500': wsStatus === 'unavailable',
                   }"
                   aria-hidden="true"
                 />
@@ -336,8 +337,6 @@
                     <!-- Theme Selector -->
                     <div class="border-t border-theme px-4 py-3">
                       <p class="text-xs text-theme-secondary mb-2 uppercase tracking-wide">Apariencia</p>
-                      <!-- ThemeSelector oculto - solo tema claro -->
-                      <!-- <UiThemeSelector compact /> -->
                     </div>
 
                     <div class="border-t border-theme py-2">
@@ -369,7 +368,7 @@
       v-model="confirmIsOpen"
       :title="confirmTitle"
       :message="confirmMessage"
-      :confirm-text="confirmText"
+      :confirm-text="confirmConfirmText"
       :cancel-text="confirmCancelText"
       :variant="confirmVariant"
       @confirm="handleGlobalConfirm"
@@ -392,7 +391,6 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { usePermissions } from '../../composables/usePermissions'
-import { useTheme } from '../../composables/useTheme'
 import { useNotifications } from '../../composables/useNotifications'
 import { useWebSocketNotifications } from '../../composables/useWebSocketNotifications'
 import { useEcho } from '../../composables/useEcho'
@@ -405,7 +403,6 @@ import {
   confirmVariant,
   useConfirm as useConfirmComposable,
 } from '../../composables/useConfirm'
-import UiThemeSelector from '../ui/ThemeSelector.vue'
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
 import NotificationCenter from '../NotificationCenter.vue'
@@ -421,12 +418,10 @@ const { connectionStatus: wsStatus } = useEcho()
 // Usamos la desestructuracion del composable para conectar los handlers del
 // <UiConfirmDialog> montado a nivel de app con el resolver de la Promise.
 const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } = useConfirmComposable()
-const { theme, setTheme, getThemeIcon, getThemeLabel, getThemeOptions } = useTheme()
 
 // State
 const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(false)
-const themeMenuOpen = ref(false)
 const notificationCenterOpen = ref(false)
 
 // Notifications
@@ -769,10 +764,10 @@ const navigation = computed(() => {
   )
 })
 
-// Navigation item classes
+// Navigation item classes (iOS clinical: systemBlue for active nav).
 const getNavItemClasses = (item) => {
   const base = [
-    'group flex items-center py-2.5 text-sm font-medium rounded-lg',
+    'group flex items-center py-2.5 text-sm font-medium rounded-ios',
     'transition-all duration-200 ease-ios',
     sidebarCollapsed.value ? 'justify-center px-2' : 'px-3',
     'text-theme-secondary hover:text-theme-primary',
@@ -780,8 +775,8 @@ const getNavItemClasses = (item) => {
   ]
 
   const active = route.path === item.to ? [
-    'bg-primary-50 text-primary-700',
-    'border border-primary-200',
+    'bg-systemBlue-50 text-systemBlue-700',
+    'border border-systemBlue-200',
     'shadow-subtle'
   ] : []
 
@@ -790,15 +785,15 @@ const getNavItemClasses = (item) => {
 
 const getMobileNavItemClasses = (item) => {
   const base = [
-    'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg',
+    'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-ios',
     'transition-all duration-200',
     'text-theme-secondary hover:text-theme-primary',
     'hover:bg-theme-surface'
   ]
 
   const active = route.path === item.to ? [
-    'bg-primary-50 text-primary-700',
-    'border border-primary-200'
+    'bg-systemBlue-50 text-systemBlue-700',
+    'border border-systemBlue-200'
   ] : []
 
   return [...base, ...active].join(' ')
@@ -924,36 +919,48 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.slide-enter-active, .slide-leave-active {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Scroll-edge mask on the chrome: where chrome meets scrolling content,
+   fade into the page rather than drawing a hard 1px divider. The mask is
+   on the chrome's first content wrapper (not the chrome itself) so it
+   does not affect hit-testing. */
+.chrome-fade-right {
+  /* Mask the right edge so the sidebar melts into the page background. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 8px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 8px), transparent);
 }
 
-.slide-enter-from {
-  transform: translateX(100%);
+.chrome-fade-bottom {
+  /* Mask the bottom edge for the top bar / mobile header. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 6px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 6px), transparent);
 }
 
-.slide-leave-to {
-  transform: translateX(100%);
+/* Reduced transparency: collapse the chrome to a solid surface (the
+   .surface-glass class already declares its own fallback inside the
+   generated CSS; this is a defensive override in case a future
+   chrome-class addition forgets the media-query fallback). */
+@media (prefers-reduced-transparency: reduce) {
+  [data-app-chrome] {
+    /* surface-glass class itself emits the solid-cream fallback; we
+       nothing-do here. The block is documented for future chrome
+       additions so a contributor never forgets to declare the
+       reduced-transparency fallback. */
+  }
 }
 
-.router-link-active {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.router-link-active .w-6 {
-  color: var(--color-primary);
-}
-
+/* Router-link active state - iOS clinical systemBlue for the active
+   nav item; visually unmistakable per the design wayfinding goal. */
 .router-link-exact-active {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary-dark);
+  background-color: var(--color-system-blue-50);
+  color: var(--color-system-blue-700);
+  border-color: var(--color-system-blue-200);
 }
 
-/* Sidebar entrance animation */
+/* Sidebar entrance animation: small slide-in from the left. Disabled
+   under reduced-motion via the global reduced-motion override. */
 @keyframes sidebarSlideIn {
   from {
-    transform: translateX(-100%);
+    transform: translateX(-12px);
     opacity: 0;
   }
   to {
@@ -963,6 +970,17 @@ onUnmounted(() => {
 }
 
 .sidebar-slide {
-  animation: sidebarSlideIn 0.3s ease-out;
+  animation: sidebarSlideIn 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-slide {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+  [data-app-chrome] {
+    transition: none;
+  }
 }
 </style>

@@ -68,8 +68,7 @@ const avatarClasses = computed(() => {
   const base = [
     'relative inline-flex items-center justify-center',
     'bg-theme-surface text-theme-secondary',
-    'overflow-hidden select-none',
-    'transition-all duration-200'
+    'overflow-hidden select-none'
   ]
 
   // Size variants
@@ -86,7 +85,7 @@ const avatarClasses = computed(() => {
   const shapes = {
     circle: 'rounded-full',
     square: 'rounded-md',
-    rounded: 'rounded-lg'
+    rounded: 'rounded-ios'
   }
 
   // Interactive states
@@ -107,7 +106,7 @@ const imageClasses = computed(() => [
   'w-full h-full object-cover',
   props.variant === 'circle' ? 'rounded-full' : '',
   props.variant === 'square' ? 'rounded-md' : '',
-  props.variant === 'rounded' ? 'rounded-lg' : ''
+  props.variant === 'rounded' ? 'rounded-ios' : ''
 ])
 
 const fallbackClasses = computed(() => [
@@ -123,8 +122,7 @@ const loadingClasses = computed(() => [
 
 const statusClasses = computed(() => {
   const base = [
-    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white',
-    'transition-all duration-200'
+    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white'
   ]
 
   const statusColors = {
@@ -185,6 +183,17 @@ const handleImageLoad = () => {
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* Scoped transitions — avatar hover / active / focus. Replaces the
+   removed global `* { transition }` rule. */
+.avatar {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
 }
 
 /* Status indicator animations */
@@ -256,18 +265,6 @@ const handleImageLoad = () => {
   .avatar {
     min-width: 32px;
     min-height: 32px;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .avatar {
-    background-color: var(--color-surface);
-    color: var(--color-text-primary);
-  }
-
-  .fallback {
-    background: linear-gradient(to bottom right, var(--color-surface), var(--color-background-secondary));
   }
 }
 </style>

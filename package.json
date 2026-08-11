@@ -10,6 +10,7 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "lint:fix": "pnpm run lint && pnpm run format",
+        "tokens:build": "node scripts/build-tokens-css.mjs",
         "test": "php artisan test",
         "test:unit": "php artisan test --testsuite=Unit",
         "test:feature": "php artisan test --testsuite=Feature"

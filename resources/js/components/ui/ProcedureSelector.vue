@@ -1,11 +1,11 @@
-<template>
+﻿<template>
   <div class="procedure-selector">
     <div class="relative">
       <input
         v-model="searchQuery"
         type="text"
         :placeholder="placeholder"
-        class="w-full px-4 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        class="w-full px-4 py-2 border border-theme rounded-ios focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         @focus="showDropdown = true"
         @blur="handleBlur"
         @keydown.enter.prevent="selectFirstResult"
@@ -17,7 +17,7 @@
       <!-- Dropdown -->
       <div
         v-if="showDropdown && filteredProcedures.length > 0"
-        class="absolute z-50 w-full mt-1 bg-theme-surface-elevated border border-theme rounded-lg shadow-lg max-h-60 overflow-y-auto"
+        class="absolute z-50 w-full mt-1 bg-theme-surface-elevated border border-theme rounded-ios shadow-lg max-h-60 overflow-y-auto"
       >
         <div
           v-for="(procedure, index) in filteredProcedures"
@@ -45,7 +45,7 @@
       <!-- No results -->
       <div
         v-if="showDropdown && filteredProcedures.length === 0 && searchQuery"
-        class="absolute z-50 w-full mt-1 bg-theme-surface-elevated border border-theme rounded-lg shadow-lg"
+        class="absolute z-50 w-full mt-1 bg-theme-surface-elevated border border-theme rounded-ios shadow-lg"
       >
         <div class="px-4 py-3 text-theme-secondary text-center">
           No se encontraron procedimientos
@@ -54,7 +54,7 @@
     </div>
 
     <!-- Selected procedure -->
-    <div v-if="selectedProcedure" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+    <div v-if="selectedProcedure" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-ios">
       <div class="flex justify-between items-center">
         <div>
           <div class="font-medium text-primary-900">{{ selectedProcedure.name }}</div>

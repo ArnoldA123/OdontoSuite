@@ -261,7 +261,6 @@ import { useCashRegister } from '@/composables/useCashRegister'
 import { useTransactions } from '@/composables/useTransactions'
 import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
-import { useTheme } from '@/composables/useTheme'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
 
@@ -293,7 +292,6 @@ import {
 } from '@heroicons/vue/24/outline'
 
 // Composables
-const { isDarkMode } = useTheme()
 const {
   currentSession,
   summary,

@@ -47,7 +47,7 @@ const dismissLabel = computed(() => 'Eliminar badge')
 
 const badgeClasses = computed(() => {
   const base = [
-    'inline-flex items-center gap-1.5 font-medium transition-all duration-200',
+    'inline-flex items-center gap-1.5 font-medium',
     'select-none'
   ]
 
@@ -65,31 +65,31 @@ const badgeClasses = computed(() => {
     square: 'rounded-sm'
   }
 
-  // Color variants
+  // Color variants (iOS filled pattern: 100 background + 600 text).
   const variants = {
     default: [
       'bg-theme-surface text-theme-secondary',
       'border border-theme'
     ],
     primary: [
-      'bg-primary-50 text-primary-700',
-      'border border-primary-200'
+      'bg-systemBlue-100 text-systemBlue-700',
+      'border border-systemBlue-200'
     ],
     success: [
-      'bg-success-badge',
-      'border border-success'
+      'bg-systemGreen-100 text-systemGreen-700',
+      'border border-systemGreen-200'
     ],
     warning: [
-      'bg-warning-badge',
-      'border border-warning'
+      'bg-systemYellow-100 text-systemYellow-700',
+      'border border-systemYellow-200'
     ],
     error: [
-      'bg-danger-badge',
-      'border border-danger'
+      'bg-systemRed-100 text-systemRed-700',
+      'border border-systemRed-200'
     ],
     info: [
-      'bg-primary-50 text-primary-700',
-      'border border-primary-200'
+      'bg-systemBlue-100 text-systemBlue-700',
+      'border border-systemBlue-200'
     ],
     neutral: [
       'bg-theme-surface text-theme-secondary',
@@ -148,9 +148,15 @@ const handleDismiss = () => {
   outline-offset: 1px;
 }
 
-/* Animation for dismiss */
+/* Scoped transitions — badge hover + dismiss.
+   Replaces the removed global `* { transition }` rule. */
 .badge {
-  transition: all 200ms ease-out;
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
 }
 
 .badge.dismissing {

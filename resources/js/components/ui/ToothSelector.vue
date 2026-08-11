@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="tooth-selector">
     <div class="mb-4">
       <label class="block text-sm font-medium text-theme-primary mb-2">
@@ -206,7 +206,7 @@ watch(() => props.modelValue, (newValue) => {
 
 <style scoped>
 .tooth {
-  @apply w-12 h-16 border-2 rounded-lg cursor-pointer transition-all duration-200 flex flex-col items-center justify-center text-xs font-medium;
+  @apply w-12 h-16 border-2 rounded-ios cursor-pointer transition-all duration-200 flex flex-col items-center justify-center text-xs font-medium;
 }
 
 .tooth-upper {

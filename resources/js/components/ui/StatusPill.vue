@@ -49,20 +49,21 @@ const STATUS_MAP = {
   pending: { variant: 'warning', label: 'Pendiente' }
 }
 
+// iOS filled pattern (Decision 7): 100 background + 600 text.
 const VARIANT_CLASSES = {
-  info: 'bg-primary-50 text-primary-700 border border-primary-100',
-  success: 'bg-success-badge border border-success-100',
-  warning: 'bg-warning-badge border border-warning-100',
-  error: 'bg-danger-badge border border-error-100',
-  neutral: 'bg-theme-surface text-theme-secondary border border-theme'
+  info: 'bg-systemBlue-100 text-systemBlue-700 border border-systemBlue-100',
+  success: 'bg-systemGreen-100 text-systemGreen-700 border border-systemGreen-100',
+  warning: 'bg-systemYellow-100 text-systemYellow-700 border border-systemYellow-100',
+  error: 'bg-systemRed-100 text-systemRed-700 border border-systemRed-100',
+  neutral: 'bg-systemGray-100 text-systemGray-600 border border-systemGray-100'
 }
 
 const VARIANT_DOT = {
-  info: 'bg-primary-500',
-  success: 'bg-success-500',
-  warning: 'bg-warning-500',
-  error: 'bg-error-500',
-  neutral: 'bg-theme-secondary'
+  info: 'bg-systemBlue-500',
+  success: 'bg-systemGreen-500',
+  warning: 'bg-systemYellow-500',
+  error: 'bg-systemRed-500',
+  neutral: 'bg-systemGray-500'
 }
 
 const SIZE_CLASSES = {

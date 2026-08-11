@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="data-table-container">
     <!-- Header with search and actions -->
     <div v-if="showHeader" class="data-table-header">
@@ -450,7 +450,7 @@ watch(selectedRows, (newSelection) => {
 
 <style scoped>
 .data-table-container {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme overflow-hidden;
+  @apply bg-theme-surface-elevated rounded-ios border border-theme overflow-hidden;
 }
 
 .data-table-header {

@@ -1,0 +1,369 @@
+
+/* :root — token ramps and aliases (iOS 13+ clinical) */
+:root {
+  /* systemBlue */
+  --color-system-blue-50: #e5f1ff;
+  --color-system-blue-100: #cce4ff;
+  --color-system-blue-200: #99c8ff;
+  --color-system-blue-300: #66adff;
+  --color-system-blue-400: #3392ff;
+  --color-system-blue-500: #007aff;
+  --color-system-blue-600: #0062cc;
+  --color-system-blue-700: #004999;
+
+  /* systemRed */
+  --color-system-red-50: #ffebea;
+  --color-system-red-100: #ffd9d7;
+  --color-system-red-200: #ffb8b3;
+  --color-system-red-300: #ff9890;
+  --color-system-red-400: #ff776c;
+  --color-system-red-500: #ff3b30;
+  --color-system-red-600: #d70015;
+  --color-system-red-700: #a50e10;
+
+  /* systemOrange */
+  --color-system-orange-50: #fff1e5;
+  --color-system-orange-100: #ffe2c7;
+  --color-system-orange-200: #ffd09d;
+  --color-system-orange-300: #ffbd73;
+  --color-system-orange-400: #ffab49;
+  --color-system-orange-500: #ff9500;
+  --color-system-orange-600: #c93400;
+  --color-system-orange-700: #9a2700;
+
+  /* systemYellow */
+  --color-system-yellow-50: #fff9d6;
+  --color-system-yellow-100: #fff1ad;
+  --color-system-yellow-200: #ffe57f;
+  --color-system-yellow-300: #ffd84f;
+  --color-system-yellow-400: #ffd11f;
+  --color-system-yellow-500: #ffcc00;
+  --color-system-yellow-600: #a57000;
+  --color-system-yellow-700: #7a5200;
+
+  /* systemGreen */
+  --color-system-green-50: #e8f5e9;
+  --color-system-green-100: #cdedcf;
+  --color-system-green-200: #a4d8a8;
+  --color-system-green-300: #7dc285;
+  --color-system-green-400: #56ac63;
+  --color-system-green-500: #34c759;
+  --color-system-green-600: #248a3d;
+  --color-system-green-700: #1a6530;
+
+  /* systemIndigo */
+  --color-system-indigo-50: #efe9ff;
+  --color-system-indigo-100: #dfd2ff;
+  --color-system-indigo-200: #c8b6ff;
+  --color-system-indigo-300: #b09aff;
+  --color-system-indigo-400: #997eff;
+  --color-system-indigo-500: #5856d6;
+  --color-system-indigo-600: #3f3dab;
+  --color-system-indigo-700: #2d2b80;
+
+  /* systemPurple */
+  --color-system-purple-50: #f6e9ff;
+  --color-system-purple-100: #ecd2ff;
+  --color-system-purple-200: #dfaeff;
+  --color-system-purple-300: #d189ff;
+  --color-system-purple-400: #c365ff;
+  --color-system-purple-500: #af52de;
+  --color-system-purple-600: #7a38a1;
+  --color-system-purple-700: #55276f;
+
+  /* systemPink */
+  --color-system-pink-50: #ffe9f0;
+  --color-system-pink-100: #ffd2dd;
+  --color-system-pink-200: #ffa9b8;
+  --color-system-pink-300: #ff7f93;
+  --color-system-pink-400: #ff556e;
+  --color-system-pink-500: #ff2d55;
+  --color-system-pink-600: #c30039;
+  --color-system-pink-700: #8e0028;
+
+  /* systemGray */
+  --color-system-gray-50: #f2f2f7;
+  --color-system-gray-100: #e5e5ea;
+  --color-system-gray-200: #d1d1d6;
+  --color-system-gray-300: #c7c7cc;
+  --color-system-gray-400: #aeaeb2;
+  --color-system-gray-500: #8e8e93;
+  --color-system-gray-600: #636366;
+  --color-system-gray-700: #3a3a3c;
+
+  /* background */
+  --color-background-system-background: #ffffff;
+  --color-background-secondary-background: #f2f2f7;
+  --color-background-tertiary-background: #ffffff;
+  --color-background-grouped-background: #f2f2f7;
+  --color-background-canvas: #f2f2f7;
+
+  /* label */
+  --color-label-label: #000000;
+  --color-label-secondary-label: #3c3c43;
+  --color-label-tertiary-label: rgba(60, 60, 67, 0.30);
+  --color-label-quaternary-label: rgba(60, 60, 67, 0.18);
+
+  /* separator */
+  --color-separator-separator: #c6c6c8;
+
+  /* fill */
+  --color-fill-system-fill: rgba(120, 120, 128, 0.20);
+  --color-fill-secondary-system-fill: rgba(120, 120, 128, 0.16);
+  --color-fill-tertiary-system-fill: rgba(118, 118, 128, 0.12);
+
+  /* cream */
+  --color-cream-50: #f2f2f7;
+  --color-cream-100: #e5e5ea;
+  --color-cream-200: #d1d1d6;
+
+  /* terracotta */
+  --color-terracotta-500: #007aff;
+  --color-terracotta-600: #0062cc;
+
+  /* clinicalTeal */
+  --color-clinical-teal-50: #e5f1ff;
+  --color-clinical-teal-500: #007aff;
+  --color-clinical-teal-600: #0062cc;
+
+  /* info */
+  --color-info-500: #007aff;
+
+  /* primary */
+  --color-primary-50: #e5f1ff;
+  --color-primary-100: #cce4ff;
+  --color-primary-200: #99c8ff;
+  --color-primary-300: #66adff;
+  --color-primary-400: #3392ff;
+  --color-primary-500: #007aff;
+  --color-primary-600: #0062cc;
+  --color-primary-700: #004999;
+  --color-primary-800: #003066;
+  --color-primary-900: #001833;
+
+  /* neutral */
+  --color-neutral-50: #ffffff;
+  --color-neutral-100: #f2f2f7;
+  --color-neutral-200: #e5e5ea;
+  --color-neutral-500: #8e8e93;
+  --color-neutral-700: #3a3a3c;
+  --color-neutral-900: #1d1d1f;
+
+  /* success */
+  --color-success-50: #e8f5e9;
+  --color-success-100: #cdedcf;
+  --color-success-300: #a4d8a8;
+  --color-success-500: #34c759;
+  --color-success-600: #248a3d;
+  --color-success-700: #1a6530;
+  --color-success-900: #0f4520;
+
+  /* warning */
+  --color-warning-50: #fff9d6;
+  --color-warning-100: #fff1ad;
+  --color-warning-300: #ffe07a;
+  --color-warning-500: #ffcc00;
+  --color-warning-600: #a57000;
+  --color-warning-700: #7a5200;
+  --color-warning-900: #4d3300;
+
+  /* error */
+  --color-error-50: #ffebea;
+  --color-error-100: #ffd9d7;
+  --color-error-300: #ffaaa6;
+  --color-error-500: #ff3b30;
+  --color-error-600: #d70015;
+  --color-error-700: #a50e10;
+  --color-error-900: #5a0608;
+
+  /* semantic aliases (iOS clinical) */
+  --color-accent: var(--color-system-blue-500);
+  --color-accent-hover: var(--color-system-blue-600);
+  --color-accent-active: var(--color-system-blue-700);
+  --color-accent-light: var(--color-system-blue-50);
+  --color-primary: var(--color-system-blue-500);
+  --color-primary-hover: var(--color-system-blue-600);
+  --color-primary-active: var(--color-system-blue-700);
+  --color-primary-light: var(--color-system-blue-50);
+  --color-primary-dark: var(--color-system-blue-700);
+
+  --color-background: var(--color-background-system-background);
+  --color-background-secondary: var(--color-background-secondary-background);
+  --color-surface: var(--color-background-secondary-background);
+  --color-surface-elevated: var(--color-background-system-background);
+
+  --color-canvas: var(--color-background-canvas);
+
+  --color-text-primary: var(--color-label-label);
+  --color-text-secondary: var(--color-label-secondary-label);
+  --color-text-tertiary: var(--color-label-tertiary-label);
+  --color-text-inverse: var(--color-background-system-background);
+
+  --color-border: var(--color-separator-separator);
+  --color-border-light: var(--color-system-gray-100);
+  --color-border-strong: var(--color-system-gray-500);
+
+  --color-hairline: rgba(60, 60, 67, 0.12);
+
+  --color-info: var(--color-info-500);
+  --color-info-light: var(--color-system-blue-50);
+  --color-info-dark: var(--color-system-blue-700);
+
+  --color-success-bg: var(--color-system-green-50);
+  --color-success-text: var(--color-system-green-700);
+  --color-success-light: var(--color-system-green-50);
+  --color-success-dark: var(--color-system-green-700);
+
+  --color-warning-bg: var(--color-system-yellow-50);
+  --color-warning-text: var(--color-system-yellow-700);
+  --color-warning-light: var(--color-system-yellow-50);
+  --color-warning-dark: var(--color-system-yellow-700);
+
+  --color-danger: var(--color-system-red-500);
+  --color-danger-bg: var(--color-system-red-50);
+  --color-danger-text: var(--color-system-red-700);
+  --color-danger-light: var(--color-system-red-50);
+  --color-danger-dark: var(--color-system-red-700);
+
+  /* glass effect (chrome only) */
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-backdrop: blur(20px) saturate(180%) contrast(1.04);
+
+  /* shadows (pure-black rgba per Decision 5) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.20);
+
+  /* font stacks (system font only) */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* spacing */
+  --spacing-0: 0px;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+  --spacing-24: 96px;
+  --spacing-32: 128px;
+  --spacing-48: 192px;
+
+  /* radius */
+  --radius-none: 0;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-ios: 10px;
+  --radius-modal: 14px;
+  --radius-full: 9999px;
+  --radius-card-lg: 16px;
+  --radius-control: 8px;
+
+  /* shadow */
+  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-large: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-elevated: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
+
+  /* spinner color (default for LoadingSpinner primitive) */
+  --spinner-color: var(--color-accent);
+
+  /* transition timing */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
+
+  /* motion */
+  --motion-response-default: 0.35s;
+  --motion-damping-default: 1;
+  --motion-damping-bounce: 0.8;
+  --motion-stiffness-default: 1;
+  /* motion.duration (PR1) */
+  --motion-duration-fast: 120ms;
+  --motion-duration-normal: 200ms;
+  --motion-duration-slow: 320ms;
+  --motion-easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --motion-easing-decel: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --motion-easing-accel: cubic-bezier(0.4, 0.0, 1, 1);
+  --motion-easing-ios: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* elevation (PR1) */
+  --elevation-0: none;
+  --elevation-1: 0 1px 3px rgba(60, 60, 67, 0.04);
+  --elevation-2: 0 2px 8px rgba(60, 60, 67, 0.06), 0 1px 2px rgba(60, 60, 67, 0.04);
+  --elevation-3: 0 8px 16px rgba(60, 60, 67, 0.08), 0 2px 6px rgba(60, 60, 67, 0.06);
+  --elevation-4: 0 16px 24px rgba(60, 60, 67, 0.12), 0 4px 8px rgba(60, 60, 67, 0.08);
+
+  /* focus ring (PR1) */
+  --focus-ring-width: 3px;
+  --focus-ring-color: #007AFF;
+  --focus-ring-alpha: 0.2;
+  --focus-ring-offset: 2px;
+  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(0, 122, 255, var(--focus-ring-alpha));
+
+  /* font features (PR1) */
+  --font-features-tabular-nums: "tnum" 1, "lnum" 1;
+
+  /* topbar (PR4) */
+  --topbar-icon-size: 20px;
+  --topbar-icon-weight: 1.5;
+  --topbar-control: 20px;
+  --topbar-control-lg: 32px;
+}
+
+/* Liquid-Glass chrome class — web approximation (chrome only) */
+/* Web approximation, not official Apple Liquid Glass. Used only in
+   AppLayout sidebar, AppLayout top bar, and the Sheet wrapper around
+   the mobile menu. Data cards (Card.vue variant="glass") are opaque. */
+.surface-glass {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.62));
+  backdrop-filter: blur(20px) saturate(180%) contrast(1.04);
+  -webkit-backdrop-filter: blur(20px) saturate(180%) contrast(1.04);
+  border-right: 1px solid rgb(0 0 0 / 0.06);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.55),
+    inset 0 -1px 0 rgb(0 0 0 / 0.04),
+    0 18px 40px -16px rgb(0 0 0 / 0.10);
+}
+.surface-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  border: 1px solid rgb(255 255 255 / 0.18);
+  mix-blend-mode: overlay;
+}
+
+/* prefers-reduced-transparency — chrome collapses to solid */
+@media (prefers-reduced-transparency: reduce) {
+  .surface-glass {
+    background: var(--color-background-system-background);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+  .surface-glass::after {
+    display: none;
+  }
+}
+
+/* prefers-contrast: more — text and borders lift */
+@media (prefers-contrast: more) {
+  :root {
+    --color-text-primary: var(--color-label-label);
+    --color-border: var(--color-label-secondary-label);
+    --color-border-strong: var(--color-label-label);
+  }
+}

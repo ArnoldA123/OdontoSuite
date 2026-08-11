@@ -1,6 +1,7 @@
 <template>
   <button
     :class="fabClasses"
+    :aria-label="ariaLabel"
     @click="$emit('click')"
   >
     <slot />
@@ -12,13 +13,24 @@ import { computed } from 'vue'
 
 const props = defineProps({
   position: { type: String, default: 'bottom-right' }, // bottom-right, bottom-left, top-right, top-left
-  size: { type: String, default: 'lg' }
+  size: { type: String, default: 'lg' },
+  // Slot content; if absent, the button renders an empty body (caller is
+  // expected to provide an icon). ariaLabel is required for screen readers
+  // since the slot might be decorative.
+  ariaLabel: { type: String, default: 'Accion flotante' }
 })
 
 defineEmits(['click'])
 
+// Solid systemBlue fill, no gradient. Per design contract, gradients are
+// decoration, this is a clinical tool used all day - so the FAB is a
+// flat, single-token fill with shadow + hover scale.
 const fabClasses = computed(() => {
-  const base = 'fixed z-50 flex items-center justify-center rounded-full shadow-2xl smooth-transition hover:scale-110 active:scale-95 bg-gradient-to-b from-accent to-accent-hover text-white'
+  const base =
+    'fixed z-50 flex items-center justify-center rounded-full shadow-large smooth-transition ' +
+    'hover:scale-105 active:scale-95 ' +
+    'bg-systemBlue-500 text-systemBackground border border-systemBlue-600 ' +
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2'
 
   const positions = {
     'bottom-right': 'bottom-6 right-6',
@@ -33,6 +45,6 @@ const fabClasses = computed(() => {
     xl: 'w-16 h-16'
   }
 
-  return [base, positions[props.position], sizes[props.size]].join(' ')
+  return [base, positions[props.position], sizes[props.size]].filter(Boolean).join(' ')
 })
 </script>

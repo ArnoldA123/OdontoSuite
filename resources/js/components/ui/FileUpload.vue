@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="file-upload">
     <!-- Área de Drop -->
     <div
@@ -147,7 +147,7 @@ watch(file, (newFile) => {
 }
 
 .drop-zone {
-  @apply border-2 border-dashed border-theme rounded-lg p-8 text-center transition-colors cursor-pointer;
+  @apply border-2 border-dashed border-theme rounded-ios p-8 text-center transition-colors cursor-pointer;
 }
 
 .drop-zone:hover,
@@ -160,7 +160,7 @@ watch(file, (newFile) => {
 }
 
 .preview-image {
-  @apply w-full h-48 object-cover rounded-lg;
+  @apply w-full h-48 object-cover rounded-ios;
 }
 
 .clear-btn {
@@ -172,6 +172,6 @@ watch(file, (newFile) => {
 }
 
 .file-info {
-  @apply flex items-center gap-2 mt-3 p-3 bg-theme-surface rounded-lg;
+  @apply flex items-center gap-2 mt-3 p-3 bg-theme-surface rounded-ios;
 }
 </style>

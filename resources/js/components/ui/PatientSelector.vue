@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="patient-selector">
     <!-- Campo de búsqueda -->
     <div class="mb-4">
@@ -10,7 +10,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          class="block w-full pl-10 pr-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          class="block w-full pl-10 pr-3 py-2 border border-theme rounded-ios focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           placeholder="Buscar paciente por nombre, DNI o teléfono..."
           @input="handleSearch"
         />
@@ -29,7 +29,7 @@
       </p>
     </div>
 
-    <div v-else class="max-h-48 overflow-y-auto border border-theme rounded-lg">
+    <div v-else class="max-h-48 overflow-y-auto border border-theme rounded-ios">
       <div
         v-for="patient in filteredPatients"
         :key="patient.id"
@@ -73,7 +73,7 @@
     <div v-if="!searchQuery || filteredPatients.length === 0" class="mt-3">
       <button
         @click="createNewPatient"
-        class="w-full flex items-center justify-center px-3 py-2 border border-dashed border-theme rounded-lg text-sm font-medium text-theme-primary hover:bg-theme-surface hover:border-primary-300 transition-all duration-200"
+        class="w-full flex items-center justify-center px-3 py-2 border border-dashed border-theme rounded-ios text-sm font-medium text-theme-primary hover:bg-theme-surface hover:border-primary-300 transition-all duration-200"
       >
         <PlusIcon class="w-4 h-4 mr-2" />
         Crear nuevo paciente
@@ -81,7 +81,7 @@
     </div>
 
     <!-- Información del paciente seleccionado -->
-    <div v-if="selectedPatient" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+    <div v-if="selectedPatient" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-ios">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-primary-900">

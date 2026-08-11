@@ -125,7 +125,7 @@ const wrapperClasses = computed(() => {
 
 const labelClasses = computed(() => {
   const base = [
-    'block text-sm font-medium transition-all duration-200',
+    'block text-sm font-medium',
     'pointer-events-none select-none'
   ]
 
@@ -148,7 +148,7 @@ const labelClasses = computed(() => {
 
 const inputClasses = computed(() => {
   const base = [
-    'block w-full border transition-all duration-200',
+    'block w-full border',
     'focus:outline-none focus:ring-2 focus:ring-offset-0',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     'read-only:cursor-default'
@@ -157,15 +157,15 @@ const inputClasses = computed(() => {
   // Size variants
   const sizes = {
     sm: 'px-3 py-2 text-sm rounded-md min-h-[36px]',
-    md: 'px-4 py-3 text-base rounded-lg min-h-[44px]',
-    lg: 'px-5 py-4 text-lg rounded-lg min-h-[52px]'
+    md: 'px-4 py-3 text-base rounded-ios min-h-[44px]',
+    lg: 'px-5 py-4 text-lg rounded-ios min-h-[52px]'
   }
 
   // Variant styles
   const variants = {
-    default: 'bg-theme-surface-elevated border-theme focus:border-accent focus:ring-primary-500/20',
-    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent focus:ring-primary-500/20',
-    outlined: 'bg-transparent border-2 border-theme focus:border-accent focus:ring-primary-500/20'
+    default: 'bg-theme-surface-elevated border-theme focus:border-accent focus:ring-systemBlue-500/20',
+    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent focus:ring-systemBlue-500/20',
+    outlined: 'bg-transparent border-2 border-theme focus:border-accent focus:ring-systemBlue-500/20'
   }
 
   // State styles
@@ -194,8 +194,7 @@ const inputClasses = computed(() => {
 const clearButtonClasses = computed(() => [
   'absolute inset-y-0 right-0 flex items-center pr-3',
   'text-theme-secondary hover:text-theme-primary',
-  'transition-colors duration-200',
-  'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2',
   'rounded-md'
 ])
 
@@ -301,10 +300,27 @@ const clearInput = () => {
 
 /* Helper text usa clases temáticas de Tailwind */
 
-/* Floating label animation */
+/* Floating label animation — scoped to the floating-label mode.
+   Replaces the removed global `* { transition }` rule. */
 [data-floating="true"] {
   transform-origin: top left;
   transition: all 200ms ease-out;
+}
+
+/* Scoped input transitions for hover, focus, and disabled states. */
+input {
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out,
+    color 200ms ease-out,
+    box-shadow 200ms ease-out;
+}
+
+button {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out;
 }
 
 /* Focus ring for accessibility */

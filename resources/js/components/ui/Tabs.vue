@@ -133,9 +133,9 @@ const tabListClasses = computed(() => {
 
   const variants = {
     default: [],
-    pills: ['bg-theme-surface rounded-lg p-1'],
+    pills: ['bg-theme-surface rounded-ios p-1'],
     underline: [],
-    cards: ['bg-theme-surface rounded-lg p-1']
+    cards: ['bg-theme-surface rounded-ios p-1']
   }
 
   return [
@@ -147,8 +147,7 @@ const tabListClasses = computed(() => {
 const indicatorClasses = computed(() => {
   const base = [
     'absolute',
-    'bg-accent',
-    'transition-all duration-200'
+    'bg-systemBlue-500'
   ]
 
   if (props.orientation === 'vertical') {
@@ -169,7 +168,6 @@ const getTabClasses = (tab, index) => {
   const base = [
     'relative flex items-center justify-center',
     'px-4 py-2 text-sm font-medium',
-    'transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
     'disabled:opacity-50 disabled:cursor-not-allowed'
   ]
@@ -192,14 +190,14 @@ const getTabClasses = (tab, index) => {
     default: [
       'text-theme-secondary',
       'hover:text-theme-primary',
-      activeTab.value === tab.id ? 'text-accent' : ''
+      activeTab.value === tab.id ? 'text-systemBlue-600' : ''
     ],
     pills: [
       'rounded-md',
       'text-theme-secondary',
       'hover:text-theme-primary hover:bg-theme-surface',
       activeTab.value === tab.id
-        ? 'bg-theme-surface-elevated text-accent shadow-sm'
+        ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm'
         : ''
     ],
     underline: [
@@ -207,7 +205,7 @@ const getTabClasses = (tab, index) => {
       'hover:text-theme-primary',
       'border-b-2 border-transparent',
       activeTab.value === tab.id
-        ? 'text-accent border-accent'
+        ? 'text-systemBlue-600 border-systemBlue-500'
         : 'hover:border-theme'
     ],
     cards: [
@@ -215,7 +213,7 @@ const getTabClasses = (tab, index) => {
       'text-theme-secondary',
       'hover:text-theme-primary',
       activeTab.value === tab.id
-        ? 'bg-theme-surface-elevated text-accent shadow-sm'
+        ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm'
         : 'hover:bg-theme-surface'
     ]
   }
@@ -290,9 +288,17 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-/* Smooth transitions */
-* {
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+/* Scoped transitions — replaces the removed global `* { transition }` rule
+   from PR1. Tabs only animate color / background-color / border-color. */
+button {
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+
+.indicator {
+  transition: all 200ms ease-out;
 }
 
 /* Responsive adjustments */

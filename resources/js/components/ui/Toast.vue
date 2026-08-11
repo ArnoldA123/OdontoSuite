@@ -101,29 +101,28 @@ const ariaAtomic = computed(() => 'true')
 
 const toastClasses = computed(() => {
   const base = [
-    'relative flex items-start gap-3 p-4 rounded-lg shadow-lg',
+    'relative flex items-start gap-3 p-4 rounded-ios shadow-lg',
     'max-w-sm w-full',
-    'transition-all duration-200',
-    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'
+    'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2'
   ]
 
-  // Type variants
+  // Type variants (iOS filled pattern).
   const types = {
     success: [
-      'bg-green-50 border border-green-200',
-      'text-success-700'
+      'bg-systemGreen-50 border border-systemGreen-200',
+      'text-systemGreen-700'
     ],
     error: [
-      'bg-red-50 border border-red-200',
-      'text-error-700'
+      'bg-systemRed-50 border border-systemRed-200',
+      'text-systemRed-700'
     ],
     warning: [
-      'bg-yellow-50 border border-yellow-200',
-      'text-warning-700'
+      'bg-systemYellow-50 border border-systemYellow-200',
+      'text-systemYellow-700'
     ],
     info: [
-      'bg-primary-50 border border-primary-200',
-      'text-primary-800'
+      'bg-systemBlue-50 border border-systemBlue-200',
+      'text-systemBlue-700'
     ]
   }
 
@@ -144,9 +143,9 @@ const iconComponent = computed(() => {
 })
 
 const dismissButtonClasses = computed(() => [
-  'p-1 rounded-md',
+  'p-1 rounded-ios',
   'text-current/60 hover:text-current',
-  'hover:bg-current/10 transition-colors duration-200',
+  'hover:bg-current/10',
   'focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1'
 ])
 
@@ -268,6 +267,23 @@ const handleMouseLeave = () => {
   .toast {
     border-width: 2px;
   }
+}
+
+/* Scoped transitions — toast hover and dismiss. Replaces the removed
+   global `* { transition }` rule. */
+.toast {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out,
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    transform 150ms ease-out;
+}
+
+button {
+  transition:
+    background-color 200ms ease-out,
+    color 200ms ease-out;
 }
 
 /* Reduced motion support */

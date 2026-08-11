@@ -9,7 +9,8 @@ import tokens, {
   radius as tokenRadius,
   fontFamily as tokenFontFamily,
   fontSize as tokenFontSize,
-  shadow as tokenShadow
+  shadow as tokenShadow,
+  motion as tokenMotion
 } from './resources/js/design-system/tokens.js'
 
 // Convert Tailwind fontSize tuple form (already [size, {lineHeight}]) — pass through.
@@ -32,6 +33,15 @@ const boxShadow = {
 const transitionTimingFunction = {
   'bounce-soft': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   'ease-ios': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+}
+
+// PR1 (ui-premium-microdetail-2026-08) — transitionDuration reads from
+// `tokens.motion.duration` so the utilities `duration-fast`,
+// `duration-normal`, and `duration-slow` resolve to the canonical
+// 120ms/200ms/320ms ramp. The ramp is the single source of truth; the
+// build script emits `--motion-duration-*` CSS vars from the same data.
+const transitionDuration = {
+  ...tokenMotion.duration
 }
 
 export default {
@@ -144,7 +154,8 @@ export default {
         '3xl': '64px'
       },
       boxShadow,
-      transitionTimingFunction
+      transitionTimingFunction,
+      transitionDuration
     }
   },
   plugins: [
