@@ -58,7 +58,7 @@
                     :aria-invalid="!!errors.username"
                     :aria-describedby="errors.username ? 'login-username-error' : 'login-username-hint'"
                     class="field-input"
-                    @blur="validateField('username')"
+                    placeholder="usuario"
                   />
                 </div>
                 <p
@@ -67,13 +67,6 @@
                   class="field-error"
                 >
                   {{ errors.username }}
-                </p>
-                <p
-                  v-else
-                  id="login-username-hint"
-                  class="field-hint"
-                >
-                  Ingresa tu nombre de usuario
                 </p>
               </div>
 
@@ -98,7 +91,7 @@
                     :aria-invalid="!!errors.password"
                     :aria-describedby="errors.password ? 'login-password-error' : 'login-password-hint'"
                     class="field-input"
-                    @blur="validateField('password')"
+                    placeholder="Mínimo 8 caracteres"
                   />
                   <button
                     type="button"
@@ -123,13 +116,6 @@
                   class="field-error"
                 >
                   {{ errors.password }}
-                </p>
-                <p
-                  v-else
-                  id="login-password-hint"
-                  class="field-hint"
-                >
-                  Ingresa tu contraseña
                 </p>
               </div>
 
@@ -368,8 +354,7 @@ const handleResetPasswordSuccess = () => {
 <style scoped>
 .login-page {
   @apply min-h-[100dvh] w-full flex items-stretch justify-center;
-  background: var(--color-cream-50);
-  color: var(--color-ink-800);
+  background: var(--color-canvas);
 }
 
 .login-grid {
@@ -409,7 +394,7 @@ const handleResetPasswordSuccess = () => {
 
 .brand-name {
   @apply text-base font-semibold tracking-tight;
-  color: var(--color-ink-800);
+  color: var(--color-label-label);
 }
 
 .welcome-section {
@@ -424,7 +409,7 @@ const handleResetPasswordSuccess = () => {
 
 .welcome-subtitle {
   @apply text-sm leading-relaxed;
-  color: var(--color-ink-500);
+  color: var(--color-label-secondary-label);
 }
 
 .login-card-surface {
@@ -433,6 +418,10 @@ const handleResetPasswordSuccess = () => {
 
 .login-form {
   @apply flex flex-col gap-5;
+}
+
+.login-form :deep(button[type="submit"]) {
+  box-shadow: var(--elevation-3), inset 0 1px 0 rgba(255, 255, 255, 0.30);
 }
 
 .form-options {
@@ -451,7 +440,7 @@ const handleResetPasswordSuccess = () => {
 
 .checkbox-label {
   @apply text-sm;
-  color: var(--color-ink-700);
+  color: var(--color-label-secondary-label);
 }
 
 .forgot-password-link {
@@ -470,8 +459,11 @@ const handleResetPasswordSuccess = () => {
 }
 
 .password-toggle {
-  @apply p-1 focus:outline-none rounded-md;
-  color: var(--color-ink-500);
+  @apply absolute p-1 focus:outline-none rounded-md;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-label-secondary-label);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -480,7 +472,7 @@ const handleResetPasswordSuccess = () => {
 
 .password-toggle:hover,
 .password-toggle:focus-visible {
-  color: var(--color-ink-800);
+  color: var(--color-label-label);
   background: var(--color-cream-200);
 }
 
@@ -495,7 +487,7 @@ const handleResetPasswordSuccess = () => {
 
 .field-label {
   @apply text-sm font-medium select-none;
-  color: var(--color-ink-800);
+  color: var(--color-label-label);
 }
 
 .field-input-wrap {
@@ -504,28 +496,29 @@ const handleResetPasswordSuccess = () => {
 
 .field-prefix {
   @apply absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none;
-  color: var(--color-ink-500);
+  color: var(--color-label-secondary-label);
 }
 
 .field-input {
-  @apply block w-full rounded-lg border text-base;
-  background: var(--color-cream-50);
-  border-color: var(--color-ink-200);
-  color: var(--color-ink-900);
+  @apply block w-full text-base;
+  background: var(--color-background-system-background);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-control);
+  color: var(--color-label-label);
   padding: 14px 44px 14px 40px;
   min-height: 52px;
   transition:
-    border-color 200ms ease-out,
-    box-shadow 200ms ease-out,
-    background-color 200ms ease-out;
+    border-color var(--motion-duration-normal) var(--motion-easing-ios),
+    box-shadow var(--motion-duration-normal) var(--motion-easing-ios),
+    background-color var(--motion-duration-normal) var(--motion-easing-ios);
 }
 
 .field-input::placeholder {
-  color: var(--color-ink-300);
+  color: var(--color-label-tertiary-label);
 }
 
 .field-input:hover:not(:disabled) {
-  border-color: var(--color-ink-300);
+  border-color: var(--color-label-tertiary-label);
 }
 
 .field-input:focus {
@@ -557,7 +550,7 @@ const handleResetPasswordSuccess = () => {
 
 .field-hint {
   @apply text-xs leading-snug;
-  color: var(--color-ink-500);
+  color: var(--color-label-secondary-label);
 }
 
 .auth-error {
@@ -578,7 +571,7 @@ const handleResetPasswordSuccess = () => {
 
 .login-footer-note {
   @apply text-xs text-center;
-  color: var(--color-ink-300);
+  color: var(--color-label-tertiary-label);
 }
 
 .login-footer-link {
@@ -598,16 +591,14 @@ const handleResetPasswordSuccess = () => {
 
 .hero-image {
   @apply absolute inset-0 w-full h-full object-cover;
+  border-radius: var(--radius-card-lg);
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgb(250 249 247 / 0.10) 0%,
-    rgb(31 27 23 / 0.35) 100%
-  );
+  border-radius: var(--radius-card-lg);
+  background: linear-gradient(180deg, rgba(60, 60, 67, 0.05) 0%, rgba(60, 60, 67, 0.55) 100%);
   z-index: 1;
 }
 
@@ -623,8 +614,8 @@ const handleResetPasswordSuccess = () => {
 
 .hero-caption-eyebrow {
   @apply text-xs uppercase tracking-[0.18em] mb-2;
-  color: var(--color-cream-100);
-  opacity: 0.85;
+  color: var(--color-system-gray-50);
+  opacity: 1;
 }
 
 .hero-caption-title {
@@ -675,10 +666,10 @@ const handleResetPasswordSuccess = () => {
 /* High contrast — lift the headline against the cream surface. */
 @media (prefers-contrast: more) {
   .welcome-headline {
-    color: var(--color-ink-900);
+    color: var(--color-label-label);
   }
   .welcome-subtitle {
-    color: var(--color-ink-700);
+    color: var(--color-label-secondary-label);
   }
   .forgot-password-link,
   .login-footer-link {

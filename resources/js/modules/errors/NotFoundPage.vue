@@ -93,7 +93,7 @@ const goHome = () => {
 <style scoped>
 .not-found-page {
   @apply w-full flex items-center justify-center px-5 py-10 sm:py-16;
-  background: var(--color-cream-50);
+  background: var(--color-canvas);
   min-height: calc(100dvh - 64px);
 }
 
@@ -112,7 +112,7 @@ const goHome = () => {
 
 .not-found-eyebrow {
   @apply text-xs uppercase tracking-[0.18em];
-  color: var(--color-ink-300);
+  color: var(--color-label-tertiary-label);
 }
 
 .not-found-headline {
@@ -123,7 +123,7 @@ const goHome = () => {
 
 .not-found-subhead {
   @apply text-sm leading-relaxed;
-  color: var(--color-ink-500);
+  color: var(--color-label-secondary-label);
 }
 
 .not-found-actions {
@@ -136,8 +136,26 @@ const goHome = () => {
 
 .not-found-image {
   @apply w-full max-w-md rounded-2xl;
-  border: 1px solid var(--color-ink-100);
-  box-shadow: var(--shadow-medium);
+  border-radius: var(--radius-card-lg);
+  border: 1px solid var(--color-hairline);
+  box-shadow: var(--elevation-2);
+  position: relative;
+}
+
+.not-found-figure {
+  @apply flex justify-center;
+  position: relative;
+}
+
+.not-found-figure::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  max-width: 28rem;
+  margin: 0 auto;
+  border-radius: var(--radius-card-lg);
+  background: linear-gradient(180deg, rgba(60, 60, 67, 0.05) 0%, rgba(60, 60, 67, 0.55) 100%);
+  pointer-events: none;
 }
 
 @media (min-width: 768px) {
@@ -156,13 +174,13 @@ const goHome = () => {
 
 @media (prefers-contrast: more) {
   .not-found-headline {
-    color: var(--color-ink-900);
+    color: var(--color-label-label);
   }
   .not-found-subhead {
-    color: var(--color-ink-700);
+    color: var(--color-label-secondary-label);
   }
   .not-found-image {
-    border-color: var(--color-ink-700);
+    border-color: var(--color-label-secondary-label);
   }
 }
 </style>
