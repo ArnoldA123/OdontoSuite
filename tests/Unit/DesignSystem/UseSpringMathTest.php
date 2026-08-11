@@ -25,14 +25,14 @@ use PHPUnit\Framework\TestCase;
 class UseSpringMathTest extends TestCase
 {
     /** Project root absolute path. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     /** Pure math module path. */
     private const MATH_REL = '/resources/js/composables/useSpringMath.js';
 
     private static function mathPath(): string
     {
-        return self::PROJECT_ROOT . self::MATH_REL;
+        return self::projectRootPath() . self::MATH_REL;
     }
 
     /**
@@ -287,7 +287,7 @@ const mod = await import(url);
 const result = { exists, hasDefault: typeof mod.default === 'function' || typeof mod.default === 'object' };
 process.stdout.write(JSON.stringify(result));
 JS;
-        $body = str_replace('FONTS_PATH', str_replace('\\', '\\\\', self::PROJECT_ROOT . '/resources/js/composables/useFontsLoaded.js'), $body);
+        $body = str_replace('FONTS_PATH', str_replace('\\', '\\\\', self::projectRootPath() . '/resources/js/composables/useFontsLoaded.js'), $body);
 
         $tmp = tempnam(sys_get_temp_dir(), 'fonts_loaded_');
         $loaderFile = $tmp . '.mjs';

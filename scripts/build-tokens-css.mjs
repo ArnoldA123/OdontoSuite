@@ -76,11 +76,18 @@ emitSection(':root — token ramps and aliases')
 push(':root {')
 
 // Color ramps.
+// Token keys are camelCase in JS (`clinicalTeal`) but CSS custom properties
+// are kebab-case by convention (`--color-clinical-teal-500`). Emitting the
+// camelCase form produced a variable no alias could reference, which silently
+// broke `--color-info`. Convert once, here, so the two can never disagree.
+const toKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+
 for (const rampName of Object.keys(colors)) {
   const ramp = colors[rampName]
+  const cssName = toKebab(rampName)
   push(`  /* ${rampName} */`)
   for (const step of Object.keys(ramp)) {
-    push(`  --color-${rampName}-${step}: ${ramp[step]};`)
+    push(`  --color-${cssName}-${step}: ${ramp[step]};`)
   }
   push('')
 }

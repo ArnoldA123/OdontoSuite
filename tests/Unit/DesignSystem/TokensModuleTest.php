@@ -26,16 +26,16 @@ class TokensModuleTest extends TestCase
     private const TAILWIND_REL_PATH = '/tailwind.config.js';
 
     /** Project root absolute path. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private static function tokensPath(): string
     {
-        return self::PROJECT_ROOT . self::TOKENS_REL_PATH;
+        return self::projectRootPath() . self::TOKENS_REL_PATH;
     }
 
     private static function tailwindPath(): string
     {
-        return self::PROJECT_ROOT . self::TAILWIND_REL_PATH;
+        return self::projectRootPath() . self::TAILWIND_REL_PATH;
     }
 
     /**
@@ -229,7 +229,7 @@ JS;
         $cmd = sprintf(
             'rg --no-heading --count-matches --no-messages %s %s/resources 2>&1',
             escapeshellarg($pattern),
-            escapeshellarg(self::PROJECT_ROOT)
+            escapeshellarg(self::projectRootPath())
         );
         $output = (string) shell_exec($cmd);
         if ($output === '') {

@@ -1,151 +1,208 @@
 <template>
   <div class="login-page">
-    <!-- Background Abstract Shapes -->
-    <div class="login-background">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
-    </div>
+    <div class="login-grid">
+      <!-- Form column (left on desktop, second on mobile) -->
+      <section class="login-form-column" aria-labelledby="login-headline">
+        <div class="login-form-wrap" ref="cardRef">
+          <header class="login-header">
+            <div class="brand-mark" aria-hidden="true">
+              <img
+                src="/images/easy_dent.png"
+                alt=""
+                class="brand-mark-img"
+              />
+            </div>
+            <p class="brand-name">OdontoSuite</p>
+          </header>
 
-    <!-- Login Container -->
-    <div class="login-container">
-      <!-- Logo and Brand -->
-      <div class="login-header">
-        <div class="logo-container">
-          <img src="/images/easy_dent.png" alt="OdontoSuite" class="logo-image" />
-        </div>
-        <h1 class="brand-name">OdontoSuite</h1>
-      </div>
-
-      <!-- Welcome Message -->
-      <div class="welcome-section">
-        <h2 class="welcome-title">Bienvenido de nuevo</h2>
-        <p class="welcome-subtitle">Inicia sesión en tu cuenta de OdontoSuite.</p>
-      </div>
-
-      <!-- Login Card -->
-      <LoginCard>
-        <form @submit.prevent="handleLogin" class="login-form">
-          <!-- Username Field -->
-          <div class="form-group">
-            <UiInput
-              v-model="form.username"
-              label="Usuario"
-              type="text"
-              required
-              size="lg"
-              :error="errors.username"
-              hint="Ingresa tu nombre de usuario"
-              @blur="validateField('username')"
-              class="login-input"
-            >
-              <template #prefix>
-                <svg class="h-5 w-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                </svg>
-              </template>
-            </UiInput>
+          <div class="welcome-section">
+            <h1 id="login-headline" class="welcome-headline">
+              Gestiona tu clínica con calma
+            </h1>
+            <p class="welcome-subtitle">
+              Inicia sesión para revisar citas, caja y pacientes en un solo lugar.
+            </p>
           </div>
 
-          <!-- Password Field -->
-          <div class="form-group">
-            <UiInput
-              v-model="form.password"
-              label="Contraseña"
-              :type="showPassword ? 'text' : 'password'"
-              required
-              size="lg"
-              :error="errors.password"
-              hint="Ingresa tu contraseña"
-              @blur="validateField('password')"
-              class="login-input"
+          <Card variant="glass" padding="lg" class="login-card-surface">
+            <form
+              @submit.prevent="handleLogin"
+              class="login-form"
+              novalidate
+              :aria-busy="loading || undefined"
             >
-              <template #prefix>
-                <svg class="h-5 w-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                </svg>
-              </template>
-              <template #suffix>
+              <!-- Username field. Rendered as a raw <input> (not via
+                   UiInput) so the autocomplete and inputmode attributes
+                   reach the actual form control — UiInput's wrapper-root
+                   pattern would consume them as fall-through attrs. -->
+              <div class="field">
+                <label class="field-label" for="login-username">Usuario</label>
+                <div class="field-input-wrap">
+                  <span class="field-prefix" aria-hidden="true">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                  </span>
+                  <input
+                    id="login-username"
+                    ref="usernameInput"
+                    v-model="form.username"
+                    type="text"
+                    name="username"
+                    autocomplete="username"
+                    inputmode="text"
+                    spellcheck="false"
+                    autocapitalize="off"
+                    required
+                    :disabled="loading"
+                    :aria-invalid="!!errors.username"
+                    :aria-describedby="errors.username ? 'login-username-error' : 'login-username-hint'"
+                    class="field-input"
+                    @blur="validateField('username')"
+                  />
+                </div>
+                <p
+                  v-if="errors.username"
+                  id="login-username-error"
+                  class="field-error"
+                >
+                  {{ errors.username }}
+                </p>
+                <p
+                  v-else
+                  id="login-username-hint"
+                  class="field-hint"
+                >
+                  Ingresa tu nombre de usuario
+                </p>
+              </div>
+
+              <!-- Password field. Same pattern as username so the
+                   autocomplete=current-password attr reaches the input. -->
+              <div class="field">
+                <label class="field-label" for="login-password">Contraseña</label>
+                <div class="field-input-wrap">
+                  <span class="field-prefix" aria-hidden="true">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                  </span>
+                  <input
+                    id="login-password"
+                    v-model="form.password"
+                    :type="showPassword ? 'text' : 'password'"
+                    name="password"
+                    autocomplete="current-password"
+                    required
+                    :disabled="loading"
+                    :aria-invalid="!!errors.password"
+                    :aria-describedby="errors.password ? 'login-password-error' : 'login-password-hint'"
+                    class="field-input"
+                    @blur="validateField('password')"
+                  />
+                  <button
+                    type="button"
+                    @click="showPassword = !showPassword"
+                    class="password-toggle"
+                    :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    :aria-pressed="showPassword"
+                    tabindex="-1"
+                  >
+                    <svg v-if="showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                    </svg>
+                    <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <p
+                  v-if="errors.password"
+                  id="login-password-error"
+                  class="field-error"
+                >
+                  {{ errors.password }}
+                </p>
+                <p
+                  v-else
+                  id="login-password-hint"
+                  class="field-hint"
+                >
+                  Ingresa tu contraseña
+                </p>
+              </div>
+
+              <!-- Remember + forgot -->
+              <div class="form-options">
+                <label class="remember-me">
+                  <input
+                    v-model="form.remember"
+                    type="checkbox"
+                    class="checkbox-input"
+                    :disabled="loading"
+                  />
+                  <span class="checkbox-label">Recordarme</span>
+                </label>
                 <button
                   type="button"
-                  @click.stop="showPassword = !showPassword"
-                  class="password-toggle"
-                  :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                  class="forgot-password-link"
+                  @click="showForgotPasswordModal = true"
                 >
-                  <svg v-if="showPassword" class="h-5 w-5 text-theme-secondary hover:text-theme-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
-                  </svg>
-                  <svg v-else class="h-5 w-5 text-theme-secondary hover:text-theme-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                  </svg>
+                  ¿Olvidaste tu contraseña?
                 </button>
-              </template>
-            </UiInput>
-          </div>
+              </div>
 
-          <!-- Remember Me & Forgot Password -->
-          <div class="form-options">
-            <label class="remember-me group">
-              <input
-                v-model="form.remember"
-                type="checkbox"
-                class="checkbox-input"
-              />
-              <span class="checkbox-label">Recordarme</span>
-            </label>
-            <button
-              type="button"
-              class="forgot-password-link"
-              @click="showForgotPasswordModal = true"
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+              <!-- Auth failure: inline aria-live, never a toast -->
+              <div
+                v-if="error"
+                class="auth-error"
+                role="alert"
+                aria-live="polite"
+              >
+                <svg class="auth-error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="auth-error-text">{{ error }}</p>
+              </div>
 
-          <!-- Error Message -->
-          <Transition
-            enter-active-class="transition-all duration-300 ease-out"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition-all duration-200 ease-in"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-2"
-          >
-            <div v-if="error" class="error-message">
-              <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <p class="error-text">{{ error }}</p>
-            </div>
-          </Transition>
+              <UiButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                :loading="loading"
+                :disabled="loading"
+                :full-width="true"
+              >
+                <span v-if="!loading">Iniciar sesión</span>
+              </UiButton>
+            </form>
+          </Card>
 
-          <!-- Login Button -->
-          <UiButton
-            type="submit"
-            variant="primary"
-            size="lg"
-            :loading="loading"
-            :full-width="true"
-            class="login-button"
-          >
-            <span v-if="!loading">Iniciar Sesión</span>
-          </UiButton>
-        </form>
-      </LoginCard>
+          <p class="login-footer-note">
+            © {{ currentYear }} OdontoSuite. Sistema de gestión dental.
+            <a href="mailto:soporte@odontosuite.local" class="login-footer-link">
+              Soporte
+            </a>
+          </p>
+        </div>
+      </section>
 
-      <!-- Footer -->
-      <div class="login-footer">
-        <p class="copyright">
-          © 2023 OdontoSuite. Todos los derechos reservados. Versión 2.0 - Sistema de gestión dental
-        </p>
-        <a
-          href="mailto:soporte@odontosuite.local"
-          class="help-center-link"
-        >
-          Centro Ayuda
-        </a>
-      </div>
+      <!-- Hero column (right on desktop, top strip on mobile) -->
+      <aside class="login-hero-column" aria-hidden="true">
+        <div class="hero-overlay"></div>
+        <img
+          src="/images/ui/login-hero.jpg"
+          alt=""
+          class="hero-image"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="hero-caption">
+          <p class="hero-caption-eyebrow">OdontoSuite</p>
+          <p class="hero-caption-title">Una consola clínica sobria, hecha para el consultorio.</p>
+        </div>
+      </aside>
     </div>
 
     <!-- Forgot Password Modal -->
@@ -154,25 +211,24 @@
       @success="handleForgotPasswordSuccess"
     />
 
-    <!-- Reset Password Modal -->
+    <!-- Reset Password Modal (user-driven only — never auto-opens from Forgot success) -->
     <ResetPasswordModal
       v-model="showResetPasswordModal"
       :email="resetEmail"
-      :token="resetToken"
       @success="handleResetPasswordSuccess"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSpring } from '@/composables/useSpring'
 import { useAuth } from '@/composables/useAuth'
-import LoginCard from '../../components/auth/LoginCard.vue'
+import Card from '@/components/ui/Card.vue'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'
-import UiInput from '../../components/ui/Input.vue'
-import UiButton from '../../components/ui/Button.vue'
+import UiButton from '@/components/ui/Button.vue'
 
 const router = useRouter()
 const { login } = useAuth()
@@ -184,27 +240,57 @@ const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
 const showResetPasswordModal = ref(false)
 const resetEmail = ref('')
-const resetToken = ref('')
 const errors = reactive({
   username: '',
   password: ''
 })
 
-// Form data
+const currentYear = new Date().getFullYear()
+
 const form = reactive({
   username: '',
   password: '',
   remember: false
 })
 
+// Card entrance spring — critically damped, no bounce. Under
+// prefers-reduced-motion the spring writes the target instantly and only
+// the opacity ref cross-fades; see useSpring.js contract.
+const cardSpring = useSpring({
+  response: 0.35,
+  damping: 1.0,
+  from: 0,
+  to: 1,
+  cssVar: '--spring-card-o'
+})
+const opacitySpring = useSpring({
+  response: 0.2,
+  damping: 1.0,
+  from: 0,
+  to: 1,
+  cssVar: '--spring-card-opacity'
+})
+
+const cardRef = ref(null)
+
+onMounted(async () => {
+  await nextTick()
+  if (cardRef.value) {
+    cardSpring.attach(cardRef.value)
+    opacitySpring.attach(cardRef.value)
+  }
+  cardSpring.set(1)
+  opacitySpring.set(1)
+})
+
 // Validation
 const validateField = (field) => {
   errors[field] = ''
-  
+
   if (field === 'username' && !form.username.trim()) {
     errors.username = 'El usuario es requerido'
   }
-  
+
   if (field === 'password' && !form.password.trim()) {
     errors.password = 'La contraseña es requerida'
   }
@@ -212,21 +298,20 @@ const validateField = (field) => {
 
 const validateForm = () => {
   let isValid = true
-  
-  // Clear previous errors
+
   errors.username = ''
   errors.password = ''
-  
+
   if (!form.username.trim()) {
     errors.username = 'El usuario es requerido'
     isValid = false
   }
-  
+
   if (!form.password.trim()) {
     errors.password = 'La contraseña es requerida'
     isValid = false
   }
-  
+
   return isValid
 }
 
@@ -235,18 +320,17 @@ const handleLogin = async () => {
   if (!validateForm()) {
     return
   }
-  
+
   loading.value = true
   error.value = ''
-  
+
   try {
     const response = await login(form)
-    
+
     if (response) {
       router.push('/dashboard')
     }
   } catch (err) {
-    console.error('[Login] handler error:', err)
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
       error.value = Object.values(serverErrors).flat().join(', ')
@@ -265,266 +349,344 @@ const handleLogin = async () => {
 }
 
 const handleForgotPasswordSuccess = (data) => {
+  // The dev-only reset_token is no longer surfaced in the UI. The Forgot
+  // modal emits `email` only; the user clicks a separate link to open
+  // ResetPasswordModal. The API surface still includes reset_token for
+  // tests that exercise it.
   showForgotPasswordModal.value = false
-  
-  // If token is provided (development), show reset modal
-  if (data?.token) {
+  if (data?.email) {
     resetEmail.value = data.email
-    resetToken.value = data.token
-    showResetPasswordModal.value = true
   }
 }
 
 const handleResetPasswordSuccess = () => {
   showResetPasswordModal.value = false
   resetEmail.value = ''
-  resetToken.value = ''
-  // Optionally redirect to login or show success message
 }
 </script>
 
 <style scoped>
 .login-page {
-  @apply min-h-screen flex items-center justify-center p-4 relative overflow-hidden;
-  background: linear-gradient(135deg, #e3f2fd 0%, #fff3e0 100%);
+  @apply min-h-[100dvh] w-full flex items-stretch justify-center;
+  background: var(--color-cream-50);
+  color: var(--color-ink-800);
 }
 
-/* Background Abstract Shapes */
-.login-background {
-  @apply absolute inset-0 overflow-hidden pointer-events-none;
+.login-grid {
+  @apply grid w-full;
+  grid-template-columns: 1fr;
 }
 
-.shape {
-  @apply absolute rounded-full opacity-40 blur-3xl;
-  animation: float 20s ease-in-out infinite;
+/* Mobile-first: form first, hero as a short band above the form.
+   On md+ the hero column slides to the right and takes ~58% of the
+   viewport per editorial-split spec. */
+.login-form-column {
+  @apply order-2 flex items-center justify-center px-5 py-10 sm:px-8;
 }
 
-.shape-1 {
-  @apply w-96 h-96;
-  background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
-  top: -10%;
-  right: -5%;
-  animation-delay: 0s;
+.login-form-wrap {
+  --spring-card-o: 1;
+  --spring-card-opacity: 1;
+  @apply relative w-full max-w-md flex flex-col gap-7;
+  transform: translate3d(0, calc((1 - var(--spring-card-o)) * 12px), 0);
+  opacity: var(--spring-card-opacity);
 }
 
-.shape-2 {
-  @apply w-80 h-80;
-  background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%);
-  bottom: -10%;
-  left: -5%;
-  animation-delay: 2s;
-}
-
-.shape-3 {
-  @apply w-72 h-72;
-  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: 4s;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -30px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-}
-
-/* Login Container */
-.login-container {
-  @apply relative w-full max-w-md z-10;
-  animation: fadeInUp 0.6s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Header - Logo and Brand */
 .login-header {
-  @apply text-center mb-8;
+  @apply flex items-center gap-3;
 }
 
-.logo-container {
-  @apply inline-flex items-center justify-center w-20 h-20 rounded-full mb-4;
-  background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3);
-  animation: logoPulse 2s ease-in-out infinite;
+.brand-mark {
+  @apply inline-flex items-center justify-center w-11 h-11 rounded-full;
+  background: var(--color-terracotta-500);
+  box-shadow: var(--shadow-soft);
 }
 
-@keyframes logoPulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 12px 32px rgba(33, 150, 243, 0.4);
-  }
-}
-
-.logo-image {
-  @apply h-12 w-auto object-contain;
+.brand-mark-img {
+  @apply h-6 w-6 object-contain;
   filter: brightness(0) invert(1);
 }
 
 .brand-name {
-  @apply text-3xl font-bold mb-2;
-  color: var(--color-text-primary);
-  letter-spacing: -0.02em;
+  @apply text-base font-semibold tracking-tight;
+  color: var(--color-ink-800);
 }
 
-/* Welcome Section */
 .welcome-section {
-  @apply text-center mb-8;
+  @apply flex flex-col gap-2;
 }
 
-.welcome-title {
-  @apply text-2xl font-semibold mb-2;
-  color: var(--color-text-primary);
+.welcome-headline {
+  font-family: var(--font-serif);
+  @apply text-3xl sm:text-4xl font-medium leading-[1.1];
+  color: var(--color-ink-900);
+  letter-spacing: -0.025em;
+  font-optical-sizing: auto;
 }
 
 .welcome-subtitle {
-  @apply text-sm;
-  color: var(--color-text-secondary);
+  @apply text-sm leading-relaxed;
+  color: var(--color-ink-500);
 }
 
-/* Login Form */
-.login-form {
-  @apply space-y-5;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.login-input {
+.login-card-surface {
   @apply w-full;
 }
 
-.password-toggle {
-  @apply p-1 transition-colors duration-200 focus:outline-none;
+.login-form {
+  @apply flex flex-col gap-5;
 }
 
-/* Form Options */
 .form-options {
-  @apply flex items-center justify-between;
+  @apply flex flex-wrap items-center justify-between gap-2;
 }
 
 .remember-me {
-  @apply flex items-center cursor-pointer;
+  @apply inline-flex items-center gap-2 cursor-pointer select-none;
 }
 
 .checkbox-input {
-  @apply h-4 w-4 focus:ring-primary-500 rounded transition-colors duration-200;
-  color: var(--color-accent);
-  border-color: var(--color-border);
+  @apply h-4 w-4 rounded;
   accent-color: var(--color-accent);
+  border-color: var(--color-border);
 }
 
 .checkbox-label {
-  @apply ml-2 text-sm transition-colors duration-200;
-  color: var(--color-text-primary);
-}
-
-.checkbox-label.group-hover {
-  color: var(--color-text-primary);
+  @apply text-sm;
+  color: var(--color-ink-700);
 }
 
 .forgot-password-link {
-  @apply text-sm transition-colors duration-200 focus:outline-none;
+  @apply text-sm underline-offset-4 focus:outline-none;
   color: var(--color-accent);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 200ms ease-out, text-decoration-color 200ms ease-out;
 }
 
 .forgot-password-link:hover {
-  color: var(--color-primary-700);
+  color: var(--color-accent-active);
+  text-decoration: underline;
 }
 
-/* Error Message */
-.error-message {
-  @apply p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3;
+.password-toggle {
+  @apply p-1 focus:outline-none rounded-md;
+  color: var(--color-ink-500);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 200ms ease-out, background-color 200ms ease-out;
 }
 
-.error-icon {
-  @apply w-5 h-5 text-red-500 flex-shrink-0 mt-0.5;
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--color-ink-800);
+  background: var(--color-cream-200);
 }
 
-.error-text {
-  @apply text-sm text-error-700;
+.password-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-/* Login Button */
-.login-button {
-  @apply mt-6 !important;
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary-hover) 100%) !important;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3) !important;
-  transition: all 0.3s ease !important;
-  border: none !important;
+.field {
+  @apply flex flex-col gap-1.5;
 }
 
-.login-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%) !important;
-  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.4) !important;
-  transform: translateY(-2px) !important;
+.field-label {
+  @apply text-sm font-medium select-none;
+  color: var(--color-ink-800);
 }
 
-.login-button:active:not(:disabled) {
-  transform: translateY(0) !important;
+.field-input-wrap {
+  @apply relative flex items-center;
 }
 
-/* Footer */
-.login-footer {
-  @apply text-center mt-8 space-y-2;
+.field-prefix {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none;
+  color: var(--color-ink-500);
 }
 
-.copyright {
-  @apply text-xs;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
+.field-input {
+  @apply block w-full rounded-lg border text-base;
+  background: var(--color-cream-50);
+  border-color: var(--color-ink-200);
+  color: var(--color-ink-900);
+  padding: 14px 44px 14px 40px;
+  min-height: 52px;
+  transition:
+    border-color 200ms ease-out,
+    box-shadow 200ms ease-out,
+    background-color 200ms ease-out;
 }
 
-.help-center-link {
-  @apply text-sm transition-colors duration-200 focus:outline-none;
+.field-input::placeholder {
+  color: var(--color-ink-300);
+}
+
+.field-input:hover:not(:disabled) {
+  border-color: var(--color-ink-300);
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+  background: var(--color-cream-50);
+}
+
+.field-input:disabled {
+  background: var(--color-cream-100);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.field-input[aria-invalid="true"] {
+  border-color: var(--color-error-500);
+}
+
+.field-input[aria-invalid="true"]:focus {
+  border-color: var(--color-error-500);
+  box-shadow: 0 0 0 3px var(--color-error-50);
+}
+
+.field-error {
+  @apply text-xs leading-snug;
+  color: var(--color-error-700);
+}
+
+.field-hint {
+  @apply text-xs leading-snug;
+  color: var(--color-ink-500);
+}
+
+.auth-error {
+  @apply flex items-start gap-2 p-3 rounded-xl;
+  background: var(--color-error-50);
+  border: 1px solid var(--color-error-100);
+}
+
+.auth-error-icon {
+  @apply w-5 h-5 flex-shrink-0 mt-0.5;
+  color: var(--color-error-600);
+}
+
+.auth-error-text {
+  @apply text-sm leading-snug;
+  color: var(--color-error-700);
+}
+
+.login-footer-note {
+  @apply text-xs text-center;
+  color: var(--color-ink-300);
+}
+
+.login-footer-link {
   color: var(--color-accent);
+  transition: color 200ms ease-out;
 }
 
-.help-center-link:hover {
-  color: var(--color-primary-700);
+.login-footer-link:hover {
+  color: var(--color-accent-active);
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .login-container {
-    @apply max-w-full;
+/* Hero column */
+.login-hero-column {
+  @apply order-1 relative overflow-hidden;
+  min-height: 200px;
+}
+
+.hero-image {
+  @apply absolute inset-0 w-full h-full object-cover;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgb(250 249 247 / 0.10) 0%,
+    rgb(31 27 23 / 0.35) 100%
+  );
+  z-index: 1;
+}
+
+.hero-caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px;
+  z-index: 2;
+  color: var(--color-cream-50);
+}
+
+.hero-caption-eyebrow {
+  @apply text-xs uppercase tracking-[0.18em] mb-2;
+  color: var(--color-cream-100);
+  opacity: 0.85;
+}
+
+.hero-caption-title {
+  font-family: var(--font-serif);
+  @apply text-lg leading-snug;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
+}
+
+/* Tablet and up: form first column, hero second, hero ~58% wide */
+@media (min-width: 768px) {
+  .login-grid {
+    grid-template-columns: 1fr 1fr;
   }
-  
-  .logo-container {
-    @apply w-16 h-16;
+  .login-form-column {
+    @apply order-1 px-10 py-12;
   }
-  
-  .logo-image {
-    @apply h-10;
+  .login-hero-column {
+    @apply order-2;
+    min-height: 100dvh;
   }
-  
-  .brand-name {
-    @apply text-2xl;
+  .login-form-wrap {
+    max-width: 28rem;
   }
-  
-  .welcome-title {
-    @apply text-xl;
+}
+
+@media (min-width: 1024px) {
+  .login-grid {
+    grid-template-columns: 5fr 7fr;
+  }
+}
+
+/* Honor reduced motion — kill the entrance spring. The composable
+   already returns instantly when prefers-reduced-motion is set; this
+   block guards against any leftover transform or transition. */
+@media (prefers-reduced-motion: reduce) {
+  .login-form-wrap {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Honor reduced transparency — flatten the hero overlay. */
+@media (prefers-reduced-transparency: reduce) {
+  .hero-overlay {
+    background: rgb(31 27 23 / 0.45);
+  }
+}
+
+/* High contrast — lift the headline against the cream surface. */
+@media (prefers-contrast: more) {
+  .welcome-headline {
+    color: var(--color-ink-900);
+  }
+  .welcome-subtitle {
+    color: var(--color-ink-700);
+  }
+  .forgot-password-link,
+  .login-footer-link {
+    text-decoration: underline;
   }
 }
 </style>

@@ -2,83 +2,79 @@
   <UiModal
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
-    title="Recuperar Contraseña"
+    title="Recuperar contraseña"
     size="md"
     :closable="!loading"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form @submit.prevent="handleSubmit" class="space-y-5">
       <!-- Instructions -->
-      <div class="text-sm text-theme-secondary">
-        Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
-      </div>
+      <p class="text-sm leading-relaxed" :class="['text-ink-700']">
+        Ingresa el correo electrónico asociado a tu cuenta. Si existe, te enviaremos
+        un enlace para restablecer tu contraseña.
+      </p>
 
       <!-- Email Field -->
-      <div class="space-y-2">
-        <UiInput
-          v-model="email"
-          label="Correo Electrónico"
-          type="email"
-          placeholder="tu@ejemplo.com"
-          required
-          :disabled="loading"
-          :error="errors.email"
-          @blur="validateEmail"
-        >
-          <template #prefix>
-            <svg class="h-5 w-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </template>
-        </UiInput>
-      </div>
+      <UiInput
+        v-model="email"
+        label="Correo electrónico"
+        type="email"
+        placeholder="tu@ejemplo.com"
+        required
+        autocomplete="email"
+        :disabled="loading"
+        :error="errors.email"
+        @blur="validateEmail"
+      >
+        <template #prefix>
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </template>
+      </UiInput>
 
       <!-- Success Message -->
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
+      <div
+        v-if="success"
+        class="success-panel"
+        role="status"
+        aria-live="polite"
       >
-        <div v-if="success" class="p-4 bg-green-50 border border-green-200 rounded-xl">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="flex-1">
-              <p class="text-sm font-medium text-success-700">
-                {{ successMessage }}
-              </p>
-              <p v-if="resetToken" class="text-xs text-green-600 mt-1">
-                Token de prueba (solo desarrollo): {{ resetToken }}
-              </p>
-            </div>
-          </div>
+        <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div class="success-body">
+          <p class="success-title">{{ successMessage }}</p>
+          <p class="success-detail" v-if="lastSubmittedEmail">
+            Enviamos las instrucciones a
+            <span class="success-email">{{ lastSubmittedEmail }}</span>.
+          </p>
+          <p class="success-cta" v-if="!showResetLink">
+            <button
+              type="button"
+              class="reset-link"
+              @click="emit('request-reset', lastSubmittedEmail)"
+            >
+              ¿Ya tienes el código? Restablecer contraseña
+            </button>
+          </p>
         </div>
-      </Transition>
+      </div>
 
       <!-- Error Message -->
-      <Transition
-        enter-active-class="transition-all duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition-all duration-200 ease-in"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
+      <div
+        v-if="error"
+        class="error-panel"
+        role="alert"
+        aria-live="polite"
       >
-        <div v-if="error" class="p-4 bg-red-50 border border-red-200 rounded-xl">
-          <div class="flex items-start gap-3">
-            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p class="text-sm text-error-700">{{ error }}</p>
-          </div>
-        </div>
-      </Transition>
+        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="error-text">{{ error }}</p>
+      </div>
 
       <!-- Actions -->
-      <div class="flex justify-end gap-3 pt-4">
+      <div class="flex justify-end gap-3 pt-2">
         <UiButton
           v-if="!success"
           type="button"
@@ -94,7 +90,7 @@
           :loading="loading"
           :disabled="loading"
         >
-          Enviar Enlace
+          Enviar enlace
         </UiButton>
         <UiButton
           v-if="success"
@@ -110,10 +106,10 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
-import { useApi } from '../../composables/useApi'
-import UiModal from '../../components/ui/Modal.vue'
-import UiInput from '../../components/ui/Input.vue'
-import UiButton from '../../components/ui/Button.vue'
+import { useApi } from '@/composables/useApi'
+import UiModal from '@/components/ui/Modal.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiButton from '@/components/ui/Button.vue'
 
 const props = defineProps({
   modelValue: {
@@ -122,7 +118,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'success'])
+const emit = defineEmits(['update:modelValue', 'success', 'request-reset'])
 
 const { post } = useApi()
 
@@ -132,7 +128,8 @@ const email = ref('')
 const error = ref('')
 const success = ref(false)
 const successMessage = ref('')
-const resetToken = ref(null)
+const lastSubmittedEmail = ref('')
+const showResetLink = ref(false)
 const errors = reactive({
   email: ''
 })
@@ -140,18 +137,18 @@ const errors = reactive({
 // Validation
 const validateEmail = () => {
   errors.email = ''
-  
+
   if (!email.value.trim()) {
     errors.email = 'El correo electrónico es requerido'
     return false
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email.value)) {
     errors.email = 'Ingresa un correo electrónico válido'
     return false
   }
-  
+
   return true
 }
 
@@ -159,13 +156,13 @@ const validateEmail = () => {
 const handleSubmit = async () => {
   error.value = ''
   success.value = false
-  resetToken.value = null
 
   if (!validateEmail()) {
     return
   }
 
   loading.value = true
+  lastSubmittedEmail.value = email.value
 
   try {
     const response = await post('/api/auth/forgot-password', {
@@ -173,22 +170,19 @@ const handleSubmit = async () => {
     })
 
     success.value = true
-    successMessage.value = response.data?.message || 'Si existe una cuenta con ese correo electrónico, hemos enviado un enlace de recuperación.'
-    
-    // Store token if provided (development only)
-    if (response.data?.reset_token) {
-      resetToken.value = response.data.reset_token
-      emit('success', {
-        email: email.value,
-        token: response.data.reset_token
-      })
-    } else {
-      emit('success', {
-        email: email.value
-      })
-    }
+    successMessage.value =
+      response.data?.message ||
+      'Si existe una cuenta con ese correo electrónico, hemos enviado un enlace de recuperación.'
+
+    // Surface a "open reset modal" CTA only when the API explicitly returns a
+    // dev reset_token. In production this branch never fires because the
+    // server omits reset_token from the public response.
+    showResetLink.value = !!(response.data?.reset_token || response.data?.debug?.token)
+
+    emit('success', {
+      email: email.value
+    })
   } catch (err) {
-    
     if (err.response?.data?.errors?.email) {
       errors.email = err.response.data.errors.email[0]
     } else if (err.response?.data?.message) {
@@ -202,12 +196,12 @@ const handleSubmit = async () => {
 }
 
 const handleClose = () => {
-  // Reset form
   email.value = ''
   error.value = ''
   success.value = false
   successMessage.value = ''
-  resetToken.value = null
+  lastSubmittedEmail.value = ''
+  showResetLink.value = false
   errors.email = ''
   emit('update:modelValue', false)
 }
@@ -215,18 +209,98 @@ const handleClose = () => {
 // Watch for modal close
 watch(() => props.modelValue, (newValue) => {
   if (!newValue) {
-    // Reset when modal closes
     email.value = ''
     error.value = ''
     success.value = false
     successMessage.value = ''
-    resetToken.value = null
+    lastSubmittedEmail.value = ''
+    showResetLink.value = false
     errors.email = ''
   }
 })
 </script>
 
 <style scoped>
-/* Component styles */
-</style>
+.text-ink-700 {
+  color: var(--color-ink-700);
+}
 
+.success-panel {
+  @apply flex items-start gap-3 p-4 rounded-xl;
+  background: var(--color-success-50);
+  border: 1px solid var(--color-success-100);
+}
+
+.success-icon {
+  @apply w-5 h-5 flex-shrink-0 mt-0.5;
+  color: var(--color-success-700);
+}
+
+.success-body {
+  @apply flex-1 flex flex-col gap-1;
+}
+
+.success-title {
+  @apply text-sm font-medium leading-snug;
+  color: var(--color-success-700);
+}
+
+.success-detail {
+  @apply text-sm leading-snug;
+  color: var(--color-ink-700);
+}
+
+.success-email {
+  @apply font-medium;
+  color: var(--color-ink-900);
+}
+
+.success-cta {
+  @apply text-sm;
+  color: var(--color-ink-700);
+}
+
+.reset-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-accent);
+  transition: color 200ms ease-out;
+}
+
+.reset-link:hover {
+  color: var(--color-accent-active);
+  text-decoration: underline;
+}
+
+.reset-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.error-panel {
+  @apply flex items-start gap-3 p-4 rounded-xl;
+  background: var(--color-error-50);
+  border: 1px solid var(--color-error-100);
+}
+
+.error-icon {
+  @apply w-5 h-5 flex-shrink-0 mt-0.5;
+  color: var(--color-error-600);
+}
+
+.error-text {
+  @apply text-sm leading-snug;
+  color: var(--color-error-700);
+}
+
+@media (prefers-contrast: more) {
+  .success-title,
+  .success-detail,
+  .error-text {
+    color: var(--color-ink-900);
+  }
+}
+</style>

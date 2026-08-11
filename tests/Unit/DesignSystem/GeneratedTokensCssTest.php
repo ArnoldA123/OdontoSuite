@@ -25,8 +25,18 @@ use PHPUnit\Framework\TestCase;
  */
 class GeneratedTokensCssTest extends TestCase
 {
-    /** Project root absolute path. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+    /**
+     * Project root, derived from this file's location.
+     *
+     * Never hardcode an absolute path here: it passes only on the machine that
+     * wrote it and fails on every other checkout and in CI. This class does not
+     * boot the framework, so `base_path()` is unavailable — walk up from __DIR__
+     * instead (tests/Unit/DesignSystem -> project root is three levels up).
+     */
+    private static function projectRoot(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /** Generated CSS path (emitted by build-tokens-css.mjs). */
     private const GENERATED_CSS_REL = '/resources/css/tokens.generated.css';
@@ -36,12 +46,12 @@ class GeneratedTokensCssTest extends TestCase
 
     private static function generatedCssPath(): string
     {
-        return self::PROJECT_ROOT . self::GENERATED_CSS_REL;
+        return self::projectRoot() . self::GENERATED_CSS_REL;
     }
 
     private static function fontPath(): string
     {
-        return self::PROJECT_ROOT . self::FONT_REL;
+        return self::projectRoot() . self::FONT_REL;
     }
 
     /**
@@ -118,7 +128,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function generated_css_has_no_external_font_request(): void
     {
-        $root = self::PROJECT_ROOT;
+        $root = self::projectRoot();
         $count = self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/css')
             + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/js')
             + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/views');
@@ -205,7 +215,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function card_variant_glass_has_no_backdrop_filter(): void
     {
-        $cardPath = self::PROJECT_ROOT . '/resources/js/components/ui/Card.vue';
+        $cardPath = self::projectRoot() . '/resources/js/components/ui/Card.vue';
         $this->assertFileExists($cardPath, 'Card.vue must exist');
 
         $count = self::grepCount('backdrop-filter', $cardPath);
@@ -225,7 +235,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function primitives_have_no_backdrop_filter_outside_chrome(): void
     {
-        $uiDir = self::PROJECT_ROOT . '/resources/js/components/ui';
+        $uiDir = self::projectRoot() . '/resources/js/components/ui';
         $total = self::grepCount('backdrop-filter', $uiDir);
         // Card.vue is excluded (covered separately by 2.1.9). After PR2 no
         // other primitive carries a backdrop-filter; chrome lives in
@@ -247,7 +257,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function no_universal_transition_selector_in_css(): void
     {
-        $root = self::PROJECT_ROOT;
+        $root = self::projectRoot();
         $cmd = sprintf(
             'rg --no-heading -n "^\s*\*\s*\{" %s/resources/css/themes.css %s/resources/css/tokens.generated.css %s/resources/css/utilities.css 2>&1',
             escapeshellarg($root),
@@ -332,7 +342,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     private static function loadTokensColors(): ?array
     {
-        $tokensPath = self::PROJECT_ROOT . '/resources/js/design-system/tokens.js';
+        $tokensPath = self::projectRoot() . '/resources/js/design-system/tokens.js';
         if (!is_file($tokensPath)) {
             return null;
         }
@@ -363,5 +373,68 @@ JS;
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Every var() reference in the generated CSS must point at a property the
+     * same file defines.
+     *
+     * This exists because it already failed once: the ramps were emitted
+     * camelCase (`--color-clinicalTeal-500`) while the semantic aliases
+     * referenced kebab-case (`--color-clinical-teal-500`). CSS does not error
+     * on an undefined custom property — it resolves to nothing — so
+     * `--color-info` silently became empty and the WebSocket status indicator
+     * lost its colour with no failing test and no console warning.
+     */
+    public function test_generated_css_has_no_dangling_var_references(): void
+    {
+        $css = file_get_contents(self::generatedCssPath());
+
+        preg_match_all('/^\s*(--[a-zA-Z0-9-]+)\s*:/m', $css, $definedMatches);
+        $defined = array_flip($definedMatches[1]);
+
+        preg_match_all('/var\(\s*(--[a-zA-Z0-9-]+)/', $css, $usedMatches);
+        $used = array_unique($usedMatches[1]);
+
+        $dangling = array_values(array_filter(
+            $used,
+            static fn (string $name): bool => ! isset($defined[$name])
+        ));
+
+        self::assertSame(
+            [],
+            $dangling,
+            'Generated CSS references custom properties it never defines: '
+                . implode(', ', $dangling)
+        );
+    }
+
+    /**
+     * Custom properties are kebab-case even when the JS token key is camelCase.
+     */
+    public function test_generated_css_uses_kebab_case_property_names(): void
+    {
+        $css = file_get_contents(self::generatedCssPath());
+
+        preg_match_all('/^\s*(--[a-zA-Z0-9-]+)\s*:/m', $css, $matches);
+
+        $camelCased = array_values(array_filter(
+            array_unique($matches[1]),
+            static function (string $name): bool {
+                // `DEFAULT` is Tailwind's own key for the unsuffixed value in a
+                // scale (`radius.DEFAULT` -> `rounded`). It is a borrowed
+                // convention, not a casing slip, so it is the one allowed
+                // uppercase segment.
+                $withoutTailwindDefault = str_replace('-DEFAULT', '', $name);
+
+                return (bool) preg_match('/[A-Z]/', $withoutTailwindDefault);
+            }
+        ));
+
+        self::assertSame(
+            [],
+            $camelCased,
+            'Custom properties must be kebab-case; found: ' . implode(', ', $camelCased)
+        );
     }
 }

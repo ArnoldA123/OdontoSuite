@@ -54,12 +54,12 @@
   --color-ink-900: #14110e;
 
   /* clinicalTeal */
-  --color-clinicalTeal-50: #e6f2f2;
-  --color-clinicalTeal-100: #c8e0e0;
-  --color-clinicalTeal-300: #74b4b4;
-  --color-clinicalTeal-500: #2c7a7b;
-  --color-clinicalTeal-600: #226466;
-  --color-clinicalTeal-700: #1a4f51;
+  --color-clinical-teal-50: #e6f2f2;
+  --color-clinical-teal-100: #c8e0e0;
+  --color-clinical-teal-300: #74b4b4;
+  --color-clinical-teal-500: #2c7a7b;
+  --color-clinical-teal-600: #226466;
+  --color-clinical-teal-700: #1a4f51;
 
   /* neutral */
   --color-neutral-50: #ffffff;
