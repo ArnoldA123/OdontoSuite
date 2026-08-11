@@ -103,7 +103,7 @@ const toastClasses = computed(() => {
   const base = [
     'relative flex items-start gap-3 p-4 rounded-ios shadow-lg',
     'max-w-sm w-full',
-    'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2'
+    'focus:outline-none'
   ]
 
   // Type variants (iOS filled pattern).
@@ -146,7 +146,7 @@ const dismissButtonClasses = computed(() => [
   'p-1 rounded-ios',
   'text-current/60 hover:text-current',
   'hover:bg-current/10',
-  'focus:outline-none focus:ring-2 focus:ring-current focus:ring-offset-1'
+  'focus:outline-none'
 ])
 
 // Auto-dismiss timer
@@ -243,10 +243,13 @@ const handleMouseLeave = () => {
   box-shadow: var(--shadow-large);
 }
 
-/* Focus styles */
-.toast:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+/* Focus styles — PR2 (D6/G1) tokenised ring on the toast itself and on its
+   dismiss button. Replaces the inline outline and the Tailwind `focus:ring-*`
+   utilities dropped above. */
+.toast:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Type-specific icon colors */

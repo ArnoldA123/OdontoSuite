@@ -207,7 +207,7 @@ const closeButtonClasses = computed(() => [
   'p-2 rounded-ios',
   'text-theme-secondary hover:text-theme-primary',
   'hover:bg-theme-surface',
-  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2'
+  'focus:outline-none'
 ])
 
 // Event handlers
@@ -359,6 +359,13 @@ onBeforeUnmount(() => {
 /* Focus trap */
 .sheet:focus {
   outline: none;
+}
+
+/* Focus ring — PR2 (D6/G1) tokenised. Replaces the Tailwind `focus:ring-*`
+   trio dropped from closeButtonClasses. */
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Responsive adjustments */

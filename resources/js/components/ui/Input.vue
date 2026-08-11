@@ -147,9 +147,12 @@ const labelClasses = computed(() => {
 })
 
 const inputClasses = computed(() => {
+  // PR2 (D6): the Tailwind `focus:ring-*` utilities are dropped — the ring is
+  // now the tokenised `box-shadow` in <style scoped>. Tailwind's ring utility
+  // would win on specificity and shadow the token, so it cannot simply coexist.
   const base = [
     'block w-full border',
-    'focus:outline-none focus:ring-2 focus:ring-offset-0',
+    'focus:outline-none',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     'read-only:cursor-default'
   ]
@@ -163,14 +166,14 @@ const inputClasses = computed(() => {
 
   // Variant styles
   const variants = {
-    default: 'bg-theme-surface-elevated border-theme focus:border-accent focus:ring-systemBlue-500/20',
-    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent focus:ring-systemBlue-500/20',
-    outlined: 'bg-transparent border-2 border-theme focus:border-accent focus:ring-systemBlue-500/20'
+    default: 'bg-theme-surface-elevated border-theme focus:border-accent',
+    filled: 'bg-theme-surface border-theme focus:bg-theme-surface-elevated focus:border-accent',
+    outlined: 'bg-transparent border-2 border-theme focus:border-accent'
   }
 
   // State styles
   const state = props.error
-    ? 'border-error-500 focus:border-error-500 focus:ring-error-500/20'
+    ? 'border-error-500 focus:border-error-500'
     : variants[props.variant]
 
   // Padding adjustments for icons
@@ -194,7 +197,7 @@ const inputClasses = computed(() => {
 const clearButtonClasses = computed(() => [
   'absolute inset-y-0 right-0 flex items-center pr-3',
   'text-theme-secondary hover:text-theme-primary',
-  'focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2',
+  'focus:outline-none',
   'rounded-md'
 ])
 
@@ -301,32 +304,44 @@ const clearInput = () => {
 /* Helper text usa clases temáticas de Tailwind */
 
 /* Floating label animation — scoped to the floating-label mode.
-   Replaces the removed global `* { transition }` rule. */
+   Replaces the removed global `* { transition }` rule.
+   PR2 (D8): the label's scale/translate is a transform, so it takes the iOS
+   curve. Note there is deliberately NO press transform on Input — a scale on
+   :active would fight text selection. */
 [data-floating="true"] {
   transform-origin: top left;
-  transition: all 200ms ease-out;
+  transition:
+    color var(--motion-duration-normal) ease-out,
+    transform var(--motion-duration-fast) var(--motion-easing-ios);
 }
 
-/* Scoped input transitions for hover, focus, and disabled states. */
+/* Scoped input transitions for hover, focus, and disabled states. Pure colour
+   and ring washes, so standard easing is kept deliberately (D8). */
 input {
   transition:
-    background-color 200ms ease-out,
-    border-color 200ms ease-out,
-    color 200ms ease-out,
-    box-shadow 200ms ease-out;
+    background-color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out,
+    color var(--motion-duration-normal) ease-out,
+    box-shadow var(--motion-duration-normal) ease-out;
 }
 
 button {
   transition:
-    background-color 200ms ease-out,
-    color 200ms ease-out,
-    border-color 200ms ease-out;
+    background-color var(--motion-duration-normal) ease-out,
+    color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out;
 }
 
-/* Focus ring for accessibility */
-input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+/* Focus ring for accessibility — PR2 (D6) tokenised. */
+input:focus-visible,
+input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Clear button hover effect */
@@ -346,23 +361,26 @@ input:read-only {
   cursor: default;
 }
 
-/* Error state */
+/* Error state — the ring stays distinct so the invalid field reads at a glance,
+   but it is composed from the PR1 focus-ring PARTS (width + alpha) and tinted
+   with the systemRed-500 channels (255, 59, 48). The Tailwind red this rule
+   previously used belongs to a different palette and must not reappear (D6). */
 .input-wrapper.error input {
   border-color: var(--color-error-500);
 }
 
 .input-wrapper.error input:focus {
   border-color: var(--color-error-500);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(255, 59, 48, var(--focus-ring-alpha));
 }
 
-/* Success state (if needed) */
+/* Success state (if needed) — same composition, systemGreen-500 channels. */
 .input-wrapper.success input {
   border-color: var(--color-success-500);
 }
 
 .input-wrapper.success input:focus {
   border-color: var(--color-success-500);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(52, 199, 89, var(--focus-ring-alpha));
 }
 </style>

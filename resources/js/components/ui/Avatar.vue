@@ -1,5 +1,5 @@
 <template>
-  <div :class="avatarClasses" :data-size="size" :data-variant="variant">
+  <div :class="avatarClasses" :data-size="size" :data-variant="variant" :data-clickable="clickable">
     <!-- Image avatar -->
     <img
       v-if="src && !imageError"
@@ -186,14 +186,17 @@ const handleImageLoad = () => {
 }
 
 /* Scoped transitions — avatar hover / active / focus. Replaces the
-   removed global `* { transition }` rule. */
-.avatar {
+   removed global `* { transition }` rule.
+   PR2 (D8/G13): the transform rides the fast rung on the iOS curve; colour
+   washes keep standard easing. `[data-size]` is the avatar root — it is
+   always bound, unlike the `.avatar` class, which no template applies. */
+[data-size] {
   transition:
-    background-color 200ms ease-out,
-    color 200ms ease-out,
-    border-color 200ms ease-out,
-    box-shadow 200ms ease-out,
-    transform 150ms ease-out;
+    background-color var(--motion-duration-normal) ease-out,
+    color var(--motion-duration-normal) ease-out,
+    border-color var(--motion-duration-normal) ease-out,
+    box-shadow var(--motion-duration-normal) ease-out,
+    transform var(--motion-duration-fast) var(--motion-easing-ios);
 }
 
 /* Status indicator animations */
@@ -214,19 +217,18 @@ const handleImageLoad = () => {
   50% { opacity: 0.5; }
 }
 
-/* Hover effects */
-.avatar:hover {
-  box-shadow: var(--shadow-soft);
+/* Hover / press / focus — scoped to CLICKABLE avatars only. A decorative
+   avatar must not lift, so these rules key off `data-clickable` rather than
+   the root. The press scale itself stays the existing `active:scale-95`
+   Tailwind utility (D10/R10) — this block only adds the elevation lift and
+   the tokenised ring (D6/G1). */
+[data-clickable="true"]:hover {
+  box-shadow: var(--elevation-1);
 }
 
-.avatar:active {
-  transform: scale(0.95);
-}
-
-/* Focus styles for clickable avatars */
-.avatar:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+[data-clickable="true"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Size-specific adjustments */
@@ -265,6 +267,37 @@ const handleImageLoad = () => {
   .avatar {
     min-width: 32px;
     min-height: 32px;
+  }
+}
+
+/* Reduced motion (D11) — the hover/press scale is movement, so it collapses to
+   an opacity change. The extra `[data-size]` qualifier is deliberate: it lifts
+   specificity above Tailwind's `hover:scale-105` / `active:scale-95`
+   utilities, which would otherwise win on source order. Durations stay on the
+   ramp; none is zeroed. */
+@media (prefers-reduced-motion: reduce) {
+  [data-size] {
+    transition:
+      background-color var(--motion-duration-normal) ease-out,
+      color var(--motion-duration-normal) ease-out,
+      border-color var(--motion-duration-normal) ease-out,
+      box-shadow var(--motion-duration-normal) ease-out,
+      opacity var(--motion-duration-normal) ease-out;
+  }
+
+  [data-size][data-clickable="true"]:hover {
+    transform: none;
+    opacity: 0.88;
+  }
+
+  [data-size][data-clickable="true"]:active {
+    transform: none;
+    opacity: 0.72;
+  }
+
+  [data-status],
+  .avatar-skeleton {
+    animation: none;
   }
 }
 </style>

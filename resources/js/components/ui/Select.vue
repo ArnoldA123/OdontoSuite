@@ -310,7 +310,7 @@ const hasSelection = computed(() => {
 const triggerClasses = computed(() => {
   const base = [
     'relative w-full text-left transition-all duration-200',
-    'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+    'focus:outline-none',
     'disabled:opacity-50 disabled:cursor-not-allowed',
     'text-theme-primary'
   ]
@@ -442,10 +442,10 @@ onUnmounted(() => {
   @apply divide-y divide-theme;
 }
 
-/* Focus styles for accessibility */
+/* Focus styles for accessibility — PR2 (D6/G1) tokenised ring. */
 button:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--focus-ring-default);
 }
 
 /* Smooth transitions */
