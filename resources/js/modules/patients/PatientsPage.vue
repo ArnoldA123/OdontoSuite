@@ -72,50 +72,50 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass" clickable>
         <div class="text-center">
           <div class="w-12 h-12 bg-gradient-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
           </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1">{{ totalPatients }}</div>
+          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ totalPatients }}</div>
           <div class="text-sm text-theme-secondary">Total Pacientes</div>
         </div>
       </UiCard>
 
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass" clickable>
         <div class="text-center">
           <div class="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1">{{ activePatients }}</div>
+          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ activePatients }}</div>
           <div class="text-sm text-theme-secondary">Activos</div>
         </div>
       </UiCard>
 
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass" clickable>
         <div class="text-center">
           <div class="w-12 h-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1">{{ inactivePatients }}</div>
+          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ inactivePatients }}</div>
           <div class="text-sm text-theme-secondary">Inactivos</div>
         </div>
       </UiCard>
 
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass" clickable>
         <div class="text-center">
           <div class="w-12 h-12 bg-gradient-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1">{{ filteredPatients.length }}</div>
+          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ filteredPatients.length }}</div>
           <div class="text-sm text-theme-secondary">Filtrados</div>
         </div>
       </UiCard>
@@ -138,7 +138,7 @@
 
       <!-- Desktop Table View -->
       <div v-else class="hidden lg:block overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
           <thead class="bg-theme-surface">
             <tr>
               <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
@@ -161,7 +161,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+          <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
             <tr v-for="patient in filteredPatients" :key="patient.id" class="hover:bg-theme-surface transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
@@ -176,7 +176,7 @@
                     <div class="text-sm font-semibold text-theme-primary">
                       {{ patient.first_name }} {{ patient.last_name }}
                     </div>
-                    <div class="text-sm text-theme-secondary">
+                    <div class="text-sm text-theme-secondary" style="font-feature-settings: var(--font-features-tabular-nums)">
                       ID: {{ patient.id }}
                     </div>
                   </div>
@@ -189,12 +189,12 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
                 {{ formatDate(patient.birth_date) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary" style="font-feature-settings: var(--font-features-tabular-nums)">
                 {{ patient.age != null ? `${patient.age} años` : '—' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
-                  :class="patient.is_active ? 'bg-success-badge' : 'bg-danger-badge'"
+                  :class="patient.is_active ? 'bg-systemGreen-50 text-systemGreen-700' : 'bg-systemRed-50 text-systemRed-700'"
                   class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
                 >
                   {{ patient.is_active ? 'Activo' : 'Inactivo' }}
@@ -206,7 +206,7 @@
                     variant="ghost"
                     size="sm"
                     @click="viewPatient(patient)"
-                    class="text-accent hover:text-primary-700"
+                    class="text-systemBlue-600 hover:text-systemBlue-700"
                   >
                     Ver
                   </UiButton>
@@ -215,7 +215,7 @@
                     variant="ghost"
                     size="sm"
                     @click="editPatient(patient)"
-                    class="text-success hover:opacity-80"
+                    class="text-systemGreen-700 hover:opacity-80"
                   >
                     Editar
                   </UiButton>
@@ -224,7 +224,7 @@
                     variant="ghost"
                     size="sm"
                     @click="deletePatient(patient)"
-                    class="text-danger hover:opacity-80"
+                    class="text-systemRed-700 hover:opacity-80"
                   >
                     Eliminar
                   </UiButton>
@@ -240,7 +240,7 @@
         <div
           v-for="patient in filteredPatients"
           :key="patient.id"
-          class="bg-theme-surface-elevated rounded-2xl border border-theme p-4 hover:shadow-lg transition-all duration-200"
+          class="bg-theme-surface-elevated rounded-2xl border border-hairline p-4 hover:shadow-lg transition-all duration-200"
         >
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center">
@@ -253,13 +253,13 @@
                 <div class="text-lg font-semibold text-theme-primary">
                   {{ patient.first_name }} {{ patient.last_name }}
                 </div>
-                <div class="text-sm text-theme-secondary">
+                <div class="text-sm text-theme-secondary" style="font-feature-settings: var(--font-features-tabular-nums)">
                   ID: {{ patient.id }}
                 </div>
               </div>
             </div>
             <span
-              :class="patient.is_active ? 'bg-success-badge' : 'bg-danger-badge'"
+              :class="patient.is_active ? 'bg-systemGreen-50 text-systemGreen-700' : 'bg-systemRed-50 text-systemRed-700'"
               class="px-3 py-1 text-xs font-semibold rounded-full"
             >
               {{ patient.is_active ? 'Activo' : 'Inactivo' }}
@@ -290,7 +290,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span class="font-medium text-theme-primary mr-1">Edad:</span>
-              <span>{{ patient.age != null ? `${patient.age} años` : '—' }}</span>
+              <span style="font-feature-settings: var(--font-features-tabular-nums)">{{ patient.age != null ? `${patient.age} años` : '—' }}</span>
             </div>
           </div>
 
@@ -299,7 +299,7 @@
               variant="ghost"
               size="sm"
               @click="viewPatient(patient)"
-              class="flex-1 text-accent hover:text-primary-700"
+              class="flex-1 text-systemBlue-600 hover:text-systemBlue-700"
             >
               Ver
             </UiButton>
@@ -308,7 +308,7 @@
               variant="ghost"
               size="sm"
               @click="editPatient(patient)"
-              class="flex-1 text-green-600 hover:text-green-700"
+              class="flex-1 text-systemGreen-700 hover:opacity-80"
             >
               Editar
             </UiButton>
@@ -317,7 +317,7 @@
               variant="ghost"
               size="sm"
               @click="deletePatient(patient)"
-              class="flex-1 text-red-600 hover:text-red-700"
+              class="flex-1 text-systemRed-700 hover:opacity-80"
             >
               Eliminar
             </UiButton>
@@ -326,7 +326,7 @@
       </div>
 
       <!-- Pagination Controls -->
-      <div v-if="!loading && paginationMeta.last_page > 1" class="p-4 border-t border-theme">
+      <div v-if="!loading && paginationMeta.last_page > 1" class="p-4 border-t border-hairline">
         <Pagination
           :current-page="paginationMeta.current_page"
           :total-pages="paginationMeta.last_page"
@@ -1204,11 +1204,3 @@ export default {
 }
 </script>
 
-<style scoped>
-/* Responsive design */
-@media (max-width: 640px) {
-  .grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-}
-</style>
