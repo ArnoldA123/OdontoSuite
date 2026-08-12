@@ -1,5 +1,5 @@
 <template>
-  <div class="movement-list">
+  <div class="movement-list bg-canvas">
     <!-- Filtros -->
     <div class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -8,7 +8,7 @@
           <input
             v-model="filters.date_from"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -17,7 +17,7 @@
           <input
             v-model="filters.date_to"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -25,7 +25,7 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">Tipo</label>
           <select
             v-model="filters.type"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
             <option value="income">Ingreso</option>
@@ -77,7 +77,7 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-green-600">Total Ingresos</p>
-            <p class="text-2xl font-bold text-green-900">{{ formatCurrency(totals.income) }}</p>
+            <p class="text-2xl font-bold text-green-900 tabular-nums">{{ formatCurrency(totals.income) }}</p>
           </div>
         </div>
       </div>
@@ -89,7 +89,7 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-red-600">Total Egresos</p>
-            <p class="text-2xl font-bold text-red-900">{{ formatCurrency(totals.expense) }}</p>
+            <p class="text-2xl font-bold text-red-900 tabular-nums">{{ formatCurrency(totals.expense) }}</p>
           </div>
         </div>
       </div>
@@ -101,7 +101,7 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-accent">Apertura</p>
-            <p class="text-2xl font-bold text-primary-800">{{ formatCurrency(totals.opening) }}</p>
+            <p class="text-2xl font-bold text-primary-800 tabular-nums">{{ formatCurrency(totals.opening) }}</p>
           </div>
         </div>
       </div>
@@ -113,7 +113,7 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-accent">Cierre</p>
-            <p class="text-2xl font-bold text-accent-active">{{ formatCurrency(totals.closing) }}</p>
+            <p class="text-2xl font-bold text-accent-active tabular-nums">{{ formatCurrency(totals.closing) }}</p>
           </div>
         </div>
       </div>
@@ -122,45 +122,41 @@
     <!-- Tabla de Movimientos -->
     <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Hora
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Tipo
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Descripción
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Referencia
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Monto
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Usuario
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
             <tr v-if="loading" class="animate-pulse">
               <td colspan="7" class="px-6 py-4 text-center">
-                <div class="flex justify-center">
-                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
-                </div>
+                <UiLoadingSpinner size="md" variant="primary" text="Cargando movimientos..." />
               </td>
             </tr>
 
             <tr v-else-if="movements.length === 0">
-              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">
-                No hay movimientos registrados
-              </td>
+              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">No hay movimientos registrados</td>
             </tr>
 
             <tr
@@ -174,12 +170,7 @@
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="getTypeClass(movement.type)"
-                >
-                  {{ getTypeText(movement.type) }}
-                </span>
+                <UiStatusBadge :variant="getTypeVariant(movement.type)" :label="getTypeText(movement.type)" />
               </td>
 
               <td class="px-6 py-4">
@@ -193,13 +184,12 @@
                 {{ movement.reference || '-' }}
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div
-                  class="text-sm font-medium"
-                  :class="getAmountClass(movement.type)"
-                >
-                  {{ getAmountPrefix(movement.type) }}{{ formatCurrency(movement.amount) }}
-                </div>
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium tabular-nums"
+                :class="getAmountClass(movement.type)"
+                :aria-label="`${getAmountPrefix(movement.type)}${formatCurrency(movement.amount)} soles`"
+              >
+                {{ getAmountPrefix(movement.type) }}{{ formatCurrency(movement.amount) }}
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
@@ -245,8 +235,8 @@
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-theme-primary">
         Mostrando {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} a
-        {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} de
-        {{ pagination.total }} resultados
+        <span class="tabular-nums">{{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}</span> de
+        <span class="tabular-nums">{{ pagination.total }}</span> resultados
       </div>
 
       <div class="flex space-x-2">
@@ -259,7 +249,7 @@
           Anterior
         </Button>
 
-        <span class="px-3 py-2 text-sm text-theme-primary">
+        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
           Página {{ pagination.current_page }} de {{ pagination.last_page }}
         </span>
 
@@ -279,8 +269,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { useConfirm } from '@/composables/useConfirm'
+import { formatCurrency } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -366,7 +359,7 @@ const totals = computed(() => {
       return sum + amount
     }, 0)
 
-  return { 
+  return {
     income: isNaN(income) ? 0 : income,
     expense: isNaN(expense) ? 0 : expense,
     opening: isNaN(opening) ? 0 : opening,
@@ -429,14 +422,7 @@ const formatTime = (dateTime) => {
   })
 }
 
-const formatCurrency = (amount) => {
-  const numAmount = parseFloat(amount) || 0
-  if (isNaN(numAmount)) return 'S/ 0.00'
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(numAmount)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
 const getTypeText = (type) => {
   const texts = {
@@ -451,17 +437,17 @@ const getTypeText = (type) => {
   return texts[type] || type
 }
 
-const getTypeClass = (type) => {
-  const classes = {
-    income: 'bg-success-100 text-success-700',
-    expense: 'bg-error-100 text-error-700',
-    opening: 'bg-primary-100 text-primary-800',
-    closing: 'bg-primary-50 text-primary-700',
-    withdrawal: 'bg-warning-100 text-warning-700',
-    deposit: 'bg-success-100 text-success-700',
-    adjustment: 'bg-theme-surface text-theme-secondary'
+const getTypeVariant = (type) => {
+  const variants = {
+    income: 'success',
+    expense: 'error',
+    opening: 'info',
+    closing: 'info',
+    withdrawal: 'warning',
+    deposit: 'success',
+    adjustment: 'neutral'
   }
-  return classes[type] || 'bg-theme-surface text-theme-secondary'
+  return variants[type] || 'neutral'
 }
 
 const getAmountClass = (type) => {

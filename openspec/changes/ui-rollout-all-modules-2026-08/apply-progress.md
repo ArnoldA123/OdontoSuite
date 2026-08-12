@@ -239,3 +239,86 @@ Skipped — `playwright-cli` is not available in this sandboxed apply phase. The
 ### Next phase
 
 `sdd-verify` (next in chain) — captures the visual sweep + review-burden assessment for PR-pagos-02's 5 files; routes to PR-pagos-03 (modals) only after PR-pagos-02 is verified.
+
+---
+
+## PR-pagos-02a — list views only (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-pagos-02a only. The 3 list `.vue` files in `resources/js/modules/cash-register/components/`:
+- `TransactionList.vue` — filterable list of transactions + Excel/PDF export
+- `MovementList.vue` — filterable list of cash movements + export
+- `SessionList.vue` — cash session history (open/close/user/date)
+
+The 2 report files (`CashReports.vue`, `PendingPaymentsList.vue`) were `git restore`d back to their pre-PR-pagos-02 state and are explicitly OUT OF SCOPE here. They belong to **PR-pagos-02b**, which will re-polish them and re-add them to `polishedFiles()`.
+
+The 3 list files were already polished from the previous PR-pagos-02 apply work; this batch verifies them as-is and only edits the test scope to reflect the 02a/02b split.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED (baseline) | Ran `php artisan test --filter=CashRegisterAppShellTest` against the 5-file scope | **10 failed, 35 passed**. The 3 list files pass; the 2 report files fail (have legacy `bg-success-100`/`bg-warning-100`/`bg-error-100` pills, no `tabular-nums`, no `scope="col"`, no `aria-label`, still declare local `Intl.NumberFormat('es-PE', { currency: 'PEN' })`) |
+| RED (target) | The test file currently has `polishedFiles()` returning 5 paths but only 3 are polished → the RED state is correctly scoped: 2 unpolished files correctly fail their assertions | Baseline confirms the rule fires correctly |
+| GREEN | Edited `tests/Unit/DesignSystem/CashRegisterAppShellTest.php` to limit `polishedFiles()` to ONLY the 3 list files (`TransactionList.vue`, `MovementList.vue`, `SessionList.vue`). Updated the docblock to cite `PR-pagos-02a` (5 files → 3 list files), noted that `CashReports.vue` + `PendingPaymentsList.vue` belong to `PR-pagos-02b` | **27 passed (60 assertions)**. All 3 list files pass both the 5 inherited rules and the 4 PR-pagos-02-only rules |
+| REFACTOR | Docblock tightened (PR-pagos-02 → PR-pagos-02a; "5 list/report files" → "3 list files"; modal-files append note kept unchanged). No production code touched. | n/a |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 02a.1 | `tests/Unit/DesignSystem/CashRegisterAppShellTest.php` | Unit | ✅ 10 failed / 35 passed pre-edit (correct RED for unpolished report files) | ✅ Test currently scans 5 paths but 2 are unpolished → confirmed RED | ✅ `polishedFiles()` narrowed to 3 paths → 27 passed (60 assertions) | ➖ Single (one valid scope path: 3 list files) | ✅ Docblock tightened to cite PR-pagos-02a + 02b follow-up |
+
+### Files changed (PR-pagos-02a)
+
+- `tests/Unit/DesignSystem/CashRegisterAppShellTest.php` — class docblock updated (`PR-pagos-02` → `PR-pagos-02a`; "5 list/report files" → "3 list files"; added note that `CashReports.vue` + `PendingPaymentsList.vue` belong to PR-pagos-02b). `polishedFiles()` returns ONLY the 3 list paths. `PR_PAGOS_01_SCOPE_REL_PATHS` reference in the docblock tightened to "the same 3 list files".
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this section appended (PR-pagos-01 + PR-pagos-02 sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-pagos-02a — per hard scope rules)
+
+- `resources/js/modules/cash-register/components/TransactionList.vue` — already polished from the previous PR-pagos-02 apply work; verified as-is (138 insertions + 91 deletions in `git diff --stat` from the previous batch, pre-PR-pagos-02a baseline).
+- `resources/js/modules/cash-register/components/MovementList.vue` — already polished; verified as-is.
+- `resources/js/modules/cash-register/components/SessionList.vue` — already polished; verified as-is.
+- `resources/js/modules/cash-register/components/CashReports.vue` — `git restore`d to pre-PR-pagos-02 state; belongs to PR-pagos-02b.
+- `resources/js/modules/cash-register/components/PendingPaymentsList.vue` — `git restore`d to pre-PR-pagos-02 state; belongs to PR-pagos-02b.
+- `tests/Unit/Composables/FormatPENLabelTest.php` — its `PR_PAGOS_01_SCOPE_REL_PATHS` includes CashReports.vue; see Risks section.
+
+### Audit sweep
+
+- `git grep -nE "border-theme|bg-success-100|text-accent|focus:ring-primary-500" resources/js/modules/cash-register/components/{TransactionList,MovementList,SessionList}.vue` returns ZERO matches (post-migration).
+- `git grep -nE "Intl.NumberFormat.*currency.*PEN" resources/js/modules/cash-register/components/{TransactionList,MovementList,SessionList}.vue` returns ZERO matches — all 3 files import `formatCurrency` from `useFormatters.js`.
+
+### Test results
+
+- `php artisan test --filter=CashRegisterAppShellTest` — **27 passed (60 assertions)**. Baseline before PR-pagos-02a edit: 10 failed / 35 passed (96 assertions). After narrowing `polishedFiles()` to 3 paths: 27 passed / 0 failed (60 assertions). Delta: −10 failures (the 2 unpolished report files dropped from the data provider), 0 new failures introduced. All green.
+- `php artisan test --filter=FormatPENLabelTest` — **3 failed, 18 passed (49 assertions)**. These 3 failures are a **pre-existing regression from the orchestrator's `git restore` of `CashReports.vue`** (PR-pagos-01's `formatCurrency` import was reverted). They are NOT caused by this PR-pagos-02a edit. See Risks section.
+- `pnpm build` — clean, built in 11.43s. `CashRegisterPage` bundle at 131.71 kB (no drift from previous baseline).
+
+### Decisions / deviations
+
+1. **No list `.vue` files were re-edited.** The 3 polished files are accepted as-is from the previous apply batch. Re-touching them would inflate the diff to ~293 lines of repeated work, defeating the purpose of the 02a/02b split.
+2. **`PR_PAGOS_01_SCOPE_REL_PATHS` in `FormatPENLabelTest` was NOT modified.** CashReports.vue is in that constant because PR-pagos-01 polished it. The orchestrator's restore reverted that polish. Either (a) the import must be re-added to CashReports.vue in PR-pagos-02b, or (b) CashReports.vue must be moved out of the PR-pagos-01 scope constant. Both are explicitly out of PR-pagos-02a scope.
+3. **Class docblock + `polishedFiles()` only.** No test methods were added or removed. The 4 PR-pagos-02-only test methods (`test_list_files_no_local_intl_pen_format`, `test_list_files_no_raw_money_input`, `test_list_files_tabular_nums_scope_and_aria`, `test_list_files_no_legacy_status_pill_classes`) are unchanged; only their `polishedFileProvider` data shrunk from 5 to 3.
+
+### Risks
+
+1. **`FormatPENLabelTest` has 3 pre-existing failures** caused by the orchestrator's `git restore` of `CashReports.vue` (which removed the PR-pagos-01 `formatCurrency` import). The test's `PR_PAGOS_01_SCOPE_REL_PATHS` includes CashReports.vue at line 46, and the file now has a local `const formatCurrency = ...` at line 394 with no import from `useFormatters.js`. Three tests fail:
+   - `test_format_currency_exists_at_exactly_one_location` (CashReports redeclares `Intl.NumberFormat('es-PE', { currency: 'PEN' })`)
+   - `test_format_currency_input_sites_import_from_canon` (CashReports does NOT import `formatCurrency` from `useFormatters.js`)
+   - `test_four_migrated_files_drop_local_format_currency_declaration` (CashReports has a local `const formatCurrency` declaration)
+   
+   **Resolution path** (not in PR-pagos-02a scope): PR-pagos-02b re-polishes CashReports.vue, which will re-add the `formatCurrency` import, restoring the PR-pagos-01 invariant. The orchestrator may choose to either (a) defer verification of `FormatPENLabelTest` until PR-pagos-02b lands, or (b) accept the temporary regression in this PR.
+
+### PR-pagos-02a budget — actual vs target
+
+- Target: ≤ 400 authored lines (per `Max changed lines` constraint).
+- Actual: `CashRegisterAppShellTest.php` = 6 line changes in `polishedFiles()` array + ~12 line docblock changes = ~18 lines. `apply-progress.md` = this PR-pagos-02a section = ~110 lines.
+- Total authored lines: **~128 lines** (well under the 400-line budget).
+- The 3 list `.vue` files are excluded from this count because they are pre-existing modifications from the previous PR-pagos-02 batch — they are NOT new work in this apply run.
+
+### Next phase
+
+`sdd-verify` for PR-pagos-02a, OR `sdd-apply` PR-pagos-02b (which re-polishes `CashReports.vue` + `PendingPaymentsList.vue`, re-adds them to `polishedFiles()`, and restores the PR-pagos-01 `formatCurrency` import in CashReports.vue to close the `FormatPENLabelTest` regression).

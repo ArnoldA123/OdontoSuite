@@ -1,5 +1,5 @@
 <template>
-  <div class="transaction-list">
+  <div class="transaction-list bg-canvas">
     <!-- Filtros -->
     <div class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -8,7 +8,7 @@
           <input
             v-model="filters.date_from"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -17,7 +17,7 @@
           <input
             v-model="filters.date_to"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -25,7 +25,7 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">Tipo</label>
           <select
             v-model="filters.type"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
             <option value="payment">Ingreso</option>
@@ -37,7 +37,7 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">Método de Pago</label>
           <select
             v-model="filters.payment_method_id"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
             <option
@@ -86,33 +86,33 @@
     <!-- Tabla de Transacciones -->
     <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Hora
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Paciente
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Descripción
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Método
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Monto
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Estado
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
             <tr v-if="loading" class="animate-pulse">
               <td colspan="7" class="px-6 py-4 text-center">
                 <div class="flex justify-center">
@@ -122,9 +122,7 @@
             </tr>
 
             <tr v-else-if="transactions.length === 0">
-              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">
-                No hay transacciones registradas
-              </td>
+              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">No hay transacciones registradas</td>
             </tr>
 
             <tr
@@ -157,32 +155,32 @@
                 {{ transaction.payment_method?.name }}
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right" :aria-label="`${isIncomeType(transaction.type) ? '+' : '-'}${formatCurrency(transaction.amount)} soles`"
+              >
                 <div
-                  class="text-sm font-medium"
-                  :class="isIncomeType(transaction.type) ? 'text-green-600' : 'text-red-600'"
+                  class="text-sm font-medium tabular-nums"
+                  :class="isIncomeType(transaction.type) ? 'text-systemGreen-600' : 'text-systemRed-600'"
                 >
                   {{ isIncomeType(transaction.type) ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
                 </div>
-                <div v-if="transaction.discount_amount > 0" class="text-xs text-theme-secondary">
+                <div
+                  v-if="transaction.discount_amount > 0"
+                  class="text-xs text-theme-secondary tabular-nums"
+                >
                   Descuento: -{{ formatCurrency(transaction.discount_amount) }}
                 </div>
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="getStatusClass(transaction.status)"
-                >
-                  {{ getStatusText(transaction.status) }}
-                </span>
+                <UiStatusBadge :variant="getStatusVariant(transaction.status)" :label="getStatusText(transaction.status)" />
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <button
                     @click="viewTransaction(transaction)"
-                    class="text-accent hover:text-primary-700"
+                    class="text-systemBlue-600 hover:text-systemBlue-700"
                     title="Ver detalle"
                   >
                     <EyeIcon class="w-4 h-4" />
@@ -190,7 +188,7 @@
 
                   <button
                     @click="generateReceipt(transaction)"
-                    class="text-green-600 hover:text-green-900"
+                    class="text-systemGreen-600 hover:text-systemGreen-700"
                     title="Generar comprobante"
                   >
                     <DocumentTextIcon class="w-4 h-4" />
@@ -199,7 +197,7 @@
                   <button
                     v-if="canVoid && transaction.status === 'completed'"
                     @click="voidTransaction(transaction)"
-                    class="text-red-600 hover:text-red-900"
+                    class="text-systemRed-600 hover:text-systemRed-700"
                     title="Anular transacción"
                   >
                     <XMarkIcon class="w-4 h-4" />
@@ -216,8 +214,8 @@
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-theme-primary">
         Mostrando {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} a
-        {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} de
-        {{ pagination.total }} resultados
+        <span class="tabular-nums">{{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}</span> de
+        <span class="tabular-nums">{{ pagination.total }}</span> resultados
       </div>
 
       <div class="flex space-x-2">
@@ -230,7 +228,7 @@
           Anterior
         </Button>
 
-        <span class="px-3 py-2 text-sm text-theme-primary">
+        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
           Página {{ pagination.current_page }} de {{ pagination.last_page }}
         </span>
 
@@ -250,10 +248,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
+import { formatCurrency } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
   DocumentArrowDownIcon,
@@ -362,12 +362,7 @@ const formatTime = (dateTime) => {
   })
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
 const getStatusText = (status) => {
   const texts = {
@@ -380,15 +375,15 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const getStatusClass = (status) => {
-  const classes = {
-    pending: 'bg-warning-100 text-warning-700',
-    completed: 'bg-success-100 text-success-700',
-    failed: 'bg-error-100 text-error-700',
-    cancelled: 'bg-theme-surface text-theme-secondary',
-    voided: 'bg-error-100 text-error-700'
+const getStatusVariant = (status) => {
+  const variants = {
+    pending: 'warning',
+    completed: 'success',
+    failed: 'error',
+    cancelled: 'neutral',
+    voided: 'error'
   }
-  return classes[status] || 'bg-theme-surface text-theme-secondary'
+  return variants[status] || 'neutral'
 }
 
 // Helper para determinar si un tipo de transacción es ingreso
