@@ -53,6 +53,10 @@ class LegacyAliasForbiddenTest extends TestCase
         // Focus ring legacy (replaced by var(--focus-ring-default))
         'focus:ring-primary-500',
         'focus:border-accent',
+        // Modal backdrop legacy (replaced by <UiModal> chrome)
+        // PR-citas-03 extension: hand-built `<Teleport to="body">` + `bg-black bg-opacity-50`
+        // backdrop is deprecated; <UiModal> owns the backdrop.
+        'bg-black bg-opacity-50',
     ];
 
     /**
