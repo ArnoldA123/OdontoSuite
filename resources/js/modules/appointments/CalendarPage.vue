@@ -1,15 +1,15 @@
 <template>
   <AppLayout>
     <!-- Header Section -->
-    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6">
+    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6 bg-canvas">
       <template #actions>
         <span
-          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-100 text-success-700 text-xs font-medium"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-systemGreen-50 text-systemGreen-700 text-xs font-medium"
           aria-label="Actualizaciones en tiempo real activas"
           title="Actualizaciones en tiempo real activas"
         >
           <span
-            class="w-2 h-2 rounded-full bg-success-500 animate-pulse-subtle"
+            class="w-2 h-2 rounded-full bg-systemGreen-500 animate-pulse-subtle"
             aria-hidden="true"
           />
           En vivo
@@ -99,27 +99,14 @@
     <UiCard variant="glass" class="mb-6">
       <div class="text-center">
         <h2 class="text-2xl font-bold text-theme-primary mb-2">{{ currentPeriodTitle }}</h2>
-        <div class="flex items-center justify-center gap-4 text-sm text-theme-secondary">
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-accent"></div>
-            <span>Programada</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>Confirmada</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <span>En Consulta</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-theme-secondary"></div>
-            <span>Completada</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-3 h-3 rounded-full bg-red-500"></div>
-            <span>Cancelada</span>
-          </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
+          <UiStatusBadge variant="info" label="Programada" show-dot data-status="scheduled" />
+          <UiStatusBadge variant="success" label="Confirmada" show-dot data-status="confirmed" />
+          <UiStatusBadge variant="warning" label="En Consulta" show-dot data-status="in_progress" />
+          <UiStatusBadge variant="neutral" label="Completada" show-dot data-status="completed" />
+          <UiStatusBadge variant="error" label="Cancelada" show-dot data-status="cancelled" />
+          <UiStatusBadge variant="neutral" label="No se presentó" show-dot data-status="no_show" />
+          <UiStatusBadge variant="warning" label="Reprogramada" data-status="rescheduled" />
         </div>
       </div>
     </UiCard>
@@ -139,11 +126,11 @@
             <div class="w-16 text-sm text-theme-secondary font-medium pt-2">
               {{ formatHour(hour) }}
             </div>
-            <div class="flex-1 min-h-[60px] border-l-2 border-theme pl-4">
+            <div class="flex-1 min-h-[60px] border-l-2 border-hairline pl-4">
               <div
                 v-for="appointment in getAppointmentsForHour(hour)"
                 :key="appointment.id"
-                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm hover-lift transition-all duration-200 cursor-pointer"
+                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm transition-all duration-200 cursor-pointer"
                 :class="getAppointmentClasses(appointment)"
                 @click="selectAppointment(appointment)"
               >
@@ -152,12 +139,13 @@
                     <div class="font-semibold text-base">
                       {{ appointment.appointment_type?.name || 'Cita' }}
                     </div>
-                    <div
-                      class="text-xs px-2 py-1 rounded-full"
-                      :class="getStatusClasses(appointment.status)"
-                    >
-                      {{ getStatusText(appointment.status) }}
-                    </div>
+                    <UiStatusBadge
+                      size="sm"
+                      :variant="getStatusBadgeProps(appointment.status).variant"
+                      :label="getStatusText(appointment.status)"
+                      :show-dot="getStatusBadgeProps(appointment.status).showDot"
+                      :data-status="appointment.status"
+                    />
                   </div>
                   <div class="text-sm text-theme-primary">
                     <span class="font-medium">{{ formatTime(appointment.scheduled_at) }}</span>
@@ -195,22 +183,22 @@
 
       <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
-        <div class="grid grid-cols-8 gap-1 border border-theme rounded-lg overflow-hidden">
+        <div class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums">
           <!-- Time column header -->
-          <div class="p-2 border-b border-theme bg-theme-surface"></div>
+          <div class="p-2 border-b border-hairline bg-theme-surface"></div>
 
           <!-- Day headers -->
           <div
             v-for="day in weekDays"
             :key="day.date"
-            class="p-2 border-b border-theme bg-theme-surface text-center"
+            class="p-2 border-b border-hairline bg-theme-surface text-center"
           >
             <div class="text-sm font-medium text-theme-primary">{{ day.name }}</div>
             <div class="text-xs text-theme-secondary">{{ day.number }}</div>
           </div>
 
           <!-- Time column -->
-          <div class="border-r border-theme">
+          <div class="border-r border-hairline">
             <div
               v-for="hour in weekHours"
               :key="hour"
@@ -224,7 +212,7 @@
           <div
             v-for="day in weekDays"
             :key="day.date"
-            class="border-r border-theme last:border-r-0"
+            class="border-r border-hairline last:border-r-0"
           >
             <div
               v-for="hour in weekHours"
@@ -234,7 +222,7 @@
               <div
                 v-for="appointment in getAppointmentsForDayAndHour(day.date, hour)"
                 :key="appointment.id"
-                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer hover-lift transition-all duration-200 z-10"
+                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer transition-all duration-200 z-10"
                 :class="getAppointmentClasses(appointment)"
                 @click="selectAppointment(appointment)"
               >
@@ -255,12 +243,12 @@
 
       <!-- Month View -->
       <div v-else-if="currentView === 'month'" class="p-6">
-        <div class="grid grid-cols-7 gap-1">
+        <div class="grid grid-cols-7 gap-1 tabular-nums">
           <!-- Day headers -->
           <div
             v-for="day in weekDayNames"
             :key="day"
-            class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-theme"
+            class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-hairline"
           >
             {{ day }}
           </div>
@@ -269,10 +257,10 @@
           <div
             v-for="day in monthDays"
             :key="day.date"
-            class="min-h-[120px] border border-theme p-2 hover:bg-theme-surface transition-colors"
+            class="min-h-[120px] border border-hairline p-2 hover:bg-theme-surface transition-colors"
             :class="{
               'bg-theme-surface': !day.isCurrentMonth,
-              'bg-primary-50 border-primary-200': day.isToday
+              'bg-systemBlue-50 border-systemBlue-200': day.isToday
             }"
           >
             <div class="flex items-center justify-between mb-2">
@@ -280,18 +268,19 @@
                 class="text-sm font-medium"
                 :class="{
                   'text-theme-secondary': !day.isCurrentMonth,
-                  'text-accent': day.isToday,
+                  'text-systemBlue-600': day.isToday,
                   'text-theme-primary': day.isCurrentMonth && !day.isToday
                 }"
               >
                 {{ day.number }}
               </span>
-              <span
+              <UiStatusBadge
                 v-if="day.appointmentCount > 0"
-                class="text-xs bg-primary-50 text-accent px-2 py-1 rounded-full"
-              >
-                {{ day.appointmentCount }}
-              </span>
+                variant="info"
+                size="sm"
+                :label="String(day.appointmentCount)"
+                :data-status="`count-${day.date}`"
+              />
             </div>
 
             <div class="space-y-1">
@@ -312,7 +301,7 @@
                   {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
                 </div>
               </div>
-              <div v-if="day.hasMore" class="text-xs text-accent font-medium text-center mt-1">
+              <div v-if="day.hasMore" class="text-xs text-systemBlue-600 font-medium text-center mt-1">
                 +{{ day.appointmentCount - 3 }} más
               </div>
               <div
@@ -336,7 +325,7 @@
       <div
         class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
-        <div class="p-6 border-b border-theme">
+        <div class="p-6 border-b border-hairline">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-theme-primary">Detalles de la Cita</h2>
             <button
@@ -387,12 +376,12 @@
             </div>
             <div>
               <label class="text-sm font-medium text-theme-secondary">Estado</label>
-              <span
-                class="px-3 py-1 text-xs font-semibold rounded-full"
-                :class="getStatusClasses(selectedAppointment.status)"
-              >
-                {{ getStatusText(selectedAppointment.status) }}
-              </span>
+              <UiStatusBadge
+                :variant="getStatusBadgeProps(selectedAppointment.status).variant"
+                :label="getStatusText(selectedAppointment.status)"
+                :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
+                :data-status="selectedAppointment.status"
+              />
             </div>
           </div>
           <div v-if="selectedAppointment.notes">
@@ -403,7 +392,7 @@
             <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
             <p class="text-theme-primary">{{ selectedAppointment.treatment_notes }}</p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2 border-t border-theme">
+          <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
             <UiButton
               v-if="selectedAppointment.status === 'scheduled'"
               size="sm"
@@ -488,6 +477,7 @@ import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
@@ -500,6 +490,7 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
+    UiStatusBadge,
     NewAppointmentModal,
     ConsultationWizard
   },
@@ -845,28 +836,28 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      const baseClasses = 'bg-theme-surface-elevated border border-theme'
+      const baseClasses = 'bg-theme-surface-elevated border border-hairline'
       const statusClasses = {
-        scheduled: 'border-primary-200 bg-primary-50',
-        confirmed: 'border-success bg-success-badge',
-        in_consultation: 'border-warning bg-warning-badge',
-        completed: 'border-theme bg-theme-surface',
-        cancelled: 'border-danger bg-danger-badge',
-        no_show: 'border-warning bg-warning-badge',
-        rescheduled: 'border-primary-200 bg-primary-50'
+        scheduled: 'border-systemBlue-200 bg-systemBlue-50',
+        confirmed: 'border-systemGreen-200 bg-systemGreen-50',
+        in_consultation: 'border-systemYellow-200 bg-systemYellow-50',
+        completed: 'border-hairline bg-theme-surface',
+        cancelled: 'border-systemRed-200 bg-systemRed-50',
+        no_show: 'border-systemYellow-200 bg-systemYellow-50',
+        rescheduled: 'border-systemBlue-200 bg-systemBlue-50'
       }
       return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
     }
 
     const getStatusClasses = status => {
       const classes = {
-        scheduled: 'bg-primary-50 text-primary-700',
-        confirmed: 'bg-success-badge',
-        in_consultation: 'bg-warning-badge',
-        completed: 'bg-theme-surface text-theme-secondary',
-        cancelled: 'bg-danger-badge',
-        no_show: 'bg-warning-badge',
-        rescheduled: 'bg-primary-50 text-primary-700'
+        scheduled: 'bg-systemBlue-50 text-systemBlue-700',
+        confirmed: 'bg-systemGreen-50 text-systemGreen-700',
+        in_consultation: 'bg-systemYellow-50 text-systemYellow-700',
+        completed: 'bg-systemGray-100 text-systemGray-700',
+        cancelled: 'bg-systemRed-50 text-systemRed-700',
+        no_show: 'bg-systemYellow-50 text-systemYellow-700',
+        rescheduled: 'bg-systemBlue-50 text-systemBlue-700'
       }
       return classes[status] || classes.scheduled
     }
@@ -882,6 +873,19 @@ export default {
         rescheduled: 'Reprogramada'
       }
       return texts[status] || status
+    }
+
+    const getStatusBadgeProps = status => {
+      const props = {
+        scheduled: { variant: 'info', showDot: true },
+        confirmed: { variant: 'success', showDot: true },
+        in_consultation: { variant: 'warning', showDot: true },
+        completed: { variant: 'neutral', showDot: true },
+        cancelled: { variant: 'error', showDot: true },
+        no_show: { variant: 'neutral', showDot: true },
+        rescheduled: { variant: 'warning', showDot: false }
+      }
+      return props[status] || props.scheduled
     }
 
     const selectAppointment = appointment => {
@@ -1033,6 +1037,7 @@ export default {
       getAppointmentClasses,
       getStatusClasses,
       getStatusText,
+      getStatusBadgeProps,
       selectAppointment,
       editAppointment,
       changeStatus,
@@ -1050,12 +1055,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-/* Responsive design */
-@media (max-width: 640px) {
-  .grid-cols-1 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-}
-</style>
