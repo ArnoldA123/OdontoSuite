@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="cash-register-page">
+    <div class="cash-register-page bg-canvas">
     <!-- Header Section -->
     <PageHeader
       title="Gestión de Caja"
@@ -8,34 +8,34 @@
       class="mb-6"
     >
       <template #actions>
-        <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-theme-surface">
-          <div :class="sessionStatusClass" class="w-2.5 h-2.5 rounded-full"></div>
-          <span class="text-sm font-medium text-theme-primary">
-            {{ sessionStatusText }}
-          </span>
-        </div>
-        <Button v-if="canOpen" variant="primary" @click="showOpenModal = true" :loading="loading">
+        <UiStatusBadge
+          :variant="sessionStatusVariant"
+          :label="sessionStatusText"
+          size="md"
+          show-dot
+        />
+        <UiButton v-if="canOpen" variant="primary" @click="showOpenModal = true" :loading="loading">
           <PlusIcon class="w-4 h-4 mr-2" />
           Abrir Caja
-        </Button>
-        <Button v-if="canClose" variant="danger" @click="showCloseModal = true" :loading="loading">
+        </UiButton>
+        <UiButton v-if="canClose" variant="danger" @click="showCloseModal = true" :loading="loading">
           <XMarkIcon class="w-4 h-4 mr-2" />
           Cerrar Caja
-        </Button>
+        </UiButton>
       </template>
     </PageHeader>
 
     <!-- Dashboard en Tiempo Real -->
     <div v-if="hasActiveSession" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <!-- Monto de Apertura -->
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-accent rounded-xl flex items-center justify-center">
-            <BanknotesIcon class="w-6 h-6 text-white" />
+          <div class="w-12 h-12 bg-systemBlue-100 rounded-xl flex items-center justify-center">
+            <BanknotesIcon class="w-6 h-6 text-systemBlue-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Apertura</p>
-            <p class="text-2xl font-bold text-theme-primary">
+            <p class="text-2xl font-bold text-theme-primary tabular-nums">
               {{ formatCurrency(summary?.opening_amount) }}
             </p>
           </div>
@@ -43,14 +43,14 @@
       </UiCard>
 
       <!-- Total Ingresos -->
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center">
-            <ArrowUpIcon class="w-6 h-6 text-white" />
+          <div class="w-12 h-12 bg-systemGreen-100 rounded-xl flex items-center justify-center">
+            <ArrowUpIcon class="w-6 h-6 text-systemGreen-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Ingresos</p>
-            <p class="text-2xl font-bold text-success-600">
+            <p class="text-2xl font-bold text-systemGreen-600 tabular-nums">
               {{ formatCurrency(summary?.total_income) }}
             </p>
           </div>
@@ -58,14 +58,14 @@
       </UiCard>
 
       <!-- Total Egresos -->
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-error-500 to-error-600 rounded-xl flex items-center justify-center">
-            <ArrowDownIcon class="w-6 h-6 text-white" />
+          <div class="w-12 h-12 bg-systemRed-100 rounded-xl flex items-center justify-center">
+            <ArrowDownIcon class="w-6 h-6 text-systemRed-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Egresos</p>
-            <p class="text-2xl font-bold text-error-600">
+            <p class="text-2xl font-bold text-systemRed-600 tabular-nums">
               {{ formatCurrency(summary?.total_expenses) }}
             </p>
           </div>
@@ -73,14 +73,14 @@
       </UiCard>
 
       <!-- Saldo Actual -->
-      <UiCard variant="glass" class="hover-lift">
+      <UiCard variant="glass">
         <div class="flex items-center">
-          <div class="w-12 h-12 bg-gradient-accent rounded-xl flex items-center justify-center">
-            <BanknotesIcon class="w-6 h-6 text-white" />
+          <div class="w-12 h-12 bg-systemBlue-100 rounded-xl flex items-center justify-center">
+            <BanknotesIcon class="w-6 h-6 text-systemBlue-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-theme-secondary">Saldo Actual</p>
-            <p class="text-2xl font-bold text-accent">
+            <p class="text-2xl font-bold text-systemBlue-600 tabular-nums">
               {{ formatCurrency(realTimeTotals?.currentBalance) }}
             </p>
           </div>
@@ -90,7 +90,7 @@
 
     <!-- Tabs de Navegación -->
     <div class="mb-6">
-      <Tabs v-model="activeTab" :tabs="tabs" />
+      <UiTabs v-model="activeTab" :tabs="tabs" />
     </div>
 
     <!-- Contenido de las Tabs -->
@@ -99,13 +99,13 @@
       <div v-if="activeTab === 'payments'">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-theme-primary">Cobros de Pacientes</h2>
-            <Button
+            <UiButton
               variant="primary"
               @click="showPaymentModal = true"
             >
               <PlusIcon class="w-4 h-4 mr-2" />
               Registrar Cobro
-            </Button>
+            </UiButton>
         </div>
 
         <PendingPaymentsList
@@ -119,7 +119,7 @@
       <div v-if="activeTab === 'transactions'">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-theme-primary">Transacciones</h2>
-          <Button
+          <UiButton
             v-if="canCreateTransaction"
             variant="primary"
             @click="showTransactionModal = true"
@@ -127,7 +127,7 @@
           >
             <PlusIcon class="w-4 h-4 mr-2" />
             Nueva Transacción
-          </Button>
+          </UiButton>
         </div>
 
         <TransactionList
@@ -145,7 +145,7 @@
       <div v-if="activeTab === 'movements'">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-theme-primary">Movimientos de Caja</h2>
-          <Button
+          <UiButton
             v-if="canCreateMovement"
             variant="primary"
             @click="showMovementModal = true"
@@ -153,7 +153,7 @@
           >
             <PlusIcon class="w-4 h-4 mr-2" />
             Nuevo Movimiento
-          </Button>
+          </UiButton>
         </div>
 
         <MovementList
@@ -169,14 +169,14 @@
       <div v-if="activeTab === 'history'">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-theme-primary">Historial de Sesiones</h2>
-          <Button
+          <UiButton
             variant="secondary"
             @click="loadSessions"
             :loading="loading"
           >
             <ArrowPathIcon class="w-4 h-4 mr-2" />
             Actualizar
-          </Button>
+          </UiButton>
         </div>
 
         <SessionList
@@ -192,14 +192,14 @@
       <div v-if="activeTab === 'reports'">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-semibold text-theme-primary">Reportes de Caja</h2>
-          <Button
+          <UiButton
             variant="primary"
             @click="generateReport"
             :loading="loading"
           >
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             Generar Reporte
-          </Button>
+          </UiButton>
         </div>
 
         <CashReports
@@ -267,8 +267,9 @@ import { formatCurrency } from '@/composables/useFormatters'
 
 // Components
 import UiCard from '@/components/ui/Card.vue'
-import Button from '@/components/ui/Button.vue'
-import Tabs from '@/components/ui/Tabs.vue'
+import UiButton from '@/components/ui/Button.vue'
+import UiTabs from '@/components/ui/Tabs.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import TransactionList from './components/TransactionList.vue'
 import MovementList from './components/MovementList.vue'
 import SessionList from './components/SessionList.vue'
@@ -350,16 +351,12 @@ const movementPagination = ref(null)
     ])
 
 // Computed
-const sessionStatusClass = computed(() => {
-  if (isOpen.value) return 'bg-green-500'
-  if (isClosed.value) return 'bg-red-500'
-  return 'bg-theme-secondary'
-})
-
-const sessionStatusTextClass = computed(() => {
-  if (isOpen.value) return 'text-green-700'
-  if (isClosed.value) return 'text-red-700'
-  return 'text-theme-primary'
+// Session state drives the <UiStatusBadge> variant (PR-pagos-05a): the
+// hardcoded green/red dot classes are owned by the badge primitive now.
+const sessionStatusVariant = computed(() => {
+  if (isOpen.value) return 'success'
+  if (isClosed.value) return 'error'
+  return 'neutral'
 })
 
 const sessionStatusText = computed(() => {
@@ -628,29 +625,4 @@ onUnmounted(() => {
   // La limpieza de WebSockets se maneja automáticamente en useCashRegister
 })
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.hover-lift {
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-/* Transiciones suaves para tema oscuro */
-* {
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
-}
-</style>
 

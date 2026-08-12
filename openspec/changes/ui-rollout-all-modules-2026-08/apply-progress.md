@@ -841,3 +841,108 @@ None known. All 17 PaymentModalAppShellTest assertions pass. UXF-021 stays green
 ### Next phase
 
 `sdd-verify` for PR-pagos-04 (visual sweep + review-burden assessment for the 2 polished payment-modal files + the new PaymentModalAppShellTest + UXF-021 preservation).
+
+---
+
+## PR-pagos-05a — CashRegisterPage + PaymentMethodsPage (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-pagos-05a only. The 2 in-scope pages plus the admin form modal that carries the PAGOS-RED-001 rule:
+
+| File | Role |
+| --- | --- |
+| `resources/js/modules/cash-register/CashRegisterPage.vue` | Caja hub — real-time totals, tab strip, 7 modal mounts. The densest legacy page in Caja. |
+| `resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue` | Payment-methods admin CRUD list. |
+| `resources/js/modules/settings/payment-methods/PaymentMethodFormModal.vue` | Admin create/edit form — owner of the `gateway_config` redaction rule (PAGOS-RED-001). |
+
+Out of scope (PR-pagos-05b): `ReadyToBillPage.vue`, `QuotationsPage.vue` — NOT touched.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED | Wrote `tests/Unit/DesignSystem/CajaPagesAppShellTest.php` extending `ModuleAppShellTestCase`: 3 files in `polishedFiles()` (5 inherited rules x 3) + 2 parameterized PR-pagos-05a rules x 3 + 3 single-file rules. | **14 failed / 10 passed (54 assertions)**. Failures: 1x canvas token (PaymentMethodsPage), 2x `border-theme` (PaymentMethodsPage + FormModal), 2x legacy focus alias, 1x `<style scoped>` (CashRegisterPage), 3x Apple-language surface (hover-lift / gradients / legacy aliases on all 3), 1x UiTabs+UiStatusBadge on the hub, 1x UiStatusBadge on the admin list, 1x `data-redacted="true"` absent, 2x misc. |
+| GREEN | Migrated all 3 `.vue` files (details below). | **24 passed (104 assertions)**. |
+| REFACTOR | Reverted a page-wrapper `<div class="bg-canvas">` in `PaymentMethodsPage.vue` that had shifted the whole template one indent level (+252 new `vue/html-indent` errors). Replaced it with the canvas token pinned on the existing counters row + an explanatory comment. Net lint moved from 276 to 274 errors and 690 to 347 warnings. | Lint strictly improved; no re-indent churn. |
+
+### New test methods added (PR-pagos-05a)
+
+`tests/Unit/DesignSystem/CajaPagesAppShellTest.php` (232 lines) — the base class's 5 rules apply to all 3 files via `polishedFileProvider()`. 5 new rules:
+
+1. `test_pages_apple_language_surface` (x3) — DLR-R-009: no `hover-lift`, no `bg-gradient-*`, no `<style>` block at all (this is where the `hover-lift` keyframes AND the global `* { transition }` rule lived), no legacy alias from a 9-entry forbidden set (`text-accent`, `text-success-600/800`, `text-error-600`, `text-red-500/600/900`, `text-amber-600`, `hover:text-primary-800`), and `<UiButton>` consumed.
+2. `test_pages_no_local_intl_pen_format` (x3) — PAGOS-MNY-002: no local `Intl.NumberFormat('es-PE', { currency: 'PEN' })`; **conditional** — a file that renders `formatCurrency(...)` MUST import it from `useFormatters`.
+3. `test_cash_register_page_hub_primitives` — PAGOS-MOD-001: `<UiTabs>` + `<UiCard>` + `<UiStatusBadge>` all consumed; no hardcoded `bg-green-500` / `bg-red-500` session dot; `tabular-nums` on the real-time totals (DLR-R-007).
+4. `test_payment_methods_page_admin_crud_surface` — PAGOS-MOD-001 + PAGOS-A11Y-001: `<UiStatusBadge>` present AND legacy `<UiBadge>` gone; **every** `<th>` carries `scope="col"` (loop over all matches, so a single missing header fails and names the offender); `border-hairline` present.
+5. `test_gateway_config_redacted` — PAGOS-RED-001: a `<div ... data-redacted="true">` wrapper exists; `gateway_config` is never interpolated into a rendered text node (`{{ ... gateway_config ... }}` absent); no `v-html`; the access-token field keeps `type="password"`.
+
+### Files changed (PR-pagos-05a)
+
+- `resources/js/modules/cash-register/CashRegisterPage.vue` — `bg-canvas` on the existing root div. Session-status pill (`<div>` + hardcoded `bg-green-500`/`bg-red-500` dot + `<span>`, 6 lines) replaced with a single `<UiStatusBadge :variant="sessionStatusVariant" :label="sessionStatusText" size="md" show-dot />`. All 4 real-time cards: `class="hover-lift"` removed; icon wells `bg-gradient-accent` / `bg-gradient-to-br from-success-500 to-success-600` / `from-error-500 to-error-600` became `bg-systemBlue-100` / `bg-systemGreen-100` / `bg-systemRed-100` with `text-systemBlue-600` / `text-systemGreen-600` / `text-systemRed-600` icons (the white-on-gradient icon became a tinted icon on a tinted well); amount text `text-success-600` / `text-error-600` / `text-accent` became `text-systemGreen-600` / `text-systemRed-600` / `text-systemBlue-600`, each with `tabular-nums` added (DLR-R-007). `<Tabs>` became `<UiTabs>`; all 7 `<Button>` became `<UiButton>`. The entire `<style scoped>` block (24 lines) deleted: it held `.animate-fade-in` (**dead — zero references anywhere in the module, verified by grep**), the `.hover-lift` keyframes, and the global `* { transition: background-color, border-color, color }` rule that repainted every descendant on any theme change.
+- `resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue` — `bg-canvas` pinned on the counters row with a comment (DLR-R-001). 3 counter cards: `hover-lift` removed, `text-accent` became `text-systemBlue-600`, `text-success-600` became `text-systemGreen-600`, `tabular-nums` added to all 3 counts. Status filter `<select>`: `border-theme` became `border-hairline`, `focus:ring-2 focus:ring-primary-500 focus:border-accent` removed. Table: header row + body rows `border-theme` / `border-theme/50` became `border-hairline`; `scope="col"` added to all 7 `<th>`. Both `<UiBadge>` pills became `<UiStatusBadge>` (`secondary` maps to `neutral`, the StatusBadge validator's equivalent), content moved from the default slot to the `:label` prop. 4 action buttons: `text-accent hover:text-primary-800` became `text-systemBlue-600 hover:text-systemBlue-700`; `text-red-600 hover:text-red-900` (x2) became `text-systemRed-600 hover:text-systemRed-700`; `text-success-600 hover:text-success-800` became `text-systemGreen-600 hover:text-systemGreen-700`. Gateway cell `text-accent` / `text-success-600` became `text-systemBlue-600` / `text-systemGreen-600`; commission cell gained `tabular-nums`. Import `UiBadge` became `UiStatusBadge`.
+- `resources/js/modules/settings/payment-methods/PaymentMethodFormModal.vue` — **PAGOS-RED-001**: the mercadopago credentials block now carries `data-redacted="true"` on its wrapping `<div>`, preceded by a 6-line comment explaining that `gateway_config` is `Crypt::encryptString`-encrypted at rest and never crosses the wire. Added the `hasStoredCredentials` computed (reads only the API's `has_gateway_config` **boolean**) which drives a masked placeholder plus a "Credenciales guardadas. Dejalo vacio para conservarlas." hint — so an admin editing an existing gateway sees that credentials exist without the blob ever reaching the DOM. Chrome tokenised: `bg-canvas` on the form root, `border-theme` became `border-hairline` (x3), `focus:ring-2 focus:ring-primary-500 focus:border-accent` removed (x2), `text-red-500` became `text-systemRed-500` (x2), `text-amber-600` became `text-systemYellow-600` (x2), checkbox `text-accent border-theme focus:ring-accent` became `text-systemBlue-600 border-hairline`.
+- `tests/Unit/DesignSystem/CajaPagesAppShellTest.php` — NEW (232 lines).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this section.
+
+### Files NOT touched (per hard scope rules)
+
+- `resources/js/modules/cash-register/ReadyToBillPage.vue` — PR-pagos-05b.
+- `resources/js/modules/quotations/QuotationsPage.vue` — PR-pagos-05b.
+- All 5 Caja list/report files, all 6 Caja modal files — already polished (PR-pagos-02a/02b/03a/03b/04).
+- `resources/js/composables/**` — `git diff --stat` on the directory is **empty**. `useCashRegister`, `useTransactions`, `usePermissions`, `usePaymentMethods`, `useFormatters` untouched.
+
+### Audit sweep (T-05a.9)
+
+```
+git grep -nE "hover-lift|border-theme\b|bg-success-100|text-accent\b|focus:ring-primary-500|focus:border-accent|bg-gradient-|bg-green-500|bg-red-500" \
+  -- resources/js/modules/cash-register/CashRegisterPage.vue resources/js/modules/settings/payment-methods/
+```
+returns **ZERO matches** (post-migration).
+
+### Echo channel preservation (PAGOS-RT-001)
+
+`CashRegisterPage.vue` keeps `setupWebSocketSubscriptions` in the `useCashRegister()` destructure and the `onMounted` call site verbatim; `onUnmounted` cleanup comment unchanged. No `Echo.private(...)` / `Reverb` declaration added or removed. `PaymentReceivedChannelTest` green.
+
+### Test results
+
+- `php artisan test --filter=CajaPagesAppShellTest` — **24 passed (104 assertions)**. Baseline: test file did not exist. RED state was 14 failed / 10 passed (54 assertions).
+- `php artisan test --filter="PaymentReceivedChannelTest|ComposablesStandardizationTest|RequireActiveCashSessionTest|PaymentModal401RedirectTest|PaymentModalAppShellTest|CajaModalsAppShellTest|FormatPENLabelTest|CashRegisterAppShellTest|CajaPagesAppShellTest|AppLayoutCanvasRoutesTest|LegacyAliasForbiddenTest"` — **189 passed (552 assertions)**. PR-pagos-04 baseline was 165 passed / 448 assertions; delta is exactly +24 tests / +104 assertions (this PR's new file). **Zero regressions.**
+- `php artisan test --filter=DesignSystem` — **284 passed (1493 assertions)**.
+- `pnpm build` — clean, built in 11.57s. `CashRegisterPage` bundle **133.09 kB to 131.41 kB** (-1.68 kB: the deleted `<style scoped>` block and the gradient class strings). `PaymentMethodsPage` 21.02 kB.
+- `npx eslint` on the 3 changed files — **274 errors / 347 warnings vs. a 276 / 690 HEAD baseline** for the same 3 files: -2 errors, -343 warnings. The project-wide lint debt is pre-existing (per the PR0 baseline) and this PR strictly reduces it. The single remaining `no-unused-vars` error in `PaymentMethodsPage.vue` (`computed` imported but unused) is **pre-existing at HEAD** (line 266 there, line 271 now) and left alone — removing it is a `<script>` subtraction outside the PAGOS-CON-001 additive allowance.
+
+### Negative verifications performed
+
+- **Sentinel fire — PAGOS-RED-001**: renamed `data-redacted="true"` to `data-x="true"` in `PaymentMethodFormModal.vue`; `test_gateway_config_redacted` fired RED as expected. Restored from backup.
+- **Sentinel fire — legacy alias**: reinstated `text-success-600` on the Ingresos card in `CashRegisterPage.vue`; `test_pages_apple_language_surface` fired RED for that file only (2 failed / 22 passed, 93 assertions). Restored from backup; re-verified 24 passed.
+- **Dead-code check before deletion**: `grep -rn "animate-fade-in" resources/js/modules/cash-register/` returned exactly one hit — the CSS declaration itself, no consumer. Confirmed safe to delete with the `<style scoped>` block.
+- **Post-restore re-verification**: both sentinels re-run green (24 passed / 104 assertions) before the final regression sweep.
+
+### Decisions / deviations
+
+1. **`PaymentMethodsPage.vue` renders no money, so no `formatCurrency` import was added.** The scope table lists "canonical formatCurrency import" for this page, but the only numeric column is `commission_percentage`, a **percentage** (`{{ m.commission_percentage ?? 0 }}%`), not a PEN amount. Adding an unused import would be dead code and a fresh `no-unused-vars` error. Rule 2 of the test is written conditionally to match: it forbids a local PEN formatter unconditionally, and requires the canonical import only if the file actually calls `formatCurrency(...)`. `CashRegisterPage.vue` does call it and does import it (canonicalised back in PR-pagos-01).
+2. **"Legacy counters removed" read as *legacy counter styling* removed, not the counters themselves.** The 3 summary cards (Total / Del sistema / Custom) are a working admin feature backed by `systemMethods` / `customMethods` from `usePaymentMethods`. Deleting them would be a product change, would orphan two composable bindings, and is not reversible from a class-string PR. They were re-tokenised instead (hover-lift dropped, `text-accent`/`text-success-600` to system ramps, `tabular-nums` added). **Flagging for verify**: if the design genuinely meant "delete the counter row", that is a one-line-per-card removal plus a destructure cleanup, and should be an explicit decision rather than an inferred one.
+3. **The page-wrapper approach for the canvas token was abandoned.** `CashRegisterPage.vue` already had a root `<div class="cash-register-page">`, so `bg-canvas` was free there. `PaymentMethodsPage.vue` had no such wrapper; introducing one shifted every template line by one indent level and produced **252 new `vue/html-indent` errors** for zero visual gain. The token is pinned on the existing counters row instead, with a comment noting AppLayout already paints the canvas for this route (it is in the PR0 `canvasRoutes` list).
+4. **`<UiBadge>` to `<UiStatusBadge>` maps `secondary` to `neutral`.** `StatusBadge.vue`'s validator accepts `success|warning|error|info|neutral` only; `secondary` is not a member. `neutral` (`bg-systemGray-100 text-systemGray-700`) is the equivalent wash. Content also moved from the default slot to the `:label` prop, which is the primitive's documented API.
+5. **`CashRegisterPage.vue`'s `<script>` edit is confined to the status-badge migration.** `sessionStatusClass` (returned raw `bg-green-500` / `bg-red-500` class strings) became `sessionStatusVariant` (returns `success` / `error` / `neutral`) because the badge primitive owns the colour now. The adjacent `sessionStatusTextClass` computed was **dead** (declared, never referenced in the template) and was removed with it. Every other binding — `useCashRegister` destructure, `setupWebSocketSubscriptions`, all `load*` / `handle*` methods, `voidTransaction`'s confirm flow, lifecycle hooks — is byte-for-byte unchanged.
+6. **The icon wells changed from saturated gradients to tinted washes.** `bg-gradient-to-br from-success-500 to-success-600` with a white icon became `bg-systemGreen-100` with a `text-systemGreen-600` icon. This is a deliberate visual change (the Apple language uses tinted wells, not saturated gradients) and matches the `bg-systemGreen-100` / `bg-systemRed-100` icon-background pattern already landed in `CashReports.vue` in PR-pagos-02b.
+7. **`PaymentMethodFormModal.vue` was fully tokenised, not just given the `data-redacted` attribute.** The scope named only the redaction attribute for this file, but adding it to `polishedFiles()` (so the inherited DLR-R rules guard it) required clearing its `border-theme` / focus-alias / `text-accent` debt. That is ~8 extra line changes and closes the file out for the PAGOS end-of-category audit rather than deferring it.
+8. **A `CashRegisterPage-*.css` chunk still exists after the `<style scoped>` deletion.** It is emitted for the route chunk as a whole and now carries only sibling components' scoped styles (the modals in that chunk), not `CashRegisterPage.vue`'s — the file has zero `<style>` blocks, asserted by both `test_no_style_scoped` and rule 1.
+
+### Risks
+
+1. **Visual evidence not captured.** `playwright-cli` is unavailable in this sandboxed apply phase, and PR-pagos-05a is the first PR in the PAGOS chain with a **genuinely visible** delta (gradient wells to tinted wells, session pill to badge, counter card restyle) rather than pure class-string parity. The static contract is pinned by 24 tests, but the 1440x900 / 390x844 capture should be treated as a required verify-phase step, not an optional one.
+2. **Deviation 2 (counters kept) is an interpretation**, flagged above for the verify phase to confirm or reverse.
+
+### PR-pagos-05a budget — actual vs target
+
+- Target: <= 400 changed lines.
+- Production code: `git diff --stat` = **115 insertions + 120 deletions = 235 line changes** across the 3 `.vue` files (CashRegisterPage 122, PaymentMethodFormModal 44, PaymentMethodsPage 69). **Under budget.**
+- New test file: 232 lines. Documentation: this section.
+- Production code is comfortably within the 400-line ceiling despite `CashRegisterPage.vue` being the densest legacy page in Caja — the edits stayed at token + primitive level, with no feature rewrites.
+
+### Next phase
+
+`sdd-verify` for PR-pagos-05a (visual sweep at both breakpoints — see Risk 1 — plus a decision on Deviation 2), then `sdd-apply` PR-pagos-05b (`ReadyToBillPage.vue` + `QuotationsPage.vue`).
