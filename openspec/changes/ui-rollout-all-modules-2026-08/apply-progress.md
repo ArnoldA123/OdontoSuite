@@ -505,3 +505,91 @@ None known. All 4 modal files pass every CajaModalsAppShellTest assertion. The 6
 ### Next phase
 
 `sdd-verify` for PR-pagos-03 (visual sweep + review-burden assessment for the 4 polished modal files + the new CajaModalsAppShellTest).
+
+---
+
+## PR-pagos-03a — Caja modals batch A (split: TransactionModal + MovementModal only)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-pagos-03a only. The 2 Caja modal `.vue` files in `resources/js/modules/cash-register/components/` that are already polished from the previous PR-pagos-03 apply work:
+- `TransactionModal.vue` — Ingreso/Egreso flow (additive `type` prop); patient banner + spinner tokenised
+- `MovementModal.vue` — cash movement capture; chrome tokenisation
+
+The 2 other Caja modals from PR-pagos-03 are DEFERRED to **PR-pagos-03b**:
+- `OpenCashModal.vue` — cash session open; `git restore`d to pre-PR-pagos-03 state
+- `CloseCashModal.vue` — cash session close + arqueo desglose; `git restore`d to pre-PR-pagos-03 state
+
+Both deferred modals will be re-polished and re-added to `polishedFiles()` in PR-pagos-03b.
+
+Out of scope (deferred to PR-pagos-04/05): `PaymentModal.vue`, `MercadoPagoCheckout.vue`, page-level chrome, `PaymentMethods`, `Quotations`.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED (baseline) | Ran `php artisan test --filter=CajaModalsAppShellTest` against the 4-file scope (2 polished + 2 unpolished after orchestrator `git restore`) | **9 failed / 22 passed** (81 assertions). The 9 failures correctly fire on the 2 restored modals (OpenCashModal + CloseCashModal): missing `<UiStatusBadge>`, missing `formatCurrency` import, legacy `bg-primary-50` / `border-theme`, etc. The `test_close_cash_modal_uses_tabular_nums_on_totals` test also fires RED because CloseCashModal was restored. |
+| RED (target) | Confirmed the RED state correctly scoped: 2 unpolished files fail the parameterized assertions, plus the CloseCashModal-specific single-file test fails | Baseline matches the design's RED expectation |
+| GREEN | Edited `tests/Unit/DesignSystem/CajaModalsAppShellTest.php` to scope `polishedFiles()` to ONLY the 2 polished modal paths. Removed `test_close_cash_modal_uses_tabular_nums_on_totals` (CloseCashModal is deferred to 03b). Kept `test_transaction_modal_declares_type_prop` and `test_transaction_modal_uses_ui_card_and_spinner`. Kept `test_modals_combined_primitive_and_contract_rules` and `test_modals_no_local_intl_pen_format` (they only fire for files in `polishedFiles()`). | **16 passed (45 assertions)**. 0 failures. |
+| REFACTOR | Updated the class docblock to cite `PR-pagos-03a` (4 modals → 2 modals); added an "Out of scope here" block documenting the 03b deferral. Added an inline note at the removed `test_close_cash_modal_uses_tabular_nums_on_totals` site explaining the deferral. | n/a |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 03a.1 | `tests/Unit/DesignSystem/CajaModalsAppShellTest.php` | Unit | ✅ 9 failed / 22 passed pre-edit (correct RED on the 2 restored modals + the CloseCashModal-specific rule) | ✅ Test currently scans 4 paths but 2 are unpolished + the tabular-nums rule targets a restored file → confirmed RED | ✅ `polishedFiles()` narrowed to 2 paths + tabular-nums rule removed → 16 passed (45 assertions) | ➖ Single (one valid scope path: 2 polished modals) | ✅ Class docblock + inline note updated to cite PR-pagos-03a + 03b deferral |
+
+### New test methods added (PR-pagos-03a)
+
+None. The test file is the same as PR-pagos-03 minus 2 paths from `polishedFiles()` and 1 test method (`test_close_cash_modal_uses_tabular_nums_on_totals`).
+
+### Files changed (PR-pagos-03a)
+
+- `tests/Unit/DesignSystem/CajaModalsAppShellTest.php` — class docblock updated (`PR-pagos-03` → `PR-pagos-03a`; "4 Caja modal `.vue` files" → "2 Caja modal `.vue` files"; added an explicit "Out of scope here" block listing OpenCashModal + CloseCashModal as deferred to PR-pagos-03b). `polishedFiles()` returns ONLY the 2 modal paths (TransactionModal.vue, MovementModal.vue). `test_close_cash_modal_uses_tabular_nums_on_totals` removed (with inline note explaining the 03b deferral). `test_transaction_modal_declares_type_prop` and `test_transaction_modal_uses_ui_card_and_spinner` unchanged. `test_modals_combined_primitive_and_contract_rules` and `test_modals_no_local_intl_pen_format` unchanged; their `polishedFileProvider` data shrunk from 4 to 2.
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this section appended (PR-pagos-01 + PR-pagos-02 + PR-pagos-02a + PR-pagos-02b + PR-pagos-03 sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-pagos-03a — per hard scope rules)
+
+- `resources/js/modules/cash-register/components/TransactionModal.vue` — already polished from the previous PR-pagos-03 apply work; verified as-is (the file passes all CajaModalsAppShellTest assertions scoped to it).
+- `resources/js/modules/cash-register/components/MovementModal.vue` — already polished; verified as-is.
+- `resources/js/modules/cash-register/components/OpenCashModal.vue` — `git restore`d to pre-PR-pagos-03 state; belongs to PR-pagos-03b.
+- `resources/js/modules/cash-register/components/CloseCashModal.vue` — `git restore`d to pre-PR-pagos-03 state; belongs to PR-pagos-03b.
+- `resources/js/modules/cash-register/components/PaymentModal.vue` — belongs to PR-pagos-04.
+- `resources/js/modules/cash-register/components/MercadoPagoCheckout.vue` — belongs to PR-pagos-04.
+- All page-level `.vue` files — belong to PR-pagos-05 or are already polished from PR-pagos-01/02.
+- `resources/js/composables/useFormatters.js` — unchanged.
+
+### Audit sweep
+
+- `git grep -nE "bg-primary-50|animate-spin|Teleport to" resources/js/modules/cash-register/components/{TransactionModal,MovementModal}.vue` returns ZERO matches (post-PR-pagos-03, unchanged in 03a).
+- `git grep -nE "border-theme|focus:ring-primary-500|focus:border-accent" resources/js/modules/cash-register/components/{TransactionModal,MovementModal}.vue` returns ZERO matches (unchanged in 03a).
+- `git grep -nE "Intl.NumberFormat.*currency.*PEN" resources/js/modules/cash-register/components/{TransactionModal,MovementModal}.vue` returns ZERO matches — both files import `formatCurrency` from `useFormatters.js`.
+
+### Test results
+
+- `php artisan test --filter=CajaModalsAppShellTest` — **16 passed (45 assertions)**. Baseline before PR-pagos-03a edit: 9 failed / 22 passed (81 assertions). After narrowing `polishedFiles()` to 2 paths + removing the CloseCashModal-specific tabular-nums rule: 16 passed / 0 failed (45 assertions). Delta: −9 failures (the 2 restored modals dropped from the data provider + the CloseCashModal-specific test removed), 0 new failures introduced. All green.
+- `php artisan test --filter="FormatPENLabelTest|CashRegisterAppShellTest|PaymentModal401RedirectTest|ComposablesStandardizationTest|RequireActiveCashSessionTest|PaymentReceivedChannelTest|AppLayoutCanvasRoutesTest|LegacyAliasForbiddenTest|CajaModalsAppShellTest"` — expected green for all 9 tests; CajaModalsAppShellTest is the only test in the PR-pagos-03 family that was edited in this PR (PR-pagos-03's commit baseline was 148 passed / 402 assertions; the only delta in 03a is the CajaModalsAppShellTest scope reduction).
+- `pnpm build` — not re-run; no `.vue` file edits in PR-pagos-03a, so the build state from PR-pagos-03 (clean, built in 9.59s, `CashRegisterPage` bundle at 132.34 kB) is unchanged.
+
+### Decisions / deviations
+
+1. **No modal `.vue` files were re-edited.** Both polished files are accepted as-is from the previous PR-pagos-03 apply batch. Re-touching them would inflate the diff to ~291 lines of repeated work, defeating the purpose of the 03a/03b split.
+2. **`test_close_cash_modal_uses_tabular_nums_on_totals` removed (not commented out) instead of just narrowing the scope.** The test hard-codes the CloseCashModal path via `dirname(__DIR__, 3) . '/resources/js/.../CloseCashModal.vue'`, so it cannot be repurposed for another file. Leaving the method in place but scoping it to nothing would still fire RED against the restored CloseCashModal. The cleanest path is removal + inline note explaining the 03b re-enable plan.
+3. **Class docblock + `polishedFiles()` only.** No parameterized test methods were added or removed. The 2 parameterized PR-pagos-03-only tests (`test_modals_combined_primitive_and_contract_rules`, `test_modals_no_local_intl_pen_format`) are unchanged; only their `polishedFileProvider` data shrunk from 4 to 2.
+
+### Risks
+
+None known. Both polished modal files pass every CajaModalsAppShellTest assertion scoped to them. The 2 restored modals (OpenCashModal + CloseCashModal) and the CloseCashModal-specific tabular-nums rule are explicitly deferred to PR-pagos-03b. The PR-pagos-03 production-code edits (modal chrome tokenisation, `formatCurrency` migration, `type` prop addition) remain in the working tree on `TransactionModal.vue` + `MovementModal.vue` and are protected by CajaModalsAppShellTest.
+
+### PR-pagos-03a budget — actual vs target
+
+- Target: ≤ 400 authored lines (per `Max changed lines` constraint).
+- Actual: `CajaModalsAppShellTest.php` = 2 path removals from `polishedFiles()` + ~15 line docblock + ~10 line removed method + ~5 line inline note ≈ ~30 lines. `apply-progress.md` = this PR-pagos-03a section ≈ ~110 lines.
+- Total authored lines: **~140 lines** (well under the 400-line budget).
+- The 2 polished modal `.vue` files are excluded from this count because they are pre-existing modifications from the previous PR-pagos-03 batch — they are NOT new work in this apply run.
+
+### Next phase
+
+`sdd-verify` for PR-pagos-03a (visual sweep + review-burden assessment for the 2 polished modal files), OR `sdd-apply` PR-pagos-03b (which re-polishes `OpenCashModal.vue` + `CloseCashModal.vue`, re-adds them to `polishedFiles()`, re-enables `test_close_cash_modal_uses_tabular_nums_on_totals`, and closes any test scope gaps left by the orchestrator's `git restore`).
