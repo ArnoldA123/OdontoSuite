@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="quotations-page">
+    <div class="quotations-page bg-canvas">
     <!-- Header -->
     <PageHeader
       title="Presupuestos"
@@ -18,83 +18,69 @@
     </PageHeader>
 
     <!-- Filtros -->
-    <div class="filters-section">
+    <UiCard variant="flat" padding="md" class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Paciente</label>
-          <input
+          <UiInput
             v-model="filters.patient_name"
             type="text"
             placeholder="Buscar por nombre..."
-            class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
+            label="Paciente"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-          <select
+          <UiSelect
             v-model="filters.status"
-            class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todos los estados</option>
-            <option value="draft">Borrador</option>
-            <option value="sent">Enviado</option>
-            <option value="approved">Aprobado</option>
-            <option value="rejected">Rechazado</option>
-          </select>
+            label="Estado"
+            :options="statusOptions"
+            placeholder="Todos los estados"
+          />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha desde</label>
-          <input
+          <UiInput
             v-model="filters.date_from"
             type="date"
-            class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
+            label="Fecha desde"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha hasta</label>
-          <input
+          <UiInput
             v-model="filters.date_to"
             type="date"
-            class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary"
+            label="Fecha hasta"
           />
         </div>
 
-        <div class="flex items-end">
-          <button
-            @click="applyFilters"
-            class="btn btn-secondary mr-2"
-            :disabled="loading"
-          >
-            <MagnifyingGlassIcon class="w-4 h-4 mr-1" />
+        <div class="flex items-end gap-2">
+          <UiButton variant="secondary" @click="applyFilters" :disabled="loading">
+            <template #icon-left>
+              <MagnifyingGlassIcon class="w-4 h-4" />
+            </template>
             Buscar
-          </button>
-          <button
-            @click="clearFilters"
-            class="btn btn-outline"
-            :disabled="loading"
-          >
+          </UiButton>
+          <UiButton variant="ghost" @click="clearFilters" :disabled="loading">
             Limpiar
-          </button>
+          </UiButton>
         </div>
       </div>
-    </div>
+    </UiCard>
 
     <!-- Lista de presupuestos -->
     <div class="quotations-section">
       <div v-if="loading" class="flex justify-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <UiLoadingSpinner size="md" variant="primary" text="Cargando presupuestos..." />
       </div>
 
-      <div v-else-if="!hasQuotations" class="empty-state">
+      <div v-else-if="!hasQuotations" class="empty-state border border-hairline rounded-xl">
         <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
         <h3 class="text-lg font-medium text-theme-primary mb-2">No hay presupuestos</h3>
         <p class="text-theme-secondary mb-4">Comienza creando tu primer presupuesto</p>
-        <button @click="openCreateModal" class="btn btn-primary">
+        <UiButton @click="openCreateModal">
           Crear Presupuesto
-        </button>
+        </UiButton>
       </div>
 
       <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -151,12 +137,17 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useQuotations } from '@/composables/useQuotations'
 import { useAuth } from '@/composables/useAuth'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiSelect from '@/components/ui/Select.vue'
+import UiButton from '@/components/ui/Button.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import QuotationCard from './components/QuotationCard.vue'
 import QuotationModal from './components/QuotationModal.vue'
 import QuotationDetail from './components/QuotationDetail.vue'
@@ -200,6 +191,14 @@ const filters = ref({
   date_from: '',
   date_to: ''
 })
+
+const statusOptions = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'draft', label: 'Borrador' },
+  { value: 'sent', label: 'Enviado' },
+  { value: 'approved', label: 'Aprobado' },
+  { value: 'rejected', label: 'Rechazado' }
+]
 
 // Métodos
 const openCreateModal = () => {
@@ -326,39 +325,3 @@ onUnmounted(() => {
   }
 })
 </script>
-
-<style scoped>
-.quotations-page {
-  @apply p-6;
-}
-
-.page-header {
-  @apply mb-6;
-}
-
-.page-title {
-  @apply text-2xl font-bold;
-  color: var(--color-text-primary);
-}
-
-.page-subtitle {
-  color: var(--color-text-secondary);
-}
-
-.filters-section {
-  @apply mb-6 p-4 rounded-lg;
-  background-color: var(--color-surface);
-}
-
-.quotations-section {
-  @apply mb-6;
-}
-
-.empty-state {
-  @apply text-center py-12;
-}
-
-.pagination-section {
-  @apply flex justify-center;
-}
-</style>
