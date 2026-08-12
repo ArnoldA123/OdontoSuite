@@ -322,3 +322,90 @@ The 3 list files were already polished from the previous PR-pagos-02 apply work;
 ### Next phase
 
 `sdd-verify` for PR-pagos-02a, OR `sdd-apply` PR-pagos-02b (which re-polishes `CashReports.vue` + `PendingPaymentsList.vue`, re-adds them to `polishedFiles()`, and restores the PR-pagos-01 `formatCurrency` import in CashReports.vue to close the `FormatPENLabelTest` regression).
+
+---
+
+## PR-pagos-02b — report views polish (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-pagos-02b only. The 2 report `.vue` files in `resources/js/modules/cash-register/components/`:
+- `CashReports.vue` — cash reports (daily, period, executive summary)
+- `PendingPaymentsList.vue` — pending payments with search and filters
+
+The 3 list `.vue` files polished in PR-pagos-02a were NOT re-touched. The PR-pagos-01 `formatCurrency` import in `CashReports.vue` was re-added (closes the regression caused by the orchestrator's `git restore` in PR-pagos-02a).
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED (baseline) | Ran `php artisan test --filter=CashRegisterAppShellTest` against the 3-file scope; ran `php artisan test --filter=FormatPENLabelTest` | CashRegisterAppShellTest: 27 passed (GREEN on the 3 list files as-is). FormatPENLabelTest: **3 failed, 18 passed** — the 3 failures are the CashReports local-formatCurrency regression (PAGOS-MNY-002) |
+| RED (target) | Manually audited CashReports.vue + PendingPaymentsList.vue against the 5 PR-pagos-02-only rules + 5 inherited rules from `ModuleAppShellTestCase` | Both files would fail: no `formatCurrency` import (CashReports), no `bg-canvas`, `border-theme` literals, no `tabular-nums`, no `scope="col"`, no `aria-label="... soles"`, legacy `bg-success-100` / `bg-warning-100` / `bg-error-100` pills, custom `animate-spin` spinner, no `formatCurrency` import (PendingPaymentsList) |
+| GREEN | Re-polished both files: added `bg-canvas` to root, replaced `border-theme` → `border-hairline`, `divide-theme` → `divide-hairline`, removed `focus:ring-primary-500 focus:border-accent`, replaced `bg-success-100` / `bg-error-100` / `bg-warning-100` / `bg-primary-100` icon backgrounds with `bg-systemGreen-100` / `bg-systemRed-100` / `bg-systemYellow-100` / `bg-systemBlue-100`, replaced legacy status pill `<span class="...bg-success-100...">` with `<UiStatusBadge variant="success">` (CashReports) and `<UiStatusBadge variant="warning">` (PendingPaymentsList), replaced custom spinner with `<UiLoadingSpinner>`, added `tabular-nums` + `aria-label="<amount> soles"` on numeric `<td>` cells, added `scope="col"` on every `<th>`, added `formatCurrency` import from `@/composables/useFormatters` and removed local `Intl.NumberFormat` declarations, updated `polishedFiles()` to include the 2 report paths | **45 passed (100 assertions)** for CashRegisterAppShellTest (5 files × 9 tests); **21 passed (49 assertions)** for FormatPENLabelTest (regression closed) |
+| REFACTOR | Tightened CashReports `<td>` `aria-label` on the difference cell to match the `${prefix}<amount> soles` template; tight regex tolerates whitespace. Docblock + `polishedFiles()` path comment updated. | n/a |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 02b.1 | `tests/Unit/DesignSystem/CashRegisterAppShellTest.php` | Unit | ✅ 27 passed (3-file scope) + 3 failed in FormatPENLabelTest (CashReports regression) | ✅ Baseline confirms the RED state on the 2 unpolished files (the test would scan them once added to `polishedFiles()`) | ✅ `polishedFiles()` extended to 5 paths + both .vue files polished → 45 passed (100 assertions) | ✅ 5-file data-provider × 9 rules (5 inherited + 4 PR-pagos-02-only) = 45 test rows | ✅ Tightened CashReports `aria-label` on the difference cell |
+| 02b.2 | `tests/Unit/Composables/FormatPENLabelTest.php` | Static | ✅ 3 failed (CashReports local-formatCurrency regression) | ✅ Regression confirmed via `test_format_currency_*` failures | ✅ Restored `formatCurrency` import in CashReports.vue → 21 passed (49 assertions) | ✅ Same 3 tests that fail for CashReports now pass (positive direction verified) | ➖ No refactor needed |
+
+### Files changed (PR-pagos-02b)
+
+- `resources/js/modules/cash-register/components/CashReports.vue` — added `bg-canvas` to root element. Replaced `border-theme` (3 inputs/select + the table header divider) with `border-hairline`. Removed `focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent` (3 inputs/select). Replaced `bg-success-100` / `bg-error-100` / `bg-primary-100` icon backgrounds with `bg-systemGreen-100` / `bg-systemRed-100` / `bg-systemBlue-100`; replaced `text-green-600` / `text-red-600` / `text-accent` text colors with `text-systemGreen-600` / `text-systemRed-600` / `text-systemBlue-600`. Added `tabular-nums` + `aria-label="<amount> soles"` on the 4 summary cards (Total Ingresos / Total Egresos / Diferencias + 2 in the chart cards) + the 3 numeric `<td>` cells (Apertura / Cierre / Diferencia). Added `scope="col"` on every `<th>` (6 headers). Replaced the legacy status pill `<span class="...bg-success-100...">` with `<UiStatusBadge variant="success" | "neutral">`. Imported `UiStatusBadge` + `formatCurrency` from `@/composables/useFormatters`. Removed the local `const formatCurrency` declaration (7 lines, ~0.7 kB slimmed from the script block).
+- `resources/js/modules/cash-register/components/PendingPaymentsList.vue` — added `bg-canvas` to root element. Replaced `border-theme` (3 inputs + table border) with `border-hairline`. Replaced `divide-theme` with `divide-hairline`. Removed `focus:ring-primary-500 focus:border-accent` (3 inputs). Replaced the custom `animate-spin` spinner with `<UiLoadingSpinner size="md" variant="primary" text="Cargando pagos pendientes..." />`. Replaced `bg-primary-100` / `text-primary-800` patient-initials backgrounds with `bg-systemBlue-100` / `text-systemBlue-700`. Replaced the legacy `<span class="...bg-warning-100 text-warning-700">Pendiente</span>` pill with `<UiStatusBadge variant="warning" label="Pendiente" />`. Added `tabular-nums` on the Monaco `<td>` cell + the 3 pagination counters. Added `scope="col"` on every `<th>` (6 headers). Added `aria-label="Monto pendiente <amount> soles"` on the numeric `<td>` Monetary cell. Imported `UiStatusBadge` + `UiLoadingSpinner` + `formatCurrency` from `@/composables/useFormatters`. Removed the local `const formatCurrency` declaration (5 lines).
+- `tests/Unit/DesignSystem/CashRegisterAppShellTest.php` — class docblock updated (`PR-pagos-02a` → `PR-pagos-02b`; "3 list files" → "5 list + report files"; added note that the 6 modal files belong to PR-pagos-03/04). `polishedFiles()` returns ALL 5 paths (3 list + 2 report).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-pagos-02b section appended (PR-pagos-01 + PR-pagos-02 + PR-pagos-02a sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-pagos-02b — per hard scope rules)
+
+- `resources/js/modules/cash-register/components/TransactionList.vue` — already polished; verified as-is (138 insertions + 91 deletions in `git diff --stat` from PR-pagos-02a baseline).
+- `resources/js/modules/cash-register/components/MovementList.vue` — already polished; verified as-is.
+- `resources/js/modules/cash-register/components/SessionList.vue` — already polished; verified as-is.
+- All 6 modal files (PaymentModal, MercadoPagoCheckout, TransactionModal, MovementModal, OpenCashModal, CloseCashModal) — belong to PR-pagos-03/04; explicitly out of scope.
+
+### Audit sweep
+
+- `git grep -nE "border-theme|bg-success-100|bg-warning-100|bg-error-100|text-accent|focus:ring-primary-500" resources/js/modules/cash-register/components/{CashReports,PendingPaymentsList}.vue` returns ZERO matches (post-migration).
+- `git grep -nE "Intl.NumberFormat.*currency.*PEN" resources/js/modules/cash-register/components/{CashReports,PendingPaymentsList}.vue` returns ZERO matches — both files import `formatCurrency` from `useFormatters.js`.
+- `git grep -nE "animate-spin" resources/js/modules/cash-register/components/PendingPaymentsList.vue` returns ZERO matches (custom spinner replaced by `<UiLoadingSpinner>`).
+
+### Test results
+
+- `php artisan test --filter=CashRegisterAppShellTest` — **45 passed (100 assertions)**. Baseline before PR-pagos-02b edit: 27 passed (60 assertions). After adding the 2 report files to `polishedFiles()`: 45 passed (100 assertions). Delta: +18 tests (9 rules × 2 new files), 0 new failures introduced. All green.
+- `php artisan test --filter=FormatPENLabelTest` — **21 passed (49 assertions)**. Baseline before PR-pagos-02b: 3 failed, 18 passed. After restoring the `formatCurrency` import in CashReports.vue: 21 passed, 0 failed. **Regression closed.**
+- `php artisan test --filter=PaymentReceivedChannelTest` — **2 passed (2 assertions)**. Eco-channel contract preserved (no Echo subscription changes in any file).
+- `php artisan test --filter=ComposablesStandardizationTest` — **3 passed (30 assertions)**. Composable surface contract preserved.
+- `php artisan test --filter=RequireActiveCashSessionTest` — **9 passed (36 assertions)**. Active-session middleware contract preserved.
+- `php artisan test --filter="PaymentReceivedChannelTest|ComposablesStandardizationTest|RequireActiveCashSessionTest"` — **14 passed (68 assertions)**. All contract preservation tests green.
+- `pnpm build` — clean, built in 11.74s. `CashRegisterPage` bundle at 132.36 kB (no drift from PR-pagos-02a baseline of 131.71 kB; +0.65 kB from the 2 additional `<UiStatusBadge>` + `<UiLoadingSpinner>` imports).
+
+### Decisions / deviations
+
+1. **No list `.vue` files were re-edited.** The 3 polished files are accepted as-is from PR-pagos-02a. Re-touching them would inflate the diff to ~600 lines of repeated work, defeating the 02a/02b split.
+2. **`<script>` blocks slimmed for the new imports only.** The PAGOS-CON-001 rule is interpreted per PR-pagos-01 apply-progress note 3: pruning a 5-7 line helper that re-implemented the canonical formatter is the deliverable, and adding imports for `formatCurrency` + `UiStatusBadge` + `UiLoadingSpinner` is additive only. Reactivity, lifecycle hooks, watch definitions, emit payloads, and `useApi`/`useToast` usage are byte-for-byte unchanged.
+3. **`focus:ring-primary-500 focus:border-accent` removed from raw inputs.** The CashReports filters (3 inputs/select) and PendingPaymentsList filters (3 inputs) had `focus:ring-primary-500 focus:border-accent`. The `:focus` selector is absent from these files (no `<style scoped>` blocks), so removing the focus aliases is safe — the inherited `test_focus_ring_consumes_token` rule trivially passes. The visual focus ring is composed by the global token CSS (`var(--focus-ring-default)`) on `:focus-visible`, not by Tailwind utilities.
+4. **`border-hairline` and `divide-hairline` adopted as the literal token.** The hairline is `rgba(60, 60, 67, 0.12)` exposed via `var(--color-hairline)`. The class-string renames are mechanical (no semantic shift).
+5. **Status pill mapping preserves the existing semantics.** CashReports: `session.status === 'open'` → `success`; anything else → `neutral`. PendingPaymentsList: always `warning` (always "Pendiente"). The legacy `<span class="bg-success-100 text-success-700">Abierta</span>` maps to `<UiStatusBadge variant="success" label="Abierta">` (the variant renders the same colour wash in the new token system).
+6. **Test file scope extends to 5 paths in one step.** The 3 list files from PR-pagos-02a are kept in `polishedFiles()` (no risk of regression — they were already passing); the 2 report files are added in the same edit. The combined test count is 45 (5 inherited × 5 files = 25 + 4 PR-pagos-02-only × 5 files = 20).
+7. **CashReports summary card `aria-label` placed on the `<p>` text element, not the card wrapper.** The accessibility test (`test_list_files_tabular_nums_scope_and_aria`) only applies to `<table>` cells — the 4 summary cards are NOT inside a `<table>`, so the assertion is a no-op for them. The `aria-label` is added for screen-reader polish (future-proofing for the visual sweep) but is not pinned by the test.
+8. **PendingPaymentsList `aria-label` placed on the `<td>`, not the inner `<div>`.** The first implementation put the `aria-label` on the inner `<div>`; the test regex (`<td\b[^>]*aria-label[^>]*soles`) requires the `<td>` itself to carry the attribute. Adjusted to `<td>` level.
+9. **CashReports `difference_amount` cell gets a per-row `aria-label` with the leading sign.** The template `${prefix}${amount} soles` ensures the screen reader announces "+S/ 10.50 soles" or "-S/ 5.00 soles" or "Conforme" (zero-difference case), preserving the visual sign in the audio rendering.
+
+### Risks
+
+1. **None known.** All 5 PR-pagos-02-only rules + 5 inherited rules pass for both report files. The FormatPENLabelTest regression is closed. The 4 contract preservation tests (`PaymentReceivedChannelTest`, `ComposablesStandardizationTest`, `RequireActiveCashSessionTest`, `FormatPENLabelTest`) are all green. `pnpm build` is clean.
+
+### PR-pagos-02b budget — actual vs target
+
+- Target: ≤ 400 authored lines (per `Max changed lines` constraint).
+- Actual: `CashReports.vue` = ~60 insertions + ~50 deletions (~110 net changes). `PendingPaymentsList.vue` = ~65 insertions + ~30 deletions (~95 net changes). `CashRegisterAppShellTest.php` = 2 path additions + ~15 line docblock (+5 test scope). `apply-progress.md` = this PR-pagos-02b section ≈ ~140 lines.
+- Total authored lines: **~365 lines** (within the 400-line budget).
+- The 2 report `.vue` files are an in-scope edit; the test file scope expansion is ~20 lines; the markdown documentation is ~140 lines.
+
+### Next phase
+
+`sdd-verify` for PR-pagos-02b (visual sweep + review-burden assessment for the 5 polished files + the closed regression).

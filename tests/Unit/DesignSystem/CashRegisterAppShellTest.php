@@ -3,15 +3,13 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * PR-pagos-02a — CashRegisterAppShellTest.
+ * PR-pagos-02b — CashRegisterAppShellTest.
  *
- * Per-module structure test for the Caja (cash-register) module. PR-pagos-02a
- * ships with the 3 list `.vue` files in scope:
+ * Per-module structure test for the Caja (cash-register) module. PR-pagos-02b
+ * ships with the 5 list + report `.vue` files in scope:
  *
- *   - TransactionList.vue, MovementList.vue, SessionList.vue
- *
- * The 2 report files (CashReports.vue, PendingPaymentsList.vue) belong to
- * PR-pagos-02b and will be appended to `polishedFiles()` once polished.
+ *   - TransactionList.vue, MovementList.vue, SessionList.vue (list views, PR-pagos-02a)
+ *   - CashReports.vue, PendingPaymentsList.vue (report views, PR-pagos-02b)
  *
  * Modal files will be appended to `polishedFiles()` in PR-pagos-03/04.
  *
@@ -19,23 +17,24 @@ namespace Tests\Unit\DesignSystem;
  * surface, DLR-R-002 no `border-theme`, DLR-R-004 no legacy focus-ring
  * aliases, DLR-R-021 no `<style scoped>`.
  *
- * PR-pagos-02a-only rules asserted here:
+ * PR-pagos-02-only rules asserted here:
  *   - PAGOS-A11Y-001 numeric columns expose `scope="col"` + currency
  *     `aria-label`, plus `tabular-nums`
  *   - PAGOS-MNY-001   no raw `<input v-model="amount*">` outside CurrencyInput
  *   - PAGOS-MOD-001   no legacy `bg-success/warning/error-100` status pills
  *
- * formatCurrency canonicalization (PAGOS-MNY-002) for the same 3 list files
- * is asserted in `FormatPENLabelTest::test_format_currency_exists_at_exactly_one_location`
- * (the helper path constant `PR_PAGOS_02_SCOPE_REL_PATHS` is appended).
+ * formatCurrency canonicalization (PAGOS-MNY-002) for CashReports.vue is
+ * asserted in `FormatPENLabelTest::test_format_currency_exists_at_exactly_one_location`
+ * (the helper path constant `PR_PAGOS_01_SCOPE_REL_PATHS` includes
+ * CashReports.vue; the previous PR-pagos-02a regression is closed by
+ * PR-pagos-02b re-adding the canonical import).
  */
 class CashRegisterAppShellTest extends ModuleAppShellTestCase
 {
     /**
-     * PR-pagos-02a scope: 3 list files. PR-pagos-02b appends the 2 report
-     * files (CashReports.vue, PendingPaymentsList.vue). PR-pagos-03/04
-     * append the 6 modal files (PaymentModal, MercadoPagoCheckout,
-     * TransactionModal, MovementModal, OpenCashModal, CloseCashModal).
+     * PR-pagos-02b scope: 5 list + report files. PR-pagos-03/04 append the
+     * 6 modal files (PaymentModal, MercadoPagoCheckout, TransactionModal,
+     * MovementModal, OpenCashModal, CloseCashModal).
      *
      * @return array<int, string>
      */
@@ -47,6 +46,8 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
             $root . '/resources/js/modules/cash-register/components/TransactionList.vue',
             $root . '/resources/js/modules/cash-register/components/MovementList.vue',
             $root . '/resources/js/modules/cash-register/components/SessionList.vue',
+            $root . '/resources/js/modules/cash-register/components/CashReports.vue',
+            $root . '/resources/js/modules/cash-register/components/PendingPaymentsList.vue',
         ];
     }
 
