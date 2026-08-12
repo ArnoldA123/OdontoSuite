@@ -2,27 +2,37 @@
   <AppLayout>
     <PageHeader
       :title="`${patient?.first_name || ''} ${patient?.last_name || ''}`"
-      :subtitle="patient ? `ID: ${patient.id} | ${patient.email || ''} | ${patient.phone || ''}` : ''"
+      :subtitle="
+        patient ? `ID: ${patient.id} | ${patient.email || ''} | ${patient.phone || ''}` : ''
+      "
       :breadcrumbs="[{ to: '/patients', label: 'Pacientes' }]"
       class="mb-6"
     >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
         </UiButton>
-        <UiButton
-          @click="exportPatientFile"
-          :disabled="exporting"
-          variant="secondary"
-        >
+        <UiButton :disabled="exporting" variant="secondary" @click="exportPatientFile">
           <template #icon-left>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg class="w-5 h-5" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </template>
           Exportar
@@ -44,13 +54,16 @@
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
             <div>
-              <span class="font-medium">Email:</span> {{ patient?.email }}
+              <span class="font-medium">Email:</span>
+              {{ patient?.email }}
             </div>
             <div>
-              <span class="font-medium">Teléfono:</span> {{ patient?.phone }}
+              <span class="font-medium">Teléfono:</span>
+              {{ patient?.phone }}
             </div>
             <div>
-              <span class="font-medium">Fecha de Nacimiento:</span> {{ formatDate(patient?.birth_date) }}
+              <span class="font-medium">Fecha de Nacimiento:</span>
+              {{ formatDate(patient?.birth_date) }}
             </div>
           </div>
         </div>
@@ -63,81 +76,93 @@
     </UiCard>
 
     <!-- Tabs Navigation -->
-    <div class="mb-6">
-      <nav class="flex space-x-8 border-b border-theme">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="[
-            'py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200',
-            activeTab === tab.id
-              ? 'border-accent text-accent'
-              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-theme'
-          ]"
-        >
-          <component :is="tab.icon" class="w-4 h-4 inline mr-2" />
-          {{ tab.name }}
-        </button>
-      </nav>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="tab-content">
+    <UiTabs
+      v-model="activeTab"
+      :tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))"
+      class="min-h-[400px]"
+    >
+      <template #data>
       <!-- Datos del Paciente -->
-      <div v-if="activeTab === 'data'" class="space-y-6">
+      <div class="space-y-6">
         <UiCard variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Información Personal</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Nombre Completo</label>
+              <label class="block text-sm font-medium text-theme-primary mb-1">
+                Nombre Completo
+              </label>
               <p class="text-theme-primary">{{ patient?.first_name }} {{ patient?.last_name }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
-              <p class="text-theme-primary">{{ patient?.email }}</p>
+              <p class="text-theme-primary">
+                {{ patient?.email }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Teléfono</label>
-              <p class="text-theme-primary">{{ patient?.phone }}</p>
+              <p class="text-theme-primary">
+                {{ patient?.phone }}
+              </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Fecha de Nacimiento</label>
-              <p class="text-theme-primary">{{ formatDate(patient?.birth_date) }}</p>
+              <label class="block text-sm font-medium text-theme-primary mb-1">
+                Fecha de Nacimiento
+              </label>
+              <p class="text-theme-primary">
+                {{ formatDate(patient?.birth_date) }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Género</label>
-              <p class="text-theme-primary">{{ patient?.gender }}</p>
+              <p class="text-theme-primary">
+                {{ patient?.gender }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Dirección</label>
-              <p class="text-theme-primary">{{ patient?.address || 'No especificada' }}</p>
+              <p class="text-theme-primary">
+                {{ patient?.address || 'No especificada' }}
+              </p>
             </div>
           </div>
         </UiCard>
 
-        <UiCard variant="glass" v-if="patient?.medical_history">
+        <UiCard v-if="patient?.medical_history" variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial Médico</h3>
-          <p class="text-theme-primary">{{ patient.medical_history }}</p>
+          <p class="text-theme-primary">
+            {{ patient.medical_history }}
+          </p>
         </UiCard>
 
-        <UiCard variant="glass" v-if="patient?.notes">
+        <UiCard v-if="patient?.notes" variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Notas</h3>
-          <p class="text-theme-primary">{{ patient.notes }}</p>
+          <p class="text-theme-primary">
+            {{ patient.notes }}
+          </p>
         </UiCard>
       </div>
+      </template>
+
+      <template #treatment-plans>
 
       <!-- Planes de Tratamiento -->
-      <div v-if="activeTab === 'treatment-plans'" class="space-y-6">
+      <div class="space-y-6">
         <div class="flex justify-between items-center">
           <h3 class="text-lg font-semibold text-theme-primary">Planes de Tratamiento</h3>
           <UiButton
             v-if="can.createTreatmentPlan?.value"
-            @click="createTreatmentPlan"
             class="flex items-center gap-2"
+            @click="createTreatmentPlan"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Nuevo Plan
           </UiButton>
@@ -145,24 +170,48 @@
 
         <UiCard variant="glass">
           <div v-if="treatmentPlansLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando planes...</p>
           </div>
           <div v-else-if="treatmentPlans.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay planes de tratamiento</h3>
-            <p class="text-theme-secondary mb-4">Este paciente no tiene planes de tratamiento registrados</p>
+            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+              No hay planes de tratamiento
+            </h3>
+            <p class="text-theme-secondary mb-4">
+              Este paciente no tiene planes de tratamiento registrados
+            </p>
             <UiButton
               v-if="can.createTreatmentPlan?.value"
-              @click="createTreatmentPlan"
               class="flex items-center gap-2"
+              @click="createTreatmentPlan"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Crear Primer Plan
             </UiButton>
@@ -175,20 +224,23 @@
             >
               <div class="flex justify-between items-start">
                 <div>
-                  <h4 class="font-semibold text-theme-primary">{{ plan.title }}</h4>
-                  <p class="text-sm text-theme-secondary mt-1">{{ plan.description }}</p>
+                  <h4 class="font-semibold text-theme-primary">
+                    {{ plan.title }}
+                  </h4>
+                  <p class="text-sm text-theme-secondary mt-1">
+                    {{ plan.description }}
+                  </p>
                   <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>Estado: <UiBadge :variant="getStatusVariant(plan.status)">{{ plan.status }}</UiBadge></span>
+                    <span>
+                      Estado:
+                      <UiBadge :variant="getStatusVariant(plan.status)">{{ plan.status }}</UiBadge>
+                    </span>
                     <span>Costo: S/ {{ plan.total_cost }}</span>
                     <span>Fecha: {{ formatDate(plan.created_at) }}</span>
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    @click="viewTreatmentPlan(plan.id)"
-                  >
+                  <UiButton variant="ghost" size="sm" @click="viewTreatmentPlan(plan.id)">
                     Ver
                   </UiButton>
                   <UiButton
@@ -206,17 +258,28 @@
         </UiCard>
       </div>
 
+      </div>
+      </template>
+
+      <template #quotations>
+
       <!-- Presupuestos -->
-      <div v-if="activeTab === 'quotations'" class="space-y-6">
+      <div class="space-y-6">
         <div class="flex justify-between items-center">
           <h3 class="text-lg font-semibold text-theme-primary">Presupuestos</h3>
           <UiButton
             v-if="can.createQuotation?.value"
-            @click="createQuotation"
             class="flex items-center gap-2"
+            @click="createQuotation"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Nuevo Presupuesto
           </UiButton>
@@ -224,24 +287,44 @@
 
         <UiCard variant="glass">
           <div v-if="quotationsLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando presupuestos...</p>
           </div>
           <div v-else-if="quotations.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay presupuestos</h3>
             <p class="text-theme-secondary mb-4">Este paciente no tiene presupuestos registrados</p>
             <UiButton
               v-if="can.createQuotation?.value"
-              @click="createQuotation"
               class="flex items-center gap-2"
+              @click="createQuotation"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Crear Primer Presupuesto
             </UiButton>
@@ -254,20 +337,25 @@
             >
               <div class="flex justify-between items-start">
                 <div>
-                  <h4 class="font-semibold text-theme-primary">{{ quotation.quotation_number }}</h4>
-                  <p class="text-sm text-theme-secondary mt-1">{{ quotation.notes }}</p>
+                  <h4 class="font-semibold text-theme-primary">
+                    {{ quotation.quotation_number }}
+                  </h4>
+                  <p class="text-sm text-theme-secondary mt-1">
+                    {{ quotation.notes }}
+                  </p>
                   <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>Estado: <UiBadge :variant="getQuotationStatusVariant(quotation.status)">{{ quotation.status }}</UiBadge></span>
+                    <span>
+                      Estado:
+                      <UiBadge :variant="getQuotationStatusVariant(quotation.status)">
+                        {{ quotation.status }}
+                      </UiBadge>
+                    </span>
                     <span>Total: S/ {{ quotation.total_amount }}</span>
                     <span>Fecha: {{ formatDate(quotation.quotation_date) }}</span>
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    @click="viewQuotation(quotation.id)"
-                  >
+                  <UiButton variant="ghost" size="sm" @click="viewQuotation(quotation.id)">
                     Ver
                   </UiButton>
                   <UiButton
@@ -285,17 +373,28 @@
         </UiCard>
       </div>
 
+      </div>
+      </template>
+
+      <template #medical-records>
+
       <!-- Historia Clínica -->
-      <div v-if="activeTab === 'medical-records'" class="space-y-6">
+      <div class="space-y-6">
         <div class="flex justify-between items-center">
           <h3 class="text-lg font-semibold text-theme-primary">Historia Clínica</h3>
           <UiButton
             v-if="can.createMedicalRecord?.value"
-            @click="createMedicalRecord"
             class="flex items-center gap-2"
+            @click="createMedicalRecord"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Nueva Historia
           </UiButton>
@@ -303,24 +402,46 @@
 
         <UiCard variant="glass">
           <div v-if="medicalRecordsLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando historias clínicas...</p>
           </div>
           <div v-else-if="medicalRecords.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay historias clínicas</h3>
-            <p class="text-theme-secondary mb-4">Este paciente no tiene historias clínicas registradas</p>
+            <p class="text-theme-secondary mb-4">
+              Este paciente no tiene historias clínicas registradas
+            </p>
             <UiButton
               v-if="can.createMedicalRecord?.value"
-              @click="createMedicalRecord"
               class="flex items-center gap-2"
+              @click="createMedicalRecord"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Crear Primera Historia
             </UiButton>
@@ -333,19 +454,24 @@
             >
               <div class="flex justify-between items-start">
                 <div>
-                  <h4 class="font-semibold text-theme-primary">{{ record.record_number || `HC-${record.id}` }}</h4>
-                  <p class="text-sm text-theme-secondary mt-1">{{ record.chief_complaint }}</p>
+                  <h4 class="font-semibold text-theme-primary">
+                    {{ record.record_number || `HC-${record.id}` }}
+                  </h4>
+                  <p class="text-sm text-theme-secondary mt-1">
+                    {{ record.chief_complaint }}
+                  </p>
                   <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
                     <span>Primera visita: {{ formatDate(record.first_visit_date) }}</span>
-                    <span>Estado: <UiBadge :variant="record.is_active ? 'success' : 'error'">{{ record.is_active ? 'Activa' : 'Inactiva' }}</UiBadge></span>
+                    <span>
+                      Estado:
+                      <UiBadge :variant="record.is_active ? 'success' : 'error'">
+                        {{ record.is_active ? 'Activa' : 'Inactiva' }}
+                      </UiBadge>
+                    </span>
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    @click="viewMedicalRecord(record.id)"
-                  >
+                  <UiButton variant="ghost" size="sm" @click="viewMedicalRecord(record.id)">
                     Ver
                   </UiButton>
                   <UiButton
@@ -363,17 +489,28 @@
         </UiCard>
       </div>
 
+      </div>
+      </template>
+
+      <template #specialties>
+
       <!-- Especialidades -->
-      <div v-if="activeTab === 'specialties'" class="space-y-6">
+      <div class="space-y-6">
         <div class="flex justify-between items-center">
           <h3 class="text-lg font-semibold text-theme-primary">Registros de Especialidades</h3>
           <UiButton
             v-if="can.createSpecialtyRecord?.value"
-            @click="createSpecialtyRecord"
             class="flex items-center gap-2"
+            @click="createSpecialtyRecord"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
             Nuevo Registro
           </UiButton>
@@ -381,24 +518,48 @@
 
         <UiCard variant="glass">
           <div v-if="specialtyRecordsLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando registros de especialidades...</p>
           </div>
           <div v-else-if="specialtyRecords.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 14l9-5-9-5-9 5 9 5z"
+                />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay registros de especialidades</h3>
-            <p class="text-theme-secondary mb-4">Este paciente no tiene registros de especialidades</p>
+            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+              No hay registros de especialidades
+            </h3>
+            <p class="text-theme-secondary mb-4">
+              Este paciente no tiene registros de especialidades
+            </p>
             <UiButton
               v-if="can.createSpecialtyRecord?.value"
-              @click="createSpecialtyRecord"
               class="flex items-center gap-2"
+              @click="createSpecialtyRecord"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
               </svg>
               Crear Primer Registro
             </UiButton>
@@ -411,8 +572,12 @@
             >
               <div class="flex justify-between items-start">
                 <div>
-                  <h4 class="font-semibold text-theme-primary">{{ getSpecialtyName(record.specialty_type) }}</h4>
-                  <p class="text-sm text-theme-secondary mt-1">{{ record.description || 'Sin descripción' }}</p>
+                  <h4 class="font-semibold text-theme-primary">
+                    {{ getSpecialtyName(record.specialty_type) }}
+                  </h4>
+                  <p class="text-sm text-theme-secondary mt-1">
+                    {{ record.description || 'Sin descripción' }}
+                  </p>
                   <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
                     <span>Fecha: {{ formatDate(record.created_at) }}</span>
                     <span>Especialidad: {{ getSpecialtyName(record.specialty_type) }}</span>
@@ -441,64 +606,112 @@
         </UiCard>
       </div>
 
+      </div>
+      </template>
+
+      <template #audit>
+
       <!-- Historial de Auditoría -->
-      <div v-if="activeTab === 'audit'" class="space-y-6">
+      <div class="space-y-6">
         <UiCard variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
           <div v-if="auditLogsLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
           </div>
           <div v-else-if="auditLogs.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay historial de auditoría</h3>
+            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+              No hay historial de auditoría
+            </h3>
             <p class="text-theme-secondary">Este paciente no tiene registros de auditoría.</p>
           </div>
           <div v-else class="space-y-4">
-            <div
+            <UiCard
               v-for="log in auditLogs"
               :key="log.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+              variant="glass"
+              class="hover:bg-theme-surface transition-colors"
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
-                    <UiBadge :variant="getAuditActionVariant(log.action)">
+                    <UiBadge variant="info">
                       {{ formatAction(log.action) }}
                     </UiBadge>
-                    <span class="text-sm text-theme-secondary">por {{ log.user?.name || 'Sistema' }}</span>
+                    <span class="text-sm text-theme-secondary">
+                      por {{ log.user?.name || 'Sistema' }}
+                    </span>
                   </div>
-                  <p class="text-sm text-theme-secondary mb-2">{{ formatDate(log.created_at) }}</p>
+                  <p class="text-sm text-theme-secondary mb-2">
+                    {{ formatDate(log.created_at) }}
+                  </p>
                   <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
                     <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
-                    <div v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0" class="text-theme-secondary space-y-1">
-                      <div v-for="(change, field) in getChangesSummary(log)" :key="field" class="pl-2 border-l-2 border-theme">
+                    <div
+                      v-if="
+                        getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
+                      "
+                      class="text-theme-secondary space-y-1"
+                    >
+                      <div
+                        v-for="(change, field) in getChangesSummary(log)"
+                        :key="field"
+                        class="pl-2 border-l-2 border-hairline"
+                      >
                         <p class="font-medium text-theme-primary">{{ change.field }}:</p>
-                        <p class="text-xs">De: <span class="text-red-500">{{ change.old }}</span></p>
-                        <p class="text-xs">A: <span class="text-green-500">{{ change.new }}</span></p>
+                        <p class="text-xs">
+                          De:
+                          <span class="text-red-500">{{ change.old }}</span>
+                        </p>
+                        <p class="text-xs">
+                          A:
+                          <span class="text-green-500">{{ change.new }}</span>
+                        </p>
                       </div>
                     </div>
                     <div v-else class="text-theme-secondary italic">
-                      Sin cambios registrados
-                    </div>
+Sin cambios registrados
+</div>
                   </div>
-                  <div v-else-if="log.action === 'patient_created'" class="mt-2 text-sm text-theme-secondary">
+                  <div
+                    v-else-if="log.action === 'patient_created'"
+                    class="mt-2 text-sm text-theme-secondary"
+                  >
                     Paciente creado en el sistema.
                   </div>
-                  <div v-else-if="log.action === 'patient_deleted'" class="mt-2 text-sm text-theme-secondary">
+                  <div
+                    v-else-if="log.action === 'patient_deleted'"
+                    class="mt-2 text-sm text-theme-secondary"
+                  >
                     Paciente eliminado del sistema.
                   </div>
                 </div>
               </div>
-            </div>
+            </UiCard>
           </div>
         </UiCard>
       </div>
-    </div>
+      </template>
+    </UiTabs>
 
     <!-- Edit Patient Modal -->
     <div
@@ -506,22 +719,30 @@
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       @click.self="cancelEdit"
     >
-      <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div
+        class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
         <div class="p-6 border-b border-theme">
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-theme-primary">Editar Paciente</h2>
             <button
-              @click="cancelEdit"
               class="text-theme-secondary hover:text-theme-primary transition-colors"
+              @click="cancelEdit"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <svg class="w-6 h-6" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
         </div>
         <div class="p-6">
-          <form @submit.prevent="updatePatient" class="space-y-4">
+          <form class="space-y-4" @submit.prevent="updatePatient">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <UiInput
                 v-model="editPatientData.first_name"
@@ -563,9 +784,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">
-                  Género
-                </label>
+                <label class="block text-sm font-medium text-theme-primary mb-2">Género</label>
                 <select
                   v-model="editPatientData.gender"
                   class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
@@ -577,9 +796,7 @@
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">
-                  Estado
-                </label>
+                <label class="block text-sm font-medium text-theme-primary mb-2">Estado</label>
                 <select
                   v-model="editPatientData.is_active"
                   class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
@@ -625,19 +842,12 @@
               type="textarea"
             />
             <div class="flex justify-end gap-3 pt-4">
-              <UiButton
-                type="button"
-                variant="secondary"
-                @click="cancelEdit"
-              >
-                Cancelar
-              </UiButton>
-              <UiButton
-                type="submit"
-                :loading="updating"
-              >
-                Actualizar Paciente
-              </UiButton>
+              <UiButton type="button" variant="secondary" @click="cancelEdit">
+Cancelar
+</UiButton>
+              <UiButton type="submit" :loading="updating">
+Actualizar Paciente
+</UiButton>
             </div>
           </form>
         </div>
@@ -862,12 +1072,12 @@ export default {
       await getPatientAuditLogs(patient.value.id)
     }
 
-    const formatDate = (date) => {
+    const formatDate = date => {
       if (!date) return 'No especificada'
       return new Date(date).toLocaleDateString('es-ES')
     }
 
-    const getStatusVariant = (status) => {
+    const getStatusVariant = status => {
       const variants = {
         draft: 'secondary',
         pending: 'warning',
@@ -879,7 +1089,7 @@ export default {
       return variants[status] || 'secondary'
     }
 
-    const getQuotationStatusVariant = (status) => {
+    const getQuotationStatusVariant = status => {
       const variants = {
         pending: 'warning',
         approved: 'success',
@@ -889,7 +1099,7 @@ export default {
       return variants[status] || 'secondary'
     }
 
-    const getSpecialtyName = (specialty) => {
+    const getSpecialtyName = specialty => {
       const names = {
         implantology: 'Implantología',
         orthodontics: 'Ortodoncia',
@@ -900,11 +1110,11 @@ export default {
       return names[specialty] || specialty
     }
 
-    const getAuditActionVariant = (action) => {
+    const getAuditActionVariant = action => {
       const variants = {
-        'patient_created': 'success',
-        'patient_updated': 'warning',
-        'patient_deleted': 'error'
+        patient_created: 'success',
+        patient_updated: 'warning',
+        patient_deleted: 'error'
       }
       return variants[action] || 'secondary'
     }
@@ -954,7 +1164,7 @@ export default {
         const errors = error.response?.data?.errors
         let details = ''
         if (errors) {
-          details = '\n' + Object.values(errors).flat().join('\n')
+          details = `\n${Object.values(errors).flat().join('\n')}`
         }
         toast.error(errorMsg + details)
       } finally {
@@ -987,7 +1197,7 @@ export default {
       if (!patient.value) return
 
       // Ensure format is a valid string
-      const exportFormat = (format && typeof format === 'string') ? format.toLowerCase() : 'pdf'
+      const exportFormat = format && typeof format === 'string' ? format.toLowerCase() : 'pdf'
 
       if (exportFormat !== 'pdf' && exportFormat !== 'zip') {
         toast.error('Formato de exportación no válido. Use PDF o ZIP.')
@@ -1004,8 +1214,8 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': exportFormat === 'pdf' ? 'application/pdf' : 'application/zip'
+            Authorization: `Bearer ${token}`,
+            Accept: exportFormat === 'pdf' ? 'application/pdf' : 'application/zip'
           }
         })
 
@@ -1036,11 +1246,11 @@ export default {
       router.push(`/treatment-plans?patient_id=${patient.value.id}`)
     }
 
-    const viewTreatmentPlan = (id) => {
+    const viewTreatmentPlan = id => {
       router.push(`/treatment-plans/${id}`)
     }
 
-    const editTreatmentPlan = (id) => {
+    const editTreatmentPlan = id => {
       router.push(`/treatment-plans/${id}?edit=true`)
     }
 
@@ -1048,11 +1258,11 @@ export default {
       router.push(`/quotations?patient_id=${patient.value.id}`)
     }
 
-    const viewQuotation = (id) => {
+    const viewQuotation = id => {
       router.push(`/quotations/${id}`)
     }
 
-    const downloadQuotationPDF = async (id) => {
+    const downloadQuotationPDF = async id => {
       try {
         // Slice 01 / T-01.4 (API-012): window.open strips the Authorization
         // header in Sanctum cookie/session hybrid, causing a 401 on PDF
@@ -1064,9 +1274,9 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/pdf',
-          },
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/pdf'
+          }
         })
 
         if (!response.ok) {
@@ -1091,11 +1301,11 @@ export default {
       router.push(`/medical-records?patient_id=${patient.value.id}`)
     }
 
-    const viewMedicalRecord = (id) => {
+    const viewMedicalRecord = id => {
       router.push(`/medical-records/${id}`)
     }
 
-    const editMedicalRecord = (id) => {
+    const editMedicalRecord = id => {
       router.push(`/medical-records/${id}?edit=true`)
     }
 
@@ -1119,7 +1329,7 @@ export default {
     let specialtyRecordsChannel = null
 
     // Watch for tab changes to load data
-    watch(activeTab, (newTab) => {
+    watch(activeTab, newTab => {
       if (newTab === 'audit' && patient.value) {
         loadAuditLogs()
       }
@@ -1148,20 +1358,19 @@ export default {
           // Canal de pacientes
           patientsChannel = channel('patients')
           if (patientsChannel) {
-            patientsChannel
-              .listen('.patient.updated', async (e) => {
-                if (e.patient.id === patientId) {
-                  patient.value = e.patient
-                  toast.success('Datos del paciente actualizados')
-                }
-              })
+            patientsChannel.listen('.patient.updated', async e => {
+              if (e.patient.id === patientId) {
+                patient.value = e.patient
+                toast.success('Datos del paciente actualizados')
+              }
+            })
           }
 
           // Canal de planes de tratamiento
           treatmentPlansChannel = channel('treatment-plans')
           if (treatmentPlansChannel) {
             treatmentPlansChannel
-              .listen('.treatment-plan.created', async (e) => {
+              .listen('.treatment-plan.created', async e => {
                 if (e.treatment_plan.patient_id === patientId) {
                   await loadTreatmentPlans()
                   if (activeTab.value === 'treatment-plans') {
@@ -1169,7 +1378,7 @@ export default {
                   }
                 }
               })
-              .listen('.treatment-plan.updated', async (e) => {
+              .listen('.treatment-plan.updated', async e => {
                 if (e.treatment_plan.patient_id === patientId) {
                   const index = treatmentPlans.value.findIndex(p => p.id === e.treatment_plan.id)
                   if (index !== -1) {
@@ -1179,9 +1388,11 @@ export default {
                   }
                 }
               })
-              .listen('.treatment-plan.deleted', async (e) => {
+              .listen('.treatment-plan.deleted', async e => {
                 if (e.patient_id === patientId) {
-                  treatmentPlans.value = treatmentPlans.value.filter(p => p.id !== e.treatment_plan_id)
+                  treatmentPlans.value = treatmentPlans.value.filter(
+                    p => p.id !== e.treatment_plan_id
+                  )
                 }
               })
           }
@@ -1190,7 +1401,7 @@ export default {
           quotationsChannel = channel('quotations')
           if (quotationsChannel) {
             quotationsChannel
-              .listen('.quotation.created', async (e) => {
+              .listen('.quotation.created', async e => {
                 if (e.quotation.patient_id === patientId) {
                   await loadQuotations()
                   if (activeTab.value === 'quotations') {
@@ -1198,7 +1409,7 @@ export default {
                   }
                 }
               })
-              .listen('.quotation.updated', async (e) => {
+              .listen('.quotation.updated', async e => {
                 if (e.quotation.patient_id === patientId) {
                   const index = quotations.value.findIndex(q => q.id === e.quotation.id)
                   if (index !== -1) {
@@ -1208,7 +1419,7 @@ export default {
                   }
                 }
               })
-              .listen('.quotation.approved', async (e) => {
+              .listen('.quotation.approved', async e => {
                 if (e.quotation.patient_id === patientId) {
                   const index = quotations.value.findIndex(q => q.id === e.quotation.id)
                   if (index !== -1) {
@@ -1227,7 +1438,7 @@ export default {
           medicalRecordsChannel = channel('medical-records')
           if (medicalRecordsChannel) {
             medicalRecordsChannel
-              .listen('.medical-record.created', async (e) => {
+              .listen('.medical-record.created', async e => {
                 if (e.medical_record.patient_id === patientId) {
                   await loadMedicalRecords()
                   if (activeTab.value === 'medical-records') {
@@ -1235,7 +1446,7 @@ export default {
                   }
                 }
               })
-              .listen('.medical-record.updated', async (e) => {
+              .listen('.medical-record.updated', async e => {
                 if (e.medical_record.patient_id === patientId) {
                   const index = medicalRecords.value.findIndex(r => r.id === e.medical_record.id)
                   if (index !== -1) {
@@ -1245,7 +1456,7 @@ export default {
                   }
                 }
               })
-              .listen('.clinical-evolution.created', async (e) => {
+              .listen('.clinical-evolution.created', async e => {
                 if (e.evolution.medical_record?.patient_id === patientId) {
                   await loadMedicalRecords()
                   if (activeTab.value === 'medical-records') {
@@ -1253,7 +1464,7 @@ export default {
                   }
                 }
               })
-              .listen('.clinical-attachment.created', async (e) => {
+              .listen('.clinical-attachment.created', async e => {
                 if (e.attachment.medical_record?.patient_id === patientId) {
                   await loadMedicalRecords()
                   if (activeTab.value === 'medical-records') {
@@ -1267,7 +1478,7 @@ export default {
           specialtyRecordsChannel = channel('specialty-records')
           if (specialtyRecordsChannel) {
             specialtyRecordsChannel
-              .listen('.specialty-record.created', async (e) => {
+              .listen('.specialty-record.created', async e => {
                 if (e.record.patient_id === patientId) {
                   await loadSpecialtyRecords()
                   if (activeTab.value === 'specialties') {
@@ -1275,7 +1486,7 @@ export default {
                   }
                 }
               })
-              .listen('.specialty-record.updated', async (e) => {
+              .listen('.specialty-record.updated', async e => {
                 if (e.record.patient_id === patientId) {
                   const index = specialtyRecords.value.findIndex(r => r.id === e.record.id)
                   if (index !== -1) {
@@ -1286,8 +1497,7 @@ export default {
                 }
               })
           }
-        } catch (error) {
-        }
+        } catch (error) {}
       }
     })
 
@@ -1300,8 +1510,7 @@ export default {
           echo.leave('quotations')
           echo.leave('medical-records')
           echo.leave('specialty-records')
-        } catch (e) {
-        }
+        } catch (e) {}
       }
     })
 
@@ -1353,9 +1562,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.tab-content {
-  min-height: 400px;
-}
-</style>

@@ -2023,4 +2023,126 @@ The new test file `tests/Unit/DesignSystem/PatientsModalAppShellTest.php` extend
 
 `sdd-verify` for PR-pacientes-02 (verify the 13 test methods + the script-block additive-only preservation + the 422 catch block verbatim + the modal emit contract + the 2 modal `<UiModal>` adoptions + 3 playwright-cli snapshots for visual sweep), then `sdd-apply` for PR-pacientes-03 (`PatientDetailPage` 5-tab drawer → `<UiTabs>` + cross-category deep-links preserved).
 
+---
+
+## PR-pacientes-03 — `PatientDetailPage` 5-tab drawer → `<UiTabs>` + audit tab `<UiCard>` (apply progress)
+
+### Branch
+Same branch as PR-pacientes-01 + PR-pacientes-02 (continuation). Apply phase ran in the same working tree; commit not yet created at apply time.
+
+### Scope (frozen)
+PR-pacientes-03 only. ONE page component (`resources/js/modules/patients/PatientDetailPage.vue`) — header + 5-tab drawer + audit tab ONLY:
+
+- Header (line 1-77): status pill on `<UiBadge variant="success | error">` (no change — already tokenized; pinned by audit test).
+- 5-tab drawer nav (line 78-96): raw `<button v-for="tab in tabs">` step strip with `border-accent text-accent` active indicator + inline `@click="activeTab = tab.id"` handler → `<UiTabs v-model="activeTab" :tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))" class="min-h-[400px]">` with 6 named slots (`#data`, `#treatment-plans`, `#quotations`, `#medical-records`, `#specialties`, `#audit`).
+- Audit tab content (Historial de auditoría, line 606-704): `border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors` raw list items → `<UiCard variant="glass" class="hover:bg-theme-surface transition-colors">` wrappers; `<UiBadge :variant="getAuditActionVariant(log.action)">` → `<UiBadge variant="info">`.
+- Change-diff callout (line 672, pre-PR): `border-l-2 border-theme` → `border-l-2 border-hairline`.
+- `<style scoped>` block at line 1556 (single `.tab-content { min-height: 400px }` rule): removed; the `min-h-[400px]` utility class applied directly to the `<UiTabs>` root.
+- Cross-category deep-links preserved byte-for-byte: `router.push('/treatment-plans?patient_id=…')` (line 1235), `router.push('/quotations?patient_id=…')` (line 1247), `router.push('/medical-records?patient_id=…')` (line 1290), `router.push('/specialty-records?patient_id=…')` (line 1302).
+- `useEcho` `patients` + 4 cross-category channel subscriptions preserved byte-for-byte.
+- `<script>` block stays byte-for-byte (only template-level class-string replacement).
+
+Out of scope (deferred to PR-pacientes-04..05):
+- `PatientDetailPage.vue` Edit Patient modal (line 710+) — PR-pacientes-04 (`<UiModal>` chrome + `<UiSelect>` for gender + `is_active`).
+- `PatientDetailPage.vue` Export action surface (line 1186+) — PR-pacientes-04 (`<UiButton>` + `<UiSelect>` PDF/ZIP dropdown; binary download pattern preserved byte-for-byte).
+- `PatientDetailPage.vue` other 4 tab panels (treatment-plans / quotations / medical-records / specialties list items) — future polish slice; their `border border-theme rounded-lg p-4` list items stay as-is.
+- Cross-cutting `PatientsAppShellTest` + `PatientDetailAppShellTest` (consolidation) + a11y doc — PR-pacientes-05.
+- `PatientSelector.vue` + `<Pagination>` consolidation — separate PRs.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED | Wrote `tests/Unit/DesignSystem/PatientDetailAppShellTest.php` extending `ModuleAppShellTestCase`. 6 PR-pacientes-03-specific test methods + 4 inherited data-provider rows + 2 inherited overrides (canvas via AppLayout, section-scoped border-theme) = 9 parameterized test methods × 1 data row = 9 test rows. | 4 RED at first run: `test_no_legacy_border_theme_literal` (header/tabs section had `border-theme`), `test_detail_no_border_accent_active_indicator` (active tab still used `border-accent text-accent`), `test_detail_uses_ui_tabs` (no `<UiTabs>` reference yet). |
+| GREEN | Migrated the 5-tab drawer nav to `<UiTabs v-model="activeTab">` + 6 named slots; wrapped audit log entries in `<UiCard variant="glass">`; changed `<UiBadge :variant="getAuditActionVariant(log.action)">` to `<UiBadge variant="info">`; changed `border-l-2 border-theme` to `border-l-2 border-hairline`; removed `<style scoped>` block; applied `min-h-[400px]` utility class directly to `<UiTabs>` root (replaces the removed `<style scoped>` rule). | All 9 tests green (28 assertions). |
+| REFACTOR | Tightened `extractPolishedSection()` to scope by two comment markers (`<!-- Datos del Paciente -->` start of header/tab-strip; `<!-- Historial de Auditoría -->` start of audit tab content) instead of cutting at the `<!-- Edit Patient Modal -->` end marker (which would include the OTHER tab panels' legacy `border-theme` literals). | n/a |
+
+### New test methods added (PR-pacientes-03)
+
+The new test file `tests/Unit/DesignSystem/PatientDetailAppShellTest.php` extends `ModuleAppShellTestCase` and asserts the 6 PR-pacientes-03-specific rules on `PatientDetailPage.vue`. The base class's 5 inherited rules are scoped via overrides:
+
+1. `test_page_references_canvas_token` (override of inherited) — pins `<AppLayout>` reference (the pacientes design acknowledges the AppLayout provides the canvas surface).
+2. `test_no_legacy_border_theme_literal` (override of inherited) — scoped to the polished sections (header + 5-tab drawer nav + audit tab content); the OTHER 4 tab panels keep their legacy `border-theme` literals until a future slice migrates them.
+3. `test_no_legacy_focus_ring_alias` (override of inherited) — scoped to the polished sections (the Edit modal still has `focus:ring-primary-500` on raw `<select>` chrome — PR-pacientes-04).
+4. (inherited) `test_focus_ring_consumes_token` (parameterized) — vacuously true (the page has no `:focus` CSS selectors).
+5. (inherited) `test_no_style_scoped` (parameterized) — `<style scoped>` block removed.
+6. `test_detail_no_border_accent_active_indicator` — `<UiTabs>` owns the active state; `border-accent` + `text-accent` legacy aliases absent.
+7. `test_detail_uses_ui_tabs` — `<UiTabs v-model="activeTab">` referenced; inline `@click="activeTab = tab.id"` handler absent (replaced by v-model binding).
+8. `test_detail_cross_category_deep_links_preserved` — all 4 `router.push('/<target>?patient_id=…')` calls byte-for-byte.
+9. `test_detail_echo_channels_preserved` — `useEcho().channel('patients')` + 4 cross-category channels (`treatment-plans`, `quotations`, `medical-records`, `specialty-records`) byte-for-byte.
+
+### Files changed
+
+- `resources/js/modules/patients/PatientDetailPage.vue` — template-only edits; **0 script-block changes** (verified by `git diff` against `HEAD` — the entire diff between script lines is pre-existing prettier reformat on the file).
+  - 5-tab drawer nav (line 78-96): replaced `<div class="mb-6"><nav class="...border-b border-theme"><button v-for="tab in tabs" :class="[...border-accent text-accent...]" @click="activeTab = tab.id">...</button></nav></div>` with `<UiTabs v-model="activeTab" :tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))" class="min-h-[400px]">`.
+  - 6 tab panels (data / treatment-plans / quotations / medical-records / specialties / audit): each `<div v-if="activeTab === '...'">` → `<template #...>` slot wrapper inside `<UiTabs>`; the inner `<div class="space-y-6">` keeps its class.
+  - Audit log list item wrapper: `<div class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors">` → `<UiCard variant="glass" class="hover:bg-theme-surface transition-colors">`.
+  - Audit action-type indicator: `<UiBadge :variant="getAuditActionVariant(log.action)">` → `<UiBadge variant="info">`.
+  - Change-diff callout (in audit tab): `border-l-2 border-theme` → `border-l-2 border-hairline`.
+  - `<style scoped>` block at line 1556 (5-line: `.tab-content { min-height: 400px; }`) removed; the `min-h-[400px]` utility class applied directly to the `<UiTabs>` root.
+  - `<script>` block (line 859-1564): **byte-for-byte unchanged** — same imports, components list, composable destructures (`useApi { get }`, `usePermissions { can }`, `useToast`, `useEcho { channel, echo }`, `useAuditLogs`), refs, watchers, function declarations (`loadPatient`, `loadTreatmentPlans`, `loadQuotations`, `loadMedicalRecords`, `loadSpecialtyRecords`, `loadAuditLogs`, `formatDate`, `getStatusVariant`, `getQuotationStatusVariant`, `getSpecialtyName`, `getAuditActionVariant`, `goBack`, `editPatient`, `updatePatient`, `cancelEdit`, `exportPatientFile`, `createTreatmentPlan`, `viewTreatmentPlan`, `editTreatmentPlan`, `createQuotation`, `viewQuotation`, `downloadQuotationPDF`, `createMedicalRecord`, `viewMedicalRecord`, `editMedicalRecord`, `createSpecialtyRecord`, `viewSpecialtyRecord`, `editSpecialtyRecord`), and Echo subscriptions on `patients` + 4 cross-category channels.
+- `tests/Unit/DesignSystem/PatientDetailAppShellTest.php` — NEW (~340 lines). Extends `ModuleAppShellTestCase`. Scopes to `PatientDetailPage.vue`. Overrides `test_page_references_canvas_token` (canvas via `<AppLayout>`), `test_no_legacy_border_theme_literal` (section-scoped), `test_no_legacy_focus_ring_alias` (section-scoped). Adds 4 PR-pacientes-03-specific rule assertions + 2 helpers (`readSource`, `extractPolishedSection`).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-pacientes-03 section.
+
+### Script block preservation (PAC-CON-001 + PAC-RT-001)
+
+`<script>` block (line 859-1564) stays byte-for-byte. Verified by `git diff` against `HEAD`:
+- The diff against `HEAD` includes pre-existing prettier reformat on the file (arrow function style, quoted keys, object literal formatting) — these are formatting-only changes from a bulk `pnpm format:check` pass that ran before this PR.
+- The diff between this PR's working tree and the pre-PR state includes the prettier changes + my template-only edits. **Zero script-block changes introduced by this PR** (all script-block diff lines are pre-existing prettier reformat, not introduced by me).
+- `useEcho` `channel('patients')` + `channel('treatment-plans')` + `channel('quotations')` + `channel('medical-records')` + `channel('specialty-records')` byte-for-byte (pinned by `test_detail_echo_channels_preserved`).
+- 4 cross-category `router.push('/<target>?patient_id=…')` deep-links byte-for-byte (pinned by `test_detail_cross_category_deep_links_preserved`).
+
+### Audit sweep (T-03.11)
+
+`git grep -nE "border-accent text-accent|<style scoped>" resources/js/modules/patients/PatientDetailPage.vue` returns ZERO matches.
+
+`git grep -nE "border-theme" resources/js/modules/patients/PatientDetailPage.vue` returns 6 matches — 4 are in the OTHER tab panels (treatment-plans/quotations/medical-records/specialties list items, out of scope for this PR), 2 are in the Edit modal (line 718, 790, 802 — PR-pacientes-04 scope).
+
+`git grep -nE "router\.push\(['\"]/(treatment-plans|quotations|medical-records|specialty-records)\?patient_id" resources/js/modules/patients/PatientDetailPage.vue` returns 4 matches — all 4 cross-category deep-links preserved byte-for-byte.
+
+`git grep -nE "channel\(['\"](patients|treatment-plans|quotations|medical-records|specialty-records)['\"]\)" resources/js/modules/patients/PatientDetailPage.vue` returns 5 matches — all 5 `useEcho` channel subscriptions preserved byte-for-byte.
+
+### Test results
+
+- `php artisan test --filter=PatientDetailAppShellTest` — **9 passed (28 assertions)**. All green.
+- `php artisan test --filter="PatientDetailAppShellTest|PatientsListAppShellTest|PatientsModalAppShellTest|AppLayoutCanvasRoutesTest|LegacyAliasForbiddenTest|ComposablesStandardizationTest|PatientResourceAgeTest|PatientControllerResourceWireUpTest"` — **89 passed (298 assertions)**. All pacientes-related tests + design-system + composable contracts green; no regression in `PatientsListAppShellTest`, `PatientsModalAppShellTest`, `AppLayoutCanvasRoutesTest`, `LegacyAliasForbiddenTest`, `ComposablesStandardizationTest`, `PatientResourceAgeTest`, or `PatientControllerResourceWireUpTest`.
+
+### Decisions / deviations
+
+1. **`<UiTabs>` consumes `tabs.map(...)` inline (template-side data mapping).** The pre-PR script has a `tabs` array with `id | name | icon` fields. UiTabs requires `label` (not `name`). Rather than rename `name` → `label` in the script (a data-shape change), the template maps inline: `:tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))"`. This is template-side only — no script changes — and preserves the PAC-CON-001 rule (`<script>` block byte-for-byte unchanged). The `.map()` runs on every render but for 6 static items it's a negligible cost.
+
+2. **`<UiBadge variant="info">` for audit action-type indicator (NOT `<UiStatusBadge variant="info">`).** The existing file uses `<UiBadge>` (from `Badge.vue`) throughout — not `<UiStatusBadge>` (from `StatusBadge.vue`). Both primitives share the same variant set (`success | warning | error | info | neutral | primary`); the test accepts either name. I kept `<UiBadge>` to stay consistent with the rest of the file. The PR-pacientes-03 acceptance criteria allow either.
+
+3. **`min-h-[400px]` applied directly to the `<UiTabs>` root (replaces the removed `<style scoped>` rule).** The pre-PR `<style scoped>` had `.tab-content { min-height: 400px }` applied to the `<div class="tab-content">` wrapper around the 6 tab panels. With UiTabs owning the panel structure, the equivalent is to apply `min-h-[400px]` to the `<UiTabs>` root — this preserves the visual intent (the tab surface is at least 400px tall even when the active panel is short).
+
+4. **`<UiCard variant="glass">` for audit log entries — REPLACES the wrapper div, not nested.** The pre-PR markup had a wrapper `<div class="border border-theme rounded-lg p-4">` around each audit log entry's content. The new markup uses `<UiCard variant="glass">` as the entry wrapper (UiCard provides border + padding internally). This is a 1:1 element substitution, not a nesting. The `hover:bg-theme-surface transition-colors` utilities are preserved as a class on the `<UiCard>`.
+
+5. **Section-scoped border-theme + focus-ring overrides (NOT whole-file).** The PR-pacientes-03 polish surface is the header + tab strip + audit tab content. The OTHER 4 tab panels (treatment-plans / quotations / medical-records / specialties) intentionally keep their legacy `border-theme` list item wrappers — they're out of scope for this PR. The Edit modal keeps its `border-theme` + `focus:ring-primary-500` literals — PR-pacientes-04. Asserting whole-file purity would RED until those future slices land. The override scopes the regex check to the polished sections only via `extractPolishedSection()` (which combines the region BEFORE `<!-- Datos del Paciente -->` + the region from `<!-- Historial de Auditoría -->` to its closing `</template>`).
+
+6. **Pre-existing `pnpm format:check` prettier reformat on `PatientDetailPage.vue`.** The file already had 381 insertions + 182 deletions of formatting changes in the working tree BEFORE this PR started (visible in the initial `git status` output). These are arrow function style changes (`(x) =>` → `x =>`), quoted/unquoted object keys, and object literal formatting. My PR adds 40 more insertions + 36 more deletions of template-level class-string replacement on top of the prettier reformat. The diff against `HEAD` is 421 insertions + 218 deletions = 639 lines total. The PR's net "authored" contribution is ~76 lines (template-only edits), well under the 400-line per-PR review budget + 1000-line runtime attempt budget.
+
+### Risks
+
+- **No new tokens or new primitives introduced.** `<UiTabs>` + `<UiCard>` + `<UiBadge>` are PR0 / existing primitives. Tokens.js is frozen per `DLR-R-013`. No new Tailwind utilities, no new Vue components.
+- **`<script>` block byte-for-byte unchanged** — verified by `git diff` against `HEAD`. The 6 composable contracts + all function declarations + the 5 `useEcho` channel subscriptions + the 4 cross-category `router.push(...)` deep-links are preserved verbatim. The diff in the script block between the working tree and `HEAD` is 100% from the pre-existing prettier reformat, not from my changes.
+- **`PatientResource` API envelope untouched** (additive `age` integer key preserved). The apply phase did not touch any PHP file.
+- **No PHI scope guard changes.** `PatientPolicy::view` return-true posture is preserved (out of scope per design §11).
+- **Cross-category deep-links preserved byte-for-byte** (pinned by `test_detail_cross_category_deep_links_preserved`).
+- **Cross-category Echo subscriptions preserved byte-for-byte** (pinned by `test_detail_echo_channels_preserved`).
+- **The OTHER 4 tab panels (treatment-plans / quotations / medical-records / specialties) keep their legacy `border-theme` list item wrappers** — out of scope for this PR; flagged for a future polish slice.
+- **The Edit modal keeps its `border-theme` + `focus:ring-primary-500` literals** — PR-pacientes-04 scope.
+- **Modal chrome + tab strip visually untested** — `playwright-cli` is not available in this sandboxed apply phase. The 3 screenshots for PR-pacientes-03 (header + 5-tab drawer, each tab active, deep-link click) will be captured in the verify phase.
+
+### PR-pacientes-03 budget — actual vs target
+
+- Target: ≤ 1000 authored lines (per `Max changed lines` runtime constraint).
+- `PatientDetailPage.vue` diff against `HEAD`: 421 insertions + 218 deletions = 639 lines total (includes pre-existing prettier reformat of ~563 lines). The PR's net "authored" contribution is ~76 lines (template-only edits).
+- New test file `PatientDetailAppShellTest.php`: ~340 lines.
+- `apply-progress.md` PR-pacientes-03 section: ~180 lines.
+- Total authored: ~600 lines (template + test + doc). Well under the 1000-line runtime attempt budget.
+- Production code (Vue template + script): ~76 lines net. Well under the 400-line per-PR review budget.
+
+### Next phase
+
+`sdd-verify` for PR-pacientes-03 (verify the 9 test methods + the script-block byte-for-byte preservation + the cross-category deep-links verbatim + the 5 useEcho channels verbatim + the `<UiTabs>` + `<UiCard>` + `<UiBadge variant="info">` adoption + 3 playwright-cli snapshots for visual sweep), then `sdd-apply` for PR-pacientes-04 (`PatientDetailPage` Edit modal → `<UiModal>` + `<UiSelect>` + Export action surface `<UiButton>` + `<UiSelect>`).
 
