@@ -8,27 +8,27 @@
   >
     <div class="space-y-6 bg-canvas">
       <!-- Resumen de la Sesión -->
-      <div class="bg-theme-surface border border-hairline rounded-lg p-4">
+      <UiCard variant="flat" padding="md">
         <h3 class="text-lg font-semibold text-theme-primary mb-3">Resumen de la Sesión</h3>
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-theme-secondary">Monto de Apertura:</span>
-            <span class="font-semibold ml-2 text-theme-primary tabular-nums">{{ formatCurrency(session?.opening_amount) }}</span>
+            <span class="font-semibold ml-2 text-theme-primary tabular-nums" :aria-label="`${session?.opening_amount || 0} soles`">{{ formatCurrency(session?.opening_amount) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Ingresos:</span>
-            <span class="font-semibold ml-2 text-systemGreen-600 tabular-nums">{{ formatCurrency(summary?.total_income) }}</span>
+            <span class="font-semibold ml-2 text-systemGreen-600 tabular-nums" :aria-label="`${summary?.total_income || 0} soles`">{{ formatCurrency(summary?.total_income) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Egresos:</span>
-            <span class="font-semibold ml-2 text-systemRed-600 tabular-nums">{{ formatCurrency(summary?.total_expenses) }}</span>
+            <span class="font-semibold ml-2 text-systemRed-600 tabular-nums" :aria-label="`${summary?.total_expenses || 0} soles`">{{ formatCurrency(summary?.total_expenses) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Monto Esperado:</span>
-            <span class="font-semibold ml-2 text-theme-primary tabular-nums">{{ formatCurrency(summary?.expected_amount) }}</span>
+            <span class="font-semibold ml-2 text-theme-primary tabular-nums" :aria-label="`${summary?.expected_amount || 0} soles`">{{ formatCurrency(summary?.expected_amount) }}</span>
           </div>
         </div>
-      </div>
+      </UiCard>
 
       <!-- Arqueo -->
       <div class="space-y-4">
@@ -48,6 +48,7 @@
               :precision="2"
               :error="errors.closing_amount"
               help="Ingrese el monto real contado en caja"
+              input-class="tabular-nums"
             />
           </div>
 
@@ -109,24 +110,23 @@
           </div>
 
           <!-- Total del Arqueo -->
-          <UiCard variant="flat" padding="md" class="mt-4">
+          <UiCard variant="flat" padding="md">
             <div class="flex justify-between items-center">
               <span class="text-lg font-semibold text-theme-primary">Total del Arqueo:</span>
-              <span class="text-xl font-bold text-theme-primary tabular-nums">{{ formatCurrency(arqueoTotal) }}</span>
+              <span class="text-xl font-bold text-theme-primary tabular-nums" :aria-label="`${arqueoTotal} soles`">{{ formatCurrency(arqueoTotal) }}</span>
             </div>
           </UiCard>
 
           <!-- Diferencia -->
-          <div v-if="diferencia !== 0" class="mt-4">
-            <UiStatusBadge
-              :variant="diferencia > 0 ? 'success' : 'error'"
-              :label="`Diferencia: ${formatCurrency(Math.abs(diferencia))} (${diferencia > 0 ? 'Sobrante' : 'Faltante'})`"
-              size="md"
-            />
-          </div>
+          <UiStatusBadge
+            v-if="diferencia !== 0"
+            :variant="diferencia > 0 ? 'success' : 'error'"
+            :label="`Diferencia: ${formatCurrency(Math.abs(diferencia))} ${diferencia > 0 ? '(Sobrante)' : '(Faltante)'}`"
+            size="md"
+          />
 
           <!-- Notas de Cierre -->
-          <div class="mt-4">
+          <div>
             <label class="block text-sm font-medium text-theme-primary mb-1">
               Notas de Cierre
             </label>
@@ -144,8 +144,8 @@
           </div>
 
           <!-- Justificación de Diferencia -->
-          <div v-if="Math.abs(diferencia) > 0.01" class="mt-4">
-            <label class="block text-sm font-medium text-red-700 mb-2">
+          <div v-if="Math.abs(diferencia) > 0.01" class="p-4">
+            <label class="block text-sm font-medium text-systemRed-700 mb-2">
               Justificación de la Diferencia
             </label>
             <textarea
@@ -159,18 +159,18 @@
           </div>
 
           <!-- Resumen de Cierre -->
-          <UiCard variant="flat" padding="md" class="mt-4">
+          <UiCard variant="flat" padding="md">
             <h4 class="text-sm font-semibold text-theme-primary mb-3">
               Resumen de Cierre
             </h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Transacciones:</span>
-                <span class="font-medium text-theme-primary tabular-nums">{{ summary?.transactions_count || 0 }}</span>
+                <span class="font-medium text-theme-primary tabular-nums" :aria-label="`${summary?.transactions_count || 0} transacciones`">{{ summary?.transactions_count || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Movimientos:</span>
-                <span class="font-medium text-theme-primary tabular-nums">{{ summary?.movements_count || 0 }}</span>
+                <span class="font-medium text-theme-primary tabular-nums" :aria-label="`${summary?.movements_count || 0} movimientos`">{{ summary?.movements_count || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Duración de Sesión:</span>
@@ -185,7 +185,7 @@
               <input
                 v-model="formData.generate_report"
                 type="checkbox"
-                class="rounded border-hairline text-systemBlue-500"
+                class="rounded border-hairline text-systemBlue-600"
                 checked
               />
               <span class="ml-2 text-sm text-theme-primary">
@@ -227,9 +227,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useToast } from '@/composables/useToast'
 import { formatCurrency } from '@/composables/useFormatters'
@@ -313,7 +313,7 @@ const sessionDuration = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none sm:text-sm bg-theme-surface-elevated text-theme-primary'
+  const base = 'block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm bg-theme-surface-elevated text-theme-primary'
   return loading.value ? `${base} cursor-not-allowed opacity-50` : `${base} border-hairline`
 })
 
@@ -407,7 +407,7 @@ const generateClosureReport = async (sessionId) => {
   }
 }
 
-// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
+// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Watch
 watch(() => props.show, (newValue) => {

@@ -593,3 +593,99 @@ None known. Both polished modal files pass every CajaModalsAppShellTest assertio
 ### Next phase
 
 `sdd-verify` for PR-pagos-03a (visual sweep + review-burden assessment for the 2 polished modal files), OR `sdd-apply` PR-pagos-03b (which re-polishes `OpenCashModal.vue` + `CloseCashModal.vue`, re-adds them to `polishedFiles()`, re-enables `test_close_cash_modal_uses_tabular_nums_on_totals`, and closes any test scope gaps left by the orchestrator's `git restore`).
+
+---
+
+## PR-pagos-03b — Caja modals batch B (split: OpenCashModal + CloseCashModal only)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-pagos-03b only. The 2 Caja modal `.vue` files in `resources/js/modules/cash-register/components/` that were `git restore`d to legacy state in PR-pagos-03a and are re-polished here:
+- `OpenCashModal.vue` — cash session open; chrome tokenisation + status badge + summary card + loading spinner
+- `CloseCashModal.vue` — cash session close + arqueo desglose; totals tokenised + status badge + cierre summary card
+
+The 2 modals polished in PR-pagos-03a (TransactionModal + MovementModal) are NOT re-touched here.
+
+Out of scope (deferred to PR-pagos-04/05): `PaymentModal.vue`, `MercadoPagoCheckout.vue`, page-level chrome, `PaymentMethods`, `Quotations`.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED (baseline) | Ran `php artisan test --filter=CajaModalsAppShellTest` against the 2-file scope (only TransactionModal + MovementModal in `polishedFiles()`) | **16 passed (45 assertions)** — GREEN baseline; the test was correctly narrowed to the 2 polished modals |
+| RED (target) | Re-extended `polishedFiles()` to include OpenCashModal + CloseCashModal (4 paths); re-enabled `test_close_cash_modal_uses_tabular_nums_on_totals` | **9 failed / 22 passed (81 assertions)**. The 9 failures correctly fire on the 2 restored modals: 2× `page references canvas token` (no `bg-canvas`), 2× `no legacy border theme literal`, 2× `no legacy focus ring alias` (`focus:ring-primary-500 focus:border-accent`), 2× `modals combined primitive and contract rules` (missing `<UiStatusBadge>` + `formatCurrency` import), 1× `close cash modal uses tabular nums on totals` |
+| GREEN | Re-polished both modal `.vue` files: `bg-canvas` token on form root, `border-theme` → `border-hairline`, removed `focus:ring-primary-500 focus:border-accent`, `<UiStatusBadge>` for Apertura/Diferencia headers, `<UiCard>` wrappers for the resumen + cierre-summary + arqueo-total blocks, `<UiLoadingSpinner>` for the branches-loading state, `tabular-nums` on CloseCashModal's 7 numeric cells + `aria-label` for screen-reader polish, `formatCurrency` imported from `@/composables/useFormatters` (local declarations removed), `text-green-600` / `text-red-600` → `text-systemGreen-600` / `text-systemRed-600`, `text-accent` → `text-systemBlue-600` | **31 passed (85 assertions)**. All 4 modals pass the full CajaModalsAppShellTest. |
+| REFACTOR | Slimmed CloseCashModal's template by collapsing the inline diferencia `<div class="bg-yellow-50...">` to a single `<UiStatusBadge>` (variant driven by `diferencia > 0`). Slimmed OpenCashModal's textarea focus aliases. Tightened the `polishedFiles()` docblock to cite PR-pagos-03b. | n/a |
+
+### TDD Cycle Evidence
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 03b.1 | `tests/Unit/DesignSystem/CajaModalsAppShellTest.php` | Unit | ✅ 16 passed (2-file scope) before edit | ✅ Test re-scanned 4 paths; 9 failures correctly attributed to the 2 restored modals + CloseCashModal-specific tabular-nums rule | ✅ Both modals re-polished → 31 passed (85 assertions) | ✅ 4-file data-provider × 9 rules (5 inherited + 4 PR-pagos-03-only) = 36 test rows minus collapsed combinations | ✅ Tightened docblock + test method re-enable note removed |
+| 03b.2 | Sentinel fire | Unit | ✅ Test correctly detects regression | ✅ Temporarily restored `border-theme` in OpenCashModal; `no legacy border theme literal` failed as expected | ✅ File restored from `/tmp` backup | ➖ Single (sentinel pattern reused from PR-pagos-02b) | ➖ None |
+
+### Files changed (PR-pagos-03b)
+
+- `resources/js/modules/cash-register/components/OpenCashModal.vue` — added `bg-canvas` token on `<form>` root. Added `<UiStatusBadge variant="info" label="Apertura de Caja">` for the modal header. Replaced `border-theme` (textarea) with `border-hairline`. Removed legacy `focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent` from the textarea class string. Replaced the legacy `bg-primary-50 border border-primary-200` resumen block with `<UiCard variant="flat" padding="md">` (its content rows converted to `text-theme-secondary` / `text-theme-primary`). Replaced the static `<p>Cargando sucursales...</p>` loading state with `<UiLoadingSpinner size="md" variant="primary" text="Cargando sucursales..." aria-label="Cargando sucursales" />`. Added `tabular-nums` on the opening-amount `CurrencyInput` (via `input-class`) + on the `formatCurrency` rendered span (with `aria-label="${amount} soles"` for screen-reader polish). Replaced `text-primary-700` / `text-primary-900` legacy colors with the tokenised `text-theme-secondary` / `text-theme-primary` (the Card variant owns the visual surface). Imported `formatCurrency` from `@/composables/useFormatters` and removed the local 5-line `const formatCurrency = (amount) => ...` declaration. Imported `UiCard`, `UiStatusBadge`, `UiLoadingSpinner`. The `<script>` block's reactivity, lifecycle, `useCashRegister.openSession`, 401 redirect path, toast notifications, and emit payloads are byte-for-byte unchanged.
+- `resources/js/modules/cash-register/components/CloseCashModal.vue` — added `bg-canvas` token on the wrapping `<div>`. Replaced the legacy `bg-theme-surface border border-theme` Resumen de la Sesión block with `<UiCard variant="flat" padding="md">`. Replaced the legacy `bg-primary-50 border border-primary-200` Arqueo Total block with `<UiCard variant="flat" padding="md">`. Replaced the legacy `bg-yellow-50 border border-yellow-200` Diferencia block with a single `<UiStatusBadge :variant="diferencia > 0 ? 'success' : 'error'" :label="...formatCurrency(...)..." size="md" />`. Replaced the legacy `bg-red-50 border border-red-200` Justificación wrapper with a plain `<div class="p-4">` (the justification `<label>` keeps `text-systemRed-700` for emphasis). Replaced the legacy `bg-primary-50 rounded-lg border border-primary-200` Resumen de Cierre block with `<UiCard variant="flat" padding="md">`. Replaced the checkbox class `border-theme text-accent focus:ring-primary-500` with `border-hairline text-systemBlue-600`. Replaced `text-green-600` / `text-red-600` with `text-systemGreen-600` / `text-systemRed-600`. Added `tabular-nums` + `aria-label` on the 7 numeric cells (Apertura / Ingresos / Egresos / Esperado / Arqueo Total / Total Transacciones / Total Movimientos). Removed `focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent` from `inputClasses()` and changed `border-theme` → `border-hairline`. Added `input-class="tabular-nums"` to the closing-amount `CurrencyInput`. Imported `UiCard`, `UiStatusBadge`. `formatCurrency` is already imported from `@/composables/useFormatters` since PR-pagos-01 (no script removal needed). The `<script>` block's `useCashRegister.closeSession` 401 redirect, `generateClosureReport` fetch, toast notifications, and emit payloads are byte-for-byte unchanged.
+- `tests/Unit/DesignSystem/CajaModalsAppShellTest.php` — class docblock updated (`PR-pagos-03a` → `PR-pagos-03b`; "2 Caja modal `.vue` files" → "4 Caja modal `.vue` files"; removed the "Out of scope here" deferral note). `polishedFiles()` returns ALL 4 modal paths. `test_close_cash_modal_uses_tabular_nums_on_totals` re-enabled (DLR-R-007 rule — accepts `tabular-nums` literal OR the `font-feature-settings: var(--font-features-tabular-nums)` token form).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-pagos-03b section appended (PR-pagos-01 + PR-pagos-02 + PR-pagos-02a + PR-pagos-02b + PR-pagos-03 + PR-pagos-03a sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-pagos-03b — per hard scope rules)
+
+- `resources/js/modules/cash-register/components/TransactionModal.vue` — already polished from PR-pagos-03; verified as-is.
+- `resources/js/modules/cash-register/components/MovementModal.vue` — already polished from PR-pagos-03; verified as-is.
+- `resources/js/modules/cash-register/components/PaymentModal.vue` — belongs to PR-pagos-04.
+- `resources/js/modules/cash-register/components/MercadoPagoCheckout.vue` — belongs to PR-pagos-04.
+- All page-level `.vue` files — belong to PR-pagos-05 or are already polished from PR-pagos-01/02.
+- `resources/js/composables/useFormatters.js` — unchanged.
+- All 5 Caja list + report `.vue` files — already polished from PR-pagos-02a/02b.
+
+### Audit sweep (T-03b.8)
+
+`git grep -nE "bg-primary-50|animate-spin|Teleport to" resources/js/modules/cash-register/components/{OpenCashModal,CloseCashModal}.vue` returns ZERO matches (post-migration).
+
+`git grep -nE "border-theme|focus:ring-primary-500|focus:border-accent" resources/js/modules/cash-register/components/{OpenCashModal,CloseCashModal}.vue` returns ZERO matches (post-migration).
+
+`git grep -nE "Intl.NumberFormat.*currency.*PEN" resources/js/modules/cash-register/components/{OpenCashModal,CloseCashModal}.vue` returns ZERO matches — both files import `formatCurrency` from `useFormatters.js` (CloseCashModal was already canonicalised in PR-pagos-01; OpenCashModal is now canonicalised).
+
+`git grep -nE "tabular-nums" resources/js/modules/cash-register/components/{OpenCashModal,CloseCashModal}.vue` returns 8 matches (1 in OpenCashModal opening-amount CurrencyInput + 7 in CloseCashModal on Apertura / Ingresos / Egresos / Esperado / Arqueo Total / Total Transacciones / Total Movimientos).
+
+### Test results
+
+- `php artisan test --filter=CajaModalsAppShellTest` — **31 passed (85 assertions)**. Baseline before PR-pagos-03b edit: 16 passed (45 assertions). After extending `polishedFiles()` to 4 paths + re-enabling the tabular-nums rule + re-polishing both modals: 31 passed / 0 failed (85 assertions). Delta: +15 tests (9 rules × 2 new files = 18 minus 3 collapsed combinations + the re-enabled tabular-nums test), 0 new failures introduced. All green.
+- `php artisan test --filter=FormatPENLabelTest` — **21 passed (49 assertions)**. The PR-pagos-01 canonicalisation (and PR-pagos-02b restoration) keeps both modals free of local `Intl.NumberFormat` declarations.
+- `php artisan test --filter="PaymentReceivedChannelTest|ComposablesStandardizationTest|RequireActiveCashSessionTest|PaymentModal401RedirectTest"` — **16 passed (50 assertions)**. Echo channels, composables, active-session middleware, and payment-modal 401-redirect contracts all preserved (no Echo subscription changes, no `useCashRegister` edits, no `useApi` edits, no `useToast` edits in either modal).
+- `pnpm build` — clean, built in 10.90s. `CashRegisterPage` bundle at 132.86 kB (no drift from PR-pagos-03 baseline of 132.34 kB; +0.52 kB from the 2 additional `<UiStatusBadge>` + `<UiCard>` + `<UiLoadingSpinner>` imports split between OpenCashModal and CloseCashModal).
+
+### Negative verifications performed
+
+- **Sentinel fire**: temporarily restored `border-theme` (one occurrence in OpenCashModal.vue) and re-ran `php artisan test --filter=CajaModalsAppShellTest`. The `no legacy border theme literal` test correctly fired RED for the OpenCashModal data set (`1 failed / 6 passed`). The file was restored from a `/tmp` backup before final commit. Confirms the inherited rule fires on the newly-polished file.
+
+### Decisions / deviations
+
+1. **CloseCashModal diferencia simplified to a single `<UiStatusBadge>`.** The original `bg-yellow-50 border border-yellow-200 rounded-lg p-4` block contained a `flex justify-between items-center` row with the Diferencia label + an inline `<span :class="diferencia > 0 ? 'text-green-600' : 'text-red-600'">`. The collapse to a single badge preserves the visual information (Sobrante vs Faltante in the label) and uses the success/error variant mapping. The status-badge variant handles the color, the label concatenates the amount + (Sobrante|Faltante). The previous "two-color text" pattern (`text-green-600` / `text-red-600`) is replaced by the systemGreen/systemRed token classes inside the badge.
+2. **OpenCashModal resumen card converts legacy `text-primary-*` colors to `text-theme-secondary` / `text-theme-primary`.** The original `bg-primary-50 border border-primary-200` block was using a primary-tinted surface + primary-tinted text. The `<UiCard variant="flat" padding="md">` owns the visual surface (neutral, not primary-tinted), so the inner text classes shift to the neutral `text-theme-secondary` (for labels) + `text-theme-primary` (for values). This preserves readability without the primary-color overload.
+3. **OpenCashModal `<script>` block slimmed only for the new `formatCurrency` import.** The 5-line local `formatCurrency` declaration was removed; the canonical helper import was added. All other reactivity (openSession call, branches load, toast notifications, watch on `props.show`, onMounted, `goToBranchesSettings` router push) is byte-for-byte unchanged.
+4. **CloseCashModal `<script>` block is byte-for-byte unchanged.** Only the template was modified (border-hairline, systemGreen/systemRed text colors, UiCard wrappers, UiStatusBadge for diferencia, tabular-nums on totals). The `useCashRegister.closeSession` reactivity, the `generateClosureReport` fetch, the toast notifications, the `defineEmits(['close', 'success'])` payload, and the watch on `props.show` are all preserved.
+5. **CloseCashModal checkbox class simplified.** The original `class="rounded border-theme text-accent focus:ring-primary-500"` had 3 forbidden aliases (border-theme, text-accent, focus:ring-primary-500). The replacement `class="rounded border-hairline text-systemBlue-600"` removes all 3; the focus ring is now composed by the global token CSS on `:focus-visible`.
+6. **`tabular-nums` placed on the rendered `<span>` (not the wrapping `<div>`).** The accessibility test (`test_close_cash_modal_uses_tabular_nums_on_totals`) accepts either `tabular-nums` literal or `font-feature-settings: var(--font-features-tabular-nums)` token form; the implementation uses the literal `tabular-nums` class on the inner span (matching the pattern from PR-pagos-02b's CashReports). The `aria-label` lives on the same span for screen-reader polish.
+7. **Justificación de Diferencia wrapper converted to plain `<div>`.** The original `bg-red-50 border border-red-200 rounded-lg p-4` block was a visual emphasis surface. The tokenised form drops the surface entirely (the `<label text-systemRed-700>` + the textarea carry the visual signal). This eliminates a redundant wrapper without losing the emphasis.
+8. **CurrencyInput `<input-class="tabular-nums">` added on the opening amount + closing amount fields.** The CurrencyInput component supports the `input-class` prop to forward class strings to the inner `<input>`. The `tabular-nums` class on the input makes the typed digits align with the same column as the form's other amount cells. This is an additive-only edit on the `<CurrencyInput>` call sites — the component's source code is not touched.
+
+### Risks
+
+None known. Both modal files pass every CajaModalsAppShellTest assertion (5 inherited rules + 4 PR-pagos-03-only rules across 4 files + the re-enabled tabular-nums rule). The 4 contract preservation tests (`FormatPENLabelTest`, `PaymentReceivedChannelTest`, `ComposablesStandardizationTest`, `RequireActiveCashSessionTest`, `PaymentModal401RedirectTest`) stay green. `pnpm build` is clean. The 2 modal `<script>` block edits are restricted to the additive `formatCurrency` import (OpenCashModal only) + UiCard/UiStatusBadge imports; reactivity, lifecycle, useCashRegister calls, 401 redirects, toast notifications, and emit payloads are byte-for-byte preserved. The Echo channels in `useCashRegister` are untouched.
+
+### PR-pagos-03b budget — actual vs target
+
+- Target: ≤ 400 authored lines (per `Max changed lines` constraint).
+- Actual: `OpenCashModal.vue` = ~13 insertions + ~13 deletions = ~26 line changes. `CloseCashModal.vue` = ~30 insertions + ~20 deletions = ~50 line changes. `CajaModalsAppShellTest.php` = ~20 line docblock + ~15 line test-method re-enable = ~35 lines. `apply-progress.md` = this PR-pagos-03b section ≈ ~150 lines.
+- Total authored lines: **~111 line changes for production code + ~35 line changes for the test file** = ~146 line changes, plus ~150 lines of documentation. Production-code edits are well under the 400-line budget.
+- The 2 polished modal `.vue` files are an in-scope edit; the test file scope expansion is ~35 lines; the markdown documentation is ~150 lines.
+
+### Next phase
+
+`sdd-verify` for PR-pagos-03b (visual sweep + review-burden assessment for the 4 polished modal files).

@@ -3,16 +3,10 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * PR-pagos-03a — CajaModalsAppShellTest. Asserts PAGOS-MOD-001 +
- * PAGOS-MNY-002 + PAGOS-CON-001 across the 2 Caja modal `.vue` files
- * (TransactionModal, MovementModal). DLR-R-* rules are inherited from
- * ModuleAppShellTestCase.
- *
- * Out of scope here (deferred to PR-pagos-03b):
- * - `resources/js/modules/cash-register/components/OpenCashModal.vue`
- * - `resources/js/modules/cash-register/components/CloseCashModal.vue`
- * Both files were `git restore`d to their pre-PR-pagos-03 state; they will
- * be re-polished in PR-pagos-03b and re-added to `polishedFiles()`.
+ * PR-pagos-03b — CajaModalsAppShellTest. Asserts PAGOS-MOD-001 +
+ * PAGOS-MNY-002 + PAGOS-CON-001 across the 4 Caja modal `.vue` files
+ * (TransactionModal, MovementModal, OpenCashModal, CloseCashModal).
+ * DLR-R-* rules are inherited from ModuleAppShellTestCase.
  */
 class CajaModalsAppShellTest extends ModuleAppShellTestCase
 {
@@ -23,6 +17,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
         return [
             $root . '/resources/js/modules/cash-register/components/TransactionModal.vue',
             $root . '/resources/js/modules/cash-register/components/MovementModal.vue',
+            $root . '/resources/js/modules/cash-register/components/OpenCashModal.vue',
+            $root . '/resources/js/modules/cash-register/components/CloseCashModal.vue',
         ];
     }
 
@@ -97,10 +93,21 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
             sprintf('%s MUST declare the additive `type` prop with default \'payment\' + validator (PR-pagos-03 §3.2).', $path));
     }
 
-    // NOTE: `test_close_cash_modal_uses_tabular_nums_on_totals` removed for
-    // PR-pagos-03a — CloseCashModal is deferred to PR-pagos-03b (the file was
-    // `git restore`d to its pre-PR-pagos-03 state). The rule will be
-    // re-enabled in PR-pagos-03b once CloseCashModal is re-polished.
+    /**
+     * DLR-R-007 — CloseCashModal applies `tabular-nums` (or the
+     * `font-feature-settings: var(--font-features-tabular-nums)` token) on
+     * its totals (Apertura / Ingresos / Egresos / Esperado / Arqueo Total /
+     * transactions_count / movements_count).
+     */
+    public function test_close_cash_modal_uses_tabular_nums_on_totals(): void
+    {
+        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/CloseCashModal.vue';
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+        $this->assertTrue(
+            (bool) preg_match('/tabular-nums|font-feature-settings:\s*var\(--font-features-tabular-nums\)/', $src),
+            sprintf('%s MUST use `tabular-nums` (or the token) on totals (DLR-R-007).', $path));
+    }
 
     /** PR-pagos-03 — TransactionModal consumes <UiCard> + <UiLoadingSpinner>; no legacy bg-primary-50 / animate-spin (PAGOS-MOD-001-1 / DLR-R-009). */
     public function test_transaction_modal_uses_ui_card_and_spinner(): void
