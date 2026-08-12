@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
+import { formatCurrency } from '../../composables/useFormatters'
 
 const { get, post } = useApi()
 const toast = useToast()
@@ -60,7 +61,7 @@ const generateQuotation = async (appointment) => {
   }
 }
 
-const formatCurrency = (n) => `S/ ${Number(n ?? 0).toFixed(2)}`
+// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
 const formatDate = (iso) => {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })

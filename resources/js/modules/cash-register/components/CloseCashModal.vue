@@ -235,6 +235,7 @@ import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useToast } from '@/composables/useToast'
+import { formatCurrency } from '@/composables/useFormatters'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -409,12 +410,7 @@ const generateClosureReport = async (sessionId) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Watch
 watch(() => props.show, (newValue) => {

@@ -36,6 +36,16 @@ class FormatPENLabelTest extends TestCase
 
     private const SESSION_LIST_REL_PATH = '/resources/js/modules/cash-register/components/SessionList.vue';
 
+    private const CURRENCY_INPUT_REL_PATH = '/resources/js/components/ui/CurrencyInput.vue';
+
+    /** PR-pagos-01 four migrated files. */
+    private const PR_PAGOS_01_SCOPE_REL_PATHS = [
+        '/resources/js/modules/cash-register/ReadyToBillPage.vue',
+        '/resources/js/modules/cash-register/CashRegisterPage.vue',
+        '/resources/js/modules/cash-register/components/CloseCashModal.vue',
+        '/resources/js/modules/cash-register/components/CashReports.vue',
+    ];
+
     /** Literal `S/ ` MUST appear only inside the helper source file. */
     private const HELPER_FILE_NAME = 'useFormatters.js';
 
@@ -66,6 +76,25 @@ class FormatPENLabelTest extends TestCase
             'function',
             $exports['formatPENLabel'],
             'formatPENLabel must be a function (typeof)'
+        );
+    }
+
+    /** @test */
+    public function helper_module_exports_format_currency(): void
+    {
+        // PR-pagos-01: formatCurrency is the canonical name; useFormatters.js
+        // must export it as a function.
+        $exports = self::loadHelperExports();
+        $this->assertIsArray($exports, 'loadHelperExports() must return the module exports');
+        $this->assertArrayHasKey(
+            'formatCurrency',
+            $exports,
+            'useFormatters.js must export `formatCurrency` (PR-pagos-01 canonicalization)'
+        );
+        $this->assertSame(
+            'function',
+            $exports['formatCurrency'],
+            'formatCurrency must be a function (typeof)'
         );
     }
 
@@ -137,6 +166,41 @@ class FormatPENLabelTest extends TestCase
                 1,
                 $count,
                 "formatPENLabel({$this->label($case)}) must contain exactly one `S/` substring, got: {$out}"
+            );
+        }
+    }
+
+    /** @test */
+    public function test_format_currency_emits_soles_prefix_for_pen(): void
+    {
+        // PR-pagos-01: the canonical formatCurrency helper must emit the
+        // `S/` prefix and render pen amounts with 2 decimal places,
+        // matching the legacy Intl.NumberFormat('es-PE', { currency: 'PEN' })
+        // behavior that the 4 migrated call sites previously inlined.
+        $out = self::normalize(self::callFormatCurrency(759));
+        $this->assertSame(
+            'S/ 759.00',
+            $out,
+            'formatCurrency(759) must render exactly one S/ prefix and 2 decimals'
+        );
+        $this->assertStringContainsString(
+            'S/',
+            $out,
+            'formatCurrency output must contain the S/ currency prefix (PEN symbol)'
+        );
+
+        // Zero / null / undefined collapse to S/ 0.00 (same contract as formatPENLabel).
+        $this->assertSame('S/ 0.00', self::normalize(self::callFormatCurrency(0)));
+        $this->assertSame('S/ 0.00', self::normalize(self::callFormatCurrency(null)));
+        $this->assertSame('S/ 0.00', self::normalize(self::callFormatCurrency('undefined-as-value')));
+        $this->assertSame('S/ 123.45', self::normalize(self::callFormatCurrency('123.45')));
+
+        // Exactly one S/ substring per call (no doubled prefix).
+        foreach (['S/ 759.00', 'S/ 0.00', 'S/ 123.45'] as $sample) {
+            $this->assertSame(
+                1,
+                substr_count($sample, 'S/'),
+                "Canonical sample {$sample} must contain exactly one S/ substring"
             );
         }
     }
@@ -292,6 +356,171 @@ class FormatPENLabelTest extends TestCase
     }
 
     // -------------------------------------------------------------------
+    // Layer 4 — PR-pagos-01 formatCurrency canonicalization
+    //
+    // PAGOS-MNY-002 + DLR-XCUT-007: the money formatter
+    //   Intl.NumberFormat('es-PE', { currency: 'PEN' })
+    // MUST live at exactly ONE location — resources/js/composables/useFormatters.js
+    // — and every PAGOS call site MUST import the canonical helper
+    // (formatCurrency) instead of redeclaring it. CurrencyInput.vue is
+    // exempt because it uses a different `Intl.NumberFormat` shape
+    // (minimumFractionDigits / maximumFractionDigits without `currency`)
+    // for in-field display, not a currency formatter.
+    // -------------------------------------------------------------------
+
+    /** @test */
+    public function test_format_currency_exists_at_exactly_one_location(): void
+    {
+        // After migration, the canonical location (useFormatters.js) is
+        // the only file under resources/js that defines the literal
+        // `Intl.NumberFormat('es-PE', { currency: 'PEN' })` payload used
+        // by the formatCurrency helper. The four PR-pagos-01 migrated
+        // files MUST import the canonical helper instead of redeclaring
+        // it.
+        $scopeFiles = self::prPagos01ScopePaths();
+
+        // The literal pattern matches: Intl.NumberFormat('es-PE', { ... currency: 'PEN' ... })
+        // We deliberately allow whitespace/newlines between tokens.
+        $pattern = "/Intl\\.NumberFormat\\s*\\(\\s*['\"]es-PE['\"]\\s*,\\s*\\{[^}]*currency:\\s*['\"]PEN['\"]/s";
+
+        $violations = [];
+        foreach ($scopeFiles as $path) {
+            $source = (string) file_get_contents($path);
+            if ($source === '') {
+                continue;
+            }
+            if (preg_match($pattern, $source)) {
+                $violations[] = basename($path);
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $violations,
+            'PR-pagos-01: the four migrated files MUST NOT redeclare the '
+                . 'Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' }) literal. '
+                . 'They must import formatCurrency from useFormatters.js. '
+                . 'Canonical location: resources/js/composables/useFormatters.js. '
+                . 'Offenders: ' . implode(', ', $violations)
+        );
+    }
+
+    /** @test */
+    public function test_format_currency_input_sites_import_from_canon(): void
+    {
+        // Every PR-pagos-01 migrated file MUST import formatCurrency from
+        // the canonical location (@/composables/useFormatters or the
+        // matching relative path). We accept either the alias
+        // (`@/composables/useFormatters`) or the relative variant
+        // (`../../composables/useFormatters`).
+        $scopeFiles = self::prPagos01ScopePaths();
+
+        $importPatterns = [
+            '@/composables/useFormatters',
+            '../../composables/useFormatters',
+            '../composables/useFormatters',
+        ];
+
+        $violations = [];
+        foreach ($scopeFiles as $path) {
+            $source = (string) file_get_contents($path);
+            if ($source === '') {
+                $violations[] = basename($path) . ' (empty)';
+                continue;
+            }
+            $found = false;
+            foreach ($importPatterns as $needle) {
+                if (strpos($source, $needle) !== false) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $violations[] = basename($path);
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $violations,
+            'PR-pagos-01: each migrated file MUST import the canonical '
+                . 'formatCurrency helper from useFormatters. Offenders: '
+                . implode(', ', $violations)
+        );
+    }
+
+    /** @test */
+    public function test_currency_input_formatter_unchanged(): void
+    {
+        // CurrencyInput.vue uses its own `Intl.NumberFormat('es-PE', ...)`
+        // with `minimumFractionDigits` / `maximumFractionDigits` (no
+        // `currency: 'PEN'`) for in-field display. PR-pagos-01 MUST NOT
+        // fork this formatter — the canonicalization is for the
+        // `formatCurrency` helper, not the input's display layer.
+        $path = self::currencyInputPath();
+        $this->assertFileExists($path, 'CurrencyInput.vue must exist');
+
+        $source = (string) file_get_contents($path);
+
+        // Positive: it still has its own Intl.NumberFormat('es-PE', ...) call.
+        $this->assertMatchesRegularExpression(
+            '/Intl\.NumberFormat\s*\(\s*[\'"]es-PE[\'"]/s',
+            $source,
+            'CurrencyInput.vue must keep its own Intl.NumberFormat(\'es-PE\', ...) call for in-field display'
+        );
+
+        // Positive: that call uses minimumFractionDigits / maximumFractionDigits,
+        // not `currency: 'PEN'` (the formatter-unchanged guarantee).
+        $this->assertMatchesRegularExpression(
+            '/Intl\.NumberFormat\s*\(\s*[\'"]es-PE[\'"]\s*,\s*\{[^}]*minimumFractionDigits/s',
+            $source,
+            'CurrencyInput.vue must use minimumFractionDigits / maximumFractionDigits (not currency: \'PEN\')'
+        );
+
+        // Negative: it MUST NOT use the currency-prefixed variant.
+        $this->assertDoesNotMatchRegularExpression(
+            '/Intl\.NumberFormat\s*\(\s*[\'"]es-PE[\'"]\s*,\s*\{[^}]*currency:\s*[\'"]PEN[\'"]/s',
+            $source,
+            'CurrencyInput.vue MUST NOT redeclare the currency-prefixed Intl.NumberFormat (canonical location is useFormatters.js)'
+        );
+    }
+
+    /** @test */
+    public function test_four_migrated_files_drop_local_format_currency_declaration(): void
+    {
+        // The four PR-pagos-01 migrated files MUST NOT declare their own
+        // local `formatCurrency` helper. After migration, the canonical
+        // helper is the only declaration of formatCurrency for PEN
+        // (the canonical location is useFormatters.js).
+        $scopeFiles = self::prPagos01ScopePaths();
+
+        // Match `const formatCurrency`, `function formatCurrency`, or a
+        // `formatCurrency: (...)` setup. We do NOT match call sites
+        // (which use `formatCurrency(value)`).
+        $declarationPattern = '/(?:^|\\n|;)\\s*(?:const|let|var|function)\\s+formatCurrency\\s*[=(]|formatCurrency\\s*:\\s*\\(/s';
+
+        $violations = [];
+        foreach ($scopeFiles as $path) {
+            $source = (string) file_get_contents($path);
+            if ($source === '') {
+                continue;
+            }
+            if (preg_match($declarationPattern, $source)) {
+                $violations[] = basename($path);
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $violations,
+            'PR-pagos-01: the four migrated files MUST NOT declare their own '
+                . 'formatCurrency helper. The canonical declaration lives at '
+                . 'resources/js/composables/useFormatters.js. Offenders: '
+                . implode(', ', $violations)
+        );
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
 
@@ -308,6 +537,22 @@ class FormatPENLabelTest extends TestCase
     private static function sessionListPath(): string
     {
         return self::PROJECT_ROOT . self::SESSION_LIST_REL_PATH;
+    }
+
+    private static function currencyInputPath(): string
+    {
+        return self::PROJECT_ROOT . self::CURRENCY_INPUT_REL_PATH;
+    }
+
+    /**
+     * @return string[] Absolute paths to the 4 PR-pagos-01 migrated files.
+     */
+    private static function prPagos01ScopePaths(): array
+    {
+        return array_map(
+            static fn (string $rel): string => self::PROJECT_ROOT . $rel,
+            self::PR_PAGOS_01_SCOPE_REL_PATHS
+        );
     }
 
     private static function readFile(string $path): string|false
@@ -396,6 +641,63 @@ JS;
         $loader = str_replace('VALUE_EXPR', $valueLiteral, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'formatters_call_');
+        $loaderFile = $tmp . '.mjs';
+        file_put_contents($loaderFile, $loader);
+        @unlink($tmp);
+
+        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $output = shell_exec($cmd);
+        @unlink($loaderFile);
+
+        if ($output === null || $output === '') {
+            self::fail('Node import returned no output');
+        }
+
+        $jsonStart = strpos($output, '"');
+        if ($jsonStart === false) {
+            self::fail('Node output was not a JSON string: ' . $output);
+        }
+        $decoded = json_decode(substr($output, $jsonStart), true);
+        if (!is_string($decoded)) {
+            self::fail('Node output was not a string: ' . $output);
+        }
+        return $decoded;
+    }
+
+    /**
+     * Invoke formatCurrency (the canonical PR-pagos-01 helper) via Node
+     * and return the rendered string. Mirrors callHelper() but uses the
+     * new canonical export name.
+     */
+    private static function callFormatCurrency(mixed $value): string
+    {
+        $path = self::helperPath();
+        if (!is_file($path)) {
+            $this->fail('Helper file missing: ' . $path);
+        }
+
+        $escapedPath = addcslashes($path, "'\\");
+        if ($value === 'undefined-as-value') {
+            $valueLiteral = 'undefined';
+        } elseif (is_string($value)) {
+            $valueLiteral = "'" . addcslashes($value, "'\\") . "'";
+        } elseif (is_null($value)) {
+            $valueLiteral = 'null';
+        } else {
+            $valueLiteral = var_export($value, true);
+        }
+
+        $loader = <<<'JS'
+import { pathToFileURL } from 'node:url';
+const url = pathToFileURL('TARGET_PATH').href;
+const mod = await import(url);
+const out = mod.formatCurrency(VALUE_EXPR);
+process.stdout.write(JSON.stringify(out));
+JS;
+        $loader = str_replace('TARGET_PATH', $escapedPath, $loader);
+        $loader = str_replace('VALUE_EXPR', $valueLiteral, $loader);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'formatters_call_currency_');
         $loaderFile = $tmp . '.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);

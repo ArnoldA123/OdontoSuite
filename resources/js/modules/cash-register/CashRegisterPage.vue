@@ -263,6 +263,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import { useToast } from '@/composables/useToast'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
+import { formatCurrency } from '@/composables/useFormatters'
 
 // Components
 import UiCard from '@/components/ui/Card.vue'
@@ -607,12 +608,7 @@ const handleDownload = (transaction) => {
 
 
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Lifecycle
 onMounted(async () => {
