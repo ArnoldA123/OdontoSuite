@@ -338,273 +338,259 @@
     </UiCard>
 
     <!-- New Patient Modal -->
-    <div
-      v-if="showNewPatientModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="showNewPatientModal = false"
+    <UiModal
+      :model-value="showNewPatientModal"
+      title="Nuevo Paciente"
+      size="xl"
+      @close="showNewPatientModal = false"
     >
-      <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-theme">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-theme-primary">Nuevo Paciente</h2>
-            <button
-              @click="showNewPatientModal = false"
-              class="text-theme-secondary hover:text-theme-primary transition-colors"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <form @submit.prevent="createPatient" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="newPatient.first_name"
+            label="Nombre"
+            placeholder="Ingresa el nombre"
+            required
+          />
+          <UiInput
+            v-model="newPatient.last_name"
+            label="Apellido"
+            placeholder="Ingresa el apellido"
+            required
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="newPatient.document_number"
+            label="DNI"
+            placeholder="Ingresa el DNI"
+          />
+          <UiInput
+            v-model="newPatient.email"
+            label="Email"
+            type="email"
+            placeholder="correo@ejemplo.com"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="newPatient.phone"
+            label="Teléfono"
+            placeholder="+51 999 999 999"
+          />
+          <UiInput
+            v-model="newPatient.birth_date"
+            label="Fecha de Nacimiento"
+            type="date"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-theme-primary mb-1">
+              Género
+            </label>
+            <UiSelect
+              v-model="newPatient.gender"
+              :options="genderOptions"
+              placeholder="Seleccionar"
+              class="w-full"
+            />
           </div>
         </div>
-        <div class="p-6">
-          <form @submit.prevent="createPatient" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="newPatient.first_name"
-                label="Nombre"
-                placeholder="Ingresa el nombre"
-                required
-              />
-              <UiInput
-                v-model="newPatient.last_name"
-                label="Apellido"
-                placeholder="Ingresa el apellido"
-                required
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="newPatient.document_number"
-                label="DNI"
-                placeholder="Ingresa el DNI"
-              />
-              <UiInput
-                v-model="newPatient.email"
-                label="Email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="newPatient.phone"
-                label="Teléfono"
-                placeholder="+51 999 999 999"
-              />
-              <UiInput
-                v-model="newPatient.birth_date"
-                label="Fecha de Nacimiento"
-                type="date"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">
-                  Género
-                </label>
-                <UiSelect
-                  v-model="newPatient.gender"
-                  :options="genderOptions"
-                  placeholder="Seleccionar"
-                  class="w-full"
-                />
-              </div>
-            </div>
-            <UiInput
-              v-model="newPatient.address"
-              label="Dirección"
-              placeholder="Ingresa la dirección"
-            />
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="newPatient.emergency_contact_name"
-                label="Contacto de Emergencia"
-                placeholder="Nombre del contacto"
-              />
-              <UiInput
-                v-model="newPatient.emergency_contact_phone"
-                label="Teléfono de Emergencia"
-                placeholder="+51 999 999 999"
-              />
-            </div>
-            <UiInput
-              v-model="newPatient.medical_history"
-              label="Historial Médico"
-              placeholder="Alergias, condiciones médicas, etc."
-              type="textarea"
-            />
-            <UiInput
-              v-model="newPatient.allergies"
-              label="Alergias"
-              placeholder="Lista de alergias conocidas"
-              type="textarea"
-            />
-            <UiInput
-              v-model="newPatient.notes"
-              label="Notas"
-              placeholder="Notas adicionales"
-              type="textarea"
-            />
-            <div class="flex justify-end gap-3 pt-4">
-              <UiButton
-                type="button"
-                variant="secondary"
-                @click="showNewPatientModal = false"
-              >
-                Cancelar
-              </UiButton>
-              <UiButton
-                type="submit"
-                :loading="creating"
-              >
-                Crear Paciente
-              </UiButton>
-            </div>
-          </form>
+        <UiInput
+          v-model="newPatient.address"
+          label="Dirección"
+          placeholder="Ingresa la dirección"
+        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="newPatient.emergency_contact_name"
+            label="Contacto de Emergencia"
+            placeholder="Nombre del contacto"
+          />
+          <UiInput
+            v-model="newPatient.emergency_contact_phone"
+            label="Teléfono de Emergencia"
+            placeholder="+51 999 999 999"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Historial Médico</label>
+          <UiTextarea
+            v-model="newPatient.medical_history"
+            placeholder="Alergias, condiciones médicas, etc."
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Alergias</label>
+          <UiTextarea
+            v-model="newPatient.allergies"
+            placeholder="Lista de alergias conocidas"
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
+          <UiTextarea
+            v-model="newPatient.notes"
+            placeholder="Notas adicionales"
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <UiButton
+            type="button"
+            variant="secondary"
+            @click="showNewPatientModal = false"
+          >
+            Cancelar
+          </UiButton>
+          <UiButton
+            type="submit"
+            :loading="creating"
+          >
+            Crear Paciente
+          </UiButton>
+        </div>
+      </form>
+    </UiModal>
 
     <!-- Edit Patient Modal -->
-    <div
-      v-if="showEditPatientModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="showEditPatientModal = false"
+    <UiModal
+      :model-value="showEditPatientModal"
+      title="Editar Paciente"
+      size="xl"
+      @close="showEditPatientModal = false; resetEditPatient()"
     >
-      <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-theme">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-theme-primary">Editar Paciente</h2>
-            <button
-              @click="showEditPatientModal = false; resetEditPatient()"
-              class="text-theme-secondary hover:text-theme-primary transition-colors"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+      <form @submit.prevent="updatePatient" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="editPatientData.first_name"
+            label="Nombre"
+            placeholder="Ingresa el nombre"
+            required
+          />
+          <UiInput
+            v-model="editPatientData.last_name"
+            label="Apellido"
+            placeholder="Ingresa el apellido"
+            required
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="editPatientData.document_number"
+            label="DNI"
+            placeholder="Ingresa el DNI"
+          />
+          <UiInput
+            v-model="editPatientData.email"
+            label="Email"
+            type="email"
+            placeholder="correo@ejemplo.com"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="editPatientData.phone"
+            label="Teléfono"
+            placeholder="+51 999 999 999"
+          />
+          <UiInput
+            v-model="editPatientData.birth_date"
+            label="Fecha de Nacimiento"
+            type="date"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-theme-primary mb-1">
+              Género
+            </label>
+            <UiSelect
+              v-model="editPatientData.gender"
+              :options="genderOptions"
+              placeholder="Seleccionar"
+              class="w-full"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-theme-primary mb-1">
+              Estado
+            </label>
+            <UiSelect
+              v-model="editPatientData.is_active"
+              :options="statusOptions"
+              placeholder="Seleccionar"
+              class="w-full"
+            />
           </div>
         </div>
-        <div class="p-6">
-          <form @submit.prevent="updatePatient" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.first_name"
-                label="Nombre"
-                placeholder="Ingresa el nombre"
-                required
-              />
-              <UiInput
-                v-model="editPatientData.last_name"
-                label="Apellido"
-                placeholder="Ingresa el apellido"
-                required
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.document_number"
-                label="DNI"
-                placeholder="Ingresa el DNI"
-              />
-              <UiInput
-                v-model="editPatientData.email"
-                label="Email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.phone"
-                label="Teléfono"
-                placeholder="+51 999 999 999"
-              />
-              <UiInput
-                v-model="editPatientData.birth_date"
-                label="Fecha de Nacimiento"
-                type="date"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">
-                  Género
-                </label>
-                <UiSelect
-                  v-model="editPatientData.gender"
-                  :options="genderOptions"
-                  placeholder="Seleccionar"
-                  class="w-full"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">
-                  Estado
-                </label>
-                <UiSelect
-                  v-model="editPatientData.is_active"
-                  :options="statusOptions"
-                  placeholder="Seleccionar"
-                  class="w-full"
-                />
-              </div>
-            </div>
-            <UiInput
-              v-model="editPatientData.address"
-              label="Dirección"
-              placeholder="Ingresa la dirección"
-            />
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.emergency_contact_name"
-                label="Contacto de Emergencia"
-                placeholder="Nombre del contacto"
-              />
-              <UiInput
-                v-model="editPatientData.emergency_contact_phone"
-                label="Teléfono de Emergencia"
-                placeholder="+51 999 999 999"
-              />
-            </div>
-            <UiInput
-              v-model="editPatientData.medical_history"
-              label="Historial Médico"
-              placeholder="Alergias, condiciones médicas, etc."
-              type="textarea"
-            />
-            <UiInput
-              v-model="editPatientData.allergies"
-              label="Alergias"
-              placeholder="Lista de alergias conocidas"
-              type="textarea"
-            />
-            <UiInput
-              v-model="editPatientData.notes"
-              label="Notas"
-              placeholder="Notas adicionales"
-              type="textarea"
-            />
-            <div class="flex justify-end gap-3 pt-4">
-              <UiButton
-                type="button"
-                variant="secondary"
-                @click="showEditPatientModal = false; resetEditPatient()"
-              >
-                Cancelar
-              </UiButton>
-              <UiButton
-                type="submit"
-                :loading="updating"
-              >
-                Actualizar Paciente
-              </UiButton>
-            </div>
-          </form>
+        <UiInput
+          v-model="editPatientData.address"
+          label="Dirección"
+          placeholder="Ingresa la dirección"
+        />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <UiInput
+            v-model="editPatientData.emergency_contact_name"
+            label="Contacto de Emergencia"
+            placeholder="Nombre del contacto"
+          />
+          <UiInput
+            v-model="editPatientData.emergency_contact_phone"
+            label="Teléfono de Emergencia"
+            placeholder="+51 999 999 999"
+          />
         </div>
-      </div>
-    </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Historial Médico</label>
+          <UiTextarea
+            v-model="editPatientData.medical_history"
+            placeholder="Alergias, condiciones médicas, etc."
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Alergias</label>
+          <UiTextarea
+            v-model="editPatientData.allergies"
+            placeholder="Lista de alergias conocidas"
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
+          <UiTextarea
+            v-model="editPatientData.notes"
+            placeholder="Notas adicionales"
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <UiButton
+            type="button"
+            variant="secondary"
+            @click="showEditPatientModal = false; resetEditPatient()"
+          >
+            Cancelar
+          </UiButton>
+          <UiButton
+            type="submit"
+            :loading="updating"
+          >
+            Actualizar Paciente
+          </UiButton>
+        </div>
+      </form>
+    </UiModal>
   </AppLayout>
 </template>
 
@@ -621,6 +607,8 @@ import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import UiTextarea from '../../components/ui/UiTextarea.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 
 export default {
@@ -631,6 +619,8 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
+    UiModal,
+    UiTextarea,
     Pagination
   },
   setup() {
