@@ -497,14 +497,45 @@ const mobileMenuOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const notificationCenterOpen = ref(false)
 
-// PR4 (ui-premium-microdetail-2026-08) — canvas vs surface separation.
-// The dashboard, login, and 404 routes render on canvas. Other (legacy)
-// modules inherit the white systemBackground until they get their own
-// polish pass. The route list is intentionally tight for PR4; PR5 will
-// add '/login' and '/404' (or '/not-found') when those screens are
-// polished. `isCanvasRoute` is a computed so the class binding stays
-// reactive as the user navigates.
-const canvasRoutes = ['/dashboard', '/login', '/404']
+// PR0 (ui-rollout-all-modules-2026-08) — canvas surface for every polished
+// module route. Sources: foundation-primitives spec APP-CORE-001 + AGENTS.md
+// §5 (17 modules). Order: already-polished first, then domain-grouped.
+// This array is FROZEN at PR0 merge — category PRs MUST NOT extend or
+// narrow it. The regression guard is tests/Unit/DesignSystem/AppLayoutCanvasRoutesTest.php.
+const canvasRoutes = [
+  // Already polished (vertical slice)
+  '/dashboard',
+  '/login',
+  '/404',
+  // Pagos
+  '/cash-register',
+  '/cash-register/ready-to-bill',
+  '/quotations',
+  // Catálogo
+  '/procedure-catalog',
+  '/procedure-stats',
+  // Admin
+  '/professionals',
+  '/environments',
+  '/appointment-types',
+  // Operación
+  '/calendar',
+  // Clínico
+  '/patients',
+  '/medical-records',
+  '/specialty-records',
+  '/treatment-plans',
+  // Catálogo tail (PR3 cluster)
+  '/my-procedures',
+  '/reception-procedures',
+  // Análisis
+  '/ai-analysis',
+  // BI
+  '/business-intelligence',
+  // Settings (canvas surface only — internals deferred per OQ#3)
+  '/settings/branches',
+  '/settings/payment-methods',
+]
 const isCanvasRoute = computed(() => canvasRoutes.includes(route.path))
 
 // Notifications
