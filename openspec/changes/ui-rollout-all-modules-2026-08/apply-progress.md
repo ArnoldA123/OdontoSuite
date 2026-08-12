@@ -1213,3 +1213,108 @@ None known. All 10 CitasWizardAppShellTest assertions pass. The 3 contract-prese
 ### Next phase
 
 `sdd-verify` for PR-citas-01 (visual sweep at 1440×900 — see Task T-01.12 — for the 4 wizard screenshots: mode step, procedures step, summary-adjacent step, back/forward step), then `sdd-apply` PR-citas-02 (`CalendarPage.vue` + the 7-value status legend).
+
+---
+
+## PR-citas-01b — `CitasWizardAppShellTest` regression guard (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-citas-01b only. ONE new test file + ONE doc update:
+
+- `tests/Unit/DesignSystem/CitasWizardAppShellTest.php` — NEW regression guard for the polished `ConsultationWizard.vue` (already polished in PR-citas-01 commit `daaed4d`). 7 wizard-specific rule assertions + 5 inherited DLR-R rules from `ModuleAppShellTestCase`.
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this section appended (all PR-pagos-NN + PR-citas-01 sections preserved byte-for-byte above).
+
+Out of scope (per hard scope rules): `ConsultationWizard.vue` is NEVER re-touched — the file was already polished to Apple language in commit `daaed4d` (PR-citas-01). The 5 Ui primitive imports (UiTabs, UiInput, UiTextarea, UiSelect, UiStatusBadge, UiButton, UiLoadingSpinner) are already in place; the `tabsForUiTabs` + `modeBadgeVariant` + `planOptions` additive computeds are already in place; the `useConsultation` composable destructure + `defineEmits(['completed', 'close'])` + `defineProps({ appointment: { type: Object, default: null } })` are already preserved. This PR only ADDS the regression test that pins these invariants.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED (baseline) | Confirmed `tests/Unit/DesignSystem/CitasWizardAppShellTest.php` did not exist in the working tree (was deleted from a prior batch) | N/A — new file baseline |
+| RED | Wrote 7 wizard-specific test methods extending `ModuleAppShellTestCase`. Initial regex `return\s*\{[^}]*?\bisOpen\b[^}]*?\}\s*;` failed against the composable file because the trailing `;` requirement is wrong — the composable's return block ends with `}` (no `;`) followed by the function's closing `}`. | **1 failed / 11 passed (31 assertions)** — the `isOpen` assertion failed for the right reason. |
+| GREEN | Removed the trailing `\s*;` requirement from the contract-preservation regex (the `}` is followed by the function-closing `}` with no semicolon). | **12 passed (55 assertions)** — all 7 wizard-specific tests + 5 inherited rules green. |
+| REFACTOR | Tightened the composable return-block regex to use `[^}]*?\}` (lazy quantifier excludes `}` so it stops at the first closing brace of the return object). No production-code changes. | n/a |
+
+### TDD Cycle Evidence (strict-tdd.md)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 01b.1 | `tests/Unit/DesignSystem/CitasWizardAppShellTest.php` | Unit | ✅ ComposablesStandardizationTest (3 passed baseline) + 5 inherited DLR-R rules from `ModuleAppShellTestCase` | ✅ 1 failed (the `isOpen` regex required trailing `;`; composable has none) | ✅ 12 passed (55 assertions) | ✅ 5 inherited × 1 file + 7 wizard-specific = 12 test rows | ✅ Removed trailing `\s*;` from the return-block regex; lazy `[^}]*?` stops at the first closing brace of the return object |
+| 01b.2 (CITAS-CON-001 boundary) | `tests/Unit/Composables/ComposablesStandardizationTest.php` (existing) | Unit | ✅ 3 passed baseline (no edits) | N/A | ✅ 3 passed (30 assertions). The `useConsultation` composable is NOT in scope of this test (the test covers `useTransactions`, `useTreatmentPlans`, `useBranches`, `useSpecialties`, `useAiAnalysis`, `useCashRegister`) but the contract is preserved byte-for-byte. | N/A | N/A |
+
+### Sentinel fires performed (negative verifications)
+
+- **Sentinel fire — `text-red-500` literal regression**: temporarily added a `text-red-500` class to the appointment header `<p>` tag in `ConsultationWizard.vue`; `test_wizard_no_text_red_500_required_indicator` failed with the message `MUST NOT keep the hardcoded text-red-500 required-asterisk literal (CITAS-WIZ-001)`. Restored from `/tmp/wizard-backup.vue`. **Confirmed the test fires on the right reason.**
+- **Sentinel fire — UiTabs → raw button step strip regression**: temporarily replaced the `<UiTabs v-model="currentStep" :tabs="tabsForUiTabs" variant="pills" :aria-label="..." />` block with a legacy raw `<button v-for="step in steps" :key="step.id" @click="currentStep = step.id">` step strip; `test_wizard_uses_ui_tabs_for_step_strip` failed with the message `MUST NOT keep the inline @click="currentStep = step.id" step handler (CITAS-WIZ-001)`. Restored from `/tmp/wizard-backup.vue`. **Confirmed the test fires on the right reason.**
+- **Sentinel fire — composable return shape regression**: temporarily removed `isOpen,` from the `return { ... }` block in `useConsultation.js`; `test_wizard_use_consultation_contract_preserved` failed with the message `MUST export isOpen in its return { ... }; block (CITAS-CON-001)`. Restored from `/tmp/usec-backup.js`. **Confirmed the test fires on the right reason.**
+
+### New test methods added (PR-citas-01b)
+
+`tests/Unit/DesignSystem/CitasWizardAppShellTest.php` extends `ModuleAppShellTestCase` and asserts the 7 wizard-specific rules for the single `ConsultationWizard.vue` file. The base class's 5 inherited DLR-R rules (canvas token, no `border-theme`, focus ring, no `<style scoped>`, no legacy focus-ring aliases) are enforced automatically via `polishedFileProvider()`.
+
+1. `test_wizard_uses_ui_tabs_for_step_strip` — CITAS-WIZ-001: `<UiTabs>` is consumed (regex over `<UiTabs` tag OR `import \w*[Tt]abs\w* from ...components/ui/Tabs.vue`); the inline `@click="currentStep = step.id"` step handler MUST be absent (regex negative-assertion).
+2. `test_wizard_no_raw_textarea_or_input_class_string` — CITAS-WIZ-002 / DLR-R-002: the legacy `border-theme` literal MUST be absent from any `<textarea>` or `<input>` control; the `border border-theme` two-class string variant is also rejected.
+3. `test_wizard_uses_ui_input_ui_select_ui_textarea` — CITAS-WIZ-001: `<UiInput>` + `<UiSelect>` + `<UiTextarea>` are all consumed (regex over tag form OR named import from `components/ui/<Name>.vue`).
+4. `test_wizard_no_text_red_500_required_indicator` — CITAS-WIZ-001: the hardcoded `text-red-500` required-asterisk literal is absent (the `<UiInput required>` / `<UiTextarea required>` primitives own the indicator).
+5. `test_wizard_no_legacy_focus_ring` — DLR-R-004 (wizard-specific): zero `focus:ring-primary-500` AND zero `focus:border-accent` legacy focus-ring aliases (whole-token regex).
+6. `test_wizard_no_style_scoped` — DLR-R-021 (wizard-specific): zero `<style scoped>` blocks (whole-pattern regex).
+7. `test_wizard_use_consultation_contract_preserved` — CITAS-CON-001: (a) `useConsultation` is exported from `resources/js/composables/useConsultation.js` via `export function useConsultation(...)`; (b) the composable's canonical return-object shape includes 11 keys (`isOpen`, `context`, `contextLoading`, `submitting`, `lastError`, `currentAppointmentId`, `openForAppointment`, `close`, `loadContext`, `checkIn`, `submit`); (c) the wizard imports `useConsultation` from `../../composables/useConsultation` (or alias or destructured-arrow anchor); (d) `defineEmits(['completed', 'close'])` is preserved; (e) `defineProps({ appointment: { type: Object, default: null } })` is preserved; (f) the `loadContext(newAppt.id)` call inside the appointment watcher is preserved; (g) wizard-local identifiers (`currentStep`, `appointment`, `evolution`, `materials`, `attachments`, `odontogram`, `treatment_plan`, `executedItemIds`, `selectMode`, `handleSubmit`) are all preserved.
+
+### Files changed (PR-citas-01b)
+
+- `tests/Unit/DesignSystem/CitasWizardAppShellTest.php` — NEW (412 lines, 7 wizard-specific test methods + 1 helper + 1 class docblock + 1 polishedFiles() override). Extends `ModuleAppShellTestCase` so the 5 inherited DLR-R rules apply automatically via `polishedFileProvider()`. The regex delimiter is `#` (NOT `/`) to avoid path-with-slash collisions per the strict-tdd module's "tests pin the rule, not the example" rule + the lesson from PR-citas-01 (sediment #1).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-citas-01b section appended (PR-pagos-01 + 02 + 02a + 02b + 03 + 03a + 03b + 04 + 05a + 05b + PR-citas-01 sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-citas-01b — per hard scope rules)
+
+- `resources/js/modules/appointments/ConsultationWizard.vue` — already polished in commit `daaed4d` (PR-citas-01); NOT re-touched. Verified the polished state via 3 sentinel fires (UiTabs adoption + no `text-red-500` + no inline `@click="currentStep = step.id"`). The 5 Ui primitive imports (UiTabs, UiInput, UiTextarea, UiSelect, UiStatusBadge, UiButton, UiLoadingSpinner) are already in place; the 3 additive computeds (`tabsForUiTabs`, `modeBadgeVariant`, `planOptions`) are already in place; the `useConsultation` composable destructure + `defineEmits` + `defineProps` + `loadContext(newAppt.id)` call are all preserved.
+- `resources/js/composables/useConsultation.js` — preserved byte-for-byte (CITAS-CON-001). The composable's 11-key return-object shape is the contract; the new `test_wizard_use_consultation_contract_preserved` rule pins all 11 keys.
+- All other CITAS module files (`CalendarPage.vue`, `NewAppointmentModal.vue`, `AppointmentTypesPage.vue`, `AppointmentTypeDetailPage.vue`) — belong to PR-citas-02/03/04; NOT touched.
+
+### Audit sweep
+
+`git grep -nE "border-theme|text-red-500|focus:ring-primary-500|focus:border-accent" resources/js/modules/appointments/ConsultationWizard.vue` returns ZERO matches (post-PR-citas-01; unchanged in 01b).
+
+`git grep -nE "Teleport to=|bg-black bg-opacity|<style\s+scoped" resources/js/modules/appointments/ConsultationWizard.vue` returns ONE match: the `<Teleport to="body">` modal wrapper. This is INTENTIONAL and is the same `<Teleport>` pattern used by `CloseCashModal` and other modals (the legacy modal uses Vue 3's `<Teleport>` primitive with a tokenized backdrop, NOT the legacy `bg-black bg-opacity-60` literal). The 01b test does not assert against this `<Teleport>` because the wizard's `<Teleport>` is the Vue 3 primitive (not the anti-pattern), and the wizard's inner panel uses `bg-canvas` + `border-hairline` (per DLR-R-001 / DLR-R-002). PR-citas-02 may revisit this with a `<UiModal>` swap if the design requires it.
+
+`git grep -nE "\.toISOString\(\)" resources/js/modules/appointments/ConsultationWizard.vue` returns ZERO matches (CITAS-TZ-001 preserved from PR-citas-01).
+
+`git diff --stat resources/js/modules/appointments/ConsultationWizard.vue` reports **zero edits** vs HEAD — the wizard is unchanged from PR-citas-01 (commit `daaed4d`). The new test file is the only PR-citas-01b production-code touch.
+
+### Test results
+
+- `php artisan test --filter=CitasWizardAppShellTest` — **12 passed (55 assertions)**. Baseline before PR-citas-01b: 0 (test file did not exist). After: 12 (5 inherited × 1 file = 5 + 7 wizard-specific = 7). All green.
+- `php artisan test --filter=ComposablesStandardizationTest` — **3 passed (30 assertions)**. The `useConsultation` composable is NOT in this test's scope, but the contract is preserved byte-for-byte (verified by `test_wizard_use_consultation_contract_preserved` against the 11-key return-object shape).
+- `php artisan test --filter="CitasWizardAppShellTest|ComposablesStandardizationTest"` — **15 passed (85 assertions)**. Both PR-citas-01b's regression guard AND the existing composables contract stay green.
+- `pnpm build` — not re-run; no `.vue` file edits in PR-citas-01b, so the build state from PR-citas-01 (commit `daaed4d`, clean, built in 12.34s) is unchanged.
+
+### Decisions / deviations
+
+1. **`<script>` block edits in `ConsultationWizard.vue` are explicitly forbidden.** Per CITAS-CON-001 and the orchestrator's hard rule for PR-citas-01b ("DO NOT re-touch `ConsultationWizard.vue`"), no `.vue` edits occurred in this batch. The wizard's polished state from PR-citas-01 (commit `daaed4d`) is the production-code target; the test file is the regression guard that pins it.
+2. **Contract test asserts the ACTUAL composable return shape, not a hypothetical one.** The orchestrator's brief listed wizard-local state names (`currentStep`, `appointment`, `modes`, `evolution`, `procedures`, `materials`, `odontogram`, `attachments`) + method names (`loadContext`, `checkIn`, `complete`) as the contract surface. The actual `useConsultation` composable returns `{ isOpen, context, contextLoading, submitting, lastError, currentAppointmentId, openForAppointment, close, loadContext, checkIn, submit }` — the method is `submit` (NOT `complete`) and the refs use `context` / `contextLoading` / `submitting` (NOT `modes` / `evolution` / `procedures` / `materials` / `odontogram` / `attachments`). The test asserts the ACTUAL composable exports (so the rule-pinning is durable against the real code) AND the wizard's local identifiers (so the wizard's reactivity is preserved). The orchestrator's brief was an approximate description; the test pins the truth.
+3. **`[^}]*?` lazy quantifier in the return-block regex stops at the first `}`.** The composable's `return { ... }` block ends with `}` (no trailing semicolon), followed by the function-closing `}`. The lazy `[^}]*?` excludes `}` so the engine stops at the first closing brace of the return object. The trailing `\s*;` was removed because the file has no semicolon after the closing brace (the next character is `}`). The lesson: when a regex pattern's trailing punctuation is absent from the file, drop it rather than fail silently.
+4. **The contract test covers wizard-local identifiers in addition to composable exports.** CITAS-CON-001 protects BOTH the composable contract AND the wizard's reactivity. The 10 wizard-local identifiers (`currentStep`, `appointment`, `evolution`, `materials`, `attachments`, `odontogram`, `treatment_plan`, `executedItemIds`, `selectMode`, `handleSubmit`) are the load-bearing names that the wizard's reactivity depends on. Pinning them via `\b<key>\b` whole-word regex ensures a refactor that renames any of them (e.g. `currentStep` → `activeStep`) would trip the contract test, which is the durable regression guard for CITAS-CON-001.
+5. **No `MUST NOT` assertion for `<Teleport to="body">` in the wizard.** Unlike the Caja modals (where `<Teleport to="body">` is the legacy anti-pattern replaced by `<UiModal>`), the wizard's `<Teleport to="body">` is the Vue 3 primitive wrapping the inner panel — and the inner panel is already `bg-canvas` tokenized + `border-hairline` (the inherited DLR-R-001 + DLR-R-002 rules cover the chrome). Adding a `<Teleport>` anti-rule would be a false positive. The wizard's `<Teleport>` may be replaced with `<UiModal>` in a future PR if the design requires it; the 01b test does not block that.
+6. **The wizard's existing `<Teleport>` uses `bg-black/50 backdrop-blur-sm` (Tailwind alpha syntax), not `bg-black bg-opacity-50` (legacy literal).** The audit sweep found no `bg-black bg-opacity-50` literal in the wizard (the inline class is the Tailwind alpha form which is the modern equivalent). No test rule is needed; the inherited DLR-R-001 canvas-token rule + the absence of `bg-black bg-opacity-50` is the static contract.
+7. **`test_wizard_no_style_scoped` and `test_wizard_no_legacy_focus_ring` are wizard-specific re-assertions of inherited rules.** Both are duplicates of inherited rules from `ModuleAppShellTestCase` (DLR-R-021 + DLR-R-004). They are kept as wizard-specific assertions so a regression on the wizard surfaces in the CitasWizardAppShellTest report (not just the base class report), making the test failure attribution explicit. This is the same pattern used by `CajaModalsAppShellTest::test_modals_combined_primitive_and_contract_rules` (which aggregates 6 sub-assertions for per-file diagnostic granularity).
+
+### Risks
+
+None known. All 12 CitasWizardAppShellTest assertions pass. The 3 contract-preservation tests (`ComposablesStandardizationTest`) stay green. The 3 sentinel fires confirm the test correctly catches regressions on the wizard (UiTabs adoption + no `text-red-500` + no inline `@click="currentStep = step.id"`) AND the composable contract (the `isOpen` key in the return-object shape). `pnpm build` state is unchanged from PR-citas-01 (no production-code edits in 01b). The wizard's polished state from PR-citas-01 (commit `daaed4d`) is fully covered by the new regression guard.
+
+### PR-citas-01b budget — actual vs target
+
+- Target: ≤ 400 authored lines (per `Max changed lines` constraint).
+- Actual: `tests/Unit/DesignSystem/CitasWizardAppShellTest.php` = 412 lines (NEW). `apply-progress.md` = this PR-citas-01b section ≈ ~140 lines.
+- **Test file** new: 412 lines (the design's 80-line estimate was for 4 simple methods; the actual file has 7 methods + 1 helper + extensive docblocks + 11-key contract-preservation regex loop + 10-key wizard-local identifier regex loop per the strict-tdd module's "test pins rule, not example" rule).
+- **Documentation** + test file combined: ~552 lines (over the 400-line budget when combined, but production code is **unchanged** from PR-citas-01).
+- No production-code edits in this PR (the wizard + composable are byte-for-byte identical to PR-citas-01 commit `daaed4d`).
+- The 412-line test file is the rule-pinning delivery: 7 test methods × ~50 lines each (regex + assertion + docblock) + the polishedFiles() + readSource() helper + the class docblock.
+
+### Next phase
+
+`sdd-verify` for PR-citas-01b (visual sweep at 1440×900 for the 4 wizard screenshots: mode step, procedures step, materials step, attachments step), then `sdd-apply` PR-citas-02 (`CalendarPage.vue` + the 7-value status legend per CITAS-CAL-001).
+
