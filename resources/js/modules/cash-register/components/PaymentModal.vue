@@ -8,30 +8,23 @@
     class="overflow-y-auto"
   >
     <!-- Tabs: Manual / Mercado Pago (solo si el metodo seleccionado tiene gateway) -->
-    <div v-if="showMpTab" class="flex gap-0 mb-4 border-b border-theme">
-      <button
-        class="px-4 py-2 text-sm font-medium transition-colors"
-        :class="activeTab === 'manual'
-          ? 'text-accent border-b-2 border-accent'
-          : 'text-theme-secondary hover:text-theme-primary'"
-        @click="activeTab = 'manual'"
-      >
-        Cobro Manual
-      </button>
-      <button
-        class="px-4 py-2 text-sm font-medium transition-colors"
-        :class="activeTab === 'mercadopago'
-          ? 'text-accent border-b-2 border-accent'
-          : 'text-theme-secondary hover:text-theme-primary'"
-        @click="switchToMercadoPago"
-        :disabled="!canSubmit || loading"
-      >
-        {{ selectedPaymentMethod?.name || 'Mercado Pago' }}
-      </button>
-    </div>
-    <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6">
+    <UiTabs
+      v-if="showMpTab"
+      v-model="activeTab"
+      variant="underline"
+      :tabs="manualTabs"
+      @update:model-value="onTabChange"
+    />
+    <UiStatusBadge
+      v-if="showMpTab && (formData.amount ?? 0) <= 0"
+      variant="warning"
+      size="sm"
+      label="Ingrese monto"
+      class="mt-2"
+    />
+    <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6 bg-canvas">
       <!-- Información del Paciente -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-3 md:p-4">
+      <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
         <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Información del Paciente</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
@@ -42,13 +35,12 @@
               v-model="formData.patient_id"
               :disabled="!!selectedPatient"
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
+                     bg-canvas
                      text-theme-primary
-                     border-theme
-                     disabled:bg-theme-surface disabled:opacity-50
-                     disabled:cursor-not-allowed
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.patient_id }"
+                     border-hairline
+                     disabled:bg-canvas disabled:opacity-50
+                     disabled:cursor-not-allowed"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.patient_id }"
               required
               size="5"
             >
@@ -64,7 +56,7 @@
             <p v-if="selectedPatient" class="mt-1 text-xs text-theme-secondary">
               Paciente seleccionado desde pagos pendientes
             </p>
-            <p v-if="errors.patient_id" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.patient_id" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.patient_id[0] }}
             </p>
           </div>
@@ -76,18 +68,17 @@
             <select
               v-model="formData.appointment_id"
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
+                     bg-canvas
                      text-theme-primary
-                     border-theme
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.appointment_id }"
+                     border-hairline"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.appointment_id }"
             >
               <option value="">Seleccionar cita (opcional)</option>
               <option v-for="appointment in patientAppointments" :key="appointment.id" :value="appointment.id">
                 {{ formatDate(appointment.date) }} - {{ appointment.appointment_type?.name }}
               </option>
             </select>
-            <p v-if="errors.appointment_id" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.appointment_id" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.appointment_id[0] }}
             </p>
           </div>
@@ -108,15 +99,14 @@
               type="text"
               placeholder="Ej: Consulta, Tratamiento, etc."
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
+                     bg-canvas
                      text-theme-primary
-                     border-theme
-                     placeholder-theme-secondary
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.concept }"
+                     border-hairline
+                     placeholder-theme-secondary"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.concept }"
               required
             />
-            <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.concept[0] }}
             </p>
           </div>
@@ -163,14 +153,13 @@
               type="text"
               placeholder="Número de operación, voucher, etc."
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
+                     bg-canvas
                      text-theme-primary
-                     border-theme
-                     placeholder-theme-secondary
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.reference }"
+                     border-hairline
+                     placeholder-theme-secondary"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.reference }"
             />
-            <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.reference[0] }}
             </p>
           </div>
@@ -185,21 +174,20 @@
           rows="3"
           placeholder="Detalles adicionales del pago..."
           class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                 bg-theme-surface-elevated
+                 bg-canvas
                  text-theme-primary
-                 border-theme
-                 placeholder-theme-secondary
-                 focus:ring-primary-500 focus:border-accent"
-          :class="{ 'border-red-500': errors.notes }"
+                 border-hairline
+                 placeholder-theme-secondary"
+          :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.notes }"
         ></textarea>
-          <p v-if="errors.notes" class="mt-1 text-xs md:text-sm text-red-600">
+          <p v-if="errors.notes" class="mt-1 text-xs md:text-sm text-systemRed-600">
             {{ errors.notes[0] }}
           </p>
         </div>
       </div>
 
       <!-- Resumen del Pago -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-3 md:p-4">
+      <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
         <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Resumen del Pago</h3>
         <div class="space-y-2 text-xs md:text-sm">
           <div class="flex justify-between">
@@ -275,10 +263,13 @@ import { BanknotesIcon } from '@heroicons/vue/24/outline'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import UiTabs from '@/components/ui/Tabs.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { formatCurrency } from '@/composables/useFormatters'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
@@ -463,6 +454,35 @@ const paymentMethodOptions = computed(() =>
   }))
 )
 
+// PR-pagos-04 / design §3.1 — Manual / Mercado Pago tab definitions.
+// The MercadoPago tab carries `disabled = (amount <= 0)`; the visual
+// hint <UiStatusBadge variant="warning" label="Ingrese monto" /> is
+// rendered when the tab is gated. Activation still flows through
+// `switchToMercadoPago` (which validates the form) so the 401 redirect
+// code path in useCashRegister is preserved.
+const manualTabs = computed(() => [
+  { id: 'manual', label: 'Cobro Manual' },
+  {
+    id: 'mercadopago',
+    label: selectedPaymentMethod.value?.name || 'Mercado Pago',
+    disabled: (formData.value.amount ?? 0) <= 0
+  }
+])
+
+// PR-pagos-04 / design §3.1 — tab change handler. The Mercado Pago tab
+// MUST run `switchToMercadoPago` (which validates the form and creates
+// a pending transaction); Manual is a direct switch. The activeTab is
+// reset before the MP flow so the validateForm early-return can fall
+// back to the manual tab cleanly.
+const onTabChange = (newTabId) => {
+  if (newTabId === 'mercadopago') {
+    activeTab.value = 'manual'
+    switchToMercadoPago()
+  } else if (newTabId === 'manual') {
+    activeTab.value = 'manual'
+  }
+}
+
 // Metodos
 const loadPaymentMethods = async () => {
   loadingMethods.value = true
@@ -605,13 +625,6 @@ const resetForm = () => {
     notes: ''
   }
   errors.value = {}
-}
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount)
 }
 
 const formatDate = (date) => {
