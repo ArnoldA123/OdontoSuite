@@ -2,12 +2,12 @@
   <Teleport to="body">
     <div
       v-if="isOpen"
-      class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-2 sm:p-4 z-[100]"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-[100]"
       @click.self="handleClose"
     >
-      <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col">
+      <div class="bg-canvas rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col border border-hairline">
         <!-- Header -->
-        <div class="p-5 border-b border-theme flex items-center justify-between">
+        <div class="p-5 border-b border-hairline flex items-center justify-between">
           <div>
             <h2 class="text-xl font-semibold text-theme-primary">Expediente de Cita</h2>
             <p v-if="appointment" class="text-sm text-theme-secondary mt-1">
@@ -27,32 +27,14 @@
           </button>
         </div>
 
-        <!-- Stepper -->
-        <div class="px-5 py-3 border-b border-theme overflow-x-auto">
-          <div class="flex items-center gap-1 min-w-max">
-            <button
-              v-for="(step, idx) in steps"
-              :key="step.id"
-              @click="currentStep = step.id"
-              :class="[
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                currentStep === step.id
-                  ? 'bg-accent text-white'
-                  : 'text-theme-secondary hover:bg-theme-surface',
-              ]"
-            >
-              <span class="w-5 h-5 rounded-full bg-white bg-opacity-20 text-xs flex items-center justify-center">{{ idx + 1 }}</span>
-              {{ step.label }}
-            </button>
-          </div>
+        <!-- Stepper — UiTabs primitive (CITAS-WIZ-001) -->
+        <div class="px-5 py-3 border-b border-hairline overflow-x-auto">
+          <UiTabs v-model="currentStep" :tabs="tabsForUiTabs" variant="pills" :aria-label="'Pasos de la consulta'" />
         </div>
 
         <!-- Loading state -->
         <div v-if="contextLoading" class="flex-1 flex items-center justify-center p-12">
-          <div class="text-center">
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-accent mx-auto mb-3"></div>
-            <p class="text-theme-secondary text-sm">Cargando contexto clínico…</p>
-          </div>
+          <UiLoadingSpinner size="lg" variant="primary" text="Cargando contexto clínico…" />
         </div>
 
         <!-- Content -->
@@ -68,11 +50,20 @@
                 :class="[
                   'p-4 rounded-xl border-2 text-left transition-all',
                   payload.mode === opt.value
-                    ? 'border-accent bg-accent bg-opacity-5'
-                    : 'border-theme hover:border-accent',
+                    ? 'border-systemBlue-500 bg-systemBlue-50'
+                    : 'border-hairline hover:border-systemBlue-500',
                 ]"
               >
-                <div class="text-2xl mb-2">{{ opt.icon }}</div>
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-2xl">{{ opt.icon }}</div>
+                  <UiStatusBadge
+                    v-if="payload.mode === opt.value"
+                    :variant="modeBadgeVariant(opt.value)"
+                    :label="opt.label"
+                    size="sm"
+                    :show-dot="true"
+                  />
+                </div>
                 <div class="font-semibold text-theme-primary">{{ opt.label }}</div>
                 <div class="text-xs text-theme-secondary mt-1">{{ opt.description }}</div>
               </button>
@@ -80,20 +71,19 @@
 
             <!-- Plan selector (solo en plan_session) -->
             <div v-if="payload.mode === 'plan_session'" class="mt-4 p-4 bg-theme-surface rounded-xl">
-              <label class="block text-sm font-medium text-theme-primary mb-2">Plan a avanzar</label>
-              <select v-model="payload.treatment_plan.id" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated">
-                <option :value="null">-- Selecciona un plan --</option>
-                <option v-for="plan in activePlans" :key="plan.id" :value="plan.id">
-                  {{ plan.plan_number }} · {{ plan.title }} ({{ plan.progress?.completed_items }}/{{ plan.progress?.total_items }})
-                </option>
-              </select>
+              <UiSelect
+                v-model="payload.treatment_plan.id"
+                label="Plan a avanzar"
+                :options="planOptions"
+                placeholder="-- Selecciona un plan --"
+              />
 
               <div v-if="selectedPlan" class="mt-3 space-y-2">
                 <label class="text-sm font-medium text-theme-secondary">Items a marcar como ejecutados hoy</label>
                 <div
                   v-for="item in selectedPlan.items.filter(i => i.status !== 'completed')"
                   :key="item.id"
-                  class="flex items-center gap-3 p-2 rounded-lg border border-theme"
+                  class="flex items-center gap-3 p-2 rounded-lg border-hairline"
                 >
                   <input
                     type="checkbox"
@@ -112,8 +102,8 @@
             <!-- Plan nuevo (ejecución o consulta con propuesta) -->
             <div v-if="payload.mode === 'execution' || (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)" class="mt-4 p-4 bg-theme-surface rounded-xl space-y-3">
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Título del plan</label>
-                <input v-model="payload.treatment_plan.title" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" placeholder="Ej: Rehabilitación cuadrante inferior" />
+                <label for="cw-plan-title" class="block text-sm font-medium text-theme-primary mb-1">Título del plan</label>
+                <input id="cw-plan-title" v-model="payload.treatment_plan.title" class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" placeholder="Ej: Rehabilitación cuadrante inferior" />
               </div>
               <div v-if="payload.mode === 'consultation'" class="flex items-center gap-2">
                 <input type="checkbox" v-model="payload.treatment_plan.as_proposed" id="as_proposed" class="w-4 h-4" />
@@ -124,57 +114,49 @@
 
           <!-- PASO 2: Evolución SOAP -->
           <section v-if="currentStep === 'evolution'" class="space-y-4">
-            <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP) <span class="text-red-500" aria-hidden="true">*</span></h3>
+            <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP)</h3>
             <p class="text-sm text-theme-secondary">Los 4 campos son obligatorios para cerrar la consulta.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="cw-soap-s" class="block text-sm font-medium text-theme-primary mb-1">S — Subjetivo <span class="text-red-500" aria-hidden="true">*</span></label>
-                <textarea
+                <label for="cw-soap-s" class="block text-sm font-medium text-theme-primary mb-1">S — Subjetivo</label>
+                <UiTextarea
                   id="cw-soap-s"
                   v-model="payload.evolution.subjective"
-                  rows="3"
+                  :rows="3"
                   required
-                  aria-required="true"
-                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
                   placeholder="Lo que el paciente refiere"
-                ></textarea>
+                />
               </div>
               <div>
-                <label for="cw-soap-o" class="block text-sm font-medium text-theme-primary mb-1">O — Objetivo <span class="text-red-500" aria-hidden="true">*</span></label>
-                <textarea
+                <label for="cw-soap-o" class="block text-sm font-medium text-theme-primary mb-1">O — Objetivo</label>
+                <UiTextarea
                   id="cw-soap-o"
                   v-model="payload.evolution.objective"
-                  rows="3"
+                  :rows="3"
                   required
-                  aria-required="true"
-                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
                   placeholder="Hallazgos clínicos, signos vitales, examen"
-                ></textarea>
+                />
               </div>
               <div>
-                <label for="cw-soap-a" class="block text-sm font-medium text-theme-primary mb-1">A — Assessment <span class="text-red-500" aria-hidden="true">*</span></label>
-                <textarea
+                <label for="cw-soap-a" class="block text-sm font-medium text-theme-primary mb-1">A — Assessment</label>
+                <UiTextarea
                   id="cw-soap-a"
                   v-model="payload.evolution.assessment"
-                  rows="3"
+                  :rows="3"
                   required
-                  aria-required="true"
-                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
                   placeholder="Diagnóstico, impresión clínica"
-                ></textarea>
+                />
               </div>
               <div>
-                <label for="cw-soap-p" class="block text-sm font-medium text-theme-primary mb-1">P — Plan <span class="text-red-500" aria-hidden="true">*</span></label>
-                <textarea
+                <label for="cw-soap-p" class="block text-sm font-medium text-theme-primary mb-1">P — Plan</label>
+                <UiTextarea
                   id="cw-soap-p"
                   v-model="payload.evolution.plan"
-                  rows="3"
+                  :rows="3"
                   required
-                  aria-required="true"
-                  class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"
                   placeholder="Tratamiento a seguir, próximas acciones"
-                ></textarea>
+                />
               </div>
             </div>
 
@@ -183,19 +165,19 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                 <div>
                   <label class="block text-sm font-medium text-theme-primary mb-1">Procedimientos realizados</label>
-                  <textarea v-model="payload.evolution.procedures_performed" rows="2" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"></textarea>
+                  <UiTextarea v-model="payload.evolution.procedures_performed" :rows="2" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-theme-primary mb-1">Materiales utilizados</label>
-                  <textarea v-model="payload.evolution.materials_used" rows="2" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"></textarea>
+                  <UiTextarea v-model="payload.evolution.materials_used" :rows="2" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-theme-primary mb-1">Prescripciones</label>
-                  <textarea v-model="payload.evolution.prescriptions" rows="2" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"></textarea>
+                  <UiTextarea v-model="payload.evolution.prescriptions" :rows="2" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-theme-primary mb-1">Recomendaciones</label>
-                  <textarea v-model="payload.evolution.recommendations" rows="2" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"></textarea>
+                  <UiTextarea v-model="payload.evolution.recommendations" :rows="2" />
                 </div>
               </div>
             </details>
@@ -213,28 +195,27 @@
                 <div
                   v-for="(item, idx) in payload.treatment_plan.items"
                   :key="idx"
-                  class="p-3 border border-theme rounded-lg space-y-2"
+                  class="p-3 border-hairline rounded-lg space-y-2"
                 >
                   <div class="relative">
                     <label class="block text-xs text-theme-secondary mb-1">Procedimiento (catálogo)</label>
-                    <input
+                    <UiInput
                       v-model="item.procedure_name"
-                      @input="onProcedureNameInput(idx, $event.target.value)"
+                      type="search"
+                      :placeholder="'Buscar en catálogo (código o nombre)…'"
+                      @update:model-value="onProcedureNameInput(idx, $event)"
                       @focus="onProcedureNameInput(idx, item.procedure_name)"
                       @blur="closeCatalogResults(idx)"
-                      :placeholder="'Buscar en catálogo (código o nombre)…'"
-                      autocomplete="off"
-                      class="w-full p-2 rounded border border-theme bg-theme-surface-elevated"
                     />
                     <ul
                       v-if="catalogResults[idx] && catalogResults[idx].length"
-                      class="absolute z-10 left-0 right-0 mt-1 bg-theme-surface-elevated border border-theme rounded-lg shadow-lg max-h-56 overflow-y-auto"
+                      class="absolute z-10 left-0 right-0 mt-1 bg-theme-surface-elevated border-hairline rounded-lg shadow-lg max-h-56 overflow-y-auto"
                     >
                       <li
                         v-for="opt in catalogResults[idx]"
                         :key="opt.id"
                         @mousedown.prevent="selectProcedure(idx, opt)"
-                        class="px-3 py-2 hover:bg-accent hover:bg-opacity-10 cursor-pointer"
+                        class="px-3 py-2 hover:bg-systemBlue-50 cursor-pointer"
                       >
                         <div class="text-sm font-medium text-theme-primary">{{ opt.label }}</div>
                         <div class="text-xs text-theme-secondary">
@@ -244,10 +225,10 @@
                     </ul>
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input v-model="item.specialty" placeholder="Especialidad" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                    <input v-model.number="item.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                    <input v-model.number="item.quantity" type="number" min="1" placeholder="Cantidad" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                    <input v-model.number="item.estimated_duration_minutes" type="number" min="5" placeholder="Duración (min)" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
+                    <input v-model="item.specialty" placeholder="Especialidad" class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" />
+                    <input v-model.number="item.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
+                    <input v-model.number="item.quantity" type="number" min="1" placeholder="Cantidad" class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
+                    <input v-model.number="item.estimated_duration_minutes" type="number" min="5" placeholder="Duración (min)" class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
                   </div>
                   <div v-if="item.materials_required && item.materials_required.length" class="text-xs text-theme-secondary">
                     Materiales sugeridos: {{ item.materials_required.join(', ') }}
@@ -257,13 +238,11 @@
                       <input type="checkbox" v-model="item.requires_anesthesia" class="w-3 h-3" />
                       Requiere anestesia
                     </label>
-                    <button @click="removeItem(idx)" class="text-xs text-red-500 hover:underline">Quitar item</button>
+                    <button @click="removeItem(idx)" class="text-xs text-systemRed-600 hover:underline">Quitar item</button>
                   </div>
                 </div>
               </div>
-              <button @click="addItem" class="mt-3 px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
-                + Agregar procedimiento
-              </button>
+              <UiButton variant="secondary" size="sm" @click="addItem" class="mt-3">+ Agregar procedimiento</UiButton>
             </div>
           </section>
 
@@ -271,11 +250,11 @@
           <section v-if="currentStep === 'materials'" class="space-y-4">
             <h3 class="text-lg font-semibold text-theme-primary">Materiales e insumos</h3>
 
-            <div v-if="payload.mode === 'consultation'" class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-warning-700">
+            <div v-if="payload.mode === 'consultation'" class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700">
               Esta cita es de evaluación. Si no se consumieron materiales, marca "Saltar".
             </div>
 
-            <div v-if="requiresMaterials" class="p-3 bg-primary-50 border border-primary-200 rounded-lg text-sm text-primary-700">
+            <div v-if="requiresMaterials" class="p-3 bg-systemBlue-50 border border-systemBlue-200 rounded-lg text-sm text-systemBlue-700">
               El tipo de cita "{{ appointmentType?.name }}" requiere registrar materiales.
             </div>
 
@@ -289,7 +268,7 @@
                 <div
                   v-for="(mat, idx) in payload.materials"
                   :key="idx"
-                  class="p-3 border border-theme rounded-lg grid grid-cols-1 md:grid-cols-12 gap-2 relative"
+                  class="p-3 border-hairline rounded-lg grid grid-cols-1 md:grid-cols-12 gap-2 relative"
                 >
                   <div class="md:col-span-5 relative">
                     <input
@@ -299,12 +278,12 @@
                       @blur="closeProductResults(idx)"
                       type="text"
                       placeholder="Buscar producto por nombre o código"
-                      class="w-full p-2 rounded border border-theme bg-theme-surface-elevated"
+                      class="w-full p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500"
                       autocomplete="off"
                     />
                     <div
                       v-if="productResults[idx] && productResults[idx].length"
-                      class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border border-theme bg-theme-surface-elevated shadow-lg"
+                      class="absolute z-10 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border-hairline bg-theme-surface-elevated shadow-lg"
                     >
                       <button
                         v-for="opt in productResults[idx]"
@@ -326,14 +305,12 @@
                       ID: {{ mat.product_id }} · {{ mat._label }}
                     </p>
                   </div>
-                  <input v-model.number="mat.quantity_used" type="number" step="0.01" min="0.01" placeholder="Cantidad" class="md:col-span-2 p-2 rounded border border-theme bg-theme-surface-elevated" />
-                  <input v-model.number="mat.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="md:col-span-3 p-2 rounded border border-theme bg-theme-surface-elevated" />
-                  <button @click="removeMaterial(idx)" class="md:col-span-2 text-xs text-red-500 hover:underline">Quitar</button>
+                  <input v-model.number="mat.quantity_used" type="number" step="0.01" min="0.01" placeholder="Cantidad" class="md:col-span-2 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
+                  <input v-model.number="mat.unit_cost" type="number" step="0.01" placeholder="Costo unit." class="md:col-span-3 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
+                  <button @click="removeMaterial(idx)" class="md:col-span-2 text-xs text-systemRed-600 hover:underline">Quitar</button>
                 </div>
               </div>
-              <button @click="addMaterial" class="mt-3 px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
-                + Agregar material
-              </button>
+              <UiButton variant="secondary" size="sm" @click="addMaterial" class="mt-3">+ Agregar material</UiButton>
             </div>
           </section>
 
@@ -345,12 +322,12 @@
               <div
                 v-for="(att, idx) in payload.attachments"
                 :key="idx"
-                class="p-3 border border-theme rounded-lg flex items-center gap-3"
+                class="p-3 border-hairline rounded-lg flex items-center gap-3"
               >
                 <input type="file" @change="onFileSelected(idx, $event)" accept="image/*,application/pdf" class="flex-1 text-sm" />
-                <input v-model="att.category" placeholder="Categoría" list="categories" class="p-2 rounded border border-theme bg-theme-surface-elevated" />
-                <input v-model="att.description" placeholder="Descripción" class="flex-1 p-2 rounded border border-theme bg-theme-surface-elevated" />
-                <button @click="removeAttachment(idx)" class="text-xs text-red-500 hover:underline">Quitar</button>
+                <input v-model="att.category" placeholder="Categoría" list="categories" class="p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" />
+                <input v-model="att.description" placeholder="Descripción" class="flex-1 p-2 rounded border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" />
+                <button @click="removeAttachment(idx)" class="text-xs text-systemRed-600 hover:underline">Quitar</button>
               </div>
             </div>
             <datalist id="categories">
@@ -360,9 +337,7 @@
               <option value="consentimiento"></option>
               <option value="otro"></option>
             </datalist>
-            <button @click="addAttachment" class="px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent-dark">
-              + Agregar archivo
-            </button>
+            <UiButton variant="secondary" size="sm" @click="addAttachment">+ Agregar archivo</UiButton>
           </section>
 
           <!-- PASO 6: Próxima cita -->
@@ -371,52 +346,28 @@
             <p class="text-sm text-theme-secondary">Agenda una cita de seguimiento si aplica.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Fecha y hora</label>
-                <input v-model="payload.next_appointment.scheduled_at" type="datetime-local" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" />
+                <label for="cw-next-date" class="block text-sm font-medium text-theme-primary mb-1">Fecha y hora</label>
+                <input id="cw-next-date" v-model="payload.next_appointment.scheduled_at" type="datetime-local" class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" />
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Duración (min)</label>
-                <input v-model.number="payload.next_appointment.duration_minutes" type="number" min="15" step="15" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated" />
+                <label for="cw-next-duration" class="block text-sm font-medium text-theme-primary mb-1">Duración (min)</label>
+                <input id="cw-next-duration" v-model.number="payload.next_appointment.duration_minutes" type="number" min="15" step="15" class="w-full p-2 rounded-lg border-hairline bg-theme-surface-elevated focus:outline-none focus:ring-2 focus:ring-systemBlue-500" style="font-feature-settings: var(--font-features-tabular-nums)" />
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
-              <textarea v-model="payload.next_appointment.notes" rows="2" class="w-full p-2 rounded-lg border border-theme bg-theme-surface-elevated"></textarea>
+              <label for="cw-next-notes" class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
+              <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
             </div>
           </section>
         </div>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-theme flex items-center justify-between">
-          <button
-            @click="prevStep"
-            :disabled="currentStepIndex === 0"
-            class="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary disabled:opacity-30"
-          >
-            ← Anterior
-          </button>
+        <div class="p-4 border-t border-hairline flex items-center justify-between">
+          <UiButton variant="ghost" size="sm" :disabled="currentStepIndex === 0" @click="prevStep">← Anterior</UiButton>
           <div class="flex items-center gap-2">
-            <button
-              @click="handleClose"
-              class="px-4 py-2 text-sm font-medium text-theme-secondary hover:text-theme-primary"
-            >
-              Cancelar
-            </button>
-            <button
-              v-if="!isLastStep"
-              @click="nextStep"
-              class="px-4 py-2 text-sm font-medium bg-theme-surface border border-theme rounded-lg hover:bg-theme-surface-elevated"
-            >
-              Siguiente →
-            </button>
-            <button
-              v-else
-              @click="handleSubmit"
-              :disabled="!canSubmit || submitting"
-              class="px-5 py-2 text-sm font-semibold bg-success-600 text-white rounded-lg hover:bg-success-700 disabled:opacity-50"
-            >
-              {{ submitting ? 'Completando…' : '✓ Completar consulta' }}
-            </button>
+            <UiButton variant="ghost" size="sm" @click="handleClose">Cancelar</UiButton>
+            <UiButton v-if="!isLastStep" variant="secondary" size="sm" @click="nextStep">Siguiente →</UiButton>
+            <UiButton v-else variant="primary" size="md" :disabled="!canSubmit || submitting" :loading="submitting" @click="handleSubmit">✓ Completar consulta</UiButton>
           </div>
         </div>
       </div>
@@ -428,6 +379,13 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useApi } from '../../composables/useApi'
+import UiTabs from '@/components/ui/Tabs.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
+import UiSelect from '@/components/ui/Select.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiButton from '@/components/ui/Button.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 
 const props = defineProps({
   appointment: { type: Object, default: null },
@@ -460,6 +418,25 @@ const steps = [
   { id: 'attachments', label: 'Adjuntos' },
   { id: 'next', label: 'Próxima cita' },
 ]
+
+// Additive: maps wizard step id+label into the UiTabs tab shape, with a
+// numbered prefix so the clinician keeps the visual ordinal from the legacy
+// hand-built step strip. Pure derivation; does not touch the existing
+// `steps` array or the `currentStep` ref binding (CITAS-CON-001).
+const tabsForUiTabs = computed(() => steps.map((step, idx) => ({
+  id: step.id,
+  label: `${idx + 1}. ${step.label}`,
+})))
+
+// Additive: maps the 3 wizard modes to the UiStatusBadge variant ramp
+// (per design §2.7: info = evaluative, success = executable, warning =
+// advancing an existing plan). Pure mapping; consumed only by the
+// mode-card chip in step 1.
+const modeBadgeVariant = (mode) => {
+  if (mode === 'consultation') return 'info'
+  if (mode === 'execution') return 'success'
+  return 'warning'
+}
 
 const currentStep = ref('mode')
 const executedItemIds = ref([])
@@ -506,6 +483,14 @@ const isLastStep = computed(() => currentStepIndex.value === steps.length - 1)
 
 const activePlans = computed(() => context.value?.active_plans ?? [])
 const selectedPlan = computed(() => activePlans.value.find(p => p.id === payload.value.treatment_plan.id))
+
+// Additive: maps `activePlans` into the {value,label} shape consumed by
+// <UiSelect>. Pure derivation; does not touch the existing `activePlans`
+// computed or the `payload.treatment_plan.id` binding (CITAS-CON-001).
+const planOptions = computed(() => activePlans.value.map(p => ({
+  value: p.id,
+  label: `${p.plan_number} · ${p.title} (${p.progress?.completed_items ?? 0}/${p.progress?.total_items ?? 0})`,
+})))
 const requiresMaterials = computed(() => context.value?.requires_materials ?? false)
 const appointmentType = computed(() => context.value?.appointment_type ?? null)
 
