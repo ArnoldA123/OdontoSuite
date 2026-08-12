@@ -1,10 +1,12 @@
 <template>
   <AppLayout>
+    <!-- bg-canvas pinned on the page header (DLR-R-001); AppLayout also
+         paints canvas for this route (canvasRoutes list). -->
     <PageHeader
       :title="appointmentType?.name || 'Cargando...'"
       :subtitle="appointmentType ? `ID: ${appointmentType.id} | Duración: ${appointmentType.default_duration_minutes} minutos` : ''"
       :breadcrumbs="[{ to: '/appointment-types', label: 'Tipos de Cita' }]"
-      class="mb-6"
+      class="bg-canvas mb-6"
     >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
@@ -35,7 +37,7 @@
               <span class="font-medium">Duración:</span> {{ appointmentType?.default_duration_minutes }} minutos
             </div>
             <div>
-              <span class="font-medium">Precio:</span> {{ formatPrice(appointmentType?.price) }}
+              <span class="font-medium">Precio:</span> <span class="tabular-nums">{{ formatCurrency(appointmentType?.price) }}</span>
             </div>
             <div>
               <span class="font-medium">Color:</span> 
@@ -44,16 +46,18 @@
           </div>
         </div>
         <div class="text-right">
-          <UiBadge :variant="appointmentType?.is_active ? 'success' : 'error'">
-            {{ appointmentType?.is_active ? 'Activo' : 'Inactivo' }}
-          </UiBadge>
+          <UiStatusBadge
+            :variant="appointmentType?.is_active ? 'success' : 'neutral'"
+            :label="appointmentType?.is_active ? 'Activo' : 'Inactivo'"
+            size="sm"
+          />
         </div>
       </div>
     </UiCard>
 
     <!-- Tabs Navigation -->
     <div class="mb-6">
-      <nav class="flex space-x-8 border-b border-theme">
+      <nav class="flex space-x-8 border-b border-hairline">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -61,8 +65,8 @@
           :class="[
             'py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200',
             activeTab === tab.id
-              ? 'border-accent text-accent'
-              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-theme'
+              ? 'border-systemBlue-500 text-systemBlue-600'
+              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-hairline'
           ]"
         >
           <component :is="tab.icon" class="w-4 h-4 inline mr-2" />
@@ -88,7 +92,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Precio</label>
-              <p class="text-theme-primary">{{ formatPrice(appointmentType?.price) }}</p>
+              <p class="text-theme-primary tabular-nums">{{ formatCurrency(appointmentType?.price) }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Color</label>
@@ -130,21 +134,23 @@
             <div
               v-for="log in auditLogs"
               :key="log.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+              class="border border-hairline rounded-lg p-4 hover:bg-theme-surface transition-colors"
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
                   <div class="flex items-center gap-2 mb-2">
-                    <UiBadge :variant="getAuditActionVariant(log.action)">
-                      {{ formatAction(log.action) }}
-                    </UiBadge>
+                    <UiStatusBadge
+                      :variant="getAuditActionVariant(log.action)"
+                      :label="formatAction(log.action)"
+                      size="sm"
+                    />
                     <span class="text-sm text-theme-secondary">por {{ log.user?.name || 'Sistema' }}</span>
                   </div>
                   <p class="text-sm text-theme-secondary mb-2">{{ formatDate(log.created_at) }}</p>
                   <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
                     <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
                     <div v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0" class="text-theme-secondary space-y-1">
-                      <div v-for="(change, field) in getChangesSummary(log)" :key="field" class="pl-2 border-l-2 border-theme">
+                      <div v-for="(change, field) in getChangesSummary(log)" :key="field" class="pl-2 border-l-2 border-hairline">
                         <p class="font-medium text-theme-primary">{{ change.field }}:</p>
                         <p class="text-xs">De: <span class="text-red-500">{{ change.old }}</span></p>
                         <p class="text-xs">A: <span class="text-green-500">{{ change.new }}</span></p>
@@ -176,10 +182,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
+import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiBadge from '../../components/ui/Badge.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 
 export default {
   name: 'AppointmentTypeDetailPage',
@@ -187,19 +194,19 @@ export default {
     AppLayout,
     UiCard,
     UiButton,
-    UiBadge
+    UiStatusBadge
   },
   setup() {
     const route = useRoute()
     const router = useRouter()
     const { get } = useApi()
     const toast = useToast()
-    const { 
-      loading: auditLogsLoading, 
-      auditLogs, 
-      getAppointmentTypeAuditLogs, 
-      formatAction, 
-      getChangesSummary 
+    const {
+      loading: auditLogsLoading,
+      auditLogs,
+      getAppointmentTypeAuditLogs,
+      formatAction,
+      getChangesSummary
     } = useAuditLogs()
 
     // State
@@ -255,9 +262,13 @@ export default {
       }
     }
 
+    // PR-citas-04 — Thin wrapper around the canonical `formatCurrency` from
+    // `useFormatters.js` that preserves the legacy "No especificado" fallback
+    // for null/undefined prices. The actual money formatting delegates to the
+    // canonical helper (PAGOS-MNY-002 / CITAS-AT-001).
     const formatPrice = (price) => {
-      if (!price && price !== 0) return 'No especificado'
-      return `S/ ${parseFloat(price).toFixed(2)}`
+      if (price === null || price === undefined) return 'No especificado'
+      return formatCurrency(price)
     }
 
     const formatDate = (date) => {
@@ -273,7 +284,7 @@ export default {
       if (action.includes('created')) return 'success'
       if (action.includes('updated')) return 'warning'
       if (action.includes('deleted')) return 'error'
-      return 'secondary'
+      return 'neutral'
     }
 
     const goBack = () => {
@@ -304,6 +315,7 @@ export default {
       loadAppointmentType,
       loadAuditLogs,
       formatPrice,
+      formatCurrency,
       formatDate,
       formatAction,
       getChangesSummary,

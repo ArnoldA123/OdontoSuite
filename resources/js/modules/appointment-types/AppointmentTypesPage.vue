@@ -1,10 +1,12 @@
 <template>
   <AppLayout>
     <!-- Header Section -->
+    <!-- bg-canvas pinned on the page header (DLR-R-001); AppLayout also
+         paints canvas for this route (canvasRoutes list). -->
     <PageHeader
       title="Tipos de Cita"
       subtitle="Gestiona los tipos de citas disponibles"
-      class="mb-6"
+      class="bg-canvas mb-6"
     >
       <template #actions>
         <UiButton
@@ -47,15 +49,13 @@
           </UiInput>
         </div>
         <div class="flex gap-3">
-          <select
+          <UiSelect
             v-model="statusFilter"
+            :options="statusFilterOptions"
+            placeholder="Todos los estados"
             @change="filterTypes"
-            class="w-48 px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todos los estados</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-          </select>
+            class="w-48"
+          />
         </div>
       </div>
     </UiCard>
@@ -75,7 +75,7 @@
       </div>
 
           <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-theme">
+            <table class="min-w-full divide-y divide-hairline">
               <thead class="bg-theme-surface">
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
@@ -98,7 +98,7 @@
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+              <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
                 <tr v-for="type in types" :key="type.id" class="hover:bg-theme-surface">
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
@@ -126,7 +126,7 @@
                     <div class="text-sm text-theme-primary">{{ type.duration_minutes }} min</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-theme-primary">S/ {{ type.price || '0.00' }}</div>
+                    <div class="text-sm text-theme-primary tabular-nums" :aria-label="`Precio ${formatCurrency(type.price)}`">{{ formatCurrency(type.price) }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
@@ -138,12 +138,11 @@
                     </div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <span
-                      :class="type.is_active ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'"
-                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                    >
-                      {{ type.is_active ? 'Activo' : 'Inactivo' }}
-                    </span>
+                    <UiStatusBadge
+                      :variant="type.is_active ? 'success' : 'neutral'"
+                      :label="type.is_active ? 'Activo' : 'Inactivo'"
+                      size="sm"
+                    />
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex space-x-2">
@@ -151,7 +150,7 @@
                         variant="ghost"
                         size="sm"
                         @click="viewDetail(type)"
-                        class="text-accent hover:text-accent-hover"
+                        class="text-systemBlue-600 hover:text-systemBlue-700"
                       >
                         Ver Detalle
                       </UiButton>
@@ -159,7 +158,7 @@
                         variant="ghost"
                         size="sm"
                         @click="editType(type)"
-                        class="text-accent hover:text-primary-800"
+                        class="text-systemBlue-600 hover:text-systemBlue-700"
                       >
                         Editar
                       </UiButton>
@@ -167,7 +166,7 @@
                         variant="ghost"
                         size="sm"
                         @click="deleteType(type)"
-                        class="text-red-600 hover:text-red-900"
+                        class="text-systemRed-600 hover:text-systemRed-700"
                       >
                         Eliminar
                       </UiButton>
@@ -189,7 +188,7 @@
             v-model="newType.name"
             type="text"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -197,7 +196,7 @@
           <textarea
             v-model="newType.description"
             rows="3"
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           ></textarea>
         </div>
         <div>
@@ -209,7 +208,7 @@
             max="480"
             step="15"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -219,7 +218,7 @@
             type="number"
             min="0"
             step="0.01"
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -228,13 +227,13 @@
             <input
               v-model="newType.color"
               type="color"
-              class="w-12 h-8 border border-theme rounded"
+              class="w-12 h-8 border border-hairline rounded"
             />
             <input
               v-model="newType.color"
               type="text"
               placeholder="#0066CC"
-              class="flex-1 px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+              class="flex-1 px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
             />
           </div>
         </div>
@@ -262,7 +261,7 @@
             v-model="editingType.name"
             type="text"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -270,7 +269,7 @@
           <textarea
             v-model="editingType.description"
             rows="3"
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           ></textarea>
         </div>
         <div>
@@ -282,7 +281,7 @@
             max="480"
             step="15"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -293,7 +292,7 @@
             min="0"
             step="0.01"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
@@ -302,19 +301,16 @@
             v-model="editingType.color"
             type="color"
             required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary">Estado</label>
-          <select
-            v-model="editingType.is_active"
-            required
-            class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option :value="true">Activo</option>
-            <option :value="false">Inactivo</option>
-          </select>
+          <UiSelect
+            v-model="editingTypeIsActive"
+            :options="isActiveOptions"
+            placeholder="Seleccionar estado"
+          />
         </div>
       </form>
       <template #footer>
@@ -348,13 +344,13 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary">Precio</label>
-          <p class="mt-1 text-sm text-theme-primary">S/ {{ viewingType.price }}</p>
+          <p class="mt-1 text-sm text-theme-primary tabular-nums">{{ formatCurrency(viewingType.price) }}</p>
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary">Color</label>
           <div class="mt-1 flex items-center">
             <div
-              class="w-6 h-6 rounded border border-theme mr-2"
+              class="w-6 h-6 rounded border border-hairline mr-2"
               :style="{ backgroundColor: viewingType.color }"
             ></div>
             <span class="text-sm text-theme-primary">{{ viewingType.color }}</span>
@@ -363,9 +359,11 @@
         <div>
           <label class="block text-sm font-medium text-theme-primary">Estado</label>
           <p class="mt-1 text-sm text-theme-primary">
-            <span :class="viewingType.is_active ? 'text-success-700' : 'text-error-700'">
-              {{ viewingType.is_active ? 'Activo' : 'Inactivo' }}
-            </span>
+            <UiStatusBadge
+              :variant="viewingType.is_active ? 'success' : 'neutral'"
+              :label="viewingType.is_active ? 'Activo' : 'Inactivo'"
+              size="sm"
+            />
           </p>
         </div>
       </div>
@@ -378,12 +376,13 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
+import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -391,6 +390,7 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 
 export default {
   name: 'AppointmentTypesPage',
@@ -401,7 +401,8 @@ export default {
     UiSelect,
     UiCard,
     UiModal,
-    UiEmptyState
+    UiEmptyState,
+    UiStatusBadge
   },
   setup() {
     const router = useRouter()
@@ -428,6 +429,27 @@ export default {
       price: 0,
       color: '#0066CC',
       is_active: true
+    })
+
+    // PR-citas-04 — <UiSelect> options for the filter bar + edit modal state toggle.
+    const statusFilterOptions = computed(() => [
+      { value: 'active', label: 'Activos' },
+      { value: 'inactive', label: 'Inactivos' }
+    ])
+
+    const isActiveOptions = computed(() => [
+      { value: true, label: 'Activo' },
+      { value: false, label: 'Inactivo' }
+    ])
+
+    // Two-way binding bridge for the edit modal's `is_active` <UiSelect>.
+    const editingTypeIsActive = computed({
+      get: () => editingType.value?.is_active,
+      set: (value) => {
+        if (editingType.value) {
+          editingType.value.is_active = value
+        }
+      }
     })
 
     const loadTypes = async () => {
@@ -555,6 +577,9 @@ export default {
       types,
       searchQuery,
       statusFilter,
+      statusFilterOptions,
+      isActiveOptions,
+      editingTypeIsActive,
       showNewTypeModal,
       showEditTypeModal,
       showViewTypeModal,
@@ -570,7 +595,8 @@ export default {
       viewDetail,
       updateType,
       deleteType,
-      goBack
+      goBack,
+      formatCurrency
     }
   }
 }

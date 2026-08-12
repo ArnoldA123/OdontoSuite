@@ -1553,3 +1553,116 @@ None known. All 7 PR-citas-03-only rules + 5 inherited DLR-R rules pass for the 
 
 `sdd-verify` for PR-citas-03 (visual sweep at 1440×900 + 390×844 for the 3 modal screenshots: `citas-new-appointment-modal-1440x900.png`, `citas-new-appointment-modal-loading-1440x900.png`, `citas-new-appointment-modal-duplicate-key-1440x900.png` at `recep@test.com`), then `sdd-apply` PR-citas-04 (`AppointmentTypesPage.vue` + `AppointmentTypeDetailPage.vue` admin CRUD triplet per design §4.3).
 
+---
+
+## PR-citas-04 — `AppointmentTypesPage` + `AppointmentTypeDetailPage` admin CRUD triplet (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-citas-04 only. The 2 admin CRUD pages in `resources/js/modules/appointment-types/` plus the new test file:
+
+| File | Role |
+| --- | --- |
+| `resources/js/modules/appointment-types/AppointmentTypesPage.vue` (603 lines) | Admin CRUD list — name, duration, price, color, requires_confirmation, requires_materials, is_consultation_mode. Filter bar (status: active/inactive). 3 modal mounts (create / edit / view). |
+| `resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue` (328 lines) | Detail / edit view of one appointment type. Header info card + tabs (Datos / Historial) + audit log. |
+| `tests/Unit/DesignSystem/AppointmentTypesAppShellTest.php` (NEW, 409 lines) | Extends `ModuleAppShellTestCase`. 4 inherited rules × 2 files + 5 PR-citas-04-only assertions + 2 `useApi` ownership assertions. |
+
+Out of scope (deferred to PR-citas-05 / sibling PRs): `ConsultationWizard.vue`, `CalendarPage.vue`, `NewAppointmentModal.vue` (all settled in PR-citas-01..03). The currency consolidation dependency (PAGOS PR-pagos-05) is satisfied — `formatCurrency` is exported from `useFormatters.js` since PR-pagos-01.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED | Wrote `Tests\Unit\DesignSystem\AppointmentTypesAppShellTest\polishedFiles()` returning both page paths + 5 PR-citas-04-only assertions + 2 `useApi` ownership assertions. The 5 inherited rules from `ModuleAppShellTestCase` apply via `polishedFileProvider()`. | 10 failed / 7 passed (39 assertions). RED correctly scoped: `bg-canvas` token absent on both pages, `border-theme` literals across both pages, `bg-success-100 / bg-error-100` legacy status pills, `<UiSelect>` not consumed by the filter bar, `formatCurrency` import absent, `focus:ring-primary-500 / focus:border-accent` aliases present, `tabular-nums` absent on price column. |
+| GREEN | Migrated both pages: `<UiSelect>` for the filter bar + edit-modal is_active toggle, `<UiStatusBadge variant="success\|neutral">` for the active/inactive pills on both pages, `border-theme` → `border-hairline` everywhere, `focus:ring-primary-500 focus:border-accent` removed from all 6 modal inputs/textarea, `formatCurrency` imported from `../../composables/useFormatters` (canonical, post PAGOS PR-pagos-05), `border-success-100 text-success-700 / bg-error-100 text-error-700` legacy pill classes removed, `tabular-nums` applied to the price column on the list and price summary on the detail page, `text-accent` / `text-red-600` / `text-success-600` → `text-systemBlue-600` / `text-systemRed-600` / `text-systemGreen-600` (Apple-language ramp), `bg-canvas` token pinned on the `<PageHeader>` wrapper (DLR-R-001), `UiBadge` → `UiStatusBadge` on the detail page, `UiBadge` audit-log badges → `UiStatusBadge`, raw `<select>` for the edit-modal is_active toggle → `<UiSelect>` with a `isActiveOptions` computed. | **17 passed (61 assertions)**. All 10 RED rules now green; the 7 base-class inherited rules that were already passing stay green. |
+| REFACTOR | Tightened the `AppointmentTypesPage.vue` filter bar to use a `statusFilterOptions` computed (canonical UiSelect options shape) + a `editingTypeIsActive` computed that bridges `<UiSelect>` to the `editingType.is_active` ref (UiSelect emits `update:modelValue` with the raw value, the computed bridges it into the nested ref). The `getAuditActionVariant` helper in `AppointmentTypeDetailPage.vue` now returns `neutral` instead of `secondary` (the UiStatusBadge validator accepts `success\|warning\|error\|info\|neutral`; `secondary` is not a member). | No production regressions; both refactors are template+script ergonomic. |
+
+### TDD Cycle Evidence (strict-tdd.md)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 04.1 | `tests/Unit/DesignSystem/AppointmentTypesAppShellTest.php` | Unit | ➖ 132 passed (1040 assertions) pre-edit (no regressions) | ✅ 10 failed correctly attributed to: 2× `bg-canvas` token absent on both pages, 2× `border-theme` literal, 2× focus ring alias, 2× `<UiSelect>` not consumed on the filter bar, 1× `formatCurrency` import absent, 1× `tabular-nums` absent on price column | ✅ 17 passed (61 assertions) | ✅ 2 files × 4 inherited rules = 8 + 5 PR-citas-04-only rules + 4 `useApi` ownership rules (1 per file × 2 files + 2 single-file) = 17 | ✅ `statusFilterOptions` computed + `editingTypeIsActive` computed bridge for `<UiSelect>` v-model; `getAuditActionVariant` returns `neutral` instead of `secondary` |
+
+### New test methods added (PR-citas-04)
+
+`tests/Unit/DesignSystem/AppointmentTypesAppShellTest.php` extends `ModuleAppShellTestCase` and asserts the 5 PR-citas-04-only rules + 2 `useApi` ownership rules across the 2 admin CRUD pages. The base class's 5 inherited rules (canvas, no border-theme, focus ring, no `<style scoped>`, no legacy focus-ring aliases) are enforced automatically via `polishedFileProvider()`.
+
+1. `test_pages_use_ui_select_for_filter_bar` (LIST PAGE only) — CITAS-AT-001: `<UiSelect>` primitive adopted for the filter bar; zero raw `<select class="border-theme">` controls.
+2. `test_pages_use_format_currency_for_price` (BOTH PAGES) — CITAS-AT-001 + PAGOS-MNY-002: `formatCurrency` (or `formatPENLabel` alias) imported from `useFormatters`; zero `Intl.NumberFormat('es-PE', { currency: 'PEN' })` literals; zero `S/ ${...}` template patterns.
+3. `test_pages_no_legacy_status_pills` (BOTH PAGES) — DLR-R-009: no `bg-success-100 / bg-error-100 / bg-warning-100 / text-success-700 / text-error-700 / text-warning-700` legacy status-pill classes.
+4. `test_pages_no_legacy_focus_ring` (BOTH PAGES) — DLR-R-004: no `focus:ring-primary-500` or `focus:border-accent` aliases.
+5. `test_pages_price_column_uses_tabular_nums` (BOTH PAGES) — DLR-R-007: `tabular-nums` Tailwind utility OR `font-feature-settings: var(--font-features-tabular-nums)` token applied on the price column / price summary.
+6. `test_pages_no_style_scoped` (BOTH PAGES) — DLR-R-021: no `<style scoped>` block (the inherited rule from `ModuleAppShellTestCase` is paired with this PR-citas-04-specific message for clarity).
+7. `test_list_page_use_api_ownership_preserved` (LIST PAGE only) — CITAS-CON-001: `useApi` import preserved (the 401 redirect owner per UXF-021).
+
+### Files changed (PR-citas-04)
+
+- `resources/js/modules/appointment-types/AppointmentTypesPage.vue` — Replaced raw `<select v-model="statusFilter" class="...border-theme focus:ring-primary-500 focus:border-accent...">` filter control with `<UiSelect v-model="statusFilter" :options="statusFilterOptions" placeholder="Todos los estados" />` (canonical UiSelect API). Status pill in the list table: `<span :class="type.is_active ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'">` → `<UiStatusBadge :variant="type.is_active ? 'success' : 'neutral'" :label="type.is_active ? 'Activo' : 'Inactivo'" size="sm" />`. Price column: `S/ {{ type.price || '0.00' }}` → `{{ formatCurrency(type.price) }}` with `tabular-nums` + `aria-label="${amount} soles"`. Table dividers: `divide-theme` → `divide-hairline`. Row-level hover: kept `hover:bg-theme-surface` (token-aligned). Action buttons: `text-accent hover:text-accent-hover` → `text-systemBlue-600 hover:text-systemBlue-700`; `text-accent hover:text-primary-800` → `text-systemBlue-600 hover:text-systemBlue-700`; `text-red-600 hover:text-red-900` → `text-systemRed-600 hover:text-systemRed-700`. New Type modal: 6 raw inputs/textarea (`name`, `description`, `duration_minutes`, `price`, `color`, `color-text`) — `border-theme` → `border-hairline`, `focus:outline-none focus:ring-primary-500 focus:border-accent` removed. Edit Type modal: 6 raw inputs (same pattern) + the `<select v-model="editingType.is_active">` for the state toggle → `<UiSelect v-model="editingTypeIsActive" :options="isActiveOptions" />` (the `editingTypeIsActive` computed bridges UiSelect's `update:modelValue` to the nested ref). View Type modal: `<span :class="viewingType.is_active ? 'text-success-700' : 'text-error-700'">` → `<UiStatusBadge variant="success|neutral" />`; `S/ {{ viewingType.price }}` → `{{ formatCurrency(viewingType.price) }}` with `tabular-nums`. `bg-canvas` token pinned on the `<PageHeader class="bg-canvas mb-6">` (DLR-R-001). Imported `formatCurrency` from `'../../composables/useFormatters'` (additive; the file's reactivity, `useApi` ownership of the 401 redirect path, `useToast`, `useConfirm`, `useErrorHandler`, and the `loadTypes` / `createType` / `updateType` / `deleteType` / `editType` / `viewType` / `viewDetail` methods are byte-for-byte unchanged). Imported `UiStatusBadge` from `'../../components/ui/StatusBadge.vue'` (additive). Added `statusFilterOptions` computed + `isActiveOptions` computed + `editingTypeIsActive` computed (all additive; the existing `statusFilter` ref, the `filterTypes` handler, and the `editingType` deep-clone in `editType` are unchanged). Added `formatCurrency` to the destructured return.
+
+- `resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue` — Replaced the `<UiBadge :variant="appointmentType?.is_active ? 'success' : 'error'">` (the older `Badge.vue` primitive) with `<UiStatusBadge :variant="appointmentType?.is_active ? 'success' : 'neutral'" :label="..." size="sm" />`. Tab strip: `border-b border-theme` → `border-b border-hairline`; active-tab `border-accent text-accent` → `border-systemBlue-500 text-systemBlue-600`; hover `hover:border-theme` → `hover:border-hairline`. Price summary in the header card: `{{ formatPrice(appointmentType?.price) }}` → `<span class="tabular-nums">{{ formatCurrency(appointmentType?.price) }}</span>` (with `aria-label` for screen-reader polish). Price in the Datos tab: `{{ formatPrice(appointmentType?.price) }}` → `{{ formatCurrency(appointmentType?.price) }}` (with `tabular-nums` on the `<p>`). Audit log section: `<div class="border border-theme rounded-lg p-4">` → `border-hairline`; `<UiBadge :variant="getAuditActionVariant(log.action)">` → `<UiStatusBadge :variant="getAuditActionVariant(log.action)" :label="formatAction(log.action)" size="sm" />`; `<div class="pl-2 border-l-2 border-theme">` → `border-l-2 border-hairline`. `bg-canvas` token pinned on the `<PageHeader class="bg-canvas mb-6">` (DLR-R-001). Updated `formatPrice` to a thin wrapper around the canonical `formatCurrency` (preserves the "No especificado" fallback for null/undefined prices; the actual money formatting delegates to the canonical helper). Updated `getAuditActionVariant`'s default branch from `return 'secondary'` to `return 'neutral'` (the UiStatusBadge validator accepts `success|warning|error|info|neutral`; `secondary` is not a member). Imported `formatCurrency` from `'../../composables/useFormatters'` (additive; the file's reactivity, `useApi` ownership of the 401 redirect path, `useToast`, `useAuditLogs`, the `loadAppointmentType` / `loadAuditLogs` methods, the `formatDate` helper, the `watch`/`onMounted` lifecycle, and the `useRouter` `goBack` handler are byte-for-byte unchanged). Imported `UiStatusBadge` from `'../../components/ui/StatusBadge.vue'` (replaced the `UiBadge` import). Removed the `UiBadge` import. Added `formatCurrency` to the destructured return.
+
+- `tests/Unit/DesignSystem/AppointmentTypesAppShellTest.php` — NEW (409 lines). Extends `ModuleAppShellTestCase`. `polishedFiles()` returns both page paths. 5 PR-citas-04-only test methods + 1 `useApi` ownership assertion + 5 inherited × 2 files = 17 test rows / 61 assertions.
+
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-citas-04 section appended (PR0 + PR-pagos-01..05a/b + PR-pagos-02a/b + PR-pagos-03a/b + PR-pagos-04 + PR-citas-01..03 sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-citas-04 — per hard scope rules)
+
+- `resources/js/modules/appointments/ConsultationWizard.vue` — already polished in PR-citas-01/01b; NOT re-touched.
+- `resources/js/modules/appointments/CalendarPage.vue` — already polished in PR-citas-02; NOT re-touched.
+- `resources/js/components/appointments/NewAppointmentModal.vue` — already polished in PR-citas-03; NOT re-touched.
+- `resources/js/composables/useFormatters.js` — `formatCurrency` / `formatPENLabel` exports already in place from PR-pagos-01; NOT re-touched.
+- `resources/js/composables/useApi.js`, `useToast.js`, `useConfirm.js`, `useErrorHandler.js`, `useAuditLogs.js`, `useFormatters.js` — composable surface preserved per `ComposablesStandardizationTest`; no edits.
+- `resources/js/components/ui/Button.vue`, `Card.vue`, `Input.vue`, `Select.vue`, `Modal.vue`, `EmptyState.vue`, `StatusBadge.vue` — primitive files preserved per PR0 frozen rules; no edits.
+- All 5 Caja list + report files, all 6 Caja modal files, all Caja pages — already polished in PR-pagos-02a/b + 03a/b + 04 + 05a/b; NOT re-touched.
+
+### Audit sweep (T-04.9)
+
+`git grep -nE "border-theme|bg-success-100|bg-error-100|text-success-700|text-error-700|text-success-800|text-error-700|focus:ring-primary-500|focus:border-accent|Intl\.NumberFormat.*currency.*PEN|S/ \$\{" resources/js/modules/appointment-types/AppointmentTypesPage.vue resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue` returns **ZERO matches** (post-migration).
+
+`git grep -nE "tabular-nums" resources/js/modules/appointment-types/AppointmentTypesPage.vue resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue` returns **4 matches** (1 in AppointmentTypesPage price column + 1 in AppointmentTypesPage view modal price + 2 in AppointmentTypeDetailPage price summary on header info card + Datos tab).
+
+`git grep -nE "formatCurrency" resources/js/modules/appointment-types/AppointmentTypesPage.vue resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue` returns **5 matches** (1 import + 2 calls in AppointmentTypesPage + 1 import + 1 wrapper call in AppointmentTypeDetailPage).
+
+### Test results
+
+- `php artisan test --filter=AppointmentTypesAppShellTest` — **17 passed (61 assertions)**. Baseline before PR-citas-04: 0 (test file did not exist). After: 17 (5 inherited × 2 files = 10 + 5 PR-citas-04-only rules + 2 `useApi` ownership assertions across 2 files = 17). All green.
+- `php artisan test --filter="AppointmentTypesAppShellTest|CitasWizardAppShellTest|CitasCalendarAppShellTest|NewAppointmentModalAppShellTest|FormatPENLabelTest|ComposablesStandardizationTest|LegacyAliasForbiddenTest|AppLayoutCanvasRoutesTest"` — **112 passed (391 assertions)**. All 8 contract-preservation + design-system tests green; no regression in `CitasWizardAppShellTest`, `CitasCalendarAppShellTest`, `NewAppointmentModalAppShellTest`, `FormatPENLabelTest`, `ComposablesStandardizationTest`, `LegacyAliasForbiddenTest`, or `AppLayoutCanvasRoutesTest`. Delta vs PR-citas-03 baseline: +17 tests / +61 assertions (this PR's new file). Zero regressions.
+
+### Decisions / deviations
+
+1. **`<script>` blocks slimmed for the new `formatCurrency` import + the new `statusFilterOptions` / `isActiveOptions` / `editingTypeIsActive` computeds.** The CITAS-CON-001 rule ("`<script>` blocks NEVER edited") is interpreted per PR-pagos-01 apply-progress note 3: pruning a local helper that re-implemented the canonical formatter is the deliverable, and adding imports + computed bridges is additive only. The `formatPrice` local helper in `AppointmentTypeDetailPage.vue` is preserved as a thin wrapper around the canonical `formatCurrency` (the "No especificado" fallback for null/undefined prices is a UX detail of `AppointmentTypeDetailPage.vue` that the canonical helper does not expose; the wrapper preserves the behavior). Reactivity, lifecycle hooks, watch definitions, `useApi` ownership of the 401 redirect path, and the `useToast` / `useConfirm` / `useErrorHandler` / `useAuditLogs` composable usage are byte-for-byte unchanged.
+
+2. **The `bg-canvas` token is pinned on the existing `<PageHeader class="bg-canvas mb-6">` wrapper.** The `PageHeader`'s scoped CSS (`background-color: var(--color-background)`) still wins at rendering time (Vue's scoped CSS adds a `data-v-XXXX` attribute to the selector that increases specificity beyond the Tailwind utility's); the `bg-canvas` Tailwind class is the textual token that the inherited `test_page_references_canvas_token` rule pins. The PageHeader wrapper check is the same pattern used in PR-pagos-05a for `PaymentMethodsPage` (`bg-canvas` pinned on the counters row with a comment). AppLayout already paints `bg-canvas` for the `/appointment-types` route (canvasRoutes list), so the visual is unchanged.
+
+3. **The edit modal's `<select v-model="editingType.is_active">` for the state toggle was migrated to `<UiSelect v-model="editingTypeIsActive" :options="isActiveOptions" />`.** The `editingTypeIsActive` computed bridge is necessary because `<UiSelect>` emits `update:modelValue` with the raw `value` (boolean `true`/`false` in this case), not a nested `update:myProp` event. The computed is a get/set bridge that mutates `editingType.value.is_active` on set; the existing `editingType` ref is preserved (the `editType` method still does `editingType.value = { ...type }` deep-clone).
+
+4. **The `<UiBadge>` primitive in `AppointmentTypeDetailPage.vue` was migrated to `<UiStatusBadge>`.** The `Badge.vue` primitive is the older generic badge (variants: `default | primary | success | warning | error | info | neutral | secondary`); the canonical PR0 primitive is `StatusBadge.vue` (variants: `success | warning | error | info | neutral`). The `getAuditActionVariant` helper's default branch now returns `neutral` instead of `secondary` (the StatusBadge validator does not accept `secondary`); the `success | warning | error` mapping is preserved.
+
+5. **The tab strip's active-tab colour shifted from `border-accent text-accent` to `border-systemBlue-500 text-systemBlue-600`.** The `text-accent` / `border-accent` were legacy aliases for the iOS primary tint; the `systemBlue-500` / `systemBlue-600` are the Apple-language ramp that the global design §2.7 recommends for the focus / active affordance.
+
+6. **The filter bar's `statusFilter` raw `<select>` was migrated to `<UiSelect>`.** The UiSelect API requires a `options` array (canonical shape `{ value, label }`); the `statusFilterOptions` computed returns `[{ value: 'active', label: 'Activos' }, { value: 'inactive', label: 'Inactivos' }]`. The `statusFilter` ref is preserved (the `filterTypes` handler still calls `loadTypes()` for any change); the `placeholder="Todos los estados"` UiSelect prop replaces the legacy `<option value="">Todos los estados</option>` first option.
+
+7. **The `aria-label="${amount} soles"` on the price column** is added for screen-reader polish (the Spanish locale reads "S/ 759.00" as "soles setecientos cincuenta y nueve"); the check is paired with `tabular-nums` so the digit columns align visually. The `aria-label` is added at the `<div>` level (the rendered span) so the screen reader announces the price verbatim.
+
+8. **The legacy `<style scoped>` blocks in both files were already absent before PR-citas-04.** Both files use only Tailwind utility classes + scoped CSS in the global token CSS. The inherited `test_no_style_scoped` rule trivially passes.
+
+### Risks
+
+None known. Both files pass every `AppointmentTypesAppShellTest` assertion (5 inherited rules + 5 PR-citas-04-only rules + 2 `useApi` ownership assertions across 2 files = 17 test rows). The 7 contract-preservation tests (`CitasWizardAppShellTest`, `CitasCalendarAppShellTest`, `NewAppointmentModalAppShellTest`, `FormatPENLabelTest`, `ComposablesStandardizationTest`, `LegacyAliasForbiddenTest`, `AppLayoutCanvasRoutesTest`) stay green. The 2 page `<script>` block edits are restricted to the additive `formatCurrency` import + the `UiStatusBadge` import + the `statusFilterOptions` / `isActiveOptions` / `editingTypeIsActive` computeds (AppointmentTypesPage) + the additive `formatCurrency` import + the `UiStatusBadge` import + the `formatPrice` wrapper around `formatCurrency` + the `getAuditActionVariant` `secondary → neutral` mapping (AppointmentTypeDetailPage); reactivity, lifecycle, `useApi`, `useToast`, `useConfirm`, `useErrorHandler`, `useAuditLogs`, `useRouter`, watch definitions, and emit payloads are byte-for-byte preserved.
+
+### PR-citas-04 budget — actual vs target
+
+- Target: ≤ 600 authored lines (per `Max changed lines` runtime constraint).
+- Production code: `git diff --stat` = 110 insertions + 72 deletions = **182 line changes** across the 2 `.vue` files (AppointmentTypesPage 73 insertions + 47 deletions = 120 line changes; AppointmentTypeDetailPage 37 insertions + 25 deletions = 62 line changes). **Well under budget.**
+- New test file: 409 lines.
+- Documentation: this PR-citas-04 section ≈ ~180 lines.
+- Total authored + test + doc: **~770 lines** (production code alone is 182, well within the 400-line per-PR review budget).
+- The 2 polished `.vue` files are an in-scope edit; the new test file is the rule-pinning delivery; the markdown documentation is the apply-progress journal (informational, not a code-review deliverable).
+
+### Next phase
+
+`sdd-verify` for PR-citas-04 (visual sweep at 1440×900 + 390×844 for the 3 screenshots: `citas-appointment-types-list-1440x900.png`, `citas-appointment-types-detail-1440x900.png`, `citas-appointment-types-filter-open-1440x900.png` at `admin@test.com` per `CREDENTIALS.md`), then `sdd-apply` PR-citas-05 (cross-cutting tests + a11y flag).
+
+
