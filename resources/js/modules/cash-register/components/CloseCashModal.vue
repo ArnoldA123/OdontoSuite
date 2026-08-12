@@ -6,26 +6,26 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <div class="space-y-6">
+    <div class="space-y-6 bg-canvas">
       <!-- Resumen de la Sesión -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-4">
+      <div class="bg-theme-surface border border-hairline rounded-lg p-4">
         <h3 class="text-lg font-semibold text-theme-primary mb-3">Resumen de la Sesión</h3>
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-theme-secondary">Monto de Apertura:</span>
-            <span class="font-semibold ml-2 text-theme-primary">{{ formatCurrency(session?.opening_amount) }}</span>
+            <span class="font-semibold ml-2 text-theme-primary tabular-nums">{{ formatCurrency(session?.opening_amount) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Ingresos:</span>
-            <span class="font-semibold ml-2 text-green-600">{{ formatCurrency(summary?.total_income) }}</span>
+            <span class="font-semibold ml-2 text-systemGreen-600 tabular-nums">{{ formatCurrency(summary?.total_income) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Egresos:</span>
-            <span class="font-semibold ml-2 text-red-600">{{ formatCurrency(summary?.total_expenses) }}</span>
+            <span class="font-semibold ml-2 text-systemRed-600 tabular-nums">{{ formatCurrency(summary?.total_expenses) }}</span>
           </div>
           <div>
             <span class="text-theme-secondary">Monto Esperado:</span>
-            <span class="font-semibold ml-2 text-theme-primary">{{ formatCurrency(summary?.expected_amount) }}</span>
+            <span class="font-semibold ml-2 text-theme-primary tabular-nums">{{ formatCurrency(summary?.expected_amount) }}</span>
           </div>
         </div>
       </div>
@@ -109,29 +109,24 @@
           </div>
 
           <!-- Total del Arqueo -->
-          <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <UiCard variant="flat" padding="md" class="mt-4">
             <div class="flex justify-between items-center">
-              <span class="text-lg font-semibold text-primary-900">Total del Arqueo:</span>
-              <span class="text-xl font-bold text-primary-900">{{ formatCurrency(arqueoTotal) }}</span>
+              <span class="text-lg font-semibold text-theme-primary">Total del Arqueo:</span>
+              <span class="text-xl font-bold text-theme-primary tabular-nums">{{ formatCurrency(arqueoTotal) }}</span>
             </div>
-          </div>
+          </UiCard>
 
           <!-- Diferencia -->
-          <div v-if="diferencia !== 0" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div class="flex justify-between items-center">
-              <span class="text-lg font-semibold text-yellow-900">Diferencia:</span>
-              <span
-                class="text-xl font-bold"
-                :class="diferencia > 0 ? 'text-green-600' : 'text-red-600'"
-              >
-                {{ formatCurrency(Math.abs(diferencia)) }}
-                {{ diferencia > 0 ? '(Sobrante)' : '(Faltante)' }}
-              </span>
-            </div>
+          <div v-if="diferencia !== 0" class="mt-4">
+            <UiStatusBadge
+              :variant="diferencia > 0 ? 'success' : 'error'"
+              :label="`Diferencia: ${formatCurrency(Math.abs(diferencia))} (${diferencia > 0 ? 'Sobrante' : 'Faltante'})`"
+              size="md"
+            />
           </div>
 
           <!-- Notas de Cierre -->
-          <div>
+          <div class="mt-4">
             <label class="block text-sm font-medium text-theme-primary mb-1">
               Notas de Cierre
             </label>
@@ -149,7 +144,7 @@
           </div>
 
           <!-- Justificación de Diferencia -->
-          <div v-if="Math.abs(diferencia) > 0.01" class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div v-if="Math.abs(diferencia) > 0.01" class="mt-4">
             <label class="block text-sm font-medium text-red-700 mb-2">
               Justificación de la Diferencia
             </label>
@@ -164,25 +159,25 @@
           </div>
 
           <!-- Resumen de Cierre -->
-          <div class="mt-6 p-4 bg-primary-50 rounded-lg border border-primary-200">
-            <h4 class="text-sm font-semibold text-primary-900 mb-3">
+          <UiCard variant="flat" padding="md" class="mt-4">
+            <h4 class="text-sm font-semibold text-theme-primary mb-3">
               Resumen de Cierre
             </h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Transacciones:</span>
-                <span class="font-medium text-theme-primary">{{ summary?.transactions_count || 0 }}</span>
+                <span class="font-medium text-theme-primary tabular-nums">{{ summary?.transactions_count || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Movimientos:</span>
-                <span class="font-medium text-theme-primary">{{ summary?.movements_count || 0 }}</span>
+                <span class="font-medium text-theme-primary tabular-nums">{{ summary?.movements_count || 0 }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Duración de Sesión:</span>
                 <span class="font-medium text-theme-primary">{{ sessionDuration }}</span>
               </div>
             </div>
-          </div>
+          </UiCard>
 
           <!-- Checkbox para generar reporte automático -->
           <div class="mt-4">
@@ -190,7 +185,7 @@
               <input
                 v-model="formData.generate_report"
                 type="checkbox"
-                class="rounded border-theme text-accent focus:ring-primary-500"
+                class="rounded border-hairline text-systemBlue-500"
                 checked
               />
               <span class="ml-2 text-sm text-theme-primary">
@@ -232,6 +227,8 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useToast } from '@/composables/useToast'
@@ -316,8 +313,8 @@ const sessionDuration = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm bg-theme-surface-elevated text-theme-primary'
-  return loading.value ? `${base} cursor-not-allowed opacity-50` : `${base} border-theme`
+  const base = 'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none sm:text-sm bg-theme-surface-elevated text-theme-primary'
+  return loading.value ? `${base} cursor-not-allowed opacity-50` : `${base} border-hairline`
 })
 
 // Métodos
@@ -410,7 +407,7 @@ const generateClosureReport = async (sessionId) => {
   }
 }
 
-// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
 // Watch
 watch(() => props.show, (newValue) => {

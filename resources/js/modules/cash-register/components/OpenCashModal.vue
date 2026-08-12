@@ -6,7 +6,13 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form @submit.prevent="handleSubmit" class="space-y-4 bg-canvas">
+        <!-- Estado (Apertura de caja) -->
+        <UiStatusBadge
+          variant="info"
+          label="Apertura de Caja"
+          size="md"
+        />
         <!-- Sucursal -->
         <div v-if="!loadingBranches && branches.length > 0">
           <label class="block text-sm font-medium text-theme-primary mb-1">
@@ -37,7 +43,8 @@
 
         <!-- Loading state -->
         <div v-else class="py-8 text-center text-theme-secondary text-sm">
-          Cargando sucursales...
+          <UiLoadingSpinner size="sm" variant="secondary" :centered="false" aria-label="Cargando sucursales" />
+          <p class="mt-2">Cargando sucursales...</p>
         </div>
 
         <!-- Monto de Apertura -->
@@ -60,7 +67,7 @@
           </label>
           <textarea
             v-model="formData.opening_notes"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm focus:outline-none sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
             :disabled="loading"
             rows="3"
             placeholder="Notas adicionales sobre la apertura de caja..."
@@ -72,27 +79,27 @@
         </div>
 
         <!-- Resumen -->
-        <div v-if="branches.length > 0" class="bg-primary-50 border border-primary-200 rounded-lg p-4">
-          <h3 class="text-sm font-semibold text-primary-900 mb-2">Resumen de Apertura</h3>
+        <UiCard v-if="branches.length > 0" variant="flat" padding="md" class="mt-2">
+          <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de Apertura</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
-              <span class="text-primary-700">Sucursal:</span>
-              <span class="font-medium text-primary-900">
+              <span class="text-theme-secondary">Sucursal:</span>
+              <span class="font-medium text-theme-primary">
                 {{ selectedBranch?.name || 'No seleccionada' }}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-primary-700">Monto inicial:</span>
-              <span class="font-medium text-primary-900">
+              <span class="text-theme-secondary">Monto inicial:</span>
+              <span class="font-medium text-theme-primary tabular-nums">
                 {{ formatCurrency(formData.opening_amount) }}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-primary-700">Usuario:</span>
-              <span class="font-medium text-primary-900">{{ currentUser?.name }}</span>
+              <span class="text-theme-secondary">Usuario:</span>
+              <span class="font-medium text-theme-primary">{{ currentUser?.name }}</span>
             </div>
           </div>
-        </div>
+        </UiCard>
     </form>
 
     <template #footer>
@@ -125,6 +132,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
@@ -132,6 +142,7 @@ import { useApi } from '@/composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { usePermissions } from '@/composables/usePermissions'
+import { formatCurrency } from '@/composables/useFormatters'
 import { useRouter } from 'vue-router'
 import { BanknotesIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 
@@ -291,12 +302,7 @@ const handleSubmit = async () => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
 // Watch
 watch(() => props.show, (newValue) => {

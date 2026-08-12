@@ -1,7 +1,7 @@
 <template>
   <Modal
     :model-value="show"
-    title="Registrar Transacción"
+    :title="isRefund ? 'Registrar Egreso' : 'Registrar Ingreso'"
     size="lg"
     @update:model-value="$emit('close')"
     @close="$emit('close')"
@@ -9,7 +9,13 @@
     <form
       @submit.prevent="handleSubmit"
     >
-      <div class="space-y-4">
+      <div class="space-y-4 bg-canvas">
+        <!-- Estado (Ingreso / Egreso) -->
+        <UiStatusBadge
+          :variant="isRefund ? 'error' : 'success'"
+          :label="isRefund ? 'Egreso' : 'Ingreso'"
+          size="md"
+        />
         <!-- Búsqueda de Paciente -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
@@ -25,16 +31,16 @@
               @focus="showPatientResults = true"
             />
             <div v-if="searchingPatients" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-accent"></div>
+              <UiLoadingSpinner size="xs" variant="primary" :centered="false" aria-label="Buscando pacientes" />
             </div>
           </div>
 
           <!-- Resultados de búsqueda -->
-          <div v-if="showPatientResults && patientResults.length > 0" class="absolute z-10 w-full mt-1 bg-theme-surface-elevated border border-theme rounded-md shadow-lg max-h-60 overflow-auto">
+          <div v-if="showPatientResults && patientResults.length > 0" class="absolute z-10 w-full mt-1 bg-theme-surface-elevated border border-hairline rounded-md shadow-lg max-h-60 overflow-auto">
             <div
               v-for="patient in patientResults"
               :key="patient.id"
-              class="px-4 py-2 hover:bg-theme-surface cursor-pointer border-b border-theme last:border-b-0"
+              class="px-4 py-2 hover:bg-theme-surface cursor-pointer border-b border-hairline last:border-b-0"
               @click="selectPatient(patient)"
             >
               <div class="font-medium text-theme-primary">{{ patient.name }} {{ patient.last_name }}</div>
@@ -43,21 +49,21 @@
           </div>
 
           <!-- Paciente seleccionado -->
-          <div v-if="selectedPatient" class="mt-2 p-3 bg-primary-50 border border-primary-200 rounded-md">
-            <div class="flex justify-between items-center">
+          <UiCard variant="flat" padding="sm" class="mt-2">
+            <div v-if="selectedPatient" class="flex justify-between items-center">
               <div>
-                <div class="font-medium text-primary-900">{{ selectedPatient.name }} {{ selectedPatient.last_name }}</div>
-                <div class="text-sm text-primary-700">{{ selectedPatient.dni }} - {{ selectedPatient.email }}</div>
+                <div class="font-medium text-theme-primary">{{ selectedPatient.name }} {{ selectedPatient.last_name }}</div>
+                <div class="text-sm text-theme-secondary">{{ selectedPatient.dni }} - {{ selectedPatient.email }}</div>
               </div>
               <button
                 type="button"
                 @click="clearPatient"
-                class="text-accent hover:text-primary-700"
+                class="text-systemBlue-600 hover:text-systemBlue-700"
               >
                 <XMarkIcon class="w-4 h-4" />
               </button>
             </div>
-          </div>
+          </UiCard>
         </div>
 
         <!-- Tipo de Transacción -->
@@ -145,7 +151,7 @@
             <input
               v-model="applyDiscount"
               type="checkbox"
-              class="h-4 w-4 text-primary-500 focus:ring-primary-500 border-theme rounded"
+              class="h-4 w-4 text-systemBlue-500 border-hairline rounded"
             />
             <label class="ml-2 text-sm font-medium text-theme-primary">
               Aplicar descuento
@@ -181,13 +187,12 @@
           </div>
 
           <!-- Autorización de descuento -->
-          <div v-if="requiresAuthorization" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <div class="flex items-center">
-              <ExclamationTriangleIcon class="w-5 h-5 text-yellow-600 mr-2" />
-              <span class="text-sm text-warning-700">
-                Descuento mayor al 10% requiere autorización del administrador
-              </span>
-            </div>
+          <div v-if="requiresAuthorization">
+            <UiStatusBadge
+              variant="warning"
+              size="md"
+              label="Descuento mayor al 10% requiere autorización del administrador"
+            />
           </div>
         </div>
 
@@ -224,20 +229,20 @@
         </div>
 
         <!-- Resumen -->
-        <div class="bg-theme-surface border border-theme rounded-lg p-4">
+        <div class="bg-theme-surface border border-hairline rounded-lg p-4">
           <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de la Transacción</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
               <span class="text-theme-secondary">Subtotal:</span>
-              <span class="font-medium text-theme-primary">{{ formatCurrency(formData.amount) }}</span>
+              <span class="font-medium text-theme-primary tabular-nums">{{ formatCurrency(formData.amount) }}</span>
             </div>
             <div v-if="discountAmount > 0" class="flex justify-between">
               <span class="text-theme-secondary">Descuento:</span>
-              <span class="font-medium text-red-600">-{{ formatCurrency(discountAmount) }}</span>
+              <span class="font-medium text-systemRed-600 tabular-nums">-{{ formatCurrency(discountAmount) }}</span>
             </div>
-            <div class="flex justify-between border-t border-theme pt-1">
+            <div class="flex justify-between border-t border-hairline pt-1">
               <span class="font-semibold text-theme-primary">Total:</span>
-              <span class="font-bold text-lg text-theme-primary">{{ formatCurrency(totalAmount) }}</span>
+              <span class="font-bold text-lg text-theme-primary tabular-nums">{{ formatCurrency(totalAmount) }}</span>
             </div>
           </div>
         </div>
@@ -263,7 +268,7 @@
           @click="handleSubmit"
         >
           <PlusIcon class="w-4 h-4 mr-2" />
-          Registrar Transacción
+          {{ isRefund ? 'Registrar devolución' : 'Registrar pago' }}
         </Button>
       </div>
     </template>
@@ -274,16 +279,30 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { useApi } from '@/composables/useApi'
 import { usePermissions } from '@/composables/usePermissions'
-import { PlusIcon, XMarkIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { formatCurrency } from '@/composables/useFormatters'
+import { PlusIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   show: {
     type: Boolean,
     default: false
+  },
+  // PR-pagos-03 — additive `type` prop. Default `'payment'` (Ingreso).
+  // Caller passes `type="refund"` for the Egreso flow (e.g. the "Devolución"
+  // button on TransactionList). The reactivity logic of the modal is
+  // untouched; only the title + primary button label + status badge
+  // variant follow the prop value (PAGOS-CON-001 / design §3.2).
+  type: {
+    type: String,
+    default: 'payment',
+    validator: v => ['payment', 'refund'].includes(v)
   }
 })
 
@@ -292,6 +311,10 @@ const emit = defineEmits(['close', 'success'])
 const { createTransaction } = useTransactions()
 const { get } = useApi()
 const { applyLargeDiscount } = usePermissions()
+
+// PR-pagos-03 §3.2 — `isRefund` drives the modal title + primary button
+// label + status badge variant per the `PAGOS-MOD-001-1` ramp mapping.
+const isRefund = computed(() => props.type === 'refund')
 
 // Estado
 const loading = ref(false)
@@ -374,7 +397,7 @@ const canSubmit = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm'
+  const base = 'block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm'
   return loading.value ? `${base} bg-theme-surface cursor-not-allowed opacity-50` : `${base}`
 })
 
@@ -471,12 +494,7 @@ const handleSubmit = async () => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
 const formatAppointment = (appointment) => {
   return `${appointment.appointment_type?.name || 'Cita'} - ${new Date(appointment.scheduled_at).toLocaleDateString('es-PE')}`

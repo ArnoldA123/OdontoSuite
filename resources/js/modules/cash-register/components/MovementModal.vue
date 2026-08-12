@@ -9,7 +9,13 @@
     <form
       @submit.prevent="handleSubmit"
     >
-      <div class="space-y-4">
+      <div class="space-y-4 bg-canvas">
+        <!-- Estado (Ingreso / Egreso / Retiro / Depósito / Ajuste) -->
+        <UiStatusBadge
+          :variant="getTypeVariant(formData.type)"
+          :label="getTypeText(formData.type)"
+          size="md"
+        />
         <!-- Tipo de Movimiento -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
@@ -88,7 +94,7 @@
         </div>
 
         <!-- Resumen -->
-        <div class="bg-theme-surface border border-theme rounded-lg p-4">
+        <div class="bg-theme-surface border border-hairline rounded-lg p-4">
           <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen del Movimiento</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
@@ -101,7 +107,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-theme-secondary">Monto:</span>
-              <span class="font-bold text-lg" :class="getAmountClass(formData.type)">
+              <span class="font-bold text-lg tabular-nums" :class="getAmountClass(formData.type)">
                 {{ getAmountPrefix(formData.type) }}{{ formatCurrency(formData.amount) }}
               </span>
             </div>
@@ -140,8 +146,10 @@
 import { ref, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useApi } from '@/composables/useApi'
+import { formatCurrency } from '@/composables/useFormatters'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -199,7 +207,7 @@ const canSubmit = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm'
+  const base = 'block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm'
   return loading.value ? `${base} bg-theme-surface cursor-not-allowed opacity-50` : `${base}`
 })
 
@@ -233,12 +241,7 @@ const handleSubmit = async () => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
 const getTypeText = (type) => {
   const texts = {
@@ -251,11 +254,22 @@ const getTypeText = (type) => {
   return texts[type] || type
 }
 
+const getTypeVariant = (type) => {
+  const variants = {
+    income: 'success',
+    deposit: 'success',
+    expense: 'error',
+    withdrawal: 'error',
+    adjustment: 'neutral'
+  }
+  return variants[type] || 'neutral'
+}
+
 const getAmountClass = (type) => {
   if (['income', 'deposit'].includes(type)) {
-    return 'text-green-600'
+    return 'text-systemGreen-600'
   } else if (['expense', 'withdrawal'].includes(type)) {
-    return 'text-red-600'
+    return 'text-systemRed-600'
   }
   return 'text-theme-secondary'
 }
