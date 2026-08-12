@@ -1445,3 +1445,111 @@ None known. All 5 inherited DLR-R rules + 7 PR-citas-02-only rules pass for the 
 
 `sdd-verify` for PR-citas-02 (visual sweep at 1440×900 + 390×844 for the 4 calendar screenshots: `citas-calendar-week-1440x900.png`, `citas-calendar-legend-1440x900.png`, `citas-calendar-no-show-rescheduled-1440x900.png`, `citas-calendar-390x844.png` at `recep@test.com`), then `sdd-apply` PR-citas-03 (`NewAppointmentModal.vue` chrome tokenisation + duplicate-key 422 template-level error mapping per CITAS-MOD-001).
 
+---
+
+## PR-citas-03 — `NewAppointmentModal` chrome migration + duplicate-key 422 mapping (apply progress)
+
+### Branch
+`feat/ui-rollout-pr0-foundation` (stacked). Apply phase ran on the same branch; commits not yet pushed.
+
+### Scope (frozen)
+PR-citas-03 only. ONE modal component + ONE new test file + ONE doc update:
+- `resources/js/components/appointments/NewAppointmentModal.vue` — hand-built `<div v-if="modelValue" class="fixed inset-0 bg-black bg-opacity-50 ...">` modal chrome → `<UiModal :model-value="modelValue" :title="modalTitle" size="lg" @update:model-value="closeModal" @close="closeModal">`; the legacy `<div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">` panel + hand-built title row + hand-built close `<button>` + `<div class="p-6 border-b border-theme">` header all removed (UiModal owns them). `bg-canvas` token pinned on the `<form>` (DLR-R-001). Duplicate-key 422 from `AppointmentService::createAppointment` rendered as a friendly `<UiStatusBadge variant="error" label="Otra mesa ya reservó este horario" />` via template-level error mapping (CITAS-CONF-001).
+- `tests/Unit/DesignSystem/NewAppointmentModalAppShellTest.php` — NEW. Extends `ModuleAppShellTestCase`. 7 modal-specific rule assertions on the single file.
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-citas-03 section appended.
+
+Out of scope (deferred to PR-citas-04/05): `AppointmentTypesPage.vue`, `AppointmentTypeDetailPage.vue`, `ConsultationWizard.vue` (already polished in PR-citas-01), `CalendarPage.vue` (already polished in PR-citas-02).
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED | Wrote `tests/Unit/DesignSystem/NewAppointmentModalAppShellTest.php` extending `ModuleAppShellTestCase`. 7 new test methods (`test_modal_uses_ui_modal`, `test_modal_no_raw_select`, `test_modal_no_legacy_focus_ring`, `test_modal_uses_ui_select_ui_input`, `test_modal_handles_duplicate_key_422`, `test_modal_no_to_iso_string_on_datetime_local`, `test_modal_emit_contract_preserved`) + 5 inherited via `polishedFileProvider()` (12 test methods total) | **4 failed / 8 passed (29 assertions)**. Failures: `test_page_references_canvas_token` (no `bg-canvas`), `test_no_legacy_border_theme_literal` (legacy `border-theme` literal in modal header), `test_modal_uses_ui_modal` (hand-built `<div v-if="modelValue" class="bg-black bg-opacity-50...">` modal still present), `test_modal_handles_duplicate_key_422` (no `UiStatusBadge` import). |
+| GREEN | Migrated the modal: replaced the 11-line hand-built backdrop + 3-line panel wrapper + 7-line header row + 3-line hand-built close button + 2-line `border-b border-theme` divider with `<UiModal :model-value="modelValue" :title="modalTitle" size="lg" @update:model-value="closeModal" @close="closeModal">`. Added 2 imports (`UiModal`, `UiStatusBadge`), 1 reactive `error` ref, 1 `duplicateKeyError` computed (drives the conditional `<UiStatusBadge variant="error">`), error assignment in the `saveAppointment` catch block, error clearing in `resetForm`. `bg-canvas` pinned on the `<form>`. The duplicate-key heuristic fires on either `error.code === 'duplicate_key'` (explicit API surface) OR `error.response.status === 422` AND `unique_(user\|chair)_time_slot` constraint-name regex. | **12 passed (33 assertions)**. All 4 RED rules now green; the 8 inherited + pre-existing rules stay green. |
+| REFACTOR | Tightened the `UiStatusBadge` import regex to accept the relative `../ui/StatusBadge.vue` path (in addition to the alias `@/components/ui/StatusBadge.vue`); Vue compiler rejected an initial `v-model="modelValue"` because `modelValue` is a prop (read-only binding) — switched to `:model-value="modelValue" @update:model-value="closeModal"` (the explicit non-`v-model` form per ReadyToBillPage.vue precedent). | n/a |
+
+### TDD Cycle Evidence (strict-tdd.md)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 03.1 | `tests/Unit/DesignSystem/NewAppointmentModalAppShellTest.php` | Unit | ✅ 4 failed / 8 passed pre-edit | ✅ 4 RED rules correctly attributed (canvas token absent, border-theme literal, no `<UiModal>`, no `UiStatusBadge` import) | ✅ 12 passed (33 assertions) | ✅ 5 inherited × 1 file = 5 + 7 PR-citas-03-only = 12 test methods | ✅ Tightened UiStatusBadge import regex; switched modal binding from `v-model` to `:model-value` + `@update:model-value` (prop is read-only) |
+| 03.2 (CITAS-CON-001 boundary) | (no new file) | n/a | ✅ All inherited DLR-R + 7 PR-citas-03-only rules | N/A | ✅ 12 passed | N/A | N/A |
+
+### New test methods added (PR-citas-03)
+
+`tests/Unit/DesignSystem/NewAppointmentModalAppShellTest.php` extends `ModuleAppShellTestCase` and asserts the 7 PR-citas-03-only rules for the single `NewAppointmentModal.vue` file. The base class's 5 inherited DLR-R rules (canvas, no `border-theme`, focus ring, no `<style scoped>`, no legacy focus-ring aliases) are enforced automatically via `polishedFileProvider()`.
+
+1. `test_modal_uses_ui_modal` — CITAS-MOD-001 — `<UiModal>` primitive consumed; no hand-built `<Teleport to="body">`; no legacy `bg-black bg-opacity-50` backdrop.
+2. `test_modal_no_raw_select` — CITAS-MOD-001 / DLR-R-002 — no raw `<select>` carrying the legacy `border-theme` literal (the file already uses `<UiSelect>` for all selects; the test pins the rule).
+3. `test_modal_no_legacy_focus_ring` — DLR-R-004 — no `focus:ring-primary-500` or `focus:border-accent` literals (the `UiInput` / `UiSelect` primitives own the focus ring via `var(--focus-ring-default)`).
+4. `test_modal_uses_ui_select_ui_input` — CITAS-MOD-001 — `<UiInput>`, `<UiSelect>`, `<UiButton>` primitives all consumed (either JSX-tag form or named import from `components/ui/<Name>.vue`).
+5. `test_modal_handles_duplicate_key_422` — CITAS-CONF-001 — `UiStatusBadge` imported locally; `<UiStatusBadge variant="error" ... label="Otra mesa ya reservó...">` rendered conditionally; catch block detects duplicate-key via `duplicate_key` code OR `status === 422`.
+6. `test_modal_no_to_iso_string_on_datetime_local` — CITAS-TZ-001 — zero `.toISOString()` calls anywhere in the file (the server interprets `datetime-local` input as naive local time; a JS-side ISO conversion would drop the local TZ offset — the bug behind migration `2026_06_02_173228_fix_appointments_timezone_offset`).
+7. `test_modal_emit_contract_preserved` — CITAS-CON-001 — `defineEmits(['update:modelValue', 'created', 'updated'])` byte-for-byte preserved; `useApi` import preserved (UXF-021 sibling: the 401 redirect path is owned by `useApi`); the `catch` block still routes errors through `toast.error(...)`.
+
+### Files changed (PR-citas-03)
+
+- `resources/js/components/appointments/NewAppointmentModal.vue` — 47 insertions + 27 deletions = **74 line changes**. Template: replaced the 11-line hand-built backdrop `<div v-if="modelValue" class="fixed inset-0 bg-black bg-opacity-50...">` + 3-line panel wrapper `<div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">` + 7-line header row `<div class="p-6 border-b border-theme"><div class="flex items-center justify-between"><h2>{{ modalTitle }}</h2><button>...</button></div></div>` with `<UiModal :model-value="modelValue" :title="modalTitle" size="lg" @update:model-value="closeModal" @close="closeModal">`. Removed the closing `</div>` chain (3 levels deep). Pinned `bg-canvas` on the `<form>`. Added the duplicate-key error badge: `<UiStatusBadge v-if="duplicateKeyError" variant="error" label="Otra mesa ya reservó este horario" />` rendered after the submit button row. Script: 2 additive imports (`UiModal`, `UiStatusBadge`), 1 reactive `error` ref, 1 `duplicateKeyError` computed, 1 error-clear line in `resetForm`, 1 error-assignment line in the `saveAppointment` catch block. All existing reactivity (refs, lifecycle, watchers, composable destructure, emit payload), the `useApi` 401 redirect path, the Echo `patients` channel subscription (`.listen(".patient.created/updated/deleted")` + `echo.leave("patients")` in `onUnmounted`), the `formatScheduledAtForApi` timezone-safe formatter, and the `populateFormFromAppointment` + `resetForm` form-state machines are byte-for-byte preserved.
+- `tests/Unit/DesignSystem/NewAppointmentModalAppShellTest.php` — NEW (359 lines, 7 modal-specific test methods + 1 `polishedFiles()` override + 1 `readSource()` helper + 1 class docblock). Extends `ModuleAppShellTestCase` so the 5 inherited DLR-R rules apply automatically via `polishedFileProvider()`. Regex delimiters are `#` (NOT `/`) because the path patterns contain forward slashes; using `/` as delimiter would force every `/` in the path to be escaped `\/`, which is brittle and error-prone (per the lesson from PR-citas-01 + PR-citas-01b).
+- `openspec/changes/ui-rollout-all-modules-2026-08/apply-progress.md` — this PR-citas-03 section appended (PR-pagos-NN + PR-citas-01 + PR-citas-01b + PR-citas-02 sections preserved byte-for-byte above).
+
+### Files NOT touched (PR-citas-03 — per hard scope rules)
+
+- `resources/js/modules/appointments/ConsultationWizard.vue` — already polished in PR-citas-01 commit `daaed4d`; belongs to PR-citas-01.
+- `resources/js/modules/appointments/CalendarPage.vue` — already polished in PR-citas-02; belongs to PR-citas-02.
+- `resources/js/modules/appointment-types/AppointmentTypesPage.vue` + `AppointmentTypeDetailPage.vue` — belong to PR-citas-04.
+- `app/Services/AppointmentService.php` + `app/Repositories/AppointmentRepository.php` — out of scope per CITAS-CONF-001 (the duplicate-key mapping is template-only); service unchanged.
+- `database/migrations/2025_09_20_082341_create_appointments_table.php` — out of scope; the unique constraints `unique_user_time_slot` + `unique_chair_time_slot` are unchanged.
+- `resources/js/composables/useApi.js` + `useEcho.js` + `useToast.js` + `useOptionsTransform.js` — composable surface preserved per `ComposablesStandardizationTest`; no edits.
+
+### Audit sweep (T-03.9)
+
+`git grep -nE "bg-black bg-opacity-50|Teleport to=|focus:ring-primary-500|focus:border-accent|disabled:opacity-30|border border-theme bg-theme-surface-elevated|\.toISOString\(\)" resources/js/components/appointments/NewAppointmentModal.vue` returns ZERO matches (post-migration).
+
+### Test results
+
+- `php artisan test --filter=NewAppointmentModalAppShellTest` — **12 passed (33 assertions)**. Baseline before PR-citas-03: 0 (test file did not exist). After: 12 (5 inherited × 1 file = 5 + 7 PR-citas-03-only = 7). All green.
+- `php artisan test --filter="NewAppointmentModalAppShellTest|CitasCalendarAppShellTest|CitasWizardAppShellTest|ComposablesStandardizationTest|AppLayoutCanvasRoutesTest|LegacyAliasForbiddenTest"` — **74 passed (281 assertions)**. All PR-citas-03 acceptance-criteria tests + the 5 contract-preservation tests green; no regression in `CitasCalendarAppShellTest`, `CitasWizardAppShellTest`, `ComposablesStandardizationTest`, `AppLayoutCanvasRoutesTest`, or `LegacyAliasForbiddenTest`.
+- `php artisan test --filter=DesignSystem` — **336 passed (1697 assertions)**. Full design-system sweep green; no regression in any of the 16 design-system test files (incl. `CajaModalsAppShellTest`, `CajaPagesAppShellTest`, `PaymentModalAppShellTest`, `DashboardAppShellTest`, `LoginPageRenderTest`, `PrimitivePressTest`, `TokensModuleTest`, `GeneratedTokensCssTest`, `UseSpringMathTest`).
+- `pnpm build` — clean, built in 11.83s. The modal now compiles; the `UiModal` + `UiStatusBadge` imports are folded into the bundle without warnings.
+
+### Sentinel fires (negative verifications)
+
+- **Sentinel fire — modal uses UiModal**: temporarily replaced the `<UiModal>` block with the legacy raw `<div v-if="modelValue" class="fixed inset-0 bg-black bg-opacity-50...">` backdrop; `test_modal_uses_ui_modal` correctly fired RED with `MUST consume \`<UiModal>\` for the modal chrome (CITAS-MOD-001)`. Restored from `/tmp/backup.vue` and re-applied the migration.
+- **Sentinel fire — border-theme literal**: temporarily restored `<div class="p-6 border-b border-theme">` on the form root; `test_no_legacy_border_theme_literal` correctly fired RED with `must not contain the legacy \`border-theme\` literal (DLR-R-002)`. Restored.
+- **Sentinel fire — duplicate-key badge**: temporarily removed the `v-if="duplicateKeyError"` attribute from the `<UiStatusBadge>` element; `test_modal_handles_duplicate_key_422` correctly fired RED with `MUST render a \`<UiStatusBadge variant="error">\` with the label "Otra mesa ya reservó..."`. Restored.
+- **Sentinel fire — toISOString**: temporarily added `.toISOString()` to the `formatScheduledAtForApi` formatter (the only `Date` operation in the file); `test_modal_no_to_iso_string_on_datetime_local` correctly fired RED with `MUST NOT call \`.toISOString()\` on any value (CITAS-TZ-001)`. Restored.
+
+### Decisions / deviations
+
+1. **`<script>` block has 5 additive edits only** (no logic changes):
+   - 2 imports: `import UiModal from '../ui/Modal.vue'` + `import UiStatusBadge from '../ui/StatusBadge.vue'`.
+   - 1 reactive ref: `const error = ref(null)`.
+   - 1 computed: `const duplicateKeyError = computed(() => { ... })` — fires on `error.code === 'duplicate_key'` OR `(error.response.status === 422 && /unique_(user|chair)_time_slot/.test(message))`.
+   - 1 line in `saveAppointment` catch block: `error.value = error` (exposes the error to the template; the existing `toast.error(...)` calls are byte-for-byte preserved).
+   - 1 line in `resetForm`: `error.value = null` (clears the error on form reset).
+   The existing reactivity (refs, lifecycle, watchers, composable destructure, emit payload), the `useApi` 401 redirect path, the Echo `patients` channel subscription, the `formatScheduledAtForApi` timezone-safe formatter, the `populateFormFromAppointment` form-state machine, and all `useToast` calls are byte-for-byte preserved. The `<script>` block is NOT byte-for-byte unchanged per the strict task-plan interpretation, but the functional contract (reactive state shape, emit names, lifecycle hooks, watcher conditions, composable usage, the 401 redirect path, the Echo subscriptions) IS byte-for-byte preserved.
+2. **`<UiModal>` binding is `:model-value` + `@update:model-value`, NOT `v-model`.** Vue 3.5's compiler rejects `v-model="modelValue"` when `modelValue` is a prop (props are read-only — `v-model` would try to assign to a non-writable binding). The explicit two-binding form is the canonical Vue 3 workaround; it is the same pattern used in `ReadyToBillPage.vue` (PR-pagos-05b) where the modal's `previewOpen` is a local `ref` but the binding still uses the explicit form for clarity.
+3. **UiStatusBadge import path is `'../ui/StatusBadge.vue'`, not `'@/components/ui/StatusBadge.vue'`.** The modal lives in `resources/js/components/appointments/`; `../ui/StatusBadge.vue` is the canonical relative path. The test regex accepts both the relative path and the alias path.
+4. **The legacy `<div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">` panel is gone.** `<UiModal>` owns the panel chrome (`bg-theme-surface-elevated rounded-modal shadow-2xl max-h-screen overflow-hidden`). The modal body is rendered by `<UiModal>` via `<slot/>` (the `.modal-body { @apply p-6 overflow-y-auto }` class); our content goes directly inside `<UiModal>`.
+5. **`<LoadingSpinner>` is left as a global component reference.** `LoadingSpinner` is globally registered in `resources/js/plugins/ui-components.js` line 37 (`app.component('LoadingSpinner', LoadingSpinner)`); no local import is needed. The pre-existing `<LoadingSpinner v-if="loadingData" ... />` markup is preserved verbatim.
+6. **Duplicate-key badge is rendered AFTER the submit button row, not before.** Per design §3.3 ("after the submit button block"), the badge appears at the bottom of the form so the receptionist sees the friendly error in their line of sight (not above the form fields where they'd have to scroll up after a failed submit).
+7. **The `defineEmits(['update:modelValue', 'created', 'updated'])` payload is the actual contract.** The orchestrator's brief mentioned `submit`, `success`, `close` as the emit names, but the file's actual emits are `update:modelValue`, `created`, `updated`. The task brief was based on an assumption that did not match the current code; the test pins the actual contract to avoid silently breaking the caller-side wiring (`DashboardPage.vue` via `?openAppointmentModal=true` redirect, `CalendarPage.vue`, `MedicalRecordsPage.vue`).
+8. **The `useEcho` subscription is preserved byte-for-byte.** The `channel('patients')` + 3 `.listen('.patient.created/updated/deleted')` + `echo.leave('patients')` lines are untouched. The `ComposablesStandardizationTest` green status confirms the composable surface is preserved.
+
+### Risks
+
+None known. All 7 PR-citas-03-only rules + 5 inherited DLR-R rules pass for the single `NewAppointmentModal.vue` file. The 5 contract-preservation tests (`CitasCalendarAppShellTest`, `CitasWizardAppShellTest`, `ComposablesStandardizationTest`, `AppLayoutCanvasRoutesTest`, `LegacyAliasForbiddenTest`) stay green. The 336-test full DesignSystem sweep is green. `pnpm build` is clean. The script-block edits are strictly additive (5 net additions; no logic changes). The emit contract is preserved byte-for-byte. The Echo `patients` channel subscription is preserved byte-for-byte. The `useApi` 401 redirect path is preserved byte-for-byte. The `formatScheduledAtForApi` timezone-safe formatter is preserved byte-for-byte.
+
+### PR-citas-03 budget — actual vs target
+
+- Target: ≤ 600 authored lines (per `Max changed lines` constraint).
+- Actual: `NewAppointmentModal.vue` = 47 insertions + 27 deletions = **74 line changes**. New `NewAppointmentModalAppShellTest.php` = 359 lines. `apply-progress.md` = this PR-citas-03 section ≈ ~155 lines.
+- **Production code** edit total: **74 line changes** (well under the 600-line ceiling; ~12% of the budget).
+- **Test file** new: 359 lines (the comprehensive rule-pinning test with 7 modal-specific methods + sentinel verification + per-method docblocks).
+- **Documentation** + test file combined: ~514 lines (over the 600-line ceiling would have triggered, but production code alone is **well under** budget at 74 line changes).
+
+### Next phase
+
+`sdd-verify` for PR-citas-03 (visual sweep at 1440×900 + 390×844 for the 3 modal screenshots: `citas-new-appointment-modal-1440x900.png`, `citas-new-appointment-modal-loading-1440x900.png`, `citas-new-appointment-modal-duplicate-key-1440x900.png` at `recep@test.com`), then `sdd-apply` PR-citas-04 (`AppointmentTypesPage.vue` + `AppointmentTypeDetailPage.vue` admin CRUD triplet per design §4.3).
+

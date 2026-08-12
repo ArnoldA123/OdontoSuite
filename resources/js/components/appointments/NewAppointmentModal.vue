@@ -1,29 +1,16 @@
 <template>
-  <div
-    v-if="modelValue"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-    @click.self="closeModal"
+  <UiModal
+    :model-value="modelValue"
+    :title="modalTitle"
+    size="lg"
+    @update:model-value="closeModal"
+    @close="closeModal"
   >
-    <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-theme">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-theme-primary">{{ modalTitle }}</h2>
-          <button
-            @click="closeModal"
-            class="text-theme-secondary hover:text-theme-primary transition-colors"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="p-6">
-        <!-- Loading State -->
-        <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
+    <!-- Loading State -->
+    <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
 
-        <!-- Form -->
-        <form v-else @submit.prevent class="space-y-4" @keydown.enter.prevent>
+    <!-- Form -->
+    <form v-else class="space-y-4 bg-canvas" @submit.prevent @keydown.enter.prevent>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <UiSelect
               v-model="form.patient_id"
@@ -129,10 +116,19 @@
               {{ submitButtonText }}
             </UiButton>
           </div>
+          <!-- CITAS-CONF-001 — duplicate-key 422 from AppointmentService::createAppointment
+               (the DB unique constraint `unique_user_time_slot` /
+               `unique_chair_time_slot` fires on the second commit when two
+               reception desks race on the same slot). Template-level
+               mapping: a friendly `<UiStatusBadge variant="error">` is
+               rendered instead of a 500 toast. -->
+          <UiStatusBadge
+            v-if="duplicateKeyError"
+            variant="error"
+            label="Otra mesa ya reservó este horario"
+          />
         </form>
-      </div>
-    </div>
-  </div>
+  </UiModal>
 </template>
 
 <script setup>
@@ -144,6 +140,8 @@ import { useEcho } from '../../composables/useEcho'
 import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'
+import UiModal from '../ui/Modal.vue'
+import UiStatusBadge from '../ui/StatusBadge.vue'
 import ProcedureQuickPicker from '../procedures/ProcedureQuickPicker.vue'
 import ProcedureCatalogPicker from '../procedures/ProcedureCatalogPicker.vue'
 
@@ -171,6 +169,7 @@ const { channel, echo } = useEcho()
 
 const loadingData = ref(false)
 const creating = ref(false)
+const error = ref(null)
 const patients = ref([])
 const professionals = ref([])
 const appointmentTypes = ref([])
@@ -210,6 +209,21 @@ const statusOptions = computed(() => [
 const isEditMode = computed(() => !!props.appointment?.id)
 const modalTitle = computed(() => (isEditMode.value ? 'Editar Cita' : 'Nueva Cita'))
 const submitButtonText = computed(() => (isEditMode.value ? 'Guardar Cambios' : 'Crear Cita'))
+
+// CITAS-CONF-001 — duplicate-key heuristic. The DB unique constraints
+// `unique_user_time_slot` / `unique_chair_time_slot` fire on the second
+// concurrent commit; Laravel translates them into a 422 with the constraint
+// name in the message, and (for the explicit API surface) `code === 'duplicate_key'`.
+// Template-only mapping — the canonical error feedback (toast.error) still
+// runs in the catch block; this ref drives the friendly inline badge.
+const duplicateKeyError = computed(() => {
+  const e = error.value
+  if (!e) return false
+  if (e.code === 'duplicate_key') return true
+  const status = e?.response?.status ?? e?.status
+  const message = String(e?.response?.data?.message ?? e?.message ?? '')
+  return status === 422 && /unique_(user|chair)_time_slot/.test(message)
+})
 const selectedProcedure = computed(() => form.value.selected_procedure)
 const procedureSpecialtyFilter = computed(() => {
   const user = professionals.value.find(p => p.id === form.value.user_id)
@@ -266,6 +280,7 @@ const closeModal = () => {
 }
 
 const resetForm = () => {
+  error.value = null
   if (props.appointment) {
     populateFormFromAppointment(props.appointment)
     return
@@ -427,6 +442,11 @@ const saveAppointment = async () => {
     resetForm()
     closeModal()
   } catch (error) {
+    // CITAS-CONF-001 — expose the error to the template so the
+    // `<UiStatusBadge variant="error">` duplicate-key mapping can render
+    // the friendly "Otra mesa ya reservó este horario" badge. The toast
+    // feedback below is the canonical UX path and is preserved.
+    error.value = error
     const errorMessage = error?.response?.data?.message || (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
     const errors = error?.response?.data?.errors
     if (errors) {
