@@ -238,7 +238,11 @@ const isControlKey = event => {
     event.metaKey ||
     event.key === 'Backspace' ||
     event.key === 'Delete' ||
-    event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown'
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowRight' ||
+    event.key === 'ArrowUp' ||
+    event.key === 'ArrowDown'
+  )
 }
 
 const emitChange = () => {
