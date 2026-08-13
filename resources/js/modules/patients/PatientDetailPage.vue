@@ -257,8 +257,6 @@ viewBox="0 0 24 24">
           </div>
         </UiCard>
       </div>
-
-      </div>
       </template>
 
       <template #quotations>
