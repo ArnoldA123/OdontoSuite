@@ -714,35 +714,13 @@ Sin cambios registrados
     </UiTabs>
 
     <!-- Edit Patient Modal -->
-    <div
-      v-if="showEditModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="cancelEdit"
+    <UiModal
+      :model-value="showEditModal"
+      title="Editar Paciente"
+      size="xl"
+      @close="cancelEdit"
     >
-      <div
-        class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-      >
-        <div class="p-6 border-b border-theme">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-theme-primary">Editar Paciente</h2>
-            <button
-              class="text-theme-secondary hover:text-theme-primary transition-colors"
-              @click="cancelEdit"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div class="p-6">
-          <form class="space-y-4" @submit.prevent="updatePatient">
+      <form class="space-y-4" @submit.prevent="updatePatient">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <UiInput
                 v-model="editPatientData.first_name"
@@ -784,26 +762,30 @@ viewBox="0 0 24 24">
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">Género</label>
-                <select
+                <label class="block text-sm font-medium text-theme-primary mb-1">Género</label>
+                <UiSelect
                   v-model="editPatientData.gender"
-                  class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="male">Masculino</option>
-                  <option value="female">Femenino</option>
-                  <option value="other">Otro</option>
-                </select>
+                  :options="[
+                    { value: '', label: 'Seleccionar' },
+                    { value: 'male', label: 'Masculino' },
+                    { value: 'female', label: 'Femenino' },
+                    { value: 'other', label: 'Otro' }
+                  ]"
+                  placeholder="Seleccionar"
+                  class="w-full"
+                />
               </div>
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-2">Estado</label>
-                <select
+                <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
+                <UiSelect
                   v-model="editPatientData.is_active"
-                  class="w-full px-4 py-3 border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-theme-surface-elevated text-theme-primary"
-                >
-                  <option :value="true">Activo</option>
-                  <option :value="false">Inactivo</option>
-                </select>
+                  :options="[
+                    { value: true, label: 'Activo' },
+                    { value: false, label: 'Inactivo' }
+                  ]"
+                  placeholder="Seleccionar"
+                  class="w-full"
+                />
               </div>
             </div>
             <UiInput
@@ -843,16 +825,14 @@ viewBox="0 0 24 24">
             />
             <div class="flex justify-end gap-3 pt-4">
               <UiButton type="button" variant="secondary" @click="cancelEdit">
-Cancelar
-</UiButton>
+                Cancelar
+              </UiButton>
               <UiButton type="submit" :loading="updating">
-Actualizar Paciente
-</UiButton>
+                Actualizar Paciente
+              </UiButton>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </UiModal>
   </AppLayout>
 </template>
 

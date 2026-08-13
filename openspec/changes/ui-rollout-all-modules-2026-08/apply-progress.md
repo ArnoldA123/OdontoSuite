@@ -2146,3 +2146,105 @@ The new test file `tests/Unit/DesignSystem/PatientDetailAppShellTest.php` extend
 
 `sdd-verify` for PR-pacientes-03 (verify the 9 test methods + the script-block byte-for-byte preservation + the cross-category deep-links verbatim + the 5 useEcho channels verbatim + the `<UiTabs>` + `<UiCard>` + `<UiBadge variant="info">` adoption + 3 playwright-cli snapshots for visual sweep), then `sdd-apply` for PR-pacientes-04 (`PatientDetailPage` Edit modal → `<UiModal>` + `<UiSelect>` + Export action surface `<UiButton>` + `<UiSelect>`).
 
+---
+
+## PR-pacientes-04 — `PatientDetailPage` Edit Patient modal → `<UiModal>` + `<UiSelect>` + Export action surface (apply progress)
+
+### Branch
+Same branch as PR-pacientes-01 + PR-pacientes-02 + PR-pacientes-03 (continuation). Apply phase ran in the same working tree; commit not yet created at apply time.
+
+### Scope (frozen)
+PR-pacientes-04 only. ONE page component (`resources/js/modules/patients/PatientDetailPage.vue`) — Edit Patient modal (lines 716-855) + Export action surface ONLY:
+
+- **Edit Patient modal** (line 716-855): hand-built `<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" @click.self="cancelEdit">` backdrop + `bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto` panel + `<div class="p-6 border-b border-theme">` header divider + raw `<button>` close button + manual `<svg>` X icon → `<UiModal :model-value="showEditModal" title="Editar Paciente" size="xl" @close="cancelEdit">` chrome (UiModal owns the backdrop + focus trap + iOS motion + close button).
+- **Edit modal form fields** (lines 747-842): raw `<select v-model="editPatientData.gender" class="w-full ... border border-theme rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent ...">` (line 788-796) → `<UiSelect v-model="editPatientData.gender" :options="[{value,label}, ...]" placeholder="Seleccionar" class="w-full" />` with inline `[{value:'', label:'Seleccionar'}, {value:'male', label:'Masculino'}, {value:'female', label:'Femenino'}, {value:'other', label:'Otro'}]` options array. Same for `<select v-model="editPatientData.is_active">` (line 800-806) → `<UiSelect v-model="editPatientData.is_active" :options="[{value:true, label:'Activo'}, {value:false, label:'Inactivo'}]" />`.
+- **Export action surface** (line 26-39 trigger button + line 1196-1243 binary download pattern): NO CHANGES. The trigger is already `<UiButton :disabled="exporting" variant="secondary" @click="exportPatientFile">Exportar</UiButton>`. The `exportPatientFile(format)` function (lines 1196-1243) is preserved byte-for-byte (raw `fetch` + Bearer token + `window.URL.createObjectURL` + `<a download>` anchor click + `URL.revokeObjectURL` cleanup). `<script>` block untouched.
+- `<script>` block byte-for-byte preserved (per PAC-CON-001): `useApi` PUT `/api/patients/${id}` call signature stays verbatim, the 422 `Rule::unique(...)->ignore($patient->id)` error envelope rendering stays verbatim, `useEcho` `patients` + 4 cross-category channel subscriptions stay verbatim, `usePermissions.can.{updatePatient, export}` flags stay verbatim, `useToast` error envelope stays verbatim.
+
+Out of scope (deferred to PR-pacientes-05):
+- Cross-cutting `PatientsAppShellTest` + `PatientDetailAppShellTest` (consolidation) + a11y doc — PR-pacientes-05.
+- `PatientSelector.vue` + `<Pagination>` consolidation — their own PRs.
+- PDF template (`resources/views/exports/patient-file.blade.php`) restyling — print artifact, separate slice.
+- Soft-delete + restore / forceDelete REST flows, dormant `$fillable` cleanup, `ClinicalAttachment.file_path` encryption at rest — separate changes.
+
+### TDD cycle (strict-tdd.md)
+
+| Step | Action | Result |
+|------|--------|--------|
+| RED | Wrote 13 test methods in NEW file `tests/Unit/DesignSystem/PatientDetailEditExportAppShellTest.php` (extends `ModuleAppShellTestCase`; 8 PR-pacientes-04-specific + 5 inherited base rules). | 5 tests failed for the right reason (Edit modal still has `border-theme` + `focus:ring-primary-500` literals + `bg-black bg-opacity-50` backdrop + raw `<select>` + 0 `<UiSelect>` references). 8 tests passed (Export trigger already `<UiButton>`, binary download pattern already preserved, script block PUT signature + 422 envelope already preserved, canvas via `<AppLayout>`, no `<style scoped>`, focus ring vacuous rule). |
+| GREEN | Migrated Edit modal template: replaced backdrop + panel + header divider + raw `<select>` (gender + is_active) with `<UiModal>` + `<UiSelect>` using inline options arrays. NO `<script>` edits. NO Export action edits. | All 13 tests green (39 assertions). |
+| REFACTOR | Test file uses the `extractEditModalSection()` section-scoping helper (mirrors `PatientDetailAppShellTest::extractPolishedSection()` pattern). Each test asserts a RULE (token presence/absence) not a literal string. The 8 PR-pacientes-04-specific tests are independent from the 5 inherited base rules. | n/a |
+
+### Test methods added (PR-pacientes-04)
+
+`tests/Unit/DesignSystem/PatientDetailEditExportAppShellTest.php` (new, ~470 lines) extends `ModuleAppShellTestCase` with 8 PR-pacientes-04-specific rules + 5 inherited base rules (overridden where section scoping is required):
+
+1. **`polishedFiles()`** — returns the single `PatientDetailPage.vue` path.
+2. `test_page_references_canvas_token` (override) — `<AppLayout>` reference present (canvas-surface wrapper per DLR-CORE-001).
+3. `test_no_legacy_border_theme_literal` (override) — scoped to the Edit modal section (between `<!-- Edit Patient Modal -->` marker + closing `</AppLayout>` tag); no `border-theme` literal.
+4. `test_focus_ring_consumes_token` (inherited) — vacuous (no `:focus` selector in the polished section; UiModal + UiSelect consume the composed token internally).
+5. `test_no_legacy_focus_ring_alias` (override) — scoped to the Edit modal section; no `focus:ring-primary-500` literal.
+6. `test_no_style_scoped` (inherited) — no `<style scoped>` block.
+7. **`test_detail_edit_no_bg_black_bg_opacity_50`** — `<UiModal>` present + `bg-black bg-opacity-50` backdrop absent.
+8. **`test_detail_edit_no_raw_select`** — scoped to the Edit modal section; no raw `<select>` element.
+9. **`test_detail_edit_uses_ui_select`** — scoped to the Edit modal section; at least 2 `<UiSelect>` references (gender + is_active).
+10. **`test_detail_export_button_uses_ui_button`** — Export trigger uses `<UiButton @click="exportPatientFile">`; no raw `<button @click="exportPatientFile">`.
+11. **`test_detail_export_binary_download_pattern_preserved`** — 7-element pattern: `localStorage.getItem('auth_token')` + `Authorization: Bearer ${token}` + `response.blob()` + `window.URL.createObjectURL(blob)` + `link.download =` + `link.click()` + `window.URL.revokeObjectURL(...)`.
+12. **`test_detail_export_calls_patient_resource_endpoint`** — `/api/patients/${patient.value.id}/export?format=…` URL pattern present + `useApi().get(...)` wrap absent.
+13. **`test_detail_edit_422_duplicate_handled`** — `error.response?.data?.message` + `error.response?.data?.errors` reads preserved in the `updatePatient` catch block.
+14. **`test_detail_edit_use_api_put_preserved`** — `put('/api/patients/${id}', data)` call signature preserved + no `axios` direct import.
+
+### Grep / diff verification
+
+`git diff --stat resources/js/modules/patients/PatientDetailPage.vue` shows **82 lines changed (31 insertions + 51 deletions)** — well under the 400-line per-PR review budget + 1000-line runtime attempt budget. ALL diffs are in the `<template>` section (lines 714-855). The `<script>` block (lines 837+) is byte-for-byte unchanged — verified by `git diff` showing no hunks after `</template>`.
+
+`git grep -nE "bg-black\s+bg-opacity-50"` on `PatientDetailPage.vue` returns 0 matches.
+
+`git grep -nE "focus:ring-primary-500"` on `PatientDetailPage.vue` returns 0 matches (the OTHER 5 occurrences that the grep finds are in unrelated tab panels — out of scope; pinned by the scoped override which excludes them).
+
+`git grep -nE "window\.URL\.createObjectURL"` on `PatientDetailPage.vue` returns the expected match (line 1228) — binary download pattern preserved byte-for-byte.
+
+`git grep -nE "/api/patients/\$\{patient\.value\.id\}/export\?format"` on `PatientDetailPage.vue` returns the expected match (line 1212) — patient resource endpoint URL preserved.
+
+### Test results
+
+- `php artisan test --filter=PatientDetailEditExportAppShellTest` — **13 passed (39 assertions)**. All green.
+- `php artisan test --filter="PatientDetailAppShellTest|PatientDetailEditExportAppShellTest|PatientsModalAppShellTest|PatientsListAppShellTest|LegacyAliasForbiddenTest|AppLayoutCanvasRoutesTest|ComposablesStandardizationTest|PatientResourceAgeTest|PatientControllerResourceWireUpTest"` — **61 passed (204 assertions)**. All design-system tests + pacientes-related composable contracts green; no regression in `PatientDetailAppShellTest` (PR-pacientes-03 still green), `PatientsModalAppShellTest` (PR-pacientes-02), `PatientsListAppShellTest` (PR-pacientes-01), `LegacyAliasForbiddenTest`, `AppLayoutCanvasRoutesTest`, `ComposablesStandardizationTest`, `PatientResourceAgeTest`, or `PatientControllerResourceWireUpTest`.
+- `PatientControllerAgeTest` (8 failures) — **pre-existing** DB-environment issues (SQLite migration error: `no such column: type` in `transactions` table). Unrelated to PR-pacientes-04; the test requires a MySQL backend which is not available in this sandboxed apply phase. The failures were present before the PR started.
+
+### Decisions / deviations
+
+1. **Inline `<UiSelect :options="[…inline array…]">` (NOT a `const options = […]` in the `<script>` block).** The `<script>` block MUST stay byte-for-byte per PAC-CON-001 (a stricter interpretation than PR-pacientes-02's design). Adding a `const genderOptions = [...]` + `const statusOptions = [...]` to the `<script>` would violate the "byte-for-byte" rule. Inlining the 4-element gender options + 2-element status options arrays in the template keeps the diff to template-only edits. The arrays are evaluated on every render but for 4-6 static items the cost is negligible (Vue re-evaluates `:options` binding on each reactive change to `editPatientData.gender`/`editPatientData.is_active`, which is rare during a single edit session).
+
+2. **Export action surface received NO template edits.** The pre-PR `<UiButton :disabled="exporting" variant="secondary" @click="exportPatientFile">Exportar</UiButton>` trigger (line 26-39) was already on Apple language via `<UiButton>`. The pre-PR `exportPatientFile(format)` function (lines 1196-1243) was already correct: raw `fetch` + Bearer token + `window.URL.createObjectURL` + `<a download>` anchor click + `URL.revokeObjectURL` cleanup. The launch prompt's test list (`test_detail_export_button_uses_ui_button` + `test_detail_export_binary_download_pattern_preserved` + `test_detail_export_calls_patient_resource_endpoint`) all pass GREEN without any code change. The PR is therefore smaller than the per-PR line budget predicts: the 260-line estimate was conservative because the Export action surface is already 100% on Apple language.
+
+3. **Section-scoped overrides for `test_no_legacy_border_theme_literal` + `test_no_legacy_focus_ring_alias` (NOT whole-file).** The pre-existing `PatientDetailAppShellTest` already pins the PR-pacientes-03 polished sections (header + 5-tab drawer + audit tab content) via `extractPolishedSection()`. The new `PatientDetailEditExportAppShellTest` scopes its section-specific assertions to the Edit modal section via `extractEditModalSection()` (between `<!-- Edit Patient Modal -->` marker + closing `</AppLayout>` tag). The OTHER 4 tab panels (treatment-plans / quotations / medical-records / specialties) still carry their legacy `border-theme` + `focus:ring-primary-500` literals (out of scope for PR-pacientes-04). The Edit modal section is the only PR-pacientes-04 deliverable; asserting whole-file purity would RED until a future slice migrates those other panels.
+
+4. **`<UiModal>` uses inline `:options="[…]"` (NOT a separate `<template #header>` slot).** The pre-PR header divider was a `<div class="p-6 border-b border-theme">` with manual X button + SVG. The new `<UiModal title="Editar Paciente" size="xl" @close="cancelEdit">` uses the primitive's built-in `title` prop (renders the header + close button via `<UiModal>`'s default `<slot name="header">`). No `<template #header>` slot is needed — the primitive handles the header chrome + close interaction. The `@close` listener flips `showEditModal.value = false` (via `cancelEdit`).
+
+5. **NO PDF/ZIP format dropdown added to the Export trigger.** The pre-PR `<UiButton @click="exportPatientFile">Exportar</UiButton>` triggers `exportPatientFile()` which defaults to `format='pdf'`. The design §3.7 mentioned "PDF/ZIP dropdown → `<UiButton>` + `<UiSelect>`" but the current implementation accepts the format as a function parameter (no visible format selector). Adding a `<UiSelect>` for format selection would require (a) new reactive state in the `<script>` block (which MUST stay byte-for-byte per PAC-CON-001) or (b) a separate format picker component (out of scope). The current single-format button is the minimal change that satisfies PAC-EXP-001 + the binary download preservation rule. A future PR can add the format dropdown if product decides it's needed.
+
+### Risks
+
+- **No new tokens or new primitives introduced.** `<UiModal>` + `<UiSelect>` are existing primitives from PR0 / vertical slice. Tokens.js is frozen per `DLR-R-013`. No new Tailwind utilities, no new Vue components.
+- **`<script>` block byte-for-byte unchanged** — verified by `git diff` showing zero hunks after `</template>`. The `useApi` PUT signature + the 422 `Rule::unique(...)->ignore($patient->id)` error envelope rendering + the `useEcho` `patients` + 4 cross-category channel subscriptions + the `usePermissions.can.{updatePatient, export}` flags + the `useToast` calls + the `exportPatientFile` function (raw `fetch` + Bearer token + `createObjectURL` + anchor click) + the 4 cross-category `router.push(...)` deep-links are preserved verbatim.
+- **`PatientResource` API envelope untouched** (additive `age` integer key preserved). The apply phase did not touch any PHP file.
+- **No PHI scope guard changes.** `PatientPolicy::view` return-true posture is preserved (out of scope per design §11).
+- **Binary download pattern preserved byte-for-byte** (pinned by `test_detail_export_binary_download_pattern_preserved` with 7 regex assertions).
+- **Edit modal `<select>` migration is inline-options (NOT `<script>` block additions).** The 4-element gender array + 2-element status array live in the template binding. This is a deliberate trade-off vs. adding `const genderOptions` / `const statusOptions` to the script (the cleaner Vue pattern) — the trade-off is "stay byte-for-byte on `<script>` block per PAC-CON-001 strict reading" vs. "follow PR-pacientes-02's precedent of allowing script-level const additions". The chosen path keeps the diff template-only.
+- **`PatientControllerAgeTest` pre-existing failures** — 8 SQLite migration errors unrelated to this PR; flagged for the verify phase to re-run on MySQL.
+- **Modal chrome + Export action visually untested** — `playwright-cli` is not available in this sandboxed apply phase. The 3 screenshots for PR-pacientes-04 (Edit modal open, PDF/ZIP dropdown open, PDF download triggered) will be captured in the verify phase.
+
+### PR-pacientes-04 budget — actual vs target
+
+- Target: ≤ 400 authored lines (per PR review budget) + ≤ 1000 lines (per `Max changed lines` runtime constraint).
+- `PatientDetailPage.vue` diff against `HEAD`: 31 insertions + 51 deletions = 82 lines total. ALL template-only (lines 714-855). The PR's net "authored" contribution is **82 lines** — well under both budgets.
+- New test file `PatientDetailEditExportAppShellTest.php`: ~470 lines (8 PR-pacientes-04-specific rules + 5 inherited base rules + section-scoping helper + comprehensive docstrings).
+- `apply-progress.md` PR-pacientes-04 section: ~150 lines.
+- Total authored: ~700 lines (template + test + doc). Well under the 1000-line runtime attempt budget.
+- Production code (Vue template): 82 lines net. Well under the 400-line per-PR review budget.
+
+### Next phase
+
+`sdd-verify` for PR-pacientes-04 (verify the 13 test methods + the script-block byte-for-byte preservation + the binary download pattern byte-for-byte + the 8 PR-pacientes-04-specific assertions + the inherited base rules + the cross-cutting regression tests in `PatientDetailAppShellTest` + `PatientsModalAppShellTest` + `PatientsListAppShellTest` + 3 playwright-cli snapshots for visual sweep), then `sdd-apply` for PR-pacientes-05 (cross-cutting `PatientsAppShellTest` + `PatientDetailAppShellTest` consolidation + a11y follow-up doc).
+
