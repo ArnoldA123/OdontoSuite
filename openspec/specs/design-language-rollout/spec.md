@@ -401,3 +401,234 @@ for a future a11y slice.
 ---
 
 *End of promoted CITAS rows. Next category slice appends below.*
+
+## PACIENTES Rollout — 2026-08-12 (PACIENTES category closed)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(PACIENTES category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-12-ui-pacientes/specs/pacientes/spec.md`.
+
+### Requirement: `PAC-LIST-001` — `PatientsPage` list MUST consume Ui primitives + tabular-nums on DNI/age
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST replace every `border-theme` table divider, `divide-theme`
+row divider, `bg-success-badge` / `bg-danger-badge` status pill, raw
+`text-green-600` / `text-red-600` mobile action button, `text-accent
+hover:text-primary-700` link button, `hover-lift` stat card, and raw
+`<input>` / `<select>` field on `PatientsPage.vue` with the
+corresponding `Ui*`-prefixed primitive. The 4 stat cards MUST consume
+`<UiCard clickable>` (NOT `hover-lift`). The DNI + age columns MUST
+carry `font-feature-settings: var(--font-features-tabular-nums)` so the
+ID column stops jittering. The list page MUST consume
+`bg-theme-surface-elevated` only (NOT mixed `bg-theme-surface` /
+`bg-theme-surface-elevated`).
+
+#### Scenario: `PAC-LIST-001-1` — List page uses Ui primitives and tabular-nums
+
+- GIVEN `PatientsPage.vue` (1249 lines) renders 4 stat cards, a status filter, a desktop table, a mobile card fallback, and pagination
+- WHEN PR-pacientes-01 lands
+- THEN `PatientsListAppShellTest` (16 cases / 47 assertions) asserts the rule (token reference exists, `border-theme` / `bg-success-badge` / `bg-danger-badge` / `divide-theme` / `hover-lift` absent)
+- AND `PatientTableNumsTest` asserts `tabular-nums` is present on the DNI column + the age column
+- AND `LegacyAliasForbiddenTest` (extended) returns zero matches for any of the forbidden aliases on the list page
+
+### Requirement: `PAC-MOD-001` — Three inlined patient modals MUST use `<UiModal>` + `<UiInput>` + `<UiSelect>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST replace every hand-built `<div class="fixed inset-0
+bg-black bg-opacity-50 … z-50">` modal backdrop, `bg-theme-surface-
+elevated rounded-2xl shadow-2xl` panel, `border-b border-theme` header
+divider, raw `<input>` / `<select>` / `<textarea>` field, and `focus:ring-
+primary-500 focus:border-transparent` ring in the New Patient modal and
+the Edit Patient modal of `PatientsPage.vue` with the canonical
+`<UiModal>` chrome + `<UiInput>` / `<UiSelect>` / `<UiTextarea>`
+primitives + hairline dividers + `var(--focus-ring-default)` focus
+ring. The capture-form rule applies to all 3 modals (New Patient modal
+`PatientsPage.vue` lines 463–581; Edit Patient modal `PatientsPage.vue`
+lines 583–725; Edit Patient modal `PatientDetailPage.vue` lines
+706–845).
+
+#### Scenario: `PAC-MOD-001-1` — Three inlined modals all use UiModal chrome
+
+- GIVEN the New Patient + Edit Patient modals in `PatientsPage.vue` and the Edit Patient modal in `PatientDetailPage.vue` each render a hand-built backdrop + raw form fields
+- WHEN PR-pacientes-02 lands (list modals) + PR-pacientes-04 lands (detail edit modal)
+- THEN `PatientsModalAppShellTest` (13 cases / 42 assertions) asserts the rule on each of the 3 modals (`<UiModal>` wrapper present, `bg-black bg-opacity-50` absent)
+- AND `git grep -nE 'bg-black bg-opacity-50' resources/js/modules/patients/PatientsPage.vue resources/js/modules/patients/PatientDetailPage.vue` returns zero matches
+- AND the `useApi` 422 duplicate-email/phone error envelope rendering stays verbatim (form stays open + server message surfaces via `useToast`)
+
+### Requirement: `PAC-DET-001` — `PatientDetailPage` 5-tab drawer MUST consume `<UiTabs>` + cross-category deep-links preserved
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST replace the raw `<button>` step strip with
+`border-accent text-accent` active indicator (line 87) on
+`PatientDetailPage.vue` with `<UiTabs>` (the canonical primitive) wired
+to `var(--motion-duration-fast) var(--motion-easing-ios)` transitions.
+The 5-tab drawer MUST continue to deep-link to `/treatment-plans?
+patient_id=…`, `/quotations?patient_id=…`, `/medical-records?patient_id=…`,
+and `/specialty-records?patient_id=…` byte-for-byte. The change-diff
+callout at line 669 (legacy `border-l-2 border-theme`) MUST consume a
+hairline token. The `<style scoped>` block at line 1556
+(`.tab-content { min-height: 400px }`) MUST be removed and the contents
+rewritten to plain utility classes (`min-h-[400px]`).
+
+#### Scenario: `PAC-DET-001-1` — Tabs use UiTabs and deep-links stay byte-for-byte
+
+- GIVEN `PatientDetailPage.vue` (1480 lines) renders 5 tabs across Planes / Presupuestos / Historia Clínica / Especialidades / Historial de auditoría
+- WHEN PR-pacientes-03 lands
+- THEN `PatientDetailAppShellTest::test_detail_tabs_use_ui_tabs` asserts the rule (`<UiTabs>` reference present, raw `border-accent text-accent` active indicator absent, inline `@click="currentStep = step.id"`-style handler absent)
+- AND `PatientDetailAppShellTest::test_detail_cross_category_deep_links_preserved` asserts the 4 `router.push(...)` calls remain byte-for-byte
+- AND `ModuleAppShellTestCase::test_no_style_scoped` green for `PatientDetailPage.vue`
+
+### Requirement: `PAC-EDIT-001` — `PatientDetailPage` Edit Patient modal MUST consume `<UiModal>` + `<UiSelect>` for gender + is_active
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST replace the hand-built backdrop, raw `<select>` for
+gender + `is_active` (lines 780 + 792), `bg-theme-surface-elevated`
+panel, and `focus:ring-primary-500 focus:border-transparent` ring in the
+inlined Edit Patient modal of `PatientDetailPage.vue` with `<UiModal>`
+chrome + `<UiSelect>` + `<UiInput>` + hairline divider +
+`var(--focus-ring-default)` focus ring. The `useApi` `PUT /api/patients/
+{id}` call signature MUST stay verbatim; the 422 error envelope from
+`Rule::unique(...)->ignore($patient->id)` MUST stay verbatim.
+
+#### Scenario: `PAC-EDIT-001-1` — Detail Edit modal uses Ui primitives
+
+- GIVEN the inlined Edit Patient modal in `PatientDetailPage.vue` lines 706–845 carries raw `<select>` for gender + `is_active`
+- WHEN PR-pacientes-04 lands
+- THEN `PatientDetailEditExportAppShellTest::test_detail_edit_modal_uses_ui_primitives` asserts the rule on the detail edit modal specifically (`<UiModal>` + `<UiSelect>` + `<UiInput>` present, raw `<select>` + hand-built backdrop absent)
+- AND the `useApi` update call stays verbatim (no axios, no fork)
+- AND the 422 error envelope from the email/phone unique constraint surfaces verbatim via `useToast`
+
+### Requirement: `PAC-EXP-001` — Export action surface MUST use `<UiButton>` + preserve Bearer-token binary download pattern
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST replace the legacy export action chrome (PDF / ZIP) on
+`PatientDetailPage.vue` with `<UiButton>` + `<UiSelect>` (NOT raw
+`<button>` + raw `<select>`). The raw `fetch` + Bearer token +
+`window.URL.createObjectURL` + `<a download>` anchor click pattern at
+lines 1217–1225 MUST stay byte-for-byte (a JSON wrapper would corrupt
+the binary stream; `useApi()` cannot replace it).
+
+#### Scenario: `PAC-EXP-001-1` — Export action uses Ui primitives and the binary download stays verbatim
+
+- GIVEN the export action surface triggers `GET /api/patients/${id}/export?format=pdf|zip` with a Bearer token and streams the binary
+- WHEN PR-pacientes-04 lands
+- THEN `PatientDetailEditExportAppShellTest::test_detail_export_button_uses_ui_button` asserts `<UiButton>` + `<UiSelect>` adoption on the export dropdown
+- AND `git grep -nE 'window\.URL\.createObjectURL' resources/js/modules/patients/PatientDetailPage.vue` confirms the pattern is present byte-for-byte
+- AND `ApiAndSeedersPolishTest` API-035 + API-057 stay green (`application/pdf` / `application/zip` Content-Type whitelisted)
+
+### Requirement: `PAC-RT-001` — `useEcho` channel subscriptions MUST stay subscribed byte-for-byte
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST keep every `useEcho` channel subscription on
+`PatientsPage.vue` and `PatientDetailPage.vue` firing verbatim. The
+channels are: `patients` (`.patient.updated`), `treatment-plans`
+(`.treatment-plan.{created,updated,deleted}`), `quotations`
+(`.quotation.{created,updated,deleted}`), `medical-records`
+(`.medical-record.{created,updated,deleted}`), `specialty-records`
+(`.specialty-record.{created,updated,deleted}`). The `dashboard-updates`
+channel is NOT consumed by the paciente module (the Dashboard page
+consumes it). Visual changes MUST NOT touch `<script>` blocks.
+
+#### Scenario: `PAC-RT-001-1` — All 5 channels stay subscribed
+
+- GIVEN the per-tab deep-link create buttons on `PatientDetailPage.vue` rely on cross-category Echo events firing
+- WHEN any PR-pacientes-NN lands
+- THEN `git diff --stat` shows zero edits to `<script>` blocks of `PatientsPage.vue` and `PatientDetailPage.vue`
+- AND manual smoke test: two browser tabs on `/patients/:id`, update the patient in tab A, verify tab B receives the `patient.updated` event within 1 second
+- AND the cross-category channels continue firing on the Planes / Presupuestos / Historia Clínica / Especialidades tab create buttons
+
+### Requirement: `PAC-PHI-001` — `PatientResource` API envelope MUST NOT widen or narrow
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST preserve the `PatientResource` API envelope byte-for-
+byte. The additive `age` integer key (computed via `$this->birth_date-
+>diffInYears(now())`) MUST stay. The `email`, `phone`, `birth_date`,
+`address`, `medical_history`, `allergies`, `notes` fields MUST continue
+exposing for every viewer (the `PatientPolicy::view` return-true
+posture is OUT of scope; the cross-branch PHI scope guard is a separate
+change). The conditional counter fields (`appointments_count`,
+`treatment_plans_count`, `quotations_count`, `medical_records_count`)
+and conditional relations (`appointments`, `treatmentPlans`,
+`quotations`, `medicalRecords`) via `whenLoaded` / `when` MUST stay
+verbatim.
+
+#### Scenario: `PAC-PHI-001-1` — Additive age key and PHI surface preserved
+
+- GIVEN `PatientResourceAgeTest` (7 cases on `PatientResource::toArray()`) + `PatientControllerAgeTest` pin the additive `age` key
+- WHEN any PR-pacientes-NN lands
+- THEN both tests stay green at every PR boundary
+- AND `PatientControllerResourceWireUpTest` stays green (every public CRUD method references `PatientResource`)
+- AND the API envelope is NOT widened or narrowed — no field is added or removed
+
+### Requirement: `PAC-DEEP-001` — Cross-category deep-links MUST stay byte-for-byte
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST preserve the 4 cross-category deep-link `router.push`
+calls on `PatientDetailPage.vue` byte-for-byte:
+`router.push('/treatment-plans?patient_id=…')`,
+`router.push('/quotations?patient_id=…')`,
+`router.push('/medical-records?patient_id=…')`,
+`router.push('/specialty-records?patient_id=…')`. The per-tab create
+buttons (Planes / Presupuestos / Historia Clínica / Especialidades)
+MUST keep their navigation contract identical across all 4 deep-link
+surfaces.
+
+#### Scenario: `PAC-DEEP-001-1` — All 4 deep-links preserved verbatim
+
+- GIVEN the per-tab create buttons navigate to other modules with the `?patient_id=…` query param
+- WHEN PR-pacientes-03 lands
+- THEN `PatientDetailAppShellTest::test_detail_cross_category_deep_links_preserved` asserts the 4 `router.push(...)` patterns remain byte-for-byte
+- AND visual smoke test: click "Crear plan" on the Planes tab, verify the URL contains `?patient_id=<id>` and the treatment-plans page loads
+
+### Requirement: `PAC-REV-001` — Each `pr-pacientes-NN` MUST stay under the 400-line review budget
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST keep each `pr-pacientes-NN` PR under the 400-line
+authored review budget. When a PR's diff exceeds 400 lines (PR-
+pacientes-01 ~390 lines + PR-pacientes-03 ~390 lines are right at the
+budget), the apply phase MUST split per the `chained-pr` skill (e.g.
+PR-pacientes-01a + 01b for the desktop table vs the mobile card
+fallback; PR-pacientes-03a + 03b for the 5-tab drawer chrome vs the
+per-tab deep-link create buttons).
+
+#### Scenario: `PAC-REV-001-1` — PR-pacientes-01 and PR-pacientes-03 split when needed
+
+- GIVEN `PatientsPage.vue` (1249 lines) + `PatientDetailPage.vue` (1480 lines) are the largest single Vue files in PACIENTES
+- WHEN the PR-pacientes-01 + PR-pacientes-03 diffs are reviewed
+- THEN `git diff --stat` reports `additions + deletions <= 400` per PR
+- AND if a diff exceeds 400 lines, the PR is split BEFORE the review starts
+
+### Requirement: `PAC-CON-001` — Existing paciente contracts MUST be preserved
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `specs/pacientes/spec.md` §2.*
+
+The system MUST preserve the public contracts of `useEcho`,
+`usePermissions`, `useToast`, `useConfirm`, `useApi`, and `useAuditLogs`
+consumed by the pacientes module byte-for-byte. The
+`usePermissions.can.{createPatient, updatePatient, deletePatient,
+createTreatmentPlan, createQuotation, createMedicalRecord,
+createSpecialtyRecord}` flags MUST stay verbatim. The
+`useAuditLogs.getPatientAuditLogs(patientId)` call MUST stay verbatim.
+The `useConfirm` delete-confirmation flow MUST stay verbatim. Visual
+changes MUST NOT touch `<script>` blocks.
+
+#### Scenario: `PAC-CON-001-1` — All 6 composable contracts stay green
+
+- GIVEN `ComposablesStandardizationTest` pins the 6 composable surfaces
+- WHEN any PR-pacientes-NN lands
+- THEN `ComposablesStandardizationTest` stays green at every PR boundary
+- AND `<script>` blocks of `PatientsPage.vue` + `PatientDetailPage.vue` are byte-for-byte unchanged
+- AND the `useEcho` channel list + the `usePermissions.can.*` flags + the `useAuditLogs.getPatientAuditLogs(...)` call all stay verbatim
+
+---
+
+*End of promoted PACIENTES rows. Next category slice appends below.*
