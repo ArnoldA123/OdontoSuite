@@ -370,8 +370,6 @@ viewBox="0 0 24 24">
           </div>
         </UiCard>
       </div>
-
-      </div>
       </template>
 
       <template #medical-records>
@@ -485,8 +483,6 @@ viewBox="0 0 24 24">
             </div>
           </div>
         </UiCard>
-      </div>
-
       </div>
       </template>
 
@@ -602,8 +598,6 @@ viewBox="0 0 24 24">
             </div>
           </div>
         </UiCard>
-      </div>
-
       </div>
       </template>
 
