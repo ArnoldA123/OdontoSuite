@@ -4,8 +4,8 @@
     title="Registrar Cobro de Paciente"
     :size="activeTab === 'manual' ? 'xl' : 'lg'"
     @update:model-value="$emit('update:modelValue', $event)"
-    @close="$emit('update:modelValue', false)"
     class="overflow-y-auto"
+    @close="$emit('update:modelValue', false)"
   >
     <!-- Tabs: Manual / Mercado Pago (solo si el metodo seleccionado tiene gateway) -->
     <UiTabs
@@ -22,10 +22,16 @@
       label="Ingrese monto"
       class="mt-2"
     />
-    <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6 bg-canvas">
+    <form
+      v-if="activeTab === 'manual'"
+      @submit.prevent="handleSubmit"
+      class="space-y-4 md:space-y-6 bg-canvas"
+    >
       <!-- Información del Paciente -->
       <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
-        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Información del Paciente</h3>
+        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
+Información del Paciente
+</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
@@ -34,22 +40,15 @@
             <select
               v-model="formData.patient_id"
               :disabled="!!selectedPatient"
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-canvas
-                     text-theme-primary
-                     border-hairline
-                     disabled:bg-canvas disabled:opacity-50
-                     disabled:cursor-not-allowed"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline disabled:bg-canvas disabled:opacity-50 disabled:cursor-not-allowed"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.patient_id }"
               required
               size="5"
             >
-              <option value="">Seleccionar paciente</option>
-              <option
-                v-for="patient in pendingPatients"
-                :key="patient.id"
-                :value="patient.id"
-              >
+              <option value="">
+Seleccionar paciente
+</option>
+              <option v-for="patient in pendingPatients" :key="patient.id" :value="patient.id">
                 {{ patient.name }} - {{ patient.document_number }}
               </option>
             </select>
@@ -67,14 +66,17 @@
             </label>
             <select
               v-model="formData.appointment_id"
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-canvas
-                     text-theme-primary
-                     border-hairline"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.appointment_id }"
             >
-              <option value="">Seleccionar cita (opcional)</option>
-              <option v-for="appointment in patientAppointments" :key="appointment.id" :value="appointment.id">
+              <option value="">
+Seleccionar cita (opcional)
+</option>
+              <option
+                v-for="appointment in patientAppointments"
+                :key="appointment.id"
+                :value="appointment.id"
+              >
                 {{ formatDate(appointment.date) }} - {{ appointment.appointment_type?.name }}
               </option>
             </select>
@@ -87,7 +89,9 @@
 
       <!-- Detalles del Pago -->
       <div class="space-y-3 md:space-y-4">
-        <h3 class="text-base md:text-lg font-medium text-theme-primary">Detalles del Pago</h3>
+        <h3 class="text-base md:text-lg font-medium text-theme-primary">
+Detalles del Pago
+</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
@@ -98,14 +102,10 @@
               v-model="formData.concept"
               type="text"
               placeholder="Ej: Consulta, Tratamiento, etc."
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-canvas
-                     text-theme-primary
-                     border-hairline
-                     placeholder-theme-secondary"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.concept }"
               required
-            />
+            >
             <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.concept[0] }}
             </p>
@@ -124,7 +124,10 @@
               :error="errors.payment_method_id"
               :disabled="loadingMethods"
             />
-            <p v-if="!loadingMethods && paymentMethods.length === 0" class="mt-1 text-xs text-amber-600">
+            <p
+              v-if="!loadingMethods && paymentMethods.length === 0"
+              class="mt-1 text-xs text-amber-600"
+            >
               No hay metodos de pago activos. Contacta al administrador.
             </p>
             <p v-if="errors.payment_method_id" class="mt-1 text-xs md:text-sm text-red-600">
@@ -152,13 +155,9 @@
               v-model="formData.reference"
               type="text"
               placeholder="Número de operación, voucher, etc."
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-canvas
-                     text-theme-primary
-                     border-hairline
-                     placeholder-theme-secondary"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.reference }"
-            />
+            >
             <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.reference[0] }}
             </p>
@@ -169,17 +168,13 @@
           <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
             Observaciones
           </label>
-        <textarea
-          v-model="formData.notes"
-          rows="3"
-          placeholder="Detalles adicionales del pago..."
-          class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                 bg-canvas
-                 text-theme-primary
-                 border-hairline
-                 placeholder-theme-secondary"
-          :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.notes }"
-        ></textarea>
+          <textarea
+            v-model="formData.notes"
+            rows="3"
+            placeholder="Detalles adicionales del pago..."
+            class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
+            :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.notes }"
+          ></textarea>
           <p v-if="errors.notes" class="mt-1 text-xs md:text-sm text-systemRed-600">
             {{ errors.notes[0] }}
           </p>
@@ -188,7 +183,9 @@
 
       <!-- Resumen del Pago -->
       <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
-        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Resumen del Pago</h3>
+        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
+Resumen del Pago
+</h3>
         <div class="space-y-2 text-xs md:text-sm">
           <div class="flex justify-between">
             <span class="text-theme-secondary">Paciente:</span>
@@ -234,8 +231,8 @@
         <Button
           type="button"
           variant="secondary"
-          @click="$emit('update:modelValue', false)"
           :disabled="loading"
+          @click="$emit('update:modelValue', false)"
           class="w-full sm:w-auto px-4 py-2 text-sm md:text-base"
         >
           Cancelar
@@ -245,8 +242,8 @@
           variant="primary"
           :loading="loading"
           :disabled="!canSubmit"
-          @click="handleSubmit"
           class="w-full sm:w-auto px-4 py-2 text-sm md:text-base"
+          @click="handleSubmit"
         >
           <BanknotesIcon class="w-4 h-4 mr-2" />
           Registrar Cobro
@@ -302,9 +299,7 @@ const emit = defineEmits(['update:modelValue', 'close', 'success'])
 
 // Resolve the actual open-state. modelValue wins when explicitly bound;
 // otherwise fall back to the legacy `show` prop.
-const isOpen = computed(() =>
-  props.modelValue !== undefined ? props.modelValue : !!props.show
-)
+const isOpen = computed(() => (props.modelValue !== undefined ? props.modelValue : !!props.show))
 
 // Composables
 const { get } = useApi()
@@ -427,19 +422,18 @@ const selectedPaymentMethod = computed(() =>
 )
 
 const canSubmit = computed(() => {
-  return formData.value.patient_id &&
-         formData.value.concept &&
-         formData.value.payment_method_id &&
-         formData.value.amount > 0
+  return (
+    formData.value.patient_id &&
+    formData.value.concept &&
+    formData.value.payment_method_id &&
+    formData.value.amount > 0
 })
 
 // Sprint 3 fix: la tab MP solo se muestra cuando el metodo seleccionado
 // tiene gateway_type = 'mercadopago' (configurado en settings/payment-methods)
 const showMpTab = computed(() => {
   if (!formData.value.payment_method_id) return false
-  const method = paymentMethods.value.find(
-    m => m.id === parseInt(formData.value.payment_method_id)
-  )
+  const method = paymentMethods.value.find(m => m.id === parseInt(formData.value.payment_method_id))
   return method?.gateway_type === 'mercadopago'
 })
 
@@ -448,9 +442,8 @@ const paymentMethodOptions = computed(() =>
   paymentMethods.value.map(m => ({
     value: m.id,
     label: m.name,
-    description: m.commission_percentage > 0
-      ? `Comision: ${m.commission_percentage}%`
-      : (m.description || '')
+    description:
+      m.commission_percentage > 0 ? `Comision: ${m.commission_percentage}%` : m.description || ''
   }))
 )
 
@@ -474,7 +467,7 @@ const manualTabs = computed(() => [
 // a pending transaction); Manual is a direct switch. The activeTab is
 // reset before the MP flow so the validateForm early-return can fall
 // back to the manual tab cleanly.
-const onTabChange = (newTabId) => {
+const onTabChange = newTabId => {
   if (newTabId === 'mercadopago') {
     activeTab.value = 'manual'
     switchToMercadoPago()
@@ -510,7 +503,7 @@ const loadPaymentMethods = async () => {
   }
 }
 
-const loadPatientAppointments = async (patientId) => {
+const loadPatientAppointments = async patientId => {
   if (!patientId) {
     patientAppointments.value = []
     return
@@ -531,8 +524,7 @@ const loadPatientAppointments = async (patientId) => {
       handleSessionExpired()
     } else {
       const message =
-        error.response?.data?.message ||
-        'No se pudieron cargar las citas del paciente.'
+        error.response?.data?.message || 'No se pudieron cargar las citas del paciente.'
       toast.warning(message)
     }
     patientAppointments.value = []
@@ -627,7 +619,7 @@ const resetForm = () => {
   errors.value = {}
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -638,34 +630,45 @@ const formatDate = (date) => {
 }
 
 // Watchers
-watch(() => formData.value.patient_id, (newPatientId) => {
-  if (newPatientId) {
-    loadPatientAppointments(newPatientId)
-  } else {
-    patientAppointments.value = []
-  }
-})
-
-// Pre-llenar datos del paciente seleccionado
-watch(() => props.selectedPatient, (newPatient) => {
-  if (newPatient && isOpen.value) {
-    formData.value.patient_id = newPatient.id
-    formData.value.concept = newPatient.concept || 'Consulta'
-    formData.value.amount = newPatient.amount || 0
-
-    // Si viene con appointment, también pre-llenarlo
-    if (props.selectedAppointment) {
-      formData.value.appointment_id = props.selectedAppointment.id
+watch(
+  () => formData.value.patient_id,
+  newPatientId => {
+    if (newPatientId) {
+      loadPatientAppointments(newPatientId)
+    } else {
+      patientAppointments.value = []
     }
   }
-}, { immediate: true })
+)
+
+// Pre-llenar datos del paciente seleccionado
+watch(
+  () => props.selectedPatient,
+  newPatient => {
+    if (newPatient && isOpen.value) {
+      formData.value.patient_id = newPatient.id
+      formData.value.concept = newPatient.concept || 'Consulta'
+      formData.value.amount = newPatient.amount || 0
+
+      // Si viene con appointment, también pre-llenarlo
+      if (props.selectedAppointment) {
+        formData.value.appointment_id = props.selectedAppointment.id
+      }
+    }
+  },
+  { immediate: true }
+)
 
 // Pre-llenar datos de la cita seleccionada
-watch(() => props.selectedAppointment, (newAppointment) => {
-  if (newAppointment && isOpen.value) {
-    formData.value.appointment_id = newAppointment.id
-  }
-}, { immediate: true })
+watch(
+  () => props.selectedAppointment,
+  newAppointment => {
+    if (newAppointment && isOpen.value) {
+      formData.value.appointment_id = newAppointment.id
+    }
+  },
+  { immediate: true }
+)
 
 // Lifecycle
 onMounted(() => {
@@ -674,7 +677,7 @@ onMounted(() => {
   }
 })
 
-watch(isOpen, (newOpen) => {
+watch(isOpen, newOpen => {
   if (newOpen) {
     loadPaymentMethods()
     // NO resetear si hay paciente seleccionado

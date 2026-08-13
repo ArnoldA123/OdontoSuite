@@ -259,21 +259,13 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
                   class="text-sm font-medium tabular-nums"
-                  :class="
-                    session.difference_amount === 0
-                      ? 'text-systemGreen-600'
-                    session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600'"
-                  :aria-label="`${
-                    session.difference_amount === 0
-                      ? 'Conforme'
-                    session.difference_amount > 0 ? '+' : ''}${formatCurrency(session.difference_amount)} soles`"
+                  :class="session.difference_amount === 0 ? 'text-systemGreen-600' : (session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600')"
+                  :aria-label="`${session.difference_amount === 0 ? 'Conforme' : (session.difference_amount > 0 ? '+' : '')}${formatCurrency(session.difference_amount)} soles`"
                 >
                   {{
                     session.difference_amount === 0
                       ? 'Conforme'
-                  session.difference_amount > 0 ? '+' : ''
-
-
+                      : (session.difference_amount > 0 ? '+' : '')
                   }}{{ formatCurrency(session.difference_amount) }}
                 </span>
               </td>
