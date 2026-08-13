@@ -40,11 +40,7 @@
             class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
-            <option
-              v-for="user in users"
-              :key="user.id"
-              :value="user.id"
-            >
+            <option v-for="user in users" :key="user.id" :value="user.id">
               {{ user.name }}
             </option>
           </select>
@@ -52,30 +48,18 @@
       </div>
 
       <div class="flex justify-between items-center mt-4">
-        <Button
-          variant="secondary"
-          @click="applyFilters"
-          :loading="loading"
-        >
+        <Button variant="secondary" :loading="loading" @click="applyFilters">
           <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
           Filtrar
         </Button>
 
         <div class="flex space-x-2">
-          <Button
-            variant="secondary"
-            @click="exportToExcel"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             Excel
           </Button>
 
-          <Button
-            variant="secondary"
-            @click="exportToPDF"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             PDF
           </Button>
@@ -89,28 +73,52 @@
         <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Sesión
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Usuario
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Sucursal
               </th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Apertura
               </th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Cierre
               </th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Diferencia
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Estado
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
@@ -125,19 +133,16 @@
             </tr>
 
             <tr v-else-if="sessions.length === 0">
-              <td colspan="8" class="px-6 py-4 text-center text-theme-secondary">No hay sesiones registradas</td>
+              <td colspan="8" class="px-6 py-4 text-center text-theme-secondary">
+                No hay sesiones registradas
+              </td>
             </tr>
 
-            <tr
-              v-else
-              v-for="session in sessions"
-              :key="session.id"
-              class="hover:bg-theme-surface"
-            >
+            <tr v-for="session in sessions" v-else :key="session.id" class="hover:bg-theme-surface">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-theme-primary">
-                  #{{ session.id }}
-                </div>
+#{{ session.id }}
+</div>
                 <div class="text-sm text-theme-secondary">
                   {{ formatDate(session.opened_at) }}
                 </div>
@@ -152,7 +157,8 @@
               </td>
 
               <td
-                class="px-6 py-4 whitespace-nowrap text-right" :aria-label="`Monto apertura ${formatPENLabel(session.opening_amount)} soles`"
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="`Monto apertura ${formatPENLabel(session.opening_amount)} soles`"
               >
                 <div class="text-sm text-theme-primary">
                   {{ formatTime(session.opened_at) }}
@@ -163,14 +169,19 @@
               </td>
 
               <td
-                class="px-6 py-4 whitespace-nowrap text-right" :aria-label="session.closing_amount ? `Monto cierre ${formatPENLabel(session.closing_amount)} soles` : 'Sin monto de cierre'"
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="
+                  session.closing_amount
+                    ? `Monto cierre ${formatPENLabel(session.closing_amount)} soles`
+                    : 'Sin monto de cierre'
+                "
               >
                 <div v-if="session.closed_at" class="text-sm text-theme-primary">
                   {{ formatTime(session.closed_at) }}
                 </div>
                 <div v-else class="text-sm text-theme-secondary">
-                  -
-                </div>
+-
+</div>
                 <div
                   v-if="session.closing_amount"
                   class="text-sm text-theme-secondary tabular-nums"
@@ -180,21 +191,30 @@
               </td>
 
               <td
-                class="px-6 py-4 whitespace-nowrap text-right" :aria-label="session.difference_amount !== null ? `Diferencia ${formatPENLabel(session.difference_amount)} soles` : 'Sin diferencia'"
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="
+                  session.difference_amount !== null
+                    ? `Diferencia ${formatPENLabel(session.difference_amount)} soles`
+                    : 'Sin diferencia'
+                "
               >
                 <div v-if="session.difference_amount !== null">
                   <span
                     class="text-sm font-medium tabular-nums"
-                    :class="session.difference_amount === 0 ? 'text-systemGreen-600' :
-                           session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600'"
+                    :class="session.difference_amount === 0 ? 'text-systemGreen-600' : (session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600')"
                   >
-                    {{ session.difference_amount === 0 ? 'Conforme' :
-                       session.difference_amount > 0 ? '+' : '' }}{{ formatPENLabel(session.difference_amount) }}
+                    {{
+                      session.difference_amount === 0
+                        ? 'Conforme'
+                        : (session.difference_amount > 0 ? '+' : '')
+
+
+                    }}{{ formatPENLabel(session.difference_amount) }}
                   </span>
                 </div>
                 <div v-else class="text-sm text-theme-secondary">
-                  -
-                </div>
+-
+</div>
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
@@ -207,27 +227,27 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <button
-                    @click="viewSession(session)"
                     class="text-systemBlue-600 hover:text-systemBlue-700"
                     title="Ver detalle"
+                    @click="viewSession(session)"
                   >
                     <EyeIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="session.status === 'closed'"
-                    @click="generateReport(session)"
                     class="text-systemGreen-600 hover:text-systemGreen-700"
                     title="Generar reporte"
+                    @click="generateReport(session)"
                   >
                     <DocumentTextIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="canReopen(session)"
-                    @click="reopenSession(session)"
                     class="text-systemYellow-600 hover:text-systemYellow-700"
                     title="Reabrir sesión"
+                    @click="reopenSession(session)"
                   >
                     <ArrowPathIcon class="w-4 h-4" />
                   </button>
@@ -242,17 +262,21 @@
     <!-- Paginación -->
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-theme-primary">
-        Mostrando {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} a
-        <span class="tabular-nums">{{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}</span> de
-        <span class="tabular-nums">{{ pagination.total }}</span> resultados
+        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
+        <span class="tabular-nums">
+          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
+        </span>
+        de
+        <span class="tabular-nums">{{ pagination.total }}</span>
+        resultados
       </div>
 
       <div class="flex space-x-2">
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page - 1)"
           :disabled="pagination.current_page <= 1"
+          @click="loadPage(pagination.current_page - 1)"
         >
           Anterior
         </Button>
@@ -264,8 +288,8 @@
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page + 1)"
           :disabled="pagination.current_page >= pagination.last_page"
+          @click="loadPage(pagination.current_page + 1)"
         >
           Siguiente
         </Button>
@@ -327,42 +351,41 @@ const loadUsers = async () => {
   try {
     const response = await get('/api/users/active')
     users.value = response.data || []
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 const applyFilters = () => {
   emit('refresh', filters.value)
 }
 
-const loadPage = (page) => {
+const loadPage = page => {
   emit('refresh', { ...filters.value, page })
 }
 
-const viewSession = (session) => {
+const viewSession = session => {
   emit('view', session)
 }
 
-const generateReport = (session) => {
+const generateReport = session => {
   // Implementar generación de reporte
 }
 
-const reopenSession = async (session) => {
+const reopenSession = async session => {
   const ok = await confirm({
     title: 'Reabrir sesión de caja',
     message: '¿Está seguro de reabrir esta sesión de caja?',
     confirmText: 'Reabrir',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   emit('reopen', session)
 }
 
-const canReopen = (session) => {
+const canReopen = session => {
   return session.status === 'closed' && manageCashRegister.value
 }
 
-const formatDate = (dateTime) => {
+const formatDate = dateTime => {
   return new Date(dateTime).toLocaleDateString('es-PE', {
     day: '2-digit',
     month: '2-digit',
@@ -370,7 +393,7 @@ const formatDate = (dateTime) => {
   })
 }
 
-const formatTime = (dateTime) => {
+const formatTime = dateTime => {
   return new Date(dateTime).toLocaleTimeString('es-PE', {
     hour: '2-digit',
     minute: '2-digit'
@@ -379,7 +402,7 @@ const formatTime = (dateTime) => {
 
 // formatPENLabel is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
-const getStatusText = (status) => {
+const getStatusText = status => {
   const texts = {
     open: 'Abierta',
     closed: 'Cerrada'

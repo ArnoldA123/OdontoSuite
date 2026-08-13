@@ -7,11 +7,7 @@
       class="mb-6"
     >
       <template #actions>
-        <UiButton
-          variant="secondary"
-          @click="refreshData"
-          :disabled="loading"
-        >
+        <UiButton variant="secondary" :disabled="loading" @click="refreshData">
           <template #icon-left>
             <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
           </template>
@@ -24,7 +20,9 @@
     <UiCard variant="glass" class="mb-8">
       <div class="p-6">
         <h2 class="text-xl font-semibold mb-4 flex items-center">
-          <div class="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-lg mr-3 flex items-center justify-center">
+          <div
+            class="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-lg mr-3 flex items-center justify-center"
+          >
             <CpuChipIcon class="w-5 h-5 text-white" />
           </div>
           Nuevo Análisis de IA
@@ -43,31 +41,25 @@
         </div>
 
         <!-- Paso 2: Subir Imagen -->
-        <div class="mb-4" v-if="newAnalysis.patient">
+        <div v-if="newAnalysis.patient" class="mb-4">
           <label class="block text-sm font-medium text-theme-primary mb-2">
             2. Subir Radiografía o Imagen Clínica
           </label>
           <FileUpload
-            @file-selected="handleFileSelected"
-            @file-cleared="handleFileCleared"
             accept="image/*"
             :preview="true"
+            @file-selected="handleFileSelected"
+            @file-cleared="handleFileCleared"
           />
         </div>
 
         <!-- Paso 3: Información Adicional (Opcional) -->
-        <div class="mb-4" v-if="newAnalysis.file">
-          <label class="block text-sm font-medium text-theme-primary mb-2">
-            3. Tipo de Imagen
-          </label>
-          <UiSelect
-            v-model="newAnalysis.category"
-            :options="categoryOptions"
-            class="w-full"
-          />
+        <div v-if="newAnalysis.file" class="mb-4">
+          <label class="block text-sm font-medium text-theme-primary mb-2">3. Tipo de Imagen</label>
+          <UiSelect v-model="newAnalysis.category" :options="categoryOptions" class="w-full" />
         </div>
 
-        <div class="mb-4" v-if="newAnalysis.file">
+        <div v-if="newAnalysis.file" class="mb-4">
           <label class="block text-sm font-medium text-theme-primary mb-2">
             4. Descripción (Opcional)
           </label>
@@ -80,11 +72,11 @@
 
         <!-- Botón Analizar -->
         <UiButton
-          @click="startAnalysis"
           :disabled="!canStartAnalysis"
           :loading="analyzing"
           size="lg"
           class="w-full"
+          @click="startAnalysis"
         >
           <CpuChipIcon class="w-5 h-5 mr-2" />
           Analizar con IA
@@ -98,9 +90,15 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Total Análisis</p>
-            <p class="text-3xl font-bold text-theme-primary">{{ stats.total_analyses }}</p>
-            <p class="text-xs text-theme-secondary mt-1">Realizados</p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">
+              Total Análisis
+            </p>
+            <p class="text-3xl font-bold text-theme-primary">
+              {{ stats.total_analyses }}
+            </p>
+            <p class="text-xs text-theme-secondary mt-1">
+              Realizados
+            </p>
           </div>
           <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
             <CpuChipIcon class="w-6 h-6 text-accent" />
@@ -112,9 +110,15 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Completados</p>
-            <p class="text-3xl font-bold text-theme-primary">{{ stats.completed_analyses }}</p>
-            <p class="text-xs text-theme-secondary mt-1">Listos para revisar</p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">
+              Completados
+            </p>
+            <p class="text-3xl font-bold text-theme-primary">
+              {{ stats.completed_analyses }}
+            </p>
+            <p class="text-xs text-theme-secondary mt-1">
+              Listos para revisar
+            </p>
           </div>
           <div class="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
@@ -126,9 +130,15 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Pendientes</p>
-            <p class="text-3xl font-bold text-theme-primary">{{ stats.pending_review }}</p>
-            <p class="text-xs text-theme-secondary mt-1">Por revisar</p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">
+              Pendientes
+            </p>
+            <p class="text-3xl font-bold text-theme-primary">
+              {{ stats.pending_review }}
+            </p>
+            <p class="text-xs text-theme-secondary mt-1">
+              Por revisar
+            </p>
           </div>
           <div class="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
             <ClockIcon class="w-6 h-6 text-yellow-600" />
@@ -140,9 +150,15 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Tasa Completado</p>
-            <p class="text-3xl font-bold text-theme-primary">{{ stats.completion_rate }}%</p>
-            <p class="text-xs text-theme-secondary mt-1">Eficiencia</p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">
+              Tasa Completado
+            </p>
+            <p class="text-3xl font-bold text-theme-primary">
+              {{ stats.completion_rate }}%
+            </p>
+            <p class="text-xs text-theme-secondary mt-1">
+              Eficiencia
+            </p>
           </div>
           <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
             <ChartBarIcon class="w-6 h-6 text-accent" />
@@ -161,8 +177,18 @@
             class="w-full"
           >
             <template #prefix>
-              <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="w-5 h-5 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </template>
           </UiInput>
@@ -181,13 +207,23 @@
             class="min-w-[140px]"
           />
           <UiButton
-            variant="secondary"
-            @click="clearFilters"
-            class="px-3"
             v-if="hasActiveFilters"
+            variant="secondary"
+            class="px-3"
+            @click="clearFilters"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           </UiButton>
         </div>
@@ -200,17 +236,20 @@
         <button
           v-for="tab in tabs"
           :key="tab.key"
-          @click="activeTab = tab.key"
+          class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200"
           :class="[
-            'flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
             activeTab === tab.key
               ? 'bg-theme-surface-elevated text-theme-primary shadow-sm'
               : 'text-theme-secondary hover:text-theme-primary'
           ]"
+          @click="activeTab = tab.key"
         >
           <component :is="tab.icon" class="w-4 h-4 mr-2" />
           {{ tab.label }}
-          <span v-if="tab.count !== null" class="ml-2 px-2 py-0.5 text-xs font-medium bg-theme-surface-elevated text-theme-secondary rounded-full">
+          <span
+            v-if="tab.count !== null"
+            class="ml-2 px-2 py-0.5 text-xs font-medium bg-theme-surface-elevated text-theme-secondary rounded-full"
+          >
             {{ tab.count }}
           </span>
         </button>
@@ -221,16 +260,22 @@
     <div class="content-section">
       <!-- Loading State -->
       <div v-if="loading && analyses.length === 0" class="loading-state">
-        <div class="loading-spinner"></div>
+        <div class="loading-spinner" />
         <p>Cargando análisis...</p>
       </div>
 
       <!-- Empty State -->
       <div v-else-if="filteredAnalyses.length === 0" class="empty-state">
         <CpuChipIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-        <h3 class="empty-title">No hay análisis disponibles</h3>
+        <h3 class="empty-title">
+          No hay análisis disponibles
+        </h3>
         <p class="empty-description">
-          {{ hasActiveFilters ? 'No se encontraron análisis con los filtros aplicados' : 'Aún no se han realizado análisis de IA' }}
+          {{
+            hasActiveFilters
+              ? 'No se encontraron análisis con los filtros aplicados'
+              : 'Aún no se han realizado análisis de IA'
+          }}
         </p>
       </div>
 
@@ -249,13 +294,14 @@
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination-section">
         <div class="pagination-info">
-          Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} - {{ Math.min(currentPage * itemsPerPage, totalItems) }} de {{ totalItems }} análisis
+          Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} -
+          {{ Math.min(currentPage * itemsPerPage, totalItems) }} de {{ totalItems }} análisis
         </div>
         <div class="pagination-controls">
           <button
-            @click="currentPage = Math.max(1, currentPage - 1)"
             :disabled="currentPage === 1"
             class="pagination-btn"
+            @click="currentPage = Math.max(1, currentPage - 1)"
           >
             <ChevronLeftIcon class="w-4 h-4" />
           </button>
@@ -264,20 +310,18 @@
             <button
               v-for="page in visiblePages"
               :key="page"
+              class="pagination-page"
+              :class="currentPage === page ? 'pagination-page-active' : 'pagination-page'"
               @click="currentPage = page"
-              :class="[
-                'pagination-page',
-                { 'pagination-page-active': currentPage === page }
-              ]"
             >
               {{ page }}
             </button>
           </div>
 
           <button
-            @click="currentPage = Math.min(totalPages, currentPage + 1)"
             :disabled="currentPage === totalPages"
             class="pagination-btn"
+            @click="currentPage = Math.min(totalPages, currentPage + 1)"
           >
             <ChevronRightIcon class="w-4 h-4" />
           </button>
@@ -294,10 +338,7 @@
     />
 
     <!-- Analyzing Modal -->
-    <AnalyzingModal
-      :show="showAnalyzingModal"
-      :step="analysisStep"
-    />
+    <AnalyzingModal :show="showAnalyzingModal" :step="analysisStep" />
   </AppLayout>
 </template>
 
@@ -465,12 +506,8 @@ const visiblePages = computed(() => {
 // Methods
 const loadData = async () => {
   try {
-    await Promise.all([
-      getAnalyses(),
-      getStats()
-    ])
-  } catch (error) {
-  }
+    await Promise.all([getAnalyses(), getStats()])
+  } catch (error) {}
 }
 
 const refreshData = async () => {
@@ -486,7 +523,7 @@ const clearFilters = () => {
   }
 }
 
-const viewAnalysis = (analysis) => {
+const viewAnalysis = analysis => {
   selectedAnalysis.value = analysis
 }
 
@@ -495,23 +532,21 @@ const reviewAnalysis = async (analysisId, decision, notes) => {
     await reviewAnalysisApi(analysisId, decision, notes)
     selectedAnalysis.value = null
     await loadData() // Refresh data
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
-const deleteAnalysis = async (analysisId) => {
+const deleteAnalysis = async analysisId => {
   const ok = await confirm({
     title: 'Eliminar análisis',
     message: '¿Estás seguro de que quieres eliminar este análisis?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) {
     try {
       await deleteAnalysisApi(analysisId)
       await loadData() // Refresh data
-  } catch (error) {
-  }
+    } catch (error) {}
   }
 }
 
@@ -524,12 +559,16 @@ watch(activeTab, () => {
   currentPage.value = 1
 })
 
-watch(filters, () => {
-  currentPage.value = 1
-}, { deep: true })
+watch(
+  filters,
+  () => {
+    currentPage.value = 1
+  },
+  { deep: true }
+)
 
 // Métodos para nuevo análisis
-const handleFileSelected = (file) => {
+const handleFileSelected = file => {
   newAnalysis.value.file = file
 }
 
@@ -588,7 +627,6 @@ const startAnalysis = async () => {
 
     // Recargar lista
     await loadData()
-
   } catch (error) {
     showAnalyzingModal.value = false
   } finally {

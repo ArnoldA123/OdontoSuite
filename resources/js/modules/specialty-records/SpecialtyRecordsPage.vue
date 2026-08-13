@@ -1,139 +1,147 @@
 <template>
   <AppLayout>
     <div class="specialty-records-page">
-    <!-- Header -->
-    <PageHeader
-      title="Registros de Especialidades"
-      subtitle="Gestiona los registros específicos por especialidad"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton @click="openCreateModal" :disabled="loading">
-          <template #icon-left>
-            <PlusIcon class="w-5 h-5" />
-          </template>
-          Nuevo Registro
-        </UiButton>
-      </template>
-    </PageHeader>
+      <!-- Header -->
+      <PageHeader
+        title="Registros de Especialidades"
+        subtitle="Gestiona los registros específicos por especialidad"
+        class="mb-6"
+      >
+        <template #actions>
+          <UiButton :disabled="loading" @click="openCreateModal">
+            <template #icon-left>
+              <PlusIcon class="w-5 h-5" />
+            </template>
+            Nuevo Registro
+          </UiButton>
+        </template>
+      </PageHeader>
 
-    <!-- Selector de paciente -->
-    <div class="patient-selector-section">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Seleccionar Paciente</label>
-          <PatientSelector
-            v-model="selectedPatient"
-            @change="handlePatientChange"
-            placeholder="Buscar paciente..."
-          />
-        </div>
-
-        <div v-if="selectedPatient" class="flex items-end">
-          <button
-            @click="loadPatientRecords"
-            class="btn btn-secondary"
-            :disabled="loading"
-          >
-            <MagnifyingGlassIcon class="w-4 h-4 mr-1" />
-            Cargar Registros
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contenido principal -->
-    <div v-if="selectedPatient" class="main-content">
-      <!-- Información del paciente -->
-      <div class="patient-info-card">
-        <div class="flex items-center justify-between">
+      <!-- Selector de paciente -->
+      <div class="patient-selector-section">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <h2 class="patient-name">{{ selectedPatient.first_name }} {{ selectedPatient.last_name }}</h2>
-            <p class="patient-details">
-              {{ selectedPatient.email }} • {{ selectedPatient.phone }}
-            </p>
+            <label class="block text-sm font-medium text-theme-primary mb-1">
+              Seleccionar Paciente
+            </label>
+            <PatientSelector
+              v-model="selectedPatient"
+              placeholder="Buscar paciente..."
+              @change="handlePatientChange"
+            />
           </div>
-          <div class="patient-actions">
-            <button @click="openCreateModal" class="btn btn-primary btn-sm">
-              <PlusIcon class="w-4 h-4 mr-1" />
-              Nuevo Registro
+
+          <div v-if="selectedPatient" class="flex items-end">
+            <button class="btn btn-secondary" :disabled="loading" @click="loadPatientRecords">
+              <MagnifyingGlassIcon class="w-4 h-4 mr-1" />
+              Cargar Registros
             </button>
           </div>
         </div>
       </div>
+      <!-- Contenido principal -->
+      <div v-if="selectedPatient" class="main-content">
+        <!-- Información del paciente -->
+        <div class="patient-info-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="patient-name">
+                {{ selectedPatient.first_name }} {{ selectedPatient.last_name }}
+              </h2>
+              <p class="patient-details">
+                {{ selectedPatient.email }} • {{ selectedPatient.phone }}
+              </p>
+            </div>
+            <div class="patient-actions">
+              <button class="btn btn-primary btn-sm" @click="openCreateModal">
+                <PlusIcon class="w-4 h-4 mr-1" />
+                Nuevo Registro
+              </button>
+            </div>
+          </div>
+        </div>
 
-      <!-- Tabs de especialidades -->
-      <div class="tabs-section">
-        <div class="tabs-nav">
-          <button
-            v-for="specialty in availableSpecialties"
-            :key="specialty.key"
-            @click="activeSpecialty = specialty.key"
-            :class="[
-              'tab-button',
-              activeSpecialty === specialty.key ? 'tab-active' : 'tab-inactive'
-            ]"
-          >
-            <component :is="specialty.icon" class="w-4 h-4 mr-2" />
-            {{ specialty.label }}
-          </button>
+        <!-- Tabs de especialidades -->
+        <div class="tabs-section">
+          <div class="tabs-nav">
+            <button
+              v-for="specialty in availableSpecialties"
+              :key="specialty.key"
+              class="tab-button"
+              :class="activeSpecialty === specialty.key ? 'tab-active' : 'tab-inactive'"
+              @click="activeSpecialty = specialty.key"
+            >
+              <component :is="specialty.icon" class="w-4 h-4 mr-2" />
+              {{ specialty.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenido de especialidad -->
+        <div class="specialty-content">
+          <div v-if="loading" class="flex justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+          </div>
+
+          <div v-else-if="!hasRecords" class="empty-state">
+            <component
+              :is="getSpecialtyIcon(activeSpecialty)"
+              class="w-12 h-12 text-theme-secondary mx-auto mb-4"
+            />
+            <h3 class="text-lg font-medium text-theme-primary mb-2">
+              No hay registros de {{ getSpecialtyLabel(activeSpecialty) }}
+            </h3>
+            <p class="text-theme-secondary mb-4">
+              Comienza creando el primer registro
+            </p>
+            <button class="btn btn-primary" @click="openCreateModal">
+              Crear Registro
+            </button>
+          </div>
+
+          <div v-else class="records-list">
+            <SpecialtyRecordCard
+              v-for="record in currentRecords"
+              :key="record.id"
+              :record="record"
+              :specialty="activeSpecialty"
+              @view="viewRecord"
+              @edit="editRecord"
+              @delete="deleteRecord"
+            />
+          </div>
         </div>
       </div>
 
-      <!-- Contenido de especialidad -->
-      <div class="specialty-content">
-        <div v-if="loading" class="flex justify-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
-
-        <div v-else-if="!hasRecords" class="empty-state">
-          <component :is="getSpecialtyIcon(activeSpecialty)" class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-theme-primary mb-2">No hay registros de {{ getSpecialtyLabel(activeSpecialty) }}</h3>
-          <p class="text-theme-secondary mb-4">Comienza creando el primer registro</p>
-          <button @click="openCreateModal" class="btn btn-primary">
-            Crear Registro
-          </button>
-        </div>
-
-        <div v-else class="records-list">
-          <SpecialtyRecordCard
-            v-for="record in currentRecords"
-            :key="record.id"
-            :record="record"
-            :specialty="activeSpecialty"
-            @view="viewRecord"
-            @edit="editRecord"
-            @delete="deleteRecord"
-          />
-        </div>
+      <!-- Estado sin paciente seleccionado -->
+      <div v-else class="no-patient-state">
+        <UserIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-theme-primary mb-2">
+          Selecciona un paciente
+        </h3>
+        <p class="text-theme-secondary">
+          Para ver los registros de especialidades, primero selecciona un paciente
+        </p>
       </div>
-    </div>
 
-    <!-- Estado sin paciente seleccionado -->
-    <div v-else class="no-patient-state">
-      <UserIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-theme-primary mb-2">Selecciona un paciente</h3>
-      <p class="text-theme-secondary">Para ver los registros de especialidades, primero selecciona un paciente</p>
-    </div>
+      <!-- Modales -->
+      <SpecialtyRecordModal
+        v-if="showModal"
+        :record="selectedRecord"
+        :specialty="activeSpecialty"
+        :patient="selectedPatient"
+        :is-edit="isEdit"
+        @close="closeModal"
+        @saved="handleRecordSaved"
+      />
 
-    <!-- Modales -->
-    <SpecialtyRecordModal
-      v-if="showModal"
-      :record="selectedRecord"
-      :specialty="activeSpecialty"
-      :patient="selectedPatient"
-      :is-edit="isEdit"
-      @close="closeModal"
-      @saved="handleRecordSaved"
-    />
-
-    <SpecialtyRecordDetail
-      v-if="showDetailModal"
-      :record="selectedRecord"
-      :specialty="activeSpecialty"
-      @close="closeDetailModal"
-      @edit="editRecord"
-    />
+      <SpecialtyRecordDetail
+        v-if="showDetailModal"
+        :record="selectedRecord"
+        :specialty="activeSpecialty"
+        @close="closeDetailModal"
+        @edit="editRecord"
+      />
     </div>
   </AppLayout>
 </template>
@@ -200,7 +208,11 @@ const availableSpecialties = computed(() => {
   return specialties.filter(specialty => {
     if (user.value?.role === 'administrador') return true
     if (user.value?.role === 'implantologo' && specialty.key === 'implantologia') return true
-    if (user.value?.role === 'odontologo' && ['ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty.key)) return true
+    if (
+      user.value?.role === 'odontologo' &&
+      ['ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty.key)
+    )
+      return true
     return false
   })
 })
@@ -210,7 +222,7 @@ const currentRecords = computed(() => {
 })
 
 // Métodos
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   selectedPatient.value = patient
   if (patient) {
     loadPatientRecords()
@@ -222,8 +234,7 @@ const loadPatientRecords = async () => {
 
   try {
     await getAllRecords(selectedPatient.value.id)
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 const openCreateModal = () => {
@@ -232,13 +243,13 @@ const openCreateModal = () => {
   showModal.value = true
 }
 
-const editRecord = (record) => {
+const editRecord = record => {
   selectedRecord.value = record
   isEdit.value = true
   showModal.value = true
 }
 
-const viewRecord = (record) => {
+const viewRecord = record => {
   selectedRecord.value = record
   showDetailModal.value = true
 }
@@ -254,12 +265,12 @@ const closeDetailModal = () => {
   selectedRecord.value = null
 }
 
-const handleRecordSaved = (record) => {
+const handleRecordSaved = record => {
   closeModal()
   loadPatientRecords()
 }
 
-const getSpecialtyIcon = (specialty) => {
+const getSpecialtyIcon = specialty => {
   const icons = {
     implantologia: WrenchScrewdriverIcon,
     ortodoncia: BeakerIcon,
@@ -270,7 +281,7 @@ const getSpecialtyIcon = (specialty) => {
   return icons[specialty] || UserIcon
 }
 
-const getSpecialtyLabel = (specialty) => {
+const getSpecialtyLabel = specialty => {
   const labels = {
     implantologia: 'Implantología',
     ortodoncia: 'Ortodoncia',
@@ -293,7 +304,7 @@ onMounted(() => {
     specialtyRecordsChannel = channel('specialty-records')
     if (specialtyRecordsChannel) {
       specialtyRecordsChannel
-        .listen('.specialty-record.created', async (e) => {
+        .listen('.specialty-record.created', async e => {
           // Solo actualizar si es del paciente seleccionado y de la especialidad activa
           if (selectedPatient.value && e.record.patient_id === selectedPatient.value.id) {
             if (e.specialty === activeSpecialty.value) {
@@ -302,7 +313,7 @@ onMounted(() => {
             }
           }
         })
-        .listen('.specialty-record.updated', async (e) => {
+        .listen('.specialty-record.updated', async e => {
           // Solo actualizar si es del paciente seleccionado y de la especialidad activa
           if (selectedPatient.value && e.record.patient_id === selectedPatient.value.id) {
             if (e.specialty === activeSpecialty.value) {
@@ -318,8 +329,7 @@ onMounted(() => {
           }
         })
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 })
 
 onUnmounted(() => {
@@ -327,8 +337,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('specialty-records')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 })
 </script>
