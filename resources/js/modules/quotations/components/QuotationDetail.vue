@@ -14,7 +14,7 @@
           </span>
         </div>
       </div>
-      <button @click="$emit('close')" class="close-button">
+      <button class="close-button" @click="$emit('close')">
         <XMarkIcon class="w-6 h-6" />
       </button>
     </div>
@@ -26,13 +26,15 @@
         <div class="patient-info">
           <div class="info-item">
             <span class="info-label">Nombre:</span>
-            <span class="info-value">{{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}</span>
+            <span class="info-value">
+              {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
+            </span>
           </div>
-          <div class="info-item" v-if="quotation.patient?.dni">
+          <div v-if="quotation.patient?.dni" class="info-item">
             <span class="info-label">DNI:</span>
             <span class="info-value">{{ quotation.patient.dni }}</span>
           </div>
-          <div class="info-item" v-if="quotation.patient?.phone">
+          <div v-if="quotation.patient?.phone" class="info-item">
             <span class="info-label">Teléfono:</span>
             <span class="info-value">{{ quotation.patient.phone }}</span>
           </div>
@@ -47,7 +49,7 @@
             <span class="info-label">Título:</span>
             <span class="info-value">{{ quotation.title }}</span>
           </div>
-          <div class="info-item" v-if="quotation.description">
+          <div v-if="quotation.description" class="info-item">
             <span class="info-label">Descripción:</span>
             <span class="info-value">{{ quotation.description }}</span>
           </div>
@@ -59,19 +61,17 @@
       </div>
 
       <!-- Items del presupuesto -->
-      <div class="detail-section" v-if="quotation.items && quotation.items.length > 0">
+      <div v-if="quotation.items && quotation.items.length > 0" class="detail-section">
         <h3 class="section-title">Procedimientos</h3>
         <div class="items-list">
-          <div
-            v-for="item in quotation.items"
-            :key="item.id"
-            class="item-row"
-          >
+          <div v-for="item in quotation.items" :key="item.id" class="item-row">
             <div class="item-description">
               <span class="item-name">{{ item.description }}</span>
-              <span class="item-category" v-if="item.category">{{ item.category }}</span>
+              <span v-if="item.category" class="item-category">{{ item.category }}</span>
             </div>
-            <div class="item-quantity">{{ item.quantity }}</div>
+            <div class="item-quantity">
+              {{ item.quantity }}
+            </div>
             <div class="item-price">S/ {{ formatPrice(item.unit_price) }}</div>
             <div class="item-total">S/ {{ formatPrice(item.quantity * item.unit_price) }}</div>
           </div>
@@ -86,7 +86,7 @@
             <span>Subtotal:</span>
             <span>S/ {{ formatPrice(quotation.subtotal || 0) }}</span>
           </div>
-          <div class="cost-row" v-if="quotation.discount_amount > 0">
+          <div v-if="quotation.discount_amount > 0" class="cost-row">
             <span>Descuento:</span>
             <span>- S/ {{ formatPrice(quotation.discount_amount) }}</span>
           </div>
@@ -98,7 +98,7 @@
       </div>
 
       <!-- Notas -->
-      <div class="detail-section" v-if="quotation.notes">
+      <div v-if="quotation.notes" class="detail-section">
         <h3 class="section-title">Notas</h3>
         <div class="notes-content">
           {{ quotation.notes }}
@@ -108,36 +108,28 @@
 
     <div class="detail-footer">
       <div class="footer-actions">
-        <button
-          @click="$emit('edit', quotation)"
-          class="btn btn-outline"
-          v-if="canEdit"
-        >
+        <button v-if="canEdit" class="btn btn-outline" @click="$emit('edit', quotation)">
           <PencilIcon class="w-4 h-4 mr-2" />
           Editar
         </button>
-        <button
-          @click="downloadPDF"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
+        <button class="btn btn-primary" :disabled="loading" @click="downloadPDF">
           <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
           Descargar PDF
         </button>
         <button
-          @click="approveQuotation"
+          v-if="canApprove"
           class="btn btn-success"
           :disabled="loading || quotation.status === 'approved'"
-          v-if="canApprove"
+          @click="approveQuotation"
         >
           <CheckIcon class="w-4 h-4 mr-2" />
           Aprobar
         </button>
         <button
-          @click="rejectQuotation"
+          v-if="canReject"
           class="btn btn-danger"
           :disabled="loading || quotation.status === 'rejected'"
-          v-if="canReject"
+          @click="rejectQuotation"
         >
           <XMarkIcon class="w-4 h-4 mr-2" />
           Rechazar
@@ -151,12 +143,7 @@
 import { computed } from 'vue'
 import { useQuotations } from '@/composables/useQuotations'
 import { usePermissions } from '@/composables/usePermissions'
-import {
-  XMarkIcon,
-  PencilIcon,
-  DocumentArrowDownIcon,
-  CheckIcon
-} from '@heroicons/vue/24/outline'
+import { XMarkIcon, PencilIcon, DocumentArrowDownIcon, CheckIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   quotation: {
@@ -184,7 +171,7 @@ const canReject = computed(() => {
 })
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -193,11 +180,11 @@ const formatDate = (date) => {
   })
 }
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   return Number(price).toFixed(2)
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     draft: 'status-draft',
     sent: 'status-sent',
@@ -207,7 +194,7 @@ const getStatusClass = (status) => {
   return classes[status] || 'status-draft'
 }
 
-const getStatusLabel = (status) => {
+const getStatusLabel = status => {
   const labels = {
     draft: 'Borrador',
     sent: 'Enviado',
@@ -220,16 +207,14 @@ const getStatusLabel = (status) => {
 const handleDownloadPDF = async () => {
   try {
     await downloadPDF(props.quotation.id)
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 const handleApprove = async () => {
   try {
     await approveQuotation(props.quotation.id)
     emit('close')
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 const handleReject = async () => {
@@ -238,8 +223,7 @@ const handleReject = async () => {
     try {
       await rejectQuotation(props.quotation.id, reason)
       emit('close')
-    } catch (err) {
-    }
+    } catch (err) {}
   }
 }
 </script>

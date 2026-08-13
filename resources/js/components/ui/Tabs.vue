@@ -1,15 +1,11 @@
 <template>
   <div class="tabs-container">
     <!-- Tab list -->
-    <div
-      :class="tabListClasses"
-      role="tablist"
-      :aria-label="ariaLabel"
-    >
+    <div :class="tabListClasses" role="tablist" :aria-label="ariaLabel">
       <button
         v-for="(tab, index) in tabs"
-        :key="tab.id"
         :id="`tab-${tab.id}`"
+        :key="tab.id"
         :class="getTabClasses(tab, index)"
         :aria-selected="activeTab === tab.id"
         :aria-controls="`panel-${tab.id}`"
@@ -41,10 +37,7 @@
         </div>
 
         <!-- Active indicator -->
-        <div
-          v-if="activeTab === tab.id"
-          :class="indicatorClasses"
-        />
+        <div v-if="activeTab === tab.id" :class="indicatorClasses" />
       </button>
     </div>
 
@@ -52,18 +45,14 @@
     <div class="tabs-content">
       <div
         v-for="tab in tabs"
-        :key="`panel-${tab.id}`"
+        v-show="activeTab === tab.id"
         :id="`panel-${tab.id}`"
+        :key="`panel-${tab.id}`"
         :class="getPanelClasses(tab)"
         :aria-labelledby="`tab-${tab.id}`"
         role="tabpanel"
-        v-show="activeTab === tab.id"
       >
-        <slot
-          :name="tab.id"
-          :tab="tab"
-          :isActive="activeTab === tab.id"
-        >
+        <slot :name="tab.id" :tab="tab" :is-active="activeTab === tab.id">
           {{ tab.content }}
         </slot>
       </div>
@@ -83,28 +72,26 @@ const props = defineProps({
   tabs: {
     type: Array,
     required: true,
-    validator: (tabs) => {
-      return tabs.every(tab =>
-        tab &&
-        typeof tab.id !== 'undefined' &&
-        typeof tab.label === 'string'
+    validator: tabs => {
+      return tabs.every(
+        tab => tab && typeof tab.id !== 'undefined' && typeof tab.label === 'string'
       )
     }
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'pills', 'underline', 'cards'].includes(value)
+    validator: value => ['default', 'pills', 'underline', 'cards'].includes(value)
   },
   orientation: {
     type: String,
     default: 'horizontal',
-    validator: (value) => ['horizontal', 'vertical'].includes(value)
+    validator: value => ['horizontal', 'vertical'].includes(value)
   },
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   fullWidth: {
     type: Boolean,
@@ -138,29 +125,17 @@ const tabListClasses = computed(() => {
     cards: ['bg-theme-surface rounded-ios p-1']
   }
 
-  return [
-    ...base,
-    ...variants[props.variant]
-  ].join(' ')
+  return [...base, ...variants[props.variant]].join(' ')
 })
 
 const indicatorClasses = computed(() => {
-  const base = [
-    'absolute',
-    'bg-systemBlue-500'
-  ]
+  const base = ['absolute', 'bg-systemBlue-500']
 
   if (props.orientation === 'vertical') {
-    return [
-      ...base,
-      'left-0 top-0 bottom-0 w-0.5'
-    ].join(' ')
+    return [...base, 'left-0 top-0 bottom-0 w-0.5'].join(' ')
   }
 
-  return [
-    ...base,
-    'bottom-0 left-0 right-0 h-0.5'
-  ].join(' ')
+  return [...base, 'bottom-0 left-0 right-0 h-0.5'].join(' ')
 })
 
 // Methods
@@ -196,9 +171,7 @@ const getTabClasses = (tab, index) => {
       'rounded-md',
       'text-theme-secondary',
       'hover:text-theme-primary hover:bg-theme-surface',
-      activeTab.value === tab.id
-        ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm'
-        : ''
+      activeTab.value === tab.id ? 'bg-theme-surface-elevated text-systemBlue-600 shadow-sm' : ''
     ],
     underline: [
       'text-theme-secondary',
@@ -218,23 +191,14 @@ const getTabClasses = (tab, index) => {
     ]
   }
 
-  return [
-    ...base,
-    sizes[props.size],
-    orientation,
-    fullWidth,
-    ...variants[props.variant]
-  ].join(' ')
+  return [...base, sizes[props.size], orientation, fullWidth, ...variants[props.variant]].join(' ')
 }
 
-const getPanelClasses = (tab) => {
-  return [
-    'tabs-panel',
-    'focus:outline-none'
-  ]
+const getPanelClasses = tab => {
+  return ['tabs-panel', 'focus:outline-none']
 }
 
-const setActiveTab = (tabId) => {
+const setActiveTab = tabId => {
   if (activeTab.value !== tabId) {
     activeTab.value = tabId
     emit('update:modelValue', tabId)
@@ -242,7 +206,7 @@ const setActiveTab = (tabId) => {
   }
 }
 
-const navigateTabs = (direction) => {
+const navigateTabs = direction => {
   const currentIndex = props.tabs.findIndex(tab => tab.id === activeTab.value)
   let newIndex
 
@@ -256,17 +220,23 @@ const navigateTabs = (direction) => {
 }
 
 // Watch for external changes
-watch(() => props.modelValue, (newValue) => {
-  if (newValue !== activeTab.value) {
-    activeTab.value = newValue
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (newValue !== activeTab.value) {
+      activeTab.value = newValue
+    }
   }
-})
+)
 
-watch(() => props.tabs, (newTabs) => {
-  if (newTabs.length > 0 && !newTabs.find(tab => tab.id === activeTab.value)) {
-    activeTab.value = newTabs[0].id
+watch(
+  () => props.tabs,
+  newTabs => {
+    if (newTabs.length > 0 && !newTabs.find(tab => tab.id === activeTab.value)) {
+      activeTab.value = newTabs[0].id
+    }
   }
-})
+)
 </script>
 
 <style scoped>

@@ -3,35 +3,32 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2 class="modal-title">Subir Archivo</h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
-        <div class="upload-area"
-             @dragover.prevent="handleDragOver"
-             @dragleave.prevent="handleDragLeave"
-             @drop.prevent="handleDrop"
-             :class="{ 'drag-over': isDragOver }">
-
+      <form class="modal-body" @submit.prevent="handleSubmit">
+        <div
+          class="upload-area"
+          :class="{ 'drag-over': isDragOver }"
+          @dragover.prevent="handleDragOver"
+          @dragleave.prevent="handleDragLeave"
+          @drop.prevent="handleDrop"
+        >
           <div v-if="!selectedFile" class="upload-placeholder">
             <CloudArrowUpIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
             <p class="text-lg font-medium text-theme-primary">Arrastra y suelta tu archivo aquí</p>
             <p class="text-sm text-theme-secondary">o</p>
-            <button
-              type="button"
-              @click="selectFile"
-              class="btn btn-outline mt-2"
-            >
+            <button type="button" class="btn btn-outline mt-2" @click="selectFile">
               Seleccionar archivo
             </button>
             <input
               ref="fileInput"
               type="file"
-              @change="handleFileSelect"
               class="hidden"
               accept="image/*,.pdf,.doc,.docx,.txt"
+              @change="handleFileSelect"
             />
           </div>
 
@@ -48,14 +45,14 @@
               </div>
             </div>
             <div class="file-info">
-              <h4 class="file-name">{{ selectedFile.name }}</h4>
-              <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
+              <h4 class="file-name">
+                {{ selectedFile.name }}
+              </h4>
+              <p class="file-size">
+                {{ formatFileSize(selectedFile.size) }}
+              </p>
             </div>
-            <button
-              type="button"
-              @click="removeFile"
-              class="remove-btn"
-            >
+            <button type="button" class="remove-btn" @click="removeFile">
               <XMarkIcon class="w-4 h-4" />
             </button>
           </div>
@@ -78,7 +75,9 @@
               <option value="xray">Radiografía</option>
               <option value="other">Otro</option>
             </select>
-            <p v-if="errors.category" class="form-error">{{ errors.category }}</p>
+            <p v-if="errors.category" class="form-error">
+              {{ errors.category }}
+            </p>
           </div>
 
           <div class="form-group">
@@ -88,16 +87,12 @@
               class="form-textarea"
               rows="3"
               placeholder="Descripción del archivo..."
-            ></textarea>
+            />
           </div>
 
           <div class="form-group">
             <label class="form-label">Fecha del Archivo</label>
-            <input
-              v-model="form.file_date"
-              type="date"
-              class="form-input"
-            />
+            <input v-model="form.file_date" type="date" class="form-input" >
           </div>
 
           <div class="form-group">
@@ -107,25 +102,21 @@
               class="form-textarea"
               rows="2"
               placeholder="Notas adicionales sobre el archivo..."
-            ></textarea>
+            />
           </div>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
         <button
           type="submit"
-          @click="handleSubmit"
           class="btn btn-primary"
           :disabled="loading || !selectedFile"
+          @click="handleSubmit"
         >
           <CloudArrowUpIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Subiendo...' : 'Subir Archivo' }}
@@ -138,11 +129,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
-import {
-  XMarkIcon,
-  CloudArrowUpIcon,
-  DocumentIcon
-} from '@heroicons/vue/24/outline'
+import { XMarkIcon, CloudArrowUpIcon, DocumentIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   patient: {
@@ -169,55 +156,55 @@ const form = ref({
 
 const errors = ref({})
 
-const isImage = (file) => {
+const isImage = file => {
   return file.type.startsWith('image/')
 }
 
-const formatFileSize = (bytes) => {
+const formatFileSize = bytes => {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
 const selectFile = () => {
   fileInput.value?.click()
 }
 
-const handleFileSelect = (event) => {
+const handleFileSelect = event => {
   const file = event.target.files[0]
   if (file) {
     setSelectedFile(file)
   }
 }
 
-const handleDragOver = (event) => {
+const handleDragOver = event => {
   event.preventDefault()
   isDragOver.value = true
 }
 
-const handleDragLeave = (event) => {
+const handleDragLeave = event => {
   event.preventDefault()
   isDragOver.value = false
 }
 
-const handleDrop = (event) => {
+const handleDrop = event => {
   event.preventDefault()
   isDragOver.value = false
 
-  const files = event.dataTransfer.files
+  const { files } = event.dataTransfer
   if (files.length > 0) {
     setSelectedFile(files[0])
   }
 }
 
-const setSelectedFile = (file) => {
+const setSelectedFile = file => {
   selectedFile.value = file
 
   if (isImage(file)) {
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       filePreview.value = e.target.result
     }
     reader.readAsDataURL(file)

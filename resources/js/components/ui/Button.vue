@@ -6,7 +6,7 @@
     @click="handleClick"
   >
     <!-- Loading spinner -->
-    <div v-if="loading" class="spinner" aria-hidden="true"></div>
+    <div v-if="loading" class="spinner" aria-hidden="true" />
 
     <!-- Icon slot (left) -->
     <slot v-if="!loading" name="icon-left" />
@@ -20,7 +20,7 @@
     <slot v-if="!loading" name="icon-right" />
 
     <!-- Ripple effect -->
-    <span v-if="showRipple" class="ripple" :style="rippleStyle"></span>
+    <span v-if="showRipple" class="ripple" :style="rippleStyle" />
   </button>
 </template>
 
@@ -31,12 +31,13 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'ghost', 'danger', 'success', 'warning', 'icon'].includes(value)
+    validator: value =>
+      ['primary', 'secondary', 'ghost', 'danger', 'success', 'warning', 'icon'].includes(value)
   },
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
+    validator: value => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
   },
   disabled: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
@@ -129,10 +130,12 @@ const buttonClasses = computed(() => {
     sizeClasses,
     props.fullWidth && props.variant !== 'icon' ? 'w-full' : '',
     props.loading ? 'cursor-wait' : ''
-  ].filter(Boolean).join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 })
 
-const handleClick = async (event) => {
+const handleClick = async event => {
   if (props.disabled || props.loading) return
 
   // Ripple effect
@@ -143,7 +146,7 @@ const handleClick = async (event) => {
   emit('click', event)
 }
 
-const createRipple = async (event) => {
+const createRipple = async event => {
   const button = event.currentTarget
   const rect = button.getBoundingClientRect()
   const size = Math.max(rect.width, rect.height)
@@ -207,8 +210,12 @@ button {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes ripple {
@@ -242,7 +249,7 @@ button:disabled {
 }
 
 /* Icon variant specific styles */
-button[data-variant="icon"] {
+button[data-variant='icon'] {
   aspect-ratio: 1;
 }
 

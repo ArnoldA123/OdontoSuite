@@ -1,12 +1,7 @@
 <template>
   <div class="input-wrapper" :class="wrapperClasses">
     <!-- Floating label -->
-    <label
-      v-if="label"
-      :for="inputId"
-      :class="labelClasses"
-      :data-floating="floatingLabel"
-    >
+    <label v-if="label" :for="inputId" :class="labelClasses" :data-floating="floatingLabel">
       {{ label }}
     </label>
 
@@ -42,8 +37,14 @@
         :aria-label="clearButtonLabel"
         @click="clearInput"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
 
@@ -68,15 +69,25 @@
 <script setup>
 import { computed, ref, nextTick, useSlots } from 'vue'
 
-const slots = useSlots()
-
 const props = defineProps({
   id: String,
   label: String,
   type: {
     type: String,
     default: 'text',
-    validator: (value) => ['text', 'email', 'password', 'number', 'tel', 'url', 'search', 'date', 'time', 'datetime-local'].includes(value)
+    validator: value =>
+      [
+        'text',
+        'email',
+        'password',
+        'number',
+        'tel',
+        'url',
+        'search',
+        'date',
+        'time',
+        'datetime-local'
+      ].includes(value)
   },
   modelValue: [String, Number],
   placeholder: String,
@@ -87,18 +98,20 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'filled', 'outlined'].includes(value)
+    validator: value => ['default', 'filled', 'outlined'].includes(value)
   },
   clearable: { type: Boolean, default: false },
   floatingLabel: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'blur', 'focus', 'clear'])
+
+const slots = useSlots()
 
 // Generate unique IDs
 const inputId = computed(() => props.id || `input-${Math.random().toString(36).substr(2, 9)}`)
@@ -108,8 +121,12 @@ const hintId = computed(() => `${inputId.value}-hint`)
 const isFocused = ref(false)
 
 // Computed properties
-const hasValue = computed(() => props.modelValue !== null && props.modelValue !== undefined && props.modelValue !== '')
-const showClearButton = computed(() => props.clearable && hasValue.value && !props.disabled && !props.readonly)
+const hasValue = computed(
+  () => props.modelValue !== null && props.modelValue !== undefined && props.modelValue !== ''
+)
+const showClearButton = computed(
+  () => props.clearable && hasValue.value && !props.disabled && !props.readonly
+)
 const clearButtonLabel = computed(() => 'Limpiar campo')
 
 const wrapperClasses = computed(() => {
@@ -124,10 +141,7 @@ const wrapperClasses = computed(() => {
 })
 
 const labelClasses = computed(() => {
-  const base = [
-    'block text-sm font-medium',
-    'pointer-events-none select-none'
-  ]
+  const base = ['block text-sm font-medium', 'pointer-events-none select-none']
 
   if (props.floatingLabel) {
     base.push('absolute left-3 z-10 origin-top-left')
@@ -172,9 +186,7 @@ const inputClasses = computed(() => {
   }
 
   // State styles
-  const state = props.error
-    ? 'border-error-500 focus:border-error-500'
-    : variants[props.variant]
+  const state = props.error ? 'border-error-500 focus:border-error-500' : variants[props.variant]
 
   // Padding adjustments for icons
   const hasPrefix = !!slots.prefix
@@ -184,14 +196,11 @@ const inputClasses = computed(() => {
     hasPrefix ? 'pl-10' : '',
     hasSuffix ? 'pr-10' : '',
     props.floatingLabel ? 'pt-6' : ''
-  ].filter(Boolean).join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 
-  return [
-    ...base,
-    sizes[props.size],
-    state,
-    padding
-  ].join(' ')
+  return [...base, sizes[props.size], state, padding].join(' ')
 })
 
 const clearButtonClasses = computed(() => [
@@ -202,21 +211,21 @@ const clearButtonClasses = computed(() => [
 ])
 
 // Event handlers
-const handleInput = (event) => {
+const handleInput = event => {
   emit('update:modelValue', event.target.value)
 }
 
-const handleFocus = (event) => {
+const handleFocus = event => {
   isFocused.value = true
   emit('focus', event)
 }
 
-const handleBlur = (event) => {
+const handleBlur = event => {
   isFocused.value = false
   emit('blur', event)
 }
 
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   if (event.key === 'Escape' && showClearButton.value) {
     clearInput()
   }
@@ -308,7 +317,7 @@ const clearInput = () => {
    PR2 (D8): the label's scale/translate is a transform, so it takes the iOS
    curve. Note there is deliberately NO press transform on Input — a scale on
    :active would fight text selection. */
-[data-floating="true"] {
+[data-floating='true'] {
   transform-origin: top left;
   transition:
     color var(--motion-duration-normal) ease-out,

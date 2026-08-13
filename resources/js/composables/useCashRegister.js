@@ -34,11 +34,11 @@ export function useCashRegister() {
 
     try {
       const response = await get('/api/cash-register/current')
-      
+
       // Verificar estructura de respuesta
-      
+
       currentSession.value = response.data?.session || null
-      
+
       // Asegurar que el resumen se asigne correctamente
       if (response.data?.summary) {
         // Crear un objeto completamente nuevo para forzar reactividad
@@ -54,21 +54,19 @@ export function useCashRegister() {
           by_payment_method: response.data.summary.by_payment_method || {},
           by_hour: response.data.summary.by_hour || {}
         }
-        
+
         // Asignar el nuevo resumen - forzar nueva referencia
         summary.value = null // Limpiar primero
         await nextTick()
         summary.value = newSummary // Asignar nuevo objeto
         summaryUpdateKey.value++ // Incrementar key para forzar reactividad
-        
+
         // Forzar actualización de Vue con nextTick y triggerRef
         await nextTick()
         triggerRef(summary)
-        
       } else {
         summary.value = null
       }
-      
     } catch (err) {
       error.value = err.message || 'Error al cargar la sesión de caja'
       currentSession.value = null
@@ -79,7 +77,7 @@ export function useCashRegister() {
   }
 
   // Abrir sesión de caja
-  const openSession = async (data) => {
+  const openSession = async data => {
     loading.value = true
     error.value = null
 
@@ -97,7 +95,7 @@ export function useCashRegister() {
   }
 
   // Cerrar sesión de caja
-  const closeSession = async (data) => {
+  const closeSession = async data => {
     loading.value = true
     error.value = null
 
@@ -149,7 +147,7 @@ export function useCashRegister() {
   }
 
   // Obtener detalles de sesión
-  const getSessionDetails = async (sessionId) => {
+  const getSessionDetails = async sessionId => {
     loading.value = true
     error.value = null
 
@@ -186,11 +184,12 @@ export function useCashRegister() {
       totalExpenses: parseFloat(summary.value.total_expenses || 0),
       totalMovements: parseFloat(summary.value.total_movements || 0),
       expectedAmount: parseFloat(summary.value.expected_amount || 0),
-      currentBalance: parseFloat(summary.value.opening_amount || 0) +
-                     parseFloat(summary.value.total_income || 0) -
-                     parseFloat(summary.value.total_expenses || 0)
+      currentBalance:
+        parseFloat(summary.value.opening_amount || 0) +
+        parseFloat(summary.value.total_income || 0) -
+        parseFloat(summary.value.total_expenses || 0)
     }
-    
+
     return totals
   })
 
@@ -224,29 +223,35 @@ export function useCashRegister() {
       cashRegisterChannel = channel('cash-register')
       if (cashRegisterChannel) {
         cashRegisterChannel
-          .listen('.cash-session.opened', async (e) => {
+          .listen('.cash-session.opened', async e => {
             if (e.session?.id === currentSession.value?.id) {
               await loadCurrentSession()
             }
           })
-          .listen('.cash-session.closed', async (e) => {
+          .listen('.cash-session.closed', async e => {
             if (e.session?.id === currentSession.value?.id) {
               await loadCurrentSession()
             }
           })
-          .listen('.payment.registered', async (e) => {
+          .listen('.payment.registered', async e => {
             // Recargar resumen si la transacción pertenece a la sesión actual
-            if (e.session_id === currentSession.value?.id || e.transaction?.cash_register_session_id === currentSession.value?.id) {
+            if (
+              e.session_id === currentSession.value?.id ||
+              e.transaction?.cash_register_session_id === currentSession.value?.id
+            ) {
               await loadCurrentSession()
             }
           })
-          .listen('.cash-movement.created', async (e) => {
+          .listen('.cash-movement.created', async e => {
             // Recargar resumen si el movimiento pertenece a la sesión actual
-            if (e.session_id === currentSession.value?.id || e.movement?.cash_register_session_id === currentSession.value?.id) {
+            if (
+              e.session_id === currentSession.value?.id ||
+              e.movement?.cash_register_session_id === currentSession.value?.id
+            ) {
               await loadCurrentSession()
             }
           })
-          .listen('.transaction.created', async (e) => {
+          .listen('.transaction.created', async e => {
             // Recargar resumen si la transacción pertenece a la sesión actual
             if (e.transaction?.cash_register_session_id === currentSession.value?.id) {
               await loadCurrentSession()
@@ -261,30 +266,28 @@ export function useCashRegister() {
 
       subscribedSessionId = sessionId
       subscriberCount = Math.max(subscriberCount, 1)
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   // Suscribirse al canal privado de la sesión
-  const subscribeToSessionChannel = (sessionId) => {
+  const subscribeToSessionChannel = sessionId => {
     if (!sessionId) return
 
     try {
       cashSessionChannel = privateChannel(`cash-session.${sessionId}`)
       if (cashSessionChannel) {
         cashSessionChannel
-          .listen('.payment.registered', async (e) => {
+          .listen('.payment.registered', async e => {
             await loadCurrentSession()
           })
-          .listen('.cash-movement.created', async (e) => {
+          .listen('.cash-movement.created', async e => {
             await loadCurrentSession()
           })
-          .listen('.transaction.created', async (e) => {
+          .listen('.transaction.created', async e => {
             await loadCurrentSession()
           })
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   // Limpiar suscripciones WebSocket
@@ -300,19 +303,21 @@ export function useCashRegister() {
       cashRegisterChannel = null
       subscribedSessionId = null
       subscriberCount = 0
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   // Watch para suscribirse cuando hay sesión activa
-  watch(() => currentSession.value?.id, (sessionId) => {
-    if (sessionId) {
-      subscribeToSessionChannel(sessionId)
-      setupWebSocketSubscriptions()
-    } else {
-      cleanupWebSocketSubscriptions()
+  watch(
+    () => currentSession.value?.id,
+    sessionId => {
+      if (sessionId) {
+        subscribeToSessionChannel(sessionId)
+        setupWebSocketSubscriptions()
+      } else {
+        cleanupWebSocketSubscriptions()
+      }
     }
-  })
+  )
 
   // Slice 08 / FF-007: only tear down when the LAST subscriber unmounts.
   // CashRegisterPage on /cash-register AND DashboardPage on /dashboard
@@ -401,7 +406,6 @@ export function useCashRegister() {
     // and the AppLayout retry button can wire a single handler
     // regardless of which composable owns the data.
     refresh: loadCurrentSession,
-    retry: loadCurrentSession,
+    retry: loadCurrentSession
   }
 }
-

@@ -3,12 +3,16 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <div>
-          <h2 class="modal-title">{{ plan.title }}</h2>
-          <p class="modal-subtitle">{{ plan.plan_number }}</p>
+          <h2 class="modal-title">
+            {{ plan.title }}
+          </h2>
+          <p class="modal-subtitle">
+            {{ plan.plan_number }}
+          </p>
         </div>
         <div class="flex items-center space-x-2">
           <PlanStatusBadge :status="plan.status" />
-          <button @click="closeModal" class="modal-close">
+          <button class="modal-close" @click="closeModal">
             <XMarkIcon class="w-6 h-6" />
           </button>
         </div>
@@ -22,7 +26,9 @@
             <div class="patient-info">
               <div class="info-row">
                 <span class="info-label">Nombre:</span>
-                <span class="info-value">{{ plan.patient?.first_name }} {{ plan.patient?.last_name }}</span>
+                <span class="info-value">
+                  {{ plan.patient?.first_name }} {{ plan.patient?.last_name }}
+                </span>
               </div>
               <div class="info-row">
                 <span class="info-label">Email:</span>
@@ -94,18 +100,28 @@
                 <tbody>
                   <tr v-for="item in plan.items" :key="item.id" class="table-row">
                     <td class="table-cell">
-                      <div class="font-medium">{{ item.description }}</div>
-                      <div v-if="item.category" class="text-sm text-theme-secondary">{{ item.category }}</div>
+                      <div class="font-medium">
+                        {{ item.description }}
+                      </div>
+                      <div v-if="item.category" class="text-sm text-theme-secondary">
+                        {{ item.category }}
+                      </div>
                     </td>
-                    <td class="table-cell text-center">{{ item.quantity }}</td>
+                    <td class="table-cell text-center">
+                      {{ item.quantity }}
+                    </td>
                     <td class="table-cell text-right">S/ {{ formatPrice(item.unit_cost) }}</td>
-                    <td class="table-cell text-right font-medium">S/ {{ formatPrice(item.quantity * item.unit_cost) }}</td>
+                    <td class="table-cell text-right font-medium">
+                      S/ {{ formatPrice(item.quantity * item.unit_cost) }}
+                    </td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr class="table-footer">
                     <td colspan="3" class="table-cell font-semibold">Total:</td>
-                    <td class="table-cell text-right font-bold text-primary-600">S/ {{ formatPrice(plan.final_cost) }}</td>
+                    <td class="table-cell text-right font-bold text-primary-600">
+                      S/ {{ formatPrice(plan.final_cost) }}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -121,11 +137,15 @@
             <div class="notes-content">
               <div v-if="plan.notes" class="note-item">
                 <h4 class="note-title">Notas internas:</h4>
-                <p class="note-text">{{ plan.notes }}</p>
+                <p class="note-text">
+                  {{ plan.notes }}
+                </p>
               </div>
               <div v-if="plan.patient_notes" class="note-item">
                 <h4 class="note-title">Notas para el paciente:</h4>
-                <p class="note-text">{{ plan.patient_notes }}</p>
+                <p class="note-text">
+                  {{ plan.patient_notes }}
+                </p>
               </div>
             </div>
           </div>
@@ -134,14 +154,14 @@
           <div v-if="plan.quotations?.length > 0" class="detail-section">
             <h3 class="section-title">Presupuestos Asociados</h3>
             <div class="quotations-list">
-              <div
-                v-for="quotation in plan.quotations"
-                :key="quotation.id"
-                class="quotation-item"
-              >
+              <div v-for="quotation in plan.quotations" :key="quotation.id" class="quotation-item">
                 <div class="quotation-info">
-                  <div class="quotation-number">{{ quotation.quotation_number }}</div>
-                  <div class="quotation-date">{{ formatDate(quotation.quotation_date) }}</div>
+                  <div class="quotation-number">
+                    {{ quotation.quotation_number }}
+                  </div>
+                  <div class="quotation-date">
+                    {{ formatDate(quotation.quotation_date) }}
+                  </div>
                 </div>
                 <div class="quotation-amount">S/ {{ formatPrice(quotation.total_amount) }}</div>
                 <QuotationStatusBadge :status="quotation.status" />
@@ -154,21 +174,21 @@
       <div class="modal-footer">
         <div class="flex justify-between items-center">
           <div class="text-sm text-theme-secondary">
-            Creado el {{ formatDateTime(plan.created_at) }}
-            por {{ plan.created_by?.first_name }} {{ plan.created_by?.last_name }}
+            Creado el {{ formatDateTime(plan.created_at) }} por {{ plan.created_by?.first_name }}
+            {{ plan.created_by?.last_name }}
           </div>
           <div class="flex space-x-3">
-            <button @click="$emit('edit', plan)" class="btn btn-outline">
+            <button class="btn btn-outline" @click="$emit('edit', plan)">
               <PencilIcon class="w-4 h-4 mr-1" />
               Editar
             </button>
-            <button @click="$emit('duplicate', plan)" class="btn btn-secondary">
+            <button class="btn btn-secondary" @click="$emit('duplicate', plan)">
               <DocumentDuplicateIcon class="w-4 h-4 mr-1" />
               Duplicar
             </button>
-            <button @click="closeModal" class="btn btn-primary">
-              Cerrar
-            </button>
+            <button class="btn btn-primary" @click="closeModal">
+Cerrar
+</button>
           </div>
         </div>
       </div>
@@ -195,14 +215,14 @@ const closeModal = () => {
   emit('close')
 }
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   return new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(price || 0)
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'No especificada'
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
@@ -211,7 +231,7 @@ const formatDate = (date) => {
   })
 }
 
-const formatDateTime = (date) => {
+const formatDateTime = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'long',

@@ -1,138 +1,124 @@
 <template>
-  <div
-    v-if="modelValue"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-    @click.self="closeModal"
+  <UiModal
+    :model-value="modelValue"
+    :title="modalTitle"
+    size="lg"
+    @update:model-value="closeModal"
+    @close="closeModal"
   >
-    <div class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-      <div class="p-6 border-b border-theme">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-semibold text-theme-primary">{{ modalTitle }}</h2>
-          <button
-            @click="closeModal"
-            class="text-theme-secondary hover:text-theme-primary transition-colors"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <!-- Loading State -->
+    <LoadingSpinner v-if="loadingData" class="py-8" size="md"
+text="Cargando datos..." />
+
+    <!-- Form -->
+    <form v-else class="space-y-4 bg-canvas" @submit.prevent
+@keydown.enter.prevent>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiSelect
+          v-model="form.patient_id"
+          :options="patientOptions"
+          label="Paciente"
+          placeholder="Seleccionar paciente"
+          required
+          searchable
+          clearable
+        />
+        <UiSelect
+          v-model="form.user_id"
+          :options="professionalOptions"
+          label="Profesional"
+          placeholder="Seleccionar profesional"
+          required
+          searchable
+          clearable
+        />
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiInput
+v-model="form.scheduled_at"
+label="Fecha y Hora" type="datetime-local" required
+/>
+        <UiInput
+          v-model.number="form.duration_minutes"
+          label="Duración (minutos)"
+          type="number"
+          min="15"
+          max="480"
+          step="5"
+          placeholder="Ej. 30"
+          required
+        />
+        <UiSelect
+          v-model="form.appointment_type_id"
+          :options="appointmentTypeOptions"
+          label="Tipo de Cita"
+          placeholder="Seleccionar tipo"
+          required
+          searchable
+          clearable
+        />
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">
+            Procedimiento (catalogo)
+          </label>
+          <ProcedureQuickPicker
+            v-if="useClinicalPicker"
+            v-model="form.procedure_id"
+            :specialty="procedureSpecialtyFilter"
+            @select="onProcedureSelected"
+          />
+          <ProcedureCatalogPicker
+            v-else
+            v-model="form.procedure_id"
+            :specialty="procedureSpecialtyFilter"
+            @select="onProcedureSelected"
+          />
+          <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
+            Duracion {{ selectedProcedure.default_duration_minutes }} min · S/
+            {{ Number(selectedProcedure.default_cost).toFixed(2) }}
+          </p>
         </div>
       </div>
-      <div class="p-6">
-        <!-- Loading State -->
-        <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
-
-        <!-- Form -->
-        <form v-else @submit.prevent class="space-y-4" @keydown.enter.prevent>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiSelect
-              v-model="form.patient_id"
-              :options="patientOptions"
-              label="Paciente"
-              placeholder="Seleccionar paciente"
-              required
-              searchable
-              clearable
-            />
-            <UiSelect
-              v-model="form.user_id"
-              :options="professionalOptions"
-              label="Profesional"
-              placeholder="Seleccionar profesional"
-              required
-              searchable
-              clearable
-            />
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiInput
-              v-model="form.scheduled_at"
-              label="Fecha y Hora"
-              type="datetime-local"
-              required
-            />
-            <UiInput
-              v-model.number="form.duration_minutes"
-              label="Duración (minutos)"
-              type="number"
-              min="15"
-              max="480"
-              step="5"
-              placeholder="Ej. 30"
-              required
-            />
-            <UiSelect
-              v-model="form.appointment_type_id"
-              :options="appointmentTypeOptions"
-              label="Tipo de Cita"
-              placeholder="Seleccionar tipo"
-              required
-              searchable
-              clearable
-            />
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Procedimiento (catalogo)</label>
-              <ProcedureQuickPicker
-                v-if="useClinicalPicker"
-                v-model="form.procedure_id"
-                :specialty="procedureSpecialtyFilter"
-                @select="onProcedureSelected"
-              />
-              <ProcedureCatalogPicker
-                v-else
-                v-model="form.procedure_id"
-                :specialty="procedureSpecialtyFilter"
-                @select="onProcedureSelected"
-              />
-              <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
-                Duracion {{ selectedProcedure.default_duration_minutes }} min ·
-                S/ {{ Number(selectedProcedure.default_cost).toFixed(2) }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiSelect
-              v-model="form.dental_chair_id"
-              :options="dentalChairOptions"
-              label="Sillón Dental"
-              placeholder="Seleccionar sillón"
-              required
-              searchable
-              clearable
-            />
-            <UiSelect
-              v-model="form.status"
-              :options="statusOptions"
-              label="Estado"
-              required
-            />
-          </div>
-          <UiInput
-            v-model="form.notes"
-            label="Notas"
-            placeholder="Notas adicionales sobre la cita"
-            type="textarea"
-          />
-          <div class="flex justify-end gap-3 pt-4">
-            <UiButton
-              type="button"
-              variant="secondary"
-              @click="closeModal"
-            >
-              Cancelar
-            </UiButton>
-            <UiButton
-              type="button"
-              :loading="creating"
-              @click="saveAppointment"
-            >
-              {{ submitButtonText }}
-            </UiButton>
-          </div>
-        </form>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiSelect
+          v-model="form.dental_chair_id"
+          :options="dentalChairOptions"
+          label="Sillón Dental"
+          placeholder="Seleccionar sillón"
+          required
+          searchable
+          clearable
+        />
+        <UiSelect
+v-model="form.status"
+:options="statusOptions" label="Estado" required
+/>
       </div>
-    </div>
-  </div>
+      <UiInput
+        v-model="form.notes"
+        label="Notas"
+        placeholder="Notas adicionales sobre la cita"
+        type="textarea"
+      />
+      <div class="flex justify-end gap-3 pt-4">
+        <UiButton type="button" variant="secondary" @click="closeModal">Cancelar</UiButton>
+        <UiButton type="button" :loading="creating" @click="saveAppointment">
+          {{ submitButtonText }}
+        </UiButton>
+      </div>
+      <!-- CITAS-CONF-001 — duplicate-key 422 from AppointmentService::createAppointment
+               (the DB unique constraint `unique_user_time_slot` /
+               `unique_chair_time_slot` fires on the second commit when two
+               reception desks race on the same slot). Template-level
+               mapping: a friendly `<UiStatusBadge variant="error">` is
+               rendered instead of a 500 toast. -->
+      <UiStatusBadge
+        v-if="duplicateKeyError"
+        variant="error"
+        label="Otra mesa ya reservó este horario"
+      />
+    </form>
+  </UiModal>
 </template>
 
 <script setup>
@@ -144,6 +130,8 @@ import { useEcho } from '../../composables/useEcho'
 import UiButton from '../ui/Button.vue'
 import UiInput from '../ui/Input.vue'
 import UiSelect from '../ui/Select.vue'
+import UiModal from '../ui/Modal.vue'
+import UiStatusBadge from '../ui/StatusBadge.vue'
 import ProcedureQuickPicker from '../procedures/ProcedureQuickPicker.vue'
 import ProcedureCatalogPicker from '../procedures/ProcedureCatalogPicker.vue'
 
@@ -165,12 +153,18 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const { get, post, put } = useApi()
-const { transformPatients, transformProfessionals, transformAppointmentTypes, transformDentalChairs } = useOptionsTransform()
+const {
+  transformPatients,
+  transformProfessionals,
+  transformAppointmentTypes,
+  transformDentalChairs
+} = useOptionsTransform()
 const toast = useToast()
 const { channel, echo } = useEcho()
 
 const loadingData = ref(false)
 const creating = ref(false)
+const error = ref(null)
 const patients = ref([])
 const professionals = ref([])
 const appointmentTypes = ref([])
@@ -210,6 +204,21 @@ const statusOptions = computed(() => [
 const isEditMode = computed(() => !!props.appointment?.id)
 const modalTitle = computed(() => (isEditMode.value ? 'Editar Cita' : 'Nueva Cita'))
 const submitButtonText = computed(() => (isEditMode.value ? 'Guardar Cambios' : 'Crear Cita'))
+
+// CITAS-CONF-001 — duplicate-key heuristic. The DB unique constraints
+// `unique_user_time_slot` / `unique_chair_time_slot` fire on the second
+// concurrent commit; Laravel translates them into a 422 with the constraint
+// name in the message, and (for the explicit API surface) `code === 'duplicate_key'`.
+// Template-only mapping — the canonical error feedback (toast.error) still
+// runs in the catch block; this ref drives the friendly inline badge.
+const duplicateKeyError = computed(() => {
+  const e = error.value
+  if (!e) return false
+  if (e.code === 'duplicate_key') return true
+  const status = e?.response?.status ?? e?.status
+  const message = String(e?.response?.data?.message ?? e?.message ?? '')
+  return status === 422 && /unique_(user|chair)_time_slot/.test(message)
+})
 const selectedProcedure = computed(() => form.value.selected_procedure)
 const procedureSpecialtyFilter = computed(() => {
   const user = professionals.value.find(p => p.id === form.value.user_id)
@@ -232,7 +241,7 @@ const onProcedureSelected = proc => {
   }
 }
 
-const toDatetimeLocal = (isoString) => {
+const toDatetimeLocal = isoString => {
   if (!isoString) return ''
   const d = new Date(isoString)
   if (isNaN(d.getTime())) return ''
@@ -244,7 +253,7 @@ const toDatetimeLocal = (isoString) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-const populateFormFromAppointment = (appointment) => {
+const populateFormFromAppointment = appointment => {
   if (!appointment) return
   form.value = {
     patient_id: appointment.patient_id ?? appointment.patient?.id ?? '',
@@ -266,6 +275,7 @@ const closeModal = () => {
 }
 
 const resetForm = () => {
+  error.value = null
   if (props.appointment) {
     populateFormFromAppointment(props.appointment)
     return
@@ -292,12 +302,12 @@ const loadData = async () => {
     let allPatients = []
     let currentPage = 1
     let hasMorePages = true
-    
+
     while (hasMorePages) {
       const patientsRes = await get(`/api/patients?per_page=100&page=${currentPage}`)
       const pagePatients = patientsRes?.data || []
       allPatients = [...allPatients, ...pagePatients]
-      
+
       // Verificar si hay más páginas
       const totalPages = patientsRes?.meta?.last_page || 1
       hasMorePages = currentPage < totalPages
@@ -407,7 +417,9 @@ const saveAppointment = async () => {
       const scheduledDate = new Date(scheduledAtISO)
       const minutesDiff = Math.round((scheduledDate - now) / 60000)
       if (minutesDiff < 1) {
-        toast.error(`La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`)
+        toast.error(
+          `La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`
+        )
         creating.value = false
         return
       }
@@ -427,11 +439,18 @@ const saveAppointment = async () => {
     resetForm()
     closeModal()
   } catch (error) {
-    const errorMessage = error?.response?.data?.message || (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
+    // CITAS-CONF-001 — expose the error to the template so the
+    // `<UiStatusBadge variant="error">` duplicate-key mapping can render
+    // the friendly "Otra mesa ya reservó este horario" badge. The toast
+    // feedback below is the canonical UX path and is preserved.
+    error.value = error
+    const errorMessage =
+      error?.response?.data?.message ||
+      (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
     const errors = error?.response?.data?.errors
     if (errors) {
       const errorMessages = Object.values(errors).flat()
-      toast.error('Errores de validación:\n' + errorMessages.join('\n'))
+      toast.error(`Errores de validación:\n${errorMessages.join('\n')}`)
     } else {
       toast.error(errorMessage)
     }
@@ -441,25 +460,35 @@ const saveAppointment = async () => {
 }
 
 // Cargar datos cuando el modal se abre
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm()
-    loadData()
+watch(
+  () => props.modelValue,
+  isOpen => {
+    if (isOpen) {
+      resetForm()
+      loadData()
+    }
   }
-})
+)
 
-watch(() => props.appointment, () => {
-  if (props.modelValue && props.appointment) {
-    populateFormFromAppointment(props.appointment)
+watch(
+  () => props.appointment,
+  () => {
+    if (props.modelValue && props.appointment) {
+      populateFormFromAppointment(props.appointment)
+    }
   }
-})
+)
 
 // Prellenar fecha inicial si se proporciona
-watch(() => props.initialDate, (newDate) => {
-  if (newDate && props.modelValue) {
-    form.value.scheduled_at = newDate
-  }
-}, { immediate: true })
+watch(
+  () => props.initialDate,
+  newDate => {
+    if (newDate && props.modelValue) {
+      form.value.scheduled_at = newDate
+    }
+  },
+  { immediate: true }
+)
 
 // WebSocket subscriptions para actualizar lista de pacientes en tiempo real
 let patientsChannel = null
@@ -474,11 +503,11 @@ onMounted(() => {
     patientsChannel = channel('patients')
     if (patientsChannel) {
       patientsChannel
-        .listen('.patient.created', async (e) => {
+        .listen('.patient.created', async e => {
           // Recargar todos los pacientes para incluir el nuevo
           await loadData()
         })
-        .listen('.patient.updated', async (e) => {
+        .listen('.patient.updated', async e => {
           // Actualizar el paciente en la lista si existe
           const index = patients.value.findIndex(p => p.id === e.patient.id)
           if (index !== -1) {
@@ -488,13 +517,12 @@ onMounted(() => {
             await loadData()
           }
         })
-        .listen('.patient.deleted', async (e) => {
+        .listen('.patient.deleted', async e => {
           // Remover el paciente de la lista
           patients.value = patients.value.filter(p => p.id !== e.patient_id)
         })
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 })
 
 onUnmounted(() => {
@@ -502,9 +530,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('patients')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 })
 </script>
-

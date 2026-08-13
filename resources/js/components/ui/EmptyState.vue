@@ -9,11 +9,7 @@
           :alt="title"
           class="w-full h-full object-contain"
         />
-        <component
-          v-else
-          :is="illustration"
-          class="w-full h-full"
-        />
+        <component :is="illustration" v-else class="w-full h-full" />
       </div>
 
       <div v-else-if="icon" class="empty-state-icon-container">
@@ -22,8 +18,14 @@
 
       <!-- Default icon if none provided -->
       <div v-else class="empty-state-icon-container">
-        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7" />
+        <svg class="w-16 h-16" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1"
+            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 009.586 13H7"
+          />
         </svg>
       </div>
     </div>
@@ -90,22 +92,23 @@ const props = defineProps({
   actionVariant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'ghost', 'danger', 'success', 'warning'].includes(value)
+    validator: value =>
+      ['primary', 'secondary', 'ghost', 'danger', 'success', 'warning'].includes(value)
   },
   actionSize: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl'].includes(value)
+    validator: value => ['sm', 'md', 'lg', 'xl'].includes(value)
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'minimal', 'centered'].includes(value)
+    validator: value => ['default', 'minimal', 'centered'].includes(value)
   },
   centered: {
     type: Boolean,
@@ -136,11 +139,7 @@ const containerClasses = computed(() => {
     centered: 'bg-theme-surface rounded-ios'
   }
 
-  return [
-    ...base,
-    sizes[props.size],
-    variants[props.variant]
-  ].join(' ')
+  return [...base, sizes[props.size], variants[props.variant]].join(' ')
 })
 
 // Methods
@@ -187,36 +186,36 @@ const handleAction = () => {
 }
 
 /* Size variants */
-.empty-state[data-size="sm"] .empty-state-title {
+.empty-state[data-size='sm'] .empty-state-title {
   @apply text-base;
 }
 
-.empty-state[data-size="sm"] .empty-state-description {
+.empty-state[data-size='sm'] .empty-state-description {
   @apply text-xs;
 }
 
-.empty-state[data-size="lg"] .empty-state-title {
+.empty-state[data-size='lg'] .empty-state-title {
   @apply text-xl;
 }
 
-.empty-state[data-size="lg"] .empty-state-description {
+.empty-state[data-size='lg'] .empty-state-description {
   @apply text-base;
 }
 
-.empty-state[data-size="xl"] .empty-state-title {
+.empty-state[data-size='xl'] .empty-state-title {
   @apply text-2xl;
 }
 
-.empty-state[data-size="xl"] .empty-state-description {
+.empty-state[data-size='xl'] .empty-state-description {
   @apply text-lg;
 }
 
 /* Variant styles */
-.empty-state[data-variant="minimal"] {
+.empty-state[data-variant='minimal'] {
   @apply border-0 bg-transparent;
 }
 
-.empty-state[data-variant="centered"] {
+.empty-state[data-variant='centered'] {
   @apply shadow-sm;
 }
 

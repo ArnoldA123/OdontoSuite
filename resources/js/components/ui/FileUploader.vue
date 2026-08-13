@@ -1,11 +1,8 @@
 ﻿<template>
   <div class="file-uploader">
     <div
-      :class="[
-        'upload-area',
-        isDragOver ? 'drag-over' : '',
-        hasFiles ? 'has-files' : ''
-      ]"
+      class="upload-area"
+      :class="[isDragOver ? 'drag-over' : '', hasFiles ? 'has-files' : '']"
       @dragover.prevent="handleDragOver"
       @dragleave.prevent="handleDragLeave"
       @drop.prevent="handleDrop"
@@ -16,8 +13,8 @@
         type="file"
         :multiple="multiple"
         :accept="acceptedTypes"
-        @change="handleFileSelect"
         class="hidden"
+        @change="handleFileSelect"
       />
 
       <div class="upload-content">
@@ -39,11 +36,7 @@
             Archivos seleccionados ({{ files.length }})
           </div>
           <div class="space-y-2">
-            <div
-              v-for="(file, index) in files"
-              :key="index"
-              class="file-item"
-            >
+            <div v-for="(file, index) in files" :key="index" class="file-item">
               <div class="flex items-center justify-between p-3 bg-theme-surface rounded-ios">
                 <div class="flex items-center space-x-3">
                   <div class="file-icon">
@@ -52,13 +45,17 @@
                     <DocumentTextIcon v-else class="w-5 h-5 text-theme-secondary" />
                   </div>
                   <div>
-                    <div class="font-medium text-theme-primary">{{ file.name }}</div>
-                    <div class="text-sm text-theme-secondary">{{ formatFileSize(file.size) }}</div>
+                    <div class="font-medium text-theme-primary">
+                      {{ file.name }}
+                    </div>
+                    <div class="text-sm text-theme-secondary">
+                      {{ formatFileSize(file.size) }}
+                    </div>
                   </div>
                 </div>
                 <button
-                  @click="removeFile(index)"
                   class="text-red-500 hover:text-red-700 transition-colors"
+                  @click="removeFile(index)"
                 >
                   <XMarkIcon class="w-5 h-5" />
                 </button>
@@ -73,19 +70,15 @@
     <div v-if="showPreviews && imageFiles.length > 0" class="mt-4">
       <div class="text-sm font-medium text-theme-primary mb-2">Vista previa:</div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div
-          v-for="(file, index) in imageFiles"
-          :key="index"
-          class="relative group"
-        >
+        <div v-for="(file, index) in imageFiles" :key="index" class="relative group">
           <img
             :src="file.preview"
             :alt="file.name"
             class="w-full h-24 object-cover rounded-ios border border-theme"
           />
           <button
-            @click="removeFile(getFileIndex(file))"
             class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            @click="removeFile(getFileIndex(file))"
           >
             <XMarkIcon class="w-4 h-4" />
           </button>
@@ -96,14 +89,14 @@
     <!-- Botones de acción -->
     <div v-if="hasFiles" class="flex justify-between mt-4">
       <button
-        @click="clearAll"
         class="px-4 py-2 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+        @click="clearAll"
       >
         Limpiar todos
       </button>
       <button
-        @click="triggerFileInput"
         class="px-4 py-2 text-sm text-primary-600 hover:text-primary-800 transition-colors"
+        @click="triggerFileInput"
       >
         Agregar más archivos
       </button>
@@ -161,17 +154,17 @@ const fileInput = ref(null)
 
 // Computed
 const hasFiles = computed(() => files.value.length > 0)
-const imageFiles = computed(() =>
-  files.value.filter(file => isImage(file))
-)
+const imageFiles = computed(() => files.value.filter(file => isImage(file)))
 const acceptedTypesText = computed(() => {
   const types = props.acceptedTypes.split(',')
-  return types.map(type => {
-    if (type === 'image/*') return 'Imágenes'
-    if (type === '.pdf') return 'PDF'
-    if (type === '.doc,.docx') return 'Word'
-    return type
-  }).join(', ')
+  return types
+    .map(type => {
+      if (type === 'image/*') return 'Imágenes'
+      if (type === '.pdf') return 'PDF'
+      if (type === '.doc,.docx') return 'Word'
+      return type
+    })
+    .join(', ')
 })
 
 // Métodos
@@ -179,33 +172,35 @@ const triggerFileInput = () => {
   fileInput.value?.click()
 }
 
-const handleFileSelect = (event) => {
+const handleFileSelect = event => {
   const selectedFiles = Array.from(event.target.files)
   addFiles(selectedFiles)
 }
 
-const handleDragOver = (event) => {
+const handleDragOver = event => {
   isDragOver.value = true
 }
 
-const handleDragLeave = (event) => {
+const handleDragLeave = event => {
   isDragOver.value = false
 }
 
-const handleDrop = (event) => {
+const handleDrop = event => {
   isDragOver.value = false
   const droppedFiles = Array.from(event.dataTransfer.files)
   addFiles(droppedFiles)
 }
 
-const addFiles = (newFiles) => {
+const addFiles = newFiles => {
   const validFiles = []
   const errors = []
 
   for (const file of newFiles) {
     // Validar tamaño
     if (file.size > props.maxSize) {
-      errors.push(`El archivo ${file.name} es demasiado grande (máximo ${formatFileSize(props.maxSize)})`)
+      errors.push(
+        `El archivo ${file.name} es demasiado grande (máximo ${formatFileSize(props.maxSize)})`
+      )
       continue
     }
 
@@ -239,7 +234,7 @@ const addFiles = (newFiles) => {
   }
 }
 
-const removeFile = (index) => {
+const removeFile = index => {
   const file = files.value[index]
 
   // Limpiar preview si es imagen
@@ -263,11 +258,11 @@ const clearAll = () => {
   emitChange()
 }
 
-const getFileIndex = (file) => {
+const getFileIndex = file => {
   return files.value.findIndex(f => f === file)
 }
 
-const isValidFileType = (file) => {
+const isValidFileType = file => {
   const acceptedTypes = props.acceptedTypes.split(',')
   return acceptedTypes.some(type => {
     if (type.startsWith('.')) {
@@ -281,20 +276,20 @@ const isValidFileType = (file) => {
   })
 }
 
-const isImage = (file) => {
+const isImage = file => {
   return file.type.startsWith('image/')
 }
 
-const isDocument = (file) => {
+const isDocument = file => {
   return file.type.includes('pdf') || file.type.includes('document')
 }
 
-const formatFileSize = (bytes) => {
+const formatFileSize = bytes => {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
 const emitChange = () => {
@@ -303,9 +298,12 @@ const emitChange = () => {
 }
 
 // Watchers
-watch(() => props.modelValue, (newValue) => {
-  files.value = [...newValue]
-})
+watch(
+  () => props.modelValue,
+  newValue => {
+    files.value = [...newValue]
+  }
+)
 </script>
 
 <style scoped>

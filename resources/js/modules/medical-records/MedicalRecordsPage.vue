@@ -1,185 +1,182 @@
 <template>
   <AppLayout>
     <div class="medical-records-page">
-    <!-- Header -->
-    <PageHeader
-      title="Historias Clínicas"
-      subtitle="Gestiona las historias clínicas de tus pacientes"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton @click="openCreateModal" :disabled="loading">
-          <template #icon-left>
-            <PlusIcon class="w-5 h-5" />
-          </template>
-          Nueva Historia
-        </UiButton>
-      </template>
-    </PageHeader>
+      <!-- Header -->
+      <PageHeader
+        title="Historias Clínicas"
+        subtitle="Gestiona las historias clínicas de tus pacientes"
+        class="mb-6"
+      >
+        <template #actions>
+          <UiButton :disabled="loading" @click="openCreateModal">
+            <template #icon-left>
+              <PlusIcon class="w-5 h-5" />
+            </template>
+            Nueva Historia
+          </UiButton>
+        </template>
+      </PageHeader>
 
-    <!-- Selector de paciente -->
-    <div class="patient-selector-section">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Seleccionar Paciente</label>
-          <PatientSelector
-            v-model="selectedPatient"
-            @change="handlePatientChange"
-            placeholder="Buscar paciente..."
-          />
-        </div>
-
-        <div v-if="selectedPatient" class="flex items-end">
-          <button
-            @click="loadPatientRecords"
-            class="btn btn-secondary"
-            :disabled="loading"
-          >
-            <MagnifyingGlassIcon class="w-4 h-4 mr-1" />
-            Cargar Historia
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contenido principal -->
-    <div v-if="selectedPatient" class="main-content">
-      <!-- Información del paciente -->
-      <div class="patient-info-card">
-        <div class="flex items-center justify-between">
+      <!-- Selector de paciente -->
+      <div class="patient-selector-section">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <h2 class="patient-name">{{ selectedPatient.first_name }} {{ selectedPatient.last_name }}</h2>
-            <p class="patient-details">
-              {{ selectedPatient.email }} • {{ selectedPatient.phone }}
-            </p>
-          </div>
-          <div class="patient-actions">
-            <button @click="openCreateModal" class="btn btn-primary btn-sm">
-              <PlusIcon class="w-4 h-4 mr-1" />
-              Nueva Historia
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tabs de navegación -->
-      <div class="tabs-section">
-        <div class="tabs-nav">
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            @click="activeTab = tab.key"
-            :class="[
-              'tab-button',
-              activeTab === tab.key ? 'tab-active' : 'tab-inactive'
-            ]"
-          >
-            <component :is="tab.icon" class="w-4 h-4 mr-2" />
-            {{ tab.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Contenido de tabs -->
-      <div class="tab-content">
-        <!-- Historia General -->
-        <div v-if="activeTab === 'general'" class="tab-panel">
-          <div v-if="loading" class="flex justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-
-          <div v-else-if="!hasRecords" class="empty-state">
-            <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-            <h3 class="text-lg font-medium text-theme-primary mb-2">No hay historia clínica</h3>
-            <p class="text-theme-secondary mb-4">Comienza creando la historia clínica del paciente</p>
-            <button @click="openCreateModal" class="btn btn-primary">
-              Crear Historia
-            </button>
-          </div>
-
-          <div v-else class="records-list">
-            <MedicalRecordCard
-              v-for="record in records"
-              :key="record.id"
-              :record="record"
-              @view="viewRecord"
-              @edit="editRecord"
-              @delete="deleteRecord"
+            <label class="block text-sm font-medium text-theme-primary mb-1">
+              Seleccionar Paciente
+            </label>
+            <PatientSelector
+              v-model="selectedPatient"
+              placeholder="Buscar paciente..."
+              @change="handlePatientChange"
             />
           </div>
-        </div>
 
-        <!-- Evoluciones -->
-        <div v-if="activeTab === 'evolutions'" class="tab-panel">
-          <EvolutionTimeline
-            :evolutions="evolutions"
-            :loading="loading"
-            @add="openEvolutionModal"
-            @edit="editEvolution"
-            @delete="deleteEvolution"
-          />
-        </div>
-
-        <!-- Adjuntos -->
-        <div v-if="activeTab === 'attachments'" class="tab-panel">
-          <AttachmentGallery
-            :attachments="attachments"
-            :loading="loading"
-            @upload="openUploadModal"
-            @delete="deleteAttachment"
-          />
-        </div>
-
-        <!-- Estadísticas -->
-        <div v-if="activeTab === 'stats'" class="tab-panel">
-          <MedicalRecordStats
-            :stats="stats"
-            :loading="loading"
-          />
+          <div v-if="selectedPatient" class="flex items-end">
+            <button class="btn btn-secondary" :disabled="loading" @click="loadPatientRecords">
+              <MagnifyingGlassIcon class="w-4 h-4 mr-1" />
+              Cargar Historia
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Estado sin paciente seleccionado -->
-    <div v-else class="no-patient-state">
-      <UserIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-theme-primary mb-2">Selecciona un paciente</h3>
-      <p class="text-theme-secondary">Para ver las historias clínicas, primero selecciona un paciente</p>
-    </div>
+      <!-- Contenido principal -->
+      <div v-if="selectedPatient" class="main-content">
+        <!-- Información del paciente -->
+        <div class="patient-info-card">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="patient-name">
+                {{ selectedPatient.first_name }} {{ selectedPatient.last_name }}
+              </h2>
+              <p class="patient-details">
+                {{ selectedPatient.email }} • {{ selectedPatient.phone }}
+              </p>
+            </div>
+            <div class="patient-actions">
+              <button class="btn btn-primary btn-sm" @click="openCreateModal">
+                <PlusIcon class="w-4 h-4 mr-1" />
+                Nueva Historia
+              </button>
+            </div>
+          </div>
+        </div>
 
-    <!-- Modales -->
-    <MedicalRecordModal
-      v-if="showModal"
-      :record="selectedRecord"
-      :patient="selectedPatient"
-      :is-edit="isEdit"
-      @close="closeModal"
-      @saved="handleRecordSaved"
-    />
+        <!-- Tabs de navegación -->
+        <div class="tabs-section">
+          <div class="tabs-nav">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              class="tab-button"
+              :class="[activeTab === tab.key ? 'tab-active' : 'tab-inactive']"
+              @click="activeTab = tab.key"
+            >
+              <component :is="tab.icon" class="w-4 h-4 mr-2" />
+              {{ tab.label }}
+            </button>
+          </div>
+        </div>
 
-    <MedicalRecordDetail
-      v-if="showDetailModal"
-      :record="selectedRecord"
-      @close="closeDetailModal"
-      @edit="editRecord"
-    />
+        <!-- Contenido de tabs -->
+        <div class="tab-content">
+          <!-- Historia General -->
+          <div v-if="activeTab === 'general'" class="tab-panel">
+            <div v-if="loading" class="flex justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+            </div>
 
-    <EvolutionModal
-      v-if="showEvolutionModal"
-      :evolution="selectedEvolution"
-      :patient="selectedPatient"
-      :record="currentRecord"
-      :is-edit="isEditEvolution"
-      @close="closeEvolutionModal"
-      @saved="handleEvolutionSaved"
-    />
+            <div v-else-if="!hasRecords" class="empty-state">
+              <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
+              <h3 class="text-lg font-medium text-theme-primary mb-2">No hay historia clínica</h3>
+              <p class="text-theme-secondary mb-4">
+                Comienza creando la historia clínica del paciente
+              </p>
+              <button class="btn btn-primary" @click="openCreateModal">Crear Historia</button>
+            </div>
 
-    <UploadAttachmentModal
-      v-if="showUploadModal"
-      :patient="selectedPatient"
-      @close="closeUploadModal"
-      @uploaded="handleAttachmentUploaded"
-    />
+            <div v-else class="records-list">
+              <MedicalRecordCard
+                v-for="record in records"
+                :key="record.id"
+                :record="record"
+                @view="viewRecord"
+                @edit="editRecord"
+                @delete="deleteRecord"
+              />
+            </div>
+          </div>
+
+          <!-- Evoluciones -->
+          <div v-if="activeTab === 'evolutions'" class="tab-panel">
+            <EvolutionTimeline
+              :evolutions="evolutions"
+              :loading="loading"
+              @add="openEvolutionModal"
+              @edit="editEvolution"
+              @delete="deleteEvolution"
+            />
+          </div>
+
+          <!-- Adjuntos -->
+          <div v-if="activeTab === 'attachments'" class="tab-panel">
+            <AttachmentGallery
+              :attachments="attachments"
+              :loading="loading"
+              @upload="openUploadModal"
+              @delete="deleteAttachment"
+            />
+          </div>
+
+          <!-- Estadísticas -->
+          <div v-if="activeTab === 'stats'" class="tab-panel">
+            <MedicalRecordStats :stats="stats" :loading="loading" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado sin paciente seleccionado -->
+      <div v-else class="no-patient-state">
+        <UserIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-theme-primary mb-2">Selecciona un paciente</h3>
+        <p class="text-theme-secondary">
+          Para ver las historias clínicas, primero selecciona un paciente
+        </p>
+      </div>
+
+      <!-- Modales -->
+      <MedicalRecordModal
+        v-if="showModal"
+        :record="selectedRecord"
+        :patient="selectedPatient"
+        :is-edit="isEdit"
+        @close="closeModal"
+        @saved="handleRecordSaved"
+      />
+
+      <MedicalRecordDetail
+        v-if="showDetailModal"
+        :record="selectedRecord"
+        @close="closeDetailModal"
+        @edit="editRecord"
+      />
+
+      <EvolutionModal
+        v-if="showEvolutionModal"
+        :evolution="selectedEvolution"
+        :patient="selectedPatient"
+        :record="currentRecord"
+        :is-edit="isEditEvolution"
+        @close="closeEvolutionModal"
+        @saved="handleEvolutionSaved"
+      />
+
+      <UploadAttachmentModal
+        v-if="showUploadModal"
+        :patient="selectedPatient"
+        @close="closeUploadModal"
+        @uploaded="handleAttachmentUploaded"
+      />
     </div>
   </AppLayout>
 </template>
@@ -258,7 +255,7 @@ const tabs = computed(() => [
 ])
 
 // Métodos
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   selectedPatient.value = patient
   if (patient) {
     loadPatientRecords()
@@ -275,8 +272,7 @@ const loadPatientRecords = async () => {
       getAttachmentsByCategory(selectedPatient.value.id, 'general'),
       getStats(selectedPatient.value.id)
     ])
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 const openCreateModal = () => {
@@ -285,13 +281,13 @@ const openCreateModal = () => {
   showModal.value = true
 }
 
-const editRecord = (record) => {
+const editRecord = record => {
   selectedRecord.value = record
   isEdit.value = true
   showModal.value = true
 }
 
-const viewRecord = (record) => {
+const viewRecord = record => {
   selectedRecord.value = record
   showDetailModal.value = true
 }
@@ -303,7 +299,7 @@ const openEvolutionModal = (record = null) => {
   showEvolutionModal.value = true
 }
 
-const editEvolution = (evolution) => {
+const editEvolution = evolution => {
   selectedEvolution.value = evolution
   isEditEvolution.value = true
   showEvolutionModal.value = true
@@ -335,17 +331,17 @@ const closeUploadModal = () => {
   showUploadModal.value = false
 }
 
-const handleRecordSaved = (record) => {
+const handleRecordSaved = record => {
   closeModal()
   loadPatientRecords()
 }
 
-const handleEvolutionSaved = (evolution) => {
+const handleEvolutionSaved = evolution => {
   closeEvolutionModal()
   loadPatientRecords()
 }
 
-const handleAttachmentUploaded = (attachment) => {
+const handleAttachmentUploaded = attachment => {
   closeUploadModal()
   loadPatientRecords()
 }
@@ -362,14 +358,14 @@ onMounted(() => {
     medicalRecordsChannel = channel('medical-records')
     if (medicalRecordsChannel) {
       medicalRecordsChannel
-        .listen('.medical-record.created', async (e) => {
+        .listen('.medical-record.created', async e => {
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.medical_record.patient_id === selectedPatient.value.id) {
             await loadPatientRecords()
             toast.success('Nueva historia clínica creada')
           }
         })
-        .listen('.medical-record.updated', async (e) => {
+        .listen('.medical-record.updated', async e => {
           // Solo actualizar si es del paciente seleccionado
           if (selectedPatient.value && e.medical_record.patient_id === selectedPatient.value.id) {
             // Actualizar el registro en la lista si existe
@@ -382,23 +378,28 @@ onMounted(() => {
             toast.success('Historia clínica actualizada')
           }
         })
-        .listen('.clinical-evolution.created', async (e) => {
+        .listen('.clinical-evolution.created', async e => {
           // Solo actualizar si es del paciente seleccionado
-          if (selectedPatient.value && e.evolution.medical_record?.patient_id === selectedPatient.value.id) {
+          if (
+            selectedPatient.value &&
+            e.evolution.medical_record?.patient_id === selectedPatient.value.id
+          ) {
             await loadPatientRecords()
             toast.success('Nueva evolución clínica agregada')
           }
         })
-        .listen('.clinical-attachment.created', async (e) => {
+        .listen('.clinical-attachment.created', async e => {
           // Solo actualizar si es del paciente seleccionado
-          if (selectedPatient.value && e.attachment.medical_record?.patient_id === selectedPatient.value.id) {
+          if (
+            selectedPatient.value &&
+            e.attachment.medical_record?.patient_id === selectedPatient.value.id
+          ) {
             await loadPatientRecords()
             toast.success('Nuevo adjunto agregado')
           }
         })
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 })
 
 onUnmounted(() => {
@@ -406,8 +407,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('medical-records')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 })
 </script>

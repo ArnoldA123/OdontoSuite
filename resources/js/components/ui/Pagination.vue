@@ -2,18 +2,18 @@
   <div class="pagination" role="navigation" aria-label="Paginación">
     <div class="pagination-mobile">
       <button
-        @click="goToPage(currentPage - 1)"
         :disabled="currentPage <= 1"
         class="btn btn-outline"
         aria-label="Página anterior"
+        @click="goToPage(currentPage - 1)"
       >
         Anterior
       </button>
       <button
-        @click="goToPage(currentPage + 1)"
         :disabled="currentPage >= totalPages"
         class="btn btn-outline"
         aria-label="Página siguiente"
+        @click="goToPage(currentPage + 1)"
       >
         Siguiente
       </button>
@@ -33,48 +33,62 @@
       <div class="pagination-nav">
         <nav class="pagination-nav-container" aria-label="Paginación de resultados">
           <button
-            @click="goToPage(currentPage - 1)"
             :disabled="currentPage <= 1"
             class="pagination-nav-button pagination-nav-button--prev"
             :aria-label="`Ir a la página ${currentPage - 1}`"
+            @click="goToPage(currentPage - 1)"
           >
             <span class="sr-only">Anterior</span>
-            <svg class="pagination-nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+            <svg
+              class="pagination-nav-icon"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
 
           <template v-for="page in visiblePages" :key="page">
             <button
               v-if="page !== '...'"
-              @click="goToPage(page)"
+              class="pagination-page-button"
               :class="[
-                'pagination-page-button',
-                page === currentPage ? 'pagination-page-button--active' : 'pagination-page-button--inactive'
+                page === currentPage
+                  ? 'pagination-page-button--active'
+                  : 'pagination-page-button--inactive'
               ]"
               :aria-label="`Ir a la página ${page}`"
               :aria-current="page === currentPage ? 'page' : undefined"
+              @click="goToPage(page)"
             >
               {{ page }}
             </button>
-            <span
-              v-else
-              class="pagination-ellipsis"
-              aria-hidden="true"
-            >
-              ...
-            </span>
+            <span v-else class="pagination-ellipsis" aria-hidden="true">...</span>
           </template>
 
           <button
-            @click="goToPage(currentPage + 1)"
             :disabled="currentPage >= totalPages"
             class="pagination-nav-button pagination-nav-button--next"
             :aria-label="`Ir a la página ${currentPage + 1}`"
+            @click="goToPage(currentPage + 1)"
           >
             <span class="sr-only">Siguiente</span>
-            <svg class="pagination-nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+            <svg
+              class="pagination-nav-icon"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
         </nav>
@@ -148,7 +162,7 @@ const visiblePages = computed(() => {
   return pages
 })
 
-const goToPage = (page) => {
+const goToPage = page => {
   if (page >= 1 && page <= props.totalPages && page !== props.currentPage) {
     emit('page-change', page)
   }

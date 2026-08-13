@@ -20,20 +20,10 @@
 
     <template #footer>
       <div class="flex items-center justify-end gap-3 w-full">
-        <UiButton
-          variant="secondary"
-          size="md"
-          :disabled="loading"
-          @click="handleCancel"
-        >
+        <UiButton variant="secondary" size="md" :disabled="loading" @click="handleCancel">
           {{ cancelText }}
         </UiButton>
-        <UiButton
-          :variant="confirmVariant"
-          size="md"
-          :loading="loading"
-          @click="handleConfirm"
-        >
+        <UiButton :variant="confirmVariant" size="md" :loading="loading" @click="handleConfirm">
           {{ confirmText }}
         </UiButton>
       </div>

@@ -5,7 +5,7 @@ const token = ref(localStorage.getItem('auth_token'))
 const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
 
 export function useApi() {
-  const setToken = (newToken) => {
+  const setToken = newToken => {
     token.value = newToken
     if (newToken) {
       localStorage.setItem('auth_token', newToken)
@@ -17,7 +17,7 @@ export function useApi() {
   const getHeaders = () => {
     const headers = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      Accept: 'application/json'
     }
 
     if (token.value) {
@@ -28,7 +28,7 @@ export function useApi() {
     return headers
   }
 
-  const handleResponse = async (response) => {
+  const handleResponse = async response => {
     if (response.status === 401) {
       // Token expirado o inválido
       localStorage.removeItem('auth_token')
@@ -59,7 +59,8 @@ export function useApi() {
       throw {
         response: {
           data: {
-            message: 'El servidor devolvió una respuesta inesperada (HTML en lugar de JSON). Por favor, verifica la configuración del servidor.'
+            message:
+              'El servidor devolvió una respuesta inesperada (HTML en lugar de JSON). Por favor, verifica la configuración del servidor.'
           }
         },
         status: response.status
@@ -82,7 +83,6 @@ export function useApi() {
       const params = new URLSearchParams(options.params)
       fullUrl += `?${params}`
     }
-
 
     const response = await fetch(fullUrl, {
       method: 'GET',
@@ -107,7 +107,7 @@ export function useApi() {
     // Si no es FormData, usar los headers normales
     if (isFormData) {
       fetchOptions.headers = {
-        'Accept': 'application/json'
+        Accept: 'application/json'
       }
       if (token.value) {
         fetchOptions.headers['Authorization'] = `Bearer ${token.value}`
@@ -214,5 +214,3 @@ export function useApi() {
 // La versión duplicada acá creaba un split-brain: el `user`/`isAuthenticated`
 // de acá era una INSTANCIA SEPARADA de los refs del useAuth.js canónico, así
 // que la mitad de la app veía al usuario logueado y la otra mitad no.
-
-

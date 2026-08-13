@@ -1,11 +1,13 @@
 <template>
   <div :class="containerClasses" :aria-label="ariaLabel">
     <div :class="spinnerClasses" :style="spinnerStyle">
-      <div class="spinner-ring"></div>
-      <div class="spinner-ring"></div>
-      <div class="spinner-ring"></div>
+      <div class="spinner-ring" />
+      <div class="spinner-ring" />
+      <div class="spinner-ring" />
     </div>
-    <p v-if="text" :class="textClasses">{{ text }}</p>
+    <p v-if="text" :class="textClasses">
+      {{ text }}
+    </p>
   </div>
 </template>
 
@@ -16,12 +18,12 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
+    validator: value => ['xs', 'sm', 'md', 'lg', 'xl'].includes(value)
   },
   variant: {
     type: String,
     default: 'primary',
-    validator: (value) => ['primary', 'secondary', 'white', 'gray'].includes(value)
+    validator: value => ['primary', 'secondary', 'white', 'gray'].includes(value)
   },
   text: {
     type: String,
@@ -52,10 +54,7 @@ const spinnerClasses = computed(() => {
     xl: 'w-16 h-16'
   }
 
-  return [
-    'loading-spinner',
-    sizes[props.size]
-  ].join(' ')
+  return ['loading-spinner', sizes[props.size]].join(' ')
 })
 
 const textClasses = computed(() => {
@@ -74,12 +73,7 @@ const textClasses = computed(() => {
     gray: 'text-theme-secondary'
   }
 
-  return [
-    'loading-spinner-text',
-    'mt-2',
-    sizes[props.size],
-    variants[props.variant]
-  ].join(' ')
+  return ['loading-spinner-text', 'mt-2', sizes[props.size], variants[props.variant]].join(' ')
 })
 
 const spinnerStyle = computed(() => {
@@ -154,23 +148,3 @@ const spinnerStyle = computed(() => {
   }
 }
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

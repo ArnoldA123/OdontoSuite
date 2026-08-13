@@ -3,8 +3,12 @@
     <!-- Header -->
     <div class="card-header">
       <div class="patient-info">
-        <h3 class="patient-name">{{ analysis.patient?.full_name || 'Paciente' }}</h3>
-        <p class="analysis-date">{{ formatDate(analysis.created_at) }}</p>
+        <h3 class="patient-name">
+          {{ analysis.patient?.full_name || 'Paciente' }}
+        </h3>
+        <p class="analysis-date">
+          {{ formatDate(analysis.created_at) }}
+        </p>
       </div>
       <div class="status-badge" :class="statusClass">
         {{ getStatusLabel(analysis.status) }}
@@ -29,23 +33,24 @@
       <div v-if="analysis.findings && analysis.findings.length > 0" class="findings-section">
         <h4 class="section-title">Hallazgos Principales</h4>
         <div class="findings-list">
-          <div
-            v-for="(finding, index) in mainFindings"
-            :key="index"
-            class="finding-item"
-          >
+          <div v-for="(finding, index) in mainFindings" :key="index" class="finding-item">
             <div class="finding-header">
               <span class="finding-diagnosis">{{ finding.diagnosis }}</span>
               <span class="confidence-badge" :class="getConfidenceClass(finding.confidence)">
                 {{ finding.confidence }}%
               </span>
             </div>
-            <p class="finding-location">{{ finding.location }}</p>
+            <p class="finding-location">
+              {{ finding.location }}
+            </p>
           </div>
         </div>
       </div>
 
-      <div v-if="analysis.recommendations && analysis.recommendations.length > 0" class="recommendations-section">
+      <div
+        v-if="analysis.recommendations && analysis.recommendations.length > 0"
+        class="recommendations-section"
+      >
         <h4 class="section-title">Recomendaciones</h4>
         <ul class="recommendations-list">
           <li
@@ -65,24 +70,23 @@
           </span>
           <span class="review-date">{{ formatDate(analysis.reviewed_at) }}</span>
         </div>
-        <p v-if="analysis.review_notes" class="review-notes">{{ analysis.review_notes }}</p>
+        <p v-if="analysis.review_notes" class="review-notes">
+          {{ analysis.review_notes }}
+        </p>
       </div>
     </div>
 
     <!-- Actions -->
     <div class="card-actions">
-      <button
-        @click="$emit('view', analysis)"
-        class="action-btn action-btn-primary"
-      >
+      <button class="action-btn action-btn-primary" @click="$emit('view', analysis)">
         <EyeIcon class="w-4 h-4 mr-2" />
         Ver Detalles
       </button>
 
       <button
         v-if="!analysis.reviewed && analysis.status === 'completed'"
-        @click="$emit('review', analysis)"
         class="action-btn action-btn-secondary"
+        @click="$emit('review', analysis)"
       >
         <CheckCircleIcon class="w-4 h-4 mr-2" />
         Revisar
@@ -90,8 +94,8 @@
 
       <button
         v-if="!analysis.reviewed"
-        @click="$emit('delete', analysis)"
         class="action-btn action-btn-danger"
+        @click="$emit('delete', analysis)"
       >
         <TrashIcon class="w-4 h-4" />
       </button>
@@ -102,12 +106,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useAiAnalysis } from '@/composables/useAiAnalysis'
-import {
-  PhotoIcon,
-  EyeIcon,
-  CheckCircleIcon,
-  TrashIcon
-} from '@heroicons/vue/24/outline'
+import { PhotoIcon, EyeIcon, CheckCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   analysis: {
@@ -118,12 +117,7 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'review', 'delete'])
 
-const {
-  getStatusLabel,
-  getReviewDecisionLabel,
-  getConfidenceColor,
-  formatDate
-} = useAiAnalysis()
+const { getStatusLabel, getReviewDecisionLabel, getConfidenceColor, formatDate } = useAiAnalysis()
 
 // Computed
 const mainFindings = computed(() => {
@@ -137,7 +131,7 @@ const mainRecommendations = computed(() => {
 })
 
 const statusClass = computed(() => {
-  const status = props.analysis.status
+  const { status } = props.analysis
   const classes = {
     pending: 'bg-warning-badge',
     processing: 'bg-primary-50 text-primary-700',
@@ -148,17 +142,17 @@ const statusClass = computed(() => {
 })
 
 // Methods
-const getImageUrl = (filePath) => {
+const getImageUrl = filePath => {
   return `/storage/${filePath}`
 }
 
-const getConfidenceClass = (confidence) => {
+const getConfidenceClass = confidence => {
   if (confidence >= 90) return 'bg-success-badge'
   if (confidence >= 70) return 'bg-warning-badge'
   return 'bg-danger-badge'
 }
 
-const getReviewDecisionClass = (decision) => {
+const getReviewDecisionClass = decision => {
   const classes = {
     accepted: 'bg-success-badge',
     rejected: 'bg-danger-badge',

@@ -8,8 +8,14 @@
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
@@ -21,21 +27,27 @@
       <h2 class="text-lg font-semibold text-theme-primary mb-3 flex items-center gap-2">
         <span class="text-yellow-500">⭐</span>
         Mis favoritos
-        <span class="text-sm font-normal text-theme-secondary">
-          ({{ favorites.length }})
-        </span>
+        <span class="text-sm font-normal text-theme-secondary">({{ favorites.length }})</span>
       </h2>
 
       <div v-if="loading && !favorites.length" class="py-4 text-center">
         <LoadingSpinner />
       </div>
 
-      <div v-else-if="!favorites.length" class="py-6 text-center text-sm text-theme-secondary border-2 border-dashed border-theme rounded-lg">
-        Aún no tienes favoritos. Marca los procedimientos que uses frecuentemente para acceder a ellos rapidamente.
+      <div
+        v-else-if="!favorites.length"
+        class="py-6 text-center text-sm text-theme-secondary border-2 border-dashed border-theme rounded-lg"
+      >
+        Aún no tienes favoritos. Marca los procedimientos que uses frecuentemente para acceder a
+        ellos rapidamente.
       </div>
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div v-for="(fav, index) in favorites" :key="fav.id" class="border border-theme rounded-lg p-3 bg-theme-surface-elevated flex items-start justify-between gap-2">
+        <div
+          v-for="(fav, index) in favorites"
+          :key="fav.id"
+          class="border border-theme rounded-lg p-3 bg-theme-surface-elevated flex items-start justify-between gap-2"
+        >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-mono text-xs text-theme-secondary">
@@ -50,24 +62,58 @@
             </div>
             <div class="text-xs text-theme-secondary">
               {{ fav.specialty_name || 'Sin especialidad' }} ·
-              {{ fav.default_duration_minutes }} min ·
-              S/ {{ Number(fav.default_cost).toFixed(2) }}
+              {{ fav.default_duration_minutes }} min · S/ {{ Number(fav.default_cost).toFixed(2) }}
             </div>
           </div>
           <div class="flex flex-col gap-1">
-            <button type="button" :disabled="index === 0" class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30" title="Subir" @click="moveFav(index, -1)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+            <button
+              type="button"
+              :disabled="index === 0"
+              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30"
+              title="Subir"
+              @click="moveFav(index, -1)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 15l7-7 7 7"
+                />
               </svg>
             </button>
-            <button type="button" :disabled="index === favorites.length - 1" class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30" title="Bajar" @click="moveFav(index, 1)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            <button
+              type="button"
+              :disabled="index === favorites.length - 1"
+              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30"
+              title="Bajar"
+              @click="moveFav(index, 1)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
-            <button type="button" class="p-1 text-red-500 hover:text-red-700" title="Quitar" @click="removeFav(fav)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <button
+              type="button"
+              class="p-1 text-red-500 hover:text-red-700"
+              title="Quitar"
+              @click="removeFav(fav)"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -77,16 +123,32 @@
 
     <UiCard variant="glass">
       <h2 class="text-lg font-semibold text-theme-primary mb-3">
-        Explorar catalogo
-      </h2>
+Explorar catalogo
+</h2>
       <p class="text-sm text-theme-secondary mb-4">
-        Busca y marca como favorito cualquier procedimiento del catalogo. Si tienes especialidades asignadas, veras primero las tuyas.
+        Busca y marca como favorito cualquier procedimiento del catalogo. Si tienes especialidades
+        asignadas, veras primero las tuyas.
       </p>
 
       <div class="relative mb-4">
-        <input v-model="search" type="text" placeholder="Buscar por nombre o codigo..." class="w-full px-3 py-2 pl-9 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary">
-        <svg class="w-4 h-4 absolute left-3 top-3 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Buscar por nombre o codigo..."
+          class="w-full px-3 py-2 pl-9 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+        >
+        <svg
+          class="w-4 h-4 absolute left-3 top-3 text-theme-secondary"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
         </svg>
       </div>
 
@@ -94,8 +156,15 @@
         <LoadingSpinner />
       </div>
 
-      <div v-else class="max-h-[500px] overflow-y-auto border border-theme rounded-lg divide-y divide-theme">
-        <div v-for="proc in filteredForMe" :key="proc.id" class="px-3 py-2 flex items-center justify-between gap-3 hover:bg-theme-surface">
+      <div
+        v-else
+        class="max-h-[500px] overflow-y-auto border border-theme rounded-lg divide-y divide-theme"
+      >
+        <div
+          v-for="proc in filteredForMe"
+          :key="proc.id"
+          class="px-3 py-2 flex items-center justify-between gap-3 hover:bg-theme-surface"
+        >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="font-mono text-xs text-theme-secondary">{{ proc.code }}</span>
@@ -106,15 +175,24 @@
             </div>
             <div class="text-xs text-theme-secondary">
               {{ proc.specialty_name || 'Sin especialidad' }} ·
-              {{ proc.default_duration_minutes }} min ·
-              S/ {{ Number(proc.default_cost).toFixed(2) }}
+              {{ proc.default_duration_minutes }} min · S/
+              {{ Number(proc.default_cost).toFixed(2) }}
             </div>
           </div>
-          <UiButton v-if="!proc.is_favorite" variant="secondary" size="sm" :disabled="loading" @click="addFav(proc)">
+          <UiButton
+            v-if="!proc.is_favorite"
+            variant="secondary"
+            size="sm"
+            :disabled="loading"
+            @click="addFav(proc)"
+          >
             Marcar favorito
           </UiButton>
         </div>
-        <div v-if="!filteredForMe.length" class="px-3 py-4 text-center text-sm text-theme-secondary">
+        <div
+          v-if="!filteredForMe.length"
+          class="px-3 py-4 text-center text-sm text-theme-secondary"
+        >
           Sin resultados
         </div>
       </div>
@@ -150,9 +228,8 @@ const search = ref('')
 const filteredForMe = computed(() => {
   if (!search.value) return forMe.value
   const term = search.value.toLowerCase()
-  return forMe.value.filter(p =>
-    p.name.toLowerCase().includes(term) ||
-    p.code.toLowerCase().includes(term)
+  return forMe.value.filter(
+    p => p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)
   )
 })
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="notification-toast" v-if="notifications.length > 0">
+  <div v-if="notifications.length > 0" class="notification-toast">
     <TransitionGroup
       name="notification"
       tag="div"
@@ -13,29 +13,24 @@
       <div
         v-for="notification in notifications"
         :key="notification.id"
-        :class="[
-          'notification-item',
-          `notification-${notification.type}`
-        ]"
+        class="notification-item"
+        :class="[`notification-${notification.type}`]"
         @click="removeNotification(notification.id)"
       >
-      <div class="notification-content">
-        <div class="notification-icon">
-          <CheckCircleIcon v-if="notification.type === 'success'" class="w-5 h-5" />
-          <ExclamationTriangleIcon v-else-if="notification.type === 'warning'" class="w-5 h-5" />
-          <XCircleIcon v-else-if="notification.type === 'error'" class="w-5 h-5" />
-          <InformationCircleIcon v-else class="w-5 h-5" />
+        <div class="notification-content">
+          <div class="notification-icon">
+            <CheckCircleIcon v-if="notification.type === 'success'" class="w-5 h-5" />
+            <ExclamationTriangleIcon v-else-if="notification.type === 'warning'" class="w-5 h-5" />
+            <XCircleIcon v-else-if="notification.type === 'error'" class="w-5 h-5" />
+            <InformationCircleIcon v-else class="w-5 h-5" />
+          </div>
+          <div class="notification-message">
+            {{ notification.message }}
+          </div>
+          <button class="notification-close" @click.stop="removeNotification(notification.id)">
+            <XMarkIcon class="w-4 h-4" />
+          </button>
         </div>
-        <div class="notification-message">
-          {{ notification.message }}
-        </div>
-        <button
-          @click.stop="removeNotification(notification.id)"
-          class="notification-close"
-        >
-          <XMarkIcon class="w-4 h-4" />
-        </button>
-      </div>
       </div>
     </TransitionGroup>
   </div>

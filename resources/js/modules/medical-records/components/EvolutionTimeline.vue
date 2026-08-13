@@ -3,10 +3,7 @@
     <div class="timeline-header">
       <div class="flex justify-between items-center">
         <h3 class="timeline-title">Evoluciones Clínicas</h3>
-        <button
-          @click="$emit('add')"
-          class="btn btn-primary btn-sm"
-        >
+        <button class="btn btn-primary btn-sm" @click="$emit('add')">
           <PlusIcon class="w-4 h-4 mr-1" />
           Nueva Evolución
         </button>
@@ -14,20 +11,20 @@
     </div>
 
     <div v-if="loading" class="flex justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
     </div>
 
     <div v-else-if="evolutions.length === 0" class="empty-state">
       <ClockIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
       <h3 class="text-lg font-medium text-theme-primary mb-2">No hay evoluciones</h3>
       <p class="text-theme-secondary mb-4">Comienza agregando la primera evolución</p>
-      <button @click="$emit('add')" class="btn btn-primary">
-        Agregar Evolución
-      </button>
+      <button class="btn btn-primary" @click="$emit('add')">
+Agregar Evolución
+</button>
     </div>
 
     <div v-else class="timeline-content">
-      <div class="timeline-line"></div>
+      <div class="timeline-line" />
 
       <div
         v-for="(evolution, index) in evolutions"
@@ -36,28 +33,32 @@
         :class="{ 'timeline-item-left': index % 2 === 0, 'timeline-item-right': index % 2 === 1 }"
       >
         <div class="timeline-marker">
-          <div class="marker-dot"></div>
+          <div class="marker-dot" />
         </div>
 
         <div class="timeline-card">
           <div class="card-header">
             <div class="flex justify-between items-start">
               <div>
-                <h4 class="evolution-title">{{ formatDate(evolution.evolution_date) }}</h4>
-                <p class="evolution-specialty">{{ evolution.specialty || 'General' }}</p>
+                <h4 class="evolution-title">
+                  {{ formatDate(evolution.evolution_date) }}
+                </h4>
+                <p class="evolution-specialty">
+                  {{ evolution.specialty || 'General' }}
+                </p>
               </div>
               <div class="evolution-actions">
                 <button
-                  @click="$emit('edit', evolution)"
                   class="btn btn-sm btn-outline"
                   title="Editar"
+                  @click="$emit('edit', evolution)"
                 >
                   <PencilIcon class="w-4 h-4" />
                 </button>
                 <button
-                  @click="confirmDelete(evolution)"
                   class="btn btn-sm btn-danger"
                   title="Eliminar"
+                  @click="confirmDelete(evolution)"
                 >
                   <TrashIcon class="w-4 h-4" />
                 </button>
@@ -67,50 +68,74 @@
 
           <div class="card-body">
             <!-- SOAP -->
-            <div v-if="evolution.subjective || evolution.objective || evolution.assessment || evolution.plan" class="soap-section">
+            <div
+              v-if="
+                evolution.subjective ||
+                  evolution.objective ||
+                  evolution.assessment ||
+                  evolution.plan
+              "
+              class="soap-section"
+            >
               <div v-if="evolution.subjective" class="soap-item">
                 <h5 class="soap-label">Subjetivo:</h5>
-                <p class="soap-content">{{ evolution.subjective }}</p>
+                <p class="soap-content">
+                  {{ evolution.subjective }}
+                </p>
               </div>
 
               <div v-if="evolution.objective" class="soap-item">
                 <h5 class="soap-label">Objetivo:</h5>
-                <p class="soap-content">{{ evolution.objective }}</p>
+                <p class="soap-content">
+                  {{ evolution.objective }}
+                </p>
               </div>
 
               <div v-if="evolution.assessment" class="soap-item">
                 <h5 class="soap-label">Evaluación:</h5>
-                <p class="soap-content">{{ evolution.assessment }}</p>
+                <p class="soap-content">
+                  {{ evolution.assessment }}
+                </p>
               </div>
 
               <div v-if="evolution.plan" class="soap-item">
                 <h5 class="soap-label">Plan:</h5>
-                <p class="soap-content">{{ evolution.plan }}</p>
+                <p class="soap-content">
+                  {{ evolution.plan }}
+                </p>
               </div>
             </div>
 
             <!-- Procedimientos realizados -->
             <div v-if="evolution.procedures_performed" class="procedures-section">
               <h5 class="section-label">Procedimientos realizados:</h5>
-              <p class="section-content">{{ evolution.procedures_performed }}</p>
+              <p class="section-content">
+                {{ evolution.procedures_performed }}
+              </p>
             </div>
 
             <!-- Materiales utilizados -->
             <div v-if="evolution.materials_used" class="materials-section">
               <h5 class="section-label">Materiales utilizados:</h5>
-              <p class="section-content">{{ evolution.materials_used }}</p>
+              <p class="section-content">
+                {{ evolution.materials_used }}
+              </p>
             </div>
 
             <!-- Prescripciones -->
             <div v-if="evolution.prescriptions" class="prescriptions-section">
               <h5 class="section-label">Prescripciones:</h5>
-              <p class="section-content">{{ evolution.prescriptions }}</p>
+              <p class="section-content">
+                {{ evolution.prescriptions }}
+              </p>
             </div>
 
             <!-- Recomendaciones -->
             <div v-if="evolution.recommendations" class="recommendations-section">
               <h5 class="section-label">Recomendaciones:</h5>
-              <p class="section-content">{{ evolution.recommendations }}</p>
+              <p class="section-content">
+                {{ evolution.recommendations }}
+              </p>
             </div>
 
             <!-- Signos vitales -->
@@ -139,7 +164,7 @@
             <!-- Seguimiento -->
             <div v-if="evolution.requires_follow_up" class="follow-up-section">
               <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <div class="w-2 h-2 bg-yellow-500 rounded-full" />
                 <span class="text-sm font-medium text-yellow-700">Requiere seguimiento</span>
                 <span v-if="evolution.follow_up_date" class="text-sm text-theme-secondary">
                   - {{ formatDate(evolution.follow_up_date) }}
@@ -150,13 +175,17 @@
             <!-- Notas de próxima cita -->
             <div v-if="evolution.next_appointment_notes" class="next-appointment-section">
               <h5 class="section-label">Notas para próxima cita:</h5>
-              <p class="section-content">{{ evolution.next_appointment_notes }}</p>
+              <p class="section-content">
+                {{ evolution.next_appointment_notes }}
+              </p>
             </div>
           </div>
 
           <div class="card-footer">
             <div class="flex justify-between items-center text-xs text-theme-secondary">
-              <span>Por {{ evolution.created_by?.first_name }} {{ evolution.created_by?.last_name }}</span>
+              <span>
+                Por {{ evolution.created_by?.first_name }} {{ evolution.created_by?.last_name }}
+              </span>
               <span>{{ formatDateTime(evolution.created_at) }}</span>
             </div>
           </div>
@@ -185,7 +214,7 @@ const props = defineProps({
 const emit = defineEmits(['add', 'edit', 'delete'])
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'long',
@@ -193,7 +222,7 @@ const formatDate = (date) => {
   })
 }
 
-const formatDateTime = (date) => {
+const formatDateTime = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -203,12 +232,12 @@ const formatDateTime = (date) => {
   })
 }
 
-const confirmDelete = async (evolution) => {
+const confirmDelete = async evolution => {
   const ok = await confirm({
     title: 'Eliminar evolución',
     message: '¿Estás seguro de que quieres eliminar esta evolución?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) {
     emit('delete', evolution.id)

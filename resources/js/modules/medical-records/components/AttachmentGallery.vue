@@ -3,18 +3,14 @@
     <div class="gallery-header">
       <h3 class="gallery-title">Archivos Adjuntos</h3>
       <div class="gallery-actions">
-        <button
-          @click="$emit('upload')"
-          class="btn btn-primary"
-          v-if="canUpload"
-        >
+        <button v-if="canUpload" class="btn btn-primary" @click="$emit('upload')">
           <PlusIcon class="w-4 h-4 mr-2" />
           Subir Archivo
         </button>
       </div>
     </div>
 
-    <div class="gallery-filters" v-if="attachments.length > 0">
+    <div v-if="attachments.length > 0" class="gallery-filters">
       <div class="filter-group">
         <label class="filter-label">Filtrar por tipo:</label>
         <select v-model="selectedCategory" class="filter-select">
@@ -28,14 +24,18 @@
     </div>
 
     <div v-if="loading" class="gallery-loading">
-      <div class="loading-spinner"></div>
+      <div class="loading-spinner" />
       <p>Cargando archivos...</p>
     </div>
 
     <div v-else-if="filteredAttachments.length === 0" class="gallery-empty">
       <DocumentIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
       <p class="text-theme-secondary">
-        {{ attachments.length === 0 ? 'No hay archivos adjuntos' : 'No se encontraron archivos con el filtro seleccionado' }}
+        {{
+          attachments.length === 0
+            ? 'No hay archivos adjuntos'
+            : 'No se encontraron archivos con el filtro seleccionado'
+        }}
       </p>
     </div>
 
@@ -61,8 +61,12 @@
         </div>
 
         <div class="attachment-info">
-          <h4 class="attachment-name">{{ attachment.filename }}</h4>
-          <p class="attachment-description">{{ attachment.description || 'Sin descripción' }}</p>
+          <h4 class="attachment-name">
+            {{ attachment.filename }}
+          </h4>
+          <p class="attachment-description">
+            {{ attachment.description || 'Sin descripción' }}
+          </p>
           <div class="attachment-meta">
             <span class="attachment-type">{{ getFileTypeLabel(attachment.file_type) }}</span>
             <span class="attachment-date">{{ formatDate(attachment.created_at) }}</span>
@@ -70,11 +74,7 @@
         </div>
 
         <div class="attachment-actions">
-          <button
-            @click.stop="downloadAttachment(attachment)"
-            class="action-btn"
-            title="Descargar"
-          >
+          <button class="action-btn" title="Descargar" @click.stop="downloadAttachment(attachment)">
             <ArrowDownTrayIcon class="w-4 h-4" />
           </button>
 
@@ -83,16 +83,16 @@
             v-if="attachment.category === 'radiografia' && canAnalyzeWithAi"
             :attachment-id="attachment.id"
             :attachment="attachment"
+            class="ai-analysis-wrapper"
             @analysis-completed="handleAnalysisCompleted"
             @view-analysis="viewAnalysis"
-            class="ai-analysis-wrapper"
           />
 
           <button
-            @click.stop="deleteAttachment(attachment)"
+            v-if="canDelete"
             class="action-btn action-btn-danger"
             title="Eliminar"
-            v-if="canDelete"
+            @click.stop="deleteAttachment(attachment)"
           >
             <TrashIcon class="w-4 h-4" />
           </button>
@@ -103,7 +103,7 @@
     <!-- Modal de preview -->
     <div v-if="previewAttachment" class="preview-modal" @click="closePreview">
       <div class="preview-content" @click.stop>
-        <button @click="closePreview" class="preview-close">
+        <button class="preview-close" @click="closePreview">
           <XMarkIcon class="w-6 h-6" />
         </button>
 
@@ -116,11 +116,10 @@
           />
           <div v-else class="preview-document">
             <DocumentIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-            <p class="text-theme-secondary">{{ previewAttachment.filename }}</p>
-            <button
-              @click="downloadAttachment(previewAttachment)"
-              class="btn btn-primary mt-4"
-            >
+            <p class="text-theme-secondary">
+              {{ previewAttachment.filename }}
+            </p>
+            <button class="btn btn-primary mt-4" @click="downloadAttachment(previewAttachment)">
               <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
               Descargar
             </button>
@@ -175,12 +174,13 @@ const filteredAttachments = computed(() => {
   return props.attachments.filter(attachment => attachment.file_type === selectedCategory.value)
 })
 
-const isImage = (attachment) => {
-  return attachment.file_type === 'image' ||
-         attachment.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+const isImage = attachment => {
+  return (
+    attachment.file_type === 'image' || attachment.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)
+  )
 }
 
-const getFileTypeLabel = (type) => {
+const getFileTypeLabel = type => {
   const labels = {
     image: 'Imagen',
     document: 'Documento',
@@ -190,7 +190,7 @@ const getFileTypeLabel = (type) => {
   return labels[type] || 'Archivo'
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -199,7 +199,7 @@ const formatDate = (date) => {
   })
 }
 
-const showPreview = (attachment) => {
+const showPreview = attachment => {
   previewAttachment.value = attachment
 }
 
@@ -207,35 +207,34 @@ const closePreview = () => {
   previewAttachment.value = null
 }
 
-const downloadAttachment = (attachment) => {
+const downloadAttachment = attachment => {
   const link = document.createElement('a')
   link.href = attachment.url
   link.download = attachment.filename
   link.click()
 }
 
-const deleteAttachment = async (attachment) => {
+const deleteAttachment = async attachment => {
   const ok = await confirm({
     title: 'Eliminar archivo adjunto',
     message: '¿Estás seguro de que quieres eliminar este archivo?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) {
     try {
       await removeAttachment(attachment.id)
       emit('delete', attachment)
-    } catch (err) {
-    }
+    } catch (err) {}
   }
 }
 
-const handleAnalysisCompleted = (analysis) => {
+const handleAnalysisCompleted = analysis => {
   // Emit event to parent component if needed
   emit('analysis-completed', analysis)
 }
 
-const viewAnalysis = (analysis) => {
+const viewAnalysis = analysis => {
   // Emit event to parent component if needed
   emit('view-analysis', analysis)
 }

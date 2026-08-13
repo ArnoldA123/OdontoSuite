@@ -4,7 +4,7 @@ const toasts = ref([])
 let toastId = 0
 
 export function useToast() {
-  const addToast = (toast) => {
+  const addToast = toast => {
     const id = ++toastId
     const newToast = {
       id,
@@ -28,7 +28,7 @@ export function useToast() {
     return id
   }
 
-  const removeToast = (id) => {
+  const removeToast = id => {
     const index = toasts.value.findIndex(toast => toast.id === id)
     if (index > -1) {
       toasts.value.splice(index, 1)

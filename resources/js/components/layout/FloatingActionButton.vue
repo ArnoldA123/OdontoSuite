@@ -1,9 +1,5 @@
 <template>
-  <button
-    :class="fabClasses"
-    :aria-label="ariaLabel"
-    @click="$emit('click')"
-  >
+  <button :class="fabClasses" :aria-label="ariaLabel" @click="$emit('click')">
     <slot />
   </button>
 </template>

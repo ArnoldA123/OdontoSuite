@@ -5,12 +5,12 @@
         <h2 class="modal-title">
           {{ isEdit ? 'Editar Registro de Especialidad' : 'Nuevo Registro de Especialidad' }}
         </h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form class="modal-body" @submit.prevent="handleSubmit">
         <div class="form-grid">
           <!-- Información básica -->
           <div class="form-section">
@@ -41,7 +41,9 @@
                 <option value="rehabilitation">Rehabilitación</option>
                 <option value="oral_surgery">Cirugía Oral</option>
               </select>
-              <p v-if="errors.specialty" class="form-error">{{ errors.specialty }}</p>
+              <p v-if="errors.specialty" class="form-error">
+                {{ errors.specialty }}
+              </p>
             </div>
 
             <div class="form-group">
@@ -54,7 +56,9 @@
                 placeholder="Ej: Evaluación de implantes"
                 required
               />
-              <p v-if="errors.title" class="form-error">{{ errors.title }}</p>
+              <p v-if="errors.title" class="form-error">
+                {{ errors.title }}
+              </p>
             </div>
 
             <div class="form-group">
@@ -64,7 +68,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Descripción del registro..."
-              ></textarea>
+              />
             </div>
           </div>
 
@@ -76,12 +80,9 @@
             <div v-if="form.specialty === 'implantology'" class="specialty-fields">
               <div class="form-group">
                 <label class="form-label">Número de Implantes</label>
-                <input
-                  v-model="form.implant_count"
-                  type="number"
-                  class="form-input"
-                  min="1"
-                />
+                <input v-model="form.implant_count" type="number"
+class="form-input" min="1"
+/>
               </div>
               <div class="form-group">
                 <label class="form-label">Tipo de Implante</label>
@@ -116,12 +117,9 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Duración Estimada (meses)</label>
-                <input
-                  v-model="form.estimated_duration"
-                  type="number"
-                  class="form-input"
-                  min="1"
-                />
+                <input v-model="form.estimated_duration" type="number"
+class="form-input" min="1"
+/>
               </div>
               <div class="form-group">
                 <label class="form-label">Problema Principal</label>
@@ -130,7 +128,7 @@
                   class="form-textarea"
                   rows="2"
                   placeholder="Descripción del problema principal"
-                ></textarea>
+                />
               </div>
             </div>
 
@@ -147,12 +145,9 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Número de Conductos</label>
-                <input
-                  v-model="form.canal_count"
-                  type="number"
-                  class="form-input"
-                  min="1"
-                />
+                <input v-model="form.canal_count" type="number"
+class="form-input" min="1"
+/>
               </div>
               <div class="form-group">
                 <label class="form-label">Material de Obturación</label>
@@ -225,7 +220,7 @@
                   class="form-textarea"
                   rows="2"
                   placeholder="Complicaciones durante la cirugía"
-                ></textarea>
+                />
               </div>
             </div>
           </div>
@@ -236,11 +231,7 @@
 
             <div class="form-group">
               <label class="form-label">Fecha del Procedimiento</label>
-              <input
-                v-model="form.procedure_date"
-                type="date"
-                class="form-input"
-              />
+              <input v-model="form.procedure_date" type="date" class="form-input" >
             </div>
 
             <div class="form-group">
@@ -260,38 +251,26 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Observaciones adicionales..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
               <label class="form-label">Próxima Cita</label>
-              <input
-                v-model="form.next_appointment"
-                type="datetime-local"
-                class="form-input"
-              />
+              <input v-model="form.next_appointment" type="datetime-local" class="form-input" >
             </div>
           </div>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Crear Registro') }}
+          {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Registro' }}
         </button>
       </div>
     </div>
@@ -353,7 +332,7 @@ const form = ref({
 
 const errors = ref({})
 
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   selectedPatient.value = patient
   form.value.patient_id = patient?.id || ''
 }
@@ -361,11 +340,21 @@ const handlePatientChange = (patient) => {
 const handleSpecialtyChange = () => {
   // Limpiar campos específicos cuando cambia la especialidad
   const specialtyFields = [
-    'implant_count', 'implant_type', 'position',
-    'treatment_type', 'estimated_duration', 'main_problem',
-    'tooth_number', 'canal_count', 'obturation_material',
-    'prosthesis_type', 'material', 'involved_teeth',
-    'surgery_type', 'anesthesia', 'complications'
+    'implant_count',
+    'implant_type',
+    'position',
+    'treatment_type',
+    'estimated_duration',
+    'main_problem',
+    'tooth_number',
+    'canal_count',
+    'obturation_material',
+    'prosthesis_type',
+    'material',
+    'involved_teeth',
+    'surgery_type',
+    'anesthesia',
+    'complications'
   ]
 
   specialtyFields.forEach(field => {

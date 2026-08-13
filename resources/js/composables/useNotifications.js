@@ -20,8 +20,7 @@ const loadFromStorage = () => {
       notifications.value = parsed.notifications || []
       notificationId.value = parsed.lastId || 0
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 // Guardar notificaciones en localStorage
@@ -30,12 +29,14 @@ const saveToStorage = () => {
     return
   }
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      notifications: notifications.value,
-      lastId: notificationId.value
-    }))
-  } catch (error) {
-  }
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        notifications: notifications.value,
+        lastId: notificationId.value
+      })
+    )
+  } catch (error) {}
 }
 
 // Cargar al inicializar — guarded for SSR per FF-013
@@ -86,7 +87,7 @@ export function useNotifications() {
     return id
   }
 
-  const removeNotification = (id) => {
+  const removeNotification = id => {
     const index = notifications.value.findIndex(n => n.id === id)
     if (index > -1) {
       notifications.value.splice(index, 1)
@@ -94,7 +95,7 @@ export function useNotifications() {
     }
   }
 
-  const markAsRead = (id) => {
+  const markAsRead = id => {
     const notification = notifications.value.find(n => n.id === id)
     if (notification && !notification.read) {
       notification.read = true
@@ -113,11 +114,11 @@ export function useNotifications() {
     return notifications.value.filter(n => !n.read).length
   })
 
-  const getByCategory = (category) => {
+  const getByCategory = category => {
     return notifications.value.filter(n => n.category === category)
   }
 
-  const clearByCategory = (category) => {
+  const clearByCategory = category => {
     notifications.value = notifications.value.filter(n => n.category !== category)
     saveToStorage()
   }
@@ -132,7 +133,7 @@ export function useNotifications() {
     saveToStorage()
   }
 
-  const getDefaultTitle = (type) => {
+  const getDefaultTitle = type => {
     const titles = {
       success: 'Éxito',
       error: 'Error',

@@ -2,15 +2,25 @@
   <AppLayout>
     <PageHeader
       :title="professional?.name || 'Cargando...'"
-      :subtitle="professional ? `ID: ${professional.id} | ${professional.email || ''} | ${professional.phone || ''}` : ''"
+      :subtitle="
+        professional
+          ? `ID: ${professional.id} | ${professional.email || ''} | ${professional.phone || ''}`
+          : ''
+      "
       :breadcrumbs="[{ to: '/professionals', label: 'Profesionales' }]"
       class="mb-6"
     >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
@@ -32,13 +42,16 @@
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
             <div>
-              <span class="font-medium">Email:</span> {{ professional?.email }}
+              <span class="font-medium">Email:</span>
+              {{ professional?.email }}
             </div>
             <div>
-              <span class="font-medium">Teléfono:</span> {{ professional?.phone }}
+              <span class="font-medium">Teléfono:</span>
+              {{ professional?.phone }}
             </div>
             <div>
-              <span class="font-medium">Especialidad:</span> {{ getSpecialtyText(professional?.specialty) }}
+              <span class="font-medium">Especialidad:</span>
+              {{ getSpecialtyText(professional?.specialty) }}
             </div>
           </div>
         </div>
@@ -56,13 +69,13 @@
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          @click="activeTab = tab.id"
+          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200"
           :class="[
-            'py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200',
             activeTab === tab.id
               ? 'border-accent text-accent'
               : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-theme'
           ]"
+          @click="activeTab = tab.id"
         >
           <component :is="tab.icon" class="w-4 h-4 inline mr-2" />
           {{ tab.name }}
@@ -78,28 +91,42 @@
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Información Personal</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Nombre Completo</label>
-              <p class="text-theme-primary">{{ professional?.name }}</p>
+              <label class="block text-sm font-medium text-theme-primary mb-1">
+                Nombre Completo
+              </label>
+              <p class="text-theme-primary">
+                {{ professional?.name }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Usuario</label>
-              <p class="text-theme-primary">{{ professional?.username }}</p>
+              <p class="text-theme-primary">
+                {{ professional?.username }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
-              <p class="text-theme-primary">{{ professional?.email }}</p>
+              <p class="text-theme-primary">
+                {{ professional?.email }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Teléfono</label>
-              <p class="text-theme-primary">{{ professional?.phone || 'No especificado' }}</p>
+              <p class="text-theme-primary">
+                {{ professional?.phone || 'No especificado' }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Especialidad</label>
-              <p class="text-theme-primary">{{ getSpecialtyText(professional?.specialty) }}</p>
+              <p class="text-theme-primary">
+                {{ getSpecialtyText(professional?.specialty) }}
+              </p>
             </div>
             <div>
               <label class="block text-sm font-medium text-theme-primary mb-1">Rol</label>
-              <p class="text-theme-primary">{{ getRoleText(professional?.role) }}</p>
+              <p class="text-theme-primary">
+                {{ getRoleText(professional?.role) }}
+              </p>
             </div>
           </div>
         </UiCard>
@@ -110,16 +137,32 @@
         <UiCard variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
           <div v-if="auditLogsLoading" class="p-8 text-center">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"></div>
+            <div
+              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+            />
             <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
           </div>
           <div v-else-if="auditLogs.length === 0" class="p-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <svg class="w-8 h-8 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div
+              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+            >
+              <svg
+                class="w-8 h-8 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay historial de auditoría</h3>
+            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+              No hay historial de auditoría
+            </h3>
             <p class="text-theme-secondary">Este profesional no tiene registros de auditoría.</p>
           </div>
           <div v-else class="space-y-4">
@@ -134,26 +177,51 @@
                     <UiBadge :variant="getAuditActionVariant(log.action)">
                       {{ formatAction(log.action) }}
                     </UiBadge>
-                    <span class="text-sm text-theme-secondary">por {{ log.user?.name || 'Sistema' }}</span>
+                    <span class="text-sm text-theme-secondary">
+                      por {{ log.user?.name || 'Sistema' }}
+                    </span>
                   </div>
-                  <p class="text-sm text-theme-secondary mb-2">{{ formatDate(log.created_at) }}</p>
+                  <p class="text-sm text-theme-secondary mb-2">
+                    {{ formatDate(log.created_at) }}
+                  </p>
                   <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
                     <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
-                    <div v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0" class="text-theme-secondary space-y-1">
-                      <div v-for="(change, field) in getChangesSummary(log)" :key="field" class="pl-2 border-l-2 border-theme">
+                    <div
+                      v-if="
+                        getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
+                      "
+                      class="text-theme-secondary space-y-1"
+                    >
+                      <div
+                        v-for="(change, field) in getChangesSummary(log)"
+                        :key="field"
+                        class="pl-2 border-l-2 border-theme"
+                      >
                         <p class="font-medium text-theme-primary">{{ change.field }}:</p>
-                        <p class="text-xs">De: <span class="text-red-500">{{ change.old }}</span></p>
-                        <p class="text-xs">A: <span class="text-green-500">{{ change.new }}</span></p>
+                        <p class="text-xs">
+                          De:
+                          <span class="text-red-500">{{ change.old }}</span>
+                        </p>
+                        <p class="text-xs">
+                          A:
+                          <span class="text-green-500">{{ change.new }}</span>
+                        </p>
                       </div>
                     </div>
                     <div v-else class="text-theme-secondary italic">
-                      Sin cambios registrados
-                    </div>
+Sin cambios registrados
+</div>
                   </div>
-                  <div v-else-if="log.action === 'user_created'" class="mt-2 text-sm text-theme-secondary">
+                  <div
+                    v-else-if="log.action === 'user_created'"
+                    class="mt-2 text-sm text-theme-secondary"
+                  >
                     Profesional creado en el sistema.
                   </div>
-                  <div v-else-if="log.action === 'user_deleted'" class="mt-2 text-sm text-theme-secondary">
+                  <div
+                    v-else-if="log.action === 'user_deleted'"
+                    class="mt-2 text-sm text-theme-secondary"
+                  >
                     Profesional eliminado del sistema.
                   </div>
                 </div>
@@ -190,12 +258,12 @@ export default {
     const router = useRouter()
     const { get } = useApi()
     const toast = useToast()
-    const { 
-      loading: auditLogsLoading, 
-      auditLogs, 
-      getUserAuditLogs, 
-      formatAction, 
-      getChangesSummary 
+    const {
+      loading: auditLogsLoading,
+      auditLogs,
+      getUserAuditLogs,
+      formatAction,
+      getChangesSummary
     } = useAuditLogs()
 
     // State
@@ -247,11 +315,10 @@ export default {
       if (!professional.value) return
       try {
         await getUserAuditLogs(professional.value.id)
-      } catch (error) {
-      }
+      } catch (error) {}
     }
 
-    const getSpecialtyText = (specialty) => {
+    const getSpecialtyText = specialty => {
       const specialties = {
         general: 'Odontología General',
         orthodontics: 'Ortodoncia',
@@ -265,7 +332,7 @@ export default {
       return specialties[specialty] || specialty || 'No especificada'
     }
 
-    const getRoleText = (role) => {
+    const getRoleText = role => {
       const roles = {
         admin: 'Administrador',
         administrador: 'Administrador',
@@ -276,7 +343,7 @@ export default {
       return roles[role] || role || 'No especificado'
     }
 
-    const formatDate = (date) => {
+    const formatDate = date => {
       if (!date) return 'No especificada'
       try {
         return new Date(date).toLocaleDateString('es-ES')
@@ -285,7 +352,7 @@ export default {
       }
     }
 
-    const getAuditActionVariant = (action) => {
+    const getAuditActionVariant = action => {
       if (action.includes('created')) return 'success'
       if (action.includes('updated')) return 'warning'
       if (action.includes('deleted')) return 'error'
@@ -297,7 +364,7 @@ export default {
     }
 
     // Watch for tab changes
-    watch(activeTab, (newTab) => {
+    watch(activeTab, newTab => {
       if (newTab === 'audit' && professional.value) {
         loadAuditLogs()
       }
@@ -330,4 +397,3 @@ export default {
   }
 }
 </script>
-

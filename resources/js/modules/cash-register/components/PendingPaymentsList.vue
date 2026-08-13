@@ -1,68 +1,57 @@
 <template>
-  <div class="pending-payments-list">
+  <div class="pending-payments-list bg-canvas">
     <div class="mb-4">
       <h3 class="text-lg font-medium text-theme-primary mb-2">
-        Pagos Pendientes
-      </h3>
+Pagos Pendientes
+</h3>
       <p class="text-sm text-theme-secondary">
-        Pacientes con citas completadas que requieren pago
-      </p>
+Pacientes con citas completadas que requieren pago
+</p>
     </div>
 
     <!-- Filtros -->
-    <div class="mb-6 bg-theme-surface-elevated rounded-lg border border-theme p-4">
+    <div class="mb-6 bg-theme-surface-elevated rounded-lg border border-hairline p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Buscar Paciente
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Buscar Paciente</label>
           <input
             v-model="filters.search"
             type="text"
             placeholder="Nombre o documento..."
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary focus:ring-primary-500 focus:border-accent"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary focus:outline-none sm:text-sm"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Fecha Desde
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
           <input
             v-model="filters.date_from"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:ring-primary-500 focus:border-accent"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Fecha Hasta
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
           <input
             v-model="filters.date_to"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:ring-primary-500 focus:border-accent"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
         <div class="flex items-end">
-          <Button
-            variant="secondary"
-            @click="clearFilters"
-            class="w-full"
-          >
-            Limpiar
-          </Button>
+          <Button variant="secondary" class="w-full" @click="clearFilters">
+Limpiar
+</Button>
         </div>
       </div>
     </div>
 
     <!-- Lista de Pagos Pendientes -->
-    <div class="bg-theme-surface-elevated rounded-lg border border-theme overflow-hidden">
+    <div class="bg-theme-surface-elevated rounded-lg border border-hairline overflow-hidden">
       <div v-if="loading" class="p-8 text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto"></div>
-        <p class="mt-2 text-sm text-theme-secondary">Cargando pagos pendientes...</p>
+        <UiLoadingSpinner size="md" variant="primary" text="Cargando pagos pendientes..." />
       </div>
 
       <div v-else-if="filteredPayments.length === 0" class="p-8 text-center">
@@ -74,36 +63,60 @@
       </div>
 
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Paciente
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Cita
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Tratamiento
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Monto
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Estado
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
-            <tr v-for="payment in paginatedPayments" :key="payment.id" class="hover:bg-theme-surface">
+          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
+            <tr
+              v-for="payment in paginatedPayments"
+              :key="payment.id"
+              class="hover:bg-theme-surface"
+            >
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
-                    <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-                      <span class="text-sm font-medium text-primary-800">
+                    <div
+                      class="h-10 w-10 rounded-full bg-systemBlue-100 flex items-center justify-center"
+                    >
+                      <span class="text-sm font-medium text-systemBlue-700">
                         {{ getInitials(payment.patient.name) }}
                       </span>
                     </div>
@@ -134,23 +147,20 @@
                   {{ payment.concept }}
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td
+                class="px-6 py-4 whitespace-nowrap tabular-nums"
+                :aria-label="`Monto pendiente ${formatCurrency(payment.amount)} soles`"
+              >
                 <div class="text-sm font-medium text-theme-primary">
                   {{ formatCurrency(payment.amount) }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-warning-100 text-warning-700">
-                  Pendiente
-                </span>
+                <UiStatusBadge variant="warning" label="Pendiente" />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-2">
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    @click="handlePayment(payment)"
-                  >
+                  <Button variant="primary" size="sm" @click="handlePayment(payment)">
                     <BanknotesIcon class="w-4 h-4 mr-1" />
                     Cobrar
                   </Button>
@@ -162,7 +172,10 @@
       </div>
 
       <!-- Paginación -->
-      <div v-if="totalPages > 1" class="bg-theme-surface-elevated px-4 py-3 border-t border-theme sm:px-6">
+      <div
+        v-if="totalPages > 1"
+        class="bg-theme-surface-elevated px-4 py-3 border-t border-hairline sm:px-6"
+      >
         <div class="flex items-center justify-between">
           <div class="flex-1 flex justify-between sm:hidden">
             <Button
@@ -185,9 +198,15 @@
           <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
               <p class="text-sm text-theme-primary">
-                Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} a
-                {{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }} de
-                {{ filteredPayments.length }} resultados
+                Mostrando
+                <span class="tabular-nums">{{ (currentPage - 1) * itemsPerPage + 1 }}</span>
+                a
+                <span class="tabular-nums">
+                  {{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }}
+                </span>
+                de
+                <span class="tabular-nums">{{ filteredPayments.length }}</span>
+                resultados
               </p>
             </div>
             <div>
@@ -196,8 +215,8 @@
                   variant="secondary"
                   size="sm"
                   :disabled="currentPage === 1"
-                  @click="currentPage = currentPage - 1"
                   class="rounded-l-md"
+                  @click="currentPage = currentPage - 1"
                 >
                   Anterior
                 </Button>
@@ -205,8 +224,8 @@
                   variant="secondary"
                   size="sm"
                   :disabled="currentPage === totalPages"
-                  @click="currentPage = currentPage + 1"
                   class="rounded-r-md"
+                  @click="currentPage = currentPage + 1"
                 >
                   Siguiente
                 </Button>
@@ -223,7 +242,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { BanknotesIcon } from '@heroicons/vue/24/outline'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useApi } from '@/composables/useApi'
+import { formatCurrency } from '@/composables/useFormatters'
 
 const props = defineProps({
   key: {
@@ -256,30 +278,29 @@ const filteredPayments = computed(() => {
 
   if (filters.value.search) {
     const search = filters.value.search.toLowerCase()
-    filtered = filtered.filter(payment =>
-      payment.patient.name.toLowerCase().includes(search) ||
-      payment.patient.document_number.toLowerCase().includes(search)
+    filtered = filtered.filter(
+      payment =>
+        payment.patient.name.toLowerCase().includes(search) ||
+        payment.patient.document_number.toLowerCase().includes(search)
     )
   }
 
   if (filters.value.date_from) {
-    filtered = filtered.filter(payment =>
-      new Date(payment.appointment.date) >= new Date(filters.value.date_from)
+    filtered = filtered.filter(
+      payment => new Date(payment.appointment.date) >= new Date(filters.value.date_from)
     )
   }
 
   if (filters.value.date_to) {
-    filtered = filtered.filter(payment =>
-      new Date(payment.appointment.date) <= new Date(filters.value.date_to)
+    filtered = filtered.filter(
+      payment => new Date(payment.appointment.date) <= new Date(filters.value.date_to)
     )
   }
 
   return filtered
 })
 
-const totalPages = computed(() =>
-  Math.ceil(filteredPayments.value.length / itemsPerPage.value)
-)
+const totalPages = computed(() => Math.ceil(filteredPayments.value.length / itemsPerPage.value))
 
 const paginatedPayments = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
@@ -305,7 +326,7 @@ const loadPendingPayments = async () => {
   }
 }
 
-const handlePayment = (payment) => {
+const handlePayment = payment => {
   emit('payment', payment)
 }
 
@@ -318,19 +339,18 @@ const clearFilters = () => {
   currentPage.value = 1
 }
 
-const getInitials = (name) => {
+const getInitials = name => {
   if (!name) return '??'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase()
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -339,9 +359,13 @@ const formatDate = (date) => {
 }
 
 // Watchers
-watch(filters, () => {
-  currentPage.value = 1
-}, { deep: true })
+watch(
+  filters,
+  () => {
+    currentPage.value = 1
+  },
+  { deep: true }
+)
 
 // Lifecycle
 onMounted(() => {
@@ -349,7 +373,10 @@ onMounted(() => {
 })
 
 // Watch para recargar cuando cambie la key del componente
-watch(() => props.key, () => {
-  loadPendingPayments()
-})
+watch(
+  () => props.key,
+  () => {
+    loadPendingPayments()
+  }
+)
 </script>

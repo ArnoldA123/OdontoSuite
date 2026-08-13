@@ -19,7 +19,7 @@
 
     <!-- Lista de planes de tratamiento -->
     <div v-if="isLoading" class="flex justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
     </div>
 
     <div v-else-if="filteredPlans.length === 0 && !isLoading" class="text-center py-4">
@@ -33,12 +33,14 @@
       <div
         v-for="plan in filteredPlans"
         :key="plan.id"
-        @click="selectPlan(plan)"
         class="flex items-center p-3 border-b border-theme hover:bg-theme-surface cursor-pointer"
         :class="{ 'bg-primary-50 border-primary-200': selectedPlan?.id === plan.id }"
+        @click="selectPlan(plan)"
       >
         <!-- Icono del plan -->
-        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+        <div
+          class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center"
+        >
           <DocumentTextIcon class="w-4 h-4 text-primary-600" />
         </div>
 
@@ -61,7 +63,9 @@
             </span>
           </div>
           <div v-if="plan.description" class="mt-1">
-            <p class="text-xs text-theme-secondary line-clamp-1">{{ plan.description }}</p>
+            <p class="text-xs text-theme-secondary line-clamp-1">
+              {{ plan.description }}
+            </p>
           </div>
         </div>
 
@@ -83,10 +87,7 @@
             Total: S/ {{ formatCurrency(selectedPlan.total_amount || 0) }}
           </p>
         </div>
-        <button
-          @click="clearSelection"
-          class="text-primary-600 hover:text-primary-800"
-        >
+        <button class="text-primary-600 hover:text-primary-800" @click="clearSelection">
           <XMarkIcon class="w-4 h-4" />
         </button>
       </div>
@@ -136,11 +137,10 @@ const filteredPlans = computed(() => {
     const title = plan.title?.toLowerCase() || ''
     const description = plan.description?.toLowerCase() || ''
     const patientName = plan.patient ?
-      `${plan.patient.first_name} ${plan.patient.last_name}`.toLowerCase() : ''
+      `${plan.patient.first_name} ${plan.patient.last_name}`.toLowerCase() :
+      ''
 
-    return title.includes(query) ||
-           description.includes(query) ||
-           patientName.includes(query)
+    return title.includes(query) || description.includes(query) || patientName.includes(query)
   })
 })
 
@@ -183,7 +183,7 @@ const loadPlans = async () => {
   }
 }
 
-const selectPlan = (plan) => {
+const selectPlan = plan => {
   if (props.disabled) return
 
   selectedPlan.value = plan
@@ -196,12 +196,12 @@ const clearSelection = () => {
   emit('update:modelValue', null)
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return ''
   return new Date(date).toLocaleDateString('es-PE')
 }
 
-const formatCurrency = (amount) => {
+const formatCurrency = amount => {
   return new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -209,9 +209,12 @@ const formatCurrency = (amount) => {
 }
 
 // Watch for external changes
-watch(() => props.modelValue, (newValue) => {
-  selectedPlan.value = newValue
-})
+watch(
+  () => props.modelValue,
+  newValue => {
+    selectedPlan.value = newValue
+  }
+)
 
 // Load plans on mount
 onMounted(() => {

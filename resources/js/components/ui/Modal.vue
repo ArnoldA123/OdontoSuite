@@ -9,11 +9,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="modelValue"
-        :class="backdropClasses"
-        @click="handleBackdropClick"
-      >
+      <div v-if="modelValue" :class="backdropClasses" @click="handleBackdropClick">
         <Transition
           name="modal-content"
           enter-active-class="transition-all duration-300 ease-out"
@@ -37,7 +33,9 @@
             <!-- Modal header -->
             <div v-if="$slots.header || title" class="modal-header">
               <slot name="header">
-                <h2 :id="titleId" class="modal-title">{{ title }}</h2>
+                <h2 :id="titleId" class="modal-title">
+                  {{ title }}
+                </h2>
                 <button
                   v-if="closable"
                   type="button"
@@ -45,8 +43,14 @@
                   :aria-label="closeLabel"
                   @click="handleClose"
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </slot>
@@ -78,12 +82,12 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
+    validator: value => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'centered', 'top', 'bottom'].includes(value)
+    validator: value => ['default', 'centered', 'top', 'bottom'].includes(value)
   },
   closable: { type: Boolean, default: true },
   closeOnBackdrop: { type: Boolean, default: true },
@@ -126,10 +130,7 @@ const modalClasses = computed(() => {
     full: 'w-full max-w-full h-full max-h-full rounded-none'
   }
 
-  return [
-    ...base,
-    sizes[props.size]
-  ].join(' ')
+  return [...base, sizes[props.size]].join(' ')
 })
 
 const closeButtonClasses = computed(() => [
@@ -150,7 +151,7 @@ const handleBackdropClick = () => {
   }
 }
 
-const handleEscape = (event) => {
+const handleEscape = event => {
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -166,7 +167,7 @@ const handleClose = () => {
 // Watch for modelValue changes
 watch(
   () => props.modelValue,
-  (newValue) => {
+  newValue => {
     if (newValue) {
       emit('open')
       document.addEventListener('keydown', handleDocumentEscape)
@@ -269,7 +270,7 @@ button:focus-visible {
 }
 
 /* Full screen variant */
-[data-size="full"] {
+[data-size='full'] {
   margin: 0;
   max-width: 100vw;
   max-height: 100vh;

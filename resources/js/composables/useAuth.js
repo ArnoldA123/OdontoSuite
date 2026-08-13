@@ -12,7 +12,7 @@ export function useAuth() {
     return !!token.value && !!user.value
   })
 
-  const login = async (credentials) => {
+  const login = async credentials => {
     isLoading.value = true
     try {
       const response = await post('/api/auth/login', credentials)
@@ -61,11 +61,11 @@ export function useAuth() {
     }
   }
 
-  const hasRole = (role) => {
+  const hasRole = role => {
     return user.value?.role === role
   }
 
-  const hasAnyRole = (roles) => {
+  const hasAnyRole = roles => {
     return roles.includes(user.value?.role)
   }
 

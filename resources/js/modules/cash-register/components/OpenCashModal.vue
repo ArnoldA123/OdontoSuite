@@ -6,103 +6,110 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-        <!-- Sucursal -->
-        <div v-if="!loadingBranches && branches.length > 0">
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Sucursal <span class="text-red-500">*</span>
-          </label>
-          <UiSelect
-            v-model="formData.branch_id"
-            :options="branchOptions"
-            placeholder="Seleccionar sucursal"
-            size="md"
-            searchable
-            :error="errors.branch_id"
-            :disabled="loading"
-          />
-        </div>
+    <form class="space-y-4 bg-canvas" @submit.prevent="handleSubmit">
+      <!-- Estado: Apertura de Caja -->
+      <UiStatusBadge variant="info" label="Apertura de Caja" size="md" />
+      <!-- Sucursal -->
+      <div v-if="!loadingBranches && branches.length > 0">
+        <label class="block text-sm font-medium text-theme-primary mb-1">
+          Sucursal
+          <span class="text-red-500">*</span>
+        </label>
+        <UiSelect
+          v-model="formData.branch_id"
+          :options="branchOptions"
+          placeholder="Seleccionar sucursal"
+          size="md"
+          searchable
+          :error="errors.branch_id"
+          :disabled="loading"
+        />
+      </div>
 
-        <!-- Empty state: no hay sucursales cargadas -->
-        <div v-else-if="!loadingBranches && branches.length === 0">
-          <EmptyState
-            :icon="BuildingOfficeIcon"
-            title="No hay sucursales registradas"
-            description="Para abrir caja necesitas al menos una sucursal activa en el sistema."
-            :action-text="canManageBranches ? 'Ir a Configuracion de Sucursales' : ''"
-            action-variant="primary"
-            @action="goToBranchesSettings"
-          />
-        </div>
+      <!-- Empty state: no hay sucursales cargadas -->
+      <div v-else-if="!loadingBranches && branches.length === 0">
+        <EmptyState
+          :icon="BuildingOfficeIcon"
+          title="No hay sucursales registradas"
+          description="Para abrir caja necesitas al menos una sucursal activa en el sistema."
+          :action-text="canManageBranches ? 'Ir a Configuracion de Sucursales' : ''"
+          action-variant="primary"
+          @action="goToBranchesSettings"
+        />
+      </div>
 
-        <!-- Loading state -->
-        <div v-else class="py-8 text-center text-theme-secondary text-sm">
-          Cargando sucursales...
-        </div>
+      <!-- Loading state -->
+      <UiLoadingSpinner
+        v-else
+        size="md"
+        variant="primary"
+        text="Cargando sucursales..."
+        aria-label="Cargando sucursales"
+      />
 
-        <!-- Monto de Apertura -->
-        <div>
-          <CurrencyInput
-            v-model="formData.opening_amount"
-            label="Monto de Apertura"
-            placeholder="0.00"
-            :required="true"
-            :min="0"
-            :precision="2"
-            :error="errors.opening_amount"
-          />
-        </div>
+      <!-- Monto de Apertura -->
+      <div>
+        <CurrencyInput
+          v-model="formData.opening_amount"
+          label="Monto de Apertura"
+          placeholder="0.00"
+          :required="true"
+          :min="0"
+          :precision="2"
+          :error="errors.opening_amount"
+          input-class="tabular-nums"
+        />
+      </div>
 
-        <!-- Notas de Apertura -->
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Notas de Apertura
-          </label>
-          <textarea
-            v-model="formData.opening_notes"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
-            :disabled="loading"
-            rows="3"
-            placeholder="Notas adicionales sobre la apertura de caja..."
-            maxlength="500"
-          ></textarea>
-          <p class="mt-1 text-sm text-theme-secondary">
-            {{ formData.opening_notes?.length || 0 }}/500 caracteres
-          </p>
-        </div>
+      <!-- Notas de Apertura -->
+      <div>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Notas de Apertura</label>
+        <textarea
+          v-model="formData.opening_notes"
+          class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
+          :disabled="loading"
+          rows="3"
+          placeholder="Notas adicionales sobre la apertura de caja..."
+          maxlength="500"
+        />
+        <p class="mt-1 text-sm text-theme-secondary">
+          {{ formData.opening_notes?.length || 0 }}/500 caracteres
+        </p>
+      </div>
 
-        <!-- Resumen -->
-        <div v-if="branches.length > 0" class="bg-primary-50 border border-primary-200 rounded-lg p-4">
-          <h3 class="text-sm font-semibold text-primary-900 mb-2">Resumen de Apertura</h3>
-          <div class="space-y-1 text-sm">
-            <div class="flex justify-between">
-              <span class="text-primary-700">Sucursal:</span>
-              <span class="font-medium text-primary-900">
-                {{ selectedBranch?.name || 'No seleccionada' }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-primary-700">Monto inicial:</span>
-              <span class="font-medium text-primary-900">
-                {{ formatCurrency(formData.opening_amount) }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-primary-700">Usuario:</span>
-              <span class="font-medium text-primary-900">{{ currentUser?.name }}</span>
-            </div>
+      <!-- Resumen -->
+      <UiCard v-if="branches.length > 0" variant="flat" padding="md">
+        <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de Apertura</h3>
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Sucursal:</span>
+            <span class="font-medium text-theme-primary">
+              {{ selectedBranch?.name || 'No seleccionada' }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Monto inicial:</span>
+            <span
+              class="font-medium text-theme-primary tabular-nums"
+              :aria-label="`${formData.opening_amount || 0} soles`"
+            >
+              {{ formatCurrency(formData.opening_amount) }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Usuario:</span>
+            <span class="font-medium text-theme-primary">{{ currentUser?.name }}</span>
           </div>
         </div>
+      </UiCard>
     </form>
 
     <template #footer>
       <div class="flex justify-end space-x-3">
         <Button
-          type="button"
-          variant="secondary"
-          @click="$emit('close')"
-          :disabled="loading"
-        >
+type="button"
+variant="secondary" :disabled="loading" @click="$emit('close')"
+>
           Cancelar
         </Button>
         <Button
@@ -127,18 +134,17 @@ import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useApi } from '@/composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 import { useToast } from '@/composables/useToast'
 import { usePermissions } from '@/composables/usePermissions'
+import { formatCurrency } from '@/composables/useFormatters'
 import { useRouter } from 'vue-router'
 import { BanknotesIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline'
-
-// Configurar herencia de atributos
-defineOptions({
-  inheritAttrs: false
-})
 
 const props = defineProps({
   show: {
@@ -148,6 +154,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'success'])
+
+// Configurar herencia de atributos
+defineOptions({
+  inheritAttrs: false
+})
 
 const { openSession } = useCashRegister()
 const { get } = useApi()
@@ -188,9 +199,7 @@ const selectedBranch = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return formData.value.branch_id &&
-         formData.value.opening_amount >= 0 &&
-         !loading.value
+  return formData.value.branch_id && formData.value.opening_amount >= 0 && !loading.value
 })
 
 const canManageBranches = computed(() => isAdministrador.value)
@@ -203,7 +212,6 @@ const branchOptions = computed(() =>
     description: b.city || ''
   }))
 )
-
 
 // Metodos
 const loadBranches = async () => {
@@ -238,7 +246,6 @@ const handleSubmit = async () => {
   }
 
   try {
-
     const result = await openSession({
       branch_id: formData.value.branch_id,
       opening_amount: formData.value.opening_amount,
@@ -248,9 +255,9 @@ const handleSubmit = async () => {
     // Notificacion de exito
     const selectedBranch = branches.value.find(b => b.id === formData.value.branch_id)
     toast.success(
-      `Caja abierta exitosamente\n` +
-      `Monto inicial: S/ ${formData.value.opening_amount}\n` +
-      `Sucursal: ${selectedBranch?.name || 'N/A'}`,
+      'Caja abierta exitosamente\n' +
+        `Monto inicial: S/ ${formData.value.opening_amount}\n` +
+        `Sucursal: ${selectedBranch?.name || 'N/A'}`,
       {
         duration: 5000,
         title: 'Caja Abierta'
@@ -262,22 +269,18 @@ const handleSubmit = async () => {
 
     // Los eventos WebSocket se manejan automaticamente desde el backend
   } catch (error) {
-
     // Notificacion de error
     const errorMsg = error.response?.data?.message || 'Error al abrir la caja'
     const errorDetails = error.response?.data?.errors
     let details = ''
     if (errorDetails) {
-      details = '\n' + Object.values(errorDetails).flat().join('\n')
+      details = `\n${Object.values(errorDetails).flat().join('\n')}`
     }
 
-    toast.error(
-      errorMsg + details,
-      {
-        duration: 8000,
-        title: 'Error al Abrir Caja'
-      }
-    )
+    toast.error(errorMsg + details, {
+      duration: 8000,
+      title: 'Error al Abrir Caja'
+    })
 
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
@@ -291,29 +294,26 @@ const handleSubmit = async () => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Watch
-watch(() => props.show, (newValue) => {
-  if (newValue) {
-    // Reset form when modal opens
-    formData.value = {
-      branch_id: '',
-      opening_amount: 0,
-      opening_notes: ''
+watch(
+  () => props.show,
+  newValue => {
+    if (newValue) {
+      // Reset form when modal opens
+      formData.value = {
+        branch_id: '',
+        opening_amount: 0,
+        opening_notes: ''
+      }
+      errors.value = {}
     }
-    errors.value = {}
   }
-})
+)
 
 // Lifecycle
 onMounted(() => {
   loadBranches()
 })
 </script>
-

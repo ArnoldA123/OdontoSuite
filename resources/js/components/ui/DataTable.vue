@@ -13,8 +13,18 @@
             class="w-full"
           >
             <template #prefix>
-              <svg class="w-4 h-4 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="w-4 h-4 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </template>
           </UiInput>
@@ -57,7 +67,12 @@
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                  />
                 </svg>
               </div>
             </th>
@@ -71,7 +86,7 @@
           <tr v-if="loading">
             <td :colspan="totalColumns" class="data-table-cell-loading">
               <div class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
                 <span class="ml-3 text-theme-secondary">Cargando...</span>
               </div>
             </td>
@@ -80,11 +95,7 @@
           <!-- Empty state -->
           <tr v-else-if="filteredData.length === 0">
             <td :colspan="totalColumns" class="data-table-cell-empty">
-              <UiEmptyState
-                :title="emptyTitle"
-                :description="emptyDescription"
-                :icon="emptyIcon"
-              >
+              <UiEmptyState :title="emptyTitle" :description="emptyDescription" :icon="emptyIcon">
                 <template #action>
                   <slot name="empty-action" />
                 </template>
@@ -94,8 +105,8 @@
 
           <!-- Data rows -->
           <tr
-            v-else
             v-for="(row, index) in paginatedData"
+            v-else
             :key="getRowKey(row, index)"
             :class="getRowClasses(row, index)"
             @click="handleRowClick(row, index)"
@@ -111,11 +122,7 @@
             </td>
 
             <!-- Data cells -->
-            <td
-              v-for="column in columns"
-              :key="column.key"
-              :class="getCellClasses(column)"
-            >
+            <td v-for="column in columns" :key="column.key" :class="getCellClasses(column)">
               <slot
                 :name="`cell-${column.key}`"
                 :row="row"
@@ -152,8 +159,14 @@
             @click="goToPage(currentPage - 1)"
           >
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </template>
             Anterior
@@ -179,8 +192,14 @@
           >
             Siguiente
             <template #icon-right>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </template>
           </UiButton>
@@ -367,13 +386,13 @@ const formatCellValue = (row, column) => {
   return value
 }
 
-const getHeaderCellClasses = (column) => [
+const getHeaderCellClasses = column => [
   'data-table-header-cell',
   column.sortable ? 'cursor-pointer hover:bg-theme-surface' : '',
   column.align ? `text-${column.align}` : 'text-left'
 ]
 
-const getSortIconClasses = (column) => {
+const getSortIconClasses = column => {
   if (sortField.value !== column.key) return 'text-theme-secondary'
   return sortDirection.value === 'asc' ? 'text-accent rotate-180' : 'text-accent'
 }
@@ -384,12 +403,12 @@ const getRowClasses = (row, index) => [
   index % 2 === 0 ? 'bg-theme-surface-elevated' : 'bg-theme-surface'
 ]
 
-const getCellClasses = (column) => [
+const getCellClasses = column => [
   'data-table-cell',
   column.align ? `text-${column.align}` : 'text-left'
 ]
 
-const handleSort = (column) => {
+const handleSort = column => {
   if (!column.sortable) return
 
   if (sortField.value === column.key) {
@@ -429,7 +448,7 @@ const toggleSelectAll = () => {
   }
 }
 
-const goToPage = (page) => {
+const goToPage = page => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
     emit('page-change', page)
@@ -437,14 +456,18 @@ const goToPage = (page) => {
 }
 
 // Watch for data changes
-watch(() => props.data, () => {
-  currentPage.value = 1
-  selectedRows.value = []
-  selectAll.value = false
-})
+watch(
+  () => props.data,
+  () => {
+    currentPage.value = 1
+    selectedRows.value = []
+    selectAll.value = false
+  }
+)
 
-watch(selectedRows, (newSelection) => {
-  selectAll.value = newSelection.length === filteredData.value.length && filteredData.value.length > 0
+watch(selectedRows, newSelection => {
+  selectAll.value =
+    newSelection.length === filteredData.value.length && filteredData.value.length > 0
 })
 </script>
 

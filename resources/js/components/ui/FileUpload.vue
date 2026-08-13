@@ -2,15 +2,16 @@
   <div class="file-upload">
     <!-- Área de Drop -->
     <div
+      class="drop-zone"
+      :class="[{ dragging: isDragging }]"
       @drop.prevent="handleDrop"
       @dragover.prevent="isDragging = true"
       @dragleave="isDragging = false"
-      :class="['drop-zone', { 'dragging': isDragging }]"
     >
       <!-- Vista Previa si hay imagen -->
       <div v-if="previewUrl" class="preview-container">
-        <img :src="previewUrl" class="preview-image" />
-        <button @click="clearFile" class="clear-btn">
+        <img :src="previewUrl" class="preview-image" >
+        <button class="clear-btn" @click="clearFile">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
@@ -19,19 +20,19 @@
       <div v-else class="upload-prompt">
         <PhotoIcon class="w-12 h-12 text-theme-secondary mx-auto mb-3" />
         <p class="text-lg font-medium mb-2">
-          Arrastra tu imagen aquí o haz clic para seleccionar
-        </p>
+Arrastra tu imagen aquí o haz clic para seleccionar
+</p>
         <p class="text-sm text-theme-secondary mb-4">
-          Formatos: JPG, PNG, DICOM (Max 20MB)
-        </p>
+Formatos: JPG, PNG, DICOM (Max 20MB)
+</p>
         <input
-          type="file"
           ref="fileInput"
-          @change="handleFileInput"
+          type="file"
           :accept="accept"
           class="hidden"
+          @change="handleFileInput"
         />
-        <UiButton @click="$refs.fileInput.click()" variant="secondary">
+        <UiButton variant="secondary" @click="$refs.fileInput.click()">
           Seleccionar Archivo
         </UiButton>
       </div>
@@ -73,22 +74,22 @@ const previewUrl = ref('')
 const isDragging = ref(false)
 const fileInput = ref(null)
 
-const handleDrop = (event) => {
+const handleDrop = event => {
   isDragging.value = false
-  const files = event.dataTransfer.files
+  const { files } = event.dataTransfer
   if (files.length > 0) {
     handleFile(files[0])
   }
 }
 
-const handleFileInput = (event) => {
-  const files = event.target.files
+const handleFileInput = event => {
+  const { files } = event.target
   if (files.length > 0) {
     handleFile(files[0])
   }
 }
 
-const handleFile = (selectedFile) => {
+const handleFile = selectedFile => {
   // Validar tamaño
   if (selectedFile.size > props.maxSize) {
     alert(`El archivo es demasiado grande. Máximo ${formatFileSize(props.maxSize)}`)
@@ -106,7 +107,7 @@ const handleFile = (selectedFile) => {
   // Crear preview si está habilitado
   if (props.preview && selectedFile.type.startsWith('image/')) {
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       previewUrl.value = e.target.result
     }
     reader.readAsDataURL(selectedFile)
@@ -124,16 +125,16 @@ const clearFile = () => {
   emit('file-cleared')
 }
 
-const formatFileSize = (bytes) => {
+const formatFileSize = bytes => {
   if (bytes === 0) return '0 Bytes'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
 // Limpiar preview cuando se cambie el archivo
-watch(file, (newFile) => {
+watch(file, newFile => {
   if (!newFile && previewUrl.value) {
     URL.revokeObjectURL(previewUrl.value)
     previewUrl.value = ''

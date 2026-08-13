@@ -5,12 +5,12 @@
         <h2 class="modal-title">
           {{ isEdit ? 'Editar Historia Clínica' : 'Nueva Historia Clínica' }}
         </h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form class="modal-body" @submit.prevent="handleSubmit">
         <div class="form-grid">
           <!-- Información básica -->
           <div class="form-section">
@@ -35,7 +35,9 @@
                 placeholder="Ej: Historia clínica inicial"
                 required
               />
-              <p v-if="errors.title" class="form-error">{{ errors.title }}</p>
+              <p v-if="errors.title" class="form-error">
+                {{ errors.title }}
+              </p>
             </div>
 
             <div class="form-group">
@@ -45,7 +47,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Descripción de la historia clínica..."
-              ></textarea>
+              />
             </div>
           </div>
 
@@ -70,7 +72,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Diagnósticos secundarios..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -80,7 +82,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Plan de tratamiento..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -90,7 +92,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Medicamentos prescritos..."
-              ></textarea>
+              />
             </div>
           </div>
 
@@ -115,7 +117,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Antecedentes médicos relevantes..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -125,29 +127,21 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Notas adicionales..."
-              ></textarea>
+              />
             </div>
           </div>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Guardando...' : (isEdit ? 'Actualizar' : 'Crear Historia') }}
+          {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Historia' }}
         </button>
       </div>
     </div>
@@ -192,7 +186,7 @@ const form = ref({
 
 const errors = ref({})
 
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   selectedPatient.value = patient
   form.value.patient_id = patient?.id || ''
 }

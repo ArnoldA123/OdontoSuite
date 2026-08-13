@@ -6,20 +6,21 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <form
-      @submit.prevent="handleSubmit"
-    >
-      <div class="space-y-4">
+    <form @submit.prevent="handleSubmit">
+      <div class="space-y-4 bg-canvas">
+        <!-- Estado (Ingreso / Egreso / Retiro / Depósito / Ajuste) -->
+        <UiStatusBadge
+          :variant="getTypeVariant(formData.type)"
+          :label="getTypeText(formData.type)"
+          size="md"
+        />
         <!-- Tipo de Movimiento -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Tipo de Movimiento <span class="text-red-500">*</span>
+            Tipo de Movimiento
+            <span class="text-red-500">*</span>
           </label>
-          <select
-            v-model="formData.type"
-            :class="inputClasses"
-            :disabled="loading"
-          >
+          <select v-model="formData.type" :class="inputClasses" :disabled="loading">
             <option value="income">Ingreso</option>
             <option value="expense">Egreso</option>
             <option value="withdrawal">Retiro</option>
@@ -31,7 +32,8 @@
         <!-- Concepto -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Concepto <span class="text-red-500">*</span>
+            Concepto
+            <span class="text-red-500">*</span>
           </label>
           <input
             v-model="formData.description"
@@ -57,9 +59,7 @@
 
         <!-- Referencia -->
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Referencia
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Referencia</label>
           <input
             v-model="formData.reference"
             type="text"
@@ -71,9 +71,7 @@
 
         <!-- Notas -->
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Notas
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
           <textarea
             v-model="formData.notes"
             :class="inputClasses"
@@ -81,14 +79,14 @@
             rows="3"
             placeholder="Notas adicionales sobre el movimiento..."
             maxlength="500"
-          ></textarea>
+          />
           <p class="mt-1 text-sm text-theme-secondary">
             {{ formData.notes?.length || 0 }}/500 caracteres
           </p>
         </div>
 
         <!-- Resumen -->
-        <div class="bg-theme-surface border border-theme rounded-lg p-4">
+        <div class="bg-theme-surface border border-hairline rounded-lg p-4">
           <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen del Movimiento</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
@@ -97,28 +95,27 @@
             </div>
             <div class="flex justify-between">
               <span class="text-theme-secondary">Concepto:</span>
-              <span class="font-medium text-theme-primary">{{ formData.description || 'No especificado' }}</span>
+              <span class="font-medium text-theme-primary">
+                {{ formData.description || 'No especificado' }}
+              </span>
             </div>
             <div class="flex justify-between">
               <span class="text-theme-secondary">Monto:</span>
-              <span class="font-bold text-lg" :class="getAmountClass(formData.type)">
+              <span class="font-bold text-lg tabular-nums" :class="getAmountClass(formData.type)">
                 {{ getAmountPrefix(formData.type) }}{{ formatCurrency(formData.amount) }}
               </span>
             </div>
           </div>
         </div>
       </div>
-
     </form>
 
     <template #footer>
       <div class="flex justify-end space-x-3">
         <Button
-          type="button"
-          variant="secondary"
-          @click="$emit('close')"
-          :disabled="loading"
-        >
+type="button"
+variant="secondary" :disabled="loading" @click="$emit('close')"
+>
           Cancelar
         </Button>
         <Button
@@ -140,8 +137,10 @@
 import { ref, computed } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
 import { useApi } from '@/composables/useApi'
+import { formatCurrency } from '@/composables/useFormatters'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -192,14 +191,14 @@ const validateForm = () => {
 
 // Computed
 const canSubmit = computed(() => {
-  return formData.value.type &&
-         formData.value.amount > 0 &&
-         formData.value.description &&
-         !loading.value
+  return (
+    formData.value.type && formData.value.amount > 0 && formData.value.description && !loading.value
+  )
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm'
+  const base =
+    'block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm'
   return loading.value ? `${base} bg-theme-surface cursor-not-allowed opacity-50` : `${base}`
 })
 
@@ -233,14 +232,9 @@ const handleSubmit = async () => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
-const getTypeText = (type) => {
+const getTypeText = type => {
   const texts = {
     income: 'Ingreso',
     expense: 'Egreso',
@@ -251,16 +245,27 @@ const getTypeText = (type) => {
   return texts[type] || type
 }
 
-const getAmountClass = (type) => {
+const getTypeVariant = type => {
+  const variants = {
+    income: 'success',
+    deposit: 'success',
+    expense: 'error',
+    withdrawal: 'error',
+    adjustment: 'neutral'
+  }
+  return variants[type] || 'neutral'
+}
+
+const getAmountClass = type => {
   if (['income', 'deposit'].includes(type)) {
-    return 'text-green-600'
+    return 'text-systemGreen-600'
   } else if (['expense', 'withdrawal'].includes(type)) {
-    return 'text-red-600'
+    return 'text-systemRed-600'
   }
   return 'text-theme-secondary'
 }
 
-const getAmountPrefix = (type) => {
+const getAmountPrefix = type => {
   if (['income', 'deposit'].includes(type)) {
     return '+'
   } else if (['expense', 'withdrawal'].includes(type)) {

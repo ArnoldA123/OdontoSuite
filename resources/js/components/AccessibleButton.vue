@@ -19,26 +19,19 @@
       viewBox="0 0 24 24"
     >
       <circle
-        class="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        stroke-width="4"
-      ></circle>
+class="opacity-25"
+cx="12" cy="12" r="10"
+stroke="currentColor" stroke-width="4"
+/>
       <path
         class="opacity-75"
         fill="currentColor"
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      ></path>
+      />
     </svg>
 
     <!-- Icon (left) -->
-    <component
-      v-if="icon && !loading"
-      :is="icon"
-      :class="iconClasses"
-    />
+    <component :is="icon" v-if="icon && !loading" :class="iconClasses" />
 
     <!-- Button content -->
     <span v-if="$slots.default" :class="textClasses">
@@ -47,10 +40,9 @@
 
     <!-- Icon (right) -->
     <component
-      v-if="iconRight && !loading"
-      :is="iconRight"
-      :class="[iconClasses, 'ml-2']"
-    />
+:is="iconRight"
+v-if="iconRight && !loading" class="ml-2" :class="[iconClasses]"
+/>
   </button>
 </template>
 
@@ -67,12 +59,13 @@ export default {
     variant: {
       type: String,
       default: 'primary',
-      validator: (value) => ['primary', 'secondary', 'danger', 'success', 'warning', 'ghost'].includes(value)
+      validator: value =>
+        ['primary', 'secondary', 'danger', 'success', 'warning', 'ghost'].includes(value)
     },
     size: {
       type: String,
       default: 'md',
-      validator: (value) => ['sm', 'md', 'lg', 'xl'].includes(value)
+      validator: value => ['sm', 'md', 'lg', 'xl'].includes(value)
     },
     disabled: {
       type: Boolean,
@@ -115,7 +108,7 @@ export default {
   setup(props, { emit }) {
     const buttonClasses = computed(() => {
       const baseClasses = [
-         'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed'
+        'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed'
       ]
 
       // Size classes
@@ -129,7 +122,8 @@ export default {
       // Variant classes — semantic tokens from design-system/tokens.js
       const variantClasses = {
         primary: 'bg-accent text-white hover:bg-accent-hover focus:ring-accent',
-        secondary: 'bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated focus:ring-primary-500',
+        secondary:
+          'bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated focus:ring-primary-500',
         danger: 'bg-error-600 text-white hover:bg-error-700 focus:ring-error-500',
         success: 'bg-success-600 text-white hover:bg-success-700 focus:ring-success-500',
         warning: 'bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500',
@@ -160,13 +154,13 @@ export default {
       return props.loading ? 'opacity-75' : ''
     })
 
-    const handleClick = (event) => {
+    const handleClick = event => {
       if (!props.disabled && !props.loading) {
         emit('click', event)
       }
     }
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = event => {
       // Handle Enter and Space keys
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()

@@ -33,7 +33,7 @@ export function useSpecialtyRecords() {
     }
   }
 
-  const getRecord = async (id) => {
+  const getRecord = async id => {
     try {
       loading.value = true
       error.value = null
@@ -50,7 +50,7 @@ export function useSpecialtyRecords() {
     }
   }
 
-  const createRecord = async (data) => {
+  const createRecord = async data => {
     try {
       loading.value = true
       error.value = null
@@ -124,7 +124,7 @@ export function useSpecialtyRecords() {
     }
   }
 
-  const getAllRecords = async (patientId) => {
+  const getAllRecords = async patientId => {
     try {
       loading.value = true
       error.value = null
@@ -158,43 +158,43 @@ export function useSpecialtyRecords() {
   }
 
   // Métodos específicos por especialidad
-  const createImplantologyRecord = async (data) => {
+  const createImplantologyRecord = async data => {
     return await createRecord({ ...data, specialty: 'implantologia' })
   }
 
-  const createOrthodonticsRecord = async (data) => {
+  const createOrthodonticsRecord = async data => {
     return await createRecord({ ...data, specialty: 'ortodoncia' })
   }
 
-  const createEndodonticsRecord = async (data) => {
+  const createEndodonticsRecord = async data => {
     return await createRecord({ ...data, specialty: 'endodoncia' })
   }
 
-  const createRehabilitationRecord = async (data) => {
+  const createRehabilitationRecord = async data => {
     return await createRecord({ ...data, specialty: 'rehabilitacion' })
   }
 
-  const createOralSurgeryRecord = async (data) => {
+  const createOralSurgeryRecord = async data => {
     return await createRecord({ ...data, specialty: 'cirugia_oral' })
   }
 
-  const getImplantologyRecords = async (patientId) => {
+  const getImplantologyRecords = async patientId => {
     return await getRecords(patientId, 'implantologia')
   }
 
-  const getOrthodonticsRecords = async (patientId) => {
+  const getOrthodonticsRecords = async patientId => {
     return await getRecords(patientId, 'ortodoncia')
   }
 
-  const getEndodonticsRecords = async (patientId) => {
+  const getEndodonticsRecords = async patientId => {
     return await getRecords(patientId, 'endodoncia')
   }
 
-  const getRehabilitationRecords = async (patientId) => {
+  const getRehabilitationRecords = async patientId => {
     return await getRecords(patientId, 'rehabilitacion')
   }
 
-  const getOralSurgeryRecords = async (patientId) => {
+  const getOralSurgeryRecords = async patientId => {
     return await getRecords(patientId, 'cirugia_oral')
   }
 

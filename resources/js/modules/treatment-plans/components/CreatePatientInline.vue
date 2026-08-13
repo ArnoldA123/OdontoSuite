@@ -3,28 +3,36 @@
     <div class="inline-content" @click.stop>
       <div class="inline-header">
         <h3 class="inline-title">Nuevo paciente</h3>
-        <button @click="handleClose" class="modal-close" aria-label="Cerrar">
+        <button class="modal-close" aria-label="Cerrar" @click="handleClose">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="inline-body">
+      <form class="inline-body" @submit.prevent="handleSubmit">
         <div class="grid grid-cols-2 gap-3">
           <div class="form-group col-span-2">
-            <label class="form-label">Nombres <span class="req">*</span></label>
+            <label class="form-label">
+              Nombres
+              <span class="req">*</span>
+            </label>
             <input
+              ref="firstInput"
               v-model="form.first_name"
               type="text"
               class="form-input"
               :class="{ 'has-error': errors.first_name }"
               placeholder="Ej: Juan Carlos"
-              ref="firstInput"
             />
-            <p v-if="errors.first_name" class="form-error">{{ errors.first_name }}</p>
+            <p v-if="errors.first_name" class="form-error">
+              {{ errors.first_name }}
+            </p>
           </div>
 
           <div class="form-group col-span-2">
-            <label class="form-label">Apellidos <span class="req">*</span></label>
+            <label class="form-label">
+              Apellidos
+              <span class="req">*</span>
+            </label>
             <input
               v-model="form.last_name"
               type="text"
@@ -32,7 +40,9 @@
               :class="{ 'has-error': errors.last_name }"
               placeholder="Ej: Pérez Gómez"
             />
-            <p v-if="errors.last_name" class="form-error">{{ errors.last_name }}</p>
+            <p v-if="errors.last_name" class="form-error">
+              {{ errors.last_name }}
+            </p>
           </div>
 
           <div class="form-group">
@@ -65,12 +75,14 @@
               :class="{ 'has-error': errors.email }"
               placeholder="opcional@ejemplo.com"
             />
-            <p v-if="errors.email" class="form-error">{{ errors.email }}</p>
+            <p v-if="errors.email" class="form-error">
+              {{ errors.email }}
+            </p>
           </div>
 
           <div class="form-group col-span-2">
             <label class="form-label">Fecha de nacimiento</label>
-            <input v-model="form.birth_date" type="date" class="form-input" />
+            <input v-model="form.birth_date" type="date" class="form-input" >
           </div>
         </div>
 
@@ -81,16 +93,15 @@
       </form>
 
       <div class="inline-footer">
-        <button type="button" @click="handleClose" class="btn btn-outline" :disabled="loading">
+        <button
+type="button"
+class="btn btn-outline" :disabled="loading" @click="handleClose"
+>
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          <span v-if="loading" class="spinner"></span>
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
+          <span v-if="loading" class="spinner" />
           Crear paciente
         </button>
       </div>
@@ -119,7 +130,7 @@ const form = ref({
   document_number: '',
   phone: '',
   email: '',
-  birth_date: '',
+  birth_date: ''
 })
 
 const handleSubmit = async () => {
@@ -150,7 +161,7 @@ const handleSubmit = async () => {
   }
 }
 
-const handleError = (err) => {
+const handleError = err => {
   const data = err.response?.data
   if (data?.errors) {
     Object.assign(errors.value, data.errors)
@@ -261,6 +272,8 @@ onMounted(async () => {
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

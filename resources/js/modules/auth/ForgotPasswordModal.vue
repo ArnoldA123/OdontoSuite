@@ -1,16 +1,16 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
     title="Recuperar contraseña"
     size="md"
     :closable="!loading"
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-5">
+    <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- Instructions -->
-      <p class="text-sm leading-relaxed" :class="['text-ink-700']">
-        Ingresa el correo electrónico asociado a tu cuenta. Si existe, te enviaremos
-        un enlace para restablecer tu contraseña.
+      <p class="text-sm leading-relaxed text-ink-700">
+        Ingresa el correo electrónico asociado a tu cuenta. Si existe, te enviaremos un enlace para
+        restablecer tu contraseña.
       </p>
 
       <!-- Email Field -->
@@ -26,29 +26,49 @@
         @blur="validateEmail"
       >
         <template #prefix>
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
           </svg>
         </template>
       </UiInput>
 
       <!-- Success Message -->
-      <div
-        v-if="success"
-        class="success-panel"
-        role="status"
-        aria-live="polite"
-      >
-        <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div v-if="success" class="success-panel" role="status" aria-live="polite">
+        <svg
+          class="success-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.75"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         <div class="success-body">
-          <p class="success-title">{{ successMessage }}</p>
-          <p class="success-detail" v-if="lastSubmittedEmail">
-            Enviamos las instrucciones a
-            <span class="success-email">{{ lastSubmittedEmail }}</span>.
+          <p class="success-title">
+            {{ successMessage }}
           </p>
-          <p class="success-cta" v-if="!showResetLink">
+          <p v-if="lastSubmittedEmail" class="success-detail">
+            Enviamos las instrucciones a
+            <span class="success-email">{{ lastSubmittedEmail }}</span>
+            .
+          </p>
+          <p v-if="!showResetLink" class="success-cta">
             <button
               type="button"
               class="reset-link"
@@ -61,16 +81,24 @@
       </div>
 
       <!-- Error Message -->
-      <div
-        v-if="error"
-        class="error-panel"
-        role="alert"
-        aria-live="polite"
-      >
-        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div v-if="error" class="error-panel" role="alert" aria-live="polite">
+        <svg
+          class="error-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.75"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <p class="error-text">{{ error }}</p>
+        <p class="error-text">
+          {{ error }}
+        </p>
       </div>
 
       <!-- Actions -->
@@ -79,26 +107,17 @@
           v-if="!success"
           type="button"
           variant="secondary"
-          @click="handleClose"
           :disabled="loading"
+          @click="handleClose"
         >
           Cancelar
         </UiButton>
-        <UiButton
-          v-if="!success"
-          type="submit"
-          :loading="loading"
-          :disabled="loading"
-        >
+        <UiButton v-if="!success" type="submit" :loading="loading" :disabled="loading">
           Enviar enlace
         </UiButton>
-        <UiButton
-          v-if="success"
-          type="button"
-          @click="handleClose"
-        >
-          Cerrar
-        </UiButton>
+        <UiButton v-if="success" type="button" @click="handleClose">
+Cerrar
+</UiButton>
       </div>
     </form>
   </UiModal>
@@ -207,17 +226,20 @@ const handleClose = () => {
 }
 
 // Watch for modal close
-watch(() => props.modelValue, (newValue) => {
-  if (!newValue) {
-    email.value = ''
-    error.value = ''
-    success.value = false
-    successMessage.value = ''
-    lastSubmittedEmail.value = ''
-    showResetLink.value = false
-    errors.email = ''
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (!newValue) {
+      email.value = ''
+      error.value = ''
+      success.value = false
+      successMessage.value = ''
+      lastSubmittedEmail.value = ''
+      showResetLink.value = false
+      errors.email = ''
+    }
   }
-})
+)
 </script>
 
 <style scoped>

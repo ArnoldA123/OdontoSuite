@@ -34,6 +34,6 @@ export function useSpecialties () {
 
     // Slice 08 / T-08.11: refresh + retry aliases.
     refresh: getSpecialties,
-    retry: getSpecialties,
+    retry: getSpecialties
   }
 }

@@ -179,26 +179,26 @@ const tokens = {
     // Deprecated alias keys — kept so the 17 un-migrated modules' Tailwind
     // classes keep resolving without churn. Do NOT add new consumers.
     cream: {
-      50: '#f2f2f7',  // -> systemGray-50
+      50: '#f2f2f7', // -> systemGray-50
       100: '#e5e5ea', // -> systemGray-100
-      200: '#d1d1d6'  // -> systemGray-200
+      200: '#d1d1d6' // -> systemGray-200
     },
     terracotta: {
       500: '#007aff', // -> systemBlue-500
-      600: '#0062cc'  // -> systemBlue-600
+      600: '#0062cc' // -> systemBlue-600
     },
     clinicalTeal: {
-      50: '#e5f1ff',  // -> systemBlue-50
+      50: '#e5f1ff', // -> systemBlue-50
       500: '#007aff', // -> systemBlue-500
-      600: '#0062cc'  // -> systemBlue-600
+      600: '#0062cc' // -> systemBlue-600
     },
     info: {
-      500: '#007aff'  // -> systemBlue-500 (iOS convention: blue = info)
+      500: '#007aff' // -> systemBlue-500 (iOS convention: blue = info)
     },
     // Deprecated alias for terracotta (kept for the 17 un-migrated
     // modules' bg-primary-* Tailwind classes; do NOT add new consumers).
     primary: {
-      50: '#e5f1ff',  // -> systemBlue-50
+      50: '#e5f1ff', // -> systemBlue-50
       100: '#cce4ff', // -> systemBlue-100
       200: '#99c8ff', // -> systemBlue-200
       300: '#66adff', // -> systemBlue-300
@@ -207,46 +207,46 @@ const tokens = {
       600: '#0062cc', // -> systemBlue-600
       700: '#004999', // -> systemBlue-700
       800: '#003066', // -> systemBlue-800
-      900: '#001833'  // -> systemBlue-900
+      900: '#001833' // -> systemBlue-900
     },
     // Deprecated alias for systemGray (kept for the 17 un-migrated
     // modules' bg-neutral-* Tailwind classes; do NOT add new consumers).
     neutral: {
-      50: '#ffffff',  // pure white (systemBackground)
+      50: '#ffffff', // pure white (systemBackground)
       100: '#f2f2f7', // -> systemGray-50
       200: '#e5e5ea', // -> systemGray-100
       500: '#8e8e93', // -> systemGray-500
       700: '#3a3a3c', // -> systemGray-700
-      900: '#1d1d1f'  // near-black (label / display)
+      900: '#1d1d1f' // near-black (label / display)
     },
     // Deprecated semantic aliases — kept so bg-success-* / bg-warning-* /
     // bg-error-* Tailwind classes resolve for the 17 un-migrated modules.
     success: {
-      50: '#e8f5e9',  // -> systemGreen-50
+      50: '#e8f5e9', // -> systemGreen-50
       100: '#cdedcf', // -> systemGreen-100
       300: '#a4d8a8', // -> systemGreen-200 ish
       500: '#34c759', // -> systemGreen-500
       600: '#248a3d', // -> systemGreen-600
       700: '#1a6530', // -> systemGreen-700
-      900: '#0f4520'  // darker green for legacy contrast
+      900: '#0f4520' // darker green for legacy contrast
     },
     warning: {
-      50: '#fff9d6',  // -> systemYellow-50
+      50: '#fff9d6', // -> systemYellow-50
       100: '#fff1ad', // -> systemYellow-100
       300: '#ffe07a', // -> systemYellow-200 ish
       500: '#ffcc00', // -> systemYellow-500
       600: '#a57000', // -> systemYellow-600
       700: '#7a5200', // -> systemYellow-700
-      900: '#4d3300'  // darker yellow
+      900: '#4d3300' // darker yellow
     },
     error: {
-      50: '#ffebea',  // -> systemRed-50
+      50: '#ffebea', // -> systemRed-50
       100: '#ffd9d7', // -> systemRed-100
       300: '#ffaaa6', // -> systemRed-200 ish
       500: '#ff3b30', // -> systemRed-500
       600: '#d70015', // -> systemRed-600
       700: '#a50e10', // -> systemRed-700
-      900: '#5a0608'  // darker red
+      900: '#5a0608' // darker red
     }
   },
   spacing: {
@@ -266,11 +266,11 @@ const tokens = {
   },
   radius: {
     none: '0',
-    sm: '4px',    // small chips
-    md: '8px',    // inputs (slight inset)
-    ios: '10px',  // cards, buttons, status chips (iOS standard)
-    modal: '14px',// Modal, Sheet, bottom pickers (iOS standard)
-    full: '9999px',// pills
+    sm: '4px', // small chips
+    md: '8px', // inputs (slight inset)
+    ios: '10px', // cards, buttons, status chips (iOS standard)
+    modal: '14px', // Modal, Sheet, bottom pickers (iOS standard)
+    full: '9999px', // pills
     // PR1 (ui-premium-microdetail-2026-08) — nested radius rhythm.
     // cardLg is for the outer card surface (KPI cards, hero photo);
     // control is for the inner interactive element (input, button).
@@ -363,7 +363,7 @@ const tokens = {
   focusRing: {
     width: '3px',
     color: '#007AFF', // systemBlue-500
-    alpha: 0.20,
+    alpha: 0.2,
     offset: '2px'
   },
 
@@ -399,14 +399,26 @@ const tokens = {
   topbar: {
     iconSize: '20px',
     iconWeight: 1.5,
-    control: '20px',  // dot diameter + bell glyph cap (one shared size class)
+    control: '20px', // dot diameter + bell glyph cap (one shared size class)
     controlLg: '32px' // avatar diameter (one shared size class for the Lg slot)
   }
 }
 
 export default tokens
 
-const { colors, spacing, radius, typography, shadow, breakpoint, motion, focusRing, fontFeatures, elevation, topbar } = tokens
+const {
+  colors,
+  spacing,
+  radius,
+  typography,
+  shadow,
+  breakpoint,
+  motion,
+  focusRing,
+  fontFeatures,
+  elevation,
+  topbar
+} = tokens
 const { fontFamily, fontSize } = typography
 
 export {

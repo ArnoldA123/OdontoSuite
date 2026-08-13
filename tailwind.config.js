@@ -20,12 +20,12 @@ const fontFamily = { ...tokenFontFamily.fontFamily }
 // boxShadow from tokens uses semantic names; map to Tailwind keys.
 const boxShadow = {
   ...tokenShadow,
-  'subtle': tokenShadow.subtle,
-  'soft': tokenShadow.soft,
-  'medium': tokenShadow.medium,
-  'large': tokenShadow.large,
-  'elevated': tokenShadow.elevated,
-  'glass': tokenShadow.glass,
+  subtle: tokenShadow.subtle,
+  soft: tokenShadow.soft,
+  medium: tokenShadow.medium,
+  large: tokenShadow.large,
+  elevated: tokenShadow.elevated,
+  glass: tokenShadow.glass,
   'glass-inset': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)'
 }
 
@@ -45,11 +45,7 @@ const transitionDuration = {
 }
 
 export default {
-  content: [
-    "./resources/**/*.blade.php",
-    "./resources/**/*.js",
-    "./resources/**/*.vue",
-  ],
+  content: ['./resources/**/*.blade.php', './resources/**/*.js', './resources/**/*.vue'],
   theme: {
     extend: {
       colors: {
@@ -63,24 +59,24 @@ export default {
         modalBackdrop: 1040,
         modal: 1050,
         popover: 1060,
-        tooltip: 1070,
+        tooltip: 1070
       },
       fontFamily,
       fontSize,
       spacing: {
         ...tokenSpacing,
         // Keep canonical Tailwind 0–96px aliases for compatibility.
-        '0': '0px',
-        '1': '4px',
-        '2': '8px',
-        '3': '12px',
-        '4': '16px',
-        '5': '20px',
-        '6': '24px',
-        '8': '32px',
-        '12': '48px',
-        '16': '64px',
-        '24': '96px'
+        0: '0px',
+        1: '4px',
+        2: '8px',
+        3: '12px',
+        4: '16px',
+        5: '20px',
+        6: '24px',
+        8: '32px',
+        12: '48px',
+        16: '64px',
+        24: '96px'
       },
       borderRadius: tokenRadius,
       animation: {
@@ -94,7 +90,7 @@ export default {
         'scale-out': 'scaleOut 0.2s ease-in',
         'bounce-subtle': 'bounceSubtle 0.6s ease-out',
         'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
-        'ripple': 'ripple 0.6s ease-out'
+        ripple: 'ripple 0.6s ease-out'
       },
       keyframes: {
         fadeIn: {
@@ -144,12 +140,12 @@ export default {
         }
       },
       backdropBlur: {
-        'xs': '2px',
-        'sm': '4px',
-        'DEFAULT': '8px',
-        'md': '12px',
-        'lg': '16px',
-        'xl': '24px',
+        xs: '2px',
+        sm: '4px',
+        DEFAULT: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
         '2xl': '40px',
         '3xl': '64px'
       },
@@ -159,7 +155,7 @@ export default {
     }
   },
   plugins: [
-    function({ addUtilities }) {
+    function ({ addUtilities }) {
       // Registrar clases de tema para que funcionen con @apply
       addUtilities({
         // Colores de fondo temáticos
@@ -186,19 +182,19 @@ export default {
         },
         // Colores de texto temáticos
         '.text-theme-primary': {
-          'color': 'var(--color-text-primary)'
+          color: 'var(--color-text-primary)'
         },
         '.text-theme-secondary': {
-          'color': 'var(--color-text-secondary)'
+          color: 'var(--color-text-secondary)'
         },
         '.text-theme-tertiary': {
-          'color': 'var(--color-text-tertiary)'
+          color: 'var(--color-text-tertiary)'
         },
         '.text-theme-accent': {
-          'color': 'var(--color-accent)'
+          color: 'var(--color-accent)'
         },
         '.hover\\:text-theme-primary:hover': {
-          'color': 'var(--color-text-primary)'
+          color: 'var(--color-text-primary)'
         },
         // Colores de borde temáticos
         '.border-theme': {
@@ -232,7 +228,7 @@ export default {
           'background-color': 'var(--color-accent-hover)'
         },
         '.text-accent': {
-          'color': 'var(--color-accent)'
+          color: 'var(--color-accent)'
         },
         '.border-accent': {
           'border-color': 'var(--color-accent)'
@@ -245,30 +241,31 @@ export default {
         },
         // Gradientes con accent
         '.bg-gradient-accent': {
-          'background': 'linear-gradient(to bottom right, var(--color-accent), var(--color-accent-hover))'
+          background:
+            'linear-gradient(to bottom right, var(--color-accent), var(--color-accent-hover))'
         },
         // Estados semánticos
         '.bg-success-badge': {
           'background-color': 'var(--color-success-bg)',
-          'color': 'var(--color-success-text)'
+          color: 'var(--color-success-text)'
         },
         '.bg-warning-badge': {
           'background-color': 'var(--color-warning-bg)',
-          'color': 'var(--color-warning-text)'
+          color: 'var(--color-warning-text)'
         },
         '.bg-danger-badge': {
           'background-color': 'var(--color-danger-bg)',
-          'color': 'var(--color-danger-text)'
+          color: 'var(--color-danger-text)'
         },
         // Hover lift sutil estilo Apple (-1px translateY + shadow-medium)
         '.hover-lift': {
-          'transition': 'transform 150ms ease-out, box-shadow 150ms ease-out'
+          transition: 'transform 150ms ease-out, box-shadow 150ms ease-out'
         },
         '.hover-lift:hover': {
-          'transform': 'translateY(-1px)',
+          transform: 'translateY(-1px)',
           'box-shadow': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
         }
-      });
+      })
     }
   ]
 }

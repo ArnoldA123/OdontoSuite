@@ -25,13 +25,20 @@
         @keydown="handleKeydown"
       />
 
-      <div v-if="error" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+      <div
+        v-if="error"
+        class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+      >
         <ExclamationCircleIcon class="h-5 w-5 text-red-500" />
       </div>
     </div>
 
-    <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
-    <p v-else-if="help" class="mt-1 text-sm text-theme-secondary">{{ help }}</p>
+    <p v-if="error" class="mt-1 text-sm text-red-600">
+      {{ error }}
+    </p>
+    <p v-else-if="help" class="mt-1 text-sm text-theme-secondary">
+      {{ help }}
+    </p>
   </div>
 </template>
 
@@ -121,7 +128,8 @@ const displayValue = computed({
 
 // Clases del input
 const inputClasses = computed(() => {
-  const baseClasses = 'block w-full pl-8 pr-10 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm'
+  const baseClasses =
+    'block w-full pl-8 pr-10 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm'
 
   if (props.error) {
     return `${baseClasses} border-red-300 text-red-900 placeholder-red-300 bg-theme-surface-elevated`
@@ -135,7 +143,7 @@ const inputClasses = computed(() => {
 })
 
 // Formatear moneda
-const formatCurrency = (value) => {
+const formatCurrency = value => {
   if (isNaN(value) || value === null || value === undefined) return '0.00'
 
   return new Intl.NumberFormat('es-PE', {
@@ -145,8 +153,8 @@ const formatCurrency = (value) => {
 }
 
 // Manejar input
-const handleInput = (event) => {
-  let value = event.target.value
+const handleInput = event => {
+  let { value } = event.target
 
   // Remover caracteres no numéricos excepto punto y signo negativo
   value = value.replace(/[^\d.-]/g, '')
@@ -154,7 +162,7 @@ const handleInput = (event) => {
   // Permitir solo un punto decimal
   const parts = value.split('.')
   if (parts.length > 2) {
-    value = parts[0] + '.' + parts.slice(1).join('')
+    value = `${parts[0]}.${parts.slice(1).join('')}`
   }
 
   // Permitir solo un signo negativo al inicio
@@ -198,9 +206,21 @@ const handleFocus = () => {
 }
 
 // Manejar teclas especiales
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   // Permitir teclas de control
-  if (['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+  if (
+    [
+      'Backspace',
+      'Delete',
+      'Tab',
+      'Escape',
+      'Enter',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown'
+    ].includes(event.key)
+  ) {
     return
   }
 
@@ -226,12 +246,15 @@ const handleKeydown = (event) => {
 }
 
 // Watch para cambios externos
-watch(() => props.modelValue, (newValue) => {
-  const numValue = parseFloat(newValue) || 0
-  if (numValue !== numericValue.value) {
-    numericValue.value = numValue
+watch(
+  () => props.modelValue,
+  newValue => {
+    const numValue = parseFloat(newValue) || 0
+    if (numValue !== numericValue.value) {
+      numericValue.value = numValue
+    }
   }
-})
+)
 
 // Exponer métodos
 const focus = () => {
@@ -266,8 +289,7 @@ defineExpose({
   margin: 0;
 }
 
-.currency-input input[type=number] {
+.currency-input input[type='number'] {
   -moz-appearance: textfield;
 }
 </style>
-

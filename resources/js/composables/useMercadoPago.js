@@ -59,7 +59,7 @@ export function useMercadoPago () {
    * Crear preferencia de pago en el backend.
    * POST /api/payments/mercadopago/preference
    */
-  const createPreference = async (transactionId) => {
+  const createPreference = async transactionId => {
     loading.value = true
     try {
       const response = await post('/api/payments/mercadopago/preference', {
@@ -85,7 +85,7 @@ export function useMercadoPago () {
 
       const settings = {
         initialization: {
-          preferenceId,
+          preferenceId
         },
         customization: {
           visual: {
@@ -101,17 +101,13 @@ export function useMercadoPago () {
           onSubmit: ({ selectedPaymentMethod, formData }) => {
             callbacks.onSubmit?.(selectedPaymentMethod, formData)
           },
-          onError: (error) => {
+          onError: error => {
             callbacks.onError?.(error)
           }
         }
       }
 
-      const brickController = await bricksBuilder.create(
-        'payment',
-        containerId,
-        settings
-      )
+      const brickController = await bricksBuilder.create('payment', containerId, settings)
 
       return brickController
     } catch (err) {
@@ -123,7 +119,7 @@ export function useMercadoPago () {
   /**
    * Limpiar brick (eliminar del DOM)
    */
-  const unmount = (containerId) => {
+  const unmount = containerId => {
     const container = document.getElementById(containerId)
     if (container) {
       container.innerHTML = ''

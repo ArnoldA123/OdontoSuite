@@ -1,5 +1,5 @@
 <template>
-  <div class="session-list">
+  <div class="session-list bg-canvas">
     <!-- Filtros -->
     <div class="mb-6">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -8,7 +8,7 @@
           <input
             v-model="filters.date_from"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -17,7 +17,7 @@
           <input
             v-model="filters.date_to"
             type="date"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           />
         </div>
 
@@ -25,7 +25,7 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
           <select
             v-model="filters.status"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
             <option value="open">Abierta</option>
@@ -37,14 +37,10 @@
           <label class="block text-sm font-medium text-theme-primary mb-1">Usuario</label>
           <select
             v-model="filters.user_id"
-            class="block w-full px-3 py-2 border border-theme rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm"
+            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
           >
             <option value="">Todos</option>
-            <option
-              v-for="user in users"
-              :key="user.id"
-              :value="user.id"
-            >
+            <option v-for="user in users" :key="user.id" :value="user.id">
               {{ user.name }}
             </option>
           </select>
@@ -52,30 +48,18 @@
       </div>
 
       <div class="flex justify-between items-center mt-4">
-        <Button
-          variant="secondary"
-          @click="applyFilters"
-          :loading="loading"
-        >
+        <Button variant="secondary" :loading="loading" @click="applyFilters">
           <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
           Filtrar
         </Button>
 
         <div class="flex space-x-2">
-          <Button
-            variant="secondary"
-            @click="exportToExcel"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             Excel
           </Button>
 
-          <Button
-            variant="secondary"
-            @click="exportToPDF"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             PDF
           </Button>
@@ -86,40 +70,64 @@
     <!-- Tabla de Sesiones -->
     <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Sesión
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Usuario
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Sucursal
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Apertura
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Cierre
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Diferencia
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Estado
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
             <tr v-if="loading" class="animate-pulse">
               <td colspan="8" class="px-6 py-4 text-center">
                 <div class="flex justify-center">
-                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                  <UiLoadingSpinner size="md" variant="primary" text="Cargando sesiones..." />
                 </div>
               </td>
             </tr>
@@ -130,16 +138,11 @@
               </td>
             </tr>
 
-            <tr
-              v-else
-              v-for="session in sessions"
-              :key="session.id"
-              class="hover:bg-theme-surface"
-            >
+            <tr v-for="session in sessions" v-else :key="session.id" class="hover:bg-theme-surface">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-theme-primary">
-                  #{{ session.id }}
-                </div>
+#{{ session.id }}
+</div>
                 <div class="text-sm text-theme-secondary">
                   {{ formatDate(session.opened_at) }}
                 </div>
@@ -153,75 +156,98 @@
                 {{ session.branch?.name }}
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="`Monto apertura ${formatPENLabel(session.opening_amount)} soles`"
+              >
                 <div class="text-sm text-theme-primary">
                   {{ formatTime(session.opened_at) }}
                 </div>
-                <div class="text-sm text-theme-secondary">
+                <div class="text-sm text-theme-secondary tabular-nums">
                   {{ formatPENLabel(session.opening_amount) }}
                 </div>
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="
+                  session.closing_amount
+                    ? `Monto cierre ${formatPENLabel(session.closing_amount)} soles`
+                    : 'Sin monto de cierre'
+                "
+              >
                 <div v-if="session.closed_at" class="text-sm text-theme-primary">
                   {{ formatTime(session.closed_at) }}
                 </div>
                 <div v-else class="text-sm text-theme-secondary">
-                  -
-                </div>
-                <div v-if="session.closing_amount" class="text-sm text-theme-secondary">
+-
+</div>
+                <div
+                  v-if="session.closing_amount"
+                  class="text-sm text-theme-secondary tabular-nums"
+                >
                   {{ formatPENLabel(session.closing_amount) }}
                 </div>
               </td>
 
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div v-if="session.difference_amount !== null" class="text-sm font-medium">
+              <td
+                class="px-6 py-4 whitespace-nowrap text-right"
+                :aria-label="
+                  session.difference_amount !== null
+                    ? `Diferencia ${formatPENLabel(session.difference_amount)} soles`
+                    : 'Sin diferencia'
+                "
+              >
+                <div v-if="session.difference_amount !== null">
                   <span
-                    :class="session.difference_amount === 0 ? 'text-green-600' :
-                           session.difference_amount > 0 ? 'text-accent' : 'text-red-600'"
+                    class="text-sm font-medium tabular-nums"
+                    :class="session.difference_amount === 0 ? 'text-systemGreen-600' : (session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600')"
                   >
-                    {{ session.difference_amount === 0 ? 'Conforme' :
-                       session.difference_amount > 0 ? '+' : '' }}{{ formatPENLabel(session.difference_amount) }}
+                    {{
+                      session.difference_amount === 0
+                        ? 'Conforme'
+                        : (session.difference_amount > 0 ? '+' : '')
+
+
+                    }}{{ formatPENLabel(session.difference_amount) }}
                   </span>
                 </div>
                 <div v-else class="text-sm text-theme-secondary">
-                  -
-                </div>
+-
+</div>
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
-                  :class="getStatusClass(session.status)"
-                >
-                  {{ getStatusText(session.status) }}
-                </span>
+                <UiStatusBadge
+                  :variant="session.status === 'open' ? 'success' : 'neutral'"
+                  :label="getStatusText(session.status)"
+                />
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <button
-                    @click="viewSession(session)"
-                    class="text-accent hover:text-primary-700"
+                    class="text-systemBlue-600 hover:text-systemBlue-700"
                     title="Ver detalle"
+                    @click="viewSession(session)"
                   >
                     <EyeIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="session.status === 'closed'"
-                    @click="generateReport(session)"
-                    class="text-green-600 hover:text-green-900"
+                    class="text-systemGreen-600 hover:text-systemGreen-700"
                     title="Generar reporte"
+                    @click="generateReport(session)"
                   >
                     <DocumentTextIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="canReopen(session)"
-                    @click="reopenSession(session)"
-                    class="text-yellow-600 hover:text-yellow-900"
+                    class="text-systemYellow-600 hover:text-systemYellow-700"
                     title="Reabrir sesión"
+                    @click="reopenSession(session)"
                   >
                     <ArrowPathIcon class="w-4 h-4" />
                   </button>
@@ -236,30 +262,34 @@
     <!-- Paginación -->
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-theme-primary">
-        Mostrando {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} a
-        {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }} de
-        {{ pagination.total }} resultados
+        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
+        <span class="tabular-nums">
+          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
+        </span>
+        de
+        <span class="tabular-nums">{{ pagination.total }}</span>
+        resultados
       </div>
 
       <div class="flex space-x-2">
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page - 1)"
           :disabled="pagination.current_page <= 1"
+          @click="loadPage(pagination.current_page - 1)"
         >
           Anterior
         </Button>
 
-        <span class="px-3 py-2 text-sm text-theme-primary">
+        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
           Página {{ pagination.current_page }} de {{ pagination.last_page }}
         </span>
 
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page + 1)"
           :disabled="pagination.current_page >= pagination.last_page"
+          @click="loadPage(pagination.current_page + 1)"
         >
           Siguiente
         </Button>
@@ -271,6 +301,8 @@
 <script setup>
 import { ref, computed } from 'vue'
 import Button from '@/components/ui/Button.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
@@ -319,42 +351,41 @@ const loadUsers = async () => {
   try {
     const response = await get('/api/users/active')
     users.value = response.data || []
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 const applyFilters = () => {
   emit('refresh', filters.value)
 }
 
-const loadPage = (page) => {
+const loadPage = page => {
   emit('refresh', { ...filters.value, page })
 }
 
-const viewSession = (session) => {
+const viewSession = session => {
   emit('view', session)
 }
 
-const generateReport = (session) => {
+const generateReport = session => {
   // Implementar generación de reporte
 }
 
-const reopenSession = async (session) => {
+const reopenSession = async session => {
   const ok = await confirm({
     title: 'Reabrir sesión de caja',
     message: '¿Está seguro de reabrir esta sesión de caja?',
     confirmText: 'Reabrir',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   emit('reopen', session)
 }
 
-const canReopen = (session) => {
+const canReopen = session => {
   return session.status === 'closed' && manageCashRegister.value
 }
 
-const formatDate = (dateTime) => {
+const formatDate = dateTime => {
   return new Date(dateTime).toLocaleDateString('es-PE', {
     day: '2-digit',
     month: '2-digit',
@@ -362,27 +393,21 @@ const formatDate = (dateTime) => {
   })
 }
 
-const formatTime = (dateTime) => {
+const formatTime = dateTime => {
   return new Date(dateTime).toLocaleTimeString('es-PE', {
     hour: '2-digit',
     minute: '2-digit'
   })
 }
 
-const getStatusText = (status) => {
+// formatPENLabel is imported from useFormatters (PAGOS-MNY-002 canonicalization).
+
+const getStatusText = status => {
   const texts = {
     open: 'Abierta',
     closed: 'Cerrada'
   }
   return texts[status] || status
-}
-
-const getStatusClass = (status) => {
-  const classes = {
-    open: 'bg-success-100 text-success-700',
-    closed: 'bg-theme-surface text-theme-secondary'
-  }
-  return classes[status] || 'bg-theme-surface text-theme-secondary'
 }
 
 const exportToExcel = async () => {

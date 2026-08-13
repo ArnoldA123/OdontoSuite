@@ -6,37 +6,55 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <div class="space-y-6">
+    <div class="space-y-6 bg-canvas">
       <!-- Resumen de la Sesión -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-4">
+      <UiCard variant="flat" padding="md">
         <h3 class="text-lg font-semibold text-theme-primary mb-3">Resumen de la Sesión</h3>
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span class="text-theme-secondary">Monto de Apertura:</span>
-            <span class="font-semibold ml-2 text-theme-primary">{{ formatCurrency(session?.opening_amount) }}</span>
+            <span
+              class="font-semibold ml-2 text-theme-primary tabular-nums"
+              :aria-label="`${session?.opening_amount || 0} soles`"
+            >
+              {{ formatCurrency(session?.opening_amount) }}
+            </span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Ingresos:</span>
-            <span class="font-semibold ml-2 text-green-600">{{ formatCurrency(summary?.total_income) }}</span>
+            <span
+              class="font-semibold ml-2 text-systemGreen-600 tabular-nums"
+              :aria-label="`${summary?.total_income || 0} soles`"
+            >
+              {{ formatCurrency(summary?.total_income) }}
+            </span>
           </div>
           <div>
             <span class="text-theme-secondary">Total Egresos:</span>
-            <span class="font-semibold ml-2 text-red-600">{{ formatCurrency(summary?.total_expenses) }}</span>
+            <span
+              class="font-semibold ml-2 text-systemRed-600 tabular-nums"
+              :aria-label="`${summary?.total_expenses || 0} soles`"
+            >
+              {{ formatCurrency(summary?.total_expenses) }}
+            </span>
           </div>
           <div>
             <span class="text-theme-secondary">Monto Esperado:</span>
-            <span class="font-semibold ml-2 text-theme-primary">{{ formatCurrency(summary?.expected_amount) }}</span>
+            <span
+              class="font-semibold ml-2 text-theme-primary tabular-nums"
+              :aria-label="`${summary?.expected_amount || 0} soles`"
+            >
+              {{ formatCurrency(summary?.expected_amount) }}
+            </span>
           </div>
         </div>
-      </div>
+      </UiCard>
 
       <!-- Arqueo -->
       <div class="space-y-4">
         <h3 class="text-lg font-semibold text-theme-primary">Arqueo de Caja</h3>
 
-        <form
-          @submit.prevent="handleSubmit"
-        >
+        <form @submit.prevent="handleSubmit">
           <!-- Monto de Cierre -->
           <div class="mb-4">
             <CurrencyInput
@@ -48,6 +66,7 @@
               :precision="2"
               :error="errors.closing_amount"
               help="Ingrese el monto real contado en caja"
+              input-class="tabular-nums"
             />
           </div>
 
@@ -67,7 +86,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Tarjeta de Débito</label>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Tarjeta de Débito
+                </label>
                 <CurrencyInput
                   v-model="arqueo.tarjeta_debito"
                   placeholder="0.00"
@@ -77,7 +98,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Tarjeta de Crédito</label>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Tarjeta de Crédito
+                </label>
                 <CurrencyInput
                   v-model="arqueo.tarjeta_credito"
                   placeholder="0.00"
@@ -87,7 +110,9 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Transferencia</label>
+                <label class="block text-sm font-medium text-theme-primary mb-1">
+                  Transferencia
+                </label>
                 <CurrencyInput
                   v-model="arqueo.transferencia"
                   placeholder="0.00"
@@ -109,32 +134,29 @@
           </div>
 
           <!-- Total del Arqueo -->
-          <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
+          <UiCard variant="flat" padding="md">
             <div class="flex justify-between items-center">
-              <span class="text-lg font-semibold text-primary-900">Total del Arqueo:</span>
-              <span class="text-xl font-bold text-primary-900">{{ formatCurrency(arqueoTotal) }}</span>
-            </div>
-          </div>
-
-          <!-- Diferencia -->
-          <div v-if="diferencia !== 0" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div class="flex justify-between items-center">
-              <span class="text-lg font-semibold text-yellow-900">Diferencia:</span>
+              <span class="text-lg font-semibold text-theme-primary">Total del Arqueo:</span>
               <span
-                class="text-xl font-bold"
-                :class="diferencia > 0 ? 'text-green-600' : 'text-red-600'"
+                class="text-xl font-bold text-theme-primary tabular-nums"
+                :aria-label="`${arqueoTotal} soles`"
               >
-                {{ formatCurrency(Math.abs(diferencia)) }}
-                {{ diferencia > 0 ? '(Sobrante)' : '(Faltante)' }}
+                {{ formatCurrency(arqueoTotal) }}
               </span>
             </div>
-          </div>
+          </UiCard>
+
+          <!-- Diferencia -->
+          <UiStatusBadge
+            v-if="diferencia !== 0"
+            :variant="diferencia > 0 ? 'success' : 'error'"
+            :label="`Diferencia: ${formatCurrency(Math.abs(diferencia))} ${diferencia > 0 ? '(Sobrante)' : '(Faltante)'}`"
+            size="md"
+          />
 
           <!-- Notas de Cierre -->
           <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Notas de Cierre
-            </label>
+            <label class="block text-sm font-medium text-theme-primary mb-1">Notas de Cierre</label>
             <textarea
               v-model="formData.closing_notes"
               :class="inputClasses"
@@ -142,15 +164,15 @@
               rows="3"
               placeholder="Notas adicionales sobre el cierre de caja..."
               maxlength="500"
-            ></textarea>
+            />
             <p class="mt-1 text-sm text-theme-secondary">
               {{ formData.closing_notes?.length || 0 }}/500 caracteres
             </p>
           </div>
 
           <!-- Justificación de Diferencia -->
-          <div v-if="Math.abs(diferencia) > 0.01" class="bg-red-50 border border-red-200 rounded-lg p-4">
-            <label class="block text-sm font-medium text-red-700 mb-2">
+          <div v-if="Math.abs(diferencia) > 0.01" class="p-4">
+            <label class="block text-sm font-medium text-systemRed-700 mb-2">
               Justificación de la Diferencia
             </label>
             <textarea
@@ -160,29 +182,39 @@
               rows="2"
               placeholder="Explique la razón de la diferencia..."
               maxlength="500"
-            ></textarea>
+            />
           </div>
 
           <!-- Resumen de Cierre -->
-          <div class="mt-6 p-4 bg-primary-50 rounded-lg border border-primary-200">
-            <h4 class="text-sm font-semibold text-primary-900 mb-3">
-              Resumen de Cierre
-            </h4>
+          <UiCard variant="flat" padding="md">
+            <h4 class="text-sm font-semibold text-theme-primary mb-3">
+Resumen de Cierre
+</h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Transacciones:</span>
-                <span class="font-medium text-theme-primary">{{ summary?.transactions_count || 0 }}</span>
+                <span
+                  class="font-medium text-theme-primary tabular-nums"
+                  :aria-label="`${summary?.transactions_count || 0} transacciones`"
+                >
+                  {{ summary?.transactions_count || 0 }}
+                </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Movimientos:</span>
-                <span class="font-medium text-theme-primary">{{ summary?.movements_count || 0 }}</span>
+                <span
+                  class="font-medium text-theme-primary tabular-nums"
+                  :aria-label="`${summary?.movements_count || 0} movimientos`"
+                >
+                  {{ summary?.movements_count || 0 }}
+                </span>
               </div>
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Duración de Sesión:</span>
                 <span class="font-medium text-theme-primary">{{ sessionDuration }}</span>
               </div>
             </div>
-          </div>
+          </UiCard>
 
           <!-- Checkbox para generar reporte automático -->
           <div class="mt-4">
@@ -190,7 +222,7 @@
               <input
                 v-model="formData.generate_report"
                 type="checkbox"
-                class="rounded border-theme text-accent focus:ring-primary-500"
+                class="rounded border-hairline text-systemBlue-600"
                 checked
               />
               <span class="ml-2 text-sm text-theme-primary">
@@ -198,7 +230,6 @@
               </span>
             </label>
           </div>
-
         </form>
       </div>
     </div>
@@ -206,11 +237,9 @@
     <template #footer>
       <div class="flex justify-end space-x-3">
         <Button
-          type="button"
-          variant="secondary"
-          @click="$emit('close')"
-          :disabled="loading"
-        >
+type="button"
+variant="secondary" :disabled="loading" @click="$emit('close')"
+>
           Cancelar
         </Button>
         <Button
@@ -233,8 +262,11 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useToast } from '@/composables/useToast'
+import { formatCurrency } from '@/composables/useFormatters'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
@@ -282,7 +314,11 @@ const arqueo = ref({
 // Validación simple
 const validateForm = () => {
   let valid = true
-  if (formData.value.closing_amount === null || formData.value.closing_amount === undefined || formData.value.closing_amount === '') {
+  if (
+    formData.value.closing_amount === null ||
+    formData.value.closing_amount === undefined ||
+    formData.value.closing_amount === ''
+  ) {
     errors.value.closing_amount = 'El monto de cierre es requerido'
     valid = false
   } else if (formData.value.closing_amount < 0) {
@@ -315,8 +351,9 @@ const sessionDuration = computed(() => {
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-accent sm:text-sm bg-theme-surface-elevated text-theme-primary'
-  return loading.value ? `${base} cursor-not-allowed opacity-50` : `${base} border-theme`
+  const base =
+    'block w-full px-3 py-2 border rounded-md shadow-sm sm:text-sm bg-theme-surface-elevated text-theme-primary'
+  return loading.value ? `${base} cursor-not-allowed opacity-50` : `${base} border-hairline`
 })
 
 // Métodos
@@ -350,9 +387,9 @@ const handleSubmit = async () => {
 
     // Notificación de éxito
     toast.success(
-      `Caja cerrada exitosamente\n` +
-      `Monto final: S/ ${formData.value.closing_amount}\n` +
-      `Diferencia: S/ ${formData.value.closing_amount - (props.session?.opening_amount || 0)}`,
+      'Caja cerrada exitosamente\n' +
+        `Monto final: S/ ${formData.value.closing_amount}\n` +
+        `Diferencia: S/ ${formData.value.closing_amount - (props.session?.opening_amount || 0)}`,
       {
         duration: 6000,
         title: '✓ Caja Cerrada'
@@ -365,13 +402,10 @@ const handleSubmit = async () => {
     // Los eventos WebSocket se manejan automáticamente desde el backend
   } catch (error) {
     // Notificación de error
-    toast.error(
-      error.response?.data?.message || 'Error al cerrar la caja',
-      {
-        duration: 7000,
-        title: '✗ Error al Cerrar Caja'
-      }
-    )
+    toast.error(error.response?.data?.message || 'Error al cerrar la caja', {
+      duration: 7000,
+      title: '✗ Error al Cerrar Caja'
+    })
 
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
@@ -383,13 +417,13 @@ const handleSubmit = async () => {
   }
 }
 
-const generateClosureReport = async (sessionId) => {
+const generateClosureReport = async sessionId => {
   try {
     const response = await fetch(`/api/cash-register/sessions/${sessionId}/closure-report`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-        'Accept': 'application/pdf'
+        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        Accept: 'application/pdf'
       }
     })
 
@@ -409,35 +443,32 @@ const generateClosureReport = async (sessionId) => {
   }
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount || 0)
-}
+// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Watch
-watch(() => props.show, (newValue) => {
-  if (newValue && props.session) {
-    // Reset form when modal opens
-    formData.value = {
-      session_id: props.session.id,
-      closing_amount: 0,
-      closing_notes: '',
-      difference_justification: '',
-      generate_report: true
-    }
+watch(
+  () => props.show,
+  newValue => {
+    if (newValue && props.session) {
+      // Reset form when modal opens
+      formData.value = {
+        session_id: props.session.id,
+        closing_amount: 0,
+        closing_notes: '',
+        difference_justification: '',
+        generate_report: true
+      }
 
-    arqueo.value = {
-      efectivo: 0,
-      tarjeta_debito: 0,
-      tarjeta_credito: 0,
-      transferencia: 0,
-      otros: 0
-    }
+      arqueo.value = {
+        efectivo: 0,
+        tarjeta_debito: 0,
+        tarjeta_credito: 0,
+        transferencia: 0,
+        otros: 0
+      }
 
-    errors.value = {}
+      errors.value = {}
+    }
   }
-})
+)
 </script>
-

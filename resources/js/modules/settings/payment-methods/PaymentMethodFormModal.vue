@@ -5,12 +5,13 @@
     size="lg"
     @close="emit('close')"
   >
-    <form class="space-y-4" @submit.prevent="onSubmit">
+    <form class="space-y-4 bg-canvas" @submit.prevent="onSubmit">
       <!-- Codigo y nombre -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Codigo <span class="text-red-500">*</span>
+            Codigo
+            <span class="text-systemRed-500">*</span>
           </label>
           <UiInput
             v-model="form.code"
@@ -22,13 +23,14 @@
           <p v-if="isEdit" class="text-xs text-theme-secondary mt-1">
             El codigo no puede modificarse.
           </p>
-          <p v-if="isSystem" class="text-xs text-amber-600 mt-1">
+          <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
             Metodo del sistema: no editable.
           </p>
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Nombre visible <span class="text-red-500">*</span>
+            Nombre visible
+            <span class="text-systemRed-500">*</span>
           </label>
           <UiInput
             v-model="form.name"
@@ -42,9 +44,7 @@
 
       <!-- Descripcion -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Descripcion
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Descripcion</label>
         <UiTextarea
           v-model="form.description"
           :disabled="isSystem"
@@ -57,9 +57,7 @@
       <!-- Comision + Requiere autorizacion -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Comision (%)
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Comision (%)</label>
           <UiInput
             v-model.number="form.commission_percentage"
             :disabled="isSystem"
@@ -81,7 +79,7 @@
             v-model="form.requires_authorization"
             :disabled="isSystem"
             type="checkbox"
-            class="w-4 h-4 mt-1 text-accent border-theme rounded focus:ring-accent"
+            class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
           >
           <div>
             <label for="requires_authorization" class="text-sm text-theme-primary font-medium">
@@ -95,44 +93,49 @@
       </div>
 
       <!-- Pasarela de pago (preparado para Sprint 3) -->
-      <div v-if="!isSystem || form.gateway_type" class="border-t border-theme pt-4 mt-4">
+      <div v-if="!isSystem || form.gateway_type" class="border-t border-hairline pt-4 mt-4">
         <h4 class="text-sm font-semibold text-theme-primary mb-3">Pasarela de pago (opcional)</h4>
         <p class="text-xs text-theme-secondary mb-3">
-          Configura Mercado Pago u otra pasarela para cobrar en linea. El cobro manual siempre estara disponible sin pasarela.
+          Configura Mercado Pago u otra pasarela para cobrar en linea. El cobro manual siempre
+          estara disponible sin pasarela.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Pasarela
-            </label>
+            <label class="block text-sm font-medium text-theme-primary mb-1">Pasarela</label>
             <select
               v-model="form.gateway_type"
               :disabled="isSystem"
-              class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+              class="w-full px-3 py-2 border border-hairline rounded-lg bg-theme-surface-elevated text-theme-primary"
             >
               <option value="manual">Manual (sin pasarela)</option>
               <option value="mercadopago">Mercado Pago</option>
             </select>
           </div>
-          <div v-if="form.gateway_type === 'mercadopago'" class="space-y-2">
+          <!--
+            PAGOS-RED-001: `gateway_config` is encrypted at rest
+            (`Crypt::encryptString` keyed by APP_KEY) and is NEVER sent to the
+            client. The wrapper is flagged `data-redacted="true"`; the fields
+            below are write-only capture bound to a local reactive that starts
+            empty, so the stored blob never reaches a rendered text node.
+          -->
+          <div v-if="form.gateway_type === 'mercadopago'" class="space-y-2" data-redacted="true">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Access Token
-              </label>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Access Token</label>
               <UiInput
                 v-model="gatewayConfig.access_token"
                 type="password"
-                placeholder="TEST-... o APP_USR-..."
+                :placeholder="hasStoredCredentials ? '••••••' : 'TEST-... o APP_USR-...'"
                 class="w-full"
               />
+              <p v-if="hasStoredCredentials" class="text-xs text-theme-secondary mt-1">
+                Credenciales guardadas. Dejalo vacio para conservarlas.
+              </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Public Key
-              </label>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Public Key</label>
               <UiInput
                 v-model="gatewayConfig.public_key"
-                placeholder="TEST-... o APP_USR-..."
+                :placeholder="hasStoredCredentials ? '••••••' : 'TEST-... o APP_USR-...'"
                 class="w-full"
               />
             </div>
@@ -141,19 +144,17 @@
       </div>
 
       <!-- Estado (solo visible en edit) -->
-      <div v-if="isEdit" class="border-t border-theme pt-4 mt-4">
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Estado
-        </label>
+      <div v-if="isEdit" class="border-t border-hairline pt-4 mt-4">
+        <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
         <select
           v-model="form.is_active"
           :disabled="isSystem"
-          class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="w-full px-3 py-2 border border-hairline rounded-lg bg-theme-surface-elevated text-theme-primary"
         >
           <option :value="true">Activo</option>
           <option :value="false">Inactivo</option>
         </select>
-        <p v-if="isSystem" class="text-xs text-amber-600 mt-1">
+        <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
           Los metodos del sistema no pueden desactivarse desde esta UI.
         </p>
       </div>
@@ -162,14 +163,14 @@
     <template #footer>
       <div class="flex justify-end gap-3">
         <UiButton variant="secondary" :disabled="saving" @click="emit('close')">
-          Cancelar
-        </UiButton>
+Cancelar
+</UiButton>
         <UiButton v-if="!isSystem" :disabled="saving" @click="onSubmit">
           {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
         </UiButton>
         <UiButton v-else variant="secondary" disabled>
-          Metodo del sistema
-        </UiButton>
+Metodo del sistema
+</UiButton>
       </div>
     </template>
   </UiModal>
@@ -195,6 +196,10 @@ const toast = useToast()
 
 const isEdit = computed(() => !!props.method)
 const isSystem = computed(() => !!props.method?.is_system)
+// PAGOS-RED-001: the API only exposes the `has_gateway_config` boolean — the
+// encrypted blob itself never crosses the wire, so the form shows a masked
+// placeholder instead of a value.
+const hasStoredCredentials = computed(() => !!props.method?.has_gateway_config)
 
 const gatewayConfig = reactive({
   access_token: '',

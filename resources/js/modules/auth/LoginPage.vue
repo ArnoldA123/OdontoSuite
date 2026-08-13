@@ -3,22 +3,18 @@
     <div class="login-grid">
       <!-- Form column (left on desktop, second on mobile) -->
       <section class="login-form-column" aria-labelledby="login-headline">
-        <div class="login-form-wrap" ref="cardRef">
+        <div ref="cardRef" class="login-form-wrap">
           <header class="login-header">
             <div class="brand-mark" aria-hidden="true">
-              <img
-                src="/images/easy_dent.png"
-                alt=""
-                class="brand-mark-img"
-              />
+              <img src="/images/easy_dent.png" alt="" class="brand-mark-img" >
             </div>
             <p class="brand-name">OdontoSuite</p>
           </header>
 
           <div class="welcome-section">
             <h1 id="login-headline" class="welcome-headline">
-              Gestiona tu clínica con calma
-            </h1>
+Gestiona tu clínica con calma
+</h1>
             <p class="welcome-subtitle">
               Inicia sesión para revisar citas, caja y pacientes en un solo lugar.
             </p>
@@ -26,10 +22,10 @@
 
           <Card variant="glass" padding="lg" class="login-card-surface">
             <form
-              @submit.prevent="handleLogin"
               class="login-form"
               novalidate
               :aria-busy="loading || undefined"
+              @submit.prevent="handleLogin"
             >
               <!-- Username field. Rendered as a raw <input> (not via
                    UiInput) so the autocomplete and inputmode attributes
@@ -39,8 +35,14 @@
                 <label class="field-label" for="login-username">Usuario</label>
                 <div class="field-input-wrap">
                   <span class="field-prefix" aria-hidden="true">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </span>
                   <input
@@ -56,16 +58,14 @@
                     required
                     :disabled="loading"
                     :aria-invalid="!!errors.username"
-                    :aria-describedby="errors.username ? 'login-username-error' : 'login-username-hint'"
+                    :aria-describedby="
+                      errors.username ? 'login-username-error' : 'login-username-hint'
+                    "
                     class="field-input"
                     placeholder="usuario"
                   />
                 </div>
-                <p
-                  v-if="errors.username"
-                  id="login-username-error"
-                  class="field-error"
-                >
+                <p v-if="errors.username" id="login-username-error" class="field-error">
                   {{ errors.username }}
                 </p>
               </div>
@@ -76,8 +76,14 @@
                 <label class="field-label" for="login-password">Contraseña</label>
                 <div class="field-input-wrap">
                   <span class="field-prefix" aria-hidden="true">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
                     </svg>
                   </span>
                   <input
@@ -89,32 +95,59 @@
                     required
                     :disabled="loading"
                     :aria-invalid="!!errors.password"
-                    :aria-describedby="errors.password ? 'login-password-error' : 'login-password-hint'"
+                    :aria-describedby="
+                      errors.password ? 'login-password-error' : 'login-password-hint'
+                    "
                     class="field-input"
                     placeholder="Mínimo 8 caracteres"
                   />
                   <button
                     type="button"
-                    @click="showPassword = !showPassword"
                     class="password-toggle"
                     :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                     :aria-pressed="showPassword"
                     tabindex="-1"
+                    @click="showPassword = !showPassword"
                   >
-                    <svg v-if="showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                    <svg
+                      v-if="showPassword"
+                      class="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                      />
                     </svg>
-                    <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    <svg
+                      v-else
+                      class="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
                   </button>
                 </div>
-                <p
-                  v-if="errors.password"
-                  id="login-password-error"
-                  class="field-error"
-                >
+                <p v-if="errors.password" id="login-password-error" class="field-error">
                   {{ errors.password }}
                 </p>
               </div>
@@ -140,16 +173,24 @@
               </div>
 
               <!-- Auth failure: inline aria-live, never a toast -->
-              <div
-                v-if="error"
-                class="auth-error"
-                role="alert"
-                aria-live="polite"
-              >
-                <svg class="auth-error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <div v-if="error" class="auth-error" role="alert" aria-live="polite">
+                <svg
+                  class="auth-error-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.75"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
-                <p class="auth-error-text">{{ error }}</p>
+                <p class="auth-error-text">
+                  {{ error }}
+                </p>
               </div>
 
               <UiButton
@@ -167,16 +208,14 @@
 
           <p class="login-footer-note">
             © {{ currentYear }} OdontoSuite. Sistema de gestión dental.
-            <a href="mailto:soporte@odontosuite.local" class="login-footer-link">
-              Soporte
-            </a>
+            <a href="mailto:soporte@odontosuite.local" class="login-footer-link">Soporte</a>
           </p>
         </div>
       </section>
 
       <!-- Hero column (right on desktop, top strip on mobile) -->
       <aside class="login-hero-column" aria-hidden="true">
-        <div class="hero-overlay"></div>
+        <div class="hero-overlay" />
         <img
           src="/images/ui/login-hero.jpg"
           alt=""
@@ -192,10 +231,7 @@
     </div>
 
     <!-- Forgot Password Modal -->
-    <ForgotPasswordModal
-      v-model="showForgotPasswordModal"
-      @success="handleForgotPasswordSuccess"
-    />
+    <ForgotPasswordModal v-model="showForgotPasswordModal" @success="handleForgotPasswordSuccess" />
 
     <!-- Reset Password Modal (user-driven only — never auto-opens from Forgot success) -->
     <ResetPasswordModal
@@ -270,7 +306,7 @@ onMounted(async () => {
 })
 
 // Validation
-const validateField = (field) => {
+const validateField = field => {
   errors[field] = ''
 
   if (field === 'username' && !form.username.trim()) {
@@ -334,7 +370,7 @@ const handleLogin = async () => {
   }
 }
 
-const handleForgotPasswordSuccess = (data) => {
+const handleForgotPasswordSuccess = data => {
   // The dev-only reset_token is no longer surfaced in the UI. The Forgot
   // modal emits `email` only; the user clicks a separate link to open
   // ResetPasswordModal. The API surface still includes reset_token for
@@ -420,8 +456,10 @@ const handleResetPasswordSuccess = () => {
   @apply flex flex-col gap-5;
 }
 
-.login-form :deep(button[type="submit"]) {
-  box-shadow: var(--elevation-3), inset 0 1px 0 rgba(255, 255, 255, 0.30);
+.login-form :deep(button[type='submit']) {
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .form-options {
@@ -450,7 +488,9 @@ const handleResetPasswordSuccess = () => {
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: color 200ms ease-out, text-decoration-color 200ms ease-out;
+  transition:
+    color 200ms ease-out,
+    text-decoration-color 200ms ease-out;
 }
 
 .forgot-password-link:hover {
@@ -467,7 +507,9 @@ const handleResetPasswordSuccess = () => {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: color 200ms ease-out, background-color 200ms ease-out;
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out;
 }
 
 .password-toggle:hover,
@@ -534,11 +576,11 @@ const handleResetPasswordSuccess = () => {
   opacity: 0.7;
 }
 
-.field-input[aria-invalid="true"] {
+.field-input[aria-invalid='true'] {
   border-color: var(--color-error-500);
 }
 
-.field-input[aria-invalid="true"]:focus {
+.field-input[aria-invalid='true']:focus {
   border-color: var(--color-error-500);
   box-shadow: 0 0 0 3px var(--color-error-50);
 }

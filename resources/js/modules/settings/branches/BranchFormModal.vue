@@ -10,7 +10,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Codigo <span class="text-red-500">*</span>
+            Codigo
+            <span class="text-red-500">*</span>
           </label>
           <UiInput
             v-model="form.code"
@@ -25,7 +26,8 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Nombre <span class="text-red-500">*</span>
+            Nombre
+            <span class="text-red-500">*</span>
           </label>
           <UiInput
             v-model="form.name"
@@ -38,9 +40,7 @@
 
       <!-- Direccion -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Direccion
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Direccion</label>
         <UiInput
           v-model="form.address"
           placeholder="Av. / Jr. / Calle, numero, distrito"
@@ -53,44 +53,25 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Ciudad <span class="text-red-500">*</span>
+            Ciudad
+            <span class="text-red-500">*</span>
           </label>
-          <UiInput
-            v-model="form.city"
-            placeholder="Lima"
-            :error="errors.city"
-            class="w-full"
-          />
+          <UiInput v-model="form.city" placeholder="Lima" :error="errors.city" class="w-full" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Departamento
-          </label>
-          <UiInput
-            v-model="form.state"
-            placeholder="Lima"
-            :error="errors.state"
-            class="w-full"
-          />
+          <label class="block text-sm font-medium text-theme-primary mb-1">Departamento</label>
+          <UiInput v-model="form.state" placeholder="Lima" :error="errors.state" class="w-full" />
         </div>
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Pais
-          </label>
-          <UiInput
-            v-model="form.country"
-            placeholder="Peru"
-            class="w-full"
-          />
+          <label class="block text-sm font-medium text-theme-primary mb-1">Pais</label>
+          <UiInput v-model="form.country" placeholder="Peru" class="w-full" />
         </div>
       </div>
 
       <!-- Telefono / Email -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Telefono
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Telefono</label>
           <UiInput
             v-model="form.phone"
             placeholder="+51 1 426-0001"
@@ -99,9 +80,7 @@
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Email
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
           <UiInput
             v-model="form.email"
             type="email"
@@ -114,9 +93,7 @@
 
       <!-- Descripcion -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Descripcion
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Descripcion</label>
         <UiTextarea
           v-model="form.description"
           :rows="2"
@@ -127,9 +104,7 @@
 
       <!-- Estado (activo/inactivo) -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Estado
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
         <select
           v-model="form.is_active"
           class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
@@ -138,7 +113,8 @@
           <option :value="false">Inactiva</option>
         </select>
         <p class="text-xs text-theme-secondary mt-1">
-          Las sucursales inactivas no aparecen en los dropdowns de abrir caja ni de seleccion de sede.
+          Las sucursales inactivas no aparecen en los dropdowns de abrir caja ni de seleccion de
+          sede.
         </p>
       </div>
     </form>
@@ -146,8 +122,8 @@
     <template #footer>
       <div class="flex justify-end gap-3">
         <UiButton variant="secondary" :disabled="saving" @click="emit('close')">
-          Cancelar
-        </UiButton>
+Cancelar
+</UiButton>
         <UiButton :disabled="saving" @click="onSubmit">
           {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
         </UiButton>

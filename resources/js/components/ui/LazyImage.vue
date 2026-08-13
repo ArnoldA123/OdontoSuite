@@ -8,11 +8,7 @@
       @load="handleLoad"
       @error="handleError"
     />
-    <div
-      v-else
-      :class="placeholderClasses"
-      :aria-label="loadingText"
-    >
+    <div v-else :class="placeholderClasses" :aria-label="loadingText">
       <LoadingSpinner v-if="showSpinner" size="sm" />
       <div v-else class="w-full h-full bg-theme-surface rounded animate-pulse" />
     </div>
@@ -67,7 +63,7 @@ const props = defineProps({
   objectFit: {
     type: String,
     default: 'cover',
-    validator: (value) => ['cover', 'contain', 'fill', 'none', 'scale-down'].includes(value)
+    validator: value => ['cover', 'contain', 'fill', 'none', 'scale-down'].includes(value)
   }
 })
 
@@ -121,8 +117,8 @@ const setupIntersectionObserver = () => {
   }
 
   observer.value = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
+    entries => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           loaded.value = true
           observer.value?.disconnect()
@@ -168,23 +164,3 @@ onUnmounted(() => {
   }
 }
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

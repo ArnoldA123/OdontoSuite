@@ -1,27 +1,39 @@
 <template>
   <AppLayout>
     <div class="not-found-page">
-      <div class="not-found-grid" ref="pageRef">
+      <div ref="pageRef" class="not-found-grid">
         <div class="not-found-content">
           <p class="not-found-eyebrow">Error 404</p>
           <h1 class="not-found-headline">
-            Página no encontrada
-          </h1>
+Página no encontrada
+</h1>
           <p class="not-found-subhead">
-            La ruta que buscabas no existe o fue movida. Verifica la URL o vuelve al panel principal.
+            La ruta que buscabas no existe o fue movida. Verifica la URL o vuelve al panel
+            principal.
           </p>
           <div class="not-found-actions">
             <UiButton variant="secondary" @click="goBack">
               <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
                 </svg>
               </template>
               Volver
             </UiButton>
             <UiButton variant="primary" @click="goHome">
-              Ir al inicio
-            </UiButton>
+Ir al inicio
+</UiButton>
           </div>
         </div>
 

@@ -4,35 +4,34 @@
     title="Registrar Cobro de Paciente"
     :size="activeTab === 'manual' ? 'xl' : 'lg'"
     @update:model-value="$emit('update:modelValue', $event)"
-    @close="$emit('update:modelValue', false)"
     class="overflow-y-auto"
+    @close="$emit('update:modelValue', false)"
   >
     <!-- Tabs: Manual / Mercado Pago (solo si el metodo seleccionado tiene gateway) -->
-    <div v-if="showMpTab" class="flex gap-0 mb-4 border-b border-theme">
-      <button
-        class="px-4 py-2 text-sm font-medium transition-colors"
-        :class="activeTab === 'manual'
-          ? 'text-accent border-b-2 border-accent'
-          : 'text-theme-secondary hover:text-theme-primary'"
-        @click="activeTab = 'manual'"
-      >
-        Cobro Manual
-      </button>
-      <button
-        class="px-4 py-2 text-sm font-medium transition-colors"
-        :class="activeTab === 'mercadopago'
-          ? 'text-accent border-b-2 border-accent'
-          : 'text-theme-secondary hover:text-theme-primary'"
-        @click="switchToMercadoPago"
-        :disabled="!canSubmit || loading"
-      >
-        {{ selectedPaymentMethod?.name || 'Mercado Pago' }}
-      </button>
-    </div>
-    <form v-if="activeTab === 'manual'" @submit.prevent="handleSubmit" class="space-y-4 md:space-y-6">
+    <UiTabs
+      v-if="showMpTab"
+      v-model="activeTab"
+      variant="underline"
+      :tabs="manualTabs"
+      @update:model-value="onTabChange"
+    />
+    <UiStatusBadge
+      v-if="showMpTab && (formData.amount ?? 0) <= 0"
+      variant="warning"
+      size="sm"
+      label="Ingrese monto"
+      class="mt-2"
+    />
+    <form
+      v-if="activeTab === 'manual'"
+      @submit.prevent="handleSubmit"
+      class="space-y-4 md:space-y-6 bg-canvas"
+    >
       <!-- Información del Paciente -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-3 md:p-4">
-        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Información del Paciente</h3>
+      <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
+        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
+Información del Paciente
+</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
@@ -41,30 +40,22 @@
             <select
               v-model="formData.patient_id"
               :disabled="!!selectedPatient"
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
-                     text-theme-primary
-                     border-theme
-                     disabled:bg-theme-surface disabled:opacity-50
-                     disabled:cursor-not-allowed
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.patient_id }"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline disabled:bg-canvas disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.patient_id }"
               required
               size="5"
             >
-              <option value="">Seleccionar paciente</option>
-              <option
-                v-for="patient in pendingPatients"
-                :key="patient.id"
-                :value="patient.id"
-              >
+              <option value="">
+Seleccionar paciente
+</option>
+              <option v-for="patient in pendingPatients" :key="patient.id" :value="patient.id">
                 {{ patient.name }} - {{ patient.document_number }}
               </option>
             </select>
             <p v-if="selectedPatient" class="mt-1 text-xs text-theme-secondary">
               Paciente seleccionado desde pagos pendientes
             </p>
-            <p v-if="errors.patient_id" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.patient_id" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.patient_id[0] }}
             </p>
           </div>
@@ -75,19 +66,21 @@
             </label>
             <select
               v-model="formData.appointment_id"
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
-                     text-theme-primary
-                     border-theme
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.appointment_id }"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.appointment_id }"
             >
-              <option value="">Seleccionar cita (opcional)</option>
-              <option v-for="appointment in patientAppointments" :key="appointment.id" :value="appointment.id">
+              <option value="">
+Seleccionar cita (opcional)
+</option>
+              <option
+                v-for="appointment in patientAppointments"
+                :key="appointment.id"
+                :value="appointment.id"
+              >
                 {{ formatDate(appointment.date) }} - {{ appointment.appointment_type?.name }}
               </option>
             </select>
-            <p v-if="errors.appointment_id" class="mt-1 text-xs md:text-sm text-red-600">
+            <p v-if="errors.appointment_id" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.appointment_id[0] }}
             </p>
           </div>
@@ -96,7 +89,9 @@
 
       <!-- Detalles del Pago -->
       <div class="space-y-3 md:space-y-4">
-        <h3 class="text-base md:text-lg font-medium text-theme-primary">Detalles del Pago</h3>
+        <h3 class="text-base md:text-lg font-medium text-theme-primary">
+Detalles del Pago
+</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
@@ -107,16 +102,11 @@
               v-model="formData.concept"
               type="text"
               placeholder="Ej: Consulta, Tratamiento, etc."
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
-                     text-theme-primary
-                     border-theme
-                     placeholder-theme-secondary
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.concept }"
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.concept }"
               required
-            />
-            <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-red-600">
+            >
+            <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.concept[0] }}
             </p>
           </div>
@@ -134,7 +124,10 @@
               :error="errors.payment_method_id"
               :disabled="loadingMethods"
             />
-            <p v-if="!loadingMethods && paymentMethods.length === 0" class="mt-1 text-xs text-amber-600">
+            <p
+              v-if="!loadingMethods && paymentMethods.length === 0"
+              class="mt-1 text-xs text-amber-600"
+            >
               No hay metodos de pago activos. Contacta al administrador.
             </p>
             <p v-if="errors.payment_method_id" class="mt-1 text-xs md:text-sm text-red-600">
@@ -162,15 +155,10 @@
               v-model="formData.reference"
               type="text"
               placeholder="Número de operación, voucher, etc."
-              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                     bg-theme-surface-elevated
-                     text-theme-primary
-                     border-theme
-                     placeholder-theme-secondary
-                     focus:ring-primary-500 focus:border-accent"
-              :class="{ 'border-red-500': errors.reference }"
-            />
-            <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-red-600">
+              class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
+              :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.reference }"
+            >
+            <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.reference[0] }}
             </p>
           </div>
@@ -180,27 +168,24 @@
           <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
             Observaciones
           </label>
-        <textarea
-          v-model="formData.notes"
-          rows="3"
-          placeholder="Detalles adicionales del pago..."
-          class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm
-                 bg-theme-surface-elevated
-                 text-theme-primary
-                 border-theme
-                 placeholder-theme-secondary
-                 focus:ring-primary-500 focus:border-accent"
-          :class="{ 'border-red-500': errors.notes }"
-        ></textarea>
-          <p v-if="errors.notes" class="mt-1 text-xs md:text-sm text-red-600">
+          <textarea
+            v-model="formData.notes"
+            rows="3"
+            placeholder="Detalles adicionales del pago..."
+            class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
+            :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.notes }"
+          ></textarea>
+          <p v-if="errors.notes" class="mt-1 text-xs md:text-sm text-systemRed-600">
             {{ errors.notes[0] }}
           </p>
         </div>
       </div>
 
       <!-- Resumen del Pago -->
-      <div class="bg-theme-surface border border-theme rounded-lg p-3 md:p-4">
-        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Resumen del Pago</h3>
+      <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
+        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
+Resumen del Pago
+</h3>
         <div class="space-y-2 text-xs md:text-sm">
           <div class="flex justify-between">
             <span class="text-theme-secondary">Paciente:</span>
@@ -246,8 +231,8 @@
         <Button
           type="button"
           variant="secondary"
-          @click="$emit('update:modelValue', false)"
           :disabled="loading"
+          @click="$emit('update:modelValue', false)"
           class="w-full sm:w-auto px-4 py-2 text-sm md:text-base"
         >
           Cancelar
@@ -257,8 +242,8 @@
           variant="primary"
           :loading="loading"
           :disabled="!canSubmit"
-          @click="handleSubmit"
           class="w-full sm:w-auto px-4 py-2 text-sm md:text-base"
+          @click="handleSubmit"
         >
           <BanknotesIcon class="w-4 h-4 mr-2" />
           Registrar Cobro
@@ -275,10 +260,13 @@ import { BanknotesIcon } from '@heroicons/vue/24/outline'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import UiTabs from '@/components/ui/Tabs.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { formatCurrency } from '@/composables/useFormatters'
 import MercadoPagoCheckout from '@/modules/cash-register/components/MercadoPagoCheckout.vue'
 
 const props = defineProps({
@@ -311,9 +299,7 @@ const emit = defineEmits(['update:modelValue', 'close', 'success'])
 
 // Resolve the actual open-state. modelValue wins when explicitly bound;
 // otherwise fall back to the legacy `show` prop.
-const isOpen = computed(() =>
-  props.modelValue !== undefined ? props.modelValue : !!props.show
-)
+const isOpen = computed(() => (props.modelValue !== undefined ? props.modelValue : !!props.show))
 
 // Composables
 const { get } = useApi()
@@ -446,9 +432,7 @@ const canSubmit = computed(() => {
 // tiene gateway_type = 'mercadopago' (configurado en settings/payment-methods)
 const showMpTab = computed(() => {
   if (!formData.value.payment_method_id) return false
-  const method = paymentMethods.value.find(
-    m => m.id === parseInt(formData.value.payment_method_id)
-  )
+  const method = paymentMethods.value.find(m => m.id === parseInt(formData.value.payment_method_id))
   return method?.gateway_type === 'mercadopago'
 })
 
@@ -457,11 +441,39 @@ const paymentMethodOptions = computed(() =>
   paymentMethods.value.map(m => ({
     value: m.id,
     label: m.name,
-    description: m.commission_percentage > 0
-      ? `Comision: ${m.commission_percentage}%`
-      : (m.description || '')
+    description:
+      m.commission_percentage > 0 ? `Comision: ${m.commission_percentage}%` : m.description || ''
   }))
 )
+
+// PR-pagos-04 / design §3.1 — Manual / Mercado Pago tab definitions.
+// The MercadoPago tab carries `disabled = (amount <= 0)`; the visual
+// hint <UiStatusBadge variant="warning" label="Ingrese monto" /> is
+// rendered when the tab is gated. Activation still flows through
+// `switchToMercadoPago` (which validates the form) so the 401 redirect
+// code path in useCashRegister is preserved.
+const manualTabs = computed(() => [
+  { id: 'manual', label: 'Cobro Manual' },
+  {
+    id: 'mercadopago',
+    label: selectedPaymentMethod.value?.name || 'Mercado Pago',
+    disabled: (formData.value.amount ?? 0) <= 0
+  }
+])
+
+// PR-pagos-04 / design §3.1 — tab change handler. The Mercado Pago tab
+// MUST run `switchToMercadoPago` (which validates the form and creates
+// a pending transaction); Manual is a direct switch. The activeTab is
+// reset before the MP flow so the validateForm early-return can fall
+// back to the manual tab cleanly.
+const onTabChange = newTabId => {
+  if (newTabId === 'mercadopago') {
+    activeTab.value = 'manual'
+    switchToMercadoPago()
+  } else if (newTabId === 'manual') {
+    activeTab.value = 'manual'
+  }
+}
 
 // Metodos
 const loadPaymentMethods = async () => {
@@ -490,7 +502,7 @@ const loadPaymentMethods = async () => {
   }
 }
 
-const loadPatientAppointments = async (patientId) => {
+const loadPatientAppointments = async patientId => {
   if (!patientId) {
     patientAppointments.value = []
     return
@@ -511,8 +523,7 @@ const loadPatientAppointments = async (patientId) => {
       handleSessionExpired()
     } else {
       const message =
-        error.response?.data?.message ||
-        'No se pudieron cargar las citas del paciente.'
+        error.response?.data?.message || 'No se pudieron cargar las citas del paciente.'
       toast.warning(message)
     }
     patientAppointments.value = []
@@ -607,14 +618,7 @@ const resetForm = () => {
   errors.value = {}
 }
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN'
-  }).format(amount)
-}
-
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -625,34 +629,45 @@ const formatDate = (date) => {
 }
 
 // Watchers
-watch(() => formData.value.patient_id, (newPatientId) => {
-  if (newPatientId) {
-    loadPatientAppointments(newPatientId)
-  } else {
-    patientAppointments.value = []
-  }
-})
-
-// Pre-llenar datos del paciente seleccionado
-watch(() => props.selectedPatient, (newPatient) => {
-  if (newPatient && isOpen.value) {
-    formData.value.patient_id = newPatient.id
-    formData.value.concept = newPatient.concept || 'Consulta'
-    formData.value.amount = newPatient.amount || 0
-
-    // Si viene con appointment, también pre-llenarlo
-    if (props.selectedAppointment) {
-      formData.value.appointment_id = props.selectedAppointment.id
+watch(
+  () => formData.value.patient_id,
+  newPatientId => {
+    if (newPatientId) {
+      loadPatientAppointments(newPatientId)
+    } else {
+      patientAppointments.value = []
     }
   }
-}, { immediate: true })
+)
+
+// Pre-llenar datos del paciente seleccionado
+watch(
+  () => props.selectedPatient,
+  newPatient => {
+    if (newPatient && isOpen.value) {
+      formData.value.patient_id = newPatient.id
+      formData.value.concept = newPatient.concept || 'Consulta'
+      formData.value.amount = newPatient.amount || 0
+
+      // Si viene con appointment, también pre-llenarlo
+      if (props.selectedAppointment) {
+        formData.value.appointment_id = props.selectedAppointment.id
+      }
+    }
+  },
+  { immediate: true }
+)
 
 // Pre-llenar datos de la cita seleccionada
-watch(() => props.selectedAppointment, (newAppointment) => {
-  if (newAppointment && isOpen.value) {
-    formData.value.appointment_id = newAppointment.id
-  }
-}, { immediate: true })
+watch(
+  () => props.selectedAppointment,
+  newAppointment => {
+    if (newAppointment && isOpen.value) {
+      formData.value.appointment_id = newAppointment.id
+    }
+  },
+  { immediate: true }
+)
 
 // Lifecycle
 onMounted(() => {
@@ -661,7 +676,7 @@ onMounted(() => {
   }
 })
 
-watch(isOpen, (newOpen) => {
+watch(isOpen, newOpen => {
   if (newOpen) {
     loadPaymentMethods()
     // NO resetear si hay paciente seleccionado

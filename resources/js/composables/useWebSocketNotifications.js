@@ -23,11 +23,7 @@ export function useWebSocketNotifications() {
     const currentPath = route.path
 
     // Siempre mostrar notificaciones importantes
-    const importantEvents = [
-      'quotation.approved',
-      'cash-session.closed',
-      'payment.registered'
-    ]
+    const importantEvents = ['quotation.approved', 'cash-session.closed', 'payment.registered']
 
     if (importantEvents.includes(eventName)) {
       return true
@@ -70,17 +66,13 @@ export function useWebSocketNotifications() {
       }
 
       // Crear la notificación
-      addNotification(
-        notificationData.message,
-        notificationData.type,
-        {
-          title: notificationData.title,
-          category: notificationData.category,
-          action: notificationData.action,
-          sound: notificationData.sound !== false,
-          persistent: notificationData.persistent || false
-        }
-      )
+      addNotification(notificationData.message, notificationData.type, {
+        title: notificationData.title,
+        category: notificationData.category,
+        action: notificationData.action,
+        sound: notificationData.sound !== false,
+        persistent: notificationData.persistent || false
+      })
     } catch (error) {
       // Log the failure so an empty catch never masks a real bug; surface
       // a one-shot toast so the user knows the WebSocket listener chain is
@@ -99,9 +91,9 @@ export function useWebSocketNotifications() {
       const appointmentsChannel = channel('appointments')
       if (appointmentsChannel) {
         appointmentsChannel
-          .listen('.appointment.created', (e) => handleEvent('appointment.created', e))
-          .listen('.appointment.updated', (e) => handleEvent('appointment.updated', e))
-          .listen('.appointment.deleted', (e) => handleEvent('appointment.deleted', e))
+          .listen('.appointment.created', e => handleEvent('appointment.created', e))
+          .listen('.appointment.updated', e => handleEvent('appointment.updated', e))
+          .listen('.appointment.deleted', e => handleEvent('appointment.deleted', e))
         channels.appointments = appointmentsChannel
       }
 
@@ -109,9 +101,9 @@ export function useWebSocketNotifications() {
       const patientsChannel = channel('patients')
       if (patientsChannel) {
         patientsChannel
-          .listen('.patient.created', (e) => handleEvent('patient.created', e))
-          .listen('.patient.updated', (e) => handleEvent('patient.updated', e))
-          .listen('.patient.deleted', (e) => handleEvent('patient.deleted', e))
+          .listen('.patient.created', e => handleEvent('patient.created', e))
+          .listen('.patient.updated', e => handleEvent('patient.updated', e))
+          .listen('.patient.deleted', e => handleEvent('patient.deleted', e))
         channels.patients = patientsChannel
       }
 
@@ -119,9 +111,9 @@ export function useWebSocketNotifications() {
       const treatmentPlansChannel = channel('treatment-plans')
       if (treatmentPlansChannel) {
         treatmentPlansChannel
-          .listen('.treatment-plan.created', (e) => handleEvent('treatment-plan.created', e))
-          .listen('.treatment-plan.updated', (e) => handleEvent('treatment-plan.updated', e))
-          .listen('.treatment-plan.deleted', (e) => handleEvent('treatment-plan.deleted', e))
+          .listen('.treatment-plan.created', e => handleEvent('treatment-plan.created', e))
+          .listen('.treatment-plan.updated', e => handleEvent('treatment-plan.updated', e))
+          .listen('.treatment-plan.deleted', e => handleEvent('treatment-plan.deleted', e))
         channels.treatmentPlans = treatmentPlansChannel
       }
 
@@ -129,9 +121,9 @@ export function useWebSocketNotifications() {
       const quotationsChannel = channel('quotations')
       if (quotationsChannel) {
         quotationsChannel
-          .listen('.quotation.created', (e) => handleEvent('quotation.created', e))
-          .listen('.quotation.updated', (e) => handleEvent('quotation.updated', e))
-          .listen('.quotation.approved', (e) => handleEvent('quotation.approved', e))
+          .listen('.quotation.created', e => handleEvent('quotation.created', e))
+          .listen('.quotation.updated', e => handleEvent('quotation.updated', e))
+          .listen('.quotation.approved', e => handleEvent('quotation.approved', e))
         channels.quotations = quotationsChannel
       }
 
@@ -139,10 +131,12 @@ export function useWebSocketNotifications() {
       const medicalRecordsChannel = channel('medical-records')
       if (medicalRecordsChannel) {
         medicalRecordsChannel
-          .listen('.medical-record.created', (e) => handleEvent('medical-record.created', e))
-          .listen('.medical-record.updated', (e) => handleEvent('medical-record.updated', e))
-          .listen('.clinical-evolution.created', (e) => handleEvent('clinical-evolution.created', e))
-          .listen('.clinical-attachment.created', (e) => handleEvent('clinical-attachment.created', e))
+          .listen('.medical-record.created', e => handleEvent('medical-record.created', e))
+          .listen('.medical-record.updated', e => handleEvent('medical-record.updated', e))
+          .listen('.clinical-evolution.created', e => handleEvent('clinical-evolution.created', e))
+          .listen('.clinical-attachment.created', e =>
+            handleEvent('clinical-attachment.created', e)
+          )
         channels.medicalRecords = medicalRecordsChannel
       }
 
@@ -150,8 +144,8 @@ export function useWebSocketNotifications() {
       const specialtyRecordsChannel = channel('specialty-records')
       if (specialtyRecordsChannel) {
         specialtyRecordsChannel
-          .listen('.specialty-record.created', (e) => handleEvent('specialty-record.created', e))
-          .listen('.specialty-record.updated', (e) => handleEvent('specialty-record.updated', e))
+          .listen('.specialty-record.created', e => handleEvent('specialty-record.created', e))
+          .listen('.specialty-record.updated', e => handleEvent('specialty-record.updated', e))
         channels.specialtyRecords = specialtyRecordsChannel
       }
 
@@ -159,25 +153,25 @@ export function useWebSocketNotifications() {
       const cashRegisterChannel = channel('cash-register')
       if (cashRegisterChannel) {
         cashRegisterChannel
-          .listen('.payment.registered', (e) => handleEvent('payment.registered', e))
-          .listen('.cash-session.opened', (e) => handleEvent('cash-session.opened', e))
-          .listen('.cash-session.closed', (e) => handleEvent('cash-session.closed', e))
+          .listen('.payment.registered', e => handleEvent('payment.registered', e))
+          .listen('.cash-session.opened', e => handleEvent('cash-session.opened', e))
+          .listen('.cash-session.closed', e => handleEvent('cash-session.closed', e))
         channels.cashRegister = cashRegisterChannel
       }
 
       // Canal de recordatorios
       const remindersChannel = channel('reminders')
       if (remindersChannel) {
-        remindersChannel
-          .listen('.reminder.sent', (e) => handleEvent('reminder.sent', e))
+        remindersChannel.listen('.reminder.sent', e => handleEvent('reminder.sent', e))
         channels.reminders = remindersChannel
       }
 
       // Canal de catalogo de procedimientos (Sprint 3 fix IM-4)
       const procedureCatalogChannel = channel('procedure-catalog')
       if (procedureCatalogChannel) {
-        procedureCatalogChannel
-          .listen('.procedure.catalog.deactivated', (e) => handleEvent('procedure.catalog.deactivated', e))
+        procedureCatalogChannel.listen('.procedure.catalog.deactivated', e =>
+          handleEvent('procedure.catalog.deactivated', e)
+        )
         channels.procedureCatalog = procedureCatalogChannel
       }
     } catch (error) {
@@ -217,4 +211,3 @@ export function useWebSocketNotifications() {
     cleanup
   }
 }
-

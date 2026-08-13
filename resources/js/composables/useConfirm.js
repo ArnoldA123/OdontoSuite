@@ -37,8 +37,8 @@ export function useConfirm() {
    * @param {'default'|'danger'} [options.variant='default'] - 'danger' muestra icono de alerta + boton rojo
    * @returns {Promise<boolean>} true si confirma, false si cancela
    */
-  const confirm = (options) => {
-    return new Promise((resolve) => {
+  const confirm = options => {
+    return new Promise(resolve => {
       // Si ya hay un confirm abierto, resolver el anterior con false
       // (evita quedarme pegado si alguien llama confirm() dos veces seguidas)
       if (resolver) {
@@ -90,7 +90,7 @@ export function useConfirm() {
     variant,
     loading,
     handleConfirm,
-    handleCancel,
+    handleCancel
   }
 }
 
@@ -102,5 +102,5 @@ export {
   message as confirmMessage,
   confirmText as confirmConfirmText,
   cancelText as confirmCancelText,
-  variant as confirmVariant,
+  variant as confirmVariant
 }

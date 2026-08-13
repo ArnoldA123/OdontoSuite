@@ -7,7 +7,7 @@
  * @param {number} amount - Cantidad a formatear
  * @returns {string} - Cantidad formateada como moneda
  */
-export const formatCurrency = (amount) => {
+export const formatCurrency = amount => {
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
     currency: 'PEN'
@@ -19,7 +19,7 @@ export const formatCurrency = (amount) => {
  * @param {string|Date} date - Fecha a formatear
  * @returns {string} - Fecha formateada
  */
-export const formatDate = (date) => {
+export const formatDate = date => {
   return new Intl.DateTimeFormat('es-PE', {
     year: 'numeric',
     month: 'long',
@@ -34,7 +34,7 @@ export const formatDate = (date) => {
  * @param {string|Date} date - Fecha a formatear
  * @returns {string} - Fecha formateada
  */
-export const formatDateShort = (date) => {
+export const formatDateShort = date => {
   return new Intl.DateTimeFormat('es-PE', {
     year: 'numeric',
     month: '2-digit',
@@ -47,7 +47,7 @@ export const formatDateShort = (date) => {
  * @param {string|Date} date - Fecha a formatear
  * @returns {string} - Hora formateada
  */
-export const formatTime = (date) => {
+export const formatTime = date => {
   return new Intl.DateTimeFormat('es-PE', {
     hour: '2-digit',
     minute: '2-digit'
@@ -69,7 +69,7 @@ export const formatFullName = (firstName, lastName) => {
  * @param {string} documentNumber - Número de documento
  * @returns {string} - Documento formateado
  */
-export const formatDocumentNumber = (documentNumber) => {
+export const formatDocumentNumber = documentNumber => {
   if (!documentNumber) return 'N/A'
   return documentNumber.toString().replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3')
 }
@@ -79,7 +79,7 @@ export const formatDocumentNumber = (documentNumber) => {
  * @param {string} phone - Número de teléfono
  * @returns {string} - Teléfono formateado
  */
-export const formatPhone = (phone) => {
+export const formatPhone = phone => {
   if (!phone) return 'N/A'
   const cleaned = phone.replace(/\D/g, '')
   if (cleaned.length === 9) {
@@ -107,6 +107,6 @@ export const formatPercentage = (value, decimals = 2) => {
  * @param {number} value - Valor a formatear
  * @returns {string} - Número formateado
  */
-export const formatNumber = (value) => {
+export const formatNumber = value => {
   return new Intl.NumberFormat('es-PE').format(value || 0)
 }

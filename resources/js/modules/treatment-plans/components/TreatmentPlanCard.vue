@@ -1,19 +1,17 @@
 <template>
-  <div
-    class="treatment-plan-card"
-    :class="cardClasses"
-    @click="$emit('view', plan)"
-  >
+  <div class="treatment-plan-card" :class="cardClasses" @click="$emit('view', plan)">
     <div class="card-header">
       <div class="flex justify-between items-start gap-2">
         <div class="min-w-0">
-          <h3 class="plan-title truncate">{{ plan.title }}</h3>
-          <p class="plan-number">{{ plan.plan_number }}</p>
+          <h3 class="plan-title truncate">
+            {{ plan.title }}
+          </h3>
+          <p class="plan-number">
+            {{ plan.plan_number }}
+          </p>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <span v-if="plan.is_overdue" class="overdue-badge" title="Plan vencido">
-            Vencido
-          </span>
+          <span v-if="plan.is_overdue" class="overdue-badge" title="Plan vencido">Vencido</span>
           <PlanStatusBadge :status="plan.status" />
         </div>
       </div>
@@ -66,7 +64,9 @@
       </div>
 
       <div v-if="plan.notes" class="plan-notes">
-        <p class="text-sm text-theme-secondary line-clamp-2">{{ plan.notes }}</p>
+        <p class="text-sm text-theme-secondary line-clamp-2">
+          {{ plan.notes }}
+        </p>
       </div>
     </div>
 
@@ -74,27 +74,27 @@
       <div class="flex justify-between items-center gap-2">
         <div class="flex space-x-1">
           <button
-            @click="$emit('view', plan)"
             class="btn btn-sm btn-outline"
             title="Ver detalles"
             aria-label="Ver detalles"
+            @click="$emit('view', plan)"
           >
             <EyeIcon class="w-4 h-4" />
           </button>
           <button
-            @click="$emit('edit', plan)"
             class="btn btn-sm btn-outline"
             title="Editar"
             aria-label="Editar"
             :disabled="!canEdit"
+            @click="$emit('edit', plan)"
           >
             <PencilIcon class="w-4 h-4" />
           </button>
           <button
-            @click="$emit('duplicate', plan)"
             class="btn btn-sm btn-outline"
             title="Duplicar"
             aria-label="Duplicar"
+            @click="$emit('duplicate', plan)"
           >
             <DocumentDuplicateIcon class="w-4 h-4" />
           </button>
@@ -103,38 +103,33 @@
         <div class="flex space-x-1 relative">
           <button
             v-if="canChangeStatus && availableStatuses.length"
-            @click="showStatusMenu = !showStatusMenu"
             class="btn btn-sm btn-secondary"
             :title="`Cambiar estado (actual: ${plan.status})`"
             aria-label="Cambiar estado"
             aria-haspopup="menu"
             :aria-expanded="showStatusMenu"
+            @click="showStatusMenu = !showStatusMenu"
           >
             <ArrowPathIcon class="w-4 h-4" />
           </button>
           <button
-            @click="confirmDelete"
             class="btn btn-sm btn-danger"
             title="Eliminar"
             aria-label="Eliminar"
             :disabled="!canDelete"
+            @click="confirmDelete"
           >
             <TrashIcon class="w-4 h-4" />
           </button>
 
-          <div
-            v-if="showStatusMenu"
-            class="status-menu"
-            role="menu"
-            @click.stop
-          >
+          <div v-if="showStatusMenu" class="status-menu" role="menu" @click.stop>
             <div class="status-options">
               <button
                 v-for="status in availableStatuses"
                 :key="status.value"
-                @click="changeStatus(status.value)"
                 class="status-option"
                 role="menuitem"
+                @click="changeStatus(status.value)"
               >
                 {{ status.label }}
               </button>
@@ -157,14 +152,14 @@ import {
   PencilIcon,
   DocumentDuplicateIcon,
   ArrowPathIcon,
-  TrashIcon,
+  TrashIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   plan: {
     type: Object,
-    required: true,
-  },
+    required: true
+  }
 })
 
 const emit = defineEmits(['view', 'edit', 'duplicate', 'change-status', 'delete'])
@@ -203,47 +198,47 @@ const progressFillClass = computed(() => {
 const cardClasses = computed(() => ({
   'is-overdue': props.plan.is_overdue,
   'is-completed': props.plan.status === 'completed',
-  'is-cancelled': props.plan.status === 'cancelled',
+  'is-cancelled': props.plan.status === 'cancelled'
 }))
 
 const availableStatuses = computed(() => {
   const map = {
     draft: [
       { value: 'proposed', label: 'Propuesto' },
-      { value: 'cancelled', label: 'Cancelado' },
+      { value: 'cancelled', label: 'Cancelado' }
     ],
     proposed: [
       { value: 'approved', label: 'Aprobado' },
-      { value: 'cancelled', label: 'Cancelado' },
+      { value: 'cancelled', label: 'Cancelado' }
     ],
     approved: [
       { value: 'in_progress', label: 'En Progreso' },
-      { value: 'cancelled', label: 'Cancelado' },
+      { value: 'cancelled', label: 'Cancelado' }
     ],
     in_progress: [
       { value: 'completed', label: 'Completado' },
-      { value: 'cancelled', label: 'Cancelado' },
-    ],
+      { value: 'cancelled', label: 'Cancelado' }
+    ]
   }
   return map[props.plan.status] || []
 })
 
-const formatPrice = (price) =>
+const formatPrice = price =>
   new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(price || 0)
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return '—'
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric',
+    day: 'numeric'
   })
 }
 
-const changeStatus = (status) => {
+const changeStatus = status => {
   showStatusMenu.value = false
   emit('change-status', props.plan.id, status)
 }
@@ -253,12 +248,12 @@ const confirmDelete = async () => {
     title: 'Eliminar plan de tratamiento',
     message: `¿Eliminar el plan "${props.plan.title}" (${props.plan.plan_number})?\n\nEsta acción no se puede deshacer.`,
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) emit('delete', props.plan.id)
 }
 
-const handleClickOutside = (e) => {
+const handleClickOutside = e => {
   if (showStatusMenu.value && !e.target.closest('.status-menu')) {
     showStatusMenu.value = false
   }

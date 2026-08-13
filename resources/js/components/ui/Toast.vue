@@ -24,7 +24,9 @@
 
       <!-- Toast content -->
       <div class="toast-content">
-        <div v-if="title" class="toast-title">{{ title }}</div>
+        <div v-if="title" class="toast-title">
+          {{ title }}
+        </div>
         <div v-if="$slots.default" class="toast-message">
           <slot />
         </div>
@@ -40,8 +42,14 @@
           :aria-label="dismissLabel"
           @click="handleDismiss"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -56,7 +64,7 @@ const props = defineProps({
   type: {
     type: String,
     default: 'info',
-    validator: (value) => ['success', 'error', 'warning', 'info'].includes(value)
+    validator: value => ['success', 'error', 'warning', 'info'].includes(value)
   },
   title: String,
   duration: { type: Number, default: 5000 },
@@ -65,7 +73,15 @@ const props = defineProps({
   position: {
     type: String,
     default: 'top-right',
-    validator: (value) => ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'].includes(value)
+    validator: value =>
+      [
+        'top-left',
+        'top-center',
+        'top-right',
+        'bottom-left',
+        'bottom-center',
+        'bottom-right'
+      ].includes(value)
   }
 })
 
@@ -108,28 +124,13 @@ const toastClasses = computed(() => {
 
   // Type variants (iOS filled pattern).
   const types = {
-    success: [
-      'bg-systemGreen-50 border border-systemGreen-200',
-      'text-systemGreen-700'
-    ],
-    error: [
-      'bg-systemRed-50 border border-systemRed-200',
-      'text-systemRed-700'
-    ],
-    warning: [
-      'bg-systemYellow-50 border border-systemYellow-200',
-      'text-systemYellow-700'
-    ],
-    info: [
-      'bg-systemBlue-50 border border-systemBlue-200',
-      'text-systemBlue-700'
-    ]
+    success: ['bg-systemGreen-50 border border-systemGreen-200', 'text-systemGreen-700'],
+    error: ['bg-systemRed-50 border border-systemRed-200', 'text-systemRed-700'],
+    warning: ['bg-systemYellow-50 border border-systemYellow-200', 'text-systemYellow-700'],
+    info: ['bg-systemBlue-50 border border-systemBlue-200', 'text-systemBlue-700']
   }
 
-  return [
-    ...base,
-    ...types[props.type]
-  ].join(' ')
+  return [...base, ...types[props.type]].join(' ')
 })
 
 const iconComponent = computed(() => {

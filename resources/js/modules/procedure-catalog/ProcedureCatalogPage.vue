@@ -8,12 +8,7 @@
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -25,27 +20,35 @@
           Volver
         </UiButton>
         <UiButton @click="openCreate">
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nuevo Procedimiento
-          </UiButton>
-          <UiButton variant="secondary" class="flex items-center gap-2" @click="showImportModal = true">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.9 5 5 0 019.9-1A5.5 5.5 0 0118 16H7z" />
-            </svg>
-            Importar CSV
-          </UiButton>
+          <svg
+class="w-4 h-4"
+fill="none" stroke="currentColor" viewBox="0 0 24 24"
+>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+          Nuevo Procedimiento
+        </UiButton>
+        <UiButton
+          variant="secondary"
+          class="flex items-center gap-2"
+          @click="showImportModal = true"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M7 16a4 4 0 01-.88-7.9 5 5 0 019.9-1A5.5 5.5 0 0118 16H7z"
+            />
+          </svg>
+          Importar CSV
+        </UiButton>
       </template>
     </PageHeader>
 

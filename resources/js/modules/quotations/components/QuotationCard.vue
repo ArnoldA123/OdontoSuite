@@ -3,8 +3,12 @@
     <div class="card-header">
       <div class="flex justify-between items-start">
         <div>
-          <h3 class="quotation-title">{{ quotation.quotation_number }}</h3>
-          <p class="quotation-date">{{ formatDate(quotation.quotation_date) }}</p>
+          <h3 class="quotation-title">
+            {{ quotation.quotation_number }}
+          </h3>
+          <p class="quotation-date">
+            {{ formatDate(quotation.quotation_date) }}
+          </p>
         </div>
         <QuotationStatusBadge :status="quotation.status" />
       </div>
@@ -14,7 +18,9 @@
       <div class="patient-info">
         <div class="flex items-center space-x-2">
           <UserIcon class="w-4 h-4 text-theme-secondary" />
-          <span class="text-sm text-theme-primary">{{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}</span>
+          <span class="text-sm text-theme-primary">
+            {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
+          </span>
         </div>
       </div>
 
@@ -29,7 +35,9 @@
         </div>
         <div v-if="quotation.discount_amount > 0" class="detail-row">
           <span class="detail-label">Descuento:</span>
-          <span class="detail-value text-danger">- S/ {{ formatPrice(quotation.discount_amount) }}</span>
+          <span class="detail-value text-danger">
+            - S/ {{ formatPrice(quotation.discount_amount) }}
+          </span>
         </div>
         <div v-if="quotation.tax_amount > 0" class="detail-row">
           <span class="detail-label">IGV:</span>
@@ -37,7 +45,9 @@
         </div>
         <div class="detail-row total">
           <span class="detail-label">Total:</span>
-          <span class="detail-value font-semibold text-accent">S/ {{ formatPrice(quotation.total_amount) }}</span>
+          <span class="detail-value font-semibold text-accent">
+            S/ {{ formatPrice(quotation.total_amount) }}
+          </span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Válido hasta:</span>
@@ -49,7 +59,9 @@
       </div>
 
       <div v-if="quotation.notes" class="quotation-notes">
-        <p class="text-sm text-theme-secondary line-clamp-2">{{ quotation.notes }}</p>
+        <p class="text-sm text-theme-secondary line-clamp-2">
+          {{ quotation.notes }}
+        </p>
       </div>
     </div>
 
@@ -57,24 +69,24 @@
       <div class="flex justify-between items-center">
         <div class="flex space-x-2">
           <button
-            @click="$emit('view', quotation)"
             class="btn btn-sm btn-outline"
             title="Ver detalles"
+            @click="$emit('view', quotation)"
           >
             <EyeIcon class="w-4 h-4" />
           </button>
           <button
             v-if="canEdit"
-            @click="$emit('edit', quotation)"
             class="btn btn-sm btn-outline"
             title="Editar"
+            @click="$emit('edit', quotation)"
           >
             <PencilIcon class="w-4 h-4" />
           </button>
           <button
-            @click="$emit('download', quotation)"
             class="btn btn-sm btn-outline"
             title="Descargar PDF"
+            @click="$emit('download', quotation)"
           >
             <ArrowDownTrayIcon class="w-4 h-4" />
           </button>
@@ -83,25 +95,25 @@
         <div class="flex space-x-2">
           <button
             v-if="canApprove"
-            @click="$emit('approve', quotation)"
             class="btn btn-sm btn-success"
             title="Aprobar"
+            @click="$emit('approve', quotation)"
           >
             <CheckIcon class="w-4 h-4" />
           </button>
           <button
             v-if="canReject"
-            @click="$emit('reject', quotation)"
             class="btn btn-sm btn-danger"
             title="Rechazar"
+            @click="$emit('reject', quotation)"
           >
             <XMarkIcon class="w-4 h-4" />
           </button>
           <button
             v-if="canDelete"
-            @click="confirmDelete"
             class="btn btn-sm btn-danger"
             title="Eliminar"
+            @click="confirmDelete"
           >
             <TrashIcon class="w-4 h-4" />
           </button>
@@ -140,31 +152,32 @@ const { user } = useAuth()
 
 // Computed
 const canEdit = computed(() => {
-  return quotation.value.status === 'draft' && (
-    user.value?.role === 'administrador' ||
-    user.value?.role === 'finanzas' ||
-    user.value?.role === 'odontologo'
+  return (
+    quotation.value.status === 'draft' &&
+    (user.value?.role === 'administrador' ||
+      user.value?.role === 'finanzas' ||
+      user.value?.role === 'odontologo')
   )
 })
 
 const canApprove = computed(() => {
-  return quotation.value.status === 'sent' && (
-    user.value?.role === 'administrador' ||
-    user.value?.role === 'finanzas'
+  return (
+    quotation.value.status === 'sent' &&
+    (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
 const canReject = computed(() => {
-  return quotation.value.status === 'sent' && (
-    user.value?.role === 'administrador' ||
-    user.value?.role === 'finanzas'
+  return (
+    quotation.value.status === 'sent' &&
+    (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
 const canDelete = computed(() => {
-  return quotation.value.status === 'draft' && (
-    user.value?.role === 'administrador' ||
-    user.value?.role === 'finanzas'
+  return (
+    quotation.value.status === 'draft' &&
+    (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
@@ -173,14 +186,14 @@ const isExpired = computed(() => {
 })
 
 // Métodos
-const formatPrice = (price) => {
+const formatPrice = price => {
   return new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(price || 0)
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -193,7 +206,7 @@ const confirmDelete = async () => {
     title: 'Eliminar presupuesto',
     message: '¿Estás seguro de que quieres eliminar este presupuesto?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) {
     emit('delete', quotation.value.id)

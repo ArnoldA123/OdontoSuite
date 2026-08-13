@@ -167,6 +167,6 @@ export function useBranches () {
 
     // Slice 08 / T-08.11: refresh + retry aliases.
     refresh: getBranches,
-    retry: getBranches,
+    retry: getBranches
   }
 }
