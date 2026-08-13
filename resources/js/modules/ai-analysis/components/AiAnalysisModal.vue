@@ -12,7 +12,7 @@
             {{ analysis.patient?.full_name || 'Paciente' }} - {{ formatDate(analysis.created_at) }}
           </p>
         </div>
-        <button @click="$emit('close')" class="close-btn">
+        <button class="close-btn" @click="$emit('close')">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
@@ -40,11 +40,15 @@
               <div class="info-grid">
                 <div class="info-item">
                   <span class="info-label">Archivo:</span>
-                  <span class="info-value">{{ analysis.clinical_attachment?.original_name || 'N/A' }}</span>
+                  <span class="info-value">
+                    {{ analysis.clinical_attachment?.original_name || 'N/A' }}
+                  </span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Tipo:</span>
-                  <span class="info-value">{{ analysis.clinical_attachment?.category || 'N/A' }}</span>
+                  <span class="info-value">
+                    {{ analysis.clinical_attachment?.category || 'N/A' }}
+                  </span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Modelo IA:</span>
@@ -52,7 +56,10 @@
                 </div>
                 <div class="info-item">
                   <span class="info-label">Confianza General:</span>
-                  <span class="confidence-score" :class="getConfidenceClass(analysis.confidence_score)">
+                  <span
+                    class="confidence-score"
+                    :class="getConfidenceClass(analysis.confidence_score)"
+                  >
                     {{ analysis.confidence_score }}%
                   </span>
                 </div>
@@ -72,7 +79,7 @@
               </div>
 
               <div v-if="analysis.status === 'processing'" class="processing-info">
-                <div class="processing-spinner"></div>
+                <div class="processing-spinner" />
                 <p class="processing-text">Procesando imagen con IA...</p>
               </div>
             </div>
@@ -87,9 +94,14 @@
                   class="finding-card"
                 >
                   <div class="finding-header">
-                    <h4 class="finding-diagnosis">{{ finding.diagnosis }}</h4>
+                    <h4 class="finding-diagnosis">
+                      {{ finding.diagnosis }}
+                    </h4>
                     <div class="finding-meta">
-                      <span class="confidence-badge" :class="getConfidenceClass(finding.confidence)">
+                      <span
+                        class="confidence-badge"
+                        :class="getConfidenceClass(finding.confidence)"
+                      >
                         {{ finding.confidence }}%
                       </span>
                       <span class="severity-badge" :class="getSeverityClass(finding.severity)">
@@ -102,14 +114,19 @@
                       <MapPinIcon class="w-4 h-4 mr-1" />
                       {{ finding.location }}
                     </p>
-                    <p class="finding-description">{{ finding.description }}</p>
+                    <p class="finding-description">
+                      {{ finding.description }}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- Recommendations -->
-            <div v-if="analysis.recommendations && analysis.recommendations.length > 0" class="recommendations-section">
+            <div
+              v-if="analysis.recommendations && analysis.recommendations.length > 0"
+              class="recommendations-section"
+            >
               <h3 class="section-title">Recomendaciones de Tratamiento</h3>
               <ul class="recommendations-list">
                 <li
@@ -129,17 +146,24 @@
               <div class="review-content">
                 <div class="review-decision">
                   <span class="decision-label">Decisión:</span>
-                  <span class="decision-badge" :class="getReviewDecisionClass(analysis.review_decision)">
+                  <span
+                    class="decision-badge"
+                    :class="getReviewDecisionClass(analysis.review_decision)"
+                  >
                     {{ getReviewDecisionLabel(analysis.review_decision) }}
                   </span>
                 </div>
                 <div class="review-meta">
-                  <span class="reviewer">Revisado por: {{ analysis.reviewed_by?.name || 'N/A' }}</span>
+                  <span class="reviewer">
+                    Revisado por: {{ analysis.reviewed_by?.name || 'N/A' }}
+                  </span>
                   <span class="review-date">{{ formatDate(analysis.reviewed_at) }}</span>
                 </div>
                 <div v-if="analysis.review_notes" class="review-notes">
                   <h4 class="notes-title">Notas del Odontólogo:</h4>
-                  <p class="notes-content">{{ analysis.review_notes }}</p>
+                  <p class="notes-content">
+                    {{ analysis.review_notes }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -147,7 +171,7 @@
             <!-- Review Form (if not reviewed) -->
             <div v-if="!analysis.reviewed && analysis.status === 'completed'" class="review-form">
               <h3 class="section-title">Revisar Análisis</h3>
-              <form @submit.prevent="submitReview" class="form">
+              <form class="form" @submit.prevent="submitReview">
                 <div class="form-group">
                   <label class="form-label">Decisión</label>
                   <select v-model="reviewForm.decision" class="form-select" required>
@@ -165,11 +189,11 @@
                     class="form-textarea"
                     rows="3"
                     placeholder="Agregar comentarios sobre el análisis..."
-                  ></textarea>
+                  />
                 </div>
 
                 <div class="form-actions">
-                  <button type="button" @click="$emit('close')" class="btn btn-secondary">
+                  <button type="button" class="btn btn-secondary" @click="$emit('close')">
                     Cancelar
                   </button>
                   <button type="submit" class="btn btn-primary" :disabled="!reviewForm.decision">
@@ -205,12 +229,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'review'])
 
-const {
-  getStatusLabel,
-  getReviewDecisionLabel,
-  getConfidenceColor,
-  formatDate
-} = useAiAnalysis()
+const { getStatusLabel, getReviewDecisionLabel, getConfidenceColor, formatDate } = useAiAnalysis()
 
 // Review form
 const reviewForm = reactive({
@@ -219,11 +238,11 @@ const reviewForm = reactive({
 })
 
 // Methods
-const getImageUrl = (filePath) => {
+const getImageUrl = filePath => {
   return `/storage/${filePath}`
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     pending: 'bg-warning-100 text-warning-700',
     processing: 'bg-primary-100 text-primary-800',
@@ -233,13 +252,13 @@ const getStatusClass = (status) => {
   return classes[status] || 'bg-theme-surface text-theme-secondary'
 }
 
-const getConfidenceClass = (confidence) => {
+const getConfidenceClass = confidence => {
   if (confidence >= 90) return 'bg-success-100 text-success-700'
   if (confidence >= 70) return 'bg-warning-100 text-warning-700'
   return 'bg-error-100 text-error-700'
 }
 
-const getSeverityClass = (severity) => {
+const getSeverityClass = severity => {
   const classes = {
     leve: 'bg-success-100 text-success-700',
     moderado: 'bg-warning-100 text-warning-700',
@@ -248,7 +267,7 @@ const getSeverityClass = (severity) => {
   return classes[severity] || 'bg-theme-surface text-theme-secondary'
 }
 
-const getSeverityLabel = (severity) => {
+const getSeverityLabel = severity => {
   const labels = {
     leve: 'Leve',
     moderado: 'Moderado',
@@ -257,7 +276,7 @@ const getSeverityLabel = (severity) => {
   return labels[severity] || severity
 }
 
-const getReviewDecisionClass = (decision) => {
+const getReviewDecisionClass = decision => {
   const classes = {
     accepted: 'bg-success-100 text-success-700',
     rejected: 'bg-error-100 text-error-700',

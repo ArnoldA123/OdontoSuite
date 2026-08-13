@@ -11,8 +11,14 @@
       :aria-label="dismissLabel"
       @click="handleDismiss"
     >
-      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      <svg class="w-3 h-3" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
       </svg>
     </button>
   </span>
@@ -25,17 +31,18 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(value)
+    validator: value =>
+      ['default', 'primary', 'success', 'warning', 'error', 'info', 'neutral'].includes(value)
   },
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   shape: {
     type: String,
     default: 'rounded',
-    validator: (value) => ['rounded', 'pill', 'square'].includes(value)
+    validator: value => ['rounded', 'pill', 'square'].includes(value)
   },
   dismissible: { type: Boolean, default: false },
   dot: { type: Boolean, default: false }
@@ -46,10 +53,7 @@ const emit = defineEmits(['dismiss'])
 const dismissLabel = computed(() => 'Eliminar badge')
 
 const badgeClasses = computed(() => {
-  const base = [
-    'inline-flex items-center gap-1.5 font-medium',
-    'select-none'
-  ]
+  const base = ['inline-flex items-center gap-1.5 font-medium', 'select-none']
 
   // Size variants
   const sizes = {
@@ -67,34 +71,13 @@ const badgeClasses = computed(() => {
 
   // Color variants (iOS filled pattern: 100 background + 600 text).
   const variants = {
-    default: [
-      'bg-theme-surface text-theme-secondary',
-      'border border-theme'
-    ],
-    primary: [
-      'bg-systemBlue-100 text-systemBlue-700',
-      'border border-systemBlue-200'
-    ],
-    success: [
-      'bg-systemGreen-100 text-systemGreen-700',
-      'border border-systemGreen-200'
-    ],
-    warning: [
-      'bg-systemYellow-100 text-systemYellow-700',
-      'border border-systemYellow-200'
-    ],
-    error: [
-      'bg-systemRed-100 text-systemRed-700',
-      'border border-systemRed-200'
-    ],
-    info: [
-      'bg-systemBlue-100 text-systemBlue-700',
-      'border border-systemBlue-200'
-    ],
-    neutral: [
-      'bg-theme-surface text-theme-secondary',
-      'border border-theme'
-    ]
+    default: ['bg-theme-surface text-theme-secondary', 'border border-theme'],
+    primary: ['bg-systemBlue-100 text-systemBlue-700', 'border border-systemBlue-200'],
+    success: ['bg-systemGreen-100 text-systemGreen-700', 'border border-systemGreen-200'],
+    warning: ['bg-systemYellow-100 text-systemYellow-700', 'border border-systemYellow-200'],
+    error: ['bg-systemRed-100 text-systemRed-700', 'border border-systemRed-200'],
+    info: ['bg-systemBlue-100 text-systemBlue-700', 'border border-systemBlue-200'],
+    neutral: ['bg-theme-surface text-theme-secondary', 'border border-theme']
   }
 
   // Dot variant

@@ -143,7 +143,11 @@ export class NotificationService {
    * Mapear evento de historia clínica a notificación
    */
   static mapMedicalRecordEvent(eventName, data) {
-    const record = data.medical_record || data.evolution?.medical_record || data.attachment?.medical_record || data
+    const record =
+      data.medical_record ||
+      data.evolution?.medical_record ||
+      data.attachment?.medical_record ||
+      data
     const patientName = record.patient?.full_name || record.patient?.name || 'Paciente'
 
     const mappings = {
@@ -310,4 +314,3 @@ export class NotificationService {
     return labels[specialty] || specialty
   }
 }
-

@@ -56,7 +56,8 @@
       <header class="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
-            {{ getGreeting() }}, <span class="text-label">{{ firstName }}</span>
+            {{ getGreeting() }},
+            <span class="text-label">{{ firstName }}</span>
           </p>
           <p class="text-xs text-theme-secondary mt-1">
             {{ getTodayDate() }}
@@ -113,7 +114,9 @@
                   tracking keep all five cards aligned on one line.
                 -->
                 <div class="h-4 flex items-center">
-                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  <p
+                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
+                  >
                     Citas Hoy
                   </p>
                 </div>
@@ -148,7 +151,7 @@
                     {{ stats.comparisons.appointments_today.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]"></div>
+                <div v-else class="h-6 min-h-[24px]" />
                 <!--
                   Caption slot (defect 3 — date truncation fix).
                   Use the short "11 de ago" format from
@@ -163,7 +166,9 @@
                   </p>
                 </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
+              >
                 <svg
                   class="w-6 h-6 text-systemGray-600"
                   fill="none"
@@ -199,7 +204,9 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  <p
+                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
+                  >
                     Pacientes
                   </p>
                 </div>
@@ -234,14 +241,16 @@
                     {{ stats.comparisons.total_patients.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]"></div>
+                <div v-else class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
-                    Total registrados
-                  </p>
+Total registrados
+</p>
                 </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
+              >
                 <svg
                   class="w-6 h-6 text-systemGray-600"
                   fill="none"
@@ -277,7 +286,9 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  <p
+                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
+                  >
                     Profesionales
                   </p>
                 </div>
@@ -289,14 +300,16 @@
                     {{ stats.total_professionals || 0 }}
                   </p>
                 </div>
-                <div class="h-6 min-h-[24px]"></div>
+                <div class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
-                    Equipo médico
-                  </p>
+Equipo médico
+</p>
                 </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
+              >
                 <svg
                   class="w-6 h-6 text-systemGray-600"
                   fill="none"
@@ -329,7 +342,9 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  <p
+                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
+                  >
                     Total Citas
                   </p>
                 </div>
@@ -350,7 +365,9 @@
                   class="h-6 min-h-[24px] flex items-center gap-1.5"
                 >
                   <span
-                    :class="chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)"
+                    :class="
+                      chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)
+                    "
                     class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_appointments_this_month.delta_label }}
@@ -359,14 +376,16 @@
                     {{ stats.comparisons.total_appointments_this_month.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]"></div>
+                <div v-else class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
-                    Este mes
-                  </p>
+Este mes
+</p>
                 </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
+              >
                 <svg
                   class="w-6 h-6 text-systemGray-600"
                   fill="none"
@@ -410,7 +429,9 @@
                   the four sibling eyebrows for row rhythm.
                 -->
                 <div class="h-4 flex items-center">
-                  <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  <p
+                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
+                  >
                     Estado de Caja
                   </p>
                 </div>
@@ -421,7 +442,8 @@
                     size="md"
                     role="status"
                     :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                    :class="['mt-1', cashStatusBadgeClass]"
+                    class="mt-1"
+                    :class="[cashStatusBadgeClass]"
                     data-cash-pill
                     :data-cash-pill-state="cashStatusPillState"
                   >
@@ -429,18 +451,20 @@
                       class="inline-block w-1.5 h-1.5 rounded-full"
                       :class="cashStatusDotClass"
                       aria-hidden="true"
-                    ></span>
+                    />
                     {{ cashStatusLabel }}
                   </UiBadge>
                 </div>
-                <div class="h-6 min-h-[24px]"></div>
+                <div class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
                     {{ cashBalanceText }}
                   </p>
                 </div>
               </div>
-              <div class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
+              >
                 <svg
                   class="w-6 h-6 text-systemGray-600"
                   fill="none"
@@ -507,7 +531,9 @@
             @click="goToPatients"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              >
                 <svg
                   class="w-5 h-5 text-systemGray-600"
                   fill="none"
@@ -525,9 +551,15 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Pacientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar base de datos</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                  Gestionar base de datos
+                </p>
               </div>
-              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">P</kbd>
+              <kbd
+                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
+              >
+                P
+              </kbd>
             </div>
           </UiCard>
 
@@ -542,7 +574,9 @@
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              >
                 <svg
                   class="w-5 h-5 text-systemGray-600"
                   fill="none"
@@ -560,9 +594,15 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Programar cita médica</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                  Programar cita médica
+                </p>
               </div>
-              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">N</kbd>
+              <kbd
+                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
+              >
+                N
+              </kbd>
             </div>
           </UiCard>
 
@@ -577,7 +617,9 @@
             @click="goToProfessionals"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              >
                 <svg
                   class="w-5 h-5 text-systemGray-600"
                   fill="none"
@@ -597,7 +639,11 @@
                 <p class="font-medium text-label leading-tight">Profesionales</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
               </div>
-              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">R</kbd>
+              <kbd
+                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
+              >
+                R
+              </kbd>
             </div>
           </UiCard>
 
@@ -612,7 +658,9 @@
             @click="goToEnvironments"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              >
                 <svg
                   class="w-5 h-5 text-systemGray-600"
                   fill="none"
@@ -632,7 +680,11 @@
                 <p class="font-medium text-label leading-tight">Ambientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
               </div>
-              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">E</kbd>
+              <kbd
+                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
+              >
+                E
+              </kbd>
             </div>
           </UiCard>
 
@@ -647,7 +699,9 @@
             @click="goToBusinessIntelligence"
           >
             <div class="flex items-start gap-3">
-              <div class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center">
+              <div
+                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              >
                 <svg
                   class="w-5 h-5 text-systemGray-600"
                   fill="none"
@@ -665,9 +719,15 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Reportes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Análisis y estadísticas</p>
+                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                  Análisis y estadísticas
+                </p>
               </div>
-              <kbd class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5">B</kbd>
+              <kbd
+                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
+              >
+                B
+              </kbd>
             </div>
           </UiCard>
         </div>
@@ -677,10 +737,7 @@
            The empty state is the live state today (GET /api/dashboard/today
            returns 404 due to the known bug). Build it properly, not as an
            afterthought. -->
-      <section
-        v-if="can.viewAppointment?.value"
-        aria-label="Citas de hoy"
-      >
+      <section v-if="can.viewAppointment?.value" aria-label="Citas de hoy">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-ink-800">Citas de Hoy</h2>
           <UiButton
@@ -742,7 +799,9 @@
           >
             <div class="flex items-center justify-between gap-4">
               <div class="flex items-center gap-4 min-w-0">
-                <div class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200">
+                <div
+                  class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200"
+                >
                   <svg
                     class="w-5 h-5 text-systemBlue-600"
                     fill="none"
@@ -778,10 +837,7 @@
     </div>
 
     <!-- New Appointment Modal -->
-    <NewAppointmentModal
-      v-model="showNewAppointmentModal"
-      @created="handleAppointmentCreated"
-    />
+    <NewAppointmentModal v-model="showNewAppointmentModal" @created="handleAppointmentCreated" />
   </AppLayout>
 </template>
 
@@ -801,13 +857,8 @@ const route = useRoute()
 const { user, isAuthenticated } = useAuth()
 const { get } = useApi()
 const { can } = usePermissions()
-const {
-  currentSession,
-  hasActiveSession,
-  isOpen,
-  realTimeTotals,
-  loadCurrentSession
-} = useCashRegister()
+const { currentSession, hasActiveSession, isOpen, realTimeTotals, loadCurrentSession } =
+  useCashRegister()
 const { channel, echo } = useEcho()
 
 // State
@@ -846,7 +897,7 @@ const todayAppointments = ref([])
  * computes a percentage (that's the structural guarantee against
  * Infinity / NaN / 100%).
  */
-const chipToneClass = (deltaLabel) => {
+const chipToneClass = deltaLabel => {
   if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
     return 'bg-systemGray-100 text-systemGray-600'
   }
@@ -897,14 +948,27 @@ const getTodayDate = () => {
  * the audit-confirmed 1440x900 width.
  */
 const getShortTodayDate = () => {
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  const months = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic'
+  ]
   const now = new Date()
   const day = now.getDate()
   const month = months[now.getMonth()]
   return `${day} de ${month}`
 }
 
-const getRoleLabel = (role) => {
+const getRoleLabel = role => {
   const labels = {
     administrador: 'Administrador',
     recepcionista: 'Recepcionista',
@@ -917,7 +981,7 @@ const getRoleLabel = (role) => {
   return labels[role] || role
 }
 
-const formatTime = (dateTime) => {
+const formatTime = dateTime => {
   if (!dateTime) return ''
   return new Date(dateTime).toLocaleTimeString('es-ES', {
     hour: '2-digit',
@@ -925,7 +989,7 @@ const formatTime = (dateTime) => {
   })
 }
 
-const getStatusText = (status) => {
+const getStatusText = status => {
   const texts = {
     scheduled: 'Programada',
     confirmed: 'Confirmada',
@@ -937,7 +1001,7 @@ const getStatusText = (status) => {
   return texts[status] || status
 }
 
-const getStatusVariant = (status) => {
+const getStatusVariant = status => {
   const variants = {
     scheduled: 'secondary',
     confirmed: 'success',
@@ -1053,7 +1117,7 @@ const loadDashboardData = async () => {
   try {
     const [statsResponse, appointmentsResponse] = await Promise.all([
       get('/api/dashboard/stats'),
-      get('/api/dashboard/today').catch((err) => {
+      get('/api/dashboard/today').catch(err => {
         // GET /api/dashboard/today returns 404 in the running app; the
         // empty-state path is the live UX. Treat any error as an empty list
         // rather than throwing, so other stats still render.
@@ -1075,9 +1139,7 @@ const loadDashboardData = async () => {
       total_patients: backendStats.total_patients || 0,
       total_appointments: backendStats.total_appointments || 0,
       total_appointments_this_month:
-        backendStats.total_appointments_this_month ||
-        backendStats.total_appointments ||
-        0,
+        backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
       total_professionals: backendStats.total_professionals || 0,
       total_appointment_types: backendStats.total_appointment_types || 0,
       total_dental_chairs: backendStats.total_dental_chairs || 0,
@@ -1177,7 +1239,7 @@ onMounted(async () => {
     appointmentsChannel = channel('appointments')
     if (appointmentsChannel) {
       appointmentsChannel
-        .listen('.appointment.created', (e) => {
+        .listen('.appointment.created', e => {
           if (e.appointment?.scheduled_at) {
             const appointmentDate = new Date(e.appointment.scheduled_at)
             const today = new Date()
@@ -1186,19 +1248,17 @@ onMounted(async () => {
             }
           }
         })
-        .listen('.appointment.updated', async (e) => {
-          const index = todayAppointments.value.findIndex(
-            (apt) => apt.id === e.appointment.id
-          )
+        .listen('.appointment.updated', async e => {
+          const index = todayAppointments.value.findIndex(apt => apt.id === e.appointment.id)
           if (index !== -1) {
             todayAppointments.value[index] = e.appointment
           } else {
             debouncedLoadDashboardData()
           }
         })
-        .listen('.appointment.deleted', async (e) => {
+        .listen('.appointment.deleted', async e => {
           todayAppointments.value = todayAppointments.value.filter(
-            (apt) => apt.id !== e.appointment_id
+            apt => apt.id !== e.appointment_id
           )
           debouncedLoadDashboardData()
         })

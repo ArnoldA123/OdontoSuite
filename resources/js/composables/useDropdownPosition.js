@@ -32,7 +32,12 @@ export function useDropdownPosition(triggerRef, dropdownRef) {
     const spaceRight = viewportWidth - rect.left
     const spaceLeft = rect.left
 
-    let top, left, right, bottom, maxHeight, maxWidth
+    let top
+    let left
+    let right
+    let bottom
+    let maxHeight
+    let maxWidth
 
     // Posicionamiento vertical - SIEMPRE abrir hacia abajo
     top = rect.bottom + 8
@@ -112,4 +117,3 @@ export function useDropdownPosition(triggerRef, dropdownRef) {
     toggleDropdown
   }
 }
-

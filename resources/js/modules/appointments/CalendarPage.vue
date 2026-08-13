@@ -16,7 +16,8 @@
         </span>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -29,7 +30,8 @@
         </UiButton>
         <UiButton v-if="can.createAppointment?.value" @click="openNewAppointmentModal">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -48,30 +50,31 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-center gap-2">
           <UiButton
-            @click="changeView('day')"
             :variant="currentView === 'day' ? 'primary' : 'ghost'"
             size="sm"
+            @click="changeView('day')"
           >
             Día
           </UiButton>
           <UiButton
-            @click="changeView('week')"
             :variant="currentView === 'week' ? 'primary' : 'ghost'"
             size="sm"
+            @click="changeView('week')"
           >
             Semana
           </UiButton>
           <UiButton
-            @click="changeView('month')"
             :variant="currentView === 'month' ? 'primary' : 'ghost'"
             size="sm"
+            @click="changeView('month')"
           >
             Mes
           </UiButton>
         </div>
         <div class="flex items-center gap-3">
-          <UiButton variant="ghost" size="sm" @click="previousPeriod" class="p-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <UiButton variant="ghost" size="sm" class="p-2" @click="previousPeriod">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -80,9 +83,12 @@
               />
             </svg>
           </UiButton>
-          <UiButton variant="ghost" size="sm" @click="goToToday" class="px-4">Hoy</UiButton>
-          <UiButton variant="ghost" size="sm" @click="nextPeriod" class="p-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <UiButton
+variant="ghost"
+size="sm" class="px-4" @click="goToToday">Hoy</UiButton>
+          <UiButton variant="ghost" size="sm" class="p-2" @click="nextPeriod">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -98,14 +104,22 @@
     <!-- Calendar Header -->
     <UiCard variant="glass" class="mb-6">
       <div class="text-center">
-        <h2 class="text-2xl font-bold text-theme-primary mb-2">{{ currentPeriodTitle }}</h2>
+        <h2 class="text-2xl font-bold text-theme-primary mb-2">
+          {{ currentPeriodTitle }}
+        </h2>
         <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
-          <UiStatusBadge variant="info" label="Programada" show-dot data-status="scheduled" />
-          <UiStatusBadge variant="success" label="Confirmada" show-dot data-status="confirmed" />
-          <UiStatusBadge variant="warning" label="En Consulta" show-dot data-status="in_progress" />
-          <UiStatusBadge variant="neutral" label="Completada" show-dot data-status="completed" />
-          <UiStatusBadge variant="error" label="Cancelada" show-dot data-status="cancelled" />
-          <UiStatusBadge variant="neutral" label="No se presentó" show-dot data-status="no_show" />
+          <UiStatusBadge variant="info" label="Programada" show-dot
+data-status="scheduled" />
+          <UiStatusBadge variant="success" label="Confirmada" show-dot
+data-status="confirmed" />
+          <UiStatusBadge variant="warning" label="En Consulta" show-dot
+data-status="in_progress" />
+          <UiStatusBadge variant="neutral" label="Completada" show-dot
+data-status="completed" />
+          <UiStatusBadge variant="error" label="Cancelada" show-dot
+data-status="cancelled" />
+          <UiStatusBadge variant="neutral" label="No se presentó" show-dot
+data-status="no_show" />
           <UiStatusBadge variant="warning" label="Reprogramada" data-status="rescheduled" />
         </div>
       </div>
@@ -183,9 +197,11 @@
 
       <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
-        <div class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums">
+        <div
+          class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums"
+        >
           <!-- Time column header -->
-          <div class="p-2 border-b border-hairline bg-theme-surface"></div>
+          <div class="p-2 border-b border-hairline bg-theme-surface" />
 
           <!-- Day headers -->
           <div
@@ -193,8 +209,12 @@
             :key="day.date"
             class="p-2 border-b border-hairline bg-theme-surface text-center"
           >
-            <div class="text-sm font-medium text-theme-primary">{{ day.name }}</div>
-            <div class="text-xs text-theme-secondary">{{ day.number }}</div>
+            <div class="text-sm font-medium text-theme-primary">
+              {{ day.name }}
+            </div>
+            <div class="text-xs text-theme-secondary">
+              {{ day.number }}
+            </div>
           </div>
 
           <!-- Time column -->
@@ -301,7 +321,10 @@
                   {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
                 </div>
               </div>
-              <div v-if="day.hasMore" class="text-xs text-systemBlue-600 font-medium text-center mt-1">
+              <div
+                v-if="day.hasMore"
+                class="text-xs text-systemBlue-600 font-medium text-center mt-1"
+              >
                 +{{ day.appointmentCount - 3 }} más
               </div>
               <div
@@ -329,10 +352,11 @@
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold text-theme-primary">Detalles de la Cita</h2>
             <button
-              @click="selectedAppointment = null"
               class="text-theme-secondary hover:text-theme-primary transition-colors"
+              @click="selectedAppointment = null"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -354,7 +378,9 @@
             </div>
             <div>
               <label class="text-sm font-medium text-theme-secondary">Profesional</label>
-              <p class="text-theme-primary">{{ selectedAppointment.user.name }}</p>
+              <p class="text-theme-primary">
+                {{ selectedAppointment.user.name }}
+              </p>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -372,7 +398,9 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
-              <p class="text-theme-primary">{{ selectedAppointment.appointment_type.name }}</p>
+              <p class="text-theme-primary">
+                {{ selectedAppointment.appointment_type.name }}
+              </p>
             </div>
             <div>
               <label class="text-sm font-medium text-theme-secondary">Estado</label>
@@ -386,11 +414,15 @@
           </div>
           <div v-if="selectedAppointment.notes">
             <label class="text-sm font-medium text-theme-secondary">Notas</label>
-            <p class="text-theme-primary">{{ selectedAppointment.notes }}</p>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.notes }}
+            </p>
           </div>
           <div v-if="selectedAppointment.treatment_notes">
             <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
-            <p class="text-theme-primary">{{ selectedAppointment.treatment_notes }}</p>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.treatment_notes }}
+            </p>
           </div>
           <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
             <UiButton
@@ -560,7 +592,7 @@ export default {
       if (currentView.value === 'day') {
         const date = new Date(currentDate.value)
         date.setHours(9, 0, 0, 0)
-        const pad = (n) => String(n).padStart(2, '0')
+        const pad = n => String(n).padStart(2, '0')
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
       }
       return null
@@ -673,7 +705,7 @@ export default {
           date: dayStr,
           number: day.getDate(),
           isCurrentMonth: day.getMonth() === month,
-          isToday: isToday,
+          isToday,
           appointments: sortedDayAppointments.slice(0, 3),
           appointmentCount: allDayAppointments.length,
           hasMore: allDayAppointments.length > 3

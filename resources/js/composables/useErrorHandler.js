@@ -4,7 +4,6 @@ export function useErrorHandler() {
   const { error: showError, warning: showWarning, info: showInfo } = useToast()
 
   const handleError = (err, customMessage = null) => {
-
     let message = customMessage
 
     if (!message) {
@@ -12,7 +11,7 @@ export function useErrorHandler() {
         message = err.response.data.message
       } else if (err.response?.data?.errors) {
         // Handle validation errors
-        const errors = err.response.data.errors
+        const { errors } = err.response.data
         const firstError = Object.values(errors)[0]
         message = Array.isArray(firstError) ? firstError[0] : firstError
       } else if (err.message) {
@@ -56,7 +55,7 @@ export function useErrorHandler() {
     }
   }
 
-  const handleValidationErrors = (errors) => {
+  const handleValidationErrors = errors => {
     if (typeof errors === 'object' && errors !== null) {
       const firstError = Object.values(errors)[0]
       const message = Array.isArray(firstError) ? firstError[0] : firstError

@@ -55,10 +55,14 @@ export function stepSpring(state, target, { response = 0.35, damping = 1.0, dt =
  * @param {number} options.dt
  * @returns {object} final { value, velocity }
  */
-export function settle(init, target, { steps = 600, response = 0.35, damping = 1.0, dt = 1 / 60 } = {}) {
+export function settle(
+  init,
+  target,
+  { steps = 600, response = 0.35, damping = 1.0, dt = 1 / 60 } = {}
+) {
   let s = { value: init.value, velocity: init.velocity }
   for (let i = 0; i < steps; i++) {
-    s = stepSpring(s, target, { response, damping, dt });
+    s = stepSpring(s, target, { response, damping, dt })
   }
   return s
 }
@@ -79,11 +83,13 @@ export function settle(init, target, { steps = 600, response = 0.35, damping = 1
  */
 export function projectAndSnap(current, velocity, snapPoints, d = 0.998) {
   if (!Array.isArray(snapPoints) || snapPoints.length === 0) {
-    return current;
+    return current
   }
-  const projected = current + (velocity / 1000) * d / (1 - d)
-  return snapPoints.reduce((a, b) =>
-    Math.abs(b - projected) < Math.abs(a - projected) ? b : a, snapPoints[0])
+  const projected = current + ((velocity / 1000) * d) / (1 - d)
+  return snapPoints.reduce(
+    (a, b) => (Math.abs(b - projected) < Math.abs(a - projected) ? b : a),
+    snapPoints[0]
+  )
 }
 
 /**

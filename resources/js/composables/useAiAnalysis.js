@@ -14,7 +14,7 @@ export function useAiAnalysis() {
   /**
    * Analizar imagen con IA
    */
-  const analyzeImage = async (attachmentId) => {
+  const analyzeImage = async attachmentId => {
     try {
       loading.value = true
       const response = await post(`/api/ai-analysis/analyze/${attachmentId}`)
@@ -32,7 +32,7 @@ export function useAiAnalysis() {
   /**
    * Obtener análisis por adjunto
    */
-  const getAnalysisByAttachment = async (attachmentId) => {
+  const getAnalysisByAttachment = async attachmentId => {
     try {
       loading.value = true
       const response = await get(`/api/ai-analysis/attachment/${attachmentId}`)
@@ -101,7 +101,7 @@ export function useAiAnalysis() {
   /**
    * Obtener análisis específico
    */
-  const getAnalysis = async (id) => {
+  const getAnalysis = async id => {
     try {
       loading.value = true
       const response = await get(`/api/ai-analysis/${id}`)
@@ -157,7 +157,7 @@ export function useAiAnalysis() {
   /**
    * Eliminar análisis
    */
-  const deleteAnalysis = async (id) => {
+  const deleteAnalysis = async id => {
     try {
       loading.value = true
       await del(`/api/ai-analysis/${id}`)
@@ -199,7 +199,6 @@ export function useAiAnalysis() {
 
       success('Análisis completado exitosamente')
       return response.data
-
     } catch (err) {
       error(err.response?.data?.message || 'Error al analizar la imagen')
       throw err
@@ -216,24 +215,26 @@ export function useAiAnalysis() {
   const isCompleted = computed(() => analysis.value?.status === 'completed')
   const isFailed = computed(() => analysis.value?.status === 'failed')
   const isReviewed = computed(() => analysis.value?.reviewed === true)
-  const isPendingReview = computed(() => analysis.value?.status === 'completed' && !analysis.value?.reviewed)
+  const isPendingReview = computed(
+    () => analysis.value?.status === 'completed' && !analysis.value?.reviewed
+  )
 
   /**
    * Helper methods
    */
-  const getConfidenceColor = (score) => {
+  const getConfidenceColor = score => {
     if (score >= 90) return 'green'
     if (score >= 70) return 'yellow'
     return 'red'
   }
 
-  const getConfidenceLabel = (score) => {
+  const getConfidenceLabel = score => {
     if (score >= 90) return 'Alta'
     if (score >= 70) return 'Media'
     return 'Baja'
   }
 
-  const getStatusLabel = (status) => {
+  const getStatusLabel = status => {
     const labels = {
       pending: 'Pendiente',
       processing: 'Procesando',
@@ -243,7 +244,7 @@ export function useAiAnalysis() {
     return labels[status] || status
   }
 
-  const getReviewDecisionLabel = (decision) => {
+  const getReviewDecisionLabel = decision => {
     const labels = {
       accepted: 'Aceptado',
       rejected: 'Rechazado',
@@ -252,7 +253,7 @@ export function useAiAnalysis() {
     return labels[decision] || 'Sin revisar'
   }
 
-  const formatDate = (date) => {
+  const formatDate = date => {
     if (!date) return 'N/A'
     return new Date(date).toLocaleDateString('es-ES', {
       year: 'numeric',
@@ -300,6 +301,6 @@ export function useAiAnalysis() {
 
     // Slice 08 / T-08.11: refresh + retry aliases.
     refresh: getAnalyses,
-    retry: getAnalyses,
+    retry: getAnalyses
   }
 }

@@ -11,47 +11,67 @@
 
     <!-- Arco dental superior -->
     <div class="mb-6">
-      <div class="text-center text-sm font-medium text-theme-primary mb-2">Arco Superior</div>
+      <div class="text-center text-sm font-medium text-theme-primary mb-2">
+        Arco Superior
+      </div>
       <div class="flex justify-center space-x-1">
         <div
           v-for="tooth in upperTeeth"
           :key="tooth.number"
+          class="tooth tooth-upper"
           :class="[
-            'tooth',
-            'tooth-upper',
-            isSelected(tooth.number) ? 'tooth-selected' : 'tooth-unselected'
-          ]"
+          :class="
+          [isSelected(tooth.number)
+          ?
+          'tooth-selected'
+          :
+          'tooth-unselected']"
           @click="toggleTooth(tooth.number)"
         >
-          <div class="tooth-number">{{ tooth.number }}</div>
-          <div class="tooth-name">{{ tooth.name }}</div>
+          <div class="tooth-number">
+            {{ tooth.number }}
+          </div>
+          <div class="tooth-name">
+            {{ tooth.name }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Arco dental inferior -->
     <div class="mb-6">
-      <div class="text-center text-sm font-medium text-theme-primary mb-2">Arco Inferior</div>
+      <div class="text-center text-sm font-medium text-theme-primary mb-2">
+        Arco Inferior
+      </div>
       <div class="flex justify-center space-x-1">
         <div
           v-for="tooth in lowerTeeth"
           :key="tooth.number"
+          class="tooth tooth-lower"
           :class="[
-            'tooth',
-            'tooth-lower',
-            isSelected(tooth.number) ? 'tooth-selected' : 'tooth-unselected'
-          ]"
+          :class="
+          [isSelected(tooth.number)
+          ?
+          'tooth-selected'
+          :
+          'tooth-unselected']"
           @click="toggleTooth(tooth.number)"
         >
-          <div class="tooth-number">{{ tooth.number }}</div>
-          <div class="tooth-name">{{ tooth.name }}</div>
+          <div class="tooth-number">
+            {{ tooth.number }}
+          </div>
+          <div class="tooth-name">
+            {{ tooth.name }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Piezas seleccionadas -->
     <div v-if="selectedTeeth.length > 0" class="mt-4">
-      <div class="text-sm font-medium text-theme-primary mb-2">Piezas seleccionadas:</div>
+      <div class="text-sm font-medium text-theme-primary mb-2">
+        Piezas seleccionadas:
+      </div>
       <div class="flex flex-wrap gap-2">
         <span
           v-for="toothNumber in selectedTeeth"
@@ -60,8 +80,8 @@
         >
           {{ toothNumber }}
           <button
-            @click="removeTooth(toothNumber)"
             class="ml-2 text-primary-600 hover:text-primary-800"
+            @click="removeTooth(toothNumber)"
           >
             <XMarkIcon class="w-4 h-4" />
           </button>
@@ -72,14 +92,14 @@
     <!-- Botones de acción -->
     <div class="flex justify-between mt-4">
       <button
-        @click="selectAll"
         class="px-3 py-1 text-sm text-primary-600 hover:text-primary-800 transition-colors"
+        @click="selectAll"
       >
         Seleccionar todas
       </button>
       <button
-        @click="clearAll"
         class="px-3 py-1 text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+        @click="clearAll"
       >
         Limpiar selección
       </button>
@@ -151,7 +171,7 @@ const lowerTeeth = [
 ]
 
 // Métodos
-const toggleTooth = (toothNumber) => {
+const toggleTooth = toothNumber => {
   if (isSelected(toothNumber)) {
     removeTooth(toothNumber)
   } else {
@@ -159,7 +179,7 @@ const toggleTooth = (toothNumber) => {
   }
 }
 
-const addTooth = (toothNumber) => {
+const addTooth = toothNumber => {
   if (props.maxSelections && selectedTeeth.value.length >= props.maxSelections) {
     return
   }
@@ -170,7 +190,7 @@ const addTooth = (toothNumber) => {
   }
 }
 
-const removeTooth = (toothNumber) => {
+const removeTooth = toothNumber => {
   const index = selectedTeeth.value.indexOf(toothNumber)
   if (index > -1) {
     selectedTeeth.value.splice(index, 1)
@@ -178,7 +198,7 @@ const removeTooth = (toothNumber) => {
   }
 }
 
-const isSelected = (toothNumber) => {
+const isSelected = toothNumber => {
   return selectedTeeth.value.includes(toothNumber)
 }
 
@@ -199,9 +219,12 @@ const emitChange = () => {
 }
 
 // Watchers
-watch(() => props.modelValue, (newValue) => {
-  selectedTeeth.value = [...newValue]
-})
+watch(
+  () => props.modelValue,
+  newValue => {
+    selectedTeeth.value = [...newValue]
+  }
+)
 </script>
 
 <style scoped>

@@ -3,7 +3,7 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2 class="modal-title">Aprobar Presupuesto</h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
@@ -19,7 +19,9 @@
               </div>
               <div class="detail-row">
                 <span class="label">Paciente:</span>
-                <span class="value">{{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}</span>
+                <span class="value">
+                  {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
+                </span>
               </div>
               <div class="detail-row">
                 <span class="label">Total:</span>
@@ -28,7 +30,7 @@
             </div>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="approval-form">
+          <form class="approval-form" @submit.prevent="handleSubmit">
             <div class="form-group">
               <label class="form-label">Comentarios de Aprobación</label>
               <textarea
@@ -36,17 +38,14 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Comentarios adicionales sobre la aprobación..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
               <label class="form-label">Fecha de Aprobación</label>
-              <input
-                v-model="form.approved_at"
-                type="datetime-local"
-                class="form-input"
-                required
-              />
+              <input v-model="form.approved_at" type="datetime-local"
+class="form-input" required
+/>
             </div>
 
             <div class="form-group">
@@ -67,27 +66,19 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Condiciones especiales o restricciones..."
-              ></textarea>
+              />
             </div>
           </form>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Aprobando...' : 'Aprobar Presupuesto' }}
         </button>
@@ -131,15 +122,14 @@ const handleSubmit = async () => {
     await approveQuotation(props.quotation.id, approvalData)
     emit('approved', props.quotation)
     closeModal()
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 const closeModal = () => {
   emit('close')
 }
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   return Number(price).toFixed(2)
 }
 

@@ -8,18 +8,28 @@
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
         </UiButton>
         <UiButton @click="openCreate">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
           </template>
           Nuevo Metodo
@@ -33,7 +43,9 @@
       <UiCard variant="glass">
         <div class="text-center">
           <p class="text-sm font-medium text-theme-secondary">Total</p>
-          <p class="text-3xl font-bold text-theme-primary tabular-nums">{{ methods.length }}</p>
+          <p class="text-3xl font-bold text-theme-primary tabular-nums">
+            {{ methods.length }}
+          </p>
         </div>
       </UiCard>
       <UiCard variant="glass">
@@ -65,9 +77,18 @@
             @input="onSearch"
           >
             <template #prefix>
-              <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="w-5 h-5 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </template>
           </UiInput>
@@ -108,25 +129,46 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-hairline">
-              <th scope="col" class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Codigo
               </th>
-              <th scope="col" class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Nombre
               </th>
-              <th scope="col" class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Pasarela
               </th>
-              <th scope="col" class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Comision
               </th>
-              <th scope="col" class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Tipo
               </th>
-              <th scope="col" class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Estado
               </th>
-              <th scope="col" class="text-right py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="text-right py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
@@ -141,15 +183,26 @@
                 <span class="font-mono text-sm text-theme-primary">{{ m.code }}</span>
               </td>
               <td class="py-3 px-4">
-                <div class="text-sm font-medium text-theme-primary">{{ m.name }}</div>
+                <div class="text-sm font-medium text-theme-primary">
+                  {{ m.name }}
+                </div>
                 <div v-if="m.description" class="text-xs text-theme-secondary mt-0.5">
                   {{ m.description }}
                 </div>
               </td>
               <td class="py-3 px-4">
-                <span v-if="m.gateway_type && m.gateway_type !== 'manual'" class="text-xs font-medium text-systemBlue-600">
+                <span
+                  v-if="m.gateway_type && m.gateway_type !== 'manual'"
+                  class="text-xs font-medium text-systemBlue-600"
+                >
                   {{ m.gateway_type }}
-                  <span v-if="m.has_gateway_config" class="text-systemGreen-600" title="Credenciales configuradas"> (configurado)</span>
+                  <span
+                    v-if="m.has_gateway_config"
+                    class="text-systemGreen-600"
+                    title="Credenciales configuradas"
+                  >
+                    (configurado)
+                  </span>
                 </span>
                 <span v-else class="text-xs text-theme-secondary">Manual</span>
               </td>
@@ -226,13 +279,16 @@
     <!-- Confirm deactivate -->
     <UiModal v-model="showDeactivateConfirm" title="Desactivar metodo" size="sm">
       <p class="text-theme-primary">
-        ¿Desactivar el metodo <strong>{{ methodToToggle?.name }}</strong>?
-        No aparecera en los dropdowns de cobro.
+        ¿Desactivar el metodo
+        <strong>{{ methodToToggle?.name }}</strong>
+        ? No aparecera en los dropdowns de cobro.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <UiButton variant="secondary" @click="showDeactivateConfirm = false">Cancelar</UiButton>
-          <UiButton variant="danger" :disabled="toggling" @click="doDeactivate">Desactivar</UiButton>
+          <UiButton variant="danger" :disabled="toggling" @click="doDeactivate">
+            Desactivar
+          </UiButton>
         </div>
       </template>
     </UiModal>
@@ -240,8 +296,9 @@
     <!-- Confirm activate -->
     <UiModal v-model="showActivateConfirm" title="Activar metodo" size="sm">
       <p class="text-theme-primary">
-        ¿Activar el metodo <strong>{{ methodToToggle?.name }}</strong>?
-        Volvera a estar disponible en los dropdowns de cobro.
+        ¿Activar el metodo
+        <strong>{{ methodToToggle?.name }}</strong>
+        ? Volvera a estar disponible en los dropdowns de cobro.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -254,8 +311,9 @@
     <!-- Confirm delete -->
     <UiModal v-model="showDeleteConfirm" title="Eliminar metodo" size="sm">
       <p class="text-theme-primary">
-        ¿Eliminar permanentemente el metodo <strong>{{ methodToDelete?.name }}</strong>?
-        Esta accion no se puede deshacer.
+        ¿Eliminar permanentemente el metodo
+        <strong>{{ methodToDelete?.name }}</strong>
+        ? Esta accion no se puede deshacer.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -344,9 +402,7 @@ const closeForm = () => {
 const onSaved = method => {
   closeForm()
   toast.success(
-    editingMethod.value
-      ? `Metodo "${method.name}" actualizado`
-      : `Metodo "${method.name}" creado`
+    editingMethod.value ? `Metodo "${method.name}" actualizado` : `Metodo "${method.name}" creado`
   )
   load()
 }

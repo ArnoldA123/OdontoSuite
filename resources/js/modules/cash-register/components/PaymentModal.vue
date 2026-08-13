@@ -422,11 +422,10 @@ const selectedPaymentMethod = computed(() =>
 )
 
 const canSubmit = computed(() => {
-  return (
-    formData.value.patient_id &&
-    formData.value.concept &&
-    formData.value.payment_method_id &&
-    formData.value.amount > 0
+  return formData.value.patient_id &&
+         formData.value.concept &&
+         formData.value.payment_method_id &&
+         formData.value.amount > 0
 })
 
 // Sprint 3 fix: la tab MP solo se muestra cuando el metodo seleccionado

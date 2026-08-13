@@ -7,127 +7,117 @@
     @close="closeModal"
   >
     <!-- Loading State -->
-    <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
+    <LoadingSpinner v-if="loadingData" class="py-8" size="md"
+text="Cargando datos..." />
 
     <!-- Form -->
-    <form v-else class="space-y-4 bg-canvas" @submit.prevent @keydown.enter.prevent>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiSelect
-              v-model="form.patient_id"
-              :options="patientOptions"
-              label="Paciente"
-              placeholder="Seleccionar paciente"
-              required
-              searchable
-              clearable
-            />
-            <UiSelect
-              v-model="form.user_id"
-              :options="professionalOptions"
-              label="Profesional"
-              placeholder="Seleccionar profesional"
-              required
-              searchable
-              clearable
-            />
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiInput
-              v-model="form.scheduled_at"
-              label="Fecha y Hora"
-              type="datetime-local"
-              required
-            />
-            <UiInput
-              v-model.number="form.duration_minutes"
-              label="Duración (minutos)"
-              type="number"
-              min="15"
-              max="480"
-              step="5"
-              placeholder="Ej. 30"
-              required
-            />
-            <UiSelect
-              v-model="form.appointment_type_id"
-              :options="appointmentTypeOptions"
-              label="Tipo de Cita"
-              placeholder="Seleccionar tipo"
-              required
-              searchable
-              clearable
-            />
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Procedimiento (catalogo)</label>
-              <ProcedureQuickPicker
-                v-if="useClinicalPicker"
-                v-model="form.procedure_id"
-                :specialty="procedureSpecialtyFilter"
-                @select="onProcedureSelected"
-              />
-              <ProcedureCatalogPicker
-                v-else
-                v-model="form.procedure_id"
-                :specialty="procedureSpecialtyFilter"
-                @select="onProcedureSelected"
-              />
-              <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
-                Duracion {{ selectedProcedure.default_duration_minutes }} min ·
-                S/ {{ Number(selectedProcedure.default_cost).toFixed(2) }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <UiSelect
-              v-model="form.dental_chair_id"
-              :options="dentalChairOptions"
-              label="Sillón Dental"
-              placeholder="Seleccionar sillón"
-              required
-              searchable
-              clearable
-            />
-            <UiSelect
-              v-model="form.status"
-              :options="statusOptions"
-              label="Estado"
-              required
-            />
-          </div>
-          <UiInput
-            v-model="form.notes"
-            label="Notas"
-            placeholder="Notas adicionales sobre la cita"
-            type="textarea"
+    <form v-else class="space-y-4 bg-canvas" @submit.prevent
+@keydown.enter.prevent>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiSelect
+          v-model="form.patient_id"
+          :options="patientOptions"
+          label="Paciente"
+          placeholder="Seleccionar paciente"
+          required
+          searchable
+          clearable
+        />
+        <UiSelect
+          v-model="form.user_id"
+          :options="professionalOptions"
+          label="Profesional"
+          placeholder="Seleccionar profesional"
+          required
+          searchable
+          clearable
+        />
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiInput
+v-model="form.scheduled_at"
+label="Fecha y Hora" type="datetime-local" required
+/>
+        <UiInput
+          v-model.number="form.duration_minutes"
+          label="Duración (minutos)"
+          type="number"
+          min="15"
+          max="480"
+          step="5"
+          placeholder="Ej. 30"
+          required
+        />
+        <UiSelect
+          v-model="form.appointment_type_id"
+          :options="appointmentTypeOptions"
+          label="Tipo de Cita"
+          placeholder="Seleccionar tipo"
+          required
+          searchable
+          clearable
+        />
+        <div>
+          <label class="block text-sm font-medium text-theme-primary mb-1">
+            Procedimiento (catalogo)
+          </label>
+          <ProcedureQuickPicker
+            v-if="useClinicalPicker"
+            v-model="form.procedure_id"
+            :specialty="procedureSpecialtyFilter"
+            @select="onProcedureSelected"
           />
-          <div class="flex justify-end gap-3 pt-4">
-            <UiButton
-              type="button"
-              variant="secondary"
-              @click="closeModal"
-            >
-              Cancelar
-            </UiButton>
-            <UiButton
-              type="button"
-              :loading="creating"
-              @click="saveAppointment"
-            >
-              {{ submitButtonText }}
-            </UiButton>
-          </div>
-          <!-- CITAS-CONF-001 — duplicate-key 422 from AppointmentService::createAppointment
+          <ProcedureCatalogPicker
+            v-else
+            v-model="form.procedure_id"
+            :specialty="procedureSpecialtyFilter"
+            @select="onProcedureSelected"
+          />
+          <p v-if="selectedProcedure" class="mt-1 text-xs text-theme-secondary">
+            Duracion {{ selectedProcedure.default_duration_minutes }} min · S/
+            {{ Number(selectedProcedure.default_cost).toFixed(2) }}
+          </p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UiSelect
+          v-model="form.dental_chair_id"
+          :options="dentalChairOptions"
+          label="Sillón Dental"
+          placeholder="Seleccionar sillón"
+          required
+          searchable
+          clearable
+        />
+        <UiSelect
+v-model="form.status"
+:options="statusOptions" label="Estado" required
+/>
+      </div>
+      <UiInput
+        v-model="form.notes"
+        label="Notas"
+        placeholder="Notas adicionales sobre la cita"
+        type="textarea"
+      />
+      <div class="flex justify-end gap-3 pt-4">
+        <UiButton type="button" variant="secondary" @click="closeModal">Cancelar</UiButton>
+        <UiButton type="button" :loading="creating" @click="saveAppointment">
+          {{ submitButtonText }}
+        </UiButton>
+      </div>
+      <!-- CITAS-CONF-001 — duplicate-key 422 from AppointmentService::createAppointment
                (the DB unique constraint `unique_user_time_slot` /
                `unique_chair_time_slot` fires on the second commit when two
                reception desks race on the same slot). Template-level
                mapping: a friendly `<UiStatusBadge variant="error">` is
                rendered instead of a 500 toast. -->
-          <UiStatusBadge
-            v-if="duplicateKeyError"
-            variant="error"
-            label="Otra mesa ya reservó este horario"
-          />
-        </form>
+      <UiStatusBadge
+        v-if="duplicateKeyError"
+        variant="error"
+        label="Otra mesa ya reservó este horario"
+      />
+    </form>
   </UiModal>
 </template>
 
@@ -163,7 +153,12 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'created', 'updated'])
 
 const { get, post, put } = useApi()
-const { transformPatients, transformProfessionals, transformAppointmentTypes, transformDentalChairs } = useOptionsTransform()
+const {
+  transformPatients,
+  transformProfessionals,
+  transformAppointmentTypes,
+  transformDentalChairs
+} = useOptionsTransform()
 const toast = useToast()
 const { channel, echo } = useEcho()
 
@@ -246,7 +241,7 @@ const onProcedureSelected = proc => {
   }
 }
 
-const toDatetimeLocal = (isoString) => {
+const toDatetimeLocal = isoString => {
   if (!isoString) return ''
   const d = new Date(isoString)
   if (isNaN(d.getTime())) return ''
@@ -258,7 +253,7 @@ const toDatetimeLocal = (isoString) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-const populateFormFromAppointment = (appointment) => {
+const populateFormFromAppointment = appointment => {
   if (!appointment) return
   form.value = {
     patient_id: appointment.patient_id ?? appointment.patient?.id ?? '',
@@ -307,12 +302,12 @@ const loadData = async () => {
     let allPatients = []
     let currentPage = 1
     let hasMorePages = true
-    
+
     while (hasMorePages) {
       const patientsRes = await get(`/api/patients?per_page=100&page=${currentPage}`)
       const pagePatients = patientsRes?.data || []
       allPatients = [...allPatients, ...pagePatients]
-      
+
       // Verificar si hay más páginas
       const totalPages = patientsRes?.meta?.last_page || 1
       hasMorePages = currentPage < totalPages
@@ -422,7 +417,9 @@ const saveAppointment = async () => {
       const scheduledDate = new Date(scheduledAtISO)
       const minutesDiff = Math.round((scheduledDate - now) / 60000)
       if (minutesDiff < 1) {
-        toast.error(`La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`)
+        toast.error(
+          `La fecha y hora debe ser al menos 1 minuto en el futuro. Diferencia actual: ${minutesDiff} minutos`
+        )
         creating.value = false
         return
       }
@@ -447,11 +444,13 @@ const saveAppointment = async () => {
     // the friendly "Otra mesa ya reservó este horario" badge. The toast
     // feedback below is the canonical UX path and is preserved.
     error.value = error
-    const errorMessage = error?.response?.data?.message || (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
+    const errorMessage =
+      error?.response?.data?.message ||
+      (isEditMode.value ? 'Error al actualizar la cita' : 'Error al crear la cita')
     const errors = error?.response?.data?.errors
     if (errors) {
       const errorMessages = Object.values(errors).flat()
-      toast.error('Errores de validación:\n' + errorMessages.join('\n'))
+      toast.error(`Errores de validación:\n${errorMessages.join('\n')}`)
     } else {
       toast.error(errorMessage)
     }
@@ -461,25 +460,35 @@ const saveAppointment = async () => {
 }
 
 // Cargar datos cuando el modal se abre
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen) {
-    resetForm()
-    loadData()
+watch(
+  () => props.modelValue,
+  isOpen => {
+    if (isOpen) {
+      resetForm()
+      loadData()
+    }
   }
-})
+)
 
-watch(() => props.appointment, () => {
-  if (props.modelValue && props.appointment) {
-    populateFormFromAppointment(props.appointment)
+watch(
+  () => props.appointment,
+  () => {
+    if (props.modelValue && props.appointment) {
+      populateFormFromAppointment(props.appointment)
+    }
   }
-})
+)
 
 // Prellenar fecha inicial si se proporciona
-watch(() => props.initialDate, (newDate) => {
-  if (newDate && props.modelValue) {
-    form.value.scheduled_at = newDate
-  }
-}, { immediate: true })
+watch(
+  () => props.initialDate,
+  newDate => {
+    if (newDate && props.modelValue) {
+      form.value.scheduled_at = newDate
+    }
+  },
+  { immediate: true }
+)
 
 // WebSocket subscriptions para actualizar lista de pacientes en tiempo real
 let patientsChannel = null
@@ -494,11 +503,11 @@ onMounted(() => {
     patientsChannel = channel('patients')
     if (patientsChannel) {
       patientsChannel
-        .listen('.patient.created', async (e) => {
+        .listen('.patient.created', async e => {
           // Recargar todos los pacientes para incluir el nuevo
           await loadData()
         })
-        .listen('.patient.updated', async (e) => {
+        .listen('.patient.updated', async e => {
           // Actualizar el paciente en la lista si existe
           const index = patients.value.findIndex(p => p.id === e.patient.id)
           if (index !== -1) {
@@ -508,13 +517,12 @@ onMounted(() => {
             await loadData()
           }
         })
-        .listen('.patient.deleted', async (e) => {
+        .listen('.patient.deleted', async e => {
           // Remover el paciente de la lista
           patients.value = patients.value.filter(p => p.id !== e.patient_id)
         })
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 })
 
 onUnmounted(() => {
@@ -522,9 +530,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('patients')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 })
 </script>
-

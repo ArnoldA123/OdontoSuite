@@ -1,14 +1,14 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="form-responsive">
+  <form class="form-responsive" @submit.prevent="handleSubmit">
     <slot
       :errors="errors"
       :touched="touched"
-      :isValidating="isValidating"
-      :validateField="validateField"
-      :touchField="touchField"
-      :hasError="hasError"
-      :getError="getError"
-      :shouldShowError="shouldShowError"
+      :is-validating="isValidating"
+      :validate-field="validateField"
+      :touch-field="touchField"
+      :has-error="hasError"
+      :get-error="getError"
+      :should-show-error="shouldShowError"
     />
   </form>
 </template>
@@ -54,7 +54,7 @@ export default {
       return true
     }
 
-    const touchField = (fieldName) => {
+    const touchField = fieldName => {
       touch(fieldName)
     }
 
@@ -75,7 +75,7 @@ export default {
       }
     }
 
-    const updateFormData = (newData) => {
+    const updateFormData = newData => {
       formData.value = { ...formData.value, ...newData }
     }
 
@@ -85,9 +85,13 @@ export default {
     }
 
     // Watch for changes in initialData
-    watch(() => props.initialData, (newData) => {
-      formData.value = { ...newData }
-    }, { deep: true })
+    watch(
+      () => props.initialData,
+      newData => {
+        formData.value = { ...newData }
+      },
+      { deep: true }
+    )
 
     return {
       formData,

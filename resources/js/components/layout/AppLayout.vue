@@ -24,7 +24,10 @@
     >
       <div class="surface-glass flex flex-col flex-grow overflow-y-auto chrome-fade-right">
         <!-- Logo -->
-        <div class="flex items-center flex-shrink-0 py-6 border-b border-theme/50 transition-all duration-300" :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'">
+        <div
+          class="flex items-center flex-shrink-0 py-6 border-b border-theme/50 transition-all duration-300"
+          :class="sidebarCollapsed ? 'px-2 justify-center' : 'px-6'"
+        >
           <router-link
             v-if="!sidebarCollapsed"
             to="/dashboard"
@@ -43,35 +46,40 @@
           </router-link>
           <button
             v-else
-            @click="toggleSidebar"
             class="flex items-center justify-center w-8 h-8 p-1 rounded-ios hover:bg-theme-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2 transition-colors duration-200"
             aria-label="Abrir barra lateral"
             title="Abrir barra lateral"
             aria-expanded="false"
             aria-controls="primary-sidebar"
+            @click="toggleSidebar"
           >
-            <img
-              src="/images/easy_dent.png"
-              alt="OdontoSuite"
-              class="h-8 w-8"
-            />
+            <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
           </button>
-        <button
-          v-if="!sidebarCollapsed"
-          @click="toggleSidebar"
-          class="ml-auto p-1.5 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
-          :aria-label="sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
-          :aria-expanded="!sidebarCollapsed"
-          aria-controls="primary-sidebar"
-        >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          <button
+            v-if="!sidebarCollapsed"
+            class="ml-auto p-1.5 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-systemBlue-500 focus-visible:ring-offset-2"
+            :aria-label="sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
+            :aria-expanded="!sidebarCollapsed"
+            aria-controls="primary-sidebar"
+            @click="toggleSidebar"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+              />
             </svg>
           </button>
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 py-6 space-y-2 transition-all duration-300" :class="sidebarCollapsed ? 'px-2' : 'px-4'">
+        <nav
+          class="flex-1 py-6 space-y-2 transition-all duration-300"
+          :class="sidebarCollapsed ? 'px-2' : 'px-4'"
+        >
           <template v-for="item in navigation" :key="item.name">
             <div
               v-if="!sidebarCollapsed && item.name === 'Pacientes'"
@@ -92,10 +100,7 @@
               :aria-current="route.path === item.to ? 'page' : undefined"
             >
               <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
-              <span
-                v-if="!sidebarCollapsed"
-                class="ml-3 transition-opacity duration-200"
-              >
+              <span v-if="!sidebarCollapsed" class="ml-3 transition-opacity duration-200">
                 {{ item.name }}
               </span>
               <UiBadge
@@ -113,11 +118,7 @@
         <!-- User Section -->
         <div class="border-t border-theme/50 p-4">
           <div v-if="!sidebarCollapsed" class="flex items-center gap-3 mb-4">
-            <UiAvatar
-              :src="user?.avatar"
-              :initials="getUserInitials()"
-              size="sm"
-            />
+            <UiAvatar :src="user?.avatar" :initials="getUserInitials()" size="sm" />
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-theme-primary truncate">
                 {{ safeUser.name || 'Usuario' }}
@@ -129,48 +130,58 @@
           </div>
 
           <div v-else class="flex justify-center mb-4">
-            <UiAvatar
-              :src="user?.avatar"
-              :initials="getUserInitials()"
-              size="sm"
-            />
+            <UiAvatar :src="user?.avatar" :initials="getUserInitials()" size="sm" />
           </div>
 
           <UiButton
             variant="ghost"
             size="sm"
             :full-width="!sidebarCollapsed"
-            @click="handleLogout"
             :aria-label="sidebarCollapsed ? 'Cerrar sesión' : ''"
+            @click="handleLogout"
           >
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
             </template>
             <span v-if="!sidebarCollapsed">Cerrar Sesión</span>
           </UiButton>
         </div>
-
       </div>
     </aside>
 
     <!-- Mobile Header -->
-    <div class="lg:hidden surface-glass fixed top-0 left-0 right-0 z-40 chrome-fade-bottom" data-app-chrome="mobile-header">
+    <div
+      class="lg:hidden surface-glass fixed top-0 left-0 right-0 z-40 chrome-fade-bottom"
+      data-app-chrome="mobile-header"
+    >
       <div class="flex items-center justify-between px-4 h-16">
         <div class="flex items-center gap-3">
-          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
+          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
           <span class="text-lg font-semibold text-theme-primary">OdontoSuite</span>
         </div>
         <button
-          @click="mobileMenuOpen = true"
           class="p-2 rounded-ios hover:bg-theme-surface transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-systemBlue-500 focus:ring-offset-2"
           aria-label="Abrir menú"
           aria-haspopup="dialog"
           aria-expanded="mobileMenuOpen"
+          @click="mobileMenuOpen = true"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          <svg class="w-6 h-6" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         </button>
       </div>
@@ -181,45 +192,36 @@
       v-model="mobileMenuOpen"
       position="right"
       size="md"
-      :title="'Navegación'"
+      title="Navegación"
       :closable="true"
     >
       <template #header>
         <div class="flex items-center gap-3">
-          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
+          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
           <span class="text-lg font-semibold text-theme-primary">OdontoSuite</span>
-            </div>
+        </div>
       </template>
 
-            <!-- Mobile Navigation -->
+      <!-- Mobile Navigation -->
       <nav class="space-y-2">
-              <router-link
-                v-for="item in navigation"
-                :key="item.name"
-                :to="item.to"
+        <router-link
+          v-for="item in navigation"
+          :key="item.name"
+          :to="item.to"
           :class="getMobileNavItemClasses(item)"
-                @click="mobileMenuOpen = false"
-              >
+          @click="mobileMenuOpen = false"
+        >
           <component :is="item.icon" class="w-5 h-5" />
-                <span>{{ item.name }}</span>
-          <UiBadge
-            v-if="item.badge"
-            :variant="item.badge.variant"
-            size="sm"
-            class="ml-auto"
-          >
+          <span>{{ item.name }}</span>
+          <UiBadge v-if="item.badge" :variant="item.badge.variant" size="sm" class="ml-auto">
             {{ item.badge.text }}
           </UiBadge>
-              </router-link>
-            </nav>
+        </router-link>
+      </nav>
 
       <template #footer>
         <div class="flex items-center gap-3 p-4 bg-theme-surface rounded-lg">
-          <UiAvatar
-            :src="user?.avatar"
-            :initials="getUserInitials()"
-            size="sm"
-          />
+          <UiAvatar :src="user?.avatar" :initials="getUserInitials()" size="sm" />
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-theme-primary truncate">
               {{ safeUser.name || 'Usuario' }}
@@ -228,26 +230,30 @@
               {{ getRoleLabel(safeUser.role) }}
             </p>
           </div>
-          <UiButton
-            variant="ghost"
-            size="sm"
-            @click="handleLogout"
-          >
-            Cerrar Sesión
-          </UiButton>
+          <UiButton variant="ghost" size="sm" @click="handleLogout">
+Cerrar Sesión
+</UiButton>
         </div>
       </template>
     </UiSheet>
 
     <!-- Main Content -->
-    <div class="pt-16 lg:pt-0 transition-all duration-300" :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'">
+    <div
+      class="pt-16 lg:pt-0 transition-all duration-300"
+      :class="sidebarCollapsed ? 'lg:pl-14' : 'lg:pl-72'"
+    >
       <!-- Header (top bar). Translucent chrome per design Decision 5. -->
-      <header class="surface-glass relative z-30 shadow-subtle chrome-fade-bottom" data-app-chrome="topbar">
+      <header
+        class="surface-glass relative z-30 shadow-subtle chrome-fade-bottom"
+        data-app-chrome="topbar"
+      >
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <div>
-                <h1 class="text-xl font-semibold text-theme-primary">{{ getPageTitle() }}</h1>
+                <h1 class="text-xl font-semibold text-theme-primary">
+                  {{ getPageTitle() }}
+                </h1>
                 <p v-if="getPageDescription()" class="text-sm text-theme-secondary mt-1">
                   {{ getPageDescription() }}
                 </p>
@@ -272,7 +278,7 @@
                   'bg-systemBlue-100 text-systemBlue-700': wsStatus === 'connecting',
                   'bg-systemGreen-100 text-systemGreen-700': wsStatus === 'connected',
                   'bg-systemYellow-100 text-systemYellow-700': wsStatus === 'disconnected',
-                  'bg-systemRed-100 text-systemRed-700': wsStatus === 'unavailable',
+                  'bg-systemRed-100 text-systemRed-700': wsStatus === 'unavailable'
                 }"
                 :style="{ width: 'var(--topbar-control)', height: 'var(--topbar-control)' }"
                 :aria-label="`Estado de WebSocket: ${wsStatus}`"
@@ -284,7 +290,7 @@
                     'bg-systemBlue-500 animate-pulse': wsStatus === 'connecting',
                     'bg-systemGreen-500 animate-pulse-subtle': wsStatus === 'connected',
                     'bg-systemYellow-500': wsStatus === 'disconnected',
-                    'bg-systemRed-500': wsStatus === 'unavailable',
+                    'bg-systemRed-500': wsStatus === 'unavailable'
                   }"
                   :style="{
                     width: 'calc(var(--topbar-icon-weight) * 1.5px)',
@@ -306,10 +312,10 @@
                 variant="ghost"
                 size="sm"
                 class="relative"
-                @click="toggleNotificationCenter"
                 aria-label="Centro de notificaciones"
                 :aria-expanded="notificationCenterOpen"
                 aria-haspopup="dialog"
+                @click="toggleNotificationCenter"
               >
                 <template #icon-left>
                   <!--
@@ -320,7 +326,11 @@
                     The width/height use the same var for one shared size.
                   -->
                   <BellIcon
-                    style="width: var(--topbar-icon-size); height: var(--topbar-icon-size); stroke-width: var(--topbar-icon-weight);"
+                    style="
+                      width: var(--topbar-icon-size);
+                      height: var(--topbar-icon-size);
+                      stroke-width: var(--topbar-icon-weight);
+                    "
                     aria-hidden="true"
                   />
                 </template>
@@ -336,16 +346,16 @@
               </UiButton>
 
               <!-- User Menu -->
-              <div class="relative" ref="userMenuContainerRef">
+              <div ref="userMenuContainerRef" class="relative">
                 <UiButton
                   ref="userMenuTriggerRef"
                   variant="ghost"
                   size="sm"
-                  @click="toggleUserMenu"
                   class="flex items-center gap-2"
                   :aria-expanded="userMenuOpen"
                   aria-haspopup="menu"
                   aria-controls="user-menu-dropdown"
+                  @click="toggleUserMenu"
                 >
                   <!--
                     User menu trigger.
@@ -355,11 +365,7 @@
                     size + stroke weight as the BellIcon so the three
                     topbar controls align on one row.
                   -->
-                  <UiAvatar
-                    :src="user?.avatar"
-                    :initials="getUserInitials()"
-                    size="sm"
-                  />
+                  <UiAvatar :src="user?.avatar" :initials="getUserInitials()" size="sm" />
                   <span class="hidden sm:block text-sm font-medium">
                     {{ safeUser.name || 'Usuario' }}
                   </span>
@@ -368,7 +374,11 @@
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
-                    style="width: var(--topbar-icon-size); height: var(--topbar-icon-size); stroke-width: var(--topbar-icon-weight);"
+                    style="
+                      width: var(--topbar-icon-size);
+                      height: var(--topbar-icon-size);
+                      stroke-width: var(--topbar-icon-weight);
+                    "
                   >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -384,9 +394,9 @@
                   leave-to-class="opacity-0 scale-95 translate-y-1"
                 >
                   <div
-                    ref="userMenuDropdownRef"
                     v-if="userMenuOpen"
                     id="user-menu-dropdown"
+                    ref="userMenuDropdownRef"
                     class="fixed z-50 w-64 bg-theme-surface-elevated rounded-xl shadow-2xl border border-theme py-2 origin-top-right"
                     :style="userMenuStyle"
                     role="menu"
@@ -395,27 +405,37 @@
                     @keydown.esc="closeUserMenu"
                   >
                     <div class="px-4 py-3 border-b border-theme">
-                      <p class="text-sm font-medium text-theme-primary">{{ safeUser.name || 'Usuario' }}</p>
-                      <p class="text-xs text-theme-secondary">{{ safeUser.email }}</p>
+                      <p class="text-sm font-medium text-theme-primary">
+                        {{ safeUser.name || 'Usuario' }}
+                      </p>
+                      <p class="text-xs text-theme-secondary">
+                        {{ safeUser.email }}
+                      </p>
                     </div>
                     <div class="py-2">
-                      <button class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200">
+                      <button
+                        class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200"
+                      >
                         Perfil
                       </button>
-                      <button class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200">
+                      <button
+                        class="w-full text-left px-4 py-2 text-sm text-theme-primary hover:bg-theme-surface transition-colors duration-200"
+                      >
                         Configuración
                       </button>
                     </div>
 
                     <!-- Theme Selector -->
                     <div class="border-t border-theme px-4 py-3">
-                      <p class="text-xs text-theme-secondary mb-2 uppercase tracking-wide">Apariencia</p>
+                      <p class="text-xs text-theme-secondary mb-2 uppercase tracking-wide">
+                        Apariencia
+                      </p>
                     </div>
 
                     <div class="border-t border-theme py-2">
                       <button
-                        @click="handleLogout"
                         class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                        @click="handleLogout"
                       >
                         Cerrar Sesión
                       </button>
@@ -452,10 +472,7 @@
     <NotificationToast />
 
     <!-- Notification Center -->
-    <NotificationCenter 
-      :is-open="notificationCenterOpen"
-      @close="closeNotificationCenter"
-    />
+    <NotificationCenter :is-open="notificationCenterOpen" @close="closeNotificationCenter" />
   </div>
 </template>
 
@@ -474,7 +491,7 @@ import {
   confirmConfirmText,
   confirmCancelText,
   confirmVariant,
-  useConfirm as useConfirmComposable,
+  useConfirm as useConfirmComposable
 } from '../../composables/useConfirm'
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
@@ -490,7 +507,8 @@ const { connectionStatus: wsStatus } = useEcho()
 // Handlers del modal global de confirmacion (useConfirm).
 // Usamos la desestructuracion del composable para conectar los handlers del
 // <UiConfirmDialog> montado a nivel de app con el resolver de la Promise.
-const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } = useConfirmComposable()
+const { handleConfirm: handleGlobalConfirm, handleCancel: handleGlobalCancel } =
+  useConfirmComposable()
 
 // State
 const mobileMenuOpen = ref(false)
@@ -534,7 +552,7 @@ const canvasRoutes = [
   '/business-intelligence',
   // Settings (canvas surface only — internals deferred per OQ#3)
   '/settings/branches',
-  '/settings/payment-methods',
+  '/settings/payment-methods'
 ]
 const isCanvasRoute = computed(() => canvasRoutes.includes(route.path))
 
@@ -753,14 +771,28 @@ const navigation = computed(() => {
       name: 'Calendario',
       to: '/calendar',
       icon: CalendarIcon,
-      roles: ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+      roles: [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente'
+      ],
       badge: null
     },
     {
       name: 'Pacientes',
       to: '/patients',
       icon: UsersIcon,
-      roles: ['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+      roles: [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente'
+      ],
       badge: null
     },
     {
@@ -873,13 +905,13 @@ const navigation = computed(() => {
   ]
 
   // Filtrar navegación según el rol del usuario
-  return allItems.filter(item =>
-    item.roles.includes('all') || item.roles.includes(safeUser.value?.role)
+  return allItems.filter(
+    item => item.roles.includes('all') || item.roles.includes(safeUser.value?.role)
   )
 })
 
 // Navigation item classes (iOS clinical: systemBlue for active nav).
-const getNavItemClasses = (item) => {
+const getNavItemClasses = item => {
   const base = [
     'group flex items-center py-2.5 text-sm font-medium rounded-ios',
     'transition-all duration-200 ease-ios',
@@ -888,16 +920,15 @@ const getNavItemClasses = (item) => {
     'hover:bg-theme-surface'
   ]
 
-  const active = route.path === item.to ? [
-    'bg-systemBlue-50 text-systemBlue-700',
-    'border border-systemBlue-200',
-    'shadow-subtle'
-  ] : []
+  const active =
+    route.path === item.to ?
+      ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200', 'shadow-subtle'] :
+      []
 
   return [...base, ...active].join(' ')
 }
 
-const getMobileNavItemClasses = (item) => {
+const getMobileNavItemClasses = item => {
   const base = [
     'flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-ios',
     'transition-all duration-200',
@@ -905,10 +936,10 @@ const getMobileNavItemClasses = (item) => {
     'hover:bg-theme-surface'
   ]
 
-  const active = route.path === item.to ? [
-    'bg-systemBlue-50 text-systemBlue-700',
-    'border border-systemBlue-200'
-  ] : []
+  const active =
+    route.path === item.to ?
+      ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200'] :
+      []
 
   return [...base, ...active].join(' ')
 }
@@ -916,10 +947,15 @@ const getMobileNavItemClasses = (item) => {
 // Utility functions
 const getUserInitials = () => {
   const name = safeUser.value?.name || 'Usuario'
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 }
 
-const getRoleLabel = (role) => {
+const getRoleLabel = role => {
   const labels = {
     administrador: 'Administrador',
     recepcionista: 'Recepcionista',
@@ -981,14 +1017,14 @@ const handleLogout = async () => {
 }
 
 // Close dropdowns when clicking outside
-const handleClickOutside = (event) => {
+const handleClickOutside = event => {
   if (!event.target.closest('.relative')) {
     closeUserMenu()
   }
 }
 
 // Close user menu on Escape (WCAG 2.1.1)
-const handleUserMenuEscape = (event) => {
+const handleUserMenuEscape = event => {
   if (event.key === 'Escape' || event.key === 'Esc') {
     if (userMenuOpen.value) {
       event.preventDefault()

@@ -5,12 +5,12 @@
         <h2 class="modal-title">
           {{ isEdit ? 'Editar Presupuesto' : 'Nuevo Presupuesto' }}
         </h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form class="modal-body" @submit.prevent="handleSubmit">
         <div class="form-grid">
           <!-- Información básica -->
           <div class="form-section">
@@ -37,20 +37,12 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Fecha del presupuesto</label>
-                <input
-                  v-model="form.quotation_date"
-                  type="date"
-                  class="form-input"
-                />
+                <input v-model="form.quotation_date" type="date" class="form-input" >
               </div>
 
               <div class="form-group">
                 <label class="form-label">Válido hasta</label>
-                <input
-                  v-model="form.valid_until"
-                  type="date"
-                  class="form-input"
-                />
+                <input v-model="form.valid_until" type="date" class="form-input" >
               </div>
             </div>
           </div>
@@ -60,11 +52,7 @@
             <h3 class="section-title">Items del Presupuesto</h3>
 
             <div class="items-list">
-              <div
-                v-for="(item, index) in form.items"
-                :key="index"
-                class="item-row"
-              >
+              <div v-for="(item, index) in form.items" :key="index" class="item-row">
                 <div class="item-content">
                   <div class="item-description">
                     <input
@@ -100,21 +88,13 @@
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  @click="removeItem(index)"
-                  class="item-remove"
-                >
+                <button type="button" class="item-remove" @click="removeItem(index)">
                   <TrashIcon class="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <button
-              type="button"
-              @click="addItem"
-              class="btn btn-outline btn-sm"
-            >
+            <button type="button" class="btn btn-outline btn-sm" @click="addItem">
               <PlusIcon class="w-4 h-4 mr-1" />
               Agregar Item
             </button>
@@ -198,7 +178,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Notas adicionales..."
-              ></textarea>
+              />
             </div>
           </div>
         </div>
@@ -228,21 +208,16 @@
       </form>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
-          <span v-if="loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
+          <span
+            v-if="loading"
+            class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"
+          />
           {{ isEdit ? 'Actualizar' : 'Crear' }} Presupuesto
         </button>
       </div>
@@ -296,7 +271,7 @@ const errors = ref({})
 // Computed
 const subtotal = computed(() => {
   return form.value.items.reduce((total, item) => {
-    return total + (item.quantity * item.unit_price)
+    return total + item.quantity * item.unit_price
   }, 0)
 })
 
@@ -305,11 +280,11 @@ const finalCost = computed(() => {
 })
 
 // Métodos
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   form.value.patient_id = patient?.id || ''
 }
 
-const handleTreatmentPlanChange = (treatmentPlan) => {
+const handleTreatmentPlanChange = treatmentPlan => {
   form.value.treatment_plan_id = treatmentPlan?.id || ''
 
   if (treatmentPlan && treatmentPlan.items) {
@@ -329,7 +304,7 @@ const addItem = () => {
   })
 }
 
-const removeItem = (index) => {
+const removeItem = index => {
   form.value.items.splice(index, 1)
 }
 
@@ -388,7 +363,7 @@ const closeModal = () => {
   emit('close')
 }
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   return new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -415,15 +390,21 @@ const initializeForm = () => {
   } else {
     // Valores por defecto
     form.value.quotation_date = new Date().toISOString().split('T')[0]
-    form.value.valid_until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    form.value.valid_until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
     addItem()
   }
 }
 
 // Watchers
-watch(() => props.quotation, () => {
-  initializeForm()
-}, { immediate: true })
+watch(
+  () => props.quotation,
+  () => {
+    initializeForm()
+  },
+  { immediate: true }
+)
 
 watch(subtotal, () => {
   calculateDiscount()

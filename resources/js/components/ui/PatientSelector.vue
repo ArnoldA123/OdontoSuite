@@ -19,7 +19,7 @@
 
     <!-- Lista de pacientes -->
     <div v-if="isLoading" class="flex justify-center py-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
     </div>
 
     <div v-else-if="filteredPatients.length === 0 && !isLoading" class="text-center py-4">
@@ -33,12 +33,14 @@
       <div
         v-for="patient in filteredPatients"
         :key="patient.id"
-        @click="selectPatient(patient)"
         class="flex items-center p-3 border-b border-theme hover:bg-theme-surface cursor-pointer"
         :class="{ 'bg-primary-50 border-primary-200': selectedPatient?.id === patient.id }"
+        @click="selectPatient(patient)"
       >
         <!-- Avatar del paciente -->
-        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+        <div
+          class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center"
+        >
           <UserIcon class="w-4 h-4 text-primary-600" />
         </div>
 
@@ -72,8 +74,8 @@
     <!-- Botón para crear nuevo paciente -->
     <div v-if="!searchQuery || filteredPatients.length === 0" class="mt-3">
       <button
-        @click="createNewPatient"
         class="w-full flex items-center justify-center px-3 py-2 border border-dashed border-theme rounded-ios text-sm font-medium text-theme-primary hover:bg-theme-surface hover:border-primary-300 transition-all duration-200"
+        @click="createNewPatient"
       >
         <PlusIcon class="w-4 h-4 mr-2" />
         Crear nuevo paciente
@@ -81,7 +83,10 @@
     </div>
 
     <!-- Información del paciente seleccionado -->
-    <div v-if="selectedPatient" class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-ios">
+    <div
+      v-if="selectedPatient"
+      class="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-ios"
+    >
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-primary-900">
@@ -91,10 +96,7 @@
             {{ selectedPatient.dni ? `DNI: ${selectedPatient.dni}` : 'Sin DNI' }}
           </p>
         </div>
-        <button
-          @click="clearSelection"
-          class="text-primary-600 hover:text-primary-800"
-        >
+        <button class="text-primary-600 hover:text-primary-800" @click="clearSelection">
           <XMarkIcon class="w-4 h-4" />
         </button>
       </div>
@@ -146,9 +148,7 @@ const filteredPatients = computed(() => {
     const dni = patient.dni?.toLowerCase() || ''
     const phone = patient.phone?.toLowerCase() || ''
 
-    return fullName.includes(query) ||
-           dni.includes(query) ||
-           phone.includes(query)
+    return fullName.includes(query) || dni.includes(query) || phone.includes(query)
   })
 })
 
@@ -191,7 +191,7 @@ const loadPatients = async () => {
   }
 }
 
-const selectPatient = (patient) => {
+const selectPatient = patient => {
   if (props.disabled) return
 
   selectedPatient.value = patient
@@ -209,9 +209,12 @@ const createNewPatient = () => {
 }
 
 // Watch for external changes
-watch(() => props.modelValue, (newValue) => {
-  selectedPatient.value = newValue
-})
+watch(
+  () => props.modelValue,
+  newValue => {
+    selectedPatient.value = newValue
+  }
+)
 
 // Load patients on mount
 onMounted(() => {

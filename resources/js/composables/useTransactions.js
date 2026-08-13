@@ -33,7 +33,7 @@ export function useTransactions() {
   }
 
   // Crear transacción
-  const createTransaction = async (data) => {
+  const createTransaction = async data => {
     loading.value = true
     error.value = null
 
@@ -55,7 +55,7 @@ export function useTransactions() {
   }
 
   // Obtener transacción por ID
-  const getTransaction = async (id) => {
+  const getTransaction = async id => {
     loading.value = true
     error.value = null
 
@@ -117,7 +117,7 @@ export function useTransactions() {
   }
 
   // Eliminar transacción
-  const deleteTransaction = async (id) => {
+  const deleteTransaction = async id => {
     loading.value = true
     error.value = null
 
@@ -140,7 +140,7 @@ export function useTransactions() {
   }
 
   // Generar comprobante
-  const generateReceipt = async (id) => {
+  const generateReceipt = async id => {
     loading.value = true
     error.value = null
 
@@ -191,7 +191,7 @@ export function useTransactions() {
   }
 
   // Formatear monto para mostrar
-  const formatAmount = (amount) => {
+  const formatAmount = amount => {
     return new Intl.NumberFormat('es-PE', {
       style: 'currency',
       currency: 'PEN'
@@ -199,7 +199,7 @@ export function useTransactions() {
   }
 
   // Filtrar transacciones localmente
-  const filterTransactions = (filters) => {
+  const filterTransactions = filters => {
     let filtered = [...transactions.value]
 
     if (filters.patient_id) {
@@ -295,7 +295,6 @@ export function useTransactions() {
 
     // Slice 08 / T-08.11: refresh + retry aliases.
     refresh: getTransactions,
-    retry: getTransactions,
+    retry: getTransactions
   }
 }
-

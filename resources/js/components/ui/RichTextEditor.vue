@@ -4,24 +4,24 @@
       <div class="toolbar-group">
         <button
           type="button"
-          @click="execCommand('bold')"
           :class="['toolbar-btn', isActive('bold') ? 'active' : '']"
+          @click="execCommand('bold')"
           title="Negrita"
         >
           <BoldIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
-          @click="execCommand('italic')"
           :class="['toolbar-btn', isActive('italic') ? 'active' : '']"
+          @click="execCommand('italic')"
           title="Cursiva"
         >
           <ItalicIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
-          @click="execCommand('underline')"
           :class="['toolbar-btn', isActive('underline') ? 'active' : '']"
+          @click="execCommand('underline')"
           title="Subrayado"
         >
           <UnderlineIcon class="w-4 h-4" />
@@ -31,16 +31,16 @@
       <div class="toolbar-group">
         <button
           type="button"
-          @click="execCommand('insertUnorderedList')"
           :class="['toolbar-btn', isActive('insertUnorderedList') ? 'active' : '']"
+          @click="execCommand('insertUnorderedList')"
           title="Lista con viñetas"
         >
           <ListBulletIcon class="w-4 h-4" />
         </button>
         <button
           type="button"
-          @click="execCommand('insertOrderedList')"
           :class="['toolbar-btn', isActive('insertOrderedList') ? 'active' : '']"
+          @click="execCommand('insertOrderedList')"
           title="Lista numerada"
         >
           <ListBulletIcon class="w-4 h-4" />
@@ -48,42 +48,52 @@
       </div>
 
       <div class="toolbar-group">
-        <select
-          @change="changeFontSize"
-          class="toolbar-select"
-          title="Tamaño de fuente"
-        >
-          <option value="">Tamaño</option>
-          <option value="1">Muy pequeño</option>
-          <option value="2">Pequeño</option>
-          <option value="3">Normal</option>
-          <option value="4">Grande</option>
-          <option value="5">Muy grande</option>
-          <option value="6">Enorme</option>
+        <select @change="changeFontSize" class="toolbar-select" title="Tamaño de fuente">
+          <option value="">
+Tamaño
+</option>
+          <option value="1">
+Muy pequeño
+</option>
+          <option value="2">
+Pequeño
+</option>
+          <option value="3">
+Normal
+</option>
+          <option value="4">
+Grande
+</option>
+          <option value="5">
+Muy grande
+</option>
+          <option value="6">
+Enorme
+</option>
         </select>
       </div>
 
       <div class="toolbar-group">
         <button
           type="button"
-          @click="execCommand('justifyLeft')"
           :class="['toolbar-btn', isActive('justifyLeft') ? 'active' : '']"
+          @click="execCommand('justifyLeft')"
           title="Alinear izquierda"
         >
           ←
         </button>
         <button
           type="button"
-          @click="execCommand('justifyCenter')"
           :class="['toolbar-btn', isActive('justifyCenter') ? 'active' : '']"
+          @click="execCommand('justifyCenter')"
           title="Centrar"
         >
           ↔
         </button>
         <button
           type="button"
-          @click="execCommand('justifyRight')"
           :class="['toolbar-btn', isActive('justifyRight') ? 'active' : '']"
+          @click="execCommand('justifyRight')"
           title="Alinear derecha"
         >
           →
@@ -91,20 +101,10 @@
       </div>
 
       <div class="toolbar-group">
-        <button
-          type="button"
-          @click="execCommand('undo')"
-          class="toolbar-btn"
-          title="Deshacer"
-        >
+        <button type="button" @click="execCommand('undo')" class="toolbar-btn" title="Deshacer">
           <ArrowUturnLeftIcon class="w-4 h-4" />
         </button>
-        <button
-          type="button"
-          @click="execCommand('redo')"
-          class="toolbar-btn"
-          title="Rehacer"
-        >
+        <button type="button" @click="execCommand('redo')" class="toolbar-btn" title="Rehacer">
           <ArrowUturnRightIcon class="w-4 h-4" />
         </button>
       </div>
@@ -112,8 +112,7 @@
 
     <div
       ref="editor"
-      :class="[
-        'editor-content',
+      class="editor-content" :class="[
         disabled ? 'disabled' : ''
       ]"
       :contenteditable="!disabled"
@@ -121,7 +120,7 @@
       @paste="handlePaste"
       @keydown="handleKeydown"
       v-html="modelValue"
-    ></div>
+    />
 
     <div v-if="showCharCount" class="editor-footer">
       <div class="text-sm text-theme-secondary">
@@ -190,12 +189,12 @@ const execCommand = (command, value = null) => {
   emitChange()
 }
 
-const isActive = (command) => {
+const isActive = command => {
   if (props.disabled) return false
   return document.queryCommandState(command)
 }
 
-const changeFontSize = (event) => {
+const changeFontSize = event => {
   const size = event.target.value
   if (size) {
     execCommand('fontSize', size)
@@ -209,7 +208,7 @@ const handleInput = () => {
   emitChange()
 }
 
-const handlePaste = (event) => {
+const handlePaste = event => {
   if (props.disabled) {
     event.preventDefault()
     return
@@ -221,7 +220,7 @@ const handlePaste = (event) => {
   document.execCommand('insertText', false, text)
 }
 
-const handleKeydown = (event) => {
+const handleKeydown = event => {
   if (props.disabled) {
     event.preventDefault()
     return
@@ -233,9 +232,13 @@ const handleKeydown = (event) => {
   }
 }
 
-const isControlKey = (event) => {
-  return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' ||
-         event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown'
+const isControlKey = event => {
+  return (
+    event.ctrlKey ||
+    event.metaKey ||
+    event.key === 'Backspace' ||
+    event.key === 'Delete' ||
+    event.key === 'ArrowLeft' || event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'ArrowDown'
 }
 
 const emitChange = () => {
@@ -260,11 +263,14 @@ const clear = () => {
 }
 
 // Watchers
-watch(() => props.modelValue, (newValue) => {
-  if (editor.value && editor.value.innerHTML !== newValue) {
-    editor.value.innerHTML = newValue
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (editor.value && editor.value.innerHTML !== newValue) {
+      editor.value.innerHTML = newValue
+    }
   }
-})
+)
 
 // Lifecycle
 onMounted(() => {

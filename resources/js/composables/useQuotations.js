@@ -52,7 +52,7 @@ export function useQuotations() {
     }
   }
 
-  const getQuotation = async (id) => {
+  const getQuotation = async id => {
     try {
       loading.value = true
       error.value = null
@@ -69,7 +69,7 @@ export function useQuotations() {
     }
   }
 
-  const createQuotation = async (data) => {
+  const createQuotation = async data => {
     try {
       loading.value = true
       error.value = null
@@ -117,7 +117,7 @@ export function useQuotations() {
     }
   }
 
-  const deleteQuotation = async (id) => {
+  const deleteQuotation = async id => {
     try {
       loading.value = true
       error.value = null
@@ -197,7 +197,7 @@ export function useQuotations() {
     }
   }
 
-  const downloadPDF = async (id) => {
+  const downloadPDF = async id => {
     try {
       loading.value = true
       error.value = null
@@ -226,7 +226,7 @@ export function useQuotations() {
     }
   }
 
-  const getQuotationsByPatient = async (patientId) => {
+  const getQuotationsByPatient = async patientId => {
     try {
       loading.value = true
       error.value = null

@@ -3,8 +3,12 @@
     <div class="card-header">
       <div class="flex justify-between items-start">
         <div>
-          <h3 class="record-title">{{ record.record_number }}</h3>
-          <p class="record-date">{{ formatDate(record.first_visit_date) }}</p>
+          <h3 class="record-title">
+            {{ record.record_number }}
+          </h3>
+          <p class="record-date">
+            {{ formatDate(record.first_visit_date) }}
+          </p>
         </div>
         <div class="record-status">
           <span :class="statusClasses">
@@ -50,7 +54,9 @@
       </div>
 
       <div v-if="record.notes" class="record-notes">
-        <p class="text-sm text-theme-secondary line-clamp-2">{{ record.notes }}</p>
+        <p class="text-sm text-theme-secondary line-clamp-2">
+          {{ record.notes }}
+        </p>
       </div>
     </div>
 
@@ -58,27 +64,19 @@
       <div class="flex justify-between items-center">
         <div class="flex space-x-2">
           <button
-            @click="$emit('view', record)"
             class="btn btn-sm btn-outline"
             title="Ver detalles"
+            @click="$emit('view', record)"
           >
             <EyeIcon class="w-4 h-4" />
           </button>
-          <button
-            @click="$emit('edit', record)"
-            class="btn btn-sm btn-outline"
-            title="Editar"
-          >
+          <button class="btn btn-sm btn-outline" title="Editar" @click="$emit('edit', record)">
             <PencilIcon class="w-4 h-4" />
           </button>
         </div>
 
         <div class="flex space-x-2">
-          <button
-            @click="confirmDelete"
-            class="btn btn-sm btn-danger"
-            title="Eliminar"
-          >
+          <button class="btn btn-sm btn-danger" title="Eliminar" @click="confirmDelete">
             <TrashIcon class="w-4 h-4" />
           </button>
         </div>
@@ -117,7 +115,7 @@ const statusLabel = computed(() => {
 })
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   return new Date(date).toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
@@ -130,7 +128,7 @@ const confirmDelete = async () => {
     title: 'Eliminar historia clínica',
     message: '¿Estás seguro de que quieres eliminar esta historia clínica?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (ok) {
     emit('delete', props.record.id)

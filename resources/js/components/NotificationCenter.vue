@@ -8,15 +8,12 @@
           <div class="flex items-center gap-2">
             <button
               v-if="unreadCount > 0"
-              @click="markAllAsRead"
               class="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
+              @click="markAllAsRead"
             >
               Marcar todas como leídas
             </button>
-            <button
-              @click="close"
-              class="p-1 hover:bg-theme-surface rounded transition-colors"
-            >
+            <button class="p-1 hover:bg-theme-surface rounded transition-colors" @click="close">
               <XMarkIcon class="w-5 h-5 text-theme-secondary" />
             </button>
           </div>
@@ -26,8 +23,8 @@
           <p class="text-xs text-theme-secondary">Feed de actividad reciente del sistema</p>
           <button
             v-if="notifications.length > 0"
-            @click="markAllAsRead"
             class="text-xs text-theme-secondary hover:text-theme-primary transition-colors"
+            @click="markAllAsRead"
           >
             Marcar todas como leídas
           </button>
@@ -45,26 +42,38 @@
           <div
             v-for="notification in notifications"
             :key="notification.id"
+            class="notification-item"
             :class="[
-              'notification-item',
               `notification-${notification.type}`,
               { 'notification-unread': !notification.read }
             ]"
             @click="handleNotificationClick(notification)"
           >
             <div class="notification-icon">
-              <CheckCircleIcon v-if="notification.type === 'success'" class="w-5 h-5 text-green-500" />
-              <ExclamationTriangleIcon v-else-if="notification.type === 'warning'" class="w-5 h-5 text-yellow-500" />
+              <CheckCircleIcon
+                v-if="notification.type === 'success'"
+                class="w-5 h-5 text-green-500"
+              />
+              <ExclamationTriangleIcon
+                v-else-if="notification.type === 'warning'"
+                class="w-5 h-5 text-yellow-500"
+              />
               <XCircleIcon v-else-if="notification.type === 'error'" class="w-5 h-5 text-red-500" />
               <InformationCircleIcon v-else class="w-5 h-5 text-primary-500" />
             </div>
             <div class="notification-content">
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <h4 class="font-semibold text-theme-primary">{{ notification.title }}</h4>
-                  <p class="text-sm text-theme-secondary mt-1">{{ notification.message }}</p>
+                  <h4 class="font-semibold text-theme-primary">
+                    {{ notification.title }}
+                  </h4>
+                  <p class="text-sm text-theme-secondary mt-1">
+                    {{ notification.message }}
+                  </p>
                   <div class="flex items-center gap-2 mt-2">
-                    <span class="text-xs text-theme-secondary">{{ formatTime(notification.timestamp) }}</span>
+                    <span class="text-xs text-theme-secondary">
+                      {{ formatTime(notification.timestamp) }}
+                    </span>
                     <span
                       v-if="notification.category !== 'system'"
                       class="px-2 py-0.5 text-xs rounded bg-theme-surface text-theme-secondary"
@@ -76,16 +85,16 @@
                 <div class="flex items-center gap-2 ml-4">
                   <button
                     v-if="!notification.read"
-                    @click.stop="markAsRead(notification.id)"
                     class="p-1 hover:bg-theme-surface rounded transition-colors"
                     title="Marcar como leída"
+                    @click.stop="markAsRead(notification.id)"
                   >
                     <CheckIcon class="w-4 h-4 text-theme-secondary" />
                   </button>
                   <button
-                    @click.stop="removeNotification(notification.id)"
                     class="p-1 hover:bg-theme-surface rounded transition-colors"
                     title="Eliminar"
+                    @click.stop="removeNotification(notification.id)"
                   >
                     <XMarkIcon class="w-4 h-4 text-theme-secondary" />
                   </button>
@@ -99,16 +108,16 @@
       <!-- Footer -->
       <div class="notification-center-footer">
         <button
-          @click="clearRead"
           class="text-sm text-theme-secondary hover:text-theme-primary transition-colors"
           :disabled="readCount === 0"
+          @click="clearRead"
         >
           Limpiar leídas
         </button>
         <button
-          @click="clearAll"
           class="text-sm text-red-500 hover:text-red-600 transition-colors"
           :disabled="notifications.length === 0"
+          @click="clearAll"
         >
           Limpiar todas
         </button>
@@ -156,7 +165,7 @@ const close = () => {
   emit('close')
 }
 
-const handleNotificationClick = (notification) => {
+const handleNotificationClick = notification => {
   if (!notification.read) {
     markAsRead(notification.id)
   }
@@ -172,7 +181,7 @@ const handleNotificationClick = (notification) => {
   }
 }
 
-const formatTime = (timestamp) => {
+const formatTime = timestamp => {
   const date = new Date(timestamp)
   const now = new Date()
   const diff = now - date
@@ -187,7 +196,7 @@ const formatTime = (timestamp) => {
   return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
-const getCategoryLabel = (category) => {
+const getCategoryLabel = category => {
   const labels = {
     appointments: 'Citas',
     patients: 'Pacientes',
@@ -201,19 +210,22 @@ const getCategoryLabel = (category) => {
 }
 
 // Cerrar con Escape
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen) {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') {
-        close()
+watch(
+  () => props.isOpen,
+  isOpen => {
+    if (isOpen) {
+      const handleEscape = e => {
+        if (e.key === 'Escape') {
+          close()
+        }
+      }
+      document.addEventListener('keydown', handleEscape)
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
       }
     }
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-    }
   }
-})
+)
 </script>
 
 <style scoped>
@@ -295,4 +307,3 @@ watch(() => props.isOpen, (isOpen) => {
   @apply border-l-4 border-primary-500;
 }
 </style>
-

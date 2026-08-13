@@ -2,30 +2,23 @@
   <div class="specialty-record-card">
     <div class="card-header">
       <div class="card-title">
-        <h3 class="title">{{ record.title }}</h3>
+        <h3 class="title">
+          {{ record.title }}
+        </h3>
         <span class="specialty-badge">{{ getSpecialtyLabel(record.specialty) }}</span>
       </div>
       <div class="card-actions">
-        <button
-          @click="$emit('view', record)"
-          class="action-btn"
-          title="Ver detalles"
-        >
+        <button class="action-btn" title="Ver detalles" @click="$emit('view', record)">
           <EyeIcon class="w-4 h-4" />
         </button>
-        <button
-          @click="$emit('edit', record)"
-          class="action-btn"
-          title="Editar"
-          v-if="canEdit"
-        >
+        <button v-if="canEdit" class="action-btn" title="Editar" @click="$emit('edit', record)">
           <PencilIcon class="w-4 h-4" />
         </button>
         <button
-          @click="$emit('delete', record)"
+          v-if="canDelete"
           class="action-btn action-btn-danger"
           title="Eliminar"
-          v-if="canDelete"
+          @click="$emit('delete', record)"
         >
           <TrashIcon class="w-4 h-4" />
         </button>
@@ -39,25 +32,27 @@
           <UserIcon class="w-4 h-4 text-theme-secondary" />
           <span>{{ record.patient?.first_name }} {{ record.patient?.last_name }}</span>
         </div>
-        <div class="patient-dni" v-if="record.patient?.dni">
+        <div v-if="record.patient?.dni" class="patient-dni">
           <span class="text-sm text-theme-secondary">{{ record.patient.dni }}</span>
         </div>
       </div>
 
       <!-- Descripción -->
-      <div class="description" v-if="record.description">
-        <p class="description-text">{{ record.description }}</p>
+      <div v-if="record.description" class="description">
+        <p class="description-text">
+          {{ record.description }}
+        </p>
       </div>
 
       <!-- Información específica por especialidad -->
       <div class="specialty-info">
         <!-- Implantología -->
         <div v-if="record.specialty === 'implantology'" class="specialty-details">
-          <div class="detail-item" v-if="record.implant_count">
+          <div v-if="record.implant_count" class="detail-item">
             <span class="detail-label">Implantes:</span>
             <span class="detail-value">{{ record.implant_count }}</span>
           </div>
-          <div class="detail-item" v-if="record.implant_type">
+          <div v-if="record.implant_type" class="detail-item">
             <span class="detail-label">Tipo:</span>
             <span class="detail-value">{{ record.implant_type }}</span>
           </div>
@@ -65,11 +60,11 @@
 
         <!-- Ortodoncia -->
         <div v-else-if="record.specialty === 'orthodontics'" class="specialty-details">
-          <div class="detail-item" v-if="record.treatment_type">
+          <div v-if="record.treatment_type" class="detail-item">
             <span class="detail-label">Tratamiento:</span>
             <span class="detail-value">{{ getTreatmentTypeLabel(record.treatment_type) }}</span>
           </div>
-          <div class="detail-item" v-if="record.estimated_duration">
+          <div v-if="record.estimated_duration" class="detail-item">
             <span class="detail-label">Duración:</span>
             <span class="detail-value">{{ record.estimated_duration }} meses</span>
           </div>
@@ -77,11 +72,11 @@
 
         <!-- Endodoncia -->
         <div v-else-if="record.specialty === 'endodontics'" class="specialty-details">
-          <div class="detail-item" v-if="record.tooth_number">
+          <div v-if="record.tooth_number" class="detail-item">
             <span class="detail-label">Diente:</span>
             <span class="detail-value">{{ record.tooth_number }}</span>
           </div>
-          <div class="detail-item" v-if="record.canal_count">
+          <div v-if="record.canal_count" class="detail-item">
             <span class="detail-label">Conductos:</span>
             <span class="detail-value">{{ record.canal_count }}</span>
           </div>
@@ -89,11 +84,11 @@
 
         <!-- Rehabilitación -->
         <div v-else-if="record.specialty === 'rehabilitation'" class="specialty-details">
-          <div class="detail-item" v-if="record.prosthesis_type">
+          <div v-if="record.prosthesis_type" class="detail-item">
             <span class="detail-label">Prótesis:</span>
             <span class="detail-value">{{ getProsthesisTypeLabel(record.prosthesis_type) }}</span>
           </div>
-          <div class="detail-item" v-if="record.material">
+          <div v-if="record.material" class="detail-item">
             <span class="detail-label">Material:</span>
             <span class="detail-value">{{ record.material }}</span>
           </div>
@@ -101,11 +96,11 @@
 
         <!-- Cirugía Oral -->
         <div v-else-if="record.specialty === 'oral_surgery'" class="specialty-details">
-          <div class="detail-item" v-if="record.surgery_type">
+          <div v-if="record.surgery_type" class="detail-item">
             <span class="detail-label">Cirugía:</span>
             <span class="detail-value">{{ getSurgeryTypeLabel(record.surgery_type) }}</span>
           </div>
-          <div class="detail-item" v-if="record.anesthesia">
+          <div v-if="record.anesthesia" class="detail-item">
             <span class="detail-label">Anestesia:</span>
             <span class="detail-value">{{ record.anesthesia }}</span>
           </div>
@@ -114,11 +109,11 @@
 
       <!-- Información adicional -->
       <div class="additional-info">
-        <div class="info-item" v-if="record.professional_name">
+        <div v-if="record.professional_name" class="info-item">
           <span class="info-label">Profesional:</span>
           <span class="info-value">{{ record.professional_name }}</span>
         </div>
-        <div class="info-item" v-if="record.procedure_date">
+        <div v-if="record.procedure_date" class="info-item">
           <span class="info-label">Fecha:</span>
           <span class="info-value">{{ formatDate(record.procedure_date) }}</span>
         </div>
@@ -127,9 +122,7 @@
 
     <div class="card-footer">
       <div class="footer-left">
-        <span class="created-date">
-          Creado {{ formatDate(record.created_at) }}
-        </span>
+        <span class="created-date">Creado {{ formatDate(record.created_at) }}</span>
       </div>
       <div class="footer-right">
         <span class="status-indicator" :class="getStatusClass(record.status)">
@@ -143,12 +136,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
-import {
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  UserIcon
-} from '@heroicons/vue/24/outline'
+import { EyeIcon, PencilIcon, TrashIcon, UserIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   record: {
@@ -171,7 +159,7 @@ const canDelete = computed(() => {
 })
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -180,7 +168,7 @@ const formatDate = (date) => {
   })
 }
 
-const getSpecialtyLabel = (specialty) => {
+const getSpecialtyLabel = specialty => {
   const labels = {
     implantology: 'Implantología',
     orthodontics: 'Ortodoncia',
@@ -191,7 +179,7 @@ const getSpecialtyLabel = (specialty) => {
   return labels[specialty] || specialty
 }
 
-const getTreatmentTypeLabel = (type) => {
+const getTreatmentTypeLabel = type => {
   const labels = {
     fixed: 'Aparatología Fija',
     removable: 'Aparatología Removible',
@@ -200,7 +188,7 @@ const getTreatmentTypeLabel = (type) => {
   return labels[type] || type
 }
 
-const getProsthesisTypeLabel = (type) => {
+const getProsthesisTypeLabel = type => {
   const labels = {
     crown: 'Corona',
     bridge: 'Puente',
@@ -210,7 +198,7 @@ const getProsthesisTypeLabel = (type) => {
   return labels[type] || type
 }
 
-const getSurgeryTypeLabel = (type) => {
+const getSurgeryTypeLabel = type => {
   const labels = {
     extraction: 'Extracción',
     wisdom_tooth: 'Muela del Juicio',
@@ -220,7 +208,7 @@ const getSurgeryTypeLabel = (type) => {
   return labels[type] || type
 }
 
-const getStatusLabel = (status) => {
+const getStatusLabel = status => {
   const labels = {
     active: 'Activo',
     completed: 'Completado',
@@ -230,7 +218,7 @@ const getStatusLabel = (status) => {
   return labels[status] || status
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     active: 'status-active',
     completed: 'status-completed',

@@ -10,7 +10,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Codigo <span class="text-systemRed-500">*</span>
+            Codigo
+            <span class="text-systemRed-500">*</span>
           </label>
           <UiInput
             v-model="form.code"
@@ -28,7 +29,8 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Nombre visible <span class="text-systemRed-500">*</span>
+            Nombre visible
+            <span class="text-systemRed-500">*</span>
           </label>
           <UiInput
             v-model="form.name"
@@ -42,9 +44,7 @@
 
       <!-- Descripcion -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Descripcion
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Descripcion</label>
         <UiTextarea
           v-model="form.description"
           :disabled="isSystem"
@@ -57,9 +57,7 @@
       <!-- Comision + Requiere autorizacion -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Comision (%)
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Comision (%)</label>
           <UiInput
             v-model.number="form.commission_percentage"
             :disabled="isSystem"
@@ -98,13 +96,12 @@
       <div v-if="!isSystem || form.gateway_type" class="border-t border-hairline pt-4 mt-4">
         <h4 class="text-sm font-semibold text-theme-primary mb-3">Pasarela de pago (opcional)</h4>
         <p class="text-xs text-theme-secondary mb-3">
-          Configura Mercado Pago u otra pasarela para cobrar en linea. El cobro manual siempre estara disponible sin pasarela.
+          Configura Mercado Pago u otra pasarela para cobrar en linea. El cobro manual siempre
+          estara disponible sin pasarela.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Pasarela
-            </label>
+            <label class="block text-sm font-medium text-theme-primary mb-1">Pasarela</label>
             <select
               v-model="form.gateway_type"
               :disabled="isSystem"
@@ -121,15 +118,9 @@
             below are write-only capture bound to a local reactive that starts
             empty, so the stored blob never reaches a rendered text node.
           -->
-          <div
-            v-if="form.gateway_type === 'mercadopago'"
-            class="space-y-2"
-            data-redacted="true"
-          >
+          <div v-if="form.gateway_type === 'mercadopago'" class="space-y-2" data-redacted="true">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Access Token
-              </label>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Access Token</label>
               <UiInput
                 v-model="gatewayConfig.access_token"
                 type="password"
@@ -141,9 +132,7 @@
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Public Key
-              </label>
+              <label class="block text-sm font-medium text-theme-primary mb-1">Public Key</label>
               <UiInput
                 v-model="gatewayConfig.public_key"
                 :placeholder="hasStoredCredentials ? '••••••' : 'TEST-... o APP_USR-...'"
@@ -156,9 +145,7 @@
 
       <!-- Estado (solo visible en edit) -->
       <div v-if="isEdit" class="border-t border-hairline pt-4 mt-4">
-        <label class="block text-sm font-medium text-theme-primary mb-1">
-          Estado
-        </label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
         <select
           v-model="form.is_active"
           :disabled="isSystem"
@@ -176,14 +163,14 @@
     <template #footer>
       <div class="flex justify-end gap-3">
         <UiButton variant="secondary" :disabled="saving" @click="emit('close')">
-          Cancelar
-        </UiButton>
+Cancelar
+</UiButton>
         <UiButton v-if="!isSystem" :disabled="saving" @click="onSubmit">
           {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
         </UiButton>
         <UiButton v-else variant="secondary" disabled>
-          Metodo del sistema
-        </UiButton>
+Metodo del sistema
+</UiButton>
       </div>
     </template>
   </UiModal>

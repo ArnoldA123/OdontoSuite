@@ -15,7 +15,7 @@ export function useConsultation() {
 
   const isOpen = computed(() => wizardOpen.value)
 
-  const openForAppointment = async (appointment) => {
+  const openForAppointment = async appointment => {
     if (!appointment?.id) return
     currentAppointmentId.value = appointment.id
     context.value = null
@@ -31,20 +31,23 @@ export function useConsultation() {
     lastError.value = null
   }
 
-  const loadContext = async (appointmentId) => {
+  const loadContext = async appointmentId => {
     contextLoading.value = true
     try {
       const response = await get(`/api/appointments/${appointmentId}/consultation-context`)
       context.value = response?.data ?? null
     } catch (error) {
-      lastError.value = error?.response?.data?.error?.message || error?.response?.data?.message || 'No se pudo cargar el contexto'
+      lastError.value =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        'No se pudo cargar el contexto'
       toast.error(lastError.value)
     } finally {
       contextLoading.value = false
     }
   }
 
-  const checkIn = async (appointment) => {
+  const checkIn = async appointment => {
     if (!appointment?.id) return null
     try {
       const response = await post(`/api/appointments/${appointment.id}/check-in`, {})
@@ -58,7 +61,7 @@ export function useConsultation() {
     }
   }
 
-  const submit = async (payload) => {
+  const submit = async payload => {
     if (!currentAppointmentId.value) return null
     submitting.value = true
     lastError.value = null
@@ -104,14 +107,17 @@ export function useConsultation() {
 
       const token = localStorage.getItem('auth_token')
       const baseURL = import.meta.env.VITE_APP_URL || window.location.origin
-      const response = await fetch(`${baseURL}/api/appointments/${currentAppointmentId.value}/complete`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Accept': 'application/json',
-        },
-        body: form,
-      })
+      const response = await fetch(
+        `${baseURL}/api/appointments/${currentAppointmentId.value}/complete`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+            Accept: 'application/json'
+          },
+          body: form
+        }
+      )
 
       const data = await response.json().catch(() => ({}))
 
@@ -125,7 +131,6 @@ export function useConsultation() {
             .join(' | ')
           errMsg = fields || errMsg
         }
-
 
         lastError.value = errMsg
         toast.error(errMsg, 8000)
@@ -155,6 +160,6 @@ export function useConsultation() {
     close,
     loadContext,
     checkIn,
-    submit,
+    submit
   }
 }

@@ -11,43 +11,67 @@
     >
       <!-- Loading while creating preference (Apple motion wash) -->
       <div v-if="step === 'creating'" key="creating" class="py-8 text-center">
-        <LoadingSpinner size="md" variant="primary" text="Preparando pago con Mercado Pago..." aria-label="Preparando pago con Mercado Pago" />
-        <UiStatusBadge variant="info" size="sm" label="Procesando" class="mt-3" />
+        <LoadingSpinner
+          size="md"
+          variant="primary"
+          text="Preparando pago con Mercado Pago..."
+          aria-label="Preparando pago con Mercado Pago"
+        />
+        <UiStatusBadge variant="info" size="sm" label="Procesando"
+class="mt-3" />
       </div>
 
       <!-- Error (Apple motion wash) -->
       <div v-else-if="step === 'error'" key="error" class="py-8 text-center">
-        <UiStatusBadge variant="error" :label="errorMessage || 'Error al procesar el pago'" class="mb-3" />
+        <UiStatusBadge
+          variant="error"
+          :label="errorMessage || 'Error al procesar el pago'"
+          class="mb-3"
+        />
         <UiButton variant="secondary" size="sm" @click="$emit('close')">
-          Volver
-        </UiButton>
+Volver
+</UiButton>
       </div>
 
       <!-- Payment brick container (no transition — brick owns its mount) -->
       <div v-else-if="step === 'ready'" key="ready">
-        <div
-          :id="containerId"
-          ref="brickContainer"
-          class="min-h-[300px]"
-        ></div>
+        <div :id="containerId" ref="brickContainer" class="min-h-[300px]" />
         <div class="flex justify-center mt-4">
           <UiButton variant="ghost" size="sm" @click="handleCancel">
-            Cancelar y volver
-          </UiButton>
+Cancelar y volver
+</UiButton>
         </div>
       </div>
 
       <!-- Processing after payment submit (Apple motion wash) -->
       <div v-else-if="step === 'processing'" key="processing" class="py-8 text-center">
-        <LoadingSpinner size="md" variant="primary" text="Procesando pago..." aria-label="Procesando pago con Mercado Pago" />
-        <UiStatusBadge variant="info" size="md" label="Procesando" class="mt-3" />
+        <LoadingSpinner
+          size="md"
+          variant="primary"
+          text="Procesando pago..."
+          aria-label="Procesando pago con Mercado Pago"
+        />
+        <UiStatusBadge variant="info" size="md" label="Procesando"
+class="mt-3" />
       </div>
 
       <!-- Success (Apple motion wash) -->
       <div v-else-if="step === 'success'" key="success" class="py-8 text-center">
-        <div class="w-16 h-16 mx-auto bg-systemGreen-100 rounded-full flex items-center justify-center mb-4">
-          <svg class="w-8 h-8 text-systemGreen-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        <div
+          class="w-16 h-16 mx-auto bg-systemGreen-100 rounded-full flex items-center justify-center mb-4"
+        >
+          <svg
+            class="w-8 h-8 text-systemGreen-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            />
           </svg>
         </div>
         <h3 class="text-lg font-semibold text-theme-primary mb-2">Pago registrado</h3>
@@ -55,8 +79,8 @@
           {{ formatCurrency(amount) }} - {{ description }}
         </p>
         <UiButton @click="handleDone">
-          Continuar
-        </UiButton>
+Continuar
+</UiButton>
       </div>
     </Transition>
   </div>
@@ -118,7 +142,7 @@ onMounted(async () => {
         onSubmit: () => {
           step.value = 'processing'
         },
-        onError: (error) => {
+        onError: error => {
           step.value = 'error'
           errorMessage.value = 'Error al procesar el pago con Mercado Pago'
         }

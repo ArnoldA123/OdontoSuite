@@ -16,19 +16,13 @@ export function transformToOptions(items, config = {}) {
     return []
   }
 
-  const {
-    valueKey = 'id',
-    labelKey = 'name',
-    descriptionKey = null
-  } = config
+  const { valueKey = 'id', labelKey = 'name', descriptionKey = null } = config
 
   return items.map(item => {
     const value = item[valueKey]
 
     // Si labelKey es una función, usarla para generar el label
-    const label = typeof labelKey === 'function'
-      ? labelKey(item)
-      : item[labelKey] || ''
+    const label = typeof labelKey === 'function' ? labelKey(item) : item[labelKey] || ''
 
     const option = {
       value,
@@ -50,7 +44,7 @@ export function transformToOptions(items, config = {}) {
 export function transformProfessionals(professionals) {
   return transformToOptions(professionals, {
     valueKey: 'id',
-    labelKey: (item) => {
+    labelKey: item => {
       const name = item.name || ''
       const specialty = item.specialty || item.role || ''
       return specialty ? `${name} - ${specialty}` : name
@@ -64,7 +58,7 @@ export function transformProfessionals(professionals) {
 export function transformPatients(patients) {
   return transformToOptions(patients, {
     valueKey: 'id',
-    labelKey: (item) => {
+    labelKey: item => {
       const firstName = item.first_name || ''
       const lastName = item.last_name || ''
       return `${firstName} ${lastName}`.trim()
@@ -79,7 +73,7 @@ export function transformPatients(patients) {
 export function transformDentalChairs(chairs) {
   return transformToOptions(chairs, {
     valueKey: 'id',
-    labelKey: (item) => {
+    labelKey: item => {
       const name = item.name || ''
       const code = item.code || ''
       return code ? `${name} (${code})` : name
@@ -94,7 +88,7 @@ export function transformDentalChairs(chairs) {
 export function transformAppointmentTypes(types) {
   return transformToOptions(types, {
     valueKey: 'id',
-    labelKey: (item) => {
+    labelKey: item => {
       const name = item.name || ''
       const duration = item.default_duration_minutes || ''
       return duration ? `${name} (${duration} min)` : name
@@ -148,4 +142,3 @@ export function useOptionsTransform() {
     transformRoles
   }
 }
-

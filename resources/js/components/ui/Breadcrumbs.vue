@@ -3,11 +3,7 @@
     <ol class="flex items-center space-x-1">
       <!-- Home/Start item -->
       <li v-if="showHome" class="flex items-center">
-        <router-link
-          :to="homeTo"
-          :class="getBreadcrumbClasses(true, true)"
-          :aria-label="homeLabel"
-        >
+        <router-link :to="homeTo" :class="getBreadcrumbClasses(true, true)" :aria-label="homeLabel">
           <component :is="homeIcon" class="w-4 h-4" />
           <span class="sr-only">{{ homeLabel }}</span>
         </router-link>
@@ -19,11 +15,7 @@
       </li>
 
       <!-- Breadcrumb items -->
-      <li
-        v-for="(item, index) in visibleItems"
-        :key="item.id || index"
-        class="flex items-center"
-      >
+      <li v-for="(item, index) in visibleItems" :key="item.id || index" class="flex items-center">
         <!-- Item content -->
         <component
           :is="item.to ? 'router-link' : 'span'"
@@ -32,11 +24,7 @@
           :aria-current="index === visibleItems.length - 1 ? 'page' : undefined"
         >
           <!-- Item icon -->
-          <component
-            v-if="item.icon"
-            :is="item.icon"
-            class="w-4 h-4 flex-shrink-0"
-          />
+          <component :is="item.icon" v-if="item.icon" class="w-4 h-4 flex-shrink-0" />
 
           <!-- Item label -->
           <span class="truncate">{{ item.label }}</span>
@@ -53,11 +41,11 @@
         </component>
 
         <!-- Separator (not after last item) -->
-          <component
-            v-if="index < visibleItems.length - 1"
-            :is="separator"
-            class="w-4 h-4 text-systemGray-500 ml-2"
-          />
+        <component
+          :is="separator"
+          v-if="index < visibleItems.length - 1"
+          class="w-4 h-4 text-systemGray-500 ml-2"
+        />
       </li>
 
       <!-- Collapsed items indicator -->
@@ -65,12 +53,18 @@
         <UiButton
           variant="ghost"
           size="sm"
-          @click="toggleCollapsed"
           :aria-label="`Mostrar ${collapsedItems.length} elementos ocultos`"
+          @click="toggleCollapsed"
         >
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+              />
             </svg>
           </template>
         </UiButton>
@@ -86,26 +80,19 @@
       leave-from-class="transform scale-100 opacity-100"
       leave-to-class="transform scale-95 opacity-0"
     >
-      <div
-        v-if="showCollapsedDropdown"
-        :class="dropdownClasses"
-      >
+      <div v-if="showCollapsedDropdown" :class="dropdownClasses">
         <div class="py-1">
           <component
+            :is="item.to ? 'router-link' : 'button'"
             v-for="(item, index) in collapsedItems"
             :key="item.id || index"
-            :is="item.to ? 'router-link' : 'button'"
             :to="item.to"
             :class="getDropdownItemClasses(!!item.to)"
             @click="item.to ? null : item.onClick?.()"
           >
             <div class="flex items-center gap-3">
               <!-- Item icon -->
-              <component
-                v-if="item.icon"
-                :is="item.icon"
-                class="w-4 h-4 flex-shrink-0"
-              />
+              <component :is="item.icon" v-if="item.icon" class="w-4 h-4 flex-shrink-0" />
 
               <!-- Item content -->
               <div class="flex-1 min-w-0">
@@ -133,11 +120,8 @@ const props = defineProps({
   items: {
     type: Array,
     required: true,
-    validator: (items) => {
-      return items.every(item =>
-        item &&
-        typeof item.label === 'string'
-      )
+    validator: items => {
+      return items.every(item => item && typeof item.label === 'string')
     }
   },
   separator: {
@@ -167,12 +151,12 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'minimal', 'solid'].includes(value)
+    validator: value => ['default', 'minimal', 'solid'].includes(value)
   },
   ariaLabel: {
     type: String,
@@ -219,11 +203,7 @@ const breadcrumbsClasses = computed(() => {
     solid: 'bg-theme-surface px-4 py-2 rounded-ios'
   }
 
-  return [
-    ...base,
-    sizes[props.size],
-    variants[props.variant]
-  ].join(' ')
+  return [...base, sizes[props.size], variants[props.variant]].join(' ')
 })
 
 const dropdownClasses = computed(() => [
@@ -243,30 +223,17 @@ const getBreadcrumbClasses = (isLast, isLink) => {
   ]
 
   if (isLast) {
-    return [
-      ...base,
-      'text-theme-primary font-medium',
-      'cursor-default'
-    ].join(' ')
+    return [...base, 'text-theme-primary font-medium', 'cursor-default'].join(' ')
   }
 
   if (isLink) {
-    return [
-      ...base,
-      'text-theme-secondary',
-      'hover:text-theme-primary',
-      'cursor-pointer'
-    ].join(' ')
+    return [...base, 'text-theme-secondary', 'hover:text-theme-primary', 'cursor-pointer'].join(' ')
   }
 
-  return [
-    ...base,
-    'text-theme-secondary',
-    'cursor-default'
-  ].join(' ')
+  return [...base, 'text-theme-secondary', 'cursor-default'].join(' ')
 }
 
-const getDropdownItemClasses = (isLink) => {
+const getDropdownItemClasses = isLink => {
   const base = [
     'w-full text-left px-4 py-3',
     'hover:bg-theme-surface',
@@ -276,18 +243,10 @@ const getDropdownItemClasses = (isLink) => {
   ]
 
   if (isLink) {
-    return [
-      ...base,
-      'text-theme-primary',
-      'hover:text-theme-primary'
-    ].join(' ')
+    return [...base, 'text-theme-primary', 'hover:text-theme-primary'].join(' ')
   }
 
-  return [
-    ...base,
-    'text-theme-secondary',
-    'hover:text-theme-primary'
-  ].join(' ')
+  return [...base, 'text-theme-secondary', 'hover:text-theme-primary'].join(' ')
 }
 
 const toggleCollapsed = () => {
@@ -313,8 +272,8 @@ const defaultHomeIcon = {
 }
 
 // Use default components if not provided
-const separator = computed(() => props.separator === 'svg' ? defaultSeparator : props.separator)
-const homeIcon = computed(() => props.homeIcon === 'svg' ? defaultHomeIcon : props.homeIcon)
+const separator = computed(() => (props.separator === 'svg' ? defaultSeparator : props.separator))
+const homeIcon = computed(() => (props.homeIcon === 'svg' ? defaultHomeIcon : props.homeIcon))
 </script>
 
 <style scoped>

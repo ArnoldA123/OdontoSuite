@@ -1,5 +1,6 @@
 <template>
-  <div :class="avatarClasses" :data-size="size" :data-variant="variant" :data-clickable="clickable">
+  <div :class="avatarClasses" :data-size="size" :data-variant="variant"
+:data-clickable="clickable">
     <!-- Image avatar -->
     <img
       v-if="src && !imageError"
@@ -14,22 +15,25 @@
     <div v-else-if="!loading" :class="fallbackClasses">
       <slot name="fallback">
         <span v-if="initials" class="avatar-initials">{{ initials }}</span>
-        <svg v-else class="avatar-icon" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        <svg v-else class="avatar-icon" fill="currentColor"
+viewBox="0 0 24 24">
+          <path
+            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+          />
         </svg>
       </slot>
     </div>
 
     <!-- Loading state -->
     <div v-if="loading" :class="loadingClasses">
-      <div class="avatar-skeleton"></div>
+      <div class="avatar-skeleton" />
     </div>
 
     <!-- Status indicator -->
-    <div v-if="status" :class="statusClasses" :data-status="status"></div>
+    <div v-if="status" :class="statusClasses" :data-status="status" />
 
     <!-- Online indicator -->
-    <div v-if="online !== null" :class="onlineClasses" :data-online="online"></div>
+    <div v-if="online !== null" :class="onlineClasses" :data-online="online" />
   </div>
 </template>
 
@@ -42,17 +46,17 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl', '2xl'].includes(value)
+    validator: value => ['xs', 'sm', 'md', 'lg', 'xl', '2xl'].includes(value)
   },
   variant: {
     type: String,
     default: 'circle',
-    validator: (value) => ['circle', 'square', 'rounded'].includes(value)
+    validator: value => ['circle', 'square', 'rounded'].includes(value)
   },
   initials: String,
   status: {
     type: String,
-    validator: (value) => !value || ['online', 'offline', 'away', 'busy'].includes(value)
+    validator: value => !value || ['online', 'offline', 'away', 'busy'].includes(value)
   },
   online: { type: Boolean, default: null },
   loading: { type: Boolean, default: false },
@@ -94,12 +98,7 @@ const avatarClasses = computed(() => {
     interactive.push('cursor-pointer hover:scale-105 active:scale-95')
   }
 
-  return [
-    ...base,
-    sizes[props.size],
-    shapes[props.variant],
-    ...interactive
-  ].join(' ')
+  return [...base, sizes[props.size], shapes[props.variant], ...interactive].join(' ')
 })
 
 const imageClasses = computed(() => [
@@ -121,9 +120,7 @@ const loadingClasses = computed(() => [
 ])
 
 const statusClasses = computed(() => {
-  const base = [
-    'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white'
-  ]
+  const base = ['absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white']
 
   const statusColors = {
     online: 'bg-green-500',
@@ -132,15 +129,12 @@ const statusClasses = computed(() => {
     busy: 'bg-red-500'
   }
 
-  return [
-    ...base,
-    statusColors[props.status]
-  ].join(' ')
+  return [...base, statusColors[props.status]].join(' ')
 })
 
 const onlineClasses = computed(() => [
   'absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white',
-    props.online ? 'bg-green-500' : 'bg-theme-secondary'
+  props.online ? 'bg-green-500' : 'bg-theme-secondary'
 ])
 
 // Event handlers
@@ -171,18 +165,17 @@ const handleImageLoad = () => {
 .avatar-skeleton {
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Scoped transitions — avatar hover / active / focus. Replaces the
@@ -200,21 +193,26 @@ const handleImageLoad = () => {
 }
 
 /* Status indicator animations */
-[data-status="online"] {
+[data-status='online'] {
   animation: pulse 2s infinite;
 }
 
-[data-status="away"] {
+[data-status='away'] {
   animation: pulse 1s infinite;
 }
 
-[data-status="busy"] {
+[data-status='busy'] {
   animation: pulse 0.5s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* Hover / press / focus — scoped to CLICKABLE avatars only. A decorative
@@ -222,42 +220,42 @@ const handleImageLoad = () => {
    the root. The press scale itself stays the existing `active:scale-95`
    Tailwind utility (D10/R10) — this block only adds the elevation lift and
    the tokenised ring (D6/G1). */
-[data-clickable="true"]:hover {
+[data-clickable='true']:hover {
   box-shadow: var(--elevation-1);
 }
 
-[data-clickable="true"]:focus-visible {
+[data-clickable='true']:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-default);
 }
 
 /* Size-specific adjustments */
-[data-size="xs"] {
+[data-size='xs'] {
   min-width: 24px;
   min-height: 24px;
 }
 
-[data-size="sm"] {
+[data-size='sm'] {
   min-width: 32px;
   min-height: 32px;
 }
 
-[data-size="md"] {
+[data-size='md'] {
   min-width: 40px;
   min-height: 40px;
 }
 
-[data-size="lg"] {
+[data-size='lg'] {
   min-width: 48px;
   min-height: 48px;
 }
 
-[data-size="xl"] {
+[data-size='xl'] {
   min-width: 64px;
   min-height: 64px;
 }
 
-[data-size="2xl"] {
+[data-size='2xl'] {
   min-width: 80px;
   min-height: 80px;
 }
@@ -285,12 +283,12 @@ const handleImageLoad = () => {
       opacity var(--motion-duration-normal) ease-out;
   }
 
-  [data-size][data-clickable="true"]:hover {
+  [data-size][data-clickable='true']:hover {
     transform: none;
     opacity: 0.88;
   }
 
-  [data-size][data-clickable="true"]:active {
+  [data-size][data-clickable='true']:active {
     transform: none;
     opacity: 0.72;
   }

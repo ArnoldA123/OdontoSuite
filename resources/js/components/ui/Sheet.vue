@@ -9,11 +9,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div
-        v-if="modelValue"
-        :class="backdropClasses"
-        @click="handleBackdropClick"
-      >
+      <div v-if="modelValue" :class="backdropClasses" @click="handleBackdropClick">
         <Transition
           :name="sheetTransition"
           :enter-active-class="enterActiveClass"
@@ -35,12 +31,14 @@
             @click.stop
           >
             <!-- Handle for mobile -->
-            <div v-if="showHandle" class="sheet-handle"></div>
+            <div v-if="showHandle" class="sheet-handle" />
 
             <!-- Sheet header -->
             <div v-if="$slots.header || title" class="sheet-header">
               <slot name="header">
-                <h2 :id="titleId" class="sheet-title">{{ title }}</h2>
+                <h2 :id="titleId" class="sheet-title">
+                  {{ title }}
+                </h2>
                 <button
                   v-if="closable"
                   type="button"
@@ -48,8 +46,14 @@
                   :aria-label="closeLabel"
                   @click="handleClose"
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </slot>
@@ -81,12 +85,12 @@ const props = defineProps({
   position: {
     type: String,
     default: 'bottom',
-    validator: (value) => ['top', 'bottom', 'left', 'right'].includes(value)
+    validator: value => ['top', 'bottom', 'left', 'right'].includes(value)
   },
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
+    validator: value => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
   },
   closable: { type: Boolean, default: true },
   closeOnBackdrop: { type: Boolean, default: true },
@@ -138,11 +142,7 @@ const sheetClasses = computed(() => {
     full: 'w-full h-full rounded-none'
   }
 
-  return [
-    ...base,
-    positions[props.position],
-    sizes[props.size]
-  ].join(' ')
+  return [...base, positions[props.position], sizes[props.size]].join(' ')
 })
 
 const sheetTransition = computed(() => {
@@ -220,7 +220,7 @@ const handleBackdropClick = () => {
   }
 }
 
-const handleEscape = (event) => {
+const handleEscape = event => {
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -242,7 +242,7 @@ function handleDocumentEscape(event) {
 // Watch for modelValue changes
 watch(
   () => props.modelValue,
-  (newValue) => {
+  newValue => {
     if (newValue) {
       emit('open')
       document.addEventListener('keydown', handleDocumentEscape)
@@ -388,7 +388,7 @@ button:focus-visible {
 }
 
 /* Full screen variant */
-[data-size="full"] {
+[data-size='full'] {
   margin: 0;
   max-width: 100vw;
   max-height: 100vh;

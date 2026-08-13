@@ -9,22 +9,28 @@ export function usePermissions() {
 
   const can = {
     // Gestión de pacientes
-    createPatient: computed(() => ['administrador', 'recepcionista'].includes(safeUser.value?.role)),
+    createPatient: computed(() =>
+      ['administrador', 'recepcionista'].includes(safeUser.value?.role)
+    ),
     deletePatient: computed(() => safeUser.value?.role === 'administrador'),
-    editPatient: computed(() => [
-      'administrador',
-      'recepcionista',
-      'odontologo',
-      'implantologo',
-      'tecnico_dental',
-      'asistente'
-    ].includes(safeUser.value?.role)),
+    editPatient: computed(() =>
+      [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente'
+      ].includes(safeUser.value?.role)
+    ),
     viewPatient: computed(() => true), // Todos pueden ver pacientes
 
     // Gestión de citas
     createAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
     editAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-    deleteAppointment: computed(() => ['administrador', 'recepcionista'].includes(safeUser.value?.role)),
+    deleteAppointment: computed(() =>
+      ['administrador', 'recepcionista'].includes(safeUser.value?.role)
+    ),
     viewAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
 
     // Reportes y Business Intelligence
@@ -52,8 +58,12 @@ export function usePermissions() {
     // Gestión de caja
     openCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     closeCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    viewCashRegister: computed(() => ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)),
-    manageCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
+    viewCashRegister: computed(() =>
+      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
+    ),
+    manageCashRegister: computed(() =>
+      ['administrador', 'finanzas'].includes(safeUser.value?.role)
+    ),
     createTransaction: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
     // Slice 09 / FF-001 — RBAC bypass fix. The "Nuevo Movimiento" button in
     // CashRegisterPage used to render for every role because this permission
@@ -82,7 +92,9 @@ export function usePermissions() {
     deleteQuotation: computed(() => isFinanzas.value || isAdministrador.value),
     approveQuotation: computed(() => isFinanzas.value || isAdministrador.value),
     rejectQuotation: computed(() => isFinanzas.value || isAdministrador.value),
-    downloadQuotationPDF: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
+    downloadQuotationPDF: computed(
+      () => isClinical.value || isFinanzas.value || isAdministrador.value
+    ),
 
     // Historias clínicas
     createMedicalRecord: computed(() => isClinical.value || isAdministrador.value),
@@ -98,47 +110,79 @@ export function usePermissions() {
     // Registros de especialidades
     createSpecialtyRecord: computed(() => {
       const specialty = safeUser.value?.specialty
-      return isClinical.value || isAdministrador.value ||
-             ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty)
+      return (
+        isClinical.value ||
+        isAdministrador.value ||
+        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
+          specialty
+        )
+      )
     }),
     editSpecialtyRecord: computed(() => {
       const specialty = safeUser.value?.specialty
-      return isClinical.value || isAdministrador.value ||
-             ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty)
+      return (
+        isClinical.value ||
+        isAdministrador.value ||
+        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
+          specialty
+        )
+      )
     }),
     viewSpecialtyRecord: computed(() => isClinical.value || isAdministrador.value),
     deleteSpecialtyRecord: computed(() => {
       const specialty = safeUser.value?.specialty
-      return isClinical.value || isAdministrador.value ||
-             ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(specialty)
+      return (
+        isClinical.value ||
+        isAdministrador.value ||
+        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
+          specialty
+        )
+      )
     }),
 
     // IA Asistiva - Solo odontólogos y especialistas
-    'ai-analysis.analyze': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role)),
-    'ai-analysis.view': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role)),
-    'ai-analysis.review': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role)),
-    'ai-analysis.delete': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role)),
-    'ai-analysis.stats': computed(() => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(safeUser.value?.role))
+    'ai-analysis.analyze': computed(() =>
+      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
+        safeUser.value?.role
+      )
+    ),
+    'ai-analysis.view': computed(() =>
+      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
+        safeUser.value?.role
+      )
+    ),
+    'ai-analysis.review': computed(() =>
+      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
+        safeUser.value?.role
+      )
+    ),
+    'ai-analysis.delete': computed(() =>
+      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
+        safeUser.value?.role
+      )
+    ),
+    'ai-analysis.stats': computed(() =>
+      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
+        safeUser.value?.role
+      )
+    )
   }
 
   // Métodos de conveniencia para roles específicos
   const isAdministrador = computed(() => safeUser.value?.role === 'administrador')
   const isRecepcionista = computed(() => safeUser.value?.role === 'recepcionista')
-  const isClinical = computed(() => [
-    'odontologo',
-    'implantologo',
-    'tecnico_dental',
-    'asistente'
-  ].includes(safeUser.value?.role))
+  const isClinical = computed(() =>
+    ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'].includes(safeUser.value?.role)
+  )
   const isFinanzas = computed(() => safeUser.value?.role === 'finanzas')
 
   // Método para verificar múltiples permisos
-  const hasAnyPermission = (permissions) => {
+  const hasAnyPermission = permissions => {
     return permissions.some(permission => can[permission]?.value)
   }
 
   // Método para verificar todos los permisos
-  const hasAllPermissions = (permissions) => {
+  const hasAllPermissions = permissions => {
     return permissions.every(permission => can[permission]?.value)
   }
 

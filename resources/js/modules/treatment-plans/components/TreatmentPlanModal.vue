@@ -13,12 +13,12 @@
             {{ isEdit ? 'Modifica los datos del plan' : 'Crea un plan de tratamiento paso a paso' }}
           </p>
         </div>
-        <button @click="handleClose" class="modal-close" aria-label="Cerrar">
+        <button class="modal-close" aria-label="Cerrar" @click="handleClose">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form class="modal-body" @submit.prevent="handleSubmit">
         <!-- Paciente y título (lo más importante) -->
         <div class="form-section">
           <div class="form-group">
@@ -32,17 +32,20 @@
 
           <div class="form-group">
             <label class="form-label">
-              Título del plan <span class="req">*</span>
+              Título del plan
+              <span class="req">*</span>
             </label>
             <input
               v-model="form.title"
               type="text"
               class="form-input"
+              ref="titleInput"
               :class="{ 'has-error': errors.title }"
               placeholder="Ej: Rehabilitación completa superior"
-              ref="titleInput"
             />
-            <p v-if="errors.title" class="form-error">{{ errors.title }}</p>
+            <p v-if="errors.title" class="form-error">
+              {{ errors.title }}
+            </p>
           </div>
 
           <div class="form-group">
@@ -52,7 +55,7 @@
               class="form-textarea"
               rows="2"
               placeholder="Descripción general del plan (opcional)..."
-            ></textarea>
+            />
           </div>
         </div>
 
@@ -77,14 +80,14 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Fecha de inicio</label>
-                <input v-model="form.start_date" type="date" class="form-input" />
+                <input v-model="form.start_date" type="date" class="form-input">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Fecha de fin</label>
-                <input v-model="form.end_date" type="date" class="form-input" />
+                <input v-model="form.end_date" type="date" class="form-input">
               </div>
               <div class="form-group">
                 <label class="form-label">N° de fases</label>
@@ -100,11 +103,11 @@
 
             <div class="form-row">
               <label class="check-pill">
-                <input v-model="form.requires_anesthesia" type="checkbox" />
+                <input v-model="form.requires_anesthesia" type="checkbox">
                 <span>Requiere anestesia</span>
               </label>
               <label class="check-pill">
-                <input v-model="form.is_urgent" type="checkbox" />
+                <input v-model="form.is_urgent" type="checkbox">
                 <span class="urgent">Urgente</span>
               </label>
             </div>
@@ -123,12 +126,10 @@
 
           <div class="details-body">
             <div class="procedures-list">
-              <div
-                v-for="(item, index) in form.items"
-                :key="index"
-                class="procedure-item"
-              >
-                <div class="procedure-index">{{ index + 1 }}</div>
+              <div v-for="(item, index) in form.items" :key="index" class="procedure-item">
+                <div class="procedure-index">
+                  {{ index + 1 }}
+                </div>
                 <div class="procedure-content">
                   <input
                     v-model="item.procedure_name"
@@ -185,9 +186,9 @@
                   </div>
                   <button
                     type="button"
-                    @click="removeItem(index)"
                     class="procedure-remove"
                     :disabled="form.items.length === 1"
+                    @click="removeItem(index)"
                     title="Quitar"
                     aria-label="Quitar procedimiento"
                   >
@@ -197,7 +198,7 @@
               </div>
             </div>
 
-            <button type="button" @click="addItem" class="btn btn-outline btn-sm">
+            <button type="button" class="btn btn-outline btn-sm" @click="addItem">
               <PlusIcon class="w-4 h-4 mr-1" />
               Agregar procedimiento
             </button>
@@ -219,7 +220,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Notas para el equipo médico..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -229,7 +230,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Información que verá el paciente..."
-              ></textarea>
+              />
             </div>
           </div>
         </details>
@@ -258,21 +259,11 @@
           </div>
         </div>
         <div class="footer-actions">
-          <button
-            type="button"
-            @click="handleClose"
-            class="btn btn-outline"
-            :disabled="loading"
-          >
+          <button type="button" class="btn btn-outline" @click="handleClose" :disabled="loading">
             Cancelar
           </button>
-          <button
-            type="submit"
-            @click="handleSubmit"
-            class="btn btn-primary"
-            :disabled="loading"
-          >
-            <span v-if="loading" class="spinner"></span>
+          <button type="submit" class="btn btn-primary" @click="handleSubmit" :disabled="loading">
+            <span v-if="loading" class="spinner" />
             {{ isEdit ? 'Actualizar' : 'Crear' }} plan
           </button>
         </div>
@@ -300,12 +291,12 @@ import {
   PlusIcon,
   TrashIcon,
   ChevronDownIcon,
-  ExclamationCircleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   plan: { type: Object, default: null },
-  isEdit: { type: Boolean, default: false },
+  isEdit: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['close', 'saved'])
@@ -331,7 +322,7 @@ const form = ref({
   is_urgent: false,
   notes: '',
   patient_notes: '',
-  items: [],
+  items: []
 })
 
 const errors = ref({})
@@ -344,7 +335,7 @@ const subtotal = computed(() =>
 )
 const finalCost = computed(() => subtotal.value)
 
-const handlePatientChange = (patient) => {
+const handlePatientChange = patient => {
   selectedPatient.value = patient
   form.value.patient_id = patient?.id || ''
   isDirty.value = true
@@ -354,7 +345,7 @@ const openCreatePatient = () => {
   showCreatePatient.value = true
 }
 
-const onPatientCreated = (newPatient) => {
+const onPatientCreated = newPatient => {
   showCreatePatient.value = false
   selectedPatient.value = newPatient
   form.value.patient_id = newPatient.id
@@ -367,12 +358,12 @@ const addItem = () => {
     description: '',
     quantity: 1,
     unit_cost: 0,
-    phase_number: form.value.items.length + 1,
+    phase_number: form.value.items.length + 1
   })
   isDirty.value = true
 }
 
-const removeItem = (index) => {
+const removeItem = index => {
   if (form.value.items.length === 1) return
   form.value.items.splice(index, 1)
   isDirty.value = true
@@ -395,8 +386,8 @@ const handleSubmit = async () => {
 
   // Limpiar items vacíos
   const cleanedItems = form.value.items
-    .filter((i) => (i.procedure_name || '').trim() !== '' || (i.description || '').trim() !== '')
-    .map((item) => ({
+    .filter(i => (i.procedure_name || '').trim() !== '' || (i.description || '').trim() !== '')
+    .map(item => ({
       procedure_name: (item.procedure_name || '').trim() || (item.description || '').trim(),
       description: (item.description || '').trim() || null,
       quantity: Number(item.quantity) || 1,
@@ -405,7 +396,7 @@ const handleSubmit = async () => {
       specialty: item.specialty || null,
       procedure_catalog_id: item.procedure_catalog_id || null,
       dental_piece_id: item.dental_piece_id || null,
-      category: item.category || null,
+      category: item.category || null
     }))
 
   if (cleanedItems.length === 0) {
@@ -427,7 +418,7 @@ const handleSubmit = async () => {
     is_urgent: !!form.value.is_urgent,
     notes: form.value.notes?.trim() || null,
     patient_notes: form.value.patient_notes?.trim() || null,
-    items: cleanedItems,
+    items: cleanedItems
   }
 
   try {
@@ -443,8 +434,7 @@ const handleSubmit = async () => {
   }
 }
 
-const handleSaveError = (err) => {
-
+const handleSaveError = err => {
   const data = err.response?.data
 
   if (data?.errors && typeof data.errors === 'object') {
@@ -470,17 +460,17 @@ const handleClose = async () => {
       title: 'Cambios sin guardar',
       message: 'Tienes cambios sin guardar. ¿Cerrar de todos modos?',
       confirmText: 'Cerrar sin guardar',
-      variant: 'danger',
+      variant: 'danger'
     })
     if (!ok) return
   }
   emit('close')
 }
 
-const formatPrice = (price) =>
+const formatPrice = price =>
   new Intl.NumberFormat('es-PE', {
     minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(price || 0)
 
 const emptyItem = () => ({
@@ -488,24 +478,25 @@ const emptyItem = () => ({
   description: '',
   quantity: 1,
   unit_cost: 0,
-  phase_number: 1,
+  phase_number: 1
 })
 
 const initializeForm = () => {
   if (props.plan) {
-    const items = props.plan.items?.length > 0
-      ? props.plan.items.map((i) => ({
+    const items =
+      props.plan.items?.length > 0
+        ? props.plan.items.map((i) => ({
           procedure_name: i.procedure_name || '',
           description: i.procedure_description || '',
-          quantity: i.quantity || 1,
+            quantity: i.quantity || 1,
           unit_cost: i.unit_cost || 0,
           phase_number: i.phase_number || 1,
           specialty: i.specialty,
           procedure_catalog_id: i.procedure_catalog_id,
-          dental_piece_id: i.dental_piece_id,
-          category: i.category,
-        }))
-      : [emptyItem()]
+            dental_piece_id: i.dental_piece_id,
+          category: i.category
+          }))
+        : [emptyItem()]
 
     form.value = {
       plan_number: props.plan.plan_number || '',
@@ -520,7 +511,7 @@ const initializeForm = () => {
       is_urgent: !!props.plan.is_urgent,
       notes: props.plan.notes || '',
       patient_notes: props.plan.patient_notes || '',
-      items,
+      items
     }
 
     if (props.plan.patient) {
@@ -531,7 +522,7 @@ const initializeForm = () => {
         dni: props.plan.patient.document_number,
         phone: props.plan.patient.phone,
         email: props.plan.patient.email,
-        age: null,
+        age: null
       }
     }
   } else {
@@ -548,7 +539,7 @@ const initializeForm = () => {
       is_urgent: false,
       notes: '',
       patient_notes: '',
-      items: [emptyItem()],
+      items: [emptyItem()]
     }
     selectedPatient.value = null
   }
@@ -564,7 +555,11 @@ watch(
   { deep: true }
 )
 
-watch(() => props.plan, () => initializeForm(), { immediate: true })
+watch(
+  () => props.plan,
+  () => initializeForm(),
+  { immediate: true }
+)
 
 onMounted(async () => {
   initializeForm()
@@ -805,6 +800,8 @@ onMounted(async () => {
   animation: spin 1s linear infinite;
 }
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

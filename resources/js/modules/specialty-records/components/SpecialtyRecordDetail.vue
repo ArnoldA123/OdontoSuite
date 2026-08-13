@@ -12,7 +12,7 @@
           </span>
         </div>
       </div>
-      <button @click="$emit('close')" class="close-button">
+      <button class="close-button" @click="$emit('close')">
         <XMarkIcon class="w-6 h-6" />
       </button>
     </div>
@@ -24,13 +24,15 @@
         <div class="patient-info">
           <div class="info-item">
             <span class="info-label">Nombre:</span>
-            <span class="info-value">{{ record.patient?.first_name }} {{ record.patient?.last_name }}</span>
+            <span class="info-value">
+              {{ record.patient?.first_name }} {{ record.patient?.last_name }}
+            </span>
           </div>
-          <div class="info-item" v-if="record.patient?.dni">
+          <div v-if="record.patient?.dni" class="info-item">
             <span class="info-label">DNI:</span>
             <span class="info-value">{{ record.patient.dni }}</span>
           </div>
-          <div class="info-item" v-if="record.patient?.phone">
+          <div v-if="record.patient?.phone" class="info-item">
             <span class="info-label">Teléfono:</span>
             <span class="info-value">{{ record.patient.phone }}</span>
           </div>
@@ -38,7 +40,7 @@
       </div>
 
       <!-- Descripción -->
-      <div class="detail-section" v-if="record.description">
+      <div v-if="record.description" class="detail-section">
         <h3 class="section-title">Descripción</h3>
         <div class="description-content">
           {{ record.description }}
@@ -51,15 +53,15 @@
 
         <!-- Implantología -->
         <div v-if="record.specialty === 'implantology'" class="specialty-info">
-          <div class="info-item" v-if="record.implant_count">
+          <div v-if="record.implant_count" class="info-item">
             <span class="info-label">Número de Implantes:</span>
             <span class="info-value">{{ record.implant_count }}</span>
           </div>
-          <div class="info-item" v-if="record.implant_type">
+          <div v-if="record.implant_type" class="info-item">
             <span class="info-label">Tipo de Implante:</span>
             <span class="info-value">{{ record.implant_type }}</span>
           </div>
-          <div class="info-item" v-if="record.position">
+          <div v-if="record.position" class="info-item">
             <span class="info-label">Posición:</span>
             <span class="info-value">{{ record.position }}</span>
           </div>
@@ -67,15 +69,15 @@
 
         <!-- Ortodoncia -->
         <div v-else-if="record.specialty === 'orthodontics'" class="specialty-info">
-          <div class="info-item" v-if="record.treatment_type">
+          <div v-if="record.treatment_type" class="info-item">
             <span class="info-label">Tipo de Tratamiento:</span>
             <span class="info-value">{{ getTreatmentTypeLabel(record.treatment_type) }}</span>
           </div>
-          <div class="info-item" v-if="record.estimated_duration">
+          <div v-if="record.estimated_duration" class="info-item">
             <span class="info-label">Duración Estimada:</span>
             <span class="info-value">{{ record.estimated_duration }} meses</span>
           </div>
-          <div class="info-item" v-if="record.main_problem">
+          <div v-if="record.main_problem" class="info-item">
             <span class="info-label">Problema Principal:</span>
             <span class="info-value">{{ record.main_problem }}</span>
           </div>
@@ -83,15 +85,15 @@
 
         <!-- Endodoncia -->
         <div v-else-if="record.specialty === 'endodontics'" class="specialty-info">
-          <div class="info-item" v-if="record.tooth_number">
+          <div v-if="record.tooth_number" class="info-item">
             <span class="info-label">Diente Tratado:</span>
             <span class="info-value">{{ record.tooth_number }}</span>
           </div>
-          <div class="info-item" v-if="record.canal_count">
+          <div v-if="record.canal_count" class="info-item">
             <span class="info-label">Número de Conductos:</span>
             <span class="info-value">{{ record.canal_count }}</span>
           </div>
-          <div class="info-item" v-if="record.obturation_material">
+          <div v-if="record.obturation_material" class="info-item">
             <span class="info-label">Material de Obturación:</span>
             <span class="info-value">{{ record.obturation_material }}</span>
           </div>
@@ -99,15 +101,15 @@
 
         <!-- Rehabilitación -->
         <div v-else-if="record.specialty === 'rehabilitation'" class="specialty-info">
-          <div class="info-item" v-if="record.prosthesis_type">
+          <div v-if="record.prosthesis_type" class="info-item">
             <span class="info-label">Tipo de Prótesis:</span>
             <span class="info-value">{{ getProsthesisTypeLabel(record.prosthesis_type) }}</span>
           </div>
-          <div class="info-item" v-if="record.material">
+          <div v-if="record.material" class="info-item">
             <span class="info-label">Material:</span>
             <span class="info-value">{{ record.material }}</span>
           </div>
-          <div class="info-item" v-if="record.involved_teeth">
+          <div v-if="record.involved_teeth" class="info-item">
             <span class="info-label">Dientes Involucrados:</span>
             <span class="info-value">{{ record.involved_teeth }}</span>
           </div>
@@ -115,15 +117,15 @@
 
         <!-- Cirugía Oral -->
         <div v-else-if="record.specialty === 'oral_surgery'" class="specialty-info">
-          <div class="info-item" v-if="record.surgery_type">
+          <div v-if="record.surgery_type" class="info-item">
             <span class="info-label">Tipo de Cirugía:</span>
             <span class="info-value">{{ getSurgeryTypeLabel(record.surgery_type) }}</span>
           </div>
-          <div class="info-item" v-if="record.anesthesia">
+          <div v-if="record.anesthesia" class="info-item">
             <span class="info-label">Anestesia Utilizada:</span>
             <span class="info-value">{{ record.anesthesia }}</span>
           </div>
-          <div class="info-item" v-if="record.complications">
+          <div v-if="record.complications" class="info-item">
             <span class="info-label">Complicaciones:</span>
             <span class="info-value">{{ record.complications }}</span>
           </div>
@@ -131,14 +133,14 @@
       </div>
 
       <!-- Información del procedimiento -->
-      <div class="detail-section" v-if="record.procedure_date || record.professional_name">
+      <div v-if="record.procedure_date || record.professional_name" class="detail-section">
         <h3 class="section-title">Información del Procedimiento</h3>
         <div class="procedure-info">
-          <div class="info-item" v-if="record.procedure_date">
+          <div v-if="record.procedure_date" class="info-item">
             <span class="info-label">Fecha del Procedimiento:</span>
             <span class="info-value">{{ formatDate(record.procedure_date) }}</span>
           </div>
-          <div class="info-item" v-if="record.professional_name">
+          <div v-if="record.professional_name" class="info-item">
             <span class="info-label">Profesional Responsable:</span>
             <span class="info-value">{{ record.professional_name }}</span>
           </div>
@@ -146,7 +148,7 @@
       </div>
 
       <!-- Observaciones -->
-      <div class="detail-section" v-if="record.observations">
+      <div v-if="record.observations" class="detail-section">
         <h3 class="section-title">Observaciones</h3>
         <div class="observations-content">
           {{ record.observations }}
@@ -154,7 +156,7 @@
       </div>
 
       <!-- Próxima cita -->
-      <div class="detail-section" v-if="record.next_appointment">
+      <div v-if="record.next_appointment" class="detail-section">
         <h3 class="section-title">Próxima Cita</h3>
         <div class="appointment-info">
           <div class="info-item">
@@ -167,19 +169,11 @@
 
     <div class="detail-footer">
       <div class="footer-actions">
-        <button
-          @click="$emit('edit', record)"
-          class="btn btn-outline"
-          v-if="canEdit"
-        >
+        <button v-if="canEdit" class="btn btn-outline" @click="$emit('edit', record)">
           <PencilIcon class="w-4 h-4 mr-2" />
           Editar
         </button>
-        <button
-          @click="viewHistory"
-          class="btn btn-secondary"
-          v-if="canViewHistory"
-        >
+        <button v-if="canViewHistory" class="btn btn-secondary" @click="viewHistory">
           <ClockIcon class="w-4 h-4 mr-2" />
           Ver Historial
         </button>
@@ -191,11 +185,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
-import {
-  XMarkIcon,
-  PencilIcon,
-  ClockIcon
-} from '@heroicons/vue/24/outline'
+import { XMarkIcon, PencilIcon, ClockIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   record: {
@@ -218,7 +208,7 @@ const canViewHistory = computed(() => {
 })
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -227,7 +217,7 @@ const formatDate = (date) => {
   })
 }
 
-const formatDateTime = (date) => {
+const formatDateTime = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleString('es-ES', {
     year: 'numeric',
@@ -238,7 +228,7 @@ const formatDateTime = (date) => {
   })
 }
 
-const getSpecialtyLabel = (specialty) => {
+const getSpecialtyLabel = specialty => {
   const labels = {
     implantology: 'Implantología',
     orthodontics: 'Ortodoncia',
@@ -249,7 +239,7 @@ const getSpecialtyLabel = (specialty) => {
   return labels[specialty] || specialty
 }
 
-const getTreatmentTypeLabel = (type) => {
+const getTreatmentTypeLabel = type => {
   const labels = {
     fixed: 'Aparatología Fija',
     removable: 'Aparatología Removible',
@@ -258,7 +248,7 @@ const getTreatmentTypeLabel = (type) => {
   return labels[type] || type
 }
 
-const getProsthesisTypeLabel = (type) => {
+const getProsthesisTypeLabel = type => {
   const labels = {
     crown: 'Corona',
     bridge: 'Puente',
@@ -268,7 +258,7 @@ const getProsthesisTypeLabel = (type) => {
   return labels[type] || type
 }
 
-const getSurgeryTypeLabel = (type) => {
+const getSurgeryTypeLabel = type => {
   const labels = {
     extraction: 'Extracción',
     wisdom_tooth: 'Muela del Juicio',

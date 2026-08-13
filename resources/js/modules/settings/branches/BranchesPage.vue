@@ -1,25 +1,31 @@
 <template>
   <AppLayout>
-    <PageHeader
-      title="Sucursales"
-      subtitle="Gestiona las sedes de la clinica"
-      class="mb-6"
-    >
+    <PageHeader title="Sucursales" subtitle="Gestiona las sedes de la clinica" class="mb-6">
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+              />
             </svg>
           </template>
           Volver
         </UiButton>
         <UiButton @click="openCreate">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
             </svg>
           </template>
           Nueva Sucursal
@@ -32,7 +38,9 @@
       <UiCard variant="glass" class="hover-lift">
         <div class="text-center">
           <p class="text-sm font-medium text-theme-secondary">Total</p>
-          <p class="text-3xl font-bold text-theme-primary">{{ pagination.total || branches.length }}</p>
+          <p class="text-3xl font-bold text-theme-primary">
+            {{ pagination.total || branches.length }}
+          </p>
         </div>
       </UiCard>
       <UiCard variant="glass" class="hover-lift">
@@ -64,9 +72,18 @@
             @input="onSearch"
           >
             <template #prefix>
-              <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="w-5 h-5 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </template>
           </UiInput>
@@ -107,22 +124,34 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-theme">
-              <th class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Codigo
               </th>
-              <th class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Nombre
               </th>
-              <th class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Ciudad
               </th>
-              <th class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Telefono
               </th>
-              <th class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Estado
               </th>
-              <th class="text-right py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider">
+              <th
+                class="text-right py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
@@ -137,11 +166,16 @@
                 <span class="font-mono text-sm text-theme-primary">{{ b.code }}</span>
               </td>
               <td class="py-3 px-4">
-                <div class="text-sm font-medium text-theme-primary">{{ b.name }}</div>
-                <div v-if="b.address" class="text-xs text-theme-secondary mt-0.5">{{ b.address }}</div>
+                <div class="text-sm font-medium text-theme-primary">
+                  {{ b.name }}
+                </div>
+                <div v-if="b.address" class="text-xs text-theme-secondary mt-0.5">
+                  {{ b.address }}
+                </div>
               </td>
               <td class="py-3 px-4 text-sm text-theme-primary">
-                {{ b.city }}<span v-if="b.state">, {{ b.state }}</span>
+                {{ b.city }}
+                <span v-if="b.state">, {{ b.state }}</span>
               </td>
               <td class="py-3 px-4 text-sm text-theme-primary">
                 {{ b.phone || '-' }}
@@ -197,24 +231,21 @@
     </UiCard>
 
     <!-- Modal de crear/editar -->
-    <BranchFormModal
-      v-if="showForm"
-      :branch="editingBranch"
-      @close="closeForm"
-      @saved="onSaved"
-    />
+    <BranchFormModal v-if="showForm" :branch="editingBranch" @close="closeForm" @saved="onSaved" />
 
     <!-- Confirm deactivate -->
     <UiModal v-model="showDeactivateConfirm" title="Desactivar sucursal" size="sm">
       <p class="text-theme-primary">
         ¿Estas seguro de desactivar la sucursal
-        <strong>{{ branchToToggle?.name }}</strong>?
-        No aparecera en los dropdowns de abrir caja ni en la seleccion de sede.
+        <strong>{{ branchToToggle?.name }}</strong>
+        ? No aparecera en los dropdowns de abrir caja ni en la seleccion de sede.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
           <UiButton variant="secondary" @click="showDeactivateConfirm = false">Cancelar</UiButton>
-          <UiButton variant="danger" :disabled="toggling" @click="doDeactivate">Desactivar</UiButton>
+          <UiButton variant="danger" :disabled="toggling" @click="doDeactivate">
+            Desactivar
+          </UiButton>
         </div>
       </template>
     </UiModal>
@@ -222,8 +253,9 @@
     <!-- Confirm activate -->
     <UiModal v-model="showActivateConfirm" title="Activar sucursal" size="sm">
       <p class="text-theme-primary">
-        ¿Activar la sucursal <strong>{{ branchToToggle?.name }}</strong>?
-        Volvera a estar disponible para seleccion en abrir caja.
+        ¿Activar la sucursal
+        <strong>{{ branchToToggle?.name }}</strong>
+        ? Volvera a estar disponible para seleccion en abrir caja.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">

@@ -24,17 +24,17 @@ const defaultConfig = {
   auth: {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}`,
-      Accept: 'application/json',
-    },
-  },
+      Accept: 'application/json'
+    }
+  }
 }
 
 // Backoff exponencial: 5s, 10s, 20s, 40s, 60s (cap)
-const getReconnectDelay = (attempt) => {
+const getReconnectDelay = attempt => {
   return Math.min(5000 * Math.pow(2, attempt - 1), 60000)
 }
 
-const setStatus = (newStatus) => {
+const setStatus = newStatus => {
   connectionStatus.value = newStatus
 }
 
@@ -50,9 +50,9 @@ export function useEcho() {
         echoInstance = new Echo(defaultConfig)
 
         // Configurar eventos de conexion
-        const pusher = echoInstance.connector.pusher
+        const { pusher } = echoInstance.connector
 
-        pusher.connection.bind('error', (err) => {
+        pusher.connection.bind('error', err => {
           if (err.type === 'PusherError') {
             if (err.data?.code) {
               console.warn('[Echo] PusherError code:', err.data.code, err.data?.message)
@@ -63,7 +63,10 @@ export function useEcho() {
           }
           // Error de transporte (Reverb no disponible)
           if (err.type === 'TransportError' || err.data?.code === 1006) {
-            console.warn('[Echo] TransportError - Reverb no disponible en', defaultConfig.wsHost + ':' + defaultConfig.wsPort)
+            console.warn(
+              '[Echo] TransportError - Reverb no disponible en',
+              `${defaultConfig.wsHost}:${defaultConfig.wsPort}`
+            )
           }
         })
 
@@ -78,7 +81,7 @@ export function useEcho() {
           setStatus('disconnected')
         })
 
-        pusher.connection.bind('state_change', (states) => {
+        pusher.connection.bind('state_change', states => {
           // Solo log en transiciones relevantes
           if (states.current === 'unavailable' || states.current === 'failed') {
             console.warn('[Echo] Estado:', states.previous, '->', states.current)
@@ -116,7 +119,7 @@ export function useEcho() {
   }
 
   // Funcion para suscribirse a un canal publico
-  const channel = (channelName) => {
+  const channel = channelName => {
     if (!echoInstance) {
       return null
     }
@@ -124,7 +127,7 @@ export function useEcho() {
   }
 
   // Funcion para suscribirse a un canal privado
-  const privateChannel = (channelName) => {
+  const privateChannel = channelName => {
     if (!echoInstance) {
       return null
     }
@@ -139,7 +142,7 @@ export function useEcho() {
   }
 
   // Funcion para actualizar el token de autenticacion
-  const updateAuthToken = (token) => {
+  const updateAuthToken = token => {
     const authToken = token || getAuthToken()
     if (echoInstance && echoInstance.connector.options.auth) {
       echoInstance.connector.options.auth.headers.Authorization = `Bearer ${authToken}`
@@ -183,6 +186,6 @@ export function useEcho() {
     reconnect,
     // Estado reactivo compartido (singleton)
     connectionStatus,
-    reconnectAttempts,
+    reconnectAttempts
   }
 }

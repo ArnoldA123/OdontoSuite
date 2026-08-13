@@ -24,12 +24,12 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'glass', 'flat', 'elevated', 'outlined'].includes(value)
+    validator: value => ['default', 'glass', 'flat', 'elevated', 'outlined'].includes(value)
   },
   padding: {
     type: String,
     default: 'md',
-    validator: (value) => ['none', 'sm', 'md', 'lg', 'xl'].includes(value)
+    validator: value => ['none', 'sm', 'md', 'lg', 'xl'].includes(value)
   },
   hover: { type: Boolean, default: false },
   clickable: { type: Boolean, default: false },
@@ -40,10 +40,7 @@ const cardClasses = computed(() => {
   // PR2 (D8/D10): the blanket `transition-all duration-200` utility is replaced
   // by an explicit property list in <style scoped> so the transform rides the
   // fast rung on the iOS curve while colour washes keep standard easing.
-  const base = [
-    'relative overflow-hidden',
-    'border-theme'
-  ]
+  const base = ['relative overflow-hidden', 'border-theme']
 
   // Variant styles
   // Historical name: kept for compat. The `glass` variant is OPAQUE
@@ -54,10 +51,7 @@ const cardClasses = computed(() => {
   // mobile Sheet wrapper only). Do NOT add a blur effect here — see
   // design Decision 5.
   const variants = {
-    default: [
-      'bg-theme-surface-elevated shadow-soft',
-      'hover:shadow-medium'
-    ],
+    default: ['bg-theme-surface-elevated shadow-soft', 'hover:shadow-medium'],
     glass: [
       'bg-systemBackground',
       'border border-separator',
@@ -65,15 +59,8 @@ const cardClasses = computed(() => {
       'rounded-ios',
       'hover:shadow-large'
     ],
-    flat: [
-      'bg-theme-surface border-theme',
-      'shadow-none',
-      'hover:shadow-subtle'
-    ],
-    elevated: [
-      'bg-theme-surface-elevated shadow-large',
-      'hover:shadow-elevated'
-    ],
+    flat: ['bg-theme-surface border-theme', 'shadow-none', 'hover:shadow-subtle'],
+    elevated: ['bg-theme-surface-elevated shadow-large', 'hover:shadow-elevated'],
     outlined: [
       'bg-theme-surface-elevated border-2 border-theme',
       'shadow-none',
@@ -148,47 +135,46 @@ const cardClasses = computed(() => {
 /* Glass variant specific styles — opaque data card. See the comment in
    <script setup> for why the `glass` name is kept and why no blur
    declaration appears here. */
-[data-variant="glass"] {
+[data-variant='glass'] {
   background: var(--color-background-system-background);
   border: 1px solid var(--color-separator-separator);
   box-shadow: var(--shadow-medium);
 }
 
 /* Loading state */
-[data-loading="true"] {
+[data-loading='true'] {
   position: relative;
   overflow: hidden;
 }
 
-[data-loading="true"]::after {
+[data-loading='true']::after {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   animation: shimmer 1.5s infinite;
 }
 
 @keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
 }
 
 /* Hover effects */
-[data-hover="true"]:hover {
+[data-hover='true']:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-medium);
 }
 
 /* Clickable state */
-[data-clickable="true"] {
+[data-clickable='true'] {
   cursor: pointer;
   user-select: none;
 }
@@ -199,16 +185,16 @@ const cardClasses = computed(() => {
    outer shadow to nothing. A single hover-only box-shadow transition is the
    correct trade — it repaints one element on pointer entry, not per frame of
    a running animation. */
-[data-clickable="true"]:hover {
+[data-clickable='true']:hover {
   box-shadow: var(--elevation-2);
 }
 
-[data-clickable="true"]:active {
+[data-clickable='true']:active {
   transform: scale(0.98);
 }
 
 /* Focus styles for accessibility — the ring is the PR1 token (D6). */
-[data-clickable="true"]:focus-visible {
+[data-clickable='true']:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring-default);
 }
@@ -239,11 +225,11 @@ const cardClasses = computed(() => {
       opacity var(--motion-duration-normal) ease-out;
   }
 
-  [data-hover="true"]:hover {
+  [data-hover='true']:hover {
     transform: none;
   }
 
-  [data-clickable="true"]:active {
+  [data-clickable='true']:active {
     transform: none;
     opacity: 0.72;
   }

@@ -25,11 +25,7 @@
  * without booting a Vue runtime.
  */
 import { ref, onUnmounted } from 'vue'
-import {
-  stepSpring,
-  instantSettle,
-  prefersReducedMotion
-} from './useSpringMath.js'
+import { stepSpring, instantSettle, prefersReducedMotion } from './useSpringMath.js'
 
 /**
  * @param {object} options
@@ -74,16 +70,14 @@ export function useSpring(options = {}) {
   }
 
   function step(now) {
-    const dt = lastTs === 0
-      ? 1 / 60
-      : Math.min(0.064, (now - lastTs) / 1000)
+    const dt = lastTs === 0 ? 1 / 60 : Math.min(0.064, (now - lastTs) / 1000)
     lastTs = now
 
-    const next = stepSpring(
-      { value: value.value, velocity: velocity.value },
-      target.value,
-      { response, damping, dt }
-    )
+    const next = stepSpring({ value: value.value, velocity: velocity.value }, target.value, {
+      response,
+      damping,
+      dt
+    })
     value.value = next.value
     velocity.value = next.velocity
     writeVar()
@@ -122,7 +116,10 @@ export function useSpring(options = {}) {
       value.value = settled.value
       velocity.value = settled.velocity
       target.value = settled.value
-      if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
+      if (rafId != null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
       writeVar()
       onSettle?.()
       return

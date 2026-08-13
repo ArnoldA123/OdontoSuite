@@ -54,7 +54,7 @@ export function useTreatmentPlans() {
     }
   }
 
-  const getPlan = async (id) => {
+  const getPlan = async id => {
     try {
       loading.value = true
       error.value = null
@@ -71,7 +71,7 @@ export function useTreatmentPlans() {
     }
   }
 
-  const createPlan = async (data) => {
+  const createPlan = async data => {
     try {
       loading.value = true
       error.value = null
@@ -123,7 +123,7 @@ export function useTreatmentPlans() {
     }
   }
 
-  const deletePlan = async (id) => {
+  const deletePlan = async id => {
     try {
       loading.value = true
       error.value = null
@@ -175,7 +175,7 @@ export function useTreatmentPlans() {
     }
   }
 
-  const duplicatePlan = async (id) => {
+  const duplicatePlan = async id => {
     try {
       loading.value = true
       error.value = null
@@ -223,7 +223,7 @@ export function useTreatmentPlans() {
     }
   }
 
-  const removeItem = async (itemId) => {
+  const removeItem = async itemId => {
     try {
       loading.value = true
       error.value = null
@@ -290,6 +290,6 @@ export function useTreatmentPlans() {
 
     // Slice 08 / T-08.11: refresh + retry aliases.
     refresh: getPlans,
-    retry: getPlans,
+    retry: getPlans
   }
 }

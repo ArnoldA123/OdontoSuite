@@ -16,7 +16,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'text',
-    validator: (value) => ['text', 'rectangular', 'circular', 'card', 'table', 'list'].includes(value)
+    validator: value => ['text', 'rectangular', 'circular', 'card', 'table', 'list'].includes(value)
   },
   width: {
     type: [String, Number],
@@ -33,7 +33,7 @@ const props = defineProps({
   animation: {
     type: String,
     default: 'pulse',
-    validator: (value) => ['pulse', 'wave', 'none'].includes(value)
+    validator: value => ['pulse', 'wave', 'none'].includes(value)
   },
   rounded: {
     type: Boolean,
@@ -45,25 +45,18 @@ const props = defineProps({
   }
 })
 
-const containerClasses = computed(() => [
-  'skeleton-container',
-  'space-y-2'
-])
+const containerClasses = computed(() => ['skeleton-container', 'space-y-2'])
 
 const items = computed(() => {
-  const count = props.count
+  const { count } = props
   const variants = {
     text: [
       { width: '100%', height: '1rem' },
       { width: '80%', height: '1rem' },
       { width: '60%', height: '1rem' }
     ],
-    rectangular: [
-      { width: '100%', height: '200px' }
-    ],
-    circular: [
-      { width: '60px', height: '60px', borderRadius: '50%' }
-    ],
+    rectangular: [{ width: '100%', height: '200px' }],
+    circular: [{ width: '60px', height: '60px', borderRadius: '50%' }],
     card: [
       { width: '100%', height: '200px' },
       { width: '100%', height: '1rem' },
@@ -84,13 +77,15 @@ const items = computed(() => {
   }
 
   const baseItems = variants[props.variant] || [{ width: '100%', height: '1rem' }]
-  return Array(props.count).fill(null).map((_, index) => ({
-    ...baseItems[index % baseItems.length],
-    id: index
-  }))
+  return Array(props.count)
+    .fill(null)
+    .map((_, index) => ({
+      ...baseItems[index % baseItems.length],
+      id: index
+    }))
 })
 
-const getItemClasses = (item) => [
+const getItemClasses = item => [
   'skeleton-item',
   'bg-systemGray-100',
   props.rounded ? 'rounded-ios' : 'rounded-none',
@@ -98,7 +93,7 @@ const getItemClasses = (item) => [
   props.animation === 'wave' ? 'skeleton-wave' : ''
 ]
 
-const getItemStyle = (item) => ({
+const getItemStyle = item => ({
   width: typeof item.width === 'number' ? `${item.width}px` : item.width,
   height: typeof item.height === 'number' ? `${item.height}px` : item.height,
   borderRadius: item.borderRadius || (props.rounded ? '0.375rem' : '0')
@@ -125,7 +120,6 @@ const getItemStyle = (item) => ({
   animation: skeleton-wave 1.5s infinite;
 }
 
-
 @keyframes skeleton-wave {
   0% {
     background-position: 200% 0;
@@ -151,26 +145,5 @@ const getItemStyle = (item) => ({
     animation: none;
     background: var(--color-surface);
   }
-
 }
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

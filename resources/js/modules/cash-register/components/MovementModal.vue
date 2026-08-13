@@ -6,9 +6,7 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <form
-      @submit.prevent="handleSubmit"
-    >
+    <form @submit.prevent="handleSubmit">
       <div class="space-y-4 bg-canvas">
         <!-- Estado (Ingreso / Egreso / Retiro / Depósito / Ajuste) -->
         <UiStatusBadge
@@ -19,13 +17,10 @@
         <!-- Tipo de Movimiento -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Tipo de Movimiento <span class="text-red-500">*</span>
+            Tipo de Movimiento
+            <span class="text-red-500">*</span>
           </label>
-          <select
-            v-model="formData.type"
-            :class="inputClasses"
-            :disabled="loading"
-          >
+          <select v-model="formData.type" :class="inputClasses" :disabled="loading">
             <option value="income">Ingreso</option>
             <option value="expense">Egreso</option>
             <option value="withdrawal">Retiro</option>
@@ -37,7 +32,8 @@
         <!-- Concepto -->
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Concepto <span class="text-red-500">*</span>
+            Concepto
+            <span class="text-red-500">*</span>
           </label>
           <input
             v-model="formData.description"
@@ -63,9 +59,7 @@
 
         <!-- Referencia -->
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Referencia
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Referencia</label>
           <input
             v-model="formData.reference"
             type="text"
@@ -77,9 +71,7 @@
 
         <!-- Notas -->
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Notas
-          </label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
           <textarea
             v-model="formData.notes"
             :class="inputClasses"
@@ -87,7 +79,7 @@
             rows="3"
             placeholder="Notas adicionales sobre el movimiento..."
             maxlength="500"
-          ></textarea>
+          />
           <p class="mt-1 text-sm text-theme-secondary">
             {{ formData.notes?.length || 0 }}/500 caracteres
           </p>
@@ -103,7 +95,9 @@
             </div>
             <div class="flex justify-between">
               <span class="text-theme-secondary">Concepto:</span>
-              <span class="font-medium text-theme-primary">{{ formData.description || 'No especificado' }}</span>
+              <span class="font-medium text-theme-primary">
+                {{ formData.description || 'No especificado' }}
+              </span>
             </div>
             <div class="flex justify-between">
               <span class="text-theme-secondary">Monto:</span>
@@ -114,17 +108,14 @@
           </div>
         </div>
       </div>
-
     </form>
 
     <template #footer>
       <div class="flex justify-end space-x-3">
         <Button
-          type="button"
-          variant="secondary"
-          @click="$emit('close')"
-          :disabled="loading"
-        >
+type="button"
+variant="secondary" :disabled="loading" @click="$emit('close')"
+>
           Cancelar
         </Button>
         <Button
@@ -200,14 +191,14 @@ const validateForm = () => {
 
 // Computed
 const canSubmit = computed(() => {
-  return formData.value.type &&
-         formData.value.amount > 0 &&
-         formData.value.description &&
-         !loading.value
+  return (
+    formData.value.type && formData.value.amount > 0 && formData.value.description && !loading.value
+  )
 })
 
 const inputClasses = computed(() => {
-  const base = 'block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm'
+  const base =
+    'block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm'
   return loading.value ? `${base} bg-theme-surface cursor-not-allowed opacity-50` : `${base}`
 })
 
@@ -243,7 +234,7 @@ const handleSubmit = async () => {
 
 // formatCurrency is imported from useFormatters (PAGOS-MNY-002 / PR-pagos-01).
 
-const getTypeText = (type) => {
+const getTypeText = type => {
   const texts = {
     income: 'Ingreso',
     expense: 'Egreso',
@@ -254,7 +245,7 @@ const getTypeText = (type) => {
   return texts[type] || type
 }
 
-const getTypeVariant = (type) => {
+const getTypeVariant = type => {
   const variants = {
     income: 'success',
     deposit: 'success',
@@ -265,7 +256,7 @@ const getTypeVariant = (type) => {
   return variants[type] || 'neutral'
 }
 
-const getAmountClass = (type) => {
+const getAmountClass = type => {
   if (['income', 'deposit'].includes(type)) {
     return 'text-systemGreen-600'
   } else if (['expense', 'withdrawal'].includes(type)) {
@@ -274,7 +265,7 @@ const getAmountClass = (type) => {
   return 'text-theme-secondary'
 }
 
-const getAmountPrefix = (type) => {
+const getAmountPrefix = type => {
   if (['income', 'deposit'].includes(type)) {
     return '+'
   } else if (['expense', 'withdrawal'].includes(type)) {

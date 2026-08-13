@@ -16,10 +16,7 @@
         <div
           v-for="toast in globalToasts"
           :key="toast.id"
-          class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-1"
-          :class="{
-            'bg-theme-surface-elevated ring-black/5': true
-          }"
+          class="pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-1 bg-theme-surface-elevated ring-black/5"
         >
           <div class="p-4">
             <div class="flex items-start">
@@ -100,8 +97,8 @@
 
               <div v-if="toast.dismissible" class="ml-4 flex flex-shrink-0">
                 <button
-                  @click="removeToast(toast.id)"
                   class="inline-flex rounded-md text-theme-secondary hover:text-theme-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  @click="removeToast(toast.id)"
                 >
                   <span class="sr-only">Cerrar</span>
                   <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -124,7 +121,7 @@
 <script setup>
 import { globalToasts } from '../composables/useToast.js'
 
-const removeToast = (id) => {
+const removeToast = id => {
   const index = globalToasts.value.findIndex(toast => toast.id === id)
   if (index > -1) {
     globalToasts.value.splice(index, 1)

@@ -6,114 +6,110 @@
     @update:model-value="$emit('close')"
     @close="$emit('close')"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-4 bg-canvas">
-        <!-- Estado: Apertura de Caja -->
-        <UiStatusBadge
-          variant="info"
-          label="Apertura de Caja"
+    <form class="space-y-4 bg-canvas" @submit.prevent="handleSubmit">
+      <!-- Estado: Apertura de Caja -->
+      <UiStatusBadge variant="info" label="Apertura de Caja" size="md" />
+      <!-- Sucursal -->
+      <div v-if="!loadingBranches && branches.length > 0">
+        <label class="block text-sm font-medium text-theme-primary mb-1">
+          Sucursal
+          <span class="text-red-500">*</span>
+        </label>
+        <UiSelect
+          v-model="formData.branch_id"
+          :options="branchOptions"
+          placeholder="Seleccionar sucursal"
           size="md"
+          searchable
+          :error="errors.branch_id"
+          :disabled="loading"
         />
-        <!-- Sucursal -->
-        <div v-if="!loadingBranches && branches.length > 0">
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Sucursal <span class="text-red-500">*</span>
-          </label>
-          <UiSelect
-            v-model="formData.branch_id"
-            :options="branchOptions"
-            placeholder="Seleccionar sucursal"
-            size="md"
-            searchable
-            :error="errors.branch_id"
-            :disabled="loading"
-          />
-        </div>
+      </div>
 
-        <!-- Empty state: no hay sucursales cargadas -->
-        <div v-else-if="!loadingBranches && branches.length === 0">
-          <EmptyState
-            :icon="BuildingOfficeIcon"
-            title="No hay sucursales registradas"
-            description="Para abrir caja necesitas al menos una sucursal activa en el sistema."
-            :action-text="canManageBranches ? 'Ir a Configuracion de Sucursales' : ''"
-            action-variant="primary"
-            @action="goToBranchesSettings"
-          />
-        </div>
-
-        <!-- Loading state -->
-        <UiLoadingSpinner
-          v-else
-          size="md"
-          variant="primary"
-          text="Cargando sucursales..."
-          aria-label="Cargando sucursales"
+      <!-- Empty state: no hay sucursales cargadas -->
+      <div v-else-if="!loadingBranches && branches.length === 0">
+        <EmptyState
+          :icon="BuildingOfficeIcon"
+          title="No hay sucursales registradas"
+          description="Para abrir caja necesitas al menos una sucursal activa en el sistema."
+          :action-text="canManageBranches ? 'Ir a Configuracion de Sucursales' : ''"
+          action-variant="primary"
+          @action="goToBranchesSettings"
         />
+      </div>
 
-        <!-- Monto de Apertura -->
-        <div>
-          <CurrencyInput
-            v-model="formData.opening_amount"
-            label="Monto de Apertura"
-            placeholder="0.00"
-            :required="true"
-            :min="0"
-            :precision="2"
-            :error="errors.opening_amount"
-            input-class="tabular-nums"
-          />
-        </div>
+      <!-- Loading state -->
+      <UiLoadingSpinner
+        v-else
+        size="md"
+        variant="primary"
+        text="Cargando sucursales..."
+        aria-label="Cargando sucursales"
+      />
 
-        <!-- Notas de Apertura -->
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Notas de Apertura
-          </label>
-          <textarea
-            v-model="formData.opening_notes"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
-            :disabled="loading"
-            rows="3"
-            placeholder="Notas adicionales sobre la apertura de caja..."
-            maxlength="500"
-          ></textarea>
-          <p class="mt-1 text-sm text-theme-secondary">
-            {{ formData.opening_notes?.length || 0 }}/500 caracteres
-          </p>
-        </div>
+      <!-- Monto de Apertura -->
+      <div>
+        <CurrencyInput
+          v-model="formData.opening_amount"
+          label="Monto de Apertura"
+          placeholder="0.00"
+          :required="true"
+          :min="0"
+          :precision="2"
+          :error="errors.opening_amount"
+          input-class="tabular-nums"
+        />
+      </div>
 
-        <!-- Resumen -->
-        <UiCard v-if="branches.length > 0" variant="flat" padding="md">
-          <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de Apertura</h3>
-          <div class="space-y-1 text-sm">
-            <div class="flex justify-between">
-              <span class="text-theme-secondary">Sucursal:</span>
-              <span class="font-medium text-theme-primary">
-                {{ selectedBranch?.name || 'No seleccionada' }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-theme-secondary">Monto inicial:</span>
-              <span class="font-medium text-theme-primary tabular-nums" :aria-label="`${formData.opening_amount || 0} soles`">
-                {{ formatCurrency(formData.opening_amount) }}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-theme-secondary">Usuario:</span>
-              <span class="font-medium text-theme-primary">{{ currentUser?.name }}</span>
-            </div>
+      <!-- Notas de Apertura -->
+      <div>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Notas de Apertura</label>
+        <textarea
+          v-model="formData.opening_notes"
+          class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm sm:text-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary"
+          :disabled="loading"
+          rows="3"
+          placeholder="Notas adicionales sobre la apertura de caja..."
+          maxlength="500"
+        />
+        <p class="mt-1 text-sm text-theme-secondary">
+          {{ formData.opening_notes?.length || 0 }}/500 caracteres
+        </p>
+      </div>
+
+      <!-- Resumen -->
+      <UiCard v-if="branches.length > 0" variant="flat" padding="md">
+        <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de Apertura</h3>
+        <div class="space-y-1 text-sm">
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Sucursal:</span>
+            <span class="font-medium text-theme-primary">
+              {{ selectedBranch?.name || 'No seleccionada' }}
+            </span>
           </div>
-        </UiCard>
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Monto inicial:</span>
+            <span
+              class="font-medium text-theme-primary tabular-nums"
+              :aria-label="`${formData.opening_amount || 0} soles`"
+            >
+              {{ formatCurrency(formData.opening_amount) }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-theme-secondary">Usuario:</span>
+            <span class="font-medium text-theme-primary">{{ currentUser?.name }}</span>
+          </div>
+        </div>
+      </UiCard>
     </form>
 
     <template #footer>
       <div class="flex justify-end space-x-3">
         <Button
-          type="button"
-          variant="secondary"
-          @click="$emit('close')"
-          :disabled="loading"
-        >
+type="button"
+variant="secondary" :disabled="loading" @click="$emit('close')"
+>
           Cancelar
         </Button>
         <Button
@@ -150,11 +146,6 @@ import { formatCurrency } from '@/composables/useFormatters'
 import { useRouter } from 'vue-router'
 import { BanknotesIcon, BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 
-// Configurar herencia de atributos
-defineOptions({
-  inheritAttrs: false
-})
-
 const props = defineProps({
   show: {
     type: Boolean,
@@ -163,6 +154,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'success'])
+
+// Configurar herencia de atributos
+defineOptions({
+  inheritAttrs: false
+})
 
 const { openSession } = useCashRegister()
 const { get } = useApi()
@@ -203,9 +199,7 @@ const selectedBranch = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return formData.value.branch_id &&
-         formData.value.opening_amount >= 0 &&
-         !loading.value
+  return formData.value.branch_id && formData.value.opening_amount >= 0 && !loading.value
 })
 
 const canManageBranches = computed(() => isAdministrador.value)
@@ -218,7 +212,6 @@ const branchOptions = computed(() =>
     description: b.city || ''
   }))
 )
-
 
 // Metodos
 const loadBranches = async () => {
@@ -253,7 +246,6 @@ const handleSubmit = async () => {
   }
 
   try {
-
     const result = await openSession({
       branch_id: formData.value.branch_id,
       opening_amount: formData.value.opening_amount,
@@ -263,9 +255,9 @@ const handleSubmit = async () => {
     // Notificacion de exito
     const selectedBranch = branches.value.find(b => b.id === formData.value.branch_id)
     toast.success(
-      `Caja abierta exitosamente\n` +
-      `Monto inicial: S/ ${formData.value.opening_amount}\n` +
-      `Sucursal: ${selectedBranch?.name || 'N/A'}`,
+      'Caja abierta exitosamente\n' +
+        `Monto inicial: S/ ${formData.value.opening_amount}\n` +
+        `Sucursal: ${selectedBranch?.name || 'N/A'}`,
       {
         duration: 5000,
         title: 'Caja Abierta'
@@ -277,22 +269,18 @@ const handleSubmit = async () => {
 
     // Los eventos WebSocket se manejan automaticamente desde el backend
   } catch (error) {
-
     // Notificacion de error
     const errorMsg = error.response?.data?.message || 'Error al abrir la caja'
     const errorDetails = error.response?.data?.errors
     let details = ''
     if (errorDetails) {
-      details = '\n' + Object.values(errorDetails).flat().join('\n')
+      details = `\n${Object.values(errorDetails).flat().join('\n')}`
     }
 
-    toast.error(
-      errorMsg + details,
-      {
-        duration: 8000,
-        title: 'Error al Abrir Caja'
-      }
-    )
+    toast.error(errorMsg + details, {
+      duration: 8000,
+      title: 'Error al Abrir Caja'
+    })
 
     if (error.response?.data?.errors) {
       errors.value = error.response.data.errors
@@ -309,21 +297,23 @@ const handleSubmit = async () => {
 // formatCurrency imported from useFormatters (PR-pagos-01 canonicalization).
 
 // Watch
-watch(() => props.show, (newValue) => {
-  if (newValue) {
-    // Reset form when modal opens
-    formData.value = {
-      branch_id: '',
-      opening_amount: 0,
-      opening_notes: ''
+watch(
+  () => props.show,
+  newValue => {
+    if (newValue) {
+      // Reset form when modal opens
+      formData.value = {
+        branch_id: '',
+        opening_amount: 0,
+        opening_notes: ''
+      }
+      errors.value = {}
     }
-    errors.value = {}
   }
-})
+)
 
 // Lifecycle
 onMounted(() => {
   loadBranches()
 })
 </script>
-

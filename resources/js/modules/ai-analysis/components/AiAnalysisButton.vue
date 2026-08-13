@@ -3,13 +3,13 @@
     <!-- Button to start analysis -->
     <button
       v-if="!hasAnalysis"
-      @click="startAnalysis"
       :disabled="loading || !canAnalyze"
       class="analysis-btn"
       :class="{
         'btn-primary': canAnalyze,
         'btn-disabled': !canAnalyze
       }"
+      @click="startAnalysis"
     >
       <CpuChipIcon class="w-4 h-4 mr-2" />
       <span v-if="loading">Analizando...</span>
@@ -18,11 +18,7 @@
 
     <!-- Analysis status badge -->
     <div v-else class="analysis-status">
-      <button
-        @click="viewAnalysis"
-        class="status-btn"
-        :class="getStatusClass(analysis.status)"
-      >
+      <button class="status-btn" :class="getStatusClass(analysis.status)" @click="viewAnalysis">
         <CpuChipIcon class="w-4 h-4 mr-2" />
         <span class="status-text">{{ getStatusLabel(analysis.status) }}</span>
         <span v-if="analysis.confidence_score" class="confidence-score">
@@ -40,7 +36,7 @@
 
     <!-- Loading spinner -->
     <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner"></div>
+      <div class="loading-spinner" />
     </div>
   </div>
 </template>
@@ -100,8 +96,7 @@ const loadAnalysis = async () => {
       analysis.value = existingAnalysis
       hasAnalysis.value = true
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 const startAnalysis = async () => {
@@ -109,15 +104,14 @@ const startAnalysis = async () => {
     await analyzeImage(props.attachmentId)
     hasAnalysis.value = true
     emit('analysis-completed', analysis.value)
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 
 const viewAnalysis = () => {
   emit('view-analysis', analysis.value)
 }
 
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   const classes = {
     pending: 'status-pending',
     processing: 'status-processing',
@@ -127,7 +121,7 @@ const getStatusClass = (status) => {
   return classes[status] || 'status-unknown'
 }
 
-const getReviewDecisionClass = (decision) => {
+const getReviewDecisionClass = decision => {
   const classes = {
     accepted: 'review-accepted',
     rejected: 'review-rejected',

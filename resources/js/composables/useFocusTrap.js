@@ -30,7 +30,7 @@ export function useFocusTrap() {
   const getFocusable = () => {
     if (!containerEl) return []
     return Array.from(containerEl.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
-      (el) => !el.hasAttribute('disabled') && el.offsetParent !== null
+      el => !el.hasAttribute('disabled') && el.offsetParent !== null
     )
   }
 
@@ -43,7 +43,7 @@ export function useFocusTrap() {
     }
   }
 
-  const handleKeydown = (event) => {
+  const handleKeydown = event => {
     if (event.key !== 'Tab' || !active) return
 
     const focusable = getFocusable()
@@ -74,7 +74,7 @@ export function useFocusTrap() {
    * Activate the focus trap on the given container.
    * Stores the currently focused element so it can be restored on release().
    */
-  const activate = (container) => {
+  const activate = container => {
     if (!container) return
     containerEl = container
     previouslyFocused = document.activeElement

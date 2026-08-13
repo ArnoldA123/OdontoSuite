@@ -1,12 +1,12 @@
-import './bootstrap';
-import { createApp } from 'vue';
-import { createRouter, createWebHistory } from 'vue-router';
-import LoginPage from './modules/auth/LoginPage.vue';
-import { requireAuth, requireGuest } from './router/auth';
-import uiComponents from './plugins/ui-components';
-import { useAuth } from './composables/useAuth';
-import { useEcho } from './composables/useEcho';
-import { useToast } from './composables/useToast';
+import './bootstrap'
+import { createApp } from 'vue'
+import { createRouter, createWebHistory } from 'vue-router'
+import LoginPage from './modules/auth/LoginPage.vue'
+import { requireAuth, requireGuest } from './router/auth'
+import uiComponents from './plugins/ui-components'
+import { useAuth } from './composables/useAuth'
+import { useEcho } from './composables/useEcho'
+import { useToast } from './composables/useToast'
 
 // Slice 08 / FF-009: useEcho() must NOT run at module load with an empty
 // auth token. Previously app.js eagerly bootstrapped Echo, sending
@@ -17,14 +17,14 @@ import { useToast } from './composables/useToast';
 // Components that need Echo (DashboardPage, AppLayout indicator) call
 // useEcho() themselves and benefit from the same singleton.
 if (typeof window !== 'undefined') {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth()
   // Gate the Echo warm-up behind authentication. Components still call
   // useEcho() on demand; this block just seeds window.Echo with a
   // properly-authenticated handle so the AppLayout WS indicator
   // reports the right state immediately after login.
   if (isAuthenticated.value) {
-    const { echo } = useEcho();
-    window.Echo = echo;
+    const { echo } = useEcho()
+    window.Echo = echo
   }
 }
 
@@ -200,12 +200,12 @@ const routes = [
     component: () => import('./modules/errors/NotFoundPage.vue'),
     meta: { title: 'Página no encontrada' }
   }
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
-});
+})
 
 // Global error handler — recovers from lazy-chunk load failures (e.g. after a
 // new deploy that invalidated a previously cached chunk) by reloading the
@@ -231,7 +231,7 @@ router.onError((error, to) => {
       // toast not yet wired — silent fallback
     }
   }
-});
+})
 
 router.afterEach(() => {
   if (typeof window !== 'undefined') {
@@ -239,16 +239,16 @@ router.afterEach(() => {
     // route can still recover.
     sessionStorage.removeItem('__sdd_lazy_reload')
   }
-});
+})
 
 // Crear la aplicación Vue con un componente raíz
 // key=fullPath fuerza remonte del componente al cambiar ruta → arregla
 // botón "atrás" del browser que quedaba pegado (onMounted no se llamaba).
 const App = {
   template: '<router-view :key="$route.fullPath" />'
-};
+}
 
-const app = createApp(App);
-app.use(router);
-app.use(uiComponents);
-app.mount('#app');
+const app = createApp(App)
+app.use(router)
+app.use(uiComponents)
+app.mount('#app')

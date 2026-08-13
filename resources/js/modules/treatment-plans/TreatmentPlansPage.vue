@@ -11,14 +11,15 @@
           <div class="flex items-center gap-2 flex-wrap">
             <div class="counters">
               <span class="counter-pill" :class="{ active: !statusFilter }">
-                Todos <strong>{{ pagination?.total ?? 0 }}</strong>
+                Todos
+                <strong>{{ pagination?.total ?? 0 }}</strong>
               </span>
               <span class="counter-pill pill-active">Activos {{ counters.active }}</span>
               <span v-if="counters.overdue > 0" class="counter-pill pill-overdue">
                 Vencidos {{ counters.overdue }}
               </span>
             </div>
-            <UiButton @click="openCreateModal" :disabled="loading">
+            <UiButton :disabled="loading" @click="openCreateModal">
               <template #icon-left>
                 <PlusIcon class="w-5 h-5" />
               </template>
@@ -57,16 +58,16 @@
 
           <div class="filter-field">
             <label class="filter-label">Desde</label>
-            <input v-model="filters.date_from" type="date" class="filter-input" />
+            <input v-model="filters.date_from" type="date" class="filter-input" >
           </div>
 
           <div class="filter-field">
             <label class="filter-label">Hasta</label>
-            <input v-model="filters.date_to" type="date" class="filter-input" />
+            <input v-model="filters.date_to" type="date" class="filter-input" >
           </div>
 
           <div class="filter-actions">
-            <button @click="clearFilters" class="btn btn-outline" :disabled="loading">
+            <button class="btn btn-outline" :disabled="loading" @click="clearFilters">
               Limpiar
             </button>
           </div>
@@ -78,8 +79,9 @@
             <button
               v-for="qf in quickFilters"
               :key="qf.value"
+              class="quick-pill"
+              :class="[{ active: activeQuick === qf.value }]"
               @click="applyQuickFilter(qf)"
-              :class="['quick-pill', { active: activeQuick === qf.value }]"
             >
               <component :is="qf.icon" v-if="qf.icon" class="w-3.5 h-3.5" />
               {{ qf.label }}
@@ -88,18 +90,20 @@
 
           <div class="view-toggle">
             <button
-              @click="view = 'list'"
-              :class="['view-btn', { active: view === 'list' }]"
+              class="view-btn"
+              :class="[{ active: view === 'list' }]"
               title="Vista lista"
               aria-label="Vista lista"
+              @click="view = 'list'"
             >
               <Squares2X2Icon class="w-4 h-4" />
             </button>
             <button
-              @click="view = 'kanban'"
-              :class="['view-btn', { active: view === 'kanban' }]"
+              class="view-btn"
+              :class="[{ active: view === 'kanban' }]"
               title="Vista kanban"
               aria-label="Vista kanban"
+              @click="view = 'kanban'"
             >
               <ViewColumnsIcon class="w-4 h-4" />
             </button>
@@ -110,7 +114,7 @@
       <!-- Vista: lista -->
       <div v-if="view === 'list'" class="plans-section">
         <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div v-for="n in 6" :key="n" class="skeleton-card"></div>
+          <div v-for="n in 6" :key="n" class="skeleton-card" />
         </div>
 
         <div v-else-if="!hasPlans" class="empty-state">
@@ -119,16 +123,18 @@
             {{ hasActiveFilters ? 'Sin resultados' : 'No hay planes de tratamiento' }}
           </h3>
           <p class="text-theme-secondary mb-4">
-            {{ hasActiveFilters
-              ? 'Prueba ajustando los filtros'
-              : 'Comienza creando tu primer plan de tratamiento' }}
+            {{
+              hasActiveFilters
+                ? 'Prueba ajustando los filtros'
+                : 'Comienza creando tu primer plan de tratamiento'
+            }}
           </p>
-          <button v-if="!hasActiveFilters" @click="openCreateModal" class="btn btn-primary">
+          <button v-if="!hasActiveFilters" class="btn btn-primary" @click="openCreateModal">
             Crear Plan
           </button>
-          <button v-else @click="clearFilters" class="btn btn-outline">
-            Limpiar filtros
-          </button>
+          <button v-else class="btn btn-outline" @click="clearFilters">
+Limpiar filtros
+</button>
         </div>
 
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -209,7 +215,7 @@ import {
   XCircleIcon,
   PencilIcon,
   Squares2X2Icon,
-  ViewColumnsIcon,
+  ViewColumnsIcon
 } from '@heroicons/vue/24/outline'
 
 const { user } = useAuth()
@@ -228,7 +234,7 @@ const {
   updatePlan,
   deletePlan,
   changeStatus,
-  duplicatePlan,
+  duplicatePlan
 } = useTreatmentPlans()
 
 const showModal = ref(false)
@@ -241,7 +247,7 @@ const filters = ref({
   patient_name: '',
   status: '',
   date_from: '',
-  date_to: '',
+  date_to: ''
 })
 
 const statusFilter = computed(() => filters.value.status)
@@ -251,19 +257,18 @@ const quickFilters = [
   { value: 'active', label: 'Activos', icon: ClockIcon },
   { value: 'mine', label: 'Míos', icon: PencilIcon },
   { value: 'overdue', label: 'Vencidos', icon: XCircleIcon },
-  { value: 'completed', label: 'Completados', icon: CheckCircleIcon },
+  { value: 'completed', label: 'Completados', icon: CheckCircleIcon }
 ]
 const activeQuick = ref('all')
 
-const hasActiveFilters = computed(() =>
-  Object.values(filters.value).some((v) => v !== '')
-)
+const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== ''))
 
 const counters = computed(() => {
   const all = plans.value
   return {
-    active: all.filter((p) => ['draft', 'proposed', 'approved', 'in_progress'].includes(p.status)).length,
-    overdue: all.filter((p) => p.is_overdue).length,
+    active: all.filter(p => ['draft', 'proposed', 'approved', 'in_progress'].includes(p.status))
+      .length,
+    overdue: all.filter(p => p.is_overdue).length
   }
 })
 
@@ -273,7 +278,7 @@ const kanbanColumns = [
   { value: 'approved', label: 'Aprobado', tone: 'green' },
   { value: 'in_progress', label: 'En Progreso', tone: 'amber' },
   { value: 'completed', label: 'Completado', tone: 'emerald' },
-  { value: 'cancelled', label: 'Cancelado', tone: 'red' },
+  { value: 'cancelled', label: 'Cancelado', tone: 'red' }
 ]
 
 const plansByStatus = computed(() => {
@@ -291,13 +296,13 @@ const openCreateModal = () => {
   showModal.value = true
 }
 
-const editPlan = (plan) => {
+const editPlan = plan => {
   selectedPlan.value = plan
   isEdit.value = true
   showModal.value = true
 }
 
-const viewPlan = (plan) => {
+const viewPlan = plan => {
   selectedPlan.value = plan
   showDetailModal.value = true
 }
@@ -325,13 +330,13 @@ const clearFilters = () => {
   loadPlans()
 }
 
-const applyQuickFilter = (qf) => {
+const applyQuickFilter = qf => {
   activeQuick.value = qf.value
   filters.value.status = qf.value === 'all' ? '' : qf.value
   loadPlans()
 }
 
-const handlePageChange = (page) => loadPlans({ page })
+const handlePageChange = page => loadPlans({ page })
 
 const onDropPlan = async ({ plan, newStatus }) => {
   try {
@@ -346,12 +351,11 @@ const onDropPlan = async ({ plan, newStatus }) => {
 const loadPlans = async (additional = {}) => {
   try {
     const all = { ...filters.value, ...additional }
-    Object.keys(all).forEach((k) => {
+    Object.keys(all).forEach(k => {
       if (all[k] === '' || all[k] === null) delete all[k]
     })
     await getPlans(all)
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 // Debounce reactivo en patient_name (sin click en Buscar)
@@ -369,7 +373,7 @@ watch(
 )
 
 // Atajos de teclado
-const onKeydown = (e) => {
+const onKeydown = e => {
   if (e.target.matches('input, select, textarea')) return
   if (e.key === 'n' || e.key === 'N') {
     e.preventDefault()
@@ -395,21 +399,20 @@ onMounted(() => {
           await loadPlans()
           toast.info('Nuevo plan creado')
         })
-        .listen('.treatment-plan.updated', async (e) => {
-          const idx = plans.value.findIndex((p) => p.id === e.treatment_plan.id)
+        .listen('.treatment-plan.updated', async e => {
+          const idx = plans.value.findIndex(p => p.id === e.treatment_plan.id)
           if (idx !== -1) plans.value[idx] = e.treatment_plan
           else await loadPlans()
         })
-        .listen('.treatment-plan.deleted', async (e) => {
-          plans.value = plans.value.filter((p) => p.id !== e.treatment_plan_id)
+        .listen('.treatment-plan.deleted', async e => {
+          plans.value = plans.value.filter(p => p.id !== e.treatment_plan_id)
           if (selectedPlan.value?.id === e.treatment_plan_id) {
             selectedPlan.value = null
             showDetailModal.value = false
           }
         })
     }
-  } catch (err) {
-  }
+  } catch (err) {}
 })
 
 onUnmounted(() => {
@@ -417,8 +420,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('treatment-plans')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
   clearTimeout(debounceTimer)
 })
@@ -520,8 +522,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .empty-state {

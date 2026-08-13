@@ -1,137 +1,125 @@
 <template>
   <AppLayout>
     <div class="quotations-page bg-canvas">
-    <!-- Header -->
-    <PageHeader
-      title="Presupuestos"
-      subtitle="Gestiona los presupuestos de tus pacientes"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton @click="openCreateModal" :disabled="loading">
-          <template #icon-left>
-            <PlusIcon class="w-5 h-5" />
-          </template>
-          Nuevo Presupuesto
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- Filtros -->
-    <UiCard variant="flat" padding="md" class="mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div>
-          <UiInput
-            v-model="filters.patient_name"
-            type="text"
-            placeholder="Buscar por nombre..."
-            label="Paciente"
-          />
-        </div>
-
-        <div>
-          <UiSelect
-            v-model="filters.status"
-            label="Estado"
-            :options="statusOptions"
-            placeholder="Todos los estados"
-          />
-        </div>
-
-        <div>
-          <UiInput
-            v-model="filters.date_from"
-            type="date"
-            label="Fecha desde"
-          />
-        </div>
-
-        <div>
-          <UiInput
-            v-model="filters.date_to"
-            type="date"
-            label="Fecha hasta"
-          />
-        </div>
-
-        <div class="flex items-end gap-2">
-          <UiButton variant="secondary" @click="applyFilters" :disabled="loading">
+      <!-- Header -->
+      <PageHeader
+        title="Presupuestos"
+        subtitle="Gestiona los presupuestos de tus pacientes"
+        class="mb-6"
+      >
+        <template #actions>
+          <UiButton :disabled="loading" @click="openCreateModal">
             <template #icon-left>
-              <MagnifyingGlassIcon class="w-4 h-4" />
+              <PlusIcon class="w-5 h-5" />
             </template>
-            Buscar
+            Nuevo Presupuesto
           </UiButton>
-          <UiButton variant="ghost" @click="clearFilters" :disabled="loading">
-            Limpiar
-          </UiButton>
+        </template>
+      </PageHeader>
+
+      <!-- Filtros -->
+      <UiCard variant="flat" padding="md" class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <UiInput
+              v-model="filters.patient_name"
+              type="text"
+              placeholder="Buscar por nombre..."
+              label="Paciente"
+            />
+          </div>
+
+          <div>
+            <UiSelect
+              v-model="filters.status"
+              label="Estado"
+              :options="statusOptions"
+              placeholder="Todos los estados"
+            />
+          </div>
+
+          <div>
+            <UiInput v-model="filters.date_from" type="date" label="Fecha desde" />
+          </div>
+
+          <div>
+            <UiInput v-model="filters.date_to" type="date" label="Fecha hasta" />
+          </div>
+
+          <div class="flex items-end gap-2">
+            <UiButton variant="secondary" :disabled="loading" @click="applyFilters">
+              <template #icon-left>
+                <MagnifyingGlassIcon class="w-4 h-4" />
+              </template>
+              Buscar
+            </UiButton>
+            <UiButton variant="ghost" :disabled="loading" @click="clearFilters">Limpiar</UiButton>
+          </div>
+        </div>
+      </UiCard>
+
+      <!-- Lista de presupuestos -->
+      <div class="quotations-section">
+        <div v-if="loading" class="flex justify-center py-8">
+          <UiLoadingSpinner size="md" variant="primary" text="Cargando presupuestos..." />
+        </div>
+
+        <div v-else-if="!hasQuotations" class="empty-state border border-hairline rounded-xl">
+          <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-theme-primary mb-2">No hay presupuestos</h3>
+          <p class="text-theme-secondary mb-4">Comienza creando tu primer presupuesto</p>
+          <UiButton @click="openCreateModal">Crear Presupuesto</UiButton>
+        </div>
+
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <QuotationCard
+            v-for="quotation in quotations"
+            :key="quotation.id"
+            :quotation="quotation"
+            @view="viewQuotation"
+            @edit="editQuotation"
+            @approve="approveQuotation"
+            @reject="rejectQuotation"
+            @download="downloadPDF"
+            @delete="deleteQuotation"
+          />
         </div>
       </div>
-    </UiCard>
 
-    <!-- Lista de presupuestos -->
-    <div class="quotations-section">
-      <div v-if="loading" class="flex justify-center py-8">
-        <UiLoadingSpinner size="md" variant="primary" text="Cargando presupuestos..." />
-      </div>
-
-      <div v-else-if="!hasQuotations" class="empty-state border border-hairline rounded-xl">
-        <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-theme-primary mb-2">No hay presupuestos</h3>
-        <p class="text-theme-secondary mb-4">Comienza creando tu primer presupuesto</p>
-        <UiButton @click="openCreateModal">
-          Crear Presupuesto
-        </UiButton>
-      </div>
-
-      <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        <QuotationCard
-          v-for="quotation in quotations"
-          :key="quotation.id"
-          :quotation="quotation"
-          @view="viewQuotation"
-          @edit="editQuotation"
-          @approve="approveQuotation"
-          @reject="rejectQuotation"
-          @download="downloadPDF"
-          @delete="deleteQuotation"
+      <!-- Paginación -->
+      <div v-if="hasQuotations && totalPages > 1" class="pagination-section">
+        <Pagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          @page-change="handlePageChange"
         />
       </div>
-    </div>
 
-    <!-- Paginación -->
-    <div v-if="hasQuotations && totalPages > 1" class="pagination-section">
-      <Pagination
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        @page-change="handlePageChange"
+      <!-- Modales -->
+      <QuotationModal
+        v-if="showModal"
+        :quotation="selectedQuotation"
+        :is-edit="isEdit"
+        @close="closeModal"
+        @saved="handleQuotationSaved"
       />
-    </div>
 
-    <!-- Modales -->
-    <QuotationModal
-      v-if="showModal"
-      :quotation="selectedQuotation"
-      :is-edit="isEdit"
-      @close="closeModal"
-      @saved="handleQuotationSaved"
-    />
+      <QuotationDetail
+        v-if="showDetailModal"
+        :quotation="selectedQuotation"
+        @close="closeDetailModal"
+        @edit="editQuotation"
+        @approve="approveQuotation"
+        @reject="rejectQuotation"
+        @download="downloadPDF"
+      />
 
-    <QuotationDetail
-      v-if="showDetailModal"
-      :quotation="selectedQuotation"
-      @close="closeDetailModal"
-      @edit="editQuotation"
-      @approve="approveQuotation"
-      @reject="rejectQuotation"
-      @download="downloadPDF"
-    />
-
-    <QuotationApprovalModal
-      v-if="showApprovalModal"
-      :quotation="selectedQuotation"
-      @close="closeApprovalModal"
-      @approved="handleQuotationApproved"
-    />
+      <QuotationApprovalModal
+        v-if="showApprovalModal"
+        :quotation="selectedQuotation"
+        @close="closeApprovalModal"
+        @approved="handleQuotationApproved"
+      />
     </div>
   </AppLayout>
 </template>
@@ -153,11 +141,7 @@ import QuotationModal from './components/QuotationModal.vue'
 import QuotationDetail from './components/QuotationDetail.vue'
 import QuotationApprovalModal from './components/QuotationApprovalModal.vue'
 import Pagination from '@/components/ui/Pagination.vue'
-import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  DocumentTextIcon
-} from '@heroicons/vue/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
 
 // Composables
 const { user } = useAuth()
@@ -207,13 +191,13 @@ const openCreateModal = () => {
   showModal.value = true
 }
 
-const editQuotation = (quotation) => {
+const editQuotation = quotation => {
   selectedQuotation.value = quotation
   isEdit.value = true
   showModal.value = true
 }
 
-const viewQuotation = (quotation) => {
+const viewQuotation = quotation => {
   selectedQuotation.value = quotation
   showDetailModal.value = true
 }
@@ -236,12 +220,12 @@ const closeApprovalModal = () => {
   selectedQuotation.value = null
 }
 
-const handleQuotationSaved = (quotation) => {
+const handleQuotationSaved = quotation => {
   closeModal()
   loadQuotations()
 }
 
-const handleQuotationApproved = (quotation) => {
+const handleQuotationApproved = quotation => {
   closeApprovalModal()
   loadQuotations()
 }
@@ -260,7 +244,7 @@ const clearFilters = () => {
   loadQuotations()
 }
 
-const handlePageChange = (page) => {
+const handlePageChange = page => {
   loadQuotations({ page })
 }
 
@@ -268,8 +252,7 @@ const loadQuotations = async (additionalFilters = {}) => {
   try {
     const allFilters = { ...filters.value, ...additionalFilters }
     await getQuotations(allFilters)
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 // WebSocket subscriptions
@@ -284,12 +267,12 @@ onMounted(() => {
     quotationsChannel = channel('quotations')
     if (quotationsChannel) {
       quotationsChannel
-        .listen('.quotation.created', async (e) => {
+        .listen('.quotation.created', async e => {
           // Recargar lista para incluir el nuevo presupuesto
           await loadQuotations()
           toast.success('Nuevo presupuesto creado')
         })
-        .listen('.quotation.updated', async (e) => {
+        .listen('.quotation.updated', async e => {
           // Actualizar el presupuesto en la lista si existe
           const index = quotations.value.findIndex(q => q.id === e.quotation.id)
           if (index !== -1) {
@@ -300,7 +283,7 @@ onMounted(() => {
           }
           toast.success('Presupuesto actualizado')
         })
-        .listen('.quotation.approved', async (e) => {
+        .listen('.quotation.approved', async e => {
           // Actualizar el presupuesto en la lista
           const index = quotations.value.findIndex(q => q.id === e.quotation.id)
           if (index !== -1) {
@@ -311,8 +294,7 @@ onMounted(() => {
           toast.success('Presupuesto aprobado', { duration: 6000 })
         })
     }
-  } catch (error) {
-  }
+  } catch (error) {}
 })
 
 onUnmounted(() => {
@@ -320,8 +302,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('quotations')
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 })
 </script>

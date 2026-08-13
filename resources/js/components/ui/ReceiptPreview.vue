@@ -1,18 +1,19 @@
 ﻿<template>
   <div class="receipt-preview">
     <!-- Modal -->
-    <Modal
-      :show="show"
-      :title="'Vista Previa del Comprobante'"
-      size="lg"
-      @close="$emit('close')"
-    >
+    <Modal :show="show" title="Vista Previa del Comprobante" size="lg" @close="$emit('close')">
       <div class="receipt-content">
         <!-- Header -->
         <div class="receipt-header text-center mb-6">
-          <h1 class="text-2xl font-bold text-theme-primary">{{ clinic.name }}</h1>
-          <p class="text-sm text-theme-secondary">{{ clinic.address }}</p>
-          <p class="text-sm text-theme-secondary">Tel: {{ clinic.phone }} | RUC: {{ clinic.ruc }}</p>
+          <h1 class="text-2xl font-bold text-theme-primary">
+            {{ clinic.name }}
+          </h1>
+          <p class="text-sm text-theme-secondary">
+            {{ clinic.address }}
+          </p>
+          <p class="text-sm text-theme-secondary">
+            Tel: {{ clinic.phone }} | RUC: {{ clinic.ruc }}
+          </p>
         </div>
 
         <!-- Receipt Info -->
@@ -20,11 +21,15 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <p class="text-sm text-theme-secondary">N° Comprobante:</p>
-              <p class="font-semibold">{{ receiptData.receipt_number }}</p>
+              <p class="font-semibold">
+                {{ receiptData.receipt_number }}
+              </p>
             </div>
             <div>
               <p class="text-sm text-theme-secondary">Fecha:</p>
-              <p class="font-semibold">{{ receiptData.date }}</p>
+              <p class="font-semibold">
+                {{ receiptData.date }}
+              </p>
             </div>
           </div>
         </div>
@@ -33,9 +38,15 @@
         <div class="patient-info mb-6">
           <h3 class="text-lg font-semibold mb-2">Datos del Paciente</h3>
           <div class="bg-theme-surface p-4 rounded-ios">
-            <p class="font-medium">{{ transaction.patient?.name }} {{ transaction.patient?.last_name }}</p>
-            <p class="text-sm text-theme-secondary">{{ transaction.patient?.email }}</p>
-            <p class="text-sm text-theme-secondary">{{ transaction.patient?.phone }}</p>
+            <p class="font-medium">
+              {{ transaction.patient?.name }} {{ transaction.patient?.last_name }}
+            </p>
+            <p class="text-sm text-theme-secondary">
+              {{ transaction.patient?.email }}
+            </p>
+            <p class="text-sm text-theme-secondary">
+              {{ transaction.patient?.phone }}
+            </p>
           </div>
         </div>
 
@@ -87,11 +98,15 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <p class="text-sm text-theme-secondary">Método de Pago:</p>
-              <p class="font-semibold">{{ transaction.payment_method?.name || 'N/A' }}</p>
+              <p class="font-semibold">
+                {{ transaction.payment_method?.name || 'N/A' }}
+              </p>
             </div>
             <div>
               <p class="text-sm text-theme-secondary">Referencia:</p>
-              <p class="font-semibold">{{ transaction.reference_number || 'N/A' }}</p>
+              <p class="font-semibold">
+                {{ transaction.reference_number || 'N/A' }}
+              </p>
             </div>
           </div>
         </div>
@@ -101,7 +116,9 @@
           <div class="bg-primary-50 border-2 border-primary-200 rounded-ios p-4">
             <div class="flex justify-between items-center">
               <span class="text-xl font-bold text-primary-900">TOTAL A PAGAR:</span>
-              <span class="text-2xl font-bold text-primary-900">{{ formatCurrency(transaction.amount) }}</span>
+              <span class="text-2xl font-bold text-primary-900">
+                {{ formatCurrency(transaction.amount) }}
+              </span>
             </div>
           </div>
         </div>
@@ -110,14 +127,18 @@
         <div v-if="transaction.notes" class="notes mb-6">
           <h3 class="text-lg font-semibold mb-2">Notas</h3>
           <div class="bg-theme-surface p-4 rounded-ios">
-            <p class="text-sm">{{ transaction.notes }}</p>
+            <p class="text-sm">
+              {{ transaction.notes }}
+            </p>
           </div>
         </div>
 
         <!-- QR Code (placeholder) -->
         <div class="qr-section text-center mb-6">
           <div class="inline-block bg-theme-surface p-4 rounded-ios">
-            <div class="w-24 h-24 bg-theme-surface-elevated rounded flex items-center justify-center">
+            <div
+              class="w-24 h-24 bg-theme-surface-elevated rounded flex items-center justify-center"
+            >
               <span class="text-xs text-theme-secondary">QR Code</span>
             </div>
           </div>
@@ -128,25 +149,14 @@
       <!-- Actions -->
       <template #footer>
         <div class="flex justify-end space-x-3">
-          <Button
-            variant="secondary"
-            @click="$emit('close')"
-          >
-            Cerrar
-          </Button>
-          <Button
-            variant="primary"
-            @click="handlePrint"
-            :loading="printing"
-          >
+          <Button variant="secondary" @click="$emit('close')">
+Cerrar
+</Button>
+          <Button variant="primary" :loading="printing" @click="handlePrint">
             <PrinterIcon class="w-4 h-4 mr-2" />
             Imprimir
           </Button>
-          <Button
-            variant="primary"
-            @click="handleDownload"
-            :loading="downloading"
-          >
+          <Button variant="primary" :loading="downloading" @click="handleDownload">
             <ArrowDownTrayIcon class="w-4 h-4 mr-2" />
             Descargar PDF
           </Button>
@@ -200,7 +210,7 @@ const receiptData = computed(() => ({
 }))
 
 // Methods
-const formatCurrency = (amount) => {
+const formatCurrency = amount => {
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
     currency: 'PEN'
@@ -344,4 +354,3 @@ const generatePrintHTML = () => {
   color: var(--color-primary-900);
 }
 </style>
-

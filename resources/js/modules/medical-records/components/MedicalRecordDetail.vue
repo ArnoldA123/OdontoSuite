@@ -11,7 +11,7 @@
           </span>
         </div>
       </div>
-      <button @click="$emit('close')" class="close-button">
+      <button class="close-button" @click="$emit('close')">
         <XMarkIcon class="w-6 h-6" />
       </button>
     </div>
@@ -23,13 +23,15 @@
         <div class="patient-info">
           <div class="info-item">
             <span class="info-label">Nombre:</span>
-            <span class="info-value">{{ record.patient?.first_name }} {{ record.patient?.last_name }}</span>
+            <span class="info-value">
+              {{ record.patient?.first_name }} {{ record.patient?.last_name }}
+            </span>
           </div>
-          <div class="info-item" v-if="record.patient?.dni">
+          <div v-if="record.patient?.dni" class="info-item">
             <span class="info-label">DNI:</span>
             <span class="info-value">{{ record.patient.dni }}</span>
           </div>
-          <div class="info-item" v-if="record.patient?.phone">
+          <div v-if="record.patient?.phone" class="info-item">
             <span class="info-label">Teléfono:</span>
             <span class="info-value">{{ record.patient.phone }}</span>
           </div>
@@ -37,7 +39,7 @@
       </div>
 
       <!-- Descripción -->
-      <div class="detail-section" v-if="record.description">
+      <div v-if="record.description" class="detail-section">
         <h3 class="section-title">Descripción</h3>
         <div class="description-content">
           {{ record.description }}
@@ -45,14 +47,14 @@
       </div>
 
       <!-- Diagnósticos -->
-      <div class="detail-section" v-if="record.primary_diagnosis">
+      <div v-if="record.primary_diagnosis" class="detail-section">
         <h3 class="section-title">Diagnósticos</h3>
         <div class="diagnosis-info">
-          <div class="info-item" v-if="record.primary_diagnosis">
+          <div v-if="record.primary_diagnosis" class="info-item">
             <span class="info-label">Principal:</span>
             <span class="info-value">{{ record.primary_diagnosis }}</span>
           </div>
-          <div class="info-item" v-if="record.secondary_diagnoses">
+          <div v-if="record.secondary_diagnoses" class="info-item">
             <span class="info-label">Secundarios:</span>
             <span class="info-value">{{ record.secondary_diagnoses }}</span>
           </div>
@@ -60,7 +62,7 @@
       </div>
 
       <!-- Tratamiento -->
-      <div class="detail-section" v-if="record.treatment">
+      <div v-if="record.treatment" class="detail-section">
         <h3 class="section-title">Tratamiento</h3>
         <div class="treatment-content">
           {{ record.treatment }}
@@ -68,7 +70,7 @@
       </div>
 
       <!-- Medicamentos -->
-      <div class="detail-section" v-if="record.medications">
+      <div v-if="record.medications" class="detail-section">
         <h3 class="section-title">Medicamentos</h3>
         <div class="medications-content">
           {{ record.medications }}
@@ -76,7 +78,7 @@
       </div>
 
       <!-- Alergias -->
-      <div class="detail-section" v-if="record.allergies">
+      <div v-if="record.allergies" class="detail-section">
         <h3 class="section-title">Alergias</h3>
         <div class="allergies-content">
           {{ record.allergies }}
@@ -84,7 +86,7 @@
       </div>
 
       <!-- Antecedentes -->
-      <div class="detail-section" v-if="record.medical_history">
+      <div v-if="record.medical_history" class="detail-section">
         <h3 class="section-title">Antecedentes Médicos</h3>
         <div class="history-content">
           {{ record.medical_history }}
@@ -92,7 +94,7 @@
       </div>
 
       <!-- Notas -->
-      <div class="detail-section" v-if="record.notes">
+      <div v-if="record.notes" class="detail-section">
         <h3 class="section-title">Notas Adicionales</h3>
         <div class="notes-content">
           {{ record.notes }}
@@ -102,27 +104,15 @@
 
     <div class="detail-footer">
       <div class="footer-actions">
-        <button
-          @click="$emit('edit', record)"
-          class="btn btn-outline"
-          v-if="canEdit"
-        >
+        <button v-if="canEdit" class="btn btn-outline" @click="$emit('edit', record)">
           <PencilIcon class="w-4 h-4 mr-2" />
           Editar
         </button>
-        <button
-          @click="addEvolution"
-          class="btn btn-primary"
-          v-if="canAddEvolution"
-        >
+        <button v-if="canAddEvolution" class="btn btn-primary" @click="addEvolution">
           <PlusIcon class="w-4 h-4 mr-2" />
           Agregar Evolución
         </button>
-        <button
-          @click="uploadAttachment"
-          class="btn btn-secondary"
-          v-if="canUpload"
-        >
+        <button v-if="canUpload" class="btn btn-secondary" @click="uploadAttachment">
           <DocumentPlusIcon class="w-4 h-4 mr-2" />
           Subir Archivo
         </button>
@@ -134,12 +124,7 @@
 <script setup>
 import { computed } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
-import {
-  XMarkIcon,
-  PencilIcon,
-  PlusIcon,
-  DocumentPlusIcon
-} from '@heroicons/vue/24/outline'
+import { XMarkIcon, PencilIcon, PlusIcon, DocumentPlusIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   record: {
@@ -166,7 +151,7 @@ const canUpload = computed(() => {
 })
 
 // Métodos
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',

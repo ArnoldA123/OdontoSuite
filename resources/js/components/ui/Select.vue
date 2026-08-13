@@ -1,9 +1,9 @@
 <template>
-  <div class="select-container" ref="containerRef">
+  <div ref="containerRef" class="select-container">
     <!-- Trigger button -->
     <button
       :class="triggerClasses"
-        :disabled="disabled"
+      :disabled="disabled"
       :aria-expanded="isOpen"
       :aria-haspopup="true"
       @click="toggleDropdown"
@@ -30,7 +30,12 @@
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </div>
     </button>
@@ -52,15 +57,20 @@
       >
         <!-- Search input -->
         <div v-if="searchable" class="p-3 border-b border-theme">
-          <UiInput
-            v-model="searchQuery"
-            placeholder="Buscar..."
-            size="sm"
-            @click.stop
-          >
+          <UiInput v-model="searchQuery" placeholder="Buscar..." size="sm" @click.stop>
             <template #prefix>
-              <svg class="w-4 h-4 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                class="w-4 h-4 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </template>
           </UiInput>
@@ -70,11 +80,7 @@
         <div class="max-h-60 overflow-y-auto custom-scrollbar">
           <!-- Grouped options -->
           <template v-if="groupedOptions.length > 0">
-            <div
-              v-for="group in groupedOptions"
-              :key="group.label"
-              class="select-option-group"
-            >
+            <div v-for="group in groupedOptions" :key="group.label" class="select-option-group">
               <div class="select-option-group-header">
                 {{ group.label }}
               </div>
@@ -117,7 +123,11 @@
                     <!-- Check icon for single selection -->
                     <div v-if="!multiple && isSelected(option)" class="flex-shrink-0">
                       <svg class="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -166,7 +176,11 @@
                 <!-- Check icon for single selection -->
                 <div v-if="!multiple && isSelected(option)" class="flex-shrink-0">
                   <svg class="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
                   </svg>
                 </div>
               </div>
@@ -182,20 +196,24 @@
         <!-- Clear button -->
         <div v-if="clearable && hasSelection" class="p-3 border-t border-theme">
           <UiButton
-            variant="ghost"
-            size="sm"
-            @click="clearSelection"
-            class="w-full"
-          >
+variant="ghost"
+size="sm" class="w-full" @click="clearSelection"
+>
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <svg class="w-4 h-4" fill="none" stroke="currentColor"
+viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </template>
             Limpiar selección
           </UiButton>
+        </div>
       </div>
-    </div>
     </Transition>
   </div>
 </template>
@@ -228,12 +246,12 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: value => ['sm', 'md', 'lg'].includes(value)
   },
   variant: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'filled', 'outlined'].includes(value)
+    validator: value => ['default', 'filled', 'outlined'].includes(value)
   },
   multiple: {
     type: Boolean,
@@ -279,10 +297,13 @@ const filteredOptions = computed(() => {
   if (!props.searchable || !searchQuery.value) return props.options || []
 
   const query = searchQuery.value.toLowerCase()
-  return props.options?.filter(option =>
-    option.label.toLowerCase().includes(query) ||
-    (option.description && option.description.toLowerCase().includes(query))
-  ) || []
+  return (
+    props.options?.filter(
+      option =>
+        option.label.toLowerCase().includes(query) ||
+        (option.description && option.description.toLowerCase().includes(query))
+    ) || []
+  )
 })
 
 const groupedOptions = computed(() => {
@@ -325,7 +346,8 @@ const triggerClasses = computed(() => {
   // Variant styles
   const variants = {
     default: 'bg-theme-surface-elevated border border-theme focus:border-accent',
-    filled: 'bg-theme-surface border border-theme focus:bg-theme-surface-elevated focus:border-accent',
+    filled:
+      'bg-theme-surface border border-theme focus:bg-theme-surface-elevated focus:border-accent',
     outlined: 'bg-transparent border-2 border-theme focus:border-accent'
   }
 
@@ -334,11 +356,7 @@ const triggerClasses = computed(() => {
     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
     : variants[props.variant]
 
-  return [
-    ...base,
-    sizes[props.size],
-    state
-  ].join(' ')
+  return [...base, sizes[props.size], state].join(' ')
 })
 
 const dropdownClasses = computed(() => [
@@ -350,7 +368,7 @@ const dropdownClasses = computed(() => [
   'dropdown-position'
 ])
 
-const getOptionClasses = (option) => [
+const getOptionClasses = option => [
   'w-full text-left px-4 py-3 transition-colors duration-150',
   'hover:bg-theme-surface',
   'focus:bg-theme-surface',
@@ -359,14 +377,14 @@ const getOptionClasses = (option) => [
 ]
 
 // Methods
-const isSelected = (option) => {
+const isSelected = option => {
   if (props.multiple) {
     return Array.isArray(props.modelValue) && props.modelValue.includes(option.value)
   }
   return props.modelValue === option.value
 }
 
-const selectOption = (option) => {
+const selectOption = option => {
   if (props.multiple) {
     const currentValues = Array.isArray(props.modelValue) ? [...props.modelValue] : []
     const index = currentValues.indexOf(option.value)
@@ -409,7 +427,7 @@ const closeDropdown = () => {
   emit('blur')
 }
 
-const handleClickOutside = (event) => {
+const handleClickOutside = event => {
   if (containerRef.value && !containerRef.value.contains(event.target)) {
     closeDropdown()
   }
@@ -450,6 +468,9 @@ button:focus-visible {
 
 /* Smooth transitions */
 * {
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 </style>

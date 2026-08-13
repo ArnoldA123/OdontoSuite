@@ -3,12 +3,12 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2 class="modal-title">Agregar Evolución Clínica</h2>
-        <button @click="closeModal" class="modal-close">
+        <button class="modal-close" @click="closeModal">
           <XMarkIcon class="w-6 h-6" />
         </button>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="modal-body">
+      <form class="modal-body" @submit.prevent="handleSubmit">
         <div class="form-grid">
           <!-- Información básica -->
           <div class="form-section">
@@ -23,15 +23,14 @@
                 :class="{ 'border-red-500': errors.evolution_date }"
                 required
               />
-              <p v-if="errors.evolution_date" class="form-error">{{ errors.evolution_date }}</p>
+              <p v-if="errors.evolution_date" class="form-error">
+                {{ errors.evolution_date }}
+              </p>
             </div>
 
             <div class="form-group">
               <label class="form-label">Tipo de Evolución</label>
-              <select
-                v-model="form.evolution_type"
-                class="form-input"
-              >
+              <select v-model="form.evolution_type" class="form-input">
                 <option value="consultation">Consulta</option>
                 <option value="treatment">Tratamiento</option>
                 <option value="follow_up">Seguimiento</option>
@@ -62,7 +61,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Motivo de la consulta o evolución..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -72,7 +71,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Resultados del examen clínico..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -84,8 +83,10 @@
                 :class="{ 'border-red-500': errors.observations }"
                 placeholder="Observaciones detalladas de la evolución..."
                 required
-              ></textarea>
-              <p v-if="errors.observations" class="form-error">{{ errors.observations }}</p>
+              />
+              <p v-if="errors.observations" class="form-error">
+                {{ errors.observations }}
+              </p>
             </div>
           </div>
 
@@ -100,7 +101,7 @@
                 class="form-textarea"
                 rows="3"
                 placeholder="Tratamiento realizado en esta sesión..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -110,7 +111,7 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Medicamentos prescritos..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
@@ -120,36 +121,24 @@
                 class="form-textarea"
                 rows="2"
                 placeholder="Recomendaciones para el paciente..."
-              ></textarea>
+              />
             </div>
 
             <div class="form-group">
               <label class="form-label">Próxima Cita</label>
-              <input
-                v-model="form.next_appointment"
-                type="datetime-local"
-                class="form-input"
-              />
+              <input v-model="form.next_appointment" type="datetime-local" class="form-input" >
             </div>
           </div>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button
-          type="button"
-          @click="closeModal"
-          class="btn btn-outline"
-          :disabled="loading"
-        >
+        <button type="button" class="btn btn-outline" :disabled="loading"
+@click="closeModal">
           Cancelar
         </button>
-        <button
-          type="submit"
-          @click="handleSubmit"
-          class="btn btn-primary"
-          :disabled="loading"
-        >
+        <button type="submit" class="btn btn-primary" :disabled="loading"
+@click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Guardando...' : 'Agregar Evolución' }}
         </button>

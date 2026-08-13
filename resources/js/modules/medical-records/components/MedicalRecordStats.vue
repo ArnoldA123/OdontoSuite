@@ -11,7 +11,9 @@
           <ClockIcon class="w-8 h-8 text-accent" />
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ stats.total_evolutions || 0 }}</div>
+          <div class="stat-value">
+            {{ stats.total_evolutions || 0 }}
+          </div>
           <div class="stat-label">Evoluciones</div>
         </div>
       </div>
@@ -22,7 +24,9 @@
           <DocumentIcon class="w-8 h-8 text-green-600" />
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ stats.total_attachments || 0 }}</div>
+          <div class="stat-value">
+            {{ stats.total_attachments || 0 }}
+          </div>
           <div class="stat-label">Archivos</div>
         </div>
       </div>
@@ -33,7 +37,9 @@
           <CalendarIcon class="w-8 h-8 text-accent" />
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ formatLastUpdate(stats.last_updated) }}</div>
+          <div class="stat-value">
+            {{ formatLastUpdate(stats.last_updated) }}
+          </div>
           <div class="stat-label">Última actualización</div>
         </div>
       </div>
@@ -44,14 +50,19 @@
           <CalendarDaysIcon class="w-8 h-8 text-warning-600" />
         </div>
         <div class="stat-content">
-          <div class="stat-value">{{ stats.days_since_creation || 0 }}</div>
+          <div class="stat-value">
+            {{ stats.days_since_creation || 0 }}
+          </div>
           <div class="stat-label">Días activo</div>
         </div>
       </div>
     </div>
 
     <!-- Gráfico simple de evoluciones por mes -->
-    <div class="chart-section" v-if="stats.evolutions_by_month && stats.evolutions_by_month.length > 0">
+    <div
+      v-if="stats.evolutions_by_month && stats.evolutions_by_month.length > 0"
+      class="chart-section"
+    >
       <h4 class="chart-title">Evoluciones por Mes</h4>
       <div class="chart-container">
         <div class="chart-bars">
@@ -61,22 +72,25 @@
             class="chart-bar"
             :style="{ height: `${(month.count / maxEvolutions) * 100}%` }"
           >
-            <div class="bar-value">{{ month.count }}</div>
-            <div class="bar-label">{{ month.month }}</div>
+            <div class="bar-value">
+              {{ month.count }}
+            </div>
+            <div class="bar-label">
+              {{ month.month }}
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Resumen de archivos por tipo -->
-    <div class="files-summary" v-if="stats.attachments_by_type && stats.attachments_by_type.length > 0">
+    <div
+      v-if="stats.attachments_by_type && stats.attachments_by_type.length > 0"
+      class="files-summary"
+    >
       <h4 class="summary-title">Archivos por Tipo</h4>
       <div class="files-grid">
-        <div
-          v-for="type in stats.attachments_by_type"
-          :key="type.type"
-          class="file-type-item"
-        >
+        <div v-for="type in stats.attachments_by_type" :key="type.type" class="file-type-item">
           <div class="file-type-icon">
             <DocumentIcon v-if="type.type === 'document'" class="w-5 h-5" />
             <PhotoIcon v-else-if="type.type === 'image'" class="w-5 h-5" />
@@ -84,7 +98,9 @@
             <DocumentIcon v-else class="w-5 h-5" />
           </div>
           <div class="file-type-info">
-            <div class="file-type-name">{{ getFileTypeLabel(type.type) }}</div>
+            <div class="file-type-name">
+              {{ getFileTypeLabel(type.type) }}
+            </div>
             <div class="file-type-count">{{ type.count }} archivos</div>
           </div>
         </div>
@@ -92,22 +108,22 @@
     </div>
 
     <!-- Actividad reciente -->
-    <div class="recent-activity" v-if="stats.recent_activity && stats.recent_activity.length > 0">
+    <div v-if="stats.recent_activity && stats.recent_activity.length > 0" class="recent-activity">
       <h4 class="activity-title">Actividad Reciente</h4>
       <div class="activity-list">
-        <div
-          v-for="activity in stats.recent_activity"
-          :key="activity.id"
-          class="activity-item"
-        >
+        <div v-for="activity in stats.recent_activity" :key="activity.id" class="activity-item">
           <div class="activity-icon">
             <ClockIcon v-if="activity.type === 'evolution'" class="w-4 h-4" />
             <DocumentIcon v-else-if="activity.type === 'attachment'" class="w-4 h-4" />
             <PencilIcon v-else class="w-4 h-4" />
           </div>
           <div class="activity-content">
-            <div class="activity-description">{{ activity.description }}</div>
-            <div class="activity-date">{{ formatDate(activity.created_at) }}</div>
+            <div class="activity-description">
+              {{ activity.description }}
+            </div>
+            <div class="activity-date">
+              {{ formatDate(activity.created_at) }}
+            </div>
           </div>
         </div>
       </div>
@@ -139,7 +155,7 @@ const maxEvolutions = computed(() => {
   return Math.max(...props.stats.evolutions_by_month.map(m => m.count), 1)
 })
 
-const getFileTypeLabel = (type) => {
+const getFileTypeLabel = type => {
   const labels = {
     image: 'Imágenes',
     document: 'Documentos',
@@ -149,7 +165,7 @@ const getFileTypeLabel = (type) => {
   return labels[type] || 'Archivos'
 }
 
-const formatDate = (date) => {
+const formatDate = date => {
   if (!date) return 'N/A'
   return new Date(date).toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -158,7 +174,7 @@ const formatDate = (date) => {
   })
 }
 
-const formatLastUpdate = (date) => {
+const formatLastUpdate = date => {
   if (!date) return 'N/A'
   const now = new Date()
   const lastUpdate = new Date(date)

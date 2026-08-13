@@ -1,12 +1,12 @@
 <template>
   <UiModal
     :model-value="modelValue"
-    @update:model-value="$emit('update:modelValue', $event)"
     title="Restablecer contraseña"
     size="md"
     :closable="!loading"
+    @update:model-value="$emit('update:modelValue', $event)"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-5">
+    <form class="space-y-5" @submit.prevent="handleSubmit">
       <p class="text-sm leading-relaxed instructions">
         Ingresa tu nueva contraseña. Asegúrate de que tenga al menos 8 caracteres.
       </p>
@@ -24,8 +24,19 @@
         @blur="validateEmail"
       >
         <template #prefix>
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
           </svg>
         </template>
       </UiInput>
@@ -43,24 +54,64 @@
         @blur="validatePassword"
       >
         <template #prefix>
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            />
           </svg>
         </template>
         <template #suffix>
           <button
             type="button"
-            @click="showPassword = !showPassword"
             class="password-toggle"
             :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             :aria-pressed="showPassword"
+            @click="showPassword = !showPassword"
           >
-            <svg v-if="showPassword" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+            <svg
+              v-if="showPassword"
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+              />
             </svg>
-            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <svg
+              v-else
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
             </svg>
           </button>
         </template>
@@ -79,53 +130,109 @@
         @blur="validatePasswordConfirmation"
       >
         <template #prefix>
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+            />
           </svg>
         </template>
         <template #suffix>
           <button
             type="button"
-            @click="showPasswordConfirmation = !showPasswordConfirmation"
             class="password-toggle"
             :aria-label="showPasswordConfirmation ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             :aria-pressed="showPasswordConfirmation"
+            @click="showPasswordConfirmation = !showPasswordConfirmation"
           >
-            <svg v-if="showPasswordConfirmation" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+            <svg
+              v-if="showPasswordConfirmation"
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+              />
             </svg>
-            <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <svg
+              v-else
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.75"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
             </svg>
           </button>
         </template>
       </UiInput>
 
       <!-- Success Message -->
-      <div
-        v-if="success"
-        class="success-panel"
-        role="status"
-        aria-live="polite"
-      >
-        <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div v-if="success" class="success-panel" role="status" aria-live="polite">
+        <svg
+          class="success-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.75"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <p class="success-text">{{ successMessage }}</p>
+        <p class="success-text">
+          {{ successMessage }}
+        </p>
       </div>
 
       <!-- Error Message -->
-      <div
-        v-if="error"
-        class="error-panel"
-        role="alert"
-        aria-live="polite"
-      >
-        <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div v-if="error" class="error-panel" role="alert" aria-live="polite">
+        <svg
+          class="error-icon"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.75"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
-        <p class="error-text">{{ error }}</p>
+        <p class="error-text">
+          {{ error }}
+        </p>
       </div>
 
       <!-- Actions -->
@@ -134,26 +241,17 @@
           v-if="!success"
           type="button"
           variant="secondary"
-          @click="handleClose"
           :disabled="loading"
+          @click="handleClose"
         >
           Cancelar
         </UiButton>
-        <UiButton
-          v-if="!success"
-          type="submit"
-          :loading="loading"
-          :disabled="loading"
-        >
+        <UiButton v-if="!success" type="submit" :loading="loading" :disabled="loading">
           Restablecer contraseña
         </UiButton>
-        <UiButton
-          v-if="success"
-          type="button"
-          @click="handleClose"
-        >
-          Cerrar
-        </UiButton>
+        <UiButton v-if="success" type="button" @click="handleClose">
+Cerrar
+</UiButton>
       </div>
     </form>
   </UiModal>
@@ -325,10 +423,14 @@ const handleSubmit = async () => {
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
       if (serverErrors.email) {
-        errors.email = Array.isArray(serverErrors.email) ? serverErrors.email[0] : serverErrors.email
+        errors.email = Array.isArray(serverErrors.email) ?
+          serverErrors.email[0] :
+          serverErrors.email
       }
       if (serverErrors.password) {
-        errors.password = Array.isArray(serverErrors.password) ? serverErrors.password[0] : serverErrors.password
+        errors.password = Array.isArray(serverErrors.password) ?
+          serverErrors.password[0] :
+          serverErrors.password
       }
     } else if (err.response?.data?.message) {
       error.value = err.response.data.message
@@ -351,24 +453,30 @@ const handleClose = () => {
   emit('update:modelValue', false)
 }
 
-watch(() => props.email, (newValue) => {
-  if (newValue) {
-    email.value = newValue
-    initialEmail.value = newValue
+watch(
+  () => props.email,
+  newValue => {
+    if (newValue) {
+      email.value = newValue
+      initialEmail.value = newValue
+    }
   }
-})
+)
 
-watch(() => props.modelValue, (newValue) => {
-  if (!newValue) {
-    password.value = ''
-    passwordConfirmation.value = ''
-    error.value = ''
-    success.value = false
-    successMessage.value = ''
-    errors.password = ''
-    errors.passwordConfirmation = ''
+watch(
+  () => props.modelValue,
+  newValue => {
+    if (!newValue) {
+      password.value = ''
+      passwordConfirmation.value = ''
+      error.value = ''
+      success.value = false
+      successMessage.value = ''
+      errors.password = ''
+      errors.passwordConfirmation = ''
+    }
   }
-})
+)
 </script>
 
 <style scoped>
@@ -382,7 +490,9 @@ watch(() => props.modelValue, (newValue) => {
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: color 200ms ease-out, background-color 200ms ease-out;
+  transition:
+    color 200ms ease-out,
+    background-color 200ms ease-out;
 }
 
 .password-toggle:hover,

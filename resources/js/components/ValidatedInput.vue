@@ -1,10 +1,6 @@
 <template>
   <div class="form-group-responsive">
-    <label
-      v-if="label"
-      :for="inputId"
-      class="form-label-responsive"
-    >
+    <label v-if="label" :for="inputId" class="form-label-responsive">
       {{ label }}
       <span v-if="required" class="text-red-500">*</span>
     </label>
@@ -20,11 +16,11 @@
         :required="required"
         :autocomplete="autocomplete"
         :class="inputClasses"
+        :aria-invalid="hasError"
+        :aria-describedby="hasError ? `${inputId}-error` : undefined"
         @input="handleInput"
         @blur="handleBlur"
         @focus="handleFocus"
-        :aria-invalid="hasError"
-        :aria-describedby="hasError ? `${inputId}-error` : undefined"
       />
 
       <!-- Icon -->
@@ -34,9 +30,25 @@
 
       <!-- Loading spinner -->
       <div v-if="loading" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-        <svg class="animate-spin h-5 w-5 text-theme-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <svg
+          class="animate-spin h-5 w-5 text-theme-secondary"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          />
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
         </svg>
       </div>
     </div>
@@ -52,10 +64,7 @@
     </p>
 
     <!-- Help text -->
-    <p
-      v-else-if="helpText"
-      class="mt-1 text-sm text-theme-secondary"
-    >
+    <p v-else-if="helpText" class="mt-1 text-sm text-theme-secondary">
       {{ helpText }}
     </p>
   </div>
@@ -158,16 +167,16 @@ export default {
       return baseClasses.join(' ')
     })
 
-    const handleInput = (event) => {
+    const handleInput = event => {
       emit('update:modelValue', event.target.value)
       emit('input', event)
     }
 
-    const handleBlur = (event) => {
+    const handleBlur = event => {
       emit('blur', event)
     }
 
-    const handleFocus = (event) => {
+    const handleFocus = event => {
       emit('focus', event)
     }
 

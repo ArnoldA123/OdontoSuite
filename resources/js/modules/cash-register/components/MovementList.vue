@@ -37,30 +37,18 @@
       </div>
 
       <div class="flex justify-between items-center mt-4">
-        <Button
-          variant="secondary"
-          @click="applyFilters"
-          :loading="loading"
-        >
+        <Button variant="secondary" :loading="loading" @click="applyFilters">
           <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
           Filtrar
         </Button>
 
         <div class="flex space-x-2">
-          <Button
-            variant="secondary"
-            @click="exportToExcel"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             Excel
           </Button>
 
-          <Button
-            variant="secondary"
-            @click="exportToPDF"
-            :loading="exporting"
-          >
+          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
             <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
             PDF
           </Button>
@@ -77,7 +65,9 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-green-600">Total Ingresos</p>
-            <p class="text-2xl font-bold text-green-900 tabular-nums">{{ formatCurrency(totals.income) }}</p>
+            <p class="text-2xl font-bold text-green-900 tabular-nums">
+              {{ formatCurrency(totals.income) }}
+            </p>
           </div>
         </div>
       </div>
@@ -89,7 +79,9 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-red-600">Total Egresos</p>
-            <p class="text-2xl font-bold text-red-900 tabular-nums">{{ formatCurrency(totals.expense) }}</p>
+            <p class="text-2xl font-bold text-red-900 tabular-nums">
+              {{ formatCurrency(totals.expense) }}
+            </p>
           </div>
         </div>
       </div>
@@ -101,7 +93,9 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-accent">Apertura</p>
-            <p class="text-2xl font-bold text-primary-800 tabular-nums">{{ formatCurrency(totals.opening) }}</p>
+            <p class="text-2xl font-bold text-primary-800 tabular-nums">
+              {{ formatCurrency(totals.opening) }}
+            </p>
           </div>
         </div>
       </div>
@@ -113,7 +107,9 @@
           </div>
           <div class="ml-3">
             <p class="text-sm font-medium text-accent">Cierre</p>
-            <p class="text-2xl font-bold text-accent-active tabular-nums">{{ formatCurrency(totals.closing) }}</p>
+            <p class="text-2xl font-bold text-accent-active tabular-nums">
+              {{ formatCurrency(totals.closing) }}
+            </p>
           </div>
         </div>
       </div>
@@ -125,25 +121,46 @@
         <table class="min-w-full divide-y divide-hairline">
           <thead class="bg-theme-surface">
             <tr>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Hora
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Tipo
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Descripción
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Referencia
               </th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Monto
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Usuario
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
+              <th
+                scope="col"
+                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+              >
                 Acciones
               </th>
             </tr>
@@ -156,12 +173,14 @@
             </tr>
 
             <tr v-else-if="movements.length === 0">
-              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">No hay movimientos registrados</td>
+              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">
+                No hay movimientos registrados
+              </td>
             </tr>
 
             <tr
-              v-else
               v-for="movement in movements"
+              v-else
               :key="movement.id"
               class="hover:bg-theme-surface"
             >
@@ -170,11 +189,16 @@
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge :variant="getTypeVariant(movement.type)" :label="getTypeText(movement.type)" />
+                <UiStatusBadge
+                  :variant="getTypeVariant(movement.type)"
+                  :label="getTypeText(movement.type)"
+                />
               </td>
 
               <td class="px-6 py-4">
-                <div class="text-sm text-theme-primary">{{ movement.description }}</div>
+                <div class="text-sm text-theme-primary">
+                  {{ movement.description }}
+                </div>
                 <div v-if="movement.notes" class="text-sm text-theme-secondary">
                   {{ movement.notes }}
                 </div>
@@ -199,27 +223,27 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <button
-                    @click="viewMovement(movement)"
                     class="text-accent hover:text-primary-700"
                     title="Ver detalle"
+                    @click="viewMovement(movement)"
                   >
                     <EyeIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="canEdit(movement)"
-                    @click="editMovement(movement)"
                     class="text-yellow-600 hover:text-yellow-900"
                     title="Editar"
+                    @click="editMovement(movement)"
                   >
                     <PencilIcon class="w-4 h-4" />
                   </button>
 
                   <button
                     v-if="canDelete(movement)"
-                    @click="deleteMovement(movement)"
                     class="text-red-600 hover:text-red-900"
                     title="Eliminar"
+                    @click="deleteMovement(movement)"
                   >
                     <TrashIcon class="w-4 h-4" />
                   </button>
@@ -234,17 +258,21 @@
     <!-- Paginación -->
     <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
       <div class="text-sm text-theme-primary">
-        Mostrando {{ ((pagination.current_page - 1) * pagination.per_page) + 1 }} a
-        <span class="tabular-nums">{{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}</span> de
-        <span class="tabular-nums">{{ pagination.total }}</span> resultados
+        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
+        <span class="tabular-nums">
+          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
+        </span>
+        de
+        <span class="tabular-nums">{{ pagination.total }}</span>
+        resultados
       </div>
 
       <div class="flex space-x-2">
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page - 1)"
           :disabled="pagination.current_page <= 1"
+          @click="loadPage(pagination.current_page - 1)"
         >
           Anterior
         </Button>
@@ -256,8 +284,8 @@
         <Button
           variant="secondary"
           size="sm"
-          @click="loadPage(pagination.current_page + 1)"
           :disabled="pagination.current_page >= pagination.last_page"
+          @click="loadPage(pagination.current_page + 1)"
         >
           Siguiente
         </Button>
@@ -372,24 +400,24 @@ const applyFilters = () => {
   emit('refresh', filters.value)
 }
 
-const loadPage = (page) => {
+const loadPage = page => {
   emit('refresh', { ...filters.value, page })
 }
 
-const viewMovement = (movement) => {
+const viewMovement = movement => {
   // Implementar vista de detalle
 }
 
-const editMovement = (movement) => {
+const editMovement = movement => {
   emit('edit', movement)
 }
 
-const deleteMovement = async (movement) => {
+const deleteMovement = async movement => {
   const ok = await confirm({
     title: 'Eliminar movimiento',
     message: '¿Está seguro de eliminar este movimiento?',
     confirmText: 'Eliminar',
-    variant: 'danger',
+    variant: 'danger'
   })
   if (!ok) return
   emit('delete', movement)
@@ -415,7 +443,7 @@ const exportToPDF = async () => {
   }
 }
 
-const formatTime = (dateTime) => {
+const formatTime = dateTime => {
   return new Date(dateTime).toLocaleTimeString('es-PE', {
     hour: '2-digit',
     minute: '2-digit'
@@ -424,7 +452,7 @@ const formatTime = (dateTime) => {
 
 // formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
-const getTypeText = (type) => {
+const getTypeText = type => {
   const texts = {
     income: 'Ingreso',
     expense: 'Egreso',
@@ -437,7 +465,7 @@ const getTypeText = (type) => {
   return texts[type] || type
 }
 
-const getTypeVariant = (type) => {
+const getTypeVariant = type => {
   const variants = {
     income: 'success',
     expense: 'error',
@@ -450,7 +478,7 @@ const getTypeVariant = (type) => {
   return variants[type] || 'neutral'
 }
 
-const getAmountClass = (type) => {
+const getAmountClass = type => {
   if (['income', 'opening', 'deposit'].includes(type)) {
     return 'text-green-600'
   } else if (['expense', 'closing', 'withdrawal'].includes(type)) {
@@ -459,7 +487,7 @@ const getAmountClass = (type) => {
   return 'text-theme-secondary'
 }
 
-const getAmountPrefix = (type) => {
+const getAmountPrefix = type => {
   if (['income', 'opening', 'deposit'].includes(type)) {
     return '+'
   } else if (['expense', 'closing', 'withdrawal'].includes(type)) {
@@ -468,12 +496,12 @@ const getAmountPrefix = (type) => {
   return ''
 }
 
-const canEdit = (movement) => {
+const canEdit = movement => {
   // Solo se pueden editar movimientos que no sean del sistema
   return !['opening', 'closing'].includes(movement.type) && can.value?.manageCashRegister
 }
 
-const canDelete = (movement) => {
+const canDelete = movement => {
   // Solo se pueden eliminar movimientos que no sean del sistema
   return !['opening', 'closing'].includes(movement.type) && can.value?.manageCashRegister
 }

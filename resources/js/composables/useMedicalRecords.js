@@ -18,7 +18,7 @@ export function useMedicalRecords() {
   const hasAttachments = computed(() => attachments.value && attachments.value.length > 0)
 
   // Métodos
-  const getRecords = async (patientId) => {
+  const getRecords = async patientId => {
     try {
       loading.value = true
       error.value = null
@@ -35,7 +35,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const getRecord = async (id) => {
+  const getRecord = async id => {
     try {
       loading.value = true
       error.value = null
@@ -52,7 +52,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const createRecord = async (data) => {
+  const createRecord = async data => {
     try {
       loading.value = true
       error.value = null
@@ -100,7 +100,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const deleteRecord = async (id) => {
+  const deleteRecord = async id => {
     try {
       loading.value = true
       error.value = null
@@ -152,7 +152,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const getEvolutions = async (recordId) => {
+  const getEvolutions = async recordId => {
     try {
       loading.value = true
       error.value = null
@@ -169,7 +169,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const uploadAttachment = async (data) => {
+  const uploadAttachment = async data => {
     try {
       loading.value = true
       error.value = null
@@ -200,7 +200,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const getStats = async (patientId) => {
+  const getStats = async patientId => {
     try {
       loading.value = true
       error.value = null
@@ -221,7 +221,9 @@ export function useMedicalRecords() {
       loading.value = true
       error.value = null
 
-      const response = await get(`/api/medical-records/patient/${patientId}/attachments?category=${category}`)
+      const response = await get(
+        `/api/medical-records/patient/${patientId}/attachments?category=${category}`
+      )
       attachments.value = response.data
 
       return response.data
@@ -233,7 +235,7 @@ export function useMedicalRecords() {
     }
   }
 
-  const deleteAttachment = async (attachmentId) => {
+  const deleteAttachment = async attachmentId => {
     try {
       loading.value = true
       error.value = null
