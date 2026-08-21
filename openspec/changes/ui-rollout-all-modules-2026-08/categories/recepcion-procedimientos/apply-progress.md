@@ -58,4 +58,4 @@
 | T11 | N/A; Playwright CLI assertion failure | Screenshot intentionally skipped | N/A, visual harness unavailable | N/A |
 
 ## Next
-sdd-verify (next phase; resolve or explicitly accept the documented T10 environment limitations)
+sdd-apply again (T10 remains PARTIAL because the full DesignSystem and API sweeps did not pass)
