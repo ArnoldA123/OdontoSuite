@@ -86,7 +86,7 @@ Chain strategy: not-needed
 
 - [x] **T12**: Conventional commit: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows`.
 
-- [ ] **T13**: Merge to main (single PR). Test count delta: +1 (new `ReceptionProceduresAppShellTest`); `AppLayoutCanvasRoutesTest` unchanged (REC-001 regression guard only, no new route).
+- [x] **T13**: Merge to main (single PR). Test count delta: +1 (new `ReceptionProceduresAppShellTest`); `AppLayoutCanvasRoutesTest` unchanged (REC-001 regression guard only, no new route).
 
 ## Out of scope (do NOT include in tasks)
 

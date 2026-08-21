@@ -32,7 +32,7 @@
 
 ## Phase 4 results
 - T12: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows` committed as `654130a`.
-- T13: Fast-forward merged to `main` at `5538d7f`; main is ahead of `origin/main` by two commits.
+- T13: Fast-forward merged to `main`; the final merge record is `5538d7f`, and the final main metadata commit is `67d34c3`.
 
 ## Test count delta
 +1 = new `ReceptionProceduresAppShellTest`; inherited module rules are unchanged.
