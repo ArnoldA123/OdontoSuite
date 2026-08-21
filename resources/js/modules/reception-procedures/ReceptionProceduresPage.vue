@@ -1,5 +1,5 @@
 <template>
-  <AppLayout>
+  <AppLayout class="bg-canvas">
     <PageHeader
       title="Catálogo de Procedimientos"
       subtitle="Consulta los procedimientos disponibles y sus precios para orientar al paciente"
@@ -27,39 +27,37 @@ viewBox="0 0 24 24">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-theme-primary mb-1">Buscar</label>
-          <div class="relative">
-            <input
-              v-model="filters.search"
-              type="text"
-              placeholder="Buscar por nombre o código..."
-              class="w-full px-3 py-2 pl-9 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-            >
-            <svg
-              class="w-4 h-4 absolute left-3 top-3 text-theme-secondary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
+          <UiInput
+            v-model="filters.search"
+            type="search"
+            placeholder="Buscar por nombre o código..."
+            class="w-full"
+          >
+            <template #prefix>
+              <svg
+                class="w-4 h-4 text-theme-secondary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </template>
+          </UiInput>
         </div>
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">Especialidad</label>
-          <select
+          <UiSelect
             v-model="filters.specialty"
-            class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-          >
-            <option value="">Todas las especialidades</option>
-            <option v-for="spec in specialties" :key="spec.id" :value="spec.code">
-              {{ spec.name }}
-            </option>
-          </select>
+            :options="specialties.map(spec => ({ value: spec.code, label: spec.name }))"
+            placeholder="Todas las especialidades"
+            label="Especialidad"
+          />
         </div>
       </div>
     </UiCard>
@@ -68,21 +66,22 @@ viewBox="0 0 24 24">
       <LoadingSpinner />
     </div>
 
-    <div v-else-if="!procedures.length" class="py-12 text-center text-theme-secondary">
-      No se encontraron procedimientos con los filtros aplicados
-    </div>
+    <UiEmptyState
+      v-else-if="!procedures.length"
+      title="Sin resultados"
+      description="Ajusta los filtros para ver más procedimientos."
+    />
 
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <UiCard
         v-for="proc in procedures"
         :key="proc.id"
         variant="elevated"
-        class="hover-lift transition-shadow"
       >
         <div class="flex items-start justify-between gap-2 mb-2">
-          <span class="font-mono text-xs px-2 py-0.5 rounded bg-primary-50 text-primary-700">
+          <UiBadge variant="primary" size="sm" class="font-mono">
             {{ proc.code }}
-          </span>
+          </UiBadge>
           <span class="text-xs text-theme-secondary">{{ proc.specialty_name || 'General' }}</span>
         </div>
         <h3 class="font-semibold text-theme-primary mb-2">
@@ -91,7 +90,7 @@ viewBox="0 0 24 24">
         <p v-if="proc.description" class="text-sm text-theme-secondary mb-3 line-clamp-2">
           {{ proc.description }}
         </p>
-        <div class="flex items-center justify-between border-t border-theme pt-3 mt-3">
+        <div class="flex items-center justify-between border-t border-hairline pt-3 mt-3">
           <div>
             <div class="text-xs text-theme-secondary">Duración</div>
             <div class="text-sm font-medium text-theme-primary">
@@ -100,7 +99,10 @@ viewBox="0 0 24 24">
           </div>
           <div class="text-right">
             <div class="text-xs text-theme-secondary">Precio</div>
-            <div class="text-lg font-bold text-accent">
+            <div
+              class="text-lg font-bold text-systemBlue-600 tabular-nums"
+              style="font-feature-settings: var(--font-features-tabular-nums)"
+            >
               S/ {{ Number(proc.default_cost).toFixed(2) }}
             </div>
           </div>
