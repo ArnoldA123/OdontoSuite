@@ -23,53 +23,51 @@ viewBox="0 0 24 24">
       </template>
     </PageHeader>
 
-    <UiCard variant="glass" class="mb-6">
+    <UiCard variant="glass" class="mb-6 rounded-[var(--radius-ios)]">
       <h2 class="text-lg font-semibold text-theme-primary mb-3 flex items-center gap-2">
-        <span class="text-yellow-500">⭐</span>
+        <span class="text-systemYellow-500">⭐</span>
         Mis favoritos
-        <span class="text-sm font-normal text-theme-secondary">({{ favorites.length }})</span>
+        <span class="text-sm font-normal text-theme-secondary tabular-nums">({{ favorites.length }})</span>
       </h2>
 
       <div v-if="loading && !favorites.length" class="py-4 text-center">
-        <LoadingSpinner />
+        <UiLoadingSpinner />
       </div>
 
-      <div
+      <UiEmptyState
         v-else-if="!favorites.length"
-        class="py-6 text-center text-sm text-theme-secondary border-2 border-dashed border-theme rounded-lg"
-      >
-        Aún no tienes favoritos. Marca los procedimientos que uses frecuentemente para acceder a
-        ellos rapidamente.
-      </div>
+        description="Aún no tienes favoritos. Marca los procedimientos que uses frecuentemente para acceder a ellos rapidamente."
+        title="Sin favoritos"
+      />
 
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <div
           v-for="(fav, index) in favorites"
           :key="fav.id"
-          class="border border-theme rounded-lg p-3 bg-theme-surface-elevated flex items-start justify-between gap-2"
+          class="border border-hairline rounded-[var(--radius-card-lg)] p-3 bg-theme-surface-elevated flex items-start justify-between gap-2"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-theme-secondary">
+              <span class="text-xs text-theme-secondary tabular-nums">
                 {{ fav.code }}
               </span>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-primary-50 text-primary-700">
+              <span class="text-xs px-2 py-0.5 rounded-full bg-systemBlue-50 text-systemBlue-700 tabular-nums">
                 #{{ index + 1 }}
               </span>
             </div>
             <div class="font-medium text-theme-primary truncate">
               {{ fav.name }}
             </div>
-            <div class="text-xs text-theme-secondary">
+            <div class="text-xs text-theme-secondary tabular-nums">
               {{ fav.specialty_name || 'Sin especialidad' }} ·
-              {{ fav.default_duration_minutes }} min · S/ {{ Number(fav.default_cost).toFixed(2) }}
+              {{ fav.default_duration_minutes }} min · {{ formatCurrency(fav.default_cost) }}
             </div>
           </div>
           <div class="flex flex-col gap-1">
             <button
               type="button"
               :disabled="index === 0"
-              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30"
+              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-40 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
               title="Subir"
               @click="moveFav(index, -1)"
             >
@@ -86,7 +84,7 @@ viewBox="0 0 24 24">
             <button
               type="button"
               :disabled="index === favorites.length - 1"
-              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-30"
+              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-40 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
               title="Bajar"
               @click="moveFav(index, 1)"
             >
@@ -102,7 +100,7 @@ viewBox="0 0 24 24">
             </button>
             <button
               type="button"
-              class="p-1 text-red-500 hover:text-red-700"
+              class="p-1 text-systemRed-500 hover:text-systemRed-700 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
               title="Quitar"
               @click="removeFav(fav)"
             >
@@ -121,7 +119,7 @@ viewBox="0 0 24 24">
       </div>
     </UiCard>
 
-    <UiCard variant="glass">
+    <UiCard variant="glass" class="rounded-[var(--radius-ios)]">
       <h2 class="text-lg font-semibold text-theme-primary mb-3">
 Explorar catalogo
 </h2>
@@ -131,52 +129,54 @@ Explorar catalogo
       </p>
 
       <div class="relative mb-4">
-        <input
+        <UiInput
           v-model="search"
           type="text"
           placeholder="Buscar por nombre o codigo..."
-          class="w-full px-3 py-2 pl-9 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="w-full pl-9"
         >
-        <svg
-          class="w-4 h-4 absolute left-3 top-3 text-theme-secondary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+          <template #prefix>
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </template>
+        </UiInput>
       </div>
 
       <div v-if="loading && !forMe.length" class="py-4 text-center">
-        <LoadingSpinner />
+        <UiLoadingSpinner />
       </div>
 
       <div
         v-else
-        class="max-h-[500px] overflow-y-auto border border-theme rounded-lg divide-y divide-theme"
+        class="max-h-[500px] overflow-y-auto border border-hairline rounded-[var(--radius-card-lg)] divide-y divide-hairline"
       >
         <div
           v-for="proc in filteredForMe"
           :key="proc.id"
-          class="px-3 py-2 flex items-center justify-between gap-3 hover:bg-theme-surface"
+          class="px-3 py-2 flex items-center justify-between gap-3 hover:bg-canvas"
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-theme-secondary">{{ proc.code }}</span>
-              <span v-if="proc.is_favorite" class="text-yellow-500 text-xs">⭐ Favorito</span>
+              <span class="text-xs text-theme-secondary tabular-nums">{{ proc.code }}</span>
+              <span v-if="proc.is_favorite" class="text-systemYellow-500 text-xs">⭐ Favorito</span>
             </div>
             <div class="text-sm font-medium text-theme-primary truncate">
               {{ proc.name }}
             </div>
-            <div class="text-xs text-theme-secondary">
+            <div class="text-xs text-theme-secondary tabular-nums">
               {{ proc.specialty_name || 'Sin especialidad' }} ·
-              {{ proc.default_duration_minutes }} min · S/
-              {{ Number(proc.default_cost).toFixed(2) }}
+              {{ proc.default_duration_minutes }} min · {{ formatCurrency(proc.default_cost) }}
             </div>
           </div>
           <UiButton
@@ -189,12 +189,11 @@ Explorar catalogo
             Marcar favorito
           </UiButton>
         </div>
-        <div
+        <UiEmptyState
           v-if="!filteredForMe.length"
-          class="px-3 py-4 text-center text-sm text-theme-secondary"
-        >
-          Sin resultados
-        </div>
+          description="Prueba con otro termino de busqueda."
+          title="Sin resultados"
+        />
       </div>
     </UiCard>
   </AppLayout>
@@ -205,10 +204,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProcedureFavorites } from '../../composables/useProcedureFavorites'
 import { useToast } from '../../composables/useToast'
+import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
-import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 
 const router = useRouter()
 const toast = useToast()
