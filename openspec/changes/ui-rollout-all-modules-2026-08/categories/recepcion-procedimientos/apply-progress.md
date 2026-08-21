@@ -31,7 +31,7 @@
 - T11: Visual capture skipped because the installed `playwright-cli` check failed with a Windows assertion error; no screenshot was produced.
 
 ## Phase 4 results
-- T12: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows` is the implementation commit; the exact hash is recorded in the final executor result and Git history.
+- T12: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows` committed as `654130a`.
 - T13: Merge to `main` is recorded in the final executor result.
 
 ## Test count delta

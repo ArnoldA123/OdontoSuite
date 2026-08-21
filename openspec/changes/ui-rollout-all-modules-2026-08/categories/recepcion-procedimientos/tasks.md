@@ -84,7 +84,7 @@ Chain strategy: not-needed
 
 ## Phase 4: COMMIT
 
-- [ ] **T12**: Conventional commit: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows`.
+- [x] **T12**: Conventional commit: `feat(ui): tokenise recepcion-procedimientos per DLR + REC-* MUST rows`.
 
 - [ ] **T13**: Merge to main (single PR). Test count delta: +1 (new `ReceptionProceduresAppShellTest`); `AppLayoutCanvasRoutesTest` unchanged (REC-001 regression guard only, no new route).
 
