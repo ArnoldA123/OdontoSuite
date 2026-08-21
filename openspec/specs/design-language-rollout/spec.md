@@ -632,3 +632,148 @@ changes MUST NOT touch `<script>` blocks.
 ---
 
 *End of promoted PACIENTES rows. Next category slice appends below.*
+
+## Recepcion-procedimientos Rollout — 2026-08-21 (RECEPCION-PROCEDIMIENTOS category closed)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(recepcion-procedimientos category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-21-ui-recepcion-procedimientos/spec.md`.
+Verify verdict at close: **PASS WITH WARNINGS** — 7/7 REC-* MUSTs satisfied
+at static-contract level (commit `654130a`).
+
+### Requirement: `REC-001` — `canvasRoutes` regression guard for `/reception-procedures`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.1.*
+
+`'/reception-procedures'` MUST remain present in the `canvasRoutes` array
+literal in `AppLayout.vue` AND in `EXPECTED_ROUTES` of
+`AppLayoutCanvasRoutesTest.php`. The route was added at PR0; no later PR
+MAY narrow the array back to the vertical-slice set.
+
+#### Scenario: `REC-001-1` — Route stays in canvasRoutes and EXPECTED_ROUTES
+
+- GIVEN `/reception-procedures` was wired into `canvasRoutes` at PR0
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `AppLayout.vue:548` still carries `'/reception-procedures'`
+- AND `AppLayoutCanvasRoutesTest.php:54` still carries it in `EXPECTED_ROUTES`
+- AND `AppLayoutCanvasRoutesTest` stays green (25 tests / 72 assertions)
+- **Verdict at close: PASS**
+
+### Requirement: `REC-002` — `<UiInput>` is the only search field on `/reception-procedures`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.2.*
+
+`ReceptionProceduresPage.vue` MUST replace the raw `<input>` search field
+with `<UiInput v-model="filters.search" type="search">` plus a `#prefix`
+slot for the SVG search icon. No raw `<input v-model="filters.search"`
+string MAY remain in the template.
+
+#### Scenario: `REC-002-1` — Search field uses UiInput with prefix slot
+
+- GIVEN the page rendered a raw `<input>` with `border-theme`, `bg-theme-surface-elevated`, `focus:ring-primary-500`, `focus:border-accent`, and `rounded-lg`
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:30-51` renders `<UiInput>` with a `<template #prefix>` icon slot
+- AND `ReceptionProceduresAppShellTest::test_search_input_uses_ui_input` passes
+- AND grep for `<input` on the page returns zero matches
+- **Verdict at close: PASS**
+
+### Requirement: `REC-003` — `<UiSelect>` is the only specialty filter control
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.3.*
+
+`ReceptionProceduresPage.vue` MUST replace the raw `<select>` specialty
+filter with `<UiSelect v-model="filters.specialty">` exposing a
+"Todas las especialidades" placeholder. No raw
+`<select v-model="filters.specialty"` string MAY remain in the template.
+
+#### Scenario: `REC-003-1` — Specialty filter uses UiSelect
+
+- GIVEN the page rendered a raw `<select>` with legacy focus-ring aliases
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:55-60` renders `<UiSelect v-model="filters.specialty" :options="...">`
+- AND `ReceptionProceduresAppShellTest::test_specialty_filter_uses_ui_select` passes
+- AND grep for `<select` on the page returns zero matches
+- AND the `:options` prop form satisfies the rule equally with `<option>` children (documented deviation from task T4)
+- **Verdict at close: PASS**
+
+### Requirement: `REC-004` — Procedure code chip MUST use `<UiBadge>`, not inline primary literals
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.4.*
+
+`ReceptionProceduresPage.vue` MUST replace the inline
+`<span class="font-mono text-xs px-2 py-0.5 rounded bg-primary-50 text-primary-700">`
+procedure code chip with `<UiBadge variant="primary" size="sm" class="font-mono">`.
+The `bg-primary-50` and `text-primary-700` literals MUST be removed.
+`<UiStatusBadge>` MUST NOT be used — procedure codes are informational,
+not status (per proposal OQ-1).
+
+#### Scenario: `REC-004-1` — Code chip uses UiBadge
+
+- GIVEN the code chip carried inline `bg-primary-50 text-primary-700`
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:82-84` renders `<UiBadge variant="primary" size="sm" class="font-mono">`
+- AND `ReceptionProceduresAppShellTest::test_procedure_code_chip_uses_ui_badge` passes
+- AND grep for `bg-primary-50` and `text-primary-700` each return zero matches
+- **Verdict at close: PASS**
+
+### Requirement: `REC-005` — Empty-results state MUST use `<UiEmptyState>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.5.*
+
+`ReceptionProceduresPage.vue` MUST replace the hand-rolled
+`<div class="py-12 text-center text-theme-secondary">` empty-results block
+with `<UiEmptyState title="Sin resultados" description="...">`. The
+`py-12 text-center text-theme-secondary` literal MUST be removed.
+
+#### Scenario: `REC-005-1` — Empty state uses UiEmptyState
+
+- GIVEN the page rendered a hand-rolled empty-results div
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:69-73` renders `<UiEmptyState v-else-if="!procedures.length">`
+- AND `ReceptionProceduresAppShellTest::test_empty_state_uses_ui_empty_state` passes
+- AND the Spanish copy ("Sin resultados") is preserved
+- **Verdict at close: PASS**
+
+### Requirement: `REC-006` — Price display MUST use `text-systemBlue-600 tabular-nums`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.6.*
+
+The price text node MUST consume `text-systemBlue-600 tabular-nums` plus
+`font-feature-settings: var(--font-features-tabular-nums)` in place of the
+legacy `text-accent` alias, which MUST be removed from the page template.
+Prices MUST NOT be rendered as a status badge — currency is not a status
+indicator (per proposal OQ-1).
+
+#### Scenario: `REC-006-1` — Price uses systemBlue with tabular numerics
+
+- GIVEN the price node carried `text-lg font-bold text-accent`
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:102-105` renders `text-systemBlue-600 tabular-nums`
+- AND `ReceptionProceduresAppShellTest::test_price_uses_system_blue_tabular_nums` passes
+- AND grep for `text-accent` returns zero matches
+- **Verdict at close: PASS**
+
+### Requirement: `REC-007` — Hairline token on dividers and no `hover-lift transition-shadow`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/recepcion-procedimientos/spec.md` §2.7.*
+
+All `border-theme` literals MUST be removed from
+`ReceptionProceduresPage.vue`. The `hover-lift transition-shadow` class
+string on `<UiCard variant="elevated">` MUST be dropped, because the
+tokenised primitive already ships a `translateY(-2px)` hover with a
+reduced-motion fallback and stacking the class double-applies the
+transform. The card divider MUST consume the hairline token via
+`border-hairline` or `border-[color:var(--color-hairline)]`.
+
+#### Scenario: `REC-007-1` — Hairline dividers replace border-theme and hover-lift
+
+- GIVEN the card divider used `border-t border-theme` and the card carried `hover-lift transition-shadow`
+- WHEN `pr-recepcion-procedimientos-tokenise` lands
+- THEN `ReceptionProceduresPage.vue:93` renders `border-t border-hairline`
+- AND `ReceptionProceduresAppShellTest::test_hairline_borders_and_no_hover_lift` passes
+- AND grep for `border-theme` and `hover-lift transition-shadow` each return zero matches
+- **Verdict at close: PASS**
+
+---
+
+*End of promoted RECEPCION-PROCEDIMIENTOS rows. Next category slice appends below.*
