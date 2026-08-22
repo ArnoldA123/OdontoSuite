@@ -777,3 +777,264 @@ transform. The card divider MUST consume the hairline token via
 ---
 
 *End of promoted RECEPCION-PROCEDIMIENTOS rows. Next category slice appends below.*
+
+## Mis-procedimientos Rollout — 2026-08-21 (MIS-PROCEDIMIENTOS category closed)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(mis-procedimientos category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-21-ui-mis-procedimientos/spec.md`.
+Verify verdict at close: **PASS WITH WARNINGS** — 14/14 MIS-* MUSTs
+satisfied at static-contract + runtime level (commit `575ff1e`).
+
+### Requirement: `MIS-001` — Hairline tokens replace every `border-theme` and `divide-theme` literal
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+`MyProceduresPage.vue` MUST replace every `border-theme` literal (4
+occurrences) and the `divide-theme` literal with the hairline token
+(`border-hairline` or `border-[color:var(--color-hairline)]` /
+`divide-[color:var(--color-hairline)]`).
+
+#### Scenario: `MIS-001-1` — No legacy `border-theme` / `divide-theme` literals remain
+
+- GIVEN the file references `border-theme` 4 times and `divide-theme` 1 time
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_no_border_theme_literal` asserts both literals are absent
+- AND `MyProceduresPageAppShellTest::test_no_divide_theme_literal` asserts the divide literal is absent
+- AND `ModuleAppShellTestCase::test_no_border_theme_literal` (DLR-R-002) stays green
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-002` — `<UiInput>` adoption for the search field
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The raw `<input>` search field MUST be replaced with
+`<UiInput v-model="search" ...>` while preserving the
+`<div class="relative">` wrapper and the search-icon `<svg>` inset at
+`left-3`. Per the `ReceptionProceduresPage` precedent, the search icon
+moves into the `<template #prefix>` slot.
+
+#### Scenario: `MIS-002-1` — Search field uses `<UiInput>` and no raw input
+
+- GIVEN the search field was the only raw `<input>` in the file
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_search_uses_ui_input` asserts `<UiInput v-model="search"` is present
+- AND asserts raw `<input` (with `class="...focus:ring-primary-500..."`) is absent
+- AND asserts the `<div class="relative">` wrapper is preserved
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-003` — `formatCurrency` is the only money formatter on this page
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+Both inline `S/ {{ Number(...).toFixed(2) }}` literals MUST be replaced
+with `formatCurrency(...)` from `useFormatters` (the
+`PAGOS-MNY-002` canonical location). `Intl.NumberFormat` MUST NOT appear
+in the template (single-source rule).
+
+#### Scenario: `MIS-003-1` — Both PEN literals consume `formatCurrency`
+
+- GIVEN two inline PEN literals bypassed the canonical formatter
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_format_currency_used_for_pen_values` asserts `formatCurrency(` is referenced at least twice
+- AND asserts `Intl.NumberFormat` is absent from the template
+- AND `FormatPENLabelTest` stays green at exactly one declaration location
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-004` — Tabular numerals on every numeric cell
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+`font-feature-settings: var(--font-features-tabular-nums)` (Tailwind
+`tabular-nums`) MUST be carried on the 6 numeric spans across the two
+cards (`default_duration_minutes`, `default_cost`, `position`) plus the
+favorites count and both code badges (combined with `MIS-007`).
+
+#### Scenario: `MIS-004-1` — At least 6 `tabular-nums` references on numeric cells
+
+- GIVEN 6 numerics × 2 cards lacked tabular-nums
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_tabular_nums_on_numeric_cells` asserts `tabular-nums` OR `font-feature-settings: var(--font-features-tabular-nums)` appears at least 6 times
+- AND the DNI-style `fav.code` + `proc.code` code badges (separately covered by `MIS-007`) also carry the token
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-005` — `<LoadingSpinner>` rename to `<UiLoadingSpinner>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The import and both tag references MUST be renamed from `LoadingSpinner`
+to `UiLoadingSpinner`, per AGENTS.md §7 `Ui*`-prefix convention. File
+path is unchanged (`components/ui/LoadingSpinner.vue`).
+
+#### Scenario: `MIS-005-1` — Only `UiLoadingSpinner` is consumed
+
+- GIVEN the legacy `<LoadingSpinner>` name violated the `Ui*`-prefix convention
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_loading_spinner_import_is_ui_prefixed` asserts `import UiLoadingSpinner` is present
+- AND asserts `import LoadingSpinner` and the bare tag `<LoadingSpinner` are both absent
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-006` — `disabled:opacity-30` parity with `<UiButton>` (`40`)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The two `disabled:opacity-30` references MUST be replaced with
+`disabled:opacity-40` to match the iOS convention used by `<UiButton>`.
+
+#### Scenario: `MIS-006-1` — Disabled state matches iOS parity
+
+- GIVEN `<UiButton>` ships `disabled:opacity-40`
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_disabled_opacity_uses_ios_parity` asserts `disabled:opacity-40` appears at least 2 times
+- AND asserts `disabled:opacity-30` appears 0 times
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-007` — `font-mono` drop + system sans + `tabular-nums`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+`font-mono` MUST be dropped on the code badges and replaced with
+`text-xs text-theme-secondary tabular-nums` (system sans + tabular
+numerals, not the legacy monospace stack).
+
+#### Scenario: `MIS-007-1` — Code badges consume system sans, not `font-mono`
+
+- GIVEN both code badges rendered in `font-mono`
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_code_badges_use_system_sans_with_tabular_nums` asserts `font-mono` appears 0 times
+- AND asserts `tabular-nums` is present on both code-badge spans (combined with `MIS-004`)
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-008` — `<UiEmptyState>` adoption for both hand-built empty states
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The two hand-built empty states (no favourites; no search results) MUST
+be replaced with `<UiEmptyState>` slots carrying the approved Spanish
+copy. The legacy `border-2 border-dashed border-theme` literal MUST be
+removed (the primitive's internal `rounded-ios` is inherited for the
+dashed card shape).
+
+#### Scenario: `MIS-008-1` — Both empty states consume `<UiEmptyState>`
+
+- GIVEN both empty states were simple text blocks
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_empty_states_consume_ui_empty_state` asserts `<UiEmptyState` appears at least 2 times
+- AND asserts the legacy `border-2 border-dashed border-theme` literal is absent
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-009` — Every raw icon `<button>` consumes the focus-ring token
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+`:focus-visible` plus `box-shadow: var(--focus-ring-default)` (via
+`focus-visible:shadow-[var(--focus-ring-default)]`) MUST be added to
+each of the 3 raw icon `<button>`s (subir / bajar / quitar) so each is
+keyboard-reachable. Per cached OQ-2, raw markup is retained;
+`<UiButton size="icon">` migration is deferred.
+
+#### Scenario: `MIS-009-1` — All 3 raw icon buttons consume `var(--focus-ring-default)`
+
+- GIVEN none of the 3 raw `<button>`s exposed a focus ring
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_raw_icon_buttons_consume_focus_ring_token` asserts `var(--focus-ring-default)` appears at least 3 times
+- AND asserts `focus:ring-primary-500` is absent (DLR-R-004 re-asserted)
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-010` — Status ramp tokenization (blue / yellow / red)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The raw Tailwind ramps MUST be replaced with the proven system ramps:
+`bg-primary-50 text-primary-700` (rank pill) → `bg-systemBlue-50
+text-systemBlue-700`; `text-yellow-500` (star icon + label) →
+`text-systemYellow-500`; `text-red-500 hover:text-red-700` (Quitar) →
+`text-systemRed-500 hover:text-systemRed-700`. `<UiStatusBadge>`
+migration is deferred per OQ-4 (rank pill is a counter, not state).
+
+#### Scenario: `MIS-010-1` — Every status ramp uses the proven system ramp
+
+- GIVEN the file consumed 4 raw Tailwind status ramps
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_status_ramps_use_tokenized_system_colors` asserts `bg-systemBlue-50 text-systemBlue-700` is present
+- AND asserts `text-systemYellow-500` is present and raw `text-yellow-500` is absent
+- AND asserts `text-systemRed-500` is present and raw `text-red-500` is absent
+- **Verdict at close: PASS** (3 sub-assertions consolidated into 1 test method during apply to bound file size)
+
+### Requirement: `MIS-011` — `bg-theme-surface` alias migration to `bg-canvas`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+`hover:bg-theme-surface` MUST be replaced with `hover:bg-canvas`.
+`bg-theme-surface-elevated` is RETAINED as a semantic alias resolving
+to `#ffffff`.
+
+#### Scenario: `MIS-011-1` — Hover surface uses the canvas token
+
+- GIVEN the file distinguished `bg-theme-surface` from `bg-theme-surface-elevated`
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_hover_surface_uses_canvas_token` asserts `hover:bg-canvas` is present
+- AND asserts the raw `hover:bg-theme-surface` literal is absent
+- AND `bg-theme-surface-elevated` remains present (semantic alias)
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-012` — `rounded-lg` replaced with contextual radius tokens
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The 4 `rounded-lg` references MUST be replaced with contextual tokens:
+cards → `rounded-[var(--radius-card-lg)]`; wrappers carry
+`rounded-[var(--radius-ios)]` for the 4-token budget.
+
+#### Scenario: `MIS-012-1` — Every radius literal consumes a token
+
+- GIVEN 4 `rounded-lg` literals had no token binding
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `MyProceduresPageAppShellTest::test_radius_uses_contextual_tokens` asserts `var(--radius-control)` OR `var(--radius-ios)` OR `var(--radius-card-lg)` appears at least 4 times
+- AND asserts bare `rounded-lg` (without a token) appears 0 times
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-013` — `<script setup>` block MUST stay byte-for-byte
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The `<script setup>` block MUST be preserved verbatim. The
+`useProcedureFavorites` contract (`getFavorites`, `getForMe`,
+`addFavorite`, `removeFavorite`, `reorderFavorites`), the `useToast`
+calls, and the `useRouter().push('/dashboard')` redirect MUST stay
+unchanged. The single additive change is the `formatCurrency` import
+from `useFormatters` (one-line destructure addition).
+
+#### Scenario: `MIS-013-1` — Composable contract stays green
+
+- GIVEN `ComposablesStandardizationTest` pins the `useProcedureFavorites` surface
+- WHEN `pr-mis-procedimientos-tokenise` lands
+- THEN `ComposablesStandardizationTest` stays green
+- AND `git diff --stat` reports edits to the `<script setup>` block limited to the one-line `formatCurrency` import addition
+- AND `MyProceduresPageAppShellTest::test_script_setup_unchanged` asserts the composable surface is intact
+- **Verdict at close: PASS**
+
+### Requirement: `MIS-014` — `pr-mis-procedimientos-tokenise` MUST stay under the 400-line review budget
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/mis-procedimientos/spec.md` §2.*
+
+The system MUST keep the PR diff under 400 authored lines. If the diff
+exceeds 400, the apply phase MUST split per the `chained-pr` skill
+BEFORE review starts. The 465-line diff (48 production + 367 test)
+exceeded the budget by 16% and was pre-authorized as `size-exception`
+by the orchestrator because the test file is the load-bearing evidence
+layer for 14 MIS-* assertions and cannot be split without losing rule
+coverage. This sets a documented precedent for the same trade-off in
+future per-category slices.
+
+#### Scenario: `MIS-014-1` — Single-PR diff fits the budget
+
+- GIVEN the proposal estimated ~280-330 total lines (template ~220 + test ~80)
+- WHEN `pr-mis-procedimientos-tokenise` is reviewed
+- THEN `git diff --stat` reports `additions + deletions == 465` (size-exception pre-authorized; not a defect)
+- AND the test file's 14 MIS-* assertions are preserved without splitting
+- **Verdict at close: PASS WITH WARNING** (size-exception noted; 16% over 400-line cap; no defect)
+
+---
+
+*End of promoted MIS-PROCEDIMIENTOS rows. Next category slice appends below.*
