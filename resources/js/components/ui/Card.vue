@@ -60,7 +60,12 @@ const cardClasses = computed(() => {
       'hover:shadow-large'
     ],
     flat: ['bg-theme-surface border-theme', 'shadow-none', 'hover:shadow-subtle'],
-    elevated: ['bg-theme-surface-elevated shadow-large', 'hover:shadow-elevated'],
+    // HOTFIX-LOGIN-005 — elevated variant: elevation-2 + 1px hairline are
+    // declared in <style scoped> under [data-variant='elevated'] so the
+    // values reach the card root attribute and never get shadowed by
+    // Tailwind class compilation order. The class list only carries the
+    // surface color + hover rung.
+    elevated: ['bg-theme-surface-elevated', 'hover:shadow-elevated'],
     outlined: [
       'bg-theme-surface-elevated border-2 border-theme',
       'shadow-none',
@@ -139,6 +144,19 @@ const cardClasses = computed(() => {
   background: var(--color-background-system-background);
   border: 1px solid var(--color-separator-separator);
   box-shadow: var(--shadow-medium);
+}
+
+/* HOTFIX-LOGIN-005 — elevated variant: bigger surfaces read thicker per
+   apple-design §12. We declare elevation-2 + 1px hairline + a soft inset
+   top highlight so the edge catches light against the canvas. All values
+   are token-bound (apple-design §12 + design-taste §4.4 Shape Consistency
+   Lock via --radius-ios on the parent rule). The hairline edge is the same
+   `--color-hairline` used across the whole design system. */
+[data-variant='elevated'] {
+  border: 1px solid var(--color-hairline);
+  box-shadow:
+    var(--elevation-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* Loading state */

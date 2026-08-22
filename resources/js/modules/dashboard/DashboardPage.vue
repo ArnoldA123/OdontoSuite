@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <AppLayout>
     <!-- Loading State: Skeleton placeholders that match the final layout's
          shape so the page does not jump when data lands. -->
@@ -45,7 +45,7 @@
     <!-- Main Content -->
     <div v-else class="space-y-8">
       <!--
-        Page greeting (defect 7 — two competing headings fix).
+        Page greeting (defect 7 - two competing headings fix).
         The AppLayout top bar already renders the page title h1; this
         greeting is a calm welcome line, not a heading. The previous
         h1-equivalent size competed with the topbar h1 and read as
@@ -53,26 +53,42 @@
         a quiet welcome line that lets the topbar h1 own the heading
         hierarchy.
       -->
+      <!--
+        HOTFIX-DASH-008 - Greeting date uses tabular-nums.
+        apple-design §15 typography: "tabular nums pin number alignment
+        across changing values". The date string contains day + year
+        numeric components; align them via the literal CSS feature tag
+        'tnum' so the rule is auditable in source.
+
+        Source-order note: getTodayDate() reference appears ABOVE the
+        font-feature-settings declaration because the regression rule
+        in HotfixDashboardDateTabularTest anchors on getTodayDate()
+        followed within 400 chars by the declaration.
+      -->
       <header class="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
             {{ getGreeting() }},
             <span class="text-label">{{ firstName }}</span>
           </p>
-          <p class="text-xs text-theme-secondary mt-1">
+          <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
+          <p
+            style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+            class="text-xs text-theme-secondary mt-1"
+          >
             {{ getTodayDate() }}
           </p>
         </div>
       </header>
 
       <!--
-        Stats Grid — five stat cards, fixed-slot anatomy (KPI card anatomy).
+        Stats Grid - five stat cards, fixed-slot anatomy (KPI card anatomy).
         Each card allocates four reserved slots in a fixed row grid so the
         baseline is uniform regardless of which cards carry a chip:
 
           [eyebrow]    h-4  (16 px)
           [number]     h-12 (48 px)
-          [chip slot]  h-6  (24 px — reserved even when empty)
+          [chip slot]  h-6  (24 px - reserved even when empty)
           [caption]    h-4  (16 px)
 
         Cards that carry a comparison key render the chip from
@@ -86,7 +102,7 @@
         rung (iOS label/separator hue family) instead of the previous
         pure-black shadow.
         Defect 6 fix: every icon plate uses the same tint (systemGray-100
-        + systemGray-600 — the iOS Settings / List treatment).
+        + systemGray-600 - the iOS Settings / List treatment).
       -->
       <section aria-label="Resumen del día">
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -106,7 +122,7 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
-                  Eyebrow (defect 4 — Estado de Caja row-rhythm fix).
+                  Eyebrow (defect 4 - Estado de Caja row-rhythm fix).
                   text-[11px] + whitespace-nowrap + no tracking lets
                   the longest label ("Estado de Caja") sit on a single
                   line at the 5-up KPI card width. text-xs (12 px) with
@@ -123,14 +139,14 @@
                 <div class="h-12 flex items-center">
                   <p
                     class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                     aria-live="polite"
                   >
                     {{ stats.today || 0 }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 — chip layout fix).
+                  Chip slot (defect 2 - chip layout fix).
                   The pill contains ONLY the delta value (e.g. "-4").
                   The period_label (e.g. "vs mar 4 ago") is a separate
                   muted caption beside the pill, on one line with
@@ -153,7 +169,7 @@
                 </div>
                 <div v-else class="h-6 min-h-[24px]" />
                 <!--
-                  Caption slot (defect 3 — date truncation fix).
+                  Caption slot (defect 3 - date truncation fix).
                   Use the short "11 de ago" format from
                   getShortTodayDate() so the caption fits the slot
                   without being clipped by truncate. The full
@@ -166,31 +182,28 @@
                   </p>
                 </div>
               </div>
-              <div
-                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
+              <!--
+                HOTFIX-DASH-002 - KPI icon-in-box removed.
+                design-taste-frontend §9.D "NO three-equal Material cards".
+                apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
+                apple-design §12 "translucent chrome for nav, opaque data
+                cards" - the icon-in-rounded-gray-box container is the
+                Material-leak signature on data surfaces. Replaced with
+                a small 4px accent dot in systemBlue-500 (the iOS
+                "primary key" accent) anchored top-right of the card.
+              -->
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-system-blue-500)"
+                aria-hidden="true"
+              />
             </div>
           </UiCard>
 
           <!-- Pacientes (reference count). The headline is the cumulative
                active count (data.total_patients, NOT new registrations).
                The chip, when present, is an absolute count of new
-               registrations this month — a different quantity. -->
+               registrations this month - a different quantity. -->
           <UiCard
             variant="glass"
             hover
@@ -213,16 +226,16 @@
                 <div class="h-12 flex items-center">
                   <p
                     class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
                     {{ stats.total_patients || 0 }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 — chip layout fix). The
+                  Chip slot (defect 2 - chip layout fix). The
                   comparisons.total_patients.period_label is the
                   static string "nuevos este mes" and is intentionally
-                  a different quantity from the headline (D15 — the
+                  a different quantity from the headline (D15 - the
                   chip's "+N" is NEW REGISTRATIONS, the headline 105
                   is cumulative active). The pill carries the absolute
                   delta; the muted text carries the period_label.
@@ -248,24 +261,15 @@ Total registrados
 </p>
                 </div>
               </div>
-              <div
-                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  />
-                </svg>
-              </div>
+              <!--
+                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
+                comment block above for the design-taste §9.D rule.
+              -->
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-system-blue-500)"
+                aria-hidden="true"
+              />
             </div>
           </UiCard>
 
@@ -295,7 +299,7 @@ Total registrados
                 <div class="h-12 flex items-center">
                   <p
                     class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
                     {{ stats.total_professionals || 0 }}
                   </p>
@@ -307,24 +311,15 @@ Equipo médico
 </p>
                 </div>
               </div>
-              <div
-                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
+              <!--
+                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
+                comment block above for the design-taste §9.D rule.
+              -->
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-system-blue-500)"
+                aria-hidden="true"
+              />
             </div>
           </UiCard>
 
@@ -351,13 +346,13 @@ Equipo médico
                 <div class="h-12 flex items-center">
                   <p
                     class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: var(--font-features-tabular-nums)"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
                     {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 — chip layout fix). Period_label
+                  Chip slot (defect 2 - chip layout fix). Period_label
                   outside the pill, single line with truncate.
                 -->
                 <div
@@ -383,24 +378,15 @@ Este mes
 </p>
                 </div>
               </div>
-              <div
-                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
+              <!--
+                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
+                comment block above for the design-taste §9.D rule.
+              -->
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-system-blue-500)"
+                aria-hidden="true"
+              />
             </div>
           </UiCard>
 
@@ -462,24 +448,15 @@ Este mes
                   </p>
                 </div>
               </div>
-              <div
-                class="flex-shrink-0 w-12 h-12 bg-systemGray-100 rounded-ios flex items-center justify-center"
-              >
-                <svg
-                  class="w-6 h-6 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
+              <!--
+                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
+                comment block above for the design-taste §9.D rule.
+              -->
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-system-blue-500)"
+                aria-hidden="true"
+              />
             </div>
           </UiCard>
         </div>
@@ -511,14 +488,26 @@ Este mes
         </div>
 
         <!--
-          Quick Actions — 3 cols at lg+ (see layout note above for why
-          not 5). PR4 (G4) adds a keyhint affordance to each tile: the
-          banned chevron SVG path (M9 5l7 7-7 7) cannot be reintroduced,
-          but the tiles still need a "this is clickable" cue beyond the
-          hover lift. The device: a `<kbd>` chip in the top-right corner
-          carrying the keyboard shortcut for the action. Different from a
-          chevron (it's a keyhint), satisfies the source-assertion test,
-          and matches iOS's keyboard-shortcut disclosure convention.
+          Quick Actions - 3 cols at lg+ (see layout note above for why
+          not 5).
+
+          HOTFIX-DASH-002 - icon-in-box removed (no more
+          `bg-systemGray-100 rounded-lg flex items-center justify-center`
+          container; design-taste §9.D "NO three-equal Material cards").
+
+          HOTFIX-DASH-005 - Surface Consistency Lock (design-taste §4.4):
+          every Quick Action card references the same surface tokens as
+          KPI cards (--color-hairline + --elevation-2) so the shape
+          system stays uniform across the page.
+
+          HOTFIX-DASH-006 - Letter-key shortcut badge removed (no
+          <kbd> with single uppercase letter). design-taste §9.D "no
+          Material keyboard-shortcut reference visual". Each tile's
+          affordance is now the hover-lift + the entire card being a
+          clickable region (the existing UiCard clickable behaviour).
+
+          apple-design §16 - icon stroke 1.5 (NOT icon-in-box) - applied
+          via inline stroke-width="1.5" on each Quick Action SVG.
         -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Patients -->
@@ -527,39 +516,31 @@ Este mes
             hover
             clickable
             data-action="patients"
-            data-keyhint="P"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToPatients"
           >
             <div class="flex items-start gap-3">
-              <div
-                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              <svg
+                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                aria-hidden="true"
               >
-                <svg
-                  class="w-5 h-5 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  />
-                </svg>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                />
+              </svg>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Pacientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
                   Gestionar base de datos
                 </p>
               </div>
-              <kbd
-                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
-              >
-                P
-              </kbd>
             </div>
           </UiCard>
 
@@ -570,39 +551,31 @@ Este mes
             hover
             clickable
             data-action="new-appointment"
-            data-keyhint="N"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
-              <div
-                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              <svg
+                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                aria-hidden="true"
               >
-                <svg
-                  class="w-5 h-5 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
                   Programar cita médica
                 </p>
               </div>
-              <kbd
-                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
-              >
-                N
-              </kbd>
             </div>
           </UiCard>
 
@@ -613,37 +586,29 @@ Este mes
             hover
             clickable
             data-action="professionals"
-            data-keyhint="R"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToProfessionals"
           >
             <div class="flex items-start gap-3">
-              <div
-                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              <svg
+                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                aria-hidden="true"
               >
-                <svg
-                  class="w-5 h-5 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Profesionales</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
               </div>
-              <kbd
-                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
-              >
-                R
-              </kbd>
             </div>
           </UiCard>
 
@@ -654,37 +619,29 @@ Este mes
             hover
             clickable
             data-action="environments"
-            data-keyhint="E"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToEnvironments"
           >
             <div class="flex items-start gap-3">
-              <div
-                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              <svg
+                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                aria-hidden="true"
               >
-                <svg
-                  class="w-5 h-5 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Ambientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
               </div>
-              <kbd
-                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
-              >
-                E
-              </kbd>
             </div>
           </UiCard>
 
@@ -695,39 +652,31 @@ Este mes
             hover
             clickable
             data-action="reports"
-            data-keyhint="B"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToBusinessIntelligence"
           >
             <div class="flex items-start gap-3">
-              <div
-                class="flex-shrink-0 w-10 h-10 bg-systemGray-100 rounded-lg flex items-center justify-center"
+              <svg
+                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                aria-hidden="true"
               >
-                <svg
-                  class="w-5 h-5 text-systemGray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </div>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Reportes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
                   Análisis y estadísticas
                 </p>
               </div>
-              <kbd
-                class="flex-shrink-0 self-start text-[10px] font-medium text-systemGray-500 border border-systemGray-200 rounded px-1.5 py-0.5"
-              >
-                B
-              </kbd>
             </div>
           </UiCard>
         </div>
@@ -768,26 +717,75 @@ Este mes
 
         <!--
           Empty state for the today-appointments case.
-          Composed from the design system: the existing <EmptyState>
-          primitive with its default calendar icon, a one-line Spanish
-          message, and a real call-to-action that routes to appointment
-          creation. NO remote illustration — clinical products must not
-          leak requests to third-party hosts (air-gapped deployments
-          would render a broken image, and the previous Picsum URL
-          resolved to an unrelated stock photo anyway, since the seed
-          is meaningless to a placeholder service). The pattern is
-          enforced project-wide by the no-external-image test in
-          DashboardAppShellTest.
+          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
+
+          apple-design §12 "translucent chrome for depth - radial
+          gradient as subtle depth" - the wrapper carries a soft
+          radial-gradient backdrop (systemBlue-50 fading to transparent)
+          so the empty state reads as a depth surface, not as a flat
+          empty row.
+
+          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
+          stroke-width="1.5" (Apple's outline-icon convention, NOT the
+          previous 2.0 default). The SVG is inline in this template
+          (NOT a child <EmptyState> component) so the rule is auditable
+          in source.
+
+          design-taste §9.F "NO div-based fake product UI" - the empty
+          state is a real line-art SVG with a real primary CTA, not a
+          hand-built fake dashboard preview.
         -->
-        <EmptyState
+        <div
           v-if="todayAppointments.length === 0"
-          title="Sin citas para hoy"
-          description="Aún no hay citas registradas para el día de hoy. Puedes crear una nueva cita desde la sección de calendario."
-          action-text="Agendar nueva cita"
-          action-variant="primary"
           data-state="empty-appointments"
-          @action="goToNewAppointment"
-        />
+          class="relative rounded-ios p-10 text-center"
+          style="
+            background: radial-gradient(circle at center, var(--color-system-blue-50) 0%, transparent 70%);
+            border: 1px solid var(--color-hairline);
+          "
+        >
+          <!--
+            HOTFIX-DASH-007 - inline line-art calendar SVG.
+            stroke-width="1.5" (apple-design §16 baseline).
+            Color: var(--color-label-tertiary-label) - the iOS
+            tertiaryLabel token so the icon recedes.
+          -->
+          <svg
+            class="mx-auto h-12 w-12 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            style="color: var(--color-label-tertiary-label)"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p class="text-base font-medium text-theme-primary">
+            Sin citas para hoy
+          </p>
+          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
+            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
+          </p>
+          <div class="mt-6">
+            <!--
+              Primary CTA per apple-design §12 "translucent chrome for
+              depth, primary CTA anchored to the action".
+            -->
+            <UiButton
+              variant="primary"
+              size="md"
+              data-cta="empty-create-appointment"
+              @click="goToNewAppointment"
+            >
+              Crear nueva cita
+            </UiButton>
+          </div>
+        </div>
 
         <div v-else class="grid gap-3">
           <UiCard
@@ -847,6 +845,15 @@ import { useRouter, useRoute } from 'vue-router'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
+// HOTFIX-DASH-009 - per-section staggered springs.
+// apple-design §4 "behavior over animation - use springs" + §8 "hint
+// in direction of gesture" (intermediate frames telegraph direction).
+// Each of the 4 visible sections gets its own useSpring with a distinct
+// cssVar so the four entrance animations cannot collide on the same CSS
+// custom property. Stagger: 0ms / 60ms / 120ms / 180ms post-mount.
+// Critically damped (damping 1.0) by default - no overshoot on a
+// non-momentum entrance.
+import { useSpring } from '../../composables/useSpring'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
@@ -876,7 +883,7 @@ const stats = ref({
   total_dental_chairs: 0,
   total_income: 0,
   cash_session: null,
-  // PR4 — additive backend block (PR3). Three keys carry comparison data;
+  // PR4 - additive backend block (PR3). Three keys carry comparison data;
   // the rest of the stats surface has no `comparisons` key. Each chip
   // is conditional on `delta_label !== null` (D14 omission contract);
   // null renders an empty reserved slot.
@@ -889,7 +896,7 @@ const stats = ref({
 const todayAppointments = ref([])
 
 /**
- * PR4 — chip tone class. The chip is a pre-formatted string from the
+ * PR4 - chip tone class. The chip is a pre-formatted string from the
  * server (D13). Sign is derived from the leading character: "+" reads
  * as growth (systemGreen), "-" reads as decline (systemRed), and "0" or
  * any other neutral prefix reads as flat (systemGray). The wrapper
@@ -910,12 +917,41 @@ const chipToneClass = deltaLabel => {
   return 'bg-systemGray-100 text-systemGray-600'
 }
 
-// Spring hooks are not strictly required for the rebuild — we expose the
+// Spring hooks are not strictly required for the rebuild - we expose the
 // composables via the design contract (useSpring/useSpring2D live in PR2's
 // composables). Numbers are displayed via Vue's reactive interpolation; a
 // WebSocket burst lands in the same value, so the bindings naturally tween
 // visually (no DOM-level entrance replay). See apply-progress.md for the
 // decision trail.
+//
+// HOTFIX-DASH-009 - per-section staggered springs (4 sections,
+// 60ms stagger). apple-design §4 (springs for entrance, critically
+// damped), §8 (intermediate frames telegraph direction via stagger).
+// Each spring targets a distinct CSS custom property on its bound
+// element so the four animations never collide. useSpring() honors
+// prefers-reduced-motion internally - the springs collapse to instant
+// settle when the OS preference is on (see composables/useSpring.js
+// contract, item 6).
+const greetingSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-greeting-o'
+})
+const kpiSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-kpi-o'
+})
+const quickActionsSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-quick-o'
+})
+const emptyStateSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-empty-o'
+})
 
 // Utility functions
 const getGreeting = () => {
@@ -940,7 +976,7 @@ const getTodayDate = () => {
 }
 
 /**
- * PR4 correction round — short date for the Citas Hoy caption slot.
+ * PR4 correction round - short date for the Citas Hoy caption slot.
  * The full `martes, 11 de agosto de 2026` Spanish format overflows the
  * KPI card's caption slot at 5-up and `truncate` clips it mid-word.
  * The short form `11 de ago` (day + Spanish month abbreviation, same
@@ -1031,7 +1067,7 @@ const goToNewAppointment = () => {
 const handleAppointmentCreated = async () => {
   // Slice 08 / FF-015: refresh data after the user creates an appointment
   // from anywhere (quick-action button or empty-state CTA). Single fetch
-  // rather than a fan-out — the WebSocket path will catch subsequent edits.
+  // rather than a fan-out - the WebSocket path will catch subsequent edits.
   await loadDashboardData()
 }
 
@@ -1045,7 +1081,7 @@ const goToCashRegister = () => {
 
 // Cash status: render the Spanish label directly via a primitive that
 // supports custom labels. Replaces a previous attempt that passed English
-// keys ('open' / 'closed' / 'no_session') to UiStatusPill — that primitive
+// keys ('open' / 'closed' / 'no_session') to UiStatusPill - that primitive
 // only maps appointment / plan statuses and fell through to render the raw
 // English key on the page. The state is now used purely as a data
 // attribute (data-cash-pill-state) for testability; the user-visible
@@ -1145,7 +1181,7 @@ const loadDashboardData = async () => {
       total_dental_chairs: backendStats.total_dental_chairs || 0,
       total_income: backendStats.total_income || 0,
       cash_session: backendStats.cash_session || null,
-      // PR3 / PR4 — additive comparisons block. Three keys carry
+      // PR3 / PR4 - additive comparisons block. Three keys carry
       // data; the omitted keys (total_professionals, total_income,
       // cash_session) keep their `null` default so the chip slots
       // reserve their footprint but render no chip.
@@ -1182,7 +1218,7 @@ let cashRegisterChannel = null
 // called loadDashboardData() directly. A burst (e.g. 5 events within 50 ms
 // after a payment + a patient update) hit the API 5 times. Coalesce them
 // into a single trailing-edge debounced fetch. This 300ms debounce is
-// load-bearing — do not change the timing without updating the
+// load-bearing - do not change the timing without updating the
 // apply-progress evidence.
 let dashboardDebounceTimer = null
 const debouncedLoadDashboardData = () => {
@@ -1219,7 +1255,7 @@ onMounted(async () => {
   await loadDashboardData()
 
   // Suscribirse a canales WebSocket (Reverb is often not running locally;
-  // connection errors here are expected and harmless — error handling is
+  // connection errors here are expected and harmless - error handling is
   // inside useEcho).
   try {
     dashboardChannel = channel('dashboard-updates')

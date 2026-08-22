@@ -80,19 +80,31 @@ viewBox="0 0 24 24">
           class="flex-1 py-6 space-y-2 transition-all duration-300"
           :class="sidebarCollapsed ? 'px-2' : 'px-4'"
         >
+          <!--
+            HOTFIX-DASH-001 — sidebar section labels removed.
+            design-taste-frontend §9.F "Section-Numbering Eyebrows" + §4.7
+            EYEBROW COUNT (mechanical: max 1 eyebrow per 3 sections).
+            The previous "Operaciones" / "Configuración" eyebrow text
+            used an uppercase letter-spaced label (the canonical AI-Tell
+            signature). Sections are now separated by a 1px hairline
+            divider (var(--color-hairline), the iOS separator alpha)
+            rather than a text label. Sidebar reads as one continuous
+            list with visual group breaks instead of a labelled
+            taxonomy, which is the Apple/Settings pattern.
+          -->
           <template v-for="item in navigation" :key="item.name">
             <div
               v-if="!sidebarCollapsed && item.name === 'Pacientes'"
-              class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"
-            >
-              Operaciones
-            </div>
+              class="mx-4 my-2 border-t"
+              style="border-top-color: var(--color-hairline)"
+              aria-hidden="true"
+            />
             <div
               v-if="!sidebarCollapsed && item.name === 'Sucursales'"
-              class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"
-            >
-              Configuración
-            </div>
+              class="mx-4 my-2 border-t"
+              style="border-top-color: var(--color-hairline)"
+              aria-hidden="true"
+            />
             <router-link
               :to="item.to"
               :class="getNavItemClasses(item)"
@@ -425,9 +437,18 @@ Cerrar Sesión
                       </button>
                     </div>
 
-                    <!-- Theme Selector -->
+                    <!--
+                      Theme Selector label — HOTFIX-DASH-001 compliance:
+                      design-taste-frontend §9.F "Section-Numbering Eyebrows"
+                      binary ban. The previous label used a letter-spaced
+                      uppercase style (the same signature the spec bans
+                      on sidebar section labels). Replaced with plain
+                      text-xs text-theme-secondary — the user menu sits
+                      inside a dropdown, the label reads as plain text
+                      not as an eyebrow.
+                    -->
                     <div class="border-t border-theme px-4 py-3">
-                      <p class="text-xs text-theme-secondary mb-2 uppercase tracking-wide">
+                      <p class="text-xs text-theme-secondary mb-2">
                         Apariencia
                       </p>
                     </div>

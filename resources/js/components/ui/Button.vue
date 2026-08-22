@@ -1,6 +1,7 @@
 <template>
   <button
     :class="buttonClasses"
+    :data-variant="variant"
     :disabled="disabled || loading"
     :aria-label="ariaLabel"
     @click="handleClick"
@@ -65,9 +66,17 @@ const buttonClasses = computed(() => {
   ]
 
   const variants = {
+    // HOTFIX-LOGIN-004 — primary variant now ships the Apple premium
+    // construction: elevation-3 (heavier rung, apple-design §12) +
+    // inset 0 1px 0 rgba(255,255,255,0.32) highlight at the top edge so the
+    // button reads as a real material that catches light, not a flat
+    // rectangle. The :active translateY(1px) is response on pointer-down
+    // (apple-design §1) — feedback fires the instant the user presses, not
+    // on release. The full construction is declared in <style scoped> under
+    // .button-primary so it survives Tailwind class compilation order.
     primary: [
       'bg-accent hover:bg-accent-hover active:bg-accent-active',
-      'text-white shadow-soft hover:shadow-medium',
+      'text-white',
       'border border-transparent'
     ],
     secondary: [
@@ -185,6 +194,25 @@ button {
     transform var(--motion-duration-fast) var(--motion-easing-ios);
 }
 
+/* HOTFIX-LOGIN-004 — primary variant: Apple premium construction.
+   elevation-3 (heavier shadow for the primary CTA, apple-design §12) +
+   inset highlight at the top edge (the "light catching the material"
+   trick from apple-design §12). Tokens are kept — no freeform values. */
+button[data-variant='primary'] {
+  box-shadow:
+    var(--elevation-3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* HOTFIX-LOGIN-004 — :active translateY(1px) is response on pointer-down
+   per apple-design §1. Feedback fires the instant the user presses, not
+   on release. Only the primary variant presses down (others stay at 0,
+   matching their existing behaviour). */
+button[data-variant='primary']:not(:disabled):active {
+  transform: translateY(1px);
+}
+
 .button-content {
   display: flex;
   align-items: center;
@@ -230,7 +258,11 @@ button:not(:disabled):hover {
   transform: translateY(-1px);
 }
 
-button:not(:disabled):active {
+/* HOTFIX-LOGIN-004 — the primary variant has its own :active rule above
+   (translateY(1px) for response-on-pointer-down, apple-design §1). All
+   other variants settle to translateY(0) on press, matching their
+   pre-existing behaviour. */
+button:not([data-variant='primary']):not(:disabled):active {
   transform: translateY(0);
 }
 
@@ -271,9 +303,16 @@ button[data-variant='icon'] {
     opacity: 0.88;
   }
 
+  /* HOTFIX-LOGIN-004 — primary variant keeps its feedback on press even
+     under reduced motion: the response on pointer-down is feedback, not
+     movement (apple-design §14). Other variants collapse to opacity. */
   button:not(:disabled):active {
     transform: none;
     opacity: 0.72;
+  }
+
+  button[data-variant='primary']:not(:disabled):active {
+    transform: translateY(1px);
   }
 
   .spinner,
