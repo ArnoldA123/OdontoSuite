@@ -4,7 +4,7 @@
       :title="environment?.name || 'Cargando...'"
       :subtitle="environment ? `ID: ${environment.id} | Código: ${environment.code}` : ''"
       :breadcrumbs="[{ to: '/environments', label: 'Ambientes' }]"
-      class="mb-6"
+      class="bg-canvas mb-6"
     >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
@@ -27,7 +27,10 @@ viewBox="0 0 24 24">
     <!-- Environment Info Card -->
     <UiCard variant="glass" class="mb-6">
       <div class="flex items-center gap-4">
-        <div class="h-16 w-16 rounded-xl bg-gradient-accent flex items-center justify-center">
+        <!-- PR-ambientes-02 / AMB-02-004 — the header avatar was a forbidden
+             gradient utility; replaced with a flat systemBlue ramp + token
+             radius (mirrors `PatientsPage` row-avatar precedent). -->
+        <div class="h-16 w-16 rounded-[var(--radius-card-lg)] bg-systemBlue-50 flex items-center justify-center">
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
 viewBox="0 0 24 24">
             <path
@@ -65,24 +68,14 @@ viewBox="0 0 24 24">
       </div>
     </UiCard>
 
-    <!-- Tabs Navigation -->
+    <!-- Tabs Navigation (PR-ambientes-02 / AMB-02-003) — `<UiTabs>` primitive.
+         The active indicator + tab labels + click handlers stay byte-for-byte;
+         the hand-rolled step strip + per-button legacy active indicator
+         are gone. The `tab.label` field name is the canonical UiTabs contract
+         (`Tabs.vue` validator requires `id` + `label`); the display strings
+         ("Datos" / "Historial") are preserved byte-for-byte. -->
     <div class="mb-6">
-      <nav class="flex space-x-8 border-b border-theme">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200"
-          :class="[
-            activeTab === tab.id
-              ? 'border-accent text-accent'
-              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-theme'
-          ]"
-          @click="activeTab = tab.id"
-        >
-          <component :is="tab.icon" class="w-4 h-4 inline mr-2" />
-          {{ tab.name }}
-        </button>
-      </nav>
+      <UiTabs v-model="activeTab" :tabs="tabs" />
     </div>
 
     <!-- Tab Content -->
@@ -142,34 +135,20 @@ viewBox="0 0 24 24">
             />
             <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
           </div>
-          <div v-else-if="auditLogs.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
-              No hay historial de auditoría
-            </h3>
-            <p class="text-theme-secondary">Este ambiente no tiene registros de auditoría.</p>
+          <div v-else-if="auditLogs.length === 0">
+            <UiEmptyState
+              title="No hay historial de auditoría"
+              description="Los cambios en este ambiente aparecerán aquí."
+            />
           </div>
           <div v-else class="space-y-4">
-            <div
+            <!-- PR-ambientes-02 / AMB-02-006 — hand-rolled audit-item wrapper
+                 replaced with `<UiCard variant="glass">` so the audit log item
+                 consumes the canonical card primitive + token hover chrome. -->
+            <UiCard
               v-for="log in auditLogs"
               :key="log.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+              variant="glass"
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
@@ -195,16 +174,19 @@ viewBox="0 0 24 24">
                       <div
                         v-for="(change, field) in getChangesSummary(log)"
                         :key="field"
-                        class="pl-2 border-l-2 border-theme"
+                        class="pl-2 border-l-2 border-[color:var(--color-hairline)]"
                       >
                         <p class="font-medium text-theme-primary">{{ change.field }}:</p>
                         <p class="text-xs">
                           De:
-                          <span class="text-red-500">{{ change.old }}</span>
+                          <!-- PR-ambientes-02 / AMB-02-008 — `text-red-500` replaced
+                               with the tokenised `text-systemRed-600` ramp (the
+                               canvas-readable shade per the design system). -->
+                          <span class="text-systemRed-600">{{ change.old }}</span>
                         </p>
                         <p class="text-xs">
                           A:
-                          <span class="text-green-500">{{ change.new }}</span>
+                          <span class="text-systemGreen-600">{{ change.new }}</span>
                         </p>
                       </div>
                     </div>
@@ -226,7 +208,7 @@ Sin cambios registrados
                   </div>
                 </div>
               </div>
-            </div>
+            </UiCard>
           </div>
         </UiCard>
       </div>
@@ -244,6 +226,8 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
+import UiTabs from '../../components/ui/Tabs.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'EnvironmentDetailPage',
@@ -251,7 +235,9 @@ export default {
     AppLayout,
     UiCard,
     UiButton,
-    UiBadge
+    UiBadge,
+    UiTabs,
+    UiEmptyState
   },
   setup() {
     const route = useRoute()
@@ -287,16 +273,19 @@ export default {
       `
     }
 
-    // Tabs configuration
+    // Tabs configuration (PR-ambientes-02 / AMB-02-003): the `name` field
+    // was renamed to `label` to satisfy `<UiTabs>`'s data contract
+    // (`Tabs.vue` validator: `id` + `label` are required; display strings
+    // "Datos" / "Historial" are preserved byte-for-byte).
     const tabs = [
       {
         id: 'data',
-        name: 'Datos',
+        label: 'Datos',
         icon: BuildingIcon
       },
       {
         id: 'audit',
-        name: 'Historial',
+        label: 'Historial',
         icon: ClockIcon
       }
     ]
@@ -340,7 +329,7 @@ export default {
       if (action.includes('created')) return 'success'
       if (action.includes('updated')) return 'warning'
       if (action.includes('deleted')) return 'error'
-      return 'secondary'
+      return 'neutral'
     }
 
     const goBack = () => {

@@ -3,30 +3,28 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * PR-ambientes-01 — EnvironmentsAppShellTest.
+ * PR-ambientes-01 + PR-ambientes-02 — EnvironmentsAppShellTest.
  *
- * Asserts the AMB-01-002..008 rules for the `environments` module list page
- * (`EnvironmentsPage.vue`). The detail page (`EnvironmentDetailPage.vue`) is
- * out of scope — it is covered by PR-ambientes-02 (extension to be added in
- * a separate batch, per the chained-PR plan).
+ * PR-ambientes-01 asserts the AMB-01-002..008 rules for the `environments`
+ * module list page (`EnvironmentsPage.vue`).
+ *
+ * PR-ambientes-02 EXTENDS `polishedFiles()` to also cover the detail page
+ * (`EnvironmentDetailPage.vue`) and adds 6 PR-02-only rule assertions:
+ * AMB-02-003 (tabs → `<UiTabs>`), AMB-02-004 (header avatar flat systemBlue,
+ * no gradients), AMB-02-005 (audit empty state → `<UiEmptyState>`),
+ * AMB-02-006 (audit log card → `<UiCard variant="glass">` + change-diff
+ * callout hairline), AMB-02-007 (modal chrome — covered in sibling
+ * `EnvironmentsModalChromeTest`, not here), AMB-02-008 (change-diff
+ * `text-red-500`/`text-green-500` → `text-systemRed-600`/`text-systemGreen-600`).
+ *
+ * Also asserted in PR-02: the `<script>` helper `getAuditActionVariant`
+ * MUST return `'neutral'` for the default case (NOT the illegal `<UiBadge>`
+ * variant `'secondary'`) — DLR-AMB-005 EXCEPTION #2.
  *
  * The base class `ModuleAppShellTestCase` enforces the 5 inherited DLR-R
  * rules (canvas token, no `border-theme`, focus ring, no `<style scoped>`,
  * no legacy focus-ring aliases) via `polishedFileProvider()`. This subclass
- * adds 6 PR-ambientes-01-only rule assertions covering the list-page
- * tokenisation: status filter → `<UiSelect>`, table dividers → hairline
- * token, row avatar → tokenised systemBlue ramps, link buttons →
- * `<UiButton variant="link/ghost">`, loading spinner → `<UiLoadingSpinner>`,
- * empty state → `<UiEmptyState>`. The status pill rule is asserted in the
- * sibling `EnvironmentsStatusBadgeTest` (one test per concept).
- *
- * The canvasRoutes detail-route fix (AMB-01-001) is asserted in
- * `EnvironmentsCanvasRoutesPrefixTest` + the modified `AppLayoutCanvasRoutesTest`
- * — both extensions in this same PR.
- *
- * AMB-01-008 (status pill → `<UiStatusBadge>`) is asserted in
- * `EnvironmentsStatusBadgeTest`, not here, so the per-PR test files stay
- * focused on a single concept per file.
+ * adds 6 PR-ambientes-01-only + 6 PR-ambientes-02-only rule assertions.
  *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * constants contain forward slashes; using `/` as delimiter would force
@@ -37,11 +35,19 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     /** List page path constant — single source of truth for the data provider. */
     private const LIST_PAGE_PATH = '/resources/js/modules/environments/EnvironmentsPage.vue';
 
+    /** Detail page path constant — PR-ambientes-02 extension. */
+    private const DETAIL_PAGE_PATH = '/resources/js/modules/environments/EnvironmentDetailPage.vue';
+
     /** @return array<int, string> */
     protected static function polishedFiles(): array
     {
         return [
             dirname(__DIR__, 3) . self::LIST_PAGE_PATH,
+            // PR-ambientes-02 — detail page added to the polished file set so
+            // the 5 inherited DLR-R rules (canvas token, no border-theme,
+            // focus ring, no <style scoped>, no legacy focus-ring aliases)
+            // also fire against the detail page.
+            dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH,
         ];
     }
 
@@ -421,5 +427,309 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
         }
         $src = file_get_contents($path);
         return $src === false ? null : $src;
+    }
+
+    // ========================================================================
+    // PR-ambientes-02 — Detail page (`EnvironmentDetailPage.vue`) assertions.
+    // Extends `polishedFiles()` coverage + adds 6 PR-02-only rules.
+    // ========================================================================
+
+    /**
+     * AMB-02-003 — the 2-tab drawer (line 70 raw tab strip + per-button
+     * `border-accent text-accent` / `border-transparent text-theme-secondary
+     * hover:text-theme-primary hover:border-theme` active/inactive styles)
+     * MUST migrate to `<UiTabs v-model="activeTab" :tabs="tabs">`. The
+     * 2 tab labels (`Datos` / `Historial de auditoría`) MUST keep their
+     * labels byte-for-byte.
+     *
+     * POSITIVE rule: ≥1 `<UiTabs` reference present in the detail page.
+     *
+     * NEGATIVE rule: zero `border-accent text-accent` legacy active-indicator
+     * matches anywhere in the file.
+     */
+    public function test_tabs_use_ui_tabs(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: ≥1 `<UiTabs` reference (the 2-tab drawer must consume
+        // the canonical primitive, not a hand-rolled nav element).
+        $this->assertTrue(
+            (bool) preg_match('#<UiTabs\b#', $src)
+                || (bool) preg_match(
+                    '#import\s+UiTabs\s+from\s+[\'"][^\'"]*components/ui/Tabs\.vue[\'"]#',
+                    $src
+                ),
+            sprintf(
+                '%s MUST consume `<UiTabs v-model="activeTab" :tabs="tabs">` for the '
+                . '2-tab drawer (AMB-02-003). Replace the raw `<nav class="flex space-x-8 border-b border-theme">` '
+                . 'on line 70 with the canonical primitive.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `border-accent text-accent` literal matches anywhere
+        // in the file. The hand-rolled tab strip carried the legacy active
+        // indicator class `border-accent text-accent` on the active button.
+        $borderAccentCount = preg_match_all(
+            '#(?<![\w-])border-accent\s+text-accent(?![\w-])#',
+            $src
+        );
+        $this->assertSame(
+            0,
+            $borderAccentCount,
+            sprintf(
+                '%s MUST NOT keep the legacy `border-accent text-accent` active-tab '
+                . 'indicator (AMB-02-003 / DLR-R-009). Found %d match(es).',
+                $path,
+                $borderAccentCount
+            )
+        );
+    }
+
+    /**
+     * AMB-02-004 — the header avatar on line 30 carries `bg-gradient-accent`
+     * which is forbidden by global §11 (no gradients). The avatar MUST be
+     * tokenised to flat `bg-systemBlue-50` + `rounded-[var(--radius-card-lg)]`,
+     * mirroring the precedent from `PatientsPage` row avatars.
+     *
+     * POSITIVE rule: `bg-systemBlue-50` reference present + `rounded-[var(--radius-card-lg)]`
+     * reference present on the header avatar.
+     *
+     * NEGATIVE rule: zero `bg-gradient-*` legacy matches anywhere in the file.
+     */
+    public function test_no_gradient_class(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: `bg-systemBlue-50` reference present on the header avatar
+        // background (replaces `bg-gradient-accent`).
+        $this->assertTrue(
+            (bool) preg_match('#(?<![\w-])bg-systemBlue-50(?![\w-])#', $src),
+            sprintf(
+                '%s MUST consume `bg-systemBlue-50` on the header avatar '
+                . '(AMB-02-004). Replace `bg-gradient-accent` with a flat ramp.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `bg-gradient-*` legacy matches anywhere in the file.
+        // The header avatar (line 30) + the audit empty-state icon
+        // (lines 145-167 in the original) both carried `bg-gradient-*` classes.
+        $gradientCount = preg_match_all('#(?<![\w-])bg-gradient-#', $src);
+        $this->assertSame(
+            0,
+            $gradientCount,
+            sprintf(
+                '%s MUST NOT keep any `bg-gradient-*` class (AMB-02-004 / '
+                . 'global §11 — no gradients). Found %d `bg-gradient-*` match(es).',
+                $path,
+                $gradientCount
+            )
+        );
+    }
+
+    /**
+     * AMB-02-005 — the hand-rolled audit-log empty state (lines 145-167 with
+     * `bg-gradient-to-br from-theme-surface to-theme-surface-elevated`
+     * icon + custom `<h3>` + `<p>` paragraphs) MUST migrate to
+     * `<UiEmptyState title="No hay historial de auditoría" description="..." />`.
+     *
+     * POSITIVE rule: ≥1 `<UiEmptyState` reference in the detail page.
+     *
+     * NEGATIVE rule: zero `bg-gradient-to-br` legacy alias matches.
+     */
+    public function test_audit_empty_state_uses_ui_component(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: ≥1 `<UiEmptyState` reference (the audit-log empty state
+        // must consume the canonical primitive, not a hand-rolled gradient
+        // SVG + paragraph).
+        $this->assertTrue(
+            (bool) preg_match('#<UiEmptyState\b#', $src)
+                || (bool) preg_match(
+                    '#import\s+UiEmptyState\s+from\s+[\'"][^\'"]*components/ui/EmptyState\.vue[\'"]#',
+                    $src
+                ),
+            sprintf(
+                '%s MUST consume `<UiEmptyState title="No hay historial de auditoría" '
+                . 'description="...">` for the audit-log empty state (AMB-02-005). '
+                . 'Replace the hand-rolled gradient SVG + paragraphs on lines 145-167.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `bg-gradient-to-br` legacy alias matches. The
+        // audit empty state icon container carried `bg-gradient-to-br
+        // from-theme-surface to-theme-surface-elevated`.
+        $this->assertSame(
+            0,
+            preg_match('#(?<![\w-])bg-gradient-to-br(?![\w-])#', $src),
+            sprintf(
+                '%s MUST NOT keep the legacy `bg-gradient-to-br` audit empty-state '
+                . 'icon alias (AMB-02-005 / global §11). Found a match.',
+                $path
+            )
+        );
+    }
+
+    /**
+     * AMB-02-006 — the audit log item wrapper on line 172
+     * (`border border-theme rounded-lg p-4 hover:bg-theme-surface
+     * transition-colors`) MUST migrate to `<UiCard variant="glass">`.
+     *
+     * POSITIVE rule: ≥1 `<UiCard\b[^>]*\bvariant=["\']glass["\']` reference.
+     *
+     * NEGATIVE rule: zero `border border-theme rounded-lg p-4` legacy
+     * audit-item wrapper class string matches.
+     */
+    public function test_audit_log_uses_ui_card(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: ≥1 `<UiCard variant="glass">` reference. The audit log
+        // card wrapper must consume the canonical UiCard primitive.
+        $this->assertTrue(
+            (bool) preg_match(
+                '#<UiCard\b[^>]*\bvariant=["\']glass["\']#',
+                $src
+            ),
+            sprintf(
+                '%s MUST consume `<UiCard variant="glass">` for the audit log item wrapper '
+                . '(AMB-02-006). Replace the hand-rolled `border border-theme rounded-lg p-4` '
+                . 'wrapper on line 172.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero legacy audit-item wrapper class string matches.
+        $this->assertDoesNotMatchRegularExpression(
+            '#<div\b[^>]*\bclass=["\'][^"\']*\bborder\s+border-theme\s+rounded-lg\s+p-4\b#',
+            $src,
+            sprintf(
+                '%s MUST NOT keep the legacy `border border-theme rounded-lg p-4` '
+                . 'audit log item wrapper (AMB-02-006). Replace with `<UiCard variant="glass">`.',
+                $path
+            )
+        );
+    }
+
+    /**
+     * AMB-02-006 (companion) — the change-diff callout border on line 198
+     * `border-l-2 border-theme` MUST consume the canonical hairline token
+     * `border-[color:var(--color-hairline)]`.
+     *
+     * POSITIVE rule: `border-l-2 border-[color:var(--color-hairline)]`
+     * reference present.
+     *
+     * NEGATIVE rule: zero `border-l-2 border-theme` literal matches.
+     */
+    public function test_change_diff_callout_uses_hairline(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: `border-l-2 border-[color:var(--color-hairline)]` reference
+        // present (the change-diff callout border must consume the hairline
+        // token, NOT `border-theme`).
+        $this->assertTrue(
+            (bool) preg_match(
+                '#(?<![\w-])border-l-2\s+border-\[color:var\(--color-hairline\)\](?![\w-])#',
+                $src
+            ),
+            sprintf(
+                '%s MUST consume `border-l-2 border-[color:var(--color-hairline)]` on the '
+                . 'change-diff callout (AMB-02-006). Replace `border-l-2 border-theme` '
+                . 'on line 198.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `border-l-2 border-theme` literal matches.
+        $this->assertSame(
+            0,
+            preg_match('#(?<![\w-])border-l-2\s+border-theme(?![\w-])#', $src),
+            sprintf(
+                '%s MUST NOT keep the legacy `border-l-2 border-theme` change-diff callout '
+                . 'border (AMB-02-006 / DLR-R-002). Found a match.',
+                $path
+            )
+        );
+    }
+
+    /**
+     * AMB-02-002 + DLR-AMB-005 EXCEPTION #2 — the `<script>` helper
+     * `getAuditActionVariant` MUST return `'neutral'` for the default
+     * case (NOT `'secondary'`). `'secondary'` is not a legal `<UiBadge>`
+     * variant per `StatusBadge.vue:27` (`[success, warning, error, info,
+     * neutral]`) and would render blank.
+     *
+     * POSITIVE rule: `getAuditActionVariant` helper present + maps the
+     * unknown-action default to `'neutral'`.
+     *
+     * NEGATIVE rule: zero `'secondary'` literal matches inside the
+     * `getAuditActionVariant` helper body (the rest of the file is
+     * tolerated — `var(--motion-duration-secondary)` and similar tokens
+     * are token-side artifacts and excluded by the regex below).
+     */
+    public function test_audit_action_badge_uses_legal_variant(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: `getAuditActionVariant` reference present (the helper
+        // exists and is consumed by the audit action badge).
+        $this->assertTrue(
+            (bool) preg_match('#\bgetAuditActionVariant\b#', $src),
+            sprintf(
+                '%s MUST declare the `getAuditActionVariant` helper (AMB-02-002 / '
+                . 'DLR-AMB-005 EXCEPTION #2). The audit action badge uses it to '
+                . 'pick the <UiBadge> variant.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `'secondary'` literal matches inside the helper body.
+        // The legacy `return 'secondary'` for the default-case fallback is
+        // an illegal <UiBadge> variant — it must be replaced with
+        // `return 'neutral'`.
+        $this->assertSame(
+            0,
+            preg_match(
+                '#getAuditActionVariant[^}]*[\'"]secondary[\'"]#s',
+                $src
+            ),
+            sprintf(
+                '%s MUST NOT return the illegal <UiBadge> variant `\'secondary\'` from '
+                . '`getAuditActionVariant` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2). '
+                . 'Replace `return \'secondary\'` with `return \'neutral\'`.',
+                $path
+            )
+        );
+
+        // POSITIVE: the helper's default-case fallback returns `'neutral'`.
+        // Pattern: `return 'neutral'` literal appears inside the
+        // `getAuditActionVariant` helper body.
+        $this->assertTrue(
+            (bool) preg_match(
+                '#getAuditActionVariant[^}]*return\s+[\'"]neutral[\'"]#s',
+                $src
+            ),
+            sprintf(
+                '%s MUST map the `getAuditActionVariant` default case to '
+                . '`return \'neutral\'` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2).',
+                $path
+            )
+        );
     }
 }

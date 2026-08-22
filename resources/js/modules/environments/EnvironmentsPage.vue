@@ -196,46 +196,32 @@ viewBox="0 0 24 24">
     </UiCard>
   </AppLayout>
 
-  <!-- New Environment Modal -->
+  <!-- New Environment Modal (PR-ambientes-02 / AMB-02-007) — 4 raw form fields
+       migrated to <UiInput> / <UiTextarea> / <UiSelect> primitives. `v-model=`
+       bindings + `required` attributes preserved byte-for-byte. -->
   <UiModal v-model="showNewEnvironmentModal" title="Nuevo Ambiente" size="md">
     <form id="form-new-env" class="space-y-4" @submit.prevent="createEnvironment">
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre del Ambiente</label>
-        <input
-          v-model="newEnvironment.name"
-          type="text"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <textarea
-          v-model="newEnvironment.description"
-          rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Equipamiento</label>
-        <textarea
-          v-model="newEnvironment.equipment"
-          rows="2"
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Estado</label>
-        <select
-          v-model="newEnvironment.status"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        >
-          <option value="active">Activo</option>
-          <option value="inactive">Inactivo</option>
-          <option value="maintenance">Mantenimiento</option>
-        </select>
-      </div>
+      <UiInput
+        v-model="newEnvironment.name"
+        label="Nombre del Ambiente"
+        required
+      />
+      <UiTextarea
+        v-model="newEnvironment.description"
+        label="Descripción"
+        :rows="3"
+      />
+      <UiTextarea
+        v-model="newEnvironment.equipment"
+        label="Equipamiento"
+        :rows="2"
+      />
+      <UiSelect
+        v-model="newEnvironment.status"
+        :options="statusOptions"
+        label="Estado"
+        required
+      />
     </form>
     <template #footer>
       <UiButton variant="secondary" :disabled="creating" @click="showNewEnvironmentModal = false">
@@ -245,7 +231,9 @@ viewBox="0 0 24 24">
     </template>
   </UiModal>
 
-  <!-- Edit Environment Modal -->
+  <!-- Edit Environment Modal (PR-ambientes-02 / AMB-02-007) — 4 raw form fields
+       migrated to <UiInput> / <UiTextarea> / <UiSelect> primitives. `v-model=`
+       bindings + `required` attributes preserved byte-for-byte. -->
   <UiModal v-model="showEditEnvironmentModal" title="Editar Ambiente" size="md">
     <form
       v-if="editingEnvironment"
@@ -253,44 +241,27 @@ viewBox="0 0 24 24">
       class="space-y-4"
       @submit.prevent="updateEnvironment"
     >
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-        <input
-          v-model="editingEnvironment.name"
-          type="text"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Código</label>
-        <input
-          v-model="editingEnvironment.code"
-          type="text"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <textarea
-          v-model="editingEnvironment.description"
-          rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Estado</label>
-        <select
-          v-model="editingEnvironment.status"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
-        >
-          <option value="active">Activo</option>
-          <option value="inactive">Inactivo</option>
-          <option value="maintenance">Mantenimiento</option>
-        </select>
-      </div>
+      <UiInput
+        v-model="editingEnvironment.name"
+        label="Nombre"
+        required
+      />
+      <UiInput
+        v-model="editingEnvironment.code"
+        label="Código"
+        required
+      />
+      <UiTextarea
+        v-model="editingEnvironment.description"
+        label="Descripción"
+        :rows="3"
+      />
+      <UiSelect
+        v-model="editingEnvironment.status"
+        :options="statusOptions"
+        label="Estado"
+        required
+      />
     </form>
     <template #footer>
       <UiButton variant="secondary" :disabled="updating" @click="showEditEnvironmentModal = false">
@@ -353,6 +324,7 @@ import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import UiTextarea from '../../components/ui/UiTextarea.vue'
 
 export default {
   name: 'EnvironmentsPage',
@@ -365,7 +337,8 @@ export default {
     UiModal,
     UiEmptyState,
     UiLoadingSpinner,
-    UiStatusBadge
+    UiStatusBadge,
+    UiTextarea
   },
   setup() {
     const router = useRouter()
