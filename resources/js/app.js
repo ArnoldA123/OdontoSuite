@@ -116,6 +116,16 @@ const routes = [
     component: () => import('./modules/procedure-catalog/ProcedureCatalogDetailPage.vue'),
     beforeEnter: requireAuth
   },
+  // estadisticas-catalogo (ui-rollout-all-modules-2026-08 PR1 — EC-001).
+  // Additive route: the polished page was unreachable via normal navigation
+  // because AppLayout.canvasRoutes already lists /procedure-stats but the
+  // vue-router routes[] did not, so users hit the 404 catch-all.
+  {
+    path: '/procedure-stats',
+    name: 'procedure-stats',
+    component: () => import('./modules/procedure-catalog/ProcedureStatsPage.vue'),
+    beforeEnter: requireAuth
+  },
   {
     path: '/my-procedures',
     name: 'my-procedures',
