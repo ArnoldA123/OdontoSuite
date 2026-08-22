@@ -1038,3 +1038,191 @@ future per-category slices.
 ---
 
 *End of promoted MIS-PROCEDIMIENTOS rows. Next category slice appends below.*
+
+## Estadísticas catálogo Rollout — 2026-08-21 (ESTADISTICAS-CATALOGO category closed)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(estadisticas-catalogo category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-21-ui-estadisticas-catalogo/spec.md`.
+Verify verdict at close: **PASS WITH WARNINGS** — 9/9 EC-* MUSTs
+satisfied at static-contract + runtime level (commit `36fd93e`),
+including the BLOCKING EC-001 router fix that prevented the polished
+page from 404ing on direct navigation.
+
+### Requirement: `EC-001` — Router registration for `/procedure-stats` (BLOCKING fix)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.1.*
+
+`resources/js/app.js` MUST register `/procedure-stats` in the auth-gated
+routes array, between the `/procedure-catalog/:id` block (lines 113–118)
+and the `/my-procedures` block (lines 119–124), carrying
+`beforeEnter: requireAuth` and the lazy-import
+`./modules/procedure-catalog/ProcedureStatsPage.vue`. Without this entry
+the polished page is unreachable via normal navigation and falls through
+to the 404 catch-all (OQ-EC-1 CRITICAL FINDING).
+
+#### Scenario: `EC-001-1` — Route resolves `ProcedureStatsPage.vue` via auth gate
+
+- GIVEN `AppLayout.vue:canvasRoutes` already lists `/procedure-stats` (PR0 landed at line 534) so the canvas surface wiring is in place
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `git grep -n "procedure-stats" resources/js/app.js` returns ≥1 match
+- AND the entry sits AFTER `/procedure-catalog/:id` and BEFORE `/my-procedures` and BEFORE the catch-all
+- AND `pnpm build` emits the `ProcedureStatsPage-*.js` chunk (confirms lazy import resolves)
+- AND `ProcedureStatsAppShellTest::test_procedure_stats_route_registered_in_app_js` passes
+- **Verdict at close: PASS**
+
+### Requirement: `EC-002` — KPI anatomy adoption (3 counter cards)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.2.*
+
+Each of the 3 KPI `<UiCard>` elements (Total procedimientos, Activos,
+Inactivos) MUST adopt the Dashboard fixed-slot anatomy: inline `:style`
+for `boxShadow: var(--elevation-2)` and `borderColor: var(--color-hairline)`;
+a `data-stat-card="<key>"` attribute (`total-procedures`, `active`,
+`inactive`); a 4-row reserved grid (`h-4` eyebrow / `h-12` number /
+`h-6 min-h-[24px]` chip / `h-4` caption) in that exact order.
+
+#### Scenario: `EC-002-1` — All 3 KPI cards carry the Dashboard contract
+
+- GIVEN the Dashboard exemplar (`DashboardPage.vue`) carries the fixed-slot anatomy
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `ProcedureStatsAppShellTest::test_kpi_anatomy_matches_dashboard` asserts 3+ `<UiCard data-stat-card>` blocks; all 3 keys present; each card consumes hairline + elevation-2 tokens; slot ordering enforced via `strpos` comparisons
+- **Verdict at close: PASS**
+
+### Requirement: `EC-003` — `<PageHeader>` adoption (removes page-level `<h1>`)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.3.*
+
+The custom header block (legacy lines 3–17) MUST be replaced with
+`<PageHeader title="Estadísticas de Procedimientos" :subtitle="...">`.
+The page-level `<h1 class="text-3xl font-bold text-theme-primary mb-2">`
+element MUST be removed entirely (defect 7 family — competes with the
+`AppLayout` topbar `<h1>`).
+
+#### Scenario: `EC-003-1` — Page-level `<h1>` is gone, `<PageHeader>` is present
+
+- GIVEN the page header at legacy lines 3–17 carried a page-level `<h1>`
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `ProcedureStatsAppShellTest::test_page_header_replaces_h1` asserts `<PageHeader` is present and `grep -n "<h1"` returns 0 matches in production code (HTML-comment stripping applied)
+- **Verdict at close: PASS**
+
+### Requirement: `EC-004` — `<UiEmptyState>` + `<UiSkeleton>` adoption
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.4.*
+
+The two ad-hoc empty `<div>` blocks (legacy lines 81 + 129) MUST be
+replaced with `<UiEmptyState title="Sin datos" description="No hay datos
+para el período seleccionado." />`. A loading skeleton block MUST be
+introduced (currently absent — the page rendered blank during fetch)
+mirroring the Dashboard pattern: 3 `<UiSkeleton variant="card">` for KPI
+counters + 6 `<UiSkeleton variant="list">` for table + specialty rows,
+all inside a wrapper carrying `aria-busy="true"` AND
+`aria-live="polite"`.
+
+#### Scenario: `EC-004-1` — Empty states and loading skeleton are primitive-driven
+
+- GIVEN the legacy code rendered two ad-hoc empty `<div>` blocks and no loading state
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `ProcedureStatsAppShellTest::test_loading_branch_renders_skeletons` asserts ≥3 `<UiSkeleton variant="card">` + ≥6 `<UiSkeleton variant="list">` + both aria attributes + ≥2 `<UiEmptyState>` blocks
+- **Verdict at close: PASS**
+
+### Requirement: `EC-005` — `formatPENLabel` swap on currency cells
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.5.*
+
+The inline `.toFixed(2)` calls at the two revenue cells (legacy line 117
+for table; legacy line 142 for specialty tile) MUST be replaced with
+`formatPENLabel` from `@/composables/useFormatters`. The `<script setup>`
+block MUST import `formatPENLabel` as the only additive change. The
+currency cells MUST emit the `S/` prefix via the formatter (not via
+inline `S/` concatenation).
+
+#### Scenario: `EC-005-1` — No inline `.toFixed(2)` remains on currency cells
+
+- GIVEN `formatPENLabel` exists at `resources/js/composables/useFormatters.js` (per PAGOS-MNY-002)
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `grep -n "toFixed(2)" resources/js/modules/procedure-catalog/ProcedureStatsPage.vue` returns zero matches
+- AND `<script setup>` declares `import { formatPENLabel } from '@/composables/useFormatters'`
+- AND `ProcedureStatsAppShellTest::test_format_pen_label_consumed` asserts both: the import exists AND no `.toFixed(2)` literal remains
+- **Verdict at close: PASS**
+
+### Requirement: `EC-006` — Tokenisation of `text-green-600` and raw red ramps
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.6.*
+
+The raw Tailwind classes MUST be replaced with the proven system ramps:
+`text-green-600` (legacy line 60, "Activos" KPI) → `text-systemGreen-600`;
+the raw red ramp `bg-red-50 border-red-200 text-red-700` (legacy line
+147, error banner) → `bg-systemRed-50 border-systemRed-200
+text-systemRed-700`.
+
+#### Scenario: `EC-006-1` — Raw green/red ramps are tokenised
+
+- GIVEN the "Activos" KPI carried `text-green-600` and the error banner carried raw red ramps
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `grep -nE "text-green-600|bg-red-50|border-red-200|text-red-700"` returns zero matches
+- AND `ProcedureStatsAppShellTest::test_no_raw_green_or_red_ramps` asserts the rule (negative regex with word-boundary lookarounds AND the tokenised ramp regex is present)
+- **Verdict at close: PASS**
+
+### Requirement: `EC-007` — Hairline borders on table + specialty tile
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.7.*
+
+The `border-theme` literals at legacy lines 85, 99, and 136 MUST be
+replaced with `border-[color:var(--color-hairline)]`. The specialty tile
+wrapper (legacy line 136) MUST use `rounded-[var(--radius-control)]`
+(8 px) for the corner radius AND `border-[color:var(--color-hairline)]`
+for the border.
+
+#### Scenario: `EC-007-1` — Legacy `border-theme` literals are gone, hairlines tokenised
+
+- GIVEN `border-theme` appears at lines 85, 99, and 136 (3 occurrences per category `explore.md` §1 file inventory)
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `grep -n "border-theme" resources/js/modules/procedure-catalog/ProcedureStatsPage.vue` returns zero matches (also enforced by the inherited `ModuleAppShellTestCase::test_no_legacy_border_theme_literal`)
+- AND the specialty tile wrapper carries `rounded-[var(--radius-control)]` AND `border-[color:var(--color-hairline)]`
+- AND `ProcedureStatsAppShellTest::test_specialty_tile_uses_hairline_and_radius_control` asserts both classes are present on the tile wrapper
+- **Verdict at close: PASS**
+
+### Requirement: `EC-008` — Inline role disclosure banner
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.8.*
+
+The page MUST render an inline role disclosure at the top: the visible
+text MUST read "Visible para: Administrador, Finanzas" (matching the
+`role:administrador,role:finanzas` middleware on `routes/api.php:189`).
+The disclosure MUST live inside a small `<div class="text-xs
+text-theme-secondary">` (NOT a `<UiStatusBadge>` — role disclosure is
+not a status pill, and `<RoleBanner>` primitive extraction is deferred
+until a second role-restricted module slice arrives, per OQ-EC-3). The
+disclosure MUST NOT block content layout (no full-width banner).
+
+#### Scenario: `EC-008-1` — Role disclosure is visible at page top
+
+- GIVEN the page is gated by the `administrador` and `finanzas` role middleware on `routes/api.php:189`
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `ProcedureStatsAppShellTest::test_role_disclosure_present` asserts the literal Spanish text (case-insensitive) AND the `text-xs text-theme-secondary` class-binding regex
+- **Verdict at close: PASS**
+
+### Requirement: `EC-009` — `tabular-nums` + `font-feature-settings` on 8 numeric elements
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/estadisticas-catalogo/spec.md` §2.9.*
+
+The standing numeric contract MUST be applied to every numeric element
+in the page: 3 KPI counters (Total procedimientos, Activos, Inactivos)
++ 3 table numerics (Usos, Cantidad total, Ingresos S/) + 2 specialty
+numerics (usos + S/) = 8 total. Each numeric element MUST carry BOTH the
+`tabular-nums` Tailwind utility class AND
+`style="font-feature-settings: var(--font-features-tabular-nums)"` —
+either alone is a contract violation (paired-only rule).
+
+#### Scenario: `EC-009-1` — All 8 numeric elements carry the paired tabular contract
+
+- GIVEN the standing contract requires `tabular-nums` AND `font-feature-settings: var(--font-features-tabular-nums)` together (per `DashboardAppShellTest::test_dashboard_stat_card_numbers_are_tabular_nums`)
+- WHEN `pr1-procedure-stats-tokenise-and-wire-up` lands
+- THEN `ProcedureStatsAppShellTest::test_tabular_nums_on_all_numerics` asserts ≥8 paired occurrences via lookahead regex AND ≥8 raw `tabular-nums` literals
+- AND any numeric element carrying one but not the other fails the test (paired-only rule)
+- **Verdict at close: PASS**
+
+---
+
+*End of promoted ESTADISTICAS-CATALOGO rows. Next category slice appends below.*
