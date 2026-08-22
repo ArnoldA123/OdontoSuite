@@ -63,6 +63,11 @@ class LegacyAliasForbiddenTest extends TestCase
      * Default polished file set: only the 2 PR0-touched files. Categories
      * override this via a per-test helper and append their module files.
      *
+     * PR-ambientes-01 extends the polished file set to include
+     * `EnvironmentsPage.vue` (the PR-ambientes-01 list page target).
+     * `EnvironmentDetailPage.vue` lands in PR-ambientes-02 with its own
+     * extension.
+     *
      * @return array<int, string>
      */
     private static function defaultPolishedFiles(): array
@@ -70,6 +75,13 @@ class LegacyAliasForbiddenTest extends TestCase
         return [
             self::projectRootStatic() . '/resources/js/components/ui/StatusBadge.vue',
             self::projectRootStatic() . '/resources/js/components/layout/AppLayout.vue',
+            // PR-ambientes-01 (DLR-AMB-005 / AMB-01-002..008): list page
+            // tokenisation. Pins that `bg-success-100`, `bg-warning-100`,
+            // `bg-primary-100`, `text-accent`, `text-red-600`,
+            // `hover:text-red-900`, `focus:ring-primary-500`,
+            // `focus:border-accent`, and `bg-black bg-opacity-50` legacy
+            // aliases are absent from the list page after the tokenisation.
+            self::projectRootStatic() . '/resources/js/modules/environments/EnvironmentsPage.vue',
         ];
     }
 

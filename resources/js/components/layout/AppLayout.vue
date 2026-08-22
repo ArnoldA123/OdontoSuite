@@ -554,7 +554,25 @@ const canvasRoutes = [
   '/settings/branches',
   '/settings/payment-methods'
 ]
-const isCanvasRoute = computed(() => canvasRoutes.includes(route.path))
+
+// PR-ambientes-01 (AMB-01-001 [BLOCKING]) — prefix-matching helper. The
+// legacy `isCanvasRoute` computed did an exact-match array membership
+// check; it missed 6 detail routes globally (`/environments/:id`,
+// `/patients/:id`, `/professionals/:id`, `/appointment-types/:id`,
+// `/procedure-catalog/:id`, plus auxiliary). Detail pages then rendered
+// on `bg-systemBackground` chrome instead of `bg-canvas`. The helper
+// uses `startsWith(route + '/')` so a path like `/environments/123`
+// returns `true` (matches `/environments`) but `/environments-archive`
+// returns `false` (no trailing `/` separator matches). This is the
+// load-bearing cross-cutting fix for the entire rollout — subsequent
+// category PRs MUST NOT touch `canvasRoutes` again.
+function matchesCanvasRoute(path) {
+  return canvasRoutes.some(
+    route => path === route || path.startsWith(route + '/')
+  )
+}
+
+const isCanvasRoute = computed(() => matchesCanvasRoute(route.path))
 
 // Notifications
 const { getUnreadCount } = useNotifications()

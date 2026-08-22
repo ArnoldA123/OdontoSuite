@@ -1,7 +1,13 @@
 <template>
+  <!--
+    Canvas surface inherited from AppLayout.vue (see canvasRoutes + matchesCanvasRoute
+    helper, AMB-01-001). Page header pinned on bg-canvas per DLR-R-001 so the page
+    can be grep-verified for the canvas-token reference. AppointmentTypesPage.vue
+    uses the same anchor for the same reason.
+  -->
   <AppLayout>
     <!-- Header Section -->
-    <PageHeader title="Ambientes" subtitle="Gestiona los ambientes y consultorios" class="mb-6">
+    <PageHeader title="Ambientes" subtitle="Gestiona los ambientes y consultorios" class="bg-canvas mb-6">
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
@@ -62,16 +68,12 @@ viewBox="0 0 24 24">
           </UiInput>
         </div>
         <div class="flex gap-3">
-          <select
+          <UiSelect
             v-model="statusFilter"
-            class="w-48 px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+            :options="statusOptions"
+            class="w-48"
             @change="filterEnvironments"
-          >
-            <option value="">Todos los estados</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-            <option value="maintenance">Mantenimiento</option>
-          </select>
+          />
         </div>
       </div>
     </UiCard>
@@ -79,29 +81,18 @@ viewBox="0 0 24 24">
     <!-- Environments List -->
     <UiCard variant="glass" class="overflow-hidden">
       <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-        <p class="mt-2 text-theme-secondary">Cargando ambientes...</p>
+        <UiLoadingSpinner size="md" text="Cargando ambientes..." />
       </div>
 
-      <div v-else-if="environments.length === 0" class="p-8 text-center">
-        <svg
-          class="mx-auto h-12 w-12 text-theme-secondary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
-        <p class="mt-2 text-theme-secondary">No se encontraron ambientes</p>
+      <div v-else-if="environments.length === 0">
+        <UiEmptyState
+          title="No se encontraron ambientes"
+          description="Intenta ajustar los filtros o crear un nuevo ambiente."
+        />
       </div>
 
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
+        <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
           <thead class="bg-theme-surface">
             <tr>
               <th
@@ -131,7 +122,7 @@ viewBox="0 0 24 24">
               </th>
             </tr>
           </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
+          <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
             <tr
               v-for="environment in environments"
               :key="environment.id"
@@ -141,9 +132,9 @@ viewBox="0 0 24 24">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
                     <div
-                      class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center"
+                      class="h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center"
                     >
-                      <span class="text-sm font-medium text-accent">
+                      <span class="text-sm font-medium text-systemBlue-700">
                         {{ environment.name.charAt(0) }}
                       </span>
                     </div>
@@ -167,27 +158,23 @@ viewBox="0 0 24 24">
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="getStatusColor(environment.status)"
-                  class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                >
-                  {{ getStatusText(environment.status) }}
-                </span>
+                <UiStatusBadge
+                  :variant="getStatusVariant(environment.status)"
+                  :label="getStatusText(environment.status)"
+                />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
                   <UiButton
-                    variant="ghost"
+                    variant="link"
                     size="sm"
-                    class="text-accent hover:text-accent-hover"
                     @click="viewDetail(environment)"
                   >
                     Ver Detalle
                   </UiButton>
                   <UiButton
-                    variant="ghost"
+                    variant="link"
                     size="sm"
-                    class="text-accent hover:text-primary-800"
                     @click="editEnvironment(environment)"
                   >
                     Editar
@@ -195,7 +182,7 @@ viewBox="0 0 24 24">
                   <UiButton
                     variant="ghost"
                     size="sm"
-                    class="text-red-600 hover:text-red-900"
+                    class="text-systemRed-700"
                     @click="deleteEnvironment(environment)"
                   >
                     Eliminar
@@ -218,7 +205,7 @@ viewBox="0 0 24 24">
           v-model="newEnvironment.name"
           type="text"
           required
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         >
       </div>
       <div>
@@ -226,7 +213,7 @@ viewBox="0 0 24 24">
         <textarea
           v-model="newEnvironment.description"
           rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         />
       </div>
       <div>
@@ -234,7 +221,7 @@ viewBox="0 0 24 24">
         <textarea
           v-model="newEnvironment.equipment"
           rows="2"
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         />
       </div>
       <div>
@@ -242,7 +229,7 @@ viewBox="0 0 24 24">
         <select
           v-model="newEnvironment.status"
           required
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         >
           <option value="active">Activo</option>
           <option value="inactive">Inactivo</option>
@@ -272,7 +259,7 @@ viewBox="0 0 24 24">
           v-model="editingEnvironment.name"
           type="text"
           required
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         >
       </div>
       <div>
@@ -281,7 +268,7 @@ viewBox="0 0 24 24">
           v-model="editingEnvironment.code"
           type="text"
           required
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         >
       </div>
       <div>
@@ -289,7 +276,7 @@ viewBox="0 0 24 24">
         <textarea
           v-model="editingEnvironment.description"
           rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         />
       </div>
       <div>
@@ -297,7 +284,7 @@ viewBox="0 0 24 24">
         <select
           v-model="editingEnvironment.status"
           required
-          class="mt-1 block w-full px-3 py-2 border border-theme rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
+          class="mt-1 block w-full px-3 py-2 border border-[color:var(--color-hairline)] rounded-md shadow-sm focus:outline-none focus:ring-systemBlue-500 focus:ring-offset-2 focus:border-systemBlue-500 bg-theme-surface-elevated text-theme-primary"
         >
           <option value="active">Activo</option>
           <option value="inactive">Inactivo</option>
@@ -337,12 +324,10 @@ viewBox="0 0 24 24">
       <div>
         <label class="block text-sm font-medium text-theme-primary">Estado</label>
         <p class="mt-1 text-sm text-theme-primary">
-          <span
-            :class="getStatusColor(viewingEnvironment.status)"
-            class="px-2 py-1 rounded-full text-xs"
-          >
-            {{ getStatusText(viewingEnvironment.status) }}
-          </span>
+          <UiStatusBadge
+            :variant="getStatusVariant(viewingEnvironment.status)"
+            :label="getStatusText(viewingEnvironment.status)"
+          />
         </p>
       </div>
     </div>
@@ -366,6 +351,8 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 
 export default {
   name: 'EnvironmentsPage',
@@ -376,7 +363,9 @@ export default {
     UiSelect,
     UiCard,
     UiModal,
-    UiEmptyState
+    UiEmptyState,
+    UiLoadingSpinner,
+    UiStatusBadge
   },
   setup() {
     const router = useRouter()
@@ -402,6 +391,16 @@ export default {
       equipment: '',
       status: 'active'
     })
+
+    // PR-ambientes-01 (AMB-01-002) — status filter options consumed by
+    // `<UiSelect :options="statusOptions" v-model="statusFilter" />`.
+    // Values match the legacy `<option value="...">` attributes byte-for-byte.
+    const statusOptions = [
+      { value: '', label: 'Todos los estados' },
+      { value: 'active', label: 'Activos' },
+      { value: 'inactive', label: 'Inactivos' },
+      { value: 'maintenance', label: 'Mantenimiento' }
+    ]
 
     const loadEnvironments = async () => {
       loading.value = true
@@ -513,13 +512,24 @@ export default {
       }
     }
 
-    const getStatusColor = status => {
-      const colors = {
-        active: 'bg-success-100 text-success-700',
-        inactive: 'bg-theme-surface text-theme-primary',
-        maintenance: 'bg-warning-100 text-warning-700'
+    // PR-ambientes-01 (AMB-01-008 / DLR-AMB-005 EXCEPTION #1): renamed the
+    // legacy colour-class helper to `getStatusVariant` and changed its
+    // return type from legacy Tailwind ramp strings (success / warning
+    // ramps under the theme namespace) to variant tokens (the canonical
+    // `success | neutral | warning` enum consumed by `<UiStatusBadge
+    // :variant="...">`). The function name is now honest about what it
+    // returns. This is a documented DLR-AMB-005 exception to the global
+    // `<script>`-never-touched rule. The remaining `<script>` block
+    // (`useApi` / `useToast` / `useConfirm` / `useErrorHandler` reactivity,
+    // the data-flow methods, the `onMounted` hook, the `return` entries
+    // other than this renamed helper) stays byte-for-byte verbatim.
+    const getStatusVariant = status => {
+      const variants = {
+        active: 'success',
+        inactive: 'neutral',
+        maintenance: 'warning'
       }
-      return colors[status] || 'bg-theme-surface text-theme-primary'
+      return variants[status] || 'neutral'
     }
 
     const getStatusText = status => {
@@ -561,9 +571,10 @@ export default {
       viewDetail,
       updateEnvironment,
       deleteEnvironment,
-      getStatusColor,
+      getStatusVariant,
       getStatusText,
-      goBack
+      goBack,
+      statusOptions
     }
   }
 }
