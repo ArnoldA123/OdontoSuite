@@ -1444,3 +1444,340 @@ ramps live in the change-diff block under each audit log row.
 ---
 
 *End of promoted TIPOS-CITA rows. Next category slice appends below.*
+
+## Ambientes Rollout — 2026-08-21 (AMBIENTES category closed — FINAL Lote 1)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(ambientes category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-21-ui-ambientes/spec.md`.
+Verify verdict at close: **PASS WITH WARNINGS** — 15/15 AMB-* MUSTs
+satisfied at static-contract + runtime level across 2 chained PRs
+(`3cd0f30` feat + `f005708` feat + `653bdf8` and `3a587b3` housekeeping).
+**This is the FINAL Lote 1 category** — Lote 1 (5 categories:
+recepcion-procedimientos, mis-procedimientos, estadisticas-catalogo,
+tipos-cita, ambientes) is now closed. The BLOCKING `canvasRoutes`
+detail-route fix in `AMB-01-001` is load-bearing for the entire
+rollout: 1 `matchesCanvasRoute(path)` helper at
+`AppLayout.vue:569-573` covers 6 detail routes globally
+(`/environments/:id`, `/patients/:id`, `/professionals/:id`,
+`/appointment-types/:id`, `/procedure-catalog/:id`, plus auxiliary).
+Subsequent category PRs MUST NOT touch `canvasRoutes` again — the
+fix is locked at this PR.
+
+### Requirement: `AMB-01-001` [BLOCKING] — `canvasRoutes` MUST match detail routes via prefix
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST add a `matchesCanvasRoute(path)` helper to
+`resources/js/components/layout/AppLayout.vue`. The helper MUST use
+`startsWith` matching: `path === route || path.startsWith(route + '/')`.
+The `isCanvasRoute` computed MUST delegate to the helper. The
+`AppLayoutCanvasRoutesTest::test_each_expected_route_is_in_canvas_routes`
+literal-array test MUST be REPLACED with a prefix-matching assertion
+that asserts `matchesCanvasRoute('/environments/123')` returns `true`.
+The 6 detail routes (`/environments/:id`, `/patients/:id`,
+`/professionals/:id`, `/appointment-types/:id`,
+`/procedure-catalog/:id`, plus auxiliary) MUST get the fix for free;
+subsequent category PRs MUST NOT touch `canvasRoutes` again.
+**This is the load-bearing cross-cutting fix of the entire rollout.**
+
+#### Scenario: `AMB-01-001-1` — Detail route matches via prefix
+
+- GIVEN `AppLayout.vue` line 537 lists `/environments` but NOT `/environments/:id`
+- WHEN PR-ambientes-01 lands
+- THEN `matchesCanvasRoute('/environments')` returns `true`
+- AND `matchesCanvasRoute('/environments/123')` returns `true`
+- AND `matchesCanvasRoute('/environments-archive')` returns `false` (over-match guard)
+- AND `EnvironmentsCanvasRoutesPrefixTest::test_canvas_routes_matches_detail_via_starts_with` asserts the rule across 9 path scenarios
+- AND `git grep -nE 'canvasRoutes\.includes\(route\.path\)' resources/js/components/layout/AppLayout.vue` returns zero matches (exact-match check is gone)
+- AND `AppLayout.vue:569-573` defines the helper; line 575 delegates `isCanvasRoute` to it
+- **Verdict at close: PASS — BLOCKING FIX DELIVERED** (helper covers 6 detail routes globally)
+
+### Requirement: `AMB-01-002` — Status filter MUST use `<UiSelect>` primitive
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace the raw `<select>` status filter on
+`EnvironmentsPage.vue` line 65 (legacy class string
+`border border-theme rounded-lg focus:ring-2 focus:ring-primary-500
+focus:border-accent bg-theme-surface-elevated text-theme-primary`) with
+`<UiSelect :options="statusOptions" v-model="statusFilter">`. All 4
+options (`Todos los estados` / `Activos` / `Inactivos` /
+`Mantenimiento`) MUST keep their `value` attributes byte-for-byte.
+
+#### Scenario: `AMB-01-002-1` — Status filter consumes UiSelect
+
+- GIVEN the status filter renders 4 options from the legacy alias string
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_status_filter_uses_ui_select` asserts `<UiSelect>` reference present + raw `<select class="border-theme">` absent
+- AND `LegacyAliasForbiddenTest` (extended) returns zero matches for `border-theme` + `focus:ring-primary-500` + `focus:border-accent` on the list page
+- AND `EnvironmentsPage.vue:71-74` consumes `<UiSelect :options="statusOptions">`; `statusOptions` array literal at line 371
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-003` — Table dividers MUST consume hairline token
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace `divide-y divide-theme` (lines 104 + 134) with
+`divide-y divide-[color:var(--color-hairline)]` on the environments
+table. The `<thead>` and `<tbody>` MUST both consume the hairline.
+
+#### Scenario: `AMB-01-003-1` — Hairline divides table rows
+
+- GIVEN the table renders a `divide-y` row separator
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_table_dividers_use_hairline` asserts `--color-hairline` reference present + `divide-theme` absent
+- AND `git grep -nE 'divide-theme' resources/js/modules/environments/EnvironmentsPage.vue` returns zero matches
+- AND `EnvironmentsPage.vue:95` + 125 consume `divide-[color:var(--color-hairline)]`
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-004` — Row avatar MUST consume systemBlue ramps
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace `bg-primary-100` + `text-accent` on the row
+avatar (lines 144 + 146) with `bg-systemBlue-50` + `text-systemBlue-700`.
+The legacy `text-accent` is a forbidden alias that MUST be removed.
+
+#### Scenario: `AMB-01-004-1` — Row avatar is tokenised systemBlue
+
+- GIVEN the row avatar uses the legacy accent ramp
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_row_avatar_uses_system_blue` asserts `bg-systemBlue-50` + `text-systemBlue-700` references present + `bg-primary-100` + `text-accent` absent
+- AND `EnvironmentsPage.vue:135` consumes `bg-systemBlue-50`
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-005` — Action link buttons MUST consume `<UiButton variant="link/ghost">`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace the three action links (`Ver Detalle` line 179,
+`Editar` line 187, `Eliminar` line 195) with `<UiButton variant="link">`
+for Ver/Editar and `<UiButton variant="ghost">` for Eliminar. The
+`text-red-600 hover:text-red-900` raw Tailwind on Eliminar MUST be
+replaced by `text-systemRed-700`. The legacy `text-accent
+hover:text-accent-hover` + `text-accent hover:text-primary-800` MUST
+be removed.
+
+#### Scenario: `AMB-01-005-1` — Action buttons consume UiButton variants
+
+- GIVEN the 3 action buttons use raw class strings on top of `<UiButton>`
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_action_buttons_use_ui_button_variants` asserts the rule (`variant="link"` on Ver/Editar, `variant="ghost"` on Eliminar, `text-accent` + `hover:text-accent-hover` + `text-red-600` + `hover:text-red-900` absent)
+- AND `EnvironmentsPage.vue` lines 169, 176 use `variant=link`; lines 183, 185 use `variant=ghost` + `text-systemRed-700`
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-006` — Loading spinner MUST consume `<UiLoadingSpinner>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace the raw `inline-block animate-spin rounded-full
+h-8 w-8 border-b-2 border-accent` spinner on line 82 with
+`<UiLoadingSpinner size="md">`. The `border-accent` legacy alias MUST be
+removed.
+
+#### Scenario: `AMB-01-006-1` — Loading spinner consumes UiLoadingSpinner
+
+- GIVEN the list page renders a hand-rolled spinner while loading
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_loading_spinner_uses_ui_component` asserts `<UiLoadingSpinner>` reference present + `animate-spin rounded-full` + `border-b-2` absent
+- AND `EnvironmentsPage.vue:84` consumes `<UiLoadingSpinner size="md">`; import at line 325
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-007` — Empty state MUST consume `<UiEmptyState>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace the hand-rolled `<svg>` + `<p>` empty state
+(lines 86–101) with
+`<UiEmptyState title="No se encontraron ambientes" description="Intenta ajustar los filtros o crear un nuevo ambiente." />`.
+The legacy 7-line SVG path + `text-theme-secondary` literal MUST be
+removed.
+
+#### Scenario: `AMB-01-007-1` — Empty state consumes UiEmptyState
+
+- GIVEN the list page renders a hand-rolled empty state when `environments.length === 0`
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsAppShellTest::test_empty_state_uses_ui_component` asserts `<UiEmptyState>` reference present + the 7-line SVG path absent
+- AND `EnvironmentsPage.vue:88` consumes `<UiEmptyState>`; the dormant `UiEmptyState` import is wired (consumed dead import per citas precedent)
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-01-008` — Status pill MUST consume `<UiStatusBadge>` + `getStatusVariant` helper
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §2.*
+
+The system MUST replace the `<span :class="getStatusColor(...)">` status
+pill on line 170 with
+`<UiStatusBadge :variant="getStatusVariant(environment.status)" :label="getStatusText(environment.status)" />`.
+The `getStatusColor` helper on line 516 MUST be renamed to
+`getStatusVariant` and its return values MUST change from legacy colour
+class strings (`bg-success-100 text-success-700`, etc.) to variant
+tokens (`success | neutral | warning`). This is the FIRST documented
+DLR-AMB-005 exception (see AMB-02-001 for the spec row). The
+`getStatusText` helper MUST stay byte-for-byte (no rename, no change).
+
+#### Scenario: `AMB-01-008-1` — Status pill consumes UiStatusBadge + variant token
+
+- GIVEN the status pill on each table row uses legacy colour class strings
+- WHEN PR-ambientes-01 lands
+- THEN `EnvironmentsStatusBadgeTest::test_status_pill_uses_ui_status_badge` asserts `<UiStatusBadge>` reference present + `bg-success-100` + `bg-warning-100` + `bg-theme-surface text-theme-primary` absent
+- AND `EnvironmentsStatusBadgeTest::test_get_status_variant_returns_tokens` asserts `getStatusVariant('active')` returns `'success'`, `getStatusVariant('inactive')` returns `'neutral'`, `getStatusVariant('maintenance')` returns `'warning'`
+- AND `EnvironmentsPage.vue:161-162` consumes `<UiStatusBadge :variant=getStatusVariant(...)>`; helper renamed at line 499
+- **Verdict at close: PASS — DLR-AMB-005 EXCEPTION #1 APPLIED** (rename + token return)
+
+### Requirement: `AMB-02-001` [DLR-AMB-005 EXCEPTION #1] — `getStatusColor` MUST be renamed to `getStatusVariant`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST rename the `getStatusColor` function on
+`EnvironmentsPage.vue` line 516 to `getStatusVariant` and MUST update
+the return values from legacy colour class strings (`bg-success-100
+text-success-700`, etc.) to variant tokens
+(`success | neutral | warning`). This is a DOCUMENTED EXCEPTION to the
+global `<script>`-never-touched rule. The function is 1 line, the
+behaviour change is zero (call sites already expect a variant token
+after AMB-01-008 lands). The remaining `<script>` block of
+`EnvironmentsPage.vue` MUST stay byte-for-byte preserved (all
+`useApi` / `useToast` / `useConfirm` / `useErrorHandler` calls, the
+`loadEnvironments` / `searchEnvironments` / `createEnvironment` /
+`updateEnvironment` / `deleteEnvironment` flows, the `onMounted` hook,
+and the `return` statement's other entries stay verbatim).
+
+#### Scenario: `AMB-02-001-1` — Rename is mechanical, zero drift
+
+- GIVEN the helper is renamed + return values updated
+- WHEN PR-ambientes-01 lands (carry)
+- THEN `EnvironmentsStatusBadgeTest::test_get_status_variant_returns_tokens` pins the variant tokens
+- AND `git diff --stat` on `<script>` blocks of `EnvironmentsPage.vue` shows <= 2 lines changed (the `const getStatusColor` → `const getStatusVariant` line + the body line)
+- AND no other `<script>` lines are touched (the `useApi` / `useToast` / `useConfirm` / `useErrorHandler` reactivity stays verbatim)
+- **Verdict at close: PASS — DLR-AMB-005 EXCEPTION #1 APPLIED** (1-line rename; closed in commit `3cd0f30`)
+
+### Requirement: `AMB-02-002` [DLR-AMB-005 EXCEPTION #2] — `getAuditActionVariant` MUST map `'secondary'` to `'neutral'`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST update the `getAuditActionVariant` helper on
+`EnvironmentDetailPage.vue` line 339 from `return 'secondary'` to
+`return 'neutral'`. This is a DOCUMENTED EXCEPTION to the global
+`<script>`-never-touched rule. The change is 1 line, the `<UiBadge>`
+validation requires a legal variant (`'secondary'` is not in the enum),
+and the audit action badge currently renders blank without this fix.
+The remaining `<script>` block of `EnvironmentDetailPage.vue` MUST stay
+byte-for-byte preserved (the `useAuditLogs.getDentalChairAuditLogs`
+call, the `onMounted` hook, the `watch(activeTab, ...)` reactivity, and
+all `useApi` / `useToast` calls stay verbatim).
+
+#### Scenario: `AMB-02-002-1` — Mapping is load-bearing
+
+- GIVEN the audit action badge renders with no variant when `'secondary'` is returned
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsAppShellTest::test_audit_action_badge_uses_legal_variant` asserts the rule (`'neutral'` returned, `'secondary'` absent)
+- AND `git diff --stat` on `<script>` blocks of `EnvironmentDetailPage.vue` shows <= 1 line changed
+- AND `<UiBadge :variant="getAuditActionVariant(log.action)">` now renders with a visible background ramp
+- AND `EnvironmentDetailPage.vue:328` declares helper; line 332 returns `'neutral'` (verified)
+- **Verdict at close: PASS — DLR-AMB-005 EXCEPTION #2 APPLIED** (1-line mapping; closed in commit `f005708`)
+
+### Requirement: `AMB-02-003` — 2-tab drawer MUST consume `<UiTabs v-model="activeTab">`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST replace the raw tab strip on `EnvironmentDetailPage.vue`
+line 70 (`border-b border-theme` + line 77 `border-accent text-accent`
++ line 78 `border-transparent text-theme-secondary
+hover:text-theme-primary hover:border-theme`) with
+`<UiTabs v-model="activeTab" :tabs="tabs">`. The 2 tabs (`Datos` /
+`Historial de auditoría`) MUST keep their labels + click handlers
+byte-for-byte. The transitions MUST consume
+`var(--motion-duration-fast) var(--motion-easing-ios)`.
+
+#### Scenario: `AMB-02-003-1` — Tabs use UiTabs primitive
+
+- GIVEN the detail page renders a hand-rolled 2-tab drawer
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsAppShellTest::test_tabs_use_ui_tabs` asserts `<UiTabs>` reference present + raw `border-accent text-accent` active indicator absent
+- AND `git grep -nE 'border-accent text-accent' resources/js/modules/environments/EnvironmentDetailPage.vue` returns zero matches
+- AND `EnvironmentDetailPage.vue:78` consumes `<UiTabs>`; import line 229; tabs data shape renamed `name` → `label`
+- AND the `activeTab` ref interaction (Datos → loadChair, Historial → loadAuditLogs) is preserved verbatim via `<UiTabs v-model>`
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-02-004` — Header avatar MUST be flat systemBlue (no gradients)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST replace the `bg-gradient-accent` header avatar on
+`EnvironmentDetailPage.vue` line 30 with
+`bg-systemBlue-50 rounded-[var(--radius-card-lg)]`. Global §11 forbids
+gradients; `bg-gradient-*` is the load-bearing violation. **CRITICAL:
+the forbidden `bg-gradient-*` is removed.**
+
+#### Scenario: `AMB-02-004-1` — Gradient is removed, flat ramp applied
+
+- GIVEN the header avatar currently uses a forbidden gradient
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsAppShellTest::test_no_gradient_class` asserts the rule (`bg-gradient-*` absent, `bg-systemBlue-50` + `rounded-[var(--radius-card-lg)]` present)
+- AND `EnvironmentDetailPage.vue:33` uses `bg-systemBlue-50 rounded-[var(--radius-card-lg)]`; zero `bg-gradient-*`
+- AND `PageHeader` gained `bg-canvas mb-6` (line 28)
+- **Verdict at close: PASS — CRITICAL `bg-gradient` REMOVED**
+
+### Requirement: `AMB-02-005` — Audit log empty state MUST consume `<UiEmptyState>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST replace the hand-rolled `bg-gradient-to-br` empty
+state on `EnvironmentDetailPage.vue` lines 147–167 with
+`<UiEmptyState title="No hay historial de auditoría" description="Los cambios en este ambiente aparecerán aquí." />`.
+The forbidden `bg-gradient-to-br` MUST be removed.
+
+#### Scenario: `AMB-02-005-1` — Audit empty state uses UiEmptyState
+
+- GIVEN the audit log tab renders a hand-rolled gradient empty state
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsAppShellTest::test_audit_empty_state_uses_ui_component` asserts `<UiEmptyState>` reference present + `bg-gradient-to-br` absent
+- AND `EnvironmentDetailPage.vue:139-142` consumes `<UiEmptyState>`; import line 230
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-02-006` — Audit log card MUST consume `<UiCard variant="glass">`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST replace the legacy `border border-theme rounded-lg p-4
+hover:bg-theme-surface transition-colors` audit log item wrapper
+(line 172) with `<UiCard variant="glass">`. The change-diff callout
+`border-l-2 border-theme` (line 198) MUST consume a hairline token.
+
+#### Scenario: `AMB-02-006-1` — Audit log items consume UiCard + hairline
+
+- GIVEN the audit log renders a hand-rolled card per entry
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsAppShellTest::test_audit_log_uses_ui_card` asserts `<UiCard variant="glass">` reference present + `border-theme rounded-lg p-4` legacy class absent
+- AND `EnvironmentsAppShellTest::test_change_diff_callout_uses_hairline` asserts `border-l-2 border-[color:var(--color-hairline)]` present + `border-l-2 border-theme` absent
+- AND `EnvironmentDetailPage.vue` lines 28, 85, 130, 148 use `<UiCard variant="glass">`; line 177 change-diff uses `border-l-2 border-[color:var(--color-hairline)]`
+- **Verdict at close: PASS**
+
+### Requirement: `AMB-02-007` — 3 inlined modals MUST migrate 9 raw form fields to primitives
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/ambientes/spec.md` §3.*
+
+The system MUST replace the 9 raw form fields across the 3 inlined
+modals in `EnvironmentsPage.vue` with the canonical `<UiInput>` /
+`<UiTextarea>` / `<UiSelect>` primitives. Migration counts:
+`<UiInput>` × 3 (name in New + name + code in Edit),
+`<UiTextarea>` × 4 (description + equipment in New, description in Edit
++ 1 buffer — see explore.md §2.2 row New + Edit counts), `<UiSelect>`
+× 2 (status in New + status in Edit). The `v-model` bindings +
+`required` attributes MUST stay byte-for-byte. The View modal status
+pill (line 340) MUST consume `<UiBadge>`.
+
+#### Scenario: `AMB-02-007-1` — 9 raw fields → 9 primitives
+
+- GIVEN 3 inlined modals (New / Edit / View) carry raw `<input>` / `<textarea>` / `<select>` with legacy focus chrome
+- WHEN PR-ambientes-02 lands
+- THEN `EnvironmentsModalChromeTest::test_modals_use_ui_form_primitives` asserts the rule per modal (`<UiInput>` / `<UiTextarea>` / `<UiSelect>` present, raw `<input>` + `<textarea>` + `<select>` absent in modal sections lines 213–352)
+- AND every `v-model=` binding remains present byte-for-byte (asserted via grep)
+- AND the View modal renders `<UiBadge>` for the status pill (not raw `<span>` with legacy class)
+- AND `EnvironmentsPage.vue` New modal lines 204, 209, 214, 219 consume `<UiInput>` + `<UiTextarea>` x2 + `<UiSelect>`; Edit modal lines 244, 249, 254, 259 consume `<UiInput>` x2 + `<UiTextarea>` + `<UiSelect>`; View modal lines 298-299 consume `<UiStatusBadge>`
+- **Verdict at close: PASS**
+
+---
+
+*End of promoted AMBIENTES rows. Lote 1 closed — 5 categories archived (recepcion-procedimientos, mis-procedimientos, estadisticas-catalogo, tipos-cita, ambientes). The global `canvasRoutes` detail-route fix is now load-bearing for the entire rollout. Next: Lote 2 categories append below.*
