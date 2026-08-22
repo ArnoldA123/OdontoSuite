@@ -82,26 +82,14 @@ viewBox="0 0 24 24">
     <!-- Types List -->
     <UiCard variant="glass" class="overflow-hidden">
       <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-        <p class="mt-2 text-theme-secondary">Cargando tipos de cita...</p>
+        <LoadingSpinner class="inline-block" text="Cargando tipos de cita..." />
       </div>
 
-      <div v-else-if="types.length === 0" class="p-8 text-center">
-        <svg
-          class="mx-auto h-12 w-12 text-theme-secondary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-          />
-        </svg>
-        <p class="mt-2 text-theme-secondary">No se encontraron tipos de cita</p>
-      </div>
+      <UiEmptyState
+        v-else-if="types.length === 0"
+        title="No se encontraron tipos de cita"
+        description="Crea el primer tipo de cita para empezar."
+      />
 
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-hairline">
@@ -225,45 +213,33 @@ viewBox="0 0 24 24">
   <!-- New Type Modal -->
   <UiModal v-model="showNewTypeModal" title="Nuevo Tipo de Cita" size="md">
     <form id="form-new-type" class="space-y-4" @submit.prevent="createType">
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre del Tipo</label>
-        <input
-          v-model="newType.name"
-          type="text"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <textarea
-          v-model="newType.description"
-          rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
-        <input
-          v-model="newType.duration_minutes"
-          type="number"
-          min="15"
-          max="480"
-          step="15"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Precio (S/)</label>
-        <input
-          v-model="newType.price"
-          type="number"
-          min="0"
-          step="0.01"
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
+      <UiInput
+        v-model="newType.name"
+        label="Nombre del Tipo"
+        type="text"
+        required
+      />
+      <UiTextarea
+        v-model="newType.description"
+        label="Descripción"
+        :rows="3"
+      />
+      <UiInput
+        v-model="newType.duration_minutes"
+        label="Duración (minutos)"
+        type="number"
+        min="15"
+        max="480"
+        step="15"
+        required
+      />
+      <UiInput
+        v-model="newType.price"
+        label="Precio (S/)"
+        type="number"
+        min="0"
+        step="0.01"
+      />
       <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
         <div class="flex items-center space-x-2">
@@ -272,11 +248,12 @@ viewBox="0 0 24 24">
             type="color"
             class="w-12 h-8 border border-hairline rounded"
           >
-          <input
+          <UiInput
             v-model="newType.color"
+            label="Código hex"
             type="text"
             placeholder="#0066CC"
-            class="flex-1 px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
+            class="flex-1"
           />
         </div>
       </div>
@@ -292,46 +269,34 @@ viewBox="0 0 24 24">
   <!-- Edit Type Modal -->
   <UiModal v-model="showEditTypeModal" title="Editar Tipo de Cita" size="md">
     <form v-if="editingType" id="form-edit-type" class="space-y-4" @submit.prevent="updateType">
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-        <input
-          v-model="editingType.name"
-          type="text"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <textarea
-          v-model="editingType.description"
-          rows="3"
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Duración (minutos)</label>
-        <input
-          v-model="editingType.duration_minutes"
-          type="number"
-          min="15"
-          max="480"
-          step="15"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Precio</label>
-        <input
-          v-model="editingType.price"
-          type="number"
-          min="0"
-          step="0.01"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        >
-      </div>
+      <UiInput
+        v-model="editingType.name"
+        label="Nombre"
+        type="text"
+        required
+      />
+      <UiTextarea
+        v-model="editingType.description"
+        label="Descripción"
+        :rows="3"
+      />
+      <UiInput
+        v-model="editingType.duration_minutes"
+        label="Duración (minutos)"
+        type="number"
+        min="15"
+        max="480"
+        step="15"
+        required
+      />
+      <UiInput
+        v-model="editingType.price"
+        label="Precio"
+        type="number"
+        min="0"
+        step="0.01"
+        required
+      />
       <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
         <input
@@ -425,6 +390,7 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiTextarea from '../../components/ui/UiTextarea.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 
 export default {
@@ -437,6 +403,7 @@ export default {
     UiCard,
     UiModal,
     UiEmptyState,
+    UiTextarea,
     UiStatusBadge
   },
   setup() {
