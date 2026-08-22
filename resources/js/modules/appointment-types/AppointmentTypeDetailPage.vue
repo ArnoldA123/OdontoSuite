@@ -79,30 +79,14 @@ viewBox="0 0 24 24">
       </div>
     </UiCard>
 
-    <!-- Tabs Navigation -->
-    <div class="mb-6">
-      <nav class="flex space-x-8 border-b border-hairline">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          class="py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200"
-          :class="[
-            activeTab === tab.id
-              ? 'border-systemBlue-500 text-systemBlue-600'
-              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-hairline'
-          ]"
-          @click="activeTab = tab.id"
-        >
-          <component :is="tab.icon" class="w-4 h-4 inline mr-2" />
-          {{ tab.name }}
-        </button>
-      </nav>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="tab-content">
+    <!-- Tabs Navigation (TIPOS-02-001) — raw <button> step strip replaced
+         with <UiTabs> primitive. The variant="underline" of Tabs.vue
+         paints `text-systemBlue-600 border-systemBlue-500` for the active
+         indicator — owned by the primitive, no hand-rolled classes here. -->
+    <UiTabs v-model="activeTab" :tabs="tabs" class="mb-6">
+      <template #data>
       <!-- Datos del Tipo de Cita -->
-      <div v-if="activeTab === 'data'" class="space-y-6">
+      <div class="space-y-6">
         <UiCard variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">
             Información del Tipo de Cita
@@ -151,45 +135,38 @@ viewBox="0 0 24 24">
           </div>
         </UiCard>
       </div>
+      </template>
 
+      <template #audit>
       <!-- Historial de Auditoría -->
-      <div v-if="activeTab === 'audit'" class="space-y-6">
+      <div class="space-y-6">
         <UiCard variant="glass">
           <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
-          <div v-if="auditLogsLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
+          <!-- TIPOS-02-005 (audit spinner) — hand-rolled animate-spin
+               replaced with the canonical <LoadingSpinner> primitive. -->
+          <div v-if="auditLogsLoading" class="p-8">
+            <LoadingSpinner text="Cargando historial de auditoría..." />
+          </div>
+          <!-- TIPOS-02-002 + TIPOS-02-003 — hand-rolled audit empty state
+               WITH the forbidden gradient-to-br gradient (line 167 pre-PR)
+               replaced with the canonical <UiEmptyState> primitive. The
+               gradient removal is the load-bearing CRITICAL fix for
+               global guard rail #10. -->
+          <div v-else-if="auditLogs.length === 0" class="p-8">
+            <UiEmptyState
+              title="No hay historial de auditoría"
+              description="Este tipo de cita no tiene registros de auditoría."
             />
-            <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
           </div>
-          <div v-else-if="auditLogs.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
-              No hay historial de auditoría
-            </h3>
-            <p class="text-theme-secondary">Este tipo de cita no tiene registros de auditoría.</p>
-          </div>
+          <!-- TIPOS-02-004 — each audit log row wrapped in <UiCard
+               variant="glass"> with the canonical `space-y-4` parent
+               (pacientes precedent). -->
           <div v-else class="space-y-4">
-            <div
+            <UiCard
               v-for="log in auditLogs"
               :key="log.id"
-              class="border border-hairline rounded-lg p-4 hover:bg-theme-surface transition-colors"
+              variant="glass"
+              class="hover:bg-theme-surface transition-colors"
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
@@ -220,13 +197,16 @@ viewBox="0 0 24 24">
                         class="pl-2 border-l-2 border-hairline"
                       >
                         <p class="font-medium text-theme-primary">{{ change.field }}:</p>
+                        <!-- TIPOS-02-005 (system ramps) — raw Tailwind
+                             red-500 / green-500 colour ramps replaced with
+                             token-aligned Apple-language ramps. -->
                         <p class="text-xs">
                           De:
-                          <span class="text-red-500">{{ change.old }}</span>
+                          <span class="text-systemRed-600">{{ change.old }}</span>
                         </p>
                         <p class="text-xs">
                           A:
-                          <span class="text-green-500">{{ change.new }}</span>
+                          <span class="text-systemGreen-600">{{ change.new }}</span>
                         </p>
                       </div>
                     </div>
@@ -248,11 +228,12 @@ Sin cambios registrados
                   </div>
                 </div>
               </div>
-            </div>
+            </UiCard>
           </div>
         </UiCard>
       </div>
-    </div>
+      </template>
+    </UiTabs>
   </AppLayout>
 </template>
 
@@ -267,6 +248,8 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import UiTabs from '../../components/ui/Tabs.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'AppointmentTypeDetailPage',
@@ -274,7 +257,9 @@ export default {
     AppLayout,
     UiCard,
     UiButton,
-    UiStatusBadge
+    UiStatusBadge,
+    UiTabs,
+    UiEmptyState
   },
   setup() {
     const route = useRoute()
@@ -310,16 +295,18 @@ export default {
       `
     }
 
-    // Tabs configuration
+    // Tabs configuration — TIPOS-02-001 data-layer rename: `name` → `label`
+    // per `Tabs.vue:78` validator (`tab.label` is required, `tab.name` is
+    // not recognised). `id` + `icon` stay verbatim.
     const tabs = [
       {
         id: 'data',
-        name: 'Datos',
+        label: 'Datos',
         icon: CalendarIcon
       },
       {
         id: 'audit',
-        name: 'Historial',
+        label: 'Historial',
         icon: ClockIcon
       }
     ]

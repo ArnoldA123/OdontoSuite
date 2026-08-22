@@ -3,7 +3,7 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * PR-citas-04 — AppointmentTypesAppShellTest.
+ * PR-citas-04 + PR-tipos-02 — AppointmentTypesAppShellTest.
  *
  * Asserts CITAS-AT-001 (admin CRUD triplet uses Ui primitives + canonical
  * formatCurrency) for the two `appointment-types` module pages:
@@ -16,14 +16,19 @@ namespace Tests\Unit\DesignSystem;
  * The base class `ModuleAppShellTestCase` enforces the 5 inherited DLR-R
  * rules (canvas token, no `border-theme`, focus ring, no `<style scoped>`,
  * no legacy focus-ring aliases) via `polishedFileProvider()`. This subclass
- * adds the 4 PR-citas-04-only rule assertions below.
+ * adds 7 PR-citas-04 rule assertions (filter bar + formatCurrency + status
+ * pills + focus-ring + tabular-nums + no style scoped + useApi ownership)
+ * plus 3 PR-tipos-02 rule assertions (UiTabs + no gradient [CRITICAL] +
+ * system ramps for audit diff).
  *
  * Per CITAS-CON-001, the `<script>` blocks of both files are preserved
  * byte-for-byte except for the additive `formatCurrency` import (mandated
- * by PR-pagos-05 / CITAS-AT-001). The reactivity (`useApi` ownership of
- * the 401 redirect path, `useToast`, `useConfirm`, `useAuditLogs`, the
- * `loadTypes` / `loadAppointmentType` / `createType` / `updateType` /
- * `deleteType` flows, the `useRouter` `goBack` handler) stays untouched.
+ * by PR-pagos-05 / CITAS-AT-001) and the `tabs` array literal `name` →
+ * `label` rename (mandated by PR-tipos-02 / `Tabs.vue:78` validator).
+ * The reactivity (`useApi` ownership of the 401 redirect path,
+ * `useToast`, `useConfirm`, `useAuditLogs`, the `loadTypes` /
+ * `loadAppointmentType` / `createType` / `updateType` / `deleteType`
+ * flows, the `useRouter` `goBack` handler) stays untouched.
  *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
@@ -394,6 +399,185 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 '%s MUST keep the `useApi` import (CITAS-CON-001). '
                 . '`useApi` owns the 401 redirect contract; the page MUST NOT bypass it.',
                 $listPath
+            )
+        );
+    }
+
+    /**
+     * TIPOS-02-001 — the detail page tab nav (lines 84-100) MUST consume
+     * `<UiTabs>` (NOT a raw `<button>` step strip). The raw buttons
+     * carried a custom `border-systemBlue-500 text-systemBlue-600`
+     * active indicator that violated the primitive contract.
+     *
+     * POSITIVE rule: `<UiTabs` reference present + `tabs` array literal
+     * uses `label` field (NOT `name`) per `Tabs.vue:78` validator.
+     *
+     * NEGATIVE rule: zero raw `<button>` elements with the legacy
+     * `border-systemBlue-500 text-systemBlue-600` active indicator
+     * classes inside the tab nav region.
+     */
+    public function test_detail_uses_ui_tabs_for_tab_nav(): void
+    {
+        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailSrc = self::readSource($detailPath);
+        $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
+
+        // POSITIVE: `<UiTabs` reference present (verifies the primitive
+        // adoption).
+        $this->assertTrue(
+            (bool) preg_match('#<UiTabs\b#', $detailSrc),
+            sprintf(
+                '%s MUST consume <UiTabs> for the tab navigation strip (TIPOS-02-001). '
+                . 'Replace the raw `<button>` step strip on lines 84-100.',
+                $detailPath
+            )
+        );
+
+        // POSITIVE: `tabs` array literal in `<script>` uses `label` field
+        // (NOT `name`) per `Tabs.vue:78` validator. The first tab object
+        // is the canonical `{ id: 'data', label: 'Datos', icon: ... }`
+        // shape; we assert that `id` AND `label` are present together
+        // (with `label` AFTER `id` to match the source order).
+        $this->assertTrue(
+            (bool) preg_match(
+                '#const\s+tabs\s*=\s*\[\s*\{\s*id\s*:\s*[\'"]data[\'"][^}]*?\blabel\s*:#s',
+                $detailSrc
+            ),
+            sprintf(
+                '%s MUST declare the `tabs` array with `label` field (NOT `name`) '
+                . 'to match the <UiTabs> validator (TIPOS-02-001 / Tabs.vue:78). '
+                . 'Rename `name` → `label` in the `tabs` array literal.',
+                $detailPath
+            )
+        );
+
+        // NEGATIVE: zero raw `<button>` elements with the legacy active
+        // indicator classes. The raw buttons in our template carried
+        // `border-systemBlue-500 text-systemBlue-600`. Note: this rule
+        // targets the page source, not the `<UiTabs>` primitive's
+        // internal rendered output — `Tabs.vue` is in a separate file
+        // and the regex matches raw `<button>` tags inside this file only.
+        $this->assertSame(
+            0,
+            preg_match(
+                '#<button\b[^>]*\bborder-systemBlue-500\b[^>]*\btext-systemBlue-600\b#',
+                $detailSrc
+            ),
+            sprintf(
+                '%s MUST NOT keep raw `<button class="...border-systemBlue-500...text-systemBlue-600...">` '
+                . 'tab nav elements (TIPOS-02-001). The <UiTabs> primitive owns the '
+                . 'active indicator visual treatment.',
+                $detailPath
+            )
+        );
+    }
+
+    /**
+     * TIPOS-02-002 **[CRITICAL]** — global guard rail #10 forbids gradients
+     * ANYWHERE in the polished module. The audit empty state at
+     * `AppointmentTypeDetailPage.vue:167` carried `bg-gradient-to-br`
+     * which MUST be removed in PR-tipos-02 as part of the
+     * `<UiEmptyState>` adoption.
+     *
+     * This rule pins zero `bg-gradient` (any variant) matches anywhere
+     * in the file. It is the load-bearing CRITICAL assertion that
+     * prevents regression of the global guard rail #10.
+     */
+    public function test_detail_no_gradient_anywhere(): void
+    {
+        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailSrc = self::readSource($detailPath);
+        $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
+
+        // NEGATIVE: zero `bg-gradient` (any variant: `bg-gradient-to-br`,
+        // `bg-gradient-to-r`, `bg-gradient-to-bl`, `bg-gradient-accent`, etc.)
+        // matches anywhere in the file. CRITICAL — this pins global guard
+        // rail #10.
+        //
+        // Regex note: the lookbehind `(?<![\w-])` keeps `bg-gradient` from
+        // matching inside e.g. `text-bg-gradient`. The trailing `\b` is a
+        // word boundary that matches after `bg-gradient` (at the `t|-`
+        // transition for `bg-gradient-to-*` variants, since `-` is not a
+        // word char). The earlier `(?![\w-])` form was incorrect because
+        // `-` matches `[\w-]`, which would exclude every direction form.
+        $gradientCount = preg_match_all('#(?<![\w-])bg-gradient\b#', $detailSrc);
+        $this->assertSame(
+            0,
+            $gradientCount,
+            sprintf(
+                '%s MUST NOT contain any `bg-gradient` class (TIPOS-02-002 [CRITICAL] / '
+                . 'global guard rail #10 — no gradients anywhere). '
+                . 'Found %d `bg-gradient` match(es). The gradient on line 167 '
+                . 'MUST be removed as part of the <UiEmptyState> adoption.',
+                $detailPath,
+                $gradientCount
+            )
+        );
+    }
+
+    /**
+     * TIPOS-02-005 — the audit change-diff block carried raw
+     * `text-red-500` and `text-green-500` Tailwind ramps on
+     * `De:` / `A:` spans. These MUST migrate to `text-systemRed-600`
+     * and `text-systemGreen-600` (token-aligned Apple-language ramps)
+     * per the design language rollout.
+     *
+     * NEGATIVE rule: zero `text-red-500` matches.
+     * NEGATIVE rule: zero `text-green-500` matches.
+     * POSITIVE rule: `text-systemRed-600` reference present.
+     * POSITIVE rule: `text-systemGreen-600` reference present.
+     */
+    public function test_detail_audit_diff_uses_system_ramps(): void
+    {
+        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailSrc = self::readSource($detailPath);
+        $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
+
+        // NEGATIVE: zero `text-red-500` matches.
+        $redCount = preg_match_all('#(?<![\w-])text-red-500(?![\w-])#', $detailSrc);
+        $this->assertSame(
+            0,
+            $redCount,
+            sprintf(
+                '%s MUST NOT keep raw `text-red-500` Tailwind ramps (TIPOS-02-005). '
+                . 'Replace with `text-systemRed-600`. Found %d match(es).',
+                $detailPath,
+                $redCount
+            )
+        );
+
+        // NEGATIVE: zero `text-green-500` matches.
+        $greenCount = preg_match_all('#(?<![\w-])text-green-500(?![\w-])#', $detailSrc);
+        $this->assertSame(
+            0,
+            $greenCount,
+            sprintf(
+                '%s MUST NOT keep raw `text-green-500` Tailwind ramps (TIPOS-02-005). '
+                . 'Replace with `text-systemGreen-600`. Found %d match(es).',
+                $detailPath,
+                $greenCount
+            )
+        );
+
+        // POSITIVE: `text-systemRed-600` reference present in the audit
+        // diff block (replaces `text-red-500`).
+        $this->assertTrue(
+            (bool) preg_match('#(?<![\w-])text-systemRed-600(?![\w-])#', $detailSrc),
+            sprintf(
+                '%s MUST consume `text-systemRed-600` (TIPOS-02-005). '
+                . 'Found no `text-systemRed-600` reference.',
+                $detailPath
+            )
+        );
+
+        // POSITIVE: `text-systemGreen-600` reference present in the audit
+        // diff block (replaces `text-green-500`).
+        $this->assertTrue(
+            (bool) preg_match('#(?<![\w-])text-systemGreen-600(?![\w-])#', $detailSrc),
+            sprintf(
+                '%s MUST consume `text-systemGreen-600` (TIPOS-02-005). '
+                . 'Found no `text-systemGreen-600` reference.',
+                $detailPath
             )
         );
     }
