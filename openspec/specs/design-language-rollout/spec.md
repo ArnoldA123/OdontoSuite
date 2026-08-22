@@ -1226,3 +1226,221 @@ either alone is a contract violation (paired-only rule).
 ---
 
 *End of promoted ESTADISTICAS-CATALOGO rows. Next category slice appends below.*
+
+## Tipos de cita Rollout — 2026-08-21 (TIPOS-CITA category closed)
+
+All rows below are promoted verbatim from `ui-rollout-all-modules-2026-08`
+(tipos-cita category slice). Provenance for every row:
+`openspec/changes/archive/2026-08-21-ui-tipos-cita/spec.md`.
+Verify verdict at close: **PASS WITH WARNINGS** — 10/10 TIPOS-* MUSTs
+satisfied at static-contract + runtime level across 2 chained PRs
+(`20b0144` feat + `c66cebd` feat + `2a5b247` and `4b6de09` housekeeping),
+including the **CRITICAL TIPOS-02-002 forbidden gradient removal** at
+`AppointmentTypeDetailPage.vue:167` (global guard rail #10 closure).
+
+### Requirement: `TIPOS-01-001` — 9 raw `<input>` → `<UiInput>` in New + Edit modals
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §2.1.*
+
+The system MUST replace every raw `<input type="text">` and
+`<input type="number">` form field in the New modal (lines 226-290) and
+the Edit modal (lines 293-359) of `AppointmentTypesPage.vue` with
+`<UiInput v-model="..." />` consuming the canonical
+`var(--focus-ring-default)` focus ring. The 2 `<input type="color">`
+color pickers (New modal line 270 + Edit modal line 337) MAY remain raw
+because the canonical `<UiInput>` primitive does not formally support
+`type="color"`. The migration MUST NOT remove any `v-model` binding
+(`newType.name`, `newType.duration_minutes`, `newType.price`,
+`newType.color` text-input, `editingType.name`, `editingType.duration_minutes`,
+`editingType.price`, `editingType.color` text-input) and MUST NOT touch
+the `<script>` block.
+
+#### Scenario: `TIPOS-01-001-1` — All text/number inputs in modals adopt `<UiInput>`
+
+- GIVEN the New + Edit modals contain 7 raw text/number inputs and 2 `<input type="color">` color pickers
+- WHEN PR-tipos-01 lands
+- THEN `AppointmentTypesListCleanupTest::test_list_uses_ui_input_for_modal_form_fields` asserts the POSITIVE rule (≥7 `<UiInput v-model="...">` references present in the modal sections)
+- AND asserts the NEGATIVE rule (zero raw `<input type="text">` or `<input type="number">` elements in the modal sections)
+- AND all 8 `v-model` bindings to `newType.*` + `editingType.*` remain bound (the `<script>` block is byte-for-byte unchanged)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-01-002` — 2 raw `<textarea>` → `<UiTextarea>` in New + Edit modals
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §2.2.*
+
+The system MUST replace the 2 raw `<textarea>` description fields
+(New modal line 239, Edit modal line 306) of `AppointmentTypesPage.vue`
+with `<UiTextarea v-model="..." />`. The `v-model="newType.description"`
+and `v-model="editingType.description"` bindings MUST be preserved
+verbatim.
+
+#### Scenario: `TIPOS-01-002-1` — Description fields adopt `<UiTextarea>`
+
+- GIVEN the New + Edit modals each render a raw `<textarea v-model="...description">`
+- WHEN PR-tipos-01 lands
+- THEN `AppointmentTypesListCleanupTest::test_list_uses_ui_textarea_for_description_fields` asserts ≥2 `<UiTextarea v-model="...">` references
+- AND asserts zero raw `<textarea>` elements remain in the modal sections
+- AND visual smoke test: open the New modal, type into the description field, verify the `POST /api/appointment-types` payload includes the typed value
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-01-003` — Hand-rolled spinner → `<LoadingSpinner>` on list loading state
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §2.3.*
+
+The system MUST replace the hand-rolled `border-b-2 border-accent`
+spinner on `AppointmentTypesPage.vue:85` with `<LoadingSpinner />`
+(the canonical primitive). The `border-accent` legacy alias MUST be
+removed.
+
+#### Scenario: `TIPOS-01-003-1` — List spinner consumes `<LoadingSpinner>` primitive
+
+- GIVEN the list loading state renders a hand-rolled `<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />`
+- WHEN PR-tipos-01 lands
+- THEN `AppointmentTypesListCleanupTest::test_list_uses_loading_spinner` asserts the POSITIVE rule (`<LoadingSpinner` reference present on line 85 vicinity)
+- AND asserts the NEGATIVE rule (zero `border-accent` legacy alias anywhere in the file)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-01-004` — Hand-rolled empty state → `<UiEmptyState>` (already imported, unused)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §2.4.*
+
+The system MUST replace the hand-rolled empty state with custom SVG
+(lines 89-104) of `AppointmentTypesPage.vue` with
+`<UiEmptyState title="No se encontraron tipos de cita" description="Crea el primer tipo de cita para empezar" />`.
+The `<UiEmptyState>` import at line 427 already exists but is unused —
+this requirement wires it up.
+
+#### Scenario: `TIPOS-01-004-1` — List empty state consumes `<UiEmptyState>` primitive
+
+- GIVEN the list empty state renders a hand-rolled `<svg> + <p>` pair with `text-theme-secondary` chrome
+- WHEN PR-tipos-01 lands
+- THEN `AppointmentTypesListCleanupTest::test_list_uses_ui_empty_state` asserts the POSITIVE rule (`<UiEmptyState` reference present in the list section)
+- AND asserts the NEGATIVE rule (the hand-rolled custom SVG empty container absent on lines 89-104)
+- AND the `UiEmptyState` import at line 427 is now consumed (no dead import remains)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-02-001` — Raw `<button>` tab nav → `<UiTabs>` (with `name` → `label` rename)
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.1.*
+
+The system MUST replace the raw `<button>` step strip with
+`border-systemBlue-500 text-systemBlue-600` active indicator
+(lines 84-100) on `AppointmentTypeDetailPage.vue` with
+`<UiTabs v-model="activeTab" :tabs="tabs" />`. The `tabs` array literal
+in `<script>` (lines 314-325) MUST rename its `name` field to `label`
+to match the `Tabs.vue:78` validator. The `id` and `icon` fields stay
+verbatim. The `activeTab` ref + `loadAuditLogs` watcher +
+`getAppointmentTypeAuditLogs(id)` call MUST stay verbatim.
+
+#### Scenario: `TIPOS-02-001-1` — Detail tab nav consumes `<UiTabs>` with `label` field
+
+- GIVEN the detail page renders a 2-tab strip (Datos / Historial) with raw `<button>` + custom `border-systemBlue-500 text-systemBlue-600` active indicator
+- WHEN PR-tipos-02 lands
+- THEN `AppointmentTypesAppShellTest::test_detail_uses_ui_tabs_for_tab_nav` asserts the POSITIVE rule (`<UiTabs` reference present on lines 84-100)
+- AND asserts the NEGATIVE rule (zero raw `<button>` step strip; zero `border-systemBlue-500 text-systemBlue-600` active indicator classes)
+- AND asserts the `tabs` array literal in `<script>` uses `label` (NOT `name`)
+- AND visual smoke test: open `/appointment-types/:id`, click each tab, verify `activeTab` updates and the audit tab triggers `loadAuditLogs`
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-02-002` — **[CRITICAL]** Forbidden gradient removal at `AppointmentTypeDetailPage.vue:167`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.2.*
+
+The system MUST remove the **forbidden gradient**
+`bg-gradient-to-br from-theme-surface to-theme-surface-elevated` on the
+audit empty-state container at `AppointmentTypeDetailPage.vue:167`.
+This violates global guard rail #10 ("no gradients anywhere") and MUST
+be removed in PR-tipos-02. The migration adopts
+`<UiEmptyState title="No hay historial de auditoría" description="Este tipo de cita no tiene registros de auditoría." />`
+which removes the gradient as a side-effect. The gradient removal MUST
+NOT be deferred, extracted as a hotfix, or bundled into a later PR.
+**This requirement closes global guard rail #10 for the tipos-cita
+surface.**
+
+#### Scenario: `TIPOS-02-002-1` — Zero `bg-gradient` matches anywhere in the detail file
+
+- GIVEN `AppointmentTypeDetailPage.vue:167` carries `bg-gradient-to-br from-theme-surface to-theme-surface-elevated` on the audit empty-state container
+- WHEN PR-tipos-02 lands
+- THEN `AppointmentTypesAppShellTest::test_detail_no_gradient_anywhere` asserts the NEGATIVE rule (zero `bg-gradient\b` matches anywhere in the file, via `(?<![\w-])bg-gradient\b` regex that correctly detects direction-suffix forms)
+- AND `AppointmentTypesAppShellTest::test_detail_audit_empty_uses_ui_empty_state` asserts the POSITIVE rule (`<UiEmptyState` reference present on lines 165-187)
+- AND `rg "bg-gradient" resources/js/modules/appointment-types/` returns ZERO matches across both files (standalone grep verification)
+- AND visual smoke test: open a detail page with no audit logs, verify the audit empty state renders on canvas (no gradient background)
+- AND CI gate: `LegacyAliasForbiddenTest` extends the gradient check; future PRs that reintroduce gradients fail at the assertion
+- **Verdict at close: PASS — CRITICAL FIX DELIVERED**
+
+### Requirement: `TIPOS-02-003` — Hand-rolled audit empty state → `<UiEmptyState>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.3.*
+
+The system MUST replace the hand-rolled audit empty state
+(lines 165-187) of `AppointmentTypeDetailPage.vue` with
+`<UiEmptyState title="No hay historial de auditoría" description="Este tipo de cita no tiene registros de auditoría." />`.
+This is the same surface as TIPOS-02-002 (the gradient removal is a
+side-effect of this adoption).
+
+#### Scenario: `TIPOS-02-003-1` — Audit empty state adopts `<UiEmptyState>`
+
+- GIVEN the audit empty state renders a hand-rolled `<div>` container with custom SVG + `text-theme-primary` heading + `text-theme-secondary` paragraph
+- WHEN PR-tipos-02 lands
+- THEN `AppointmentTypesAppShellTest::test_detail_audit_empty_uses_ui_empty_state` asserts the POSITIVE rule (`<UiEmptyState` reference present on lines 165-187)
+- AND asserts the NEGATIVE rule (hand-rolled custom SVG empty container absent)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-02-004` — Hand-rolled audit log row → `<UiCard variant="glass">` wrapper
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.4.*
+
+The system MUST replace each hand-rolled audit log row
+(`border border-hairline rounded-lg p-4 hover:bg-theme-surface transition-colors`
+on lines 189-251) of `AppointmentTypeDetailPage.vue` with a
+`<UiCard variant="glass">` wrapper. The audit log rows MUST be wrapped
+in a `space-y-4` parent (matching the pacientes precedent at
+`archive/2026-08-12-ui-pacientes/design.md` §3.8).
+
+#### Scenario: `TIPOS-02-004-1` — Audit log row wraps in `<UiCard variant="glass">`
+
+- GIVEN each audit log row renders a raw `<div class="border border-hairline rounded-lg p-4 hover:bg-theme-surface transition-colors">`
+- WHEN PR-tipos-02 lands
+- THEN `AppointmentTypesAppShellTest::test_detail_audit_row_uses_ui_card` asserts the POSITIVE rule (`<UiCard variant="glass">` reference present in the audit-log row section)
+- AND asserts the NEGATIVE rule (raw `border border-hairline rounded-lg p-4 hover:bg-theme-surface transition-colors` absent)
+- AND asserts the `space-y-4` parent is present (pacientes precedent)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-02-005` — Hand-rolled audit spinner → `<LoadingSpinner>`
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.5.*
+
+The system MUST replace the hand-rolled
+`border-4 border-primary-200 border-t-primary-600` spinner on
+`AppointmentTypeDetailPage.vue:161` with `<LoadingSpinner />`. The
+`border-primary-*` legacy alias MUST be removed.
+
+#### Scenario: `TIPOS-02-005-1` — Audit spinner consumes `<LoadingSpinner>` primitive
+
+- GIVEN the audit loading state renders a hand-rolled `<div class="animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600" />`
+- WHEN PR-tipos-02 lands
+- THEN `AppointmentTypesAppShellTest::test_detail_uses_loading_spinner_for_audit` asserts the POSITIVE rule (`<LoadingSpinner` reference present on line 161 vicinity)
+- AND asserts the NEGATIVE rule (zero `border-primary-200` or `border-t-primary-600` legacy aliases anywhere in the file)
+- **Verdict at close: PASS**
+
+### Requirement: `TIPOS-02-006` — Raw `text-red-500` / `text-green-500` → system ramps
+
+*Provenance: `ui-rollout-all-modules-2026-08` → `categories/tipos-cita/spec.md` §3.6.*
+
+The system MUST replace the raw `text-red-500` (line 225) and
+`text-green-500` (line 229) Tailwind colour ramps on
+`AppointmentTypeDetailPage.vue` with `text-systemRed-600` and
+`text-systemGreen-600` (token-aligned Apple-language ramps). These
+ramps live in the change-diff block under each audit log row.
+
+#### Scenario: `TIPOS-02-006-1` — Audit diff colours consume system ramps
+
+- GIVEN the change-diff block renders `<span class="text-red-500">{{ change.old }}</span>` and `<span class="text-green-500">{{ change.new }}</span>`
+- WHEN PR-tipos-02 lands
+- THEN `LegacyAliasForbiddenTest` (extended) asserts zero `text-red-500` and zero `text-green-500` matches in either tipos-cita page
+- AND `AppointmentTypesAppShellTest` asserts the POSITIVE rule (`text-systemRed-600` + `text-systemGreen-600` references present in the audit diff block)
+- **Verdict at close: PASS**
+
+---
+
+*End of promoted TIPOS-CITA rows. Next category slice appends below.*
