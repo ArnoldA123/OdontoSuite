@@ -1,5 +1,10 @@
 <template>
-  <div :class="cardClasses" :data-variant="variant" :data-clickable="clickable">
+  <div
+    :class="cardClasses"
+    :data-variant="variant"
+    :data-clickable="clickable"
+    :data-hover="hover || undefined"
+  >
     <!-- Card header -->
     <div v-if="$slots.header" class="card-header">
       <slot name="header" />
@@ -88,7 +93,13 @@ const cardClasses = computed(() => {
     interactive.push('cursor-pointer')
   }
   if (props.hover) {
-    interactive.push('hover:scale-[1.02] hover:shadow-medium')
+    // apple-design §12 "heavier shadow on hover for bigger surfaces" — keep.
+    // The transform rides the scoped CSS at [data-hover='true']:hover below
+    // (translateY(-1px)) so the prefers-reduced-motion media query at the
+    // bottom of this file can gate it. A Tailwind hover:scale-[1.02] would
+    // win specificity and bypass the motion-reduce gate, which is the
+    // regression HOTFIX-DASH-011 caught.
+    interactive.push('hover:shadow-medium')
   }
   if (props.loading) {
     interactive.push('opacity-75 pointer-events-none')
@@ -185,9 +196,12 @@ const cardClasses = computed(() => {
   }
 }
 
-/* Hover effects */
+/* Hover effects — HOTFIX-DASH-010 + HOTFIX-DASH-011 follow-ups.
+   apple-design §12 "deeper shadow + transform on hover, gated by prefers-reduced-motion".
+   1 px lift per the HOTFIX-DASH proposal §4.5 literal. Earlier draft used
+   -2 px; tightened to -1 px to match the spec table. */
 [data-hover='true']:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: var(--shadow-medium);
 }
 
