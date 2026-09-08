@@ -48,3 +48,4 @@ public/images/pexels/
 tests/visual/
 # Local Pi runtime state
 .atl/
+login-refined-*.png
