@@ -743,14 +743,29 @@ const handleResetPasswordSuccess = () => {
 </script>
 
 <style scoped>
+/* Slice 12 / fix-viewport-fit: the outer page + shell + card now constrain
+   themselves to the viewport instead of growing with content. The form
+   column gets internal overflow so it can scroll if the form is taller
+   than the available height. The hero column gets overflow:hidden so the
+   image never reflows on resize. */
 .login-page {
   @apply min-h-[100dvh] w-full flex items-stretch justify-center;
   background: var(--color-canvas);
+  /* `height: 100dvh` clamps the page to the dynamic viewport (avoids the
+     iOS Safari URL-bar reflow); `min-height` is a fallback for older
+     browsers that do not support dvh. */
+  height: 100dvh;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 .login-page-shell {
   @apply w-full flex items-stretch justify-center;
-  padding: clamp(16px, 4vw, 48px);
+  /* Reduced from clamp(16px, 4vw, 48px) to clamp(12px, 2vw, 24px) — the
+     previous max(48px) added 96px of vertical padding on desktop, pushing
+     the card past the viewport. */
+  padding: clamp(12px, 2vw, 24px);
+  min-height: 0;
 }
 
 .login-split-card {
@@ -758,6 +773,11 @@ const handleResetPasswordSuccess = () => {
   display: grid;
   width: 100%;
   max-width: 1180px;
+  /* The card now grows to fill the shell (which fills the viewport) but
+     never exceeds `viewport - shell padding`. Without this cap the card
+     grew to 902px on a 900px viewport, causing a 98px vertical overflow. */
+  height: 100%;
+  max-height: calc(100dvh - clamp(24px, 4vw, 48px));
   background: var(--color-background-system-background);
   border: 1px solid var(--color-hairline);
   box-shadow:
@@ -769,10 +789,22 @@ const handleResetPasswordSuccess = () => {
 .login-grid {
   @apply grid w-full;
   grid-template-columns: 1fr;
+  /* `minmax(0, 1fr)` lets the row shrink below its content size, which is
+     the prerequisite for the form column's `overflow-y: auto` to fire. */
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
 }
 
 .login-form-column {
-  @apply order-2 flex items-center justify-center px-5 py-10 sm:px-8;
+  @apply order-2 flex items-center justify-center px-5 py-8 sm:px-8;
+  /* The form column scrolls internally if the form is taller than the
+     available height. `min-height: 0` is required for the scroll to fire
+     inside a CSS grid cell. */
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .login-form-wrap {
@@ -1123,7 +1155,8 @@ const handleResetPasswordSuccess = () => {
 
 /* Phase 2.2 · hero column. The hero carries the dental image with 3
    floating overlay cards (D5). The hero-column is `position: relative`
-   so the absolute overlays anchor correctly. */
+   so the absolute overlays anchor correctly. `min-height: 0` and
+   `overflow: hidden` prevent the image from forcing a grid reflow. */
 .login-hero-column {
   --spring-hero-o: 1;
   --spring-hero-opacity: 1;
@@ -1256,14 +1289,61 @@ const handleResetPasswordSuccess = () => {
     grid-template-columns: 5fr 7fr;
   }
   .login-form-column {
-    @apply order-1 px-10 py-12;
+    @apply order-1 px-10 py-10;
   }
   .login-hero-column {
     @apply order-2;
-    min-height: 100dvh;
+    /* Slice 12 / fix-viewport-fit: removed `min-height: 100dvh` — that rule
+       was the root cause of the 98px vertical overflow on 1440x900. The
+       column now sizes to the grid row, which is constrained by the
+       card's `max-height: calc(100dvh - 48px)`. `min-height: 0` keeps the
+       grid from forcing the column to its content size. */
+    min-height: 0;
   }
   .login-form-wrap {
     max-width: 28rem;
+  }
+}
+
+/* Mobile (below 768px): single column, hero fixed at 240px, form takes the
+   remaining height and scrolls internally. The page itself never scrolls. */
+@media (max-width: 767px) {
+  .login-page { padding: 0; }
+  .login-page-shell { padding: 0; max-width: 100%; }
+  .login-split-card {
+    border-radius: 0;
+    box-shadow: none;
+    border-left: 0;
+    border-right: 0;
+    max-height: 100dvh;
+  }
+  /* Switch the grid from a 1-column / 1-row layout to a 1-column /
+     2-row layout: hero on top (240px), form below (1fr). Without this
+     the form and the hero would render in the same row and visually
+     overlap. */
+  .login-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 240px minmax(0, 1fr);
+  }
+  .login-hero-column {
+    height: 240px;
+    min-height: 240px;
+    order: 1;
+  }
+  .login-form-column {
+    padding: 20px;
+    order: 2;
+    /* Mobile: top-align the form so it does not visually overlap with the
+       hero's bottom edge. Centering the form inside a column that is
+       shorter than the natural content height pushes the form's first
+       row upward into the hero's z-stack region. */
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .login-form-wrap {
+    /* Mobile: drop the gap to 16px to keep the form compact and the
+       content's vertical footprint smaller. */
+    gap: 16px;
   }
 }
 
