@@ -1,6 +1,7 @@
 import './bootstrap'
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import { MotionPlugin } from '@vueuse/motion'
 import LoginPage from './modules/auth/LoginPage.vue'
 import { requireAuth, requireGuest } from './router/auth'
 import uiComponents from './plugins/ui-components'
@@ -261,4 +262,5 @@ const App = {
 const app = createApp(App)
 app.use(router)
 app.use(uiComponents)
+app.use(MotionPlugin)
 app.mount('#app')
