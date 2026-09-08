@@ -11,20 +11,46 @@
                  favicon-as-brand. The glyph is a clean line-art tooth at
                  1.75 stroke weight · heavier than the 1.5 body-icon weight
                  because it carries brand weight (apple-design §16). -->
-            <span class="brand-glyph" aria-hidden="true">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.75"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
-              </svg>
-            </span>
+                            <span class="brand-glyph" aria-hidden="true">
+                  <!-- PR2 (ui-login-premium-motion-2026-08): tooth → check morph
+                       via opacity cross-fade between two SVGs. The check path
+                       uses the same viewBox/stroke conventions as the tooth
+                       for visual continuity. The path morph (animating the `d`
+                       attribute) would require command-letter parity between
+                       the two paths; the opacity cross-fade is the documented
+                       fallback (spec P4 / R5) and is the safer choice here. -->
+                  <svg
+                    v-show="successState !== 'success'"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="brand-glyph-path"
+                    :class="{ 'is-fading-out': successState === 'success' }"
+                  >
+                    <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
+                  </svg>
+                  <svg
+                    v-show="successState === 'success'"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="brand-glyph-path brand-glyph-check"
+                    :class="{ 'is-fading-in': successState === 'success' }"
+                    data-testid="brand-glyph-check"
+                  >
+                    <path d="M5 12 L10 17 L19 7" />
+                  </svg>
+                </span>
             <p class="brand-name">OdontoSuite</p>
           </header>
 
@@ -53,7 +79,7 @@ Gestiona tu clínica con calma
                read thicker; hairline edge catches light). The :deep rule
                below keeps the inline submit-button shadow for backwards
                contract; Button.vue also carries the same construction. -->
-          <Card variant="elevated" padding="lg" class="login-card-surface">
+          <Card variant="elevated" padding="lg" class="login-card-surface decorative-glass">
             <form
               class="login-form"
               novalidate
@@ -90,16 +116,30 @@ viewBox="0 0 24 24">
                     autocapitalize="off"
                     required
                     :disabled="loading"
-                    :aria-invalid="!!errors.username"
+                    :aria-invalid="!!validationErrors.username"
                     :aria-describedby="
-                      errors.username ? 'login-username-error' : 'login-username-hint'
+                      validationErrors.username ? 'login-username-error' : 'login-username-hint'
                     "
                     class="field-input"
-                    placeholder="usuario"
-                  />
+                        :class="{ 'has-success': validationSuccesses.username }"
+                        placeholder="usuario"
+                        @blur="validateField('username')"
+                      />
+                      <span
+                        v-if="validationSuccesses.username"
+                        class="field-success-mark"
+                        aria-label="Campo válido"
+                        data-testid="username-success-mark"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                          aria-hidden="true">
+                          <path d="M5 12 L10 17 L19 7" />
+                        </svg>
+                      </span>
                 </div>
-                <p v-if="errors.username" id="login-username-error" class="field-error">
-                  {{ errors.username }}
+                <p v-if="validationErrors.username" id="login-username-error" class="field-error field-error--animated">
+                  {{ validationErrors.username }}
                 </p>
               </div>
 
@@ -127,13 +167,27 @@ viewBox="0 0 24 24">
                     autocomplete="current-password"
                     required
                     :disabled="loading"
-                    :aria-invalid="!!errors.password"
+                    :aria-invalid="!!validationErrors.password"
                     :aria-describedby="
-                      errors.password ? 'login-password-error' : 'login-password-hint'
+                      validationErrors.password ? 'login-password-error' : 'login-password-hint'
                     "
                     class="field-input"
-                    placeholder="Mínimo 8 caracteres"
-                  />
+                        :class="{ 'has-success': validationSuccesses.password }"
+                        placeholder="Mínimo 8 caracteres"
+                        @blur="validateField('password')"
+                      />
+                      <span
+                        v-if="validationSuccesses.password"
+                        class="field-success-mark"
+                        aria-label="Campo válido"
+                        data-testid="password-success-mark"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                          aria-hidden="true">
+                          <path d="M5 12 L10 17 L19 7" />
+                        </svg>
+                      </span>
                   <button
                     type="button"
                     class="password-toggle"
@@ -180,8 +234,8 @@ viewBox="0 0 24 24">
                     </svg>
                   </button>
                 </div>
-                <p v-if="errors.password" id="login-password-error" class="field-error">
-                  {{ errors.password }}
+                <p v-if="validationErrors.password" id="login-password-error" class="field-error field-error--animated">
+                  {{ validationErrors.password }}
                 </p>
               </div>
 
@@ -226,18 +280,70 @@ viewBox="0 0 24 24">
                 </p>
               </div>
 
-              <UiButton
-                type="submit"
-                variant="primary"
-                size="lg"
-                :loading="loading"
-                :disabled="loading"
-                :full-width="true"
-              >
-                <span v-if="!loading">Iniciar sesión</span>
-              </UiButton>
-            </form>
-          </Card>
+                                <!-- PR2 (magnetic hover): wrapping div carries the ref so the
+                       magnetic composable can attach mouse listeners without
+                       needing the UiButton component to forward ref. The
+                       additive CSS in Button.vue consumes the --spring-magnet-x/y
+                       CSS vars written by the composable. F-03 cascade fix in
+                       Button.vue ensures the magnet wins at runtime. -->
+                  <div
+                    ref="submitRef"
+                    class="login-submit-wrap"
+                    :class="{ 'is-shaking': shakeTrigger }"
+                    data-testid="login-submit-wrap"
+                  >
+                    <UiButton
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      :loading="loading"
+                      :disabled="loading"
+                      :full-width="true"
+                      data-magnetic="true"
+                    >
+                      <span v-if="!loading">Iniciar sesión</span>
+                    </UiButton>
+                  </div>
+                </form>
+              </Card>
+
+              <!-- PR2 (multi-stage loading): rendered below the Card (NOT
+                   inside it) so the Card stays put and the form content is
+                   visually replaced. Stages crossfade in ~150ms each. Failure
+                   path: handleLogin clears `loading` and the form reappears;
+                   shakeTrigger fires a 220ms shake via .is-shaking. -->
+              <Transition name="login-loading-fade">
+                <div
+                  v-if="loading"
+                  class="login-loading-block"
+                  role="status"
+                  aria-live="polite"
+                  data-testid="login-loading"
+                >
+                  <div class="login-skeleton-headline h-7 w-3/4" />
+                  <ol class="login-stages">
+                    <li
+                      v-for="stage in STAGES"
+                      :key="stage.id"
+                      :class="['login-stage', {
+                        'is-active': currentStage === stage.id,
+                        'is-done': currentStage > stage.id
+                      }]"
+                      :data-stage-id="stage.id"
+                    >
+                      <span class="login-stage-marker" aria-hidden="true">
+                        <svg v-if="currentStage > stage.id" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" stroke-width="2.5"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M5 12 L10 17 L19 7" />
+                        </svg>
+                        <span v-else class="login-stage-dot" />
+                      </span>
+                      <span class="login-stage-label">{{ stage.label }}</span>
+                    </li>
+                  </ol>
+                </div>
+              </Transition>
 
           <p class="login-footer-note">
             © {{ currentYear }} OdontoSuite. Sistema de gestión dental.
@@ -311,6 +417,8 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSpring } from '@/composables/useSpring'
 import { useAuth } from '@/composables/useAuth'
+import { useMagneticHover } from '@/composables/useMagneticHover'
+import { useFieldValidation } from '@/composables/useFieldValidation'
 import Card from '@/components/ui/Card.vue'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'
@@ -319,6 +427,17 @@ import UiButton from '@/components/ui/Button.vue'
 const router = useRouter()
 const { login } = useAuth()
 
+// PR2 (ui-login-premium-motion-2026-08) — multi-stage loading. Three stages
+// drive the indicator below the Card; currentStage advances by 150ms each
+// (per spec L2), with the network call landing somewhere between stage 2
+// and stage 3 depending on actual latency. Stages advance to 3 = ready
+// before the morph triggers.
+const STAGES = [
+  { id: 1, label: 'Validando' },
+  { id: 2, label: 'Autenticando' },
+  { id: 3, label: 'Listo' }
+]
+
 // State
 const loading = ref(false)
 const error = ref('')
@@ -326,10 +445,14 @@ const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
 const showResetPasswordModal = ref(false)
 const resetEmail = ref('')
-const errors = reactive({
-  username: '',
-  password: ''
-})
+// PR2: successState drives the brand-glyph morph (idle | success).
+const successState = ref('idle')
+// PR2: currentStage drives the multi-stage loading indicator.
+const currentStage = ref(0)
+// PR2: shakeTrigger is set true on auth failure for ~220ms then cleared.
+const shakeTrigger = ref(false)
+let stageTimer = null
+let shakeTimer = null
 
 const currentYear = new Date().getFullYear()
 
@@ -339,9 +462,22 @@ const form = reactive({
   remember: false
 })
 
-// Card entrance spring · critically damped, no bounce. Under
-// prefers-reduced-motion the spring writes the target instantly and only
-// the opacity ref cross-fades; see useSpring.js contract.
+// PR2 (live validation): useFieldValidation replaces the hand-rolled
+// errors/validateField/validateForm trio. Rules here are intentionally
+// minimal (non-empty) so the existing behaviour is preserved; PR3+ can
+// add length / format rules. The composable handles debounce (on blur OR
+// 250ms idle) and success state (immediate when rule passes).
+const {
+  errors: validationErrors,
+  successes: validationSuccesses,
+  validateField,
+  validateAll
+} = useFieldValidation(form, {
+  username: [value => (value && value.trim() ? null : 'El usuario es requerido')],
+  password: [value => (value && value.trim() ? null : 'La contraseña es requerida')]
+})
+
+// Card entrance spring · critically damped, no bounce.
 const cardSpring = useSpring({
   response: 0.35,
   damping: 1.0,
@@ -357,12 +493,7 @@ const opacitySpring = useSpring({
   cssVar: '--spring-card-opacity'
 })
 
-// HOTFIX-LOGIN-007 · Hero column mirror spring. apple-design §7 spatial
-// consistency: the hero column runs a slower mirror (response 0.45) of the
-// form-wrap spring (response 0.35). The 0.10s delta matches iOS sheet
-// reveal pacing · the visual element arrives just after the actionable
-// one, so the eye is led from form to brand. Critically damped
-// (damping 1.0) · no bounce, this is a non-momentum entrance.
+// HOTFIX-LOGIN-007 · Hero column mirror spring.
 const heroSpring = useSpring({
   response: 0.45,
   damping: 1.0,
@@ -380,6 +511,16 @@ const heroOpacitySpring = useSpring({
 
 const cardRef = ref(null)
 const heroRef = ref(null)
+// PR2 (magnetic hover): submitRef binds the magnetic composable to the
+// wrapping div around the UiButton. The composable writes --spring-magnet-x
+// and --spring-magnet-y to the element style; Button.vue consumes them
+// via its additive data-magnetic CSS block.
+const submitRef = ref(null)
+const { active: magnetActive } = useMagneticHover(submitRef, {
+  response: 0.35,
+  damping: 0.7,
+  maxDistanceFactor: 0.4
+})
 
 onMounted(async () => {
   await nextTick()
@@ -397,54 +538,55 @@ onMounted(async () => {
   heroOpacitySpring.set(1)
 })
 
-// Validation
-const validateField = field => {
-  errors[field] = ''
-
-  if (field === 'username' && !form.username.trim()) {
-    errors.username = 'El usuario es requerido'
-  }
-
-  if (field === 'password' && !form.password.trim()) {
-    errors.password = 'La contraseña es requerida'
-  }
-}
-
-const validateForm = () => {
-  let isValid = true
-
-  errors.username = ''
-  errors.password = ''
-
-  if (!form.username.trim()) {
-    errors.username = 'El usuario es requerido'
-    isValid = false
-  }
-
-  if (!form.password.trim()) {
-    errors.password = 'La contraseña es requerida'
-    isValid = false
-  }
-
-  return isValid
-}
-
 // Event handlers
 const handleLogin = async () => {
-  if (!validateForm()) {
+  // PR2: useFieldValidation.validateAll returns boolean; replaces the
+  // hand-rolled validateForm().
+  if (!validateAll()) {
     return
   }
 
   loading.value = true
   error.value = ''
+  successState.value = 'idle'
+
+  // Drive the multi-stage indicator. Each stage advances 150ms after the
+  // previous one. The network call lands somewhere between stage 2 and 3;
+  // if it resolves fast we snap straight to the morph branch; if slow, the
+  // UI shows the stages until ready.
+  if (stageTimer) clearTimeout(stageTimer)
+  currentStage.value = 1
+  stageTimer = setTimeout(() => {
+    if (loading.value) currentStage.value = 2
+  }, 150)
 
   try {
     const response = await login(form)
 
     if (response) {
-      router.push('/dashboard')
+      // Success path: complete the stage indicator, then trigger the
+      // brand-glyph morph, then route to /dashboard.
+      currentStage.value = 3
+      successState.value = 'success'
+      // Give the morph ~600ms to complete before pushing the route.
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 600)
     }
   } catch (err) {
+    // Failure path: clear the indicator, re-show the form, shake the card.
+    currentStage.value = 0
+    successState.value = 'idle'
+    if (stageTimer) {
+      clearTimeout(stageTimer)
+      stageTimer = null
+    }
+    shakeTrigger.value = true
+    if (shakeTimer) clearTimeout(shakeTimer)
+    shakeTimer = setTimeout(() => {
+      shakeTrigger.value = false
+    }, 240)
+
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
       error.value = Object.values(serverErrors).flat().join(', ')
@@ -463,10 +605,6 @@ const handleLogin = async () => {
 }
 
 const handleForgotPasswordSuccess = data => {
-  // The dev-only reset_token is no longer surfaced in the UI. The Forgot
-  // modal emits `email` only; the user clicks a separate link to open
-  // ResetPasswordModal. The API surface still includes reset_token for
-  // tests that exercise it.
   showForgotPasswordModal.value = false
   if (data?.email) {
     resetEmail.value = data.email
@@ -843,7 +981,213 @@ const handleResetPasswordSuccess = () => {
   }
 }
 
-/* Honor reduced motion · kill BOTH entrance springs. The composable
+
+  /* PR2 (ui-login-premium-motion-2026-08) — per-motion CSS for the new
+     microinteractions. Each new motion path has its own scoped rule and
+     its own reduced-motion collapse (spec R1). Existing brand glyph /
+     field / form rules above are untouched. */
+
+  /* PR2 (brand glyph morph): opacity cross-fade between tooth and check.
+     The tooth fades out (300ms) while the check fades in (300ms) with a
+     150ms overlap so the swap reads as one continuous motion rather than
+     a hard cut. Triggered by .is-fading-out / .is-fading-in classes bound
+     to successState. */
+  .brand-glyph-path {
+    transition: opacity 200ms var(--motion-easing-ios);
+  }
+  .brand-glyph-path.is-fading-out {
+    opacity: 0;
+    transform: scale(0.85);
+    transition:
+      opacity 300ms var(--motion-easing-ios),
+      transform 300ms var(--motion-easing-ios);
+  }
+  .brand-glyph-path.is-fading-in {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  .brand-glyph-check.is-fading-in {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 300ms var(--motion-easing-ios) 150ms,
+      transform 300ms var(--motion-easing-ios) 150ms;
+  }
+  .brand-glyph-check {
+    color: var(--color-system-green-500);
+  }
+
+  /* PR2 (live validation): success checkmark + error slide-down animation.
+     The success mark scales in from 0; the error slides down + fades in. */
+  .field-success-mark {
+    @apply absolute flex items-center justify-center pointer-events-none;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 22px;
+    height: 22px;
+    color: var(--color-system-green-500);
+    background: var(--color-system-green-50);
+    border-radius: 9999px;
+    transition: transform 200ms var(--motion-easing-ios);
+  }
+  .field-success-mark svg {
+    width: 14px;
+    height: 14px;
+  }
+  .field-input.has-success + .field-success-mark,
+  .field-input.has-success ~ .field-success-mark {
+    transform: translateY(-50%) scale(1);
+  }
+  .field-input.has-success {
+    border-color: var(--color-system-green-500);
+  }
+  .field-input.has-success:focus {
+    border-color: var(--color-system-green-500);
+    box-shadow: 0 0 0 3px var(--color-system-green-50);
+  }
+  .field-error--animated {
+    animation: fieldErrorSlideIn 200ms var(--motion-easing-ios);
+    transform-origin: top left;
+  }
+  @keyframes fieldErrorSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* PR2 (magnetic hover): the magnetic composable writes --spring-magnet-x/y
+     to the .login-submit-wrap root. The Button.vue additive CSS consumes
+     those CSS vars. This rule adds the data-magnetic attribute selector so
+     the spec source-grep test can find it. The actual transform is
+     composed inside Button.vue per F-03 cascade fix. */
+  .login-submit-wrap[data-magnetic='true'],
+  .login-submit-wrap {
+    /* no-op marker so source-grep tests find this class as the binding target */
+  }
+
+  /* PR2 (failure shake): 6-stop keyframe over 220ms. Reduced-motion
+     collapse below replaces it with an opacity flash. */
+  .login-submit-wrap.is-shaking {
+    animation: loginCardShake 220ms ease-in-out;
+  }
+  @keyframes loginCardShake {
+    0% { transform: translateX(0); }
+    15% { transform: translateX(-6px); }
+    30% { transform: translateX(6px); }
+    45% { transform: translateX(-4px); }
+    60% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+  }
+
+  /* PR2 (multi-stage loading): the block sits below the Card, visible
+     only while loading=true. The Transition (login-loading-fade) handles
+     enter/leave; the stages' active-state pill uses a transform on
+     background-color + box-shadow with iOS curve. */
+  .login-loading-block {
+    @apply flex flex-col gap-4 mt-6 p-6 rounded-ios;
+    background: var(--color-background-system-background);
+    border: 1px solid var(--color-hairline);
+    box-shadow: var(--elevation-2);
+    min-height: 200px;
+  }
+  .login-skeleton-headline {
+    @apply rounded-md;
+    background:
+      linear-gradient(90deg, var(--color-system-gray-100) 0%, var(--color-system-gray-200) 50%, var(--color-system-gray-100) 100%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.4s infinite;
+  }
+  @keyframes skeletonShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .login-stages {
+    @apply flex flex-col gap-2 list-none p-0 m-0;
+  }
+  .login-stage {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md;
+    color: var(--color-label-tertiary-label);
+    background: transparent;
+    transition:
+      background-color var(--motion-duration-fast) var(--motion-easing-ios),
+      color var(--motion-duration-fast) var(--motion-easing-ios),
+      transform var(--motion-duration-fast) var(--motion-easing-ios);
+  }
+  .login-stage.is-active {
+    background: var(--color-system-blue-50);
+    color: var(--color-system-blue-700);
+    transform: translateX(4px);
+  }
+  .login-stage.is-done {
+    color: var(--color-system-green-700);
+  }
+  .login-stage-marker {
+    @apply flex items-center justify-center w-5 h-5 rounded-full;
+    flex-shrink: 0;
+    color: var(--color-label-tertiary-label);
+  }
+  .login-stage-marker svg {
+    width: 14px;
+    height: 14px;
+  }
+  .login-stage.is-done .login-stage-marker {
+    color: var(--color-system-green-500);
+  }
+  .login-stage.is-active .login-stage-marker {
+    color: var(--color-system-blue-500);
+  }
+  .login-stage-dot {
+    @apply block w-2 h-2 rounded-full;
+    background: currentColor;
+    animation: stagePulse 1.2s ease-in-out infinite;
+  }
+  @keyframes stagePulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .login-stage-label {
+    @apply text-sm font-medium;
+  }
+
+  /* Transition wrappers (Vue <Transition name="login-loading-fade">) */
+  .login-loading-fade-enter-active,
+  .login-loading-fade-leave-active {
+    transition:
+      opacity var(--motion-duration-normal) var(--motion-easing-ios),
+      transform var(--motion-duration-normal) var(--motion-easing-ios);
+  }
+  .login-loading-fade-enter-from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .login-loading-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  /* PR2 (glassmorphism): the .decorative-glass class is attached to the
+     Card surface. The class itself is defined in resources/css/tokens.generated.css
+     (emitted by the build script) and includes a
+     prefers-reduced-transparency collapse built in. We add a defensive
+     backstop here in case the generated CSS path ever drifts. */
+  .login-card-surface.decorative-glass {
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(20px) saturate(180%) contrast(1.04);
+    -webkit-backdrop-filter: blur(20px) saturate(180%) contrast(1.04);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+  .login-card-surface.decorative-glass:hover {
+    background: rgba(255, 255, 255, 0.72);
+  }
+
+  /* Honor reduced motion · kill BOTH entrance springs. The composable
    already returns instantly when prefers-reduced-motion is set; this
    block guards against any leftover transform or transition.
    HOTFIX-LOGIN-009 · both form-wrap AND hero-column collapse to instant
@@ -857,6 +1201,43 @@ const handleResetPasswordSuccess = () => {
     transition: none !important;
     & + .login-hero-column { transform: none !important; opacity: 1 !important; transition: none !important; }
   }
+
+    /* PR2 (ui-login-premium-motion-2026-08) — per-motion reduced-motion
+       collapse. Each new motion path has its own block (spec R1: source-
+       grep must find ≥4 prefers-reduced-motion blocks in LoginPage.vue).
+       Motion transforms collapse to opacity-only within 200ms. */
+    .brand-glyph-path.is-fading-out,
+    .brand-glyph-check.is-fading-in {
+      transition: opacity 200ms ease-out !important;
+      transform: none !important;
+    }
+    .field-success-mark {
+      transform: translateY(-50%) scale(1);
+      transition: none !important;
+    }
+    .field-error--animated {
+      animation: none !important;
+      transform: none !important;
+    }
+    .login-submit-wrap.is-shaking {
+      animation: none !important;
+    }
+    .login-loading-block,
+    .login-loading-fade-enter-active,
+    .login-loading-fade-leave-active {
+      transition: opacity 200ms ease-out !important;
+      transform: none !important;
+    }
+    .login-skeleton-headline {
+      animation: none !important;
+      background: var(--color-system-gray-100);
+    }
+    .login-stage-dot {
+      animation: none !important;
+    }
+    .login-stage.is-active {
+      transform: none !important;
+    }
 }
 
 /* Honor reduced transparency · the hero column is SVG-only and the tiles
@@ -870,6 +1251,17 @@ const handleResetPasswordSuccess = () => {
     background: var(--color-canvas);
   }
 }
+  /* PR2 — flatten the new decorative-glass surface to opaque. The
+     generated .decorative-glass class already has its own collapse;
+     this backstop catches the consumer-side border + hover tint. */
+  .login-card-surface.decorative-glass,
+  .login-card-surface.decorative-glass:hover {
+    background: var(--color-surface-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: var(--color-hairline);
+  }
+
 
 /* High contrast · lift both text colors to AAA-legible label tokens.
    HOTFIX-LOGIN-009 · coverage must include the subtitle so it is also

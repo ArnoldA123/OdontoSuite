@@ -253,8 +253,11 @@ button[data-variant='primary']:not(:disabled):active {
   }
 }
 
-/* Hover effects */
-button:not(:disabled):hover {
+/* Hover effects — EXCLUDE [data-magnetic='true'] so the additive magnetic
+   transform (composed via the --spring-magnet-x/y CSS vars) wins at runtime.
+   Without the exclusion, the hover rule (specificity 0,2,1) silently
+   overrides the data-magnetic rule (0,1,1) — see apply-progress.md F-03. */
+button:not(:disabled):not([data-magnetic='true']):hover {
   transform: translateY(-1px);
 }
 
@@ -318,6 +321,27 @@ button[data-variant='icon'] {
   .spinner,
   .ripple {
     animation: none;
+  }
+}
+
+/* Additive (PR1 ui-login-premium-motion-2026-08, design D17 + spec M7):
+     applies the magnetic effect ONLY when --spring-magnet-x/y are defined
+     on the button root via the data-magnetic attribute. Other buttons are
+     untouched. The hover lift composes with the magnet via transform
+     composition. NO change to the template, the variants, the ripple
+     logic, or any existing scoped CSS — appended at the END of the
+     existing <style scoped> block, after the prefers-reduced-motion block. */
+button:not(:disabled)[data-magnetic='true'] {
+  transform: translate3d(var(--spring-magnet-x, 0), calc(var(--spring-magnet-y, 0) - 1px), 0);
+}
+button[data-magnetic='true']:not(:disabled):active {
+  /* On press the magnet is inert (cursor is on the button, not hovering
+       around it). The existing translateY(1px) takes over. */
+  transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled)[data-magnetic='true'] {
+    transform: none;
   }
 }
 </style>
