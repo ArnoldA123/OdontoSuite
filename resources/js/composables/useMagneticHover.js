@@ -130,6 +130,12 @@ export function useMagneticHover(elementRef, options = {}) {
   onMounted(() => {
     const el = elementRef.value
     if (!el) return
+    // PR2 FIX: attach the two springs to the element so useSpring.writeVar()
+    // has a target. Without this, the CSS vars --spring-magnet-x/y are never
+    // written and the magnetic effect is silent. (Discovered during PR2
+    // functional sweep; verify-report PR2 entry documents the fix.)
+    x.attach(el)
+    y.attach(el)
     el.addEventListener('mouseenter', onEnter)
     el.addEventListener('mousemove', onMove)
     el.addEventListener('mouseleave', onLeave)
