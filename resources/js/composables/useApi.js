@@ -30,10 +30,15 @@ export function useApi() {
 
   const handleResponse = async response => {
     if (response.status === 401) {
-      // Token expirado o inválido
+      // Token expirado o inválido. NO redirigir si ya estamos en /login
+      // (los overlays del login disparan fetches sin token y el redirect
+      // causa un loop infinito de recargas en la misma página).
+      const isOnLogin = typeof window !== 'undefined' && window.location.pathname === '/login'
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
-      window.location.href = '/login'
+      if (!isOnLogin) {
+        window.location.href = '/login'
+      }
       throw { response: { data: { message: 'Sesión expirada' } }, status: 401 }
     }
 

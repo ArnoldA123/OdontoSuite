@@ -416,4 +416,343 @@ class LoginPageRenderTest extends TestCase
         $this->assertStringContainsString('var(--elevation-2)', $source);
     }
 
+        // ====================================================================
+        // PR-apply / Phase 2 — editorial split + dental hero + shape-morph
+        // (`ui-login-refinement-dental-split-2026-09`).
+        //
+        // Each test pins a load-bearing source-inspection contract that the
+        // LoginPage rewrite must satisfy. The grep targets are intentionally
+        // liberal (substring or single-line matches) so future cosmetic
+        // refactors do not break the suite.
+        // ====================================================================
+
+        /**
+         * @test
+         */
+        public function login_page_has_outer_login_split_card(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'login-split-card',
+                $source,
+                'LoginPage.vue must wrap the editorial split in a .login-split-card container (Phase 2.1)'
+            );
+            $this->assertStringContainsString(
+                'rounded-[32px]',
+                $source,
+                'LoginPage.vue must declare the outer-card radius as a Tailwind utility (Phase 2.1)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_has_footer_with_terms_and_contact(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'Términos y Condiciones',
+                $source,
+                'LoginPage.vue must render the Términos y Condiciones link in the footer row (Phase 2.1)'
+            );
+            $this->assertStringContainsString(
+                'Contacta al administrador',
+                $source,
+                'LoginPage.vue must render the ¿No tienes cuenta? Contacta al administrador link in the footer row (Phase 2.1)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_image_uses_committed_dental_pexels_asset(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The dental Pexels still is the chosen hero image. The committed
+            // path under public/images/ui/ is the safe location (the
+            // public/images/pexels/ tree is gitignored — referencing it from
+            // an auth module would fail the regression suite).
+            $this->assertSame(
+                0,
+                substr_count($source, 'images/pexels'),
+                'LoginPage.vue must NOT reference images/pexels (gitignored directory)'
+            );
+            $this->assertSame(
+                1,
+                substr_count($source, '/images/ui/login-hero.jpg'),
+                'LoginPage.vue must reference the committed login hero at /images/ui/login-hero.jpg (Phase 2.2)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_image_has_error_fallback(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The hero image must declare an @error handler that swaps to
+            // the SVG placeholder (Phase 2.2 — D6 in design.md).
+            $this->assertSame(
+                1,
+                (int) preg_match('/<img\b[^>]*@error\s*=\s*"onImageError"/is', $source),
+                'LoginPage.vue hero <img> must declare @error="onImageError" (Phase 2.2 — D6)'
+            );
+            $this->assertStringContainsString(
+                'onImageError',
+                $source,
+                'LoginPage.vue must implement onImageError to swap to the SVG fallback'
+            );
+            $this->assertStringContainsString(
+                'imageFailed',
+                $source,
+                'LoginPage.vue must track imageFailed state for the SVG fallback toggle'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_overlays_fetch_dashboard_stats(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '/api/dashboard/stats',
+                $source,
+                'LoginPage.vue must fetch /api/dashboard/stats for overlay Card 1 (Phase 2.3)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_overlays_fetch_appointments_today(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '/api/dashboard/appointments-today',
+                $source,
+                'LoginPage.vue must fetch /api/dashboard/appointments-today for overlay Card 2 (Phase 2.3)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_overlays_fetch_users_active(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '/api/users/active',
+                $source,
+                'LoginPage.vue must fetch /api/users/active for overlay Card 3 (Phase 2.3)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_overlays_have_v_motion_stagger(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // v-motion on overlay cards with a stagger delay. The exact
+            // delay value is unconstrained; the test pins that SOME
+            // stagger is declared (an index-driven `100 + i * 80` or
+            // equivalent). The total count of v-motion directives is
+            // intentionally NOT asserted — the submit button also uses
+            // v-motion for its polymorphic crossfade, so any strict
+            // `== 3` would couple the test to a single implementation.
+            $this->assertGreaterThanOrEqual(
+                3,
+                substr_count($source, 'v-motion'),
+                'LoginPage.vue must declare at least 3 v-motion directives (overlay stagger + submit polymorphism)'
+            );
+            // The stagger delay can live inline (`v-motion="{ ..., delay: 100 + i * 80 }"`)
+            // or inside a motion factory function (`enter: { ..., delay: 100 + index * 80 }`).
+            // Both patterns are accepted; the test pins that the 80ms step is present.
+            $this->assertMatchesRegularExpression(
+                '/delay\s*:\s*[^,}]*\*\s*80/',
+                $source,
+                'LoginPage.vue overlay motion must declare a stagger delay with the 80ms step (Phase 2.3)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_uses_shape_morph_composable(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'useShapeMorph',
+                $source,
+                'LoginPage.vue must import and instantiate the useShapeMorph composable (Phase 2.4)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_submit_button_has_four_polymorphic_states(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The submit button must carry 4 visible state labels (idle,
+            // validating, authenticating, success). The 5th (error) is
+            // handled by the magnetic composable's error branch.
+            foreach (['Iniciar sesión', 'Validando', 'Autenticando', 'Listo'] as $label) {
+                $this->assertStringContainsString(
+                    $label,
+                    $source,
+                    'LoginPage.vue must declare the polymorphic stage label ' . $label . ' (Phase 2.4)'
+                );
+            }
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_form_card_has_form_and_summary_states(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The form Card must declare BOTH the <form> and the
+            // <TransitionGroup name="form-card-morph"> wrapper that
+            // crossfades between <form> and the <MiniSummary> on success.
+            $this->assertStringContainsString(
+                '<form',
+                $source,
+                'LoginPage.vue must render the login <form> (Phase 2.5)'
+            );
+            $this->assertStringContainsString(
+                'form-card-morph',
+                $source,
+                'LoginPage.vue must declare the form-card-morph TransitionGroup (Phase 2.5)'
+            );
+            $this->assertStringContainsString(
+                'login-mini-summary',
+                $source,
+                'LoginPage.vue must render the login-mini-summary block on success (Phase 2.5)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_prefers_reduced_motion_collapses_polymorphism(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The polymorphic submit + form-card morph must be gated on
+            // a reactive reduced-motion detector. The composable is
+            // imported from resources/js/composables/useReducedMotion.js.
+            $this->assertStringContainsString(
+                'useReducedMotion',
+                $source,
+                'LoginPage.vue must import the useReducedMotion composable to gate motion paths (Phase 2.6)'
+            );
+            $this->assertStringContainsString(
+                'prefers-reduced-motion: reduce',
+                $source,
+                'LoginPage.vue must declare a @media (prefers-reduced-motion: reduce) block (Phase 2.6)'
+            );
+        }
+
+        /**
+         * @test (bonus)
+         */
+        public function login_page_prefers_reduced_transparency_flattens_outer_card(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'prefers-reduced-transparency: reduce',
+                $source,
+                'LoginPage.vue must declare a @media (prefers-reduced-transparency: reduce) block (Phase 2.6)'
+            );
+    
+                    }
+
+            // ====================================================================
+        // Slice 12 / fix-viewport-fit (`ui-login-viewport-fit-2026-09`).
+        //
+        // The login overflowed 98px on 1440x900 because the card was
+        // content-sized rather than viewport-sized. These tests pin the
+        // four CSS rules that fix the overflow and guarantee the page does
+        // not regress into a vertically scrolling login.
+        // ====================================================================
+
+        /**
+         * @test
+         */
+        public function login_page_constrains_card_to_viewport_height(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'max-height: calc(100dvh',
+                $source,
+                'LoginPage.vue must constrain .login-split-card height to the viewport (max-height: calc(100dvh - ...))'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_form_column_scrolls_internally(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '.login-form-column',
+                $source,
+                'LoginPage.vue must declare a .login-form-column rule'
+            );
+            $this->assertStringContainsString(
+                'overflow-y: auto',
+                $source,
+                '.login-form-column must scroll internally (overflow-y: auto) when the form is taller than the column'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_shell_uses_viewport_height(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'min-h-[100dvh]',
+                $source,
+                '.login-page must declare min-h-[100dvh] (or equivalent viewport-height rule)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_collapses_to_single_column_below_768(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '@media (max-width: 767px)',
+                $source,
+                'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile single-column collapse'
+            );
+            $this->assertStringContainsString(
+                'grid-template-rows: 240px minmax(0, 1fr)',
+                $source,
+                'Mobile grid must stack hero (240px) on top of form (1fr) so the two do not overlap'
+            );
+        }
 }
