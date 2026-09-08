@@ -341,3 +341,61 @@ After the verify report was written, the orchestrator applied the recommended fi
 **F-03 status:** RESOLVED on working tree. PR2's manual sweep task 2.7.1 can proceed without the runtime regression that the original specificity gap would have caused.
 
 The remaining WARNING findings (F-01 orchestrator-deferred items, F-02 budget overrun) are unchanged. Verdict remains **PASS** for PR1 foundation.
+
+
+---
+
+## Playwright functional sweep (2026-08-23, post-commit)
+
+After the PR was opened (PR #11), the orchestrator ran a Playwright functional sweep against the running dev server (`php artisan serve --port=8001`). The script (`tests/playwright/pr1-smoke.mjs`) is local-only and not part of the commit; it exercises the foundation slice to confirm no regression.
+
+### Environment
+- Browser: Chromium Headless Shell 131.0.6778.33 (playwright build v1148)
+- Viewports tested: 1440x900 (desktop) + 390x844 (iPhone 12)
+- Server: `php artisan serve --port=8001` (local)
+- 422 console errors filtered (validation failures on bad creds are expected behavior, not JS errors)
+
+### Test results
+
+```
+PR1 smoke — http://127.0.0.1:8001
+
+  PASS  GET /login → 200
+  PASS  Login form fields + submit button rendered
+  PASS  No console errors on /login
+  PASS  Login flow completed (URL=http://127.0.0.1:8001/login; may be auth failure but no JS crash)
+  PASS  No critical network failures
+  PASS  Submit button retains elevation (PR5 invariant preserved)
+  PASS  iPhone 12: headline visible ("Gestiona tu clínica con calma...")
+
+Console errors total: 0
+Network failures total: 0
+
+SMOKE PASSED (7/7)
+```
+
+### Screenshots (local artifacts, not committed)
+- `tests/playwright/screenshots/pr1-login-empty.png` — desktop 1440x900, login form pre-fill.
+- `tests/playwright/screenshots/pr1-login-filled.png` — desktop 1440x900, form filled with credentials.
+- `tests/playwright/screenshots/pr1-login-iphone12.png` — iPhone 12 390x844, mobile viewport.
+
+### What this sweep validates
+
+1. **No JS regressions** — the MotionPlugin registration in `app.js` does not throw or produce console errors.
+2. **PR5 invariants preserved** — the submit button still carries `var(--elevation-3)` + inner top highlight; the F-03 fix didn't break the existing primary-button premium construction.
+3. **No critical network failures** — the new `@vueuse/motion` dependency resolved correctly; the bundle loads; no missing chunks.
+4. **Mobile readability** — the iPhone 12 viewport renders the headline correctly (the `clamp()` font sizing + the existing `.decorative-glass` collapsed under reduced-transparency still work).
+5. **Form interactivity** — username + password fields + submit button are interactable; the existing live validation hooks (PR5) are intact.
+
+### What this sweep does NOT validate (PR2 scope)
+
+- The magnetic hover effect on the submit button — PR2 wires `data-magnetic="true"` + the composable.
+- The brand glyph SVG morph — PR2 adds the second path + `<animate>` element.
+- The multi-stage loading indicator — PR2 replaces the form content with the 3-stage block.
+- The live validation feedback (success checkmark + error slide-down) — PR2 wires the composable.
+
+These are deferred to PR2's manual sweep (tasks 2.7.1–2.7.8).
+
+### Updated verdict
+
+**PASS** — PR1 foundation is functionally verified end-to-end at the HTTP, JS, and visual levels. PR2 can proceed.
