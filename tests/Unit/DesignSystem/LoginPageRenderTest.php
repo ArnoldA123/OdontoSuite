@@ -678,5 +678,81 @@ class LoginPageRenderTest extends TestCase
                 $source,
                 'LoginPage.vue must declare a @media (prefers-reduced-transparency: reduce) block (Phase 2.6)'
             );
+    
+                    }
+
+            // ====================================================================
+        // Slice 12 / fix-viewport-fit (`ui-login-viewport-fit-2026-09`).
+        //
+        // The login overflowed 98px on 1440x900 because the card was
+        // content-sized rather than viewport-sized. These tests pin the
+        // four CSS rules that fix the overflow and guarantee the page does
+        // not regress into a vertically scrolling login.
+        // ====================================================================
+
+        /**
+         * @test
+         */
+        public function login_page_constrains_card_to_viewport_height(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'max-height: calc(100dvh',
+                $source,
+                'LoginPage.vue must constrain .login-split-card height to the viewport (max-height: calc(100dvh - ...))'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_form_column_scrolls_internally(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '.login-form-column',
+                $source,
+                'LoginPage.vue must declare a .login-form-column rule'
+            );
+            $this->assertStringContainsString(
+                'overflow-y: auto',
+                $source,
+                '.login-form-column must scroll internally (overflow-y: auto) when the form is taller than the column'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_shell_uses_viewport_height(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'min-h-[100dvh]',
+                $source,
+                '.login-page must declare min-h-[100dvh] (or equivalent viewport-height rule)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_collapses_to_single_column_below_768(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                '@media (max-width: 767px)',
+                $source,
+                'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile single-column collapse'
+            );
+            $this->assertStringContainsString(
+                'grid-template-rows: 240px minmax(0, 1fr)',
+                $source,
+                'Mobile grid must stack hero (240px) on top of form (1fr) so the two do not overlap'
+            );
         }
 }
