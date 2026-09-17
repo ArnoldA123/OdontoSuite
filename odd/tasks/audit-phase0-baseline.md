@@ -1,8 +1,9 @@
 # Task: Audit phase 0 — make the baseline executable (issues #22, #24)
 
-Status: both work units committed on `chore/audit-phase0-baseline`. One half of
-#22's acceptance criterion is unverified for an environment reason, and three
-decisions are waiting on the repository owner; both are named at the end.
+Status: both work units committed on `chore/audit-phase0-baseline`, plus a third
+commit carrying the corrections two independent verifications produced. One half
+of #22's acceptance criterion is unverified for an environment reason, and four
+points wait on the repository owner; both are named at the end.
 
 Phase 0 of plan #12 (`docs/mejoras/12-programa-auditoria-integral-2026-08.md` §3)
 is axis **A1** (#24), a single reproducible baseline. #24 states in its own body
@@ -14,12 +15,31 @@ that its MySQL half depends on **#22**, so #22 went first.
 | --- | --- | --- | --- |
 | WU-1 | #22 | `docker-compose.yml`, `phpunit.mysql.xml` pinned to it, `tests/Unit/Tooling/MySQLTestEngineContractTest.php` | `6950208` |
 | WU-2 | #24 | `scripts/audit/baseline.sh` | `13824e0` |
+| WU-3 | verification | Naming and traceability corrections in `scripts/audit/baseline.sh` | `f6d78c1` |
+| — | — | This tracking document | `fde1f36` |
 
-Independent verification of WU-1 exists (agent `gentle-ai-verify`, task
-`mu5ta5um-1-mta5`): CI mirror fidelity, pin effectiveness, override escape hatch,
-XML/YAML validity and port freedom all CONFIRMED; the container half UNVERIFIED;
-three defects reported, all addressed in the table below. It also recorded that
-the tree was not frozen while it verified, which this branch's commits now fix.
+## Verification
+
+Two independent read-only passes (`gentle-ai-verify`), each against a different
+state of the branch.
+
+**Pass 1 — `825c672`, working tree (task `mu5ta5um-1-mta5`).** CI mirror
+fidelity, effectiveness of the pin, the override escape hatch, XML/YAML validity
+and port freedom: CONFIRMED. Container half: UNVERIFIED. It also reported that
+the tree was not frozen while it verified — a fair objection, fixed by the
+commits now on this branch — and three defects: the provenance stated in the new
+comment (addressed as defect 1b below), a fixed `container_name` that would make
+two checkouts collide (removed), and a `php artisan test --configuration` warning
+worth documenting (now noted in the compose file).
+
+**Pass 2 — `fde1f36`, clean tree (task `mu5uewrk-2-fbd2`).** Frozen revision and
+commit hygiene, artifact completeness (28 counters, none empty), **byte-identical
+reproduction of the artifact on an independent re-run**, the falsification claim
+(a falsified figure and a claimed-but-unmeasured key are both reported, exit 1),
+the guard test's falsifiability with restoration proven by md5 and git blob, CI
+mirror fidelity, honesty of the engine label, the `migrate:fresh` guardrail by
+code inspection, and 13 of 16 numerals in this document: all CONFIRMED or
+matching. Three defects found, all fixed in `f6d78c1` (rows 9-11 below).
 
 ## Measured facts (2026-09-17, `825c672` then `6950208`, clean tree)
 
@@ -86,6 +106,9 @@ the tree was not frozen while it verified, which this branch's commits now fix.
 | 6 | A quote literal inside a JS string in the script was mangled by the editing layer (`character === ')`) | Node reported `SyntaxError` once stderr stopped being swallowed | Removed the hand-written string scanner entirely (the retry loop needs no quote literal) |
 | 7 | `$TEMP` is `/tmp` in Git Bash, which Node (a Windows binary) resolves as `E:\tmp` | The falsification test read no file | Tests write outside the repo via `cygpath -w /tmp` |
 | 8 | The new test file added a Pint style issue (354 → 355) | The baseline measures Pint | `vendor/bin/pint` scoped to that file |
+| 9 | `prettier_flagged` presented 189 as the number of files Prettier would reformat. The run aborts at the first file whose parser is missing, so it is a lower bound covering only alphabetically-prior files | Verification pass 2 | Renamed `prettier_warned_before_abort`; the artifact glosses the naming |
+| 10 | The three MySQL counters recorded a literal command instead of the one that ran, dropping the `env DB_*` overrides that named the engine | Verification pass 2 | They record `$MYSQL_CMD`, captured from the run itself |
+| 11 | `Overall status: COMPLETE` sat unglossed beside red gates and 116 failed tests | Verification pass 2 | The artifact states what `COMPLETE` does and does not mean |
 
 ## Evidence log
 
@@ -117,10 +140,26 @@ already recorded for the ESLint half (330 → 299), measured independently.
    default runner 45 on SQLite). One is identified: `AuditLogMigrationTest:74`
    asserts the migration source still contains `->after('user_agent')`, an
    engine-independent assertion that fails on a real engine too.
-4. **Owner decision:** whether the guard test (D5) stays, given #22 did not ask
+4. **New finding, needs its own issue:** `pnpm format:check` cannot complete.
+   `.prettierrc` maps `*.php` to the `php` parser and no PHP plugin is installed
+   (`package.json` declares only `prettier ^3.1.0`; `.prettierignore` has no php
+   entry), so the run dies on the first of 522 tracked PHP files. Every figure
+   derived from that gate is a lower bound, and the gate cannot be satisfied at
+   all. Pre-existing, family of #15 and #17.
+5. **Owner decision:** whether the guard test (D5) stays, given #22 did not ask
    for it.
-5. **Owner decision:** whether to append these findings to the issue bodies
-   (#22, #24) and close them, or leave that to the repository owner.
+6. **Owner decision:** whether to append these findings to the issue bodies
+   (#22, #24, #21) and close what is closed, or leave that to the repository
+   owner. Nothing was written to GitHub from this session.
+7. **Owner decision:** whether to unblock the container half by repairing WSL for
+   Docker Desktop. Until then #22's acceptance criterion cannot be satisfied on
+   this machine, only the repository-side defect can be.
+
+Two numerals in the evidence log were measured in-session and are not
+reproducible from the repository: the `MISMATCH: 6 of 28` line (the falsified
+document was a temporary file, since deleted) and the escape-hatch timings.
+Verification pass 2 confirmed the mechanisms behind both with its own falsified
+document (`3 of 27`, exit 1) and the override reaching MariaDB 10.4.
 
 ## Next step per plan #12 §3
 
