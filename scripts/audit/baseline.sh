@@ -344,7 +344,18 @@ measure_mysql() {
   if [ "$decision" = "refuse:application-database-is-test-database" ]; then
     record mysql_engine "refused" "database_guard_decision $env_file"
     record mysql_status "refused-app-database-is-test-database" "database_guard_decision $env_file"
-    PARTIAL_REASON="mysql suite refused: $env_file or the environment names $TEST_DB as the application database"
+    PARTIAL_REASON="mysql suite refused: an env-file key or an exported value names $TEST_DB as the application database"
+    return
+  fi
+
+  # A connection URL that is present and whose database cannot be read means the
+  # application's database cannot be proven different: refuse, whichever engine is
+  # used. The run itself is pinned below, so this refusal protects the reading, not
+  # the run.
+  if [ "$decision" = "refuse:unreadable-connection-url" ]; then
+    record mysql_engine "refused" "database_guard_decision $env_file"
+    record mysql_status "refused-unreadable-connection-url" "database_guard_decision $env_file"
+    PARTIAL_REASON="mysql suite refused: a DB_URL is set whose database cannot be read"
     return
   fi
 
@@ -355,7 +366,11 @@ measure_mysql() {
       # Pinned even here: an exported DB_DATABASE would point the run at a
       # database the ephemeral container never creates. Nothing is at risk in a
       # container, but a figure produced by a failed connection is a false one.
-      run_gate mysql env "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
+      #
+      # DB_URL is emptied as well: a URL beats the explicit keys inside the
+      # framework, measured on this project, so an inherited one would redirect
+      # the pinned run.
+      run_gate mysql env "DB_URL=" "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
       MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
@@ -388,9 +403,11 @@ measure_mysql() {
     if [ -n "$version" ]; then
       engine="$version (local engine on $host:$port, not the CI container)"
       # `env` exports the overrides to the child process; a bare VAR=value in
-      # front of a shell function would not reach `php`.
+      # front of a shell function would not reach `php`. DB_URL is emptied so the
+      # run's connection resolves to the pinned database: a URL beats the explicit
+      # keys, measured on this project, and an inherited one would redirect it.
       run_gate mysql env "DB_HOST=$host" "DB_PORT=$port" "DB_USERNAME=$user" "DB_PASSWORD=$pass" \
-        "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
+        "DB_URL=" "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
       MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
@@ -547,19 +564,69 @@ lower() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
+# url_database <url> — the database a connection URL selects. Prints it and exits
+# 0; exits 3 when there is no URL, and 4 when the URL is present but carries no
+# database this parse can read, which the guard treats as unknown rather than as
+# absent. `parse_url`, which the framework uses, keeps the database in the path,
+# a query string follows it, and a URL with no path selects no database at all.
+#
+# This reads the MySQL-family shapes the runner uses. A URL for another driver
+# would be read as a name that is not the test database, which decides the same
+# way the framework decides it: the URL does not select the database the suite
+# wipes.
+url_database() {
+  local url=$1 candidate
+  [ -n "$url" ] || return 3
+  candidate=${url%%\?*}
+  candidate=${candidate%%\#*}
+  case "$candidate" in
+    *://*/*) candidate=${candidate##*/} ;;
+    *) return 4 ;;
+  esac
+  [ -n "$candidate" ] || return 4
+  printf '%s' "$candidate"
+}
+
 database_guard_decision() {
   local env_file=$1
-  local app_db_env_file app_db_exported
+  local app_db_env_file app_db_exported url_env_file url_exported
+  local url_db_env_file="" url_db_exported=""
   app_db_env_file=$(env_value DB_DATABASE "$env_file")
   app_db_exported=$(printenv DB_DATABASE 2>/dev/null || true)
+  url_env_file=$(env_value DB_URL "$env_file")
+  url_exported=$(printenv DB_URL 2>/dev/null || true)
+
+  # A URL that is present and whose database cannot be read is left empty rather
+  # than ignored, and the refusal below treats it as unknown: the reviewer's
+  # remedy for the source this guard used to miss.
+  local url_unreadable=0
+  if [ -n "$url_env_file" ]; then
+    url_db_env_file=$(url_database "$url_env_file") || { url_db_env_file=""; url_unreadable=1; }
+  fi
+  if [ -n "$url_exported" ]; then
+    url_db_exported=$(url_database "$url_exported") || { url_db_exported=""; url_unreadable=1; }
+  fi
 
   echo "app_database_env_file=${app_db_env_file:-(unset)}"
   echo "app_database_exported=${app_db_exported:-(unset)}"
-  echo "app_database=${app_db_exported:-${app_db_env_file:-(unset)}}"
+  echo "app_database_url_env_file=${url_db_env_file:-(unset)}"
+  echo "app_database_url_exported=${url_db_exported:-(unset)}"
+  # What the framework resolves, in its own order: a URL beats the explicit keys,
+  # and an exported value beats the file for each key. Measured on this project:
+  # with DB_URL selecting odontosuite_test and DB_DATABASE naming odontosuite, the
+  # resolved connection is odontosuite_test.
+  echo "app_database=${url_db_exported:-${url_db_env_file:-${app_db_exported:-${app_db_env_file:-(unset)}}}}"
 
   if [ "$(lower "$app_db_env_file")" = "$(lower "$TEST_DB")" ] ||
-    [ "$(lower "$app_db_exported")" = "$(lower "$TEST_DB")" ]; then
+    [ "$(lower "$app_db_exported")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$url_db_env_file")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$url_db_exported")" = "$(lower "$TEST_DB")" ]; then
     echo "decision=refuse:application-database-is-test-database"
+    return 0
+  fi
+
+  if [ "$url_unreadable" -eq 1 ]; then
+    echo "decision=refuse:unreadable-connection-url"
     return 0
   fi
 

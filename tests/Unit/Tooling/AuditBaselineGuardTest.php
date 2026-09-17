@@ -26,7 +26,11 @@ use PHPUnit\Framework\TestCase;
  * guard answered proceed for the exact wipe it exists to prevent. A later review
  * corroborated a fourth (`R3-001`): the engine compares database identifiers
  * without case on Windows, so a comparison that is case-sensitive misses the same
- * database spelled differently.
+ * database spelled differently. A fifth (`R1-001`) closed the source class that
+ * remained: a connection URL beats the explicit keys inside the framework, so a
+ * guard reading only `DB_DATABASE` answered proceed while the resolved connection
+ * pointed at the test database. `DB_URL` is a source now, and the suite run
+ * empties it so the pinned database governs.
  *
  * These tests drive the decision through the script's own diagnostic mode, so
  * the guard is exercised rather than read. Every env-file variant below is one
@@ -135,6 +139,58 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
+    /** @test */
+    public function database_guard_refuses_when_a_connection_url_names_the_test_database(): void
+    {
+        // The source the review found missing: `config/database.php` maps
+        // `url` => env('DB_URL') for every connection, and the URL wins over the
+        // explicit keys. Measured on this project before the fix: with DB_URL
+        // selecting odontosuite_test and DB_DATABASE naming odontosuite,
+        // `DB::connection('mysql')->getConfig('database')` was odontosuite_test.
+        $decision = $this->guardDecision(
+            "DB_DATABASE=odontosuite\nDB_URL=mysql://root@127.0.0.1:3306/odontosuite_test\n"
+        );
+
+        $this->assertSame('odontosuite_test', $decision['app_database_url_env_file'] ?? '(absent)');
+        $this->assertSame(
+            'refuse:application-database-is-test-database',
+            $decision['decision'] ?? '(no decision reported)',
+            'A URL is a connection-defining source: it must be read, not only DB_DATABASE'
+        );
+    }
+
+    /** @test */
+    public function database_guard_refuses_when_an_exported_url_names_the_test_database(): void
+    {
+        $decision = $this->guardDecision(
+            "DB_DATABASE=odontosuite\n",
+            null,
+            'mysql://root@127.0.0.1:3306/odontosuite_test'
+        );
+
+        $this->assertSame('odontosuite_test', $decision['app_database_url_exported'] ?? '(absent)');
+        $this->assertSame(
+            'refuse:application-database-is-test-database',
+            $decision['decision'] ?? '(no decision reported)',
+            'An exported URL is inherited by the suite, exactly like an exported DB_DATABASE'
+        );
+    }
+
+    /** @test */
+    public function database_guard_refuses_when_a_url_carries_no_readable_database(): void
+    {
+        // The remedy the review asked for: refuse when the URL source is present
+        // and cannot be read, rather than assume it decides nothing.
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\nDB_URL=mysql://root@127.0.0.1:3306\n");
+
+        $this->assertSame('(unset)', $decision['app_database_url_env_file'] ?? '(absent)');
+        $this->assertSame(
+            'refuse:unreadable-connection-url',
+            $decision['decision'] ?? '(no decision reported)',
+            'A URL present but unreadable cannot be proven harmless'
+        );
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -173,6 +229,12 @@ class AuditBaselineGuardTest extends TestCase
             // framework and refuses rather than risks.
             'quoted hash is literal, different database' => ["DB_DATABASE=\"odontosuite_test # inside\"\n", 'proceed'],
             'value is only a comment' => ["DB_DATABASE= # nothing\n", 'refuse:cannot-verify-application-database'],
+            // The other connection-defining key in the stock config, and the one
+            // that wins over DB_DATABASE inside the framework.
+            'url names the test database' => ["DB_DATABASE=odontosuite\nDB_URL=mysql://root@127.0.0.1:3306/odontosuite_test\n", $refuse],
+            'url with a query names the test database' => ["DB_URL=mysql://root@127.0.0.1:3306/odontosuite_test?charset=utf8mb4\n", $refuse],
+            'url names another database' => ["DB_DATABASE=odontosuite\nDB_URL=mysql://root@127.0.0.1:3306/odontosuite\n", 'proceed'],
+            'empty url is treated as absent' => ["DB_DATABASE=odontosuite\nDB_URL=\n", 'proceed'],
             'key absent' => ["APP_NAME=OdontoSuite\n", 'refuse:cannot-verify-application-database'],
         ];
     }
@@ -180,15 +242,18 @@ class AuditBaselineGuardTest extends TestCase
     /**
      * @return array<string, string>
      */
-    private function guardDecision(?string $envContents, ?string $exportedDatabase = null): array
-    {
+    private function guardDecision(
+        ?string $envContents,
+        ?string $exportedDatabase = null,
+        ?string $exportedUrl = null
+    ): array {
         $path = sys_get_temp_dir().'/baseline-guard-'.uniqid('', true).'.env';
         if ($envContents !== null) {
             file_put_contents($path, $envContents);
         }
 
         try {
-            return $this->runScript(['--explain-database-guard', $path], $exportedDatabase);
+            return $this->runScript(['--explain-database-guard', $path], $exportedDatabase, $exportedUrl);
         } finally {
             if (file_exists($path)) {
                 unlink($path);
@@ -200,15 +265,23 @@ class AuditBaselineGuardTest extends TestCase
      * @param  list<string>          $arguments
      * @return array<string, string>
      */
-    private function runScript(array $arguments, ?string $exportedDatabase = null): array
-    {
+    private function runScript(
+        array $arguments,
+        ?string $exportedDatabase = null,
+        ?string $exportedUrl = null
+    ): array {
         $script = str_replace('\\', '/', dirname(__DIR__, 3).'/scripts/audit/baseline.sh');
 
-        // `env -u` when no export is under test: PHPUnit exports its own
-        // DB_DATABASE, and an inherited value would decide these cases.
-        $command = $exportedDatabase === null
-            ? 'env -u DB_DATABASE '
-            : 'env DB_DATABASE='.escapeshellarg($exportedDatabase).' ';
+        // Both connection-defining keys are cleared, and only the ones under test
+        // are set: PHPUnit exports its own DB_DATABASE from phpunit.xml, and an
+        // inherited value would decide these cases instead of the file.
+        $command = 'env -u DB_DATABASE -u DB_URL ';
+        if ($exportedDatabase !== null) {
+            $command .= 'DB_DATABASE='.escapeshellarg($exportedDatabase).' ';
+        }
+        if ($exportedUrl !== null) {
+            $command .= 'DB_URL='.escapeshellarg($exportedUrl).' ';
+        }
         $command .= 'bash '.escapeshellarg($script);
         foreach ($arguments as $argument) {
             $command .= ' '.escapeshellarg($argument);
