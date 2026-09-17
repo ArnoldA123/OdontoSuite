@@ -149,11 +149,12 @@ const emit = defineEmits(['view', 'edit', 'approve', 'reject', 'download', 'dele
 
 // Composables
 const { user } = useAuth()
+const { confirm } = useConfirm()
 
 // Computed
 const canEdit = computed(() => {
   return (
-    quotation.value.status === 'draft' &&
+    props.quotation.status === 'draft' &&
     (user.value?.role === 'administrador' ||
       user.value?.role === 'finanzas' ||
       user.value?.role === 'odontologo')
@@ -162,27 +163,27 @@ const canEdit = computed(() => {
 
 const canApprove = computed(() => {
   return (
-    quotation.value.status === 'sent' &&
+    props.quotation.status === 'sent' &&
     (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
 const canReject = computed(() => {
   return (
-    quotation.value.status === 'sent' &&
+    props.quotation.status === 'sent' &&
     (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
 const canDelete = computed(() => {
   return (
-    quotation.value.status === 'draft' &&
+    props.quotation.status === 'draft' &&
     (user.value?.role === 'administrador' || user.value?.role === 'finanzas')
   )
 })
 
 const isExpired = computed(() => {
-  return new Date(quotation.value.valid_until) < new Date()
+  return new Date(props.quotation.valid_until) < new Date()
 })
 
 // Métodos
@@ -209,7 +210,7 @@ const confirmDelete = async () => {
     variant: 'danger'
   })
   if (ok) {
-    emit('delete', quotation.value.id)
+    emit('delete', props.quotation.id)
   }
 }
 </script>

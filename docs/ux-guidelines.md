@@ -260,7 +260,6 @@ Agregar `<keep-alive :include="['DashboardPage', 'CalendarPage']">` selectivo, c
 | `Skeleton.vue` | Placeholder de carga animado. Usar en listas, cards, dashboards |
 | `Tabs.vue` | Tabs horizontales con contenido lazy |
 | `ThemeSelector.vue` | Selector de tema (actualmente solo hay tema claro) |
-| `ToothSelector.vue` | Selector de piezas dentales (odontograma) |
 | `TreatmentPlanSelector.vue` | Selector buscable de plan de tratamiento |
 | `UiTextarea.vue` | Textarea multilinea con validacion y contador |
 | `Pagination.vue` | Paginacion (ya listada, no duplicar) |

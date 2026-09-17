@@ -10,7 +10,7 @@ diagnosis was bigger than one session, so it was split.
 | Issue | Subject | State |
 |---|---|---|
 | #13 | `Setup Node` fails: pnpm 11 needs Node >= 22.13, the workflow pinned Node 20 | **Fixed, observed and closed.** Run `35236959947`, commit `73c7634`; the issue was closed with the evidence linked. |
-| #14 | ESLint: 330 real errors across 88 files, including two dead and broken components | Open, and now the first failing step of `quality` — therefore the current blocker. |
+| #14 | ESLint: 330 real errors across 88 files, including two dead and broken components | Open; first slice landed — dead code deleted and a live crash fixed: **330 → 299** errors. Still the first failing step of `quality`. |
 | #15 | Four of the five quality gates cannot fail | Open, with the masking confirmed in the run log (see Slice 3). |
 | #16 | A literal `APP_KEY` in `ci.yml` broke the encrypter — scoped as "all 177 failures", which was wrong | **Fixed** in `4257db1`: the literal is gone and the encrypter error is at zero. The scope was wrong — 34 of the 177. Still open on GitHub: closing it is the repository owner's call. |
 | #18 | The other 143 failures, with their measured distribution | Open; created 2026-09-17 from a pre-fix measurement, with the post-fix numbers in a comment on the issue. |
@@ -361,3 +361,111 @@ this section said the figure "belongs to the next run" and left it pending; that
 wording went false the moment the run happened, one commit after the same
 pattern had to be corrected for #13. A prediction with no owner is a stale claim
 with a delay.
+
+## Issue #14 — ESLint — first slice: the gate was hiding a live crash
+
+### The measured histogram
+
+One run of the project's own lint script: **330 errors, 1399 warnings, 167 files
+scanned, 88 files with errors** (118 counting warnings-only files). Errors by
+rule:
+
+| Rule | Errors | Nature |
+|---|---|---|
+| `no-unused-vars` | 161 | 85 "assigned but never used" + 76 "defined but never used" |
+| `no-empty` | 77 | **68 empty `catch` blocks** + **9 empty `if`/`else` branches** |
+| `vue/custom-event-name-casing` | 27 | event contract: rename emitter *and* listener |
+| `vue/no-parsing-error` + `vue/valid-attribute-name` | 20 | one dead file with an uncompilable template |
+| `no-undef` | 8 | **6 of them a live runtime crash** |
+| 11 further rules | 37 | mixed |
+
+Warnings: `prettier/prettier` is **1253 of the 1399**, and it cannot fail the
+gate — a warning rule with no `--max-warnings` — while duplicating
+`pnpm format:check`. Formatting enforced in a channel that cannot fail is the
+same defect as the `|| echo` gates in #15; the decision belongs there.
+
+**The structural fact that governs every slice:** `lint:check` carries no
+`--max-warnings`, so **no partial slice can turn `quality` green**. Only removing
+the last error does. Partial slices are still worth landing as reviewed work;
+they just do not change the build's colour.
+
+### The live crash this gate was hiding
+
+`resources/js/modules/quotations/components/QuotationCard.vue` declares its prop
+with `const props = defineProps({ quotation: ... })` and then reads
+`quotation.value` in six places. `quotation` exists nowhere: the file treats the
+prop as if it were a `ref`. ESLint reported six `no-undef` errors plus
+`'props' is assigned a value but never used` — the lint naming the mistake
+exactly.
+
+Reproduced in a browser against the running app at `/quotations`, before the
+fix:
+
+```
+[Vue warn]: Unhandled error during execution of render function
+  at <QuotationCard key=1 quotation={id: 1, ...} onView=fn<viewQuotation>>
+  at <AppLayout>
+  at <QuotationsPage ...>
+  at <RouterView key="/quotations">
+```
+
+and the page error list, in full:
+
+```
+ReferenceError: quotation is not defined
+    at ComputedRefImpl.fn (QuotationCard.vue:67:19)
+TypeError: Cannot read properties of null (reading 'emitsOptions')
+```
+
+The second is Vue's patch machinery cascading off the first. The rendered page
+held **only the header and the filters — 139 characters, zero tables**; the
+quotation list was empty. No test mentions `QuotationCard`, which is why nothing
+caught it, and the page had no other gate.
+
+A second defect in the same file, found while fixing it: `useConfirm` is
+imported and never called, so `confirm({...})` inside `confirmDelete` resolved to
+**`window.confirm`** — the native dialog, handed an options object. The project's
+own idiom is `const { confirm } = useConfirm()` (`useConfirm.js:20`,
+`AiAnalysisPage.vue:380`).
+
+### The slice — done
+
+| Change | Effect |
+|---|---|
+| Deleted `resources/js/components/ui/ToothSelector.vue` | −21 errors. Imported by nothing; its template carries a duplicated, truncated `:class` binding and cannot compile. `pnpm build` passes before and after, which is the proof nothing depended on it. |
+| Deleted `resources/js/components/ValidatedForm.vue` | −2 errors. Imported by nothing, uses `ref`/`watch` without importing them, and imports `../composables/useValidation.js`, which does not exist in the repository. |
+| `QuotationCard.vue`: `props.quotation` at six sites, plus `const { confirm } = useConfirm()` | −8 errors, and `/quotations` renders again. |
+| Removed the `ToothSelector.vue` row from `docs/ux-guidelines.md` | The document listed a component that no longer exists. |
+
+Measured: **330 → 299 errors**, warnings 1399 → 1398, files with errors 88 → 85.
+`vue/no-parsing-error`, `vue/valid-attribute-name` and `no-undef` are all at
+**zero**. `pnpm build` passes in 19.58 s.
+
+Verified in the browser after the fix: on reload the main content went from 139
+to 275 characters and carries the card's real data — `PR-2026-EZ8XPC`,
+`Enviado`, `Arnold Chomba`, `Total: S/ 1,200.00`, `(Expirado)` — while the
+console after the last reload holds only the Vite connection and the Reverb
+handshake. The two render errors in the log sit at line 24 of 46, both before
+that reload.
+
+### A slice that was refuted before it landed
+
+A second slice was prepared and dropped: adding `defineOptions`, `defineModel`
+and `defineSlots` to `globals` in `.eslintrc.cjs`, on the argument that
+`OpenCashModal.vue:159` uses `defineOptions` and the plugin's deprecated
+`env: { 'vue/setup-compiler-macros': true }` declares only four macros.
+Measured: the original report contains **no** `no-undef` for that file, and
+`OpenCashModal.vue` returns the same single error with and without the change.
+The macro was never flagged; the argument had been reasoned from configuration
+bytes without running the linter. Reverted — a change that fixes nothing is
+noise in the diff.
+
+### What remains for #14
+
+299 errors across 85 files. The mechanical dominants are `no-unused-vars` (158
+remaining) and `no-empty` (77, of which 68 are swallowed exceptions and 9 are
+empty branches — the latter include a block whose own comment says it should
+notify and never did, and two canvas guards in the BI charts). Then 27
+`vue/custom-event-name-casing`, which change component contracts and require
+their listeners updated in the same change. `quality` turns green only when the
+last error is gone.
