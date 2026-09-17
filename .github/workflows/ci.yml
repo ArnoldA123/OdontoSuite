@@ -34,6 +34,12 @@ jobs:
           extensions: mbstring, bcmath, intl, sqlite, pdo_sqlite
           coverage: none
 
+      # Must run BEFORE setup-node: `cache: 'pnpm'` shells out to `pnpm store
+      # path` to build the cache key, and dies if pnpm is not installed yet.
+      # The version comes from package.json's `packageManager` field.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -78,7 +84,10 @@ jobs:
   backend-tests:
     name: Backend tests (MySQL)
     runs-on: ubuntu-latest
-    needs: quality
+    # Deliberately NOT gated on `quality`. Chained through it, this job was
+    # skipped on every one of the 56 runs the workflow has ever had, so the
+    # MySQL suite never executed once — and a failing lint gate must never hide
+    # whether the tests pass. They are independent concerns.
 
     # Sprint 4 fix (IM-1): los 28 tests viejos fallan con SQLite por
     # sentencias MODIFY COLUMN MySQL-specific. Usamos MySQL real como
@@ -153,9 +162,15 @@ jobs:
   frontend-build:
     name: Frontend build
     runs-on: ubuntu-latest
-    needs: quality
+    # Not gated on `quality`, for the same reason as backend-tests: this job
+    # verifies `pnpm build`, which is exactly what was broken on main for a
+    # month while the workflow reported red for an unrelated reason.
     steps:
       - uses: actions/checkout@v4
+
+      # Same ordering requirement as the quality job.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4

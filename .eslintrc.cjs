@@ -7,10 +7,16 @@ module.exports = {
   },
   extends: [
     'eslint:recommended',
-    '@vue/eslint-config-prettier',
     'plugin:vue/vue3-essential',
     'plugin:vue/vue3-strongly-recommended',
-    'plugin:vue/vue3-recommended'
+    'plugin:vue/vue3-recommended',
+    // MUST stay last. ESLint resolves `extends` last-wins, and this is the
+    // config that switches the formatting rules OFF. Placed before the Vue
+    // presets it did nothing, because those presets re-enabled every rule it
+    // had just disabled — which is why `pnpm lint:check` reported 1071
+    // vue/html-indent errors and the CI gate could never pass. Prettier owns
+    // formatting (see .prettierrc); ESLint owns correctness.
+    '@vue/eslint-config-prettier'
   ],
   parserOptions: {
     ecmaVersion: 2021,
@@ -20,25 +26,12 @@ module.exports = {
     'vue'
   ],
   rules: {
-    // Vue specific rules
+    // Vue specific rules — correctness only. Formatting rules that Prettier
+    // already enforces (html-indent, max-attributes-per-line,
+    // html-self-closing, script-indent) are deliberately absent.
     'vue/multi-word-component-names': 'off',
     'vue/no-unused-vars': 'error',
     'vue/no-multiple-template-root': 'off',
-    'vue/html-self-closing': ['error', {
-      'html': {
-        'void': 'never',
-        'normal': 'always',
-        'component': 'always'
-      },
-      'svg': 'always',
-      'math': 'always'
-    }],
-    'vue/max-attributes-per-line': ['error', {
-      'singleline': 3,
-      'multiline': 1
-    }],
-    'vue/html-indent': ['error', 2],
-    'vue/script-indent': ['error', 2, { 'baseIndent': 0 }],
     'vue/component-definition-name-casing': ['error', 'PascalCase'],
     'vue/component-name-in-template-casing': ['error', 'PascalCase'],
     'vue/custom-event-name-casing': ['error', 'camelCase'],
@@ -50,7 +43,10 @@ module.exports = {
     'vue/prefer-separate-static-class': 'error',
     'vue/prefer-true-attribute-shorthand': 'error',
 
-    // General JavaScript rules
+    // General JavaScript rules — correctness and naming only. The whitespace,
+    // punctuation and quoting family (semi, quotes, comma-*, *-spacing,
+    // indent, brace-style, operator-linebreak, ...) is intentionally gone:
+    // it duplicated Prettier and disagreed with it.
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-unused-vars': 'error',
@@ -59,41 +55,14 @@ module.exports = {
     'no-var': 'error',
     'object-shorthand': 'error',
     'prefer-template': 'error',
-    'template-curly-spacing': 'error',
-    'arrow-spacing': 'error',
-    'comma-dangle': ['error', 'never'],
-    'comma-spacing': ['error', { 'before': false, 'after': true }],
-    'comma-style': ['error', 'last'],
-    'computed-property-spacing': ['error', 'never'],
-    'func-call-spacing': ['error', 'never'],
-    'key-spacing': ['error', { 'beforeColon': false, 'afterColon': true }],
-    'keyword-spacing': ['error', { 'before': true, 'after': true }],
-    'object-curly-spacing': ['error', 'always'],
-    'semi': ['error', 'never'],
-    'semi-spacing': ['error', { 'before': false, 'after': true }],
-    'space-before-blocks': 'error',
-    'space-before-function-paren': ['error', 'always'],
-    'space-in-parens': ['error', 'never'],
-    'space-infix-ops': 'error',
-    'space-unary-ops': 'error',
-    'spaced-comment': ['error', 'always'],
-    'quotes': ['error', 'single', { 'avoidEscape': true }],
-    'indent': ['error', 2, { 'SwitchCase': 1 }],
-    'eol-last': ['error', 'always'],
-    'no-trailing-spaces': 'error',
-    'no-multiple-empty-lines': ['error', { 'max': 1, 'maxEOF': 0 }],
-    'padded-blocks': ['error', 'never'],
-    'brace-style': ['error', '1tbs', { 'allowSingleLine': true }],
     'camelcase': ['error', { 'properties': 'never' }],
     'new-cap': ['error', { 'newIsCap': true, 'capIsNew': false }],
-    'new-parens': 'error',
     'no-array-constructor': 'error',
     'no-new-object': 'error',
     'no-new-wrappers': 'error',
     'no-unneeded-ternary': 'error',
     'one-var': ['error', 'never'],
     'operator-assignment': ['error', 'always'],
-    'operator-linebreak': ['error', 'after'],
     'prefer-arrow-callback': 'error',
     'prefer-destructuring': ['error', {
       'array': false,
@@ -101,19 +70,8 @@ module.exports = {
     }],
     'prefer-rest-params': 'error',
     'prefer-spread': 'error',
-    'rest-spread-spacing': ['error', 'never'],
-    'symbol-description': 'error',
-    'template-curly-spacing': 'error',
-    'yield-star-spacing': ['error', 'after']
+    'symbol-description': 'error'
   },
-  overrides: [
-    {
-      files: ['*.vue'],
-      rules: {
-        'indent': 'off'
-      }
-    }
-  ],
   globals: {
     defineProps: 'readonly',
     defineEmits: 'readonly',
