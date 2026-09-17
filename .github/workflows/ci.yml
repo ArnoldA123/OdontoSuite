@@ -40,10 +40,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
+      # Version read from .nvmrc, so Node is declared in exactly one place.
+      # `pnpm@11.5.0` declares `engines.node >= 22.13`; pinning 20 here made
+      # the `pnpm store path` cache-key step die on `node:sqlite`.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
 
       - name: Cache Composer dependencies
@@ -172,10 +175,11 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
+      # Same .nvmrc source as the quality job.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
           cache: 'pnpm'
 
       - name: Install pnpm dependencies

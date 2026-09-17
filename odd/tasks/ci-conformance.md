@@ -145,3 +145,33 @@ time ever**. Their outcome is unknown and must be observed, not assumed.
   so its burned receipt is preserved in history. Everything here is a NEW
   candidate and will need its own review once no further edits are pending.
 - Slice 1 changes no application source file, so it cannot affect behaviour.
+
+## Issue #13 — Node version (change applied, observation pending)
+
+Applied 2026-09-17, first run of the issue-driven phase.
+
+`.nvmrc` (new file, content `22`) is now the single source for the Node version;
+both jobs that set up Node read it through `node-version-file: '.nvmrc'` instead
+of carrying their own literal.
+
+Evidence, measured rather than assumed:
+
+| Claim | Source |
+|---|---|
+| The floor is `>=22.13` | `node_modules/pnpm/package.json:64` — `engines.node`, pnpm 11.5.0 |
+| The two literals were the only Node declarations in the repo | repo-wide grep for `node-version` (excluding `vendor`, `node_modules`); no `engines` in `package.json`, no `.nvmrc`, nothing in `docs/` |
+| No test or document reads `ci.yml` | grep for `ci.yml` in `tests/` — zero hits, so no guard breaks or becomes false |
+| `node-version-file` is a real input | `actions/setup-node@v4` `action.yml` + `docs/advanced-usage.md:57-72`, resolved relative to the repository root |
+| `22` is a resolvable spec that satisfies the floor | `semver.validRange('22')` → `>=22.0.0 <23.0.0`, intersects `>=22.13` |
+
+The major line `22` is chosen over the bare floor on purpose: pointing at
+`package.json` and letting `engines.node` be the spec would resolve `>=22.13` to
+the newest satisfying release — a moving target that could land on an untested
+major. `22` stays inside the LTS line and still receives patches.
+
+**Observation pending, and deliberately not claimed.** CI can only be observed
+from a run, and the local machine cannot produce one. The exact thing to confirm
+on the next run is that `Setup Node` resolves a `22.x` version and that the
+`pnpm store path` cache-key step no longer dies on `node:sqlite`. Everything
+after that point (`quality` reaching ESLint, `frontend-build` reaching
+`pnpm build`) is a different issue's business (#14, #15).
