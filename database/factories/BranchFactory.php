@@ -14,9 +14,13 @@ class BranchFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->company() . ' Branch',
-            'code' => strtoupper($this->faker->bothify('BR-###')),
+            'name' => $this->faker->company().' Branch',
+            'code' => strtoupper($this->faker->unique()->bothify('BR-###')),
             'address' => $this->faker->streetAddress(),
+            // `branches.city` is NOT NULL without a default: the factory filled
+            // every other required column and this one was 15 of the 71 failures
+            // of the MySQL runner under strict mode.
+            'city' => $this->faker->city(),
             'phone' => $this->faker->phoneNumber(),
             'is_active' => true,
         ];
