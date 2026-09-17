@@ -57,6 +57,18 @@ one: the second verification pass of the previous candidate, by code inspection.
   the application's live database was the one the suite wipes. Found by the
   independent verification of this candidate, not by the original review, and
   closed by D1(a).
+- **D8 — an inline comment ends an unquoted value.** phpdotenv drops everything
+  from the first `#`, with or without whitespace before it, and a `#` is literal
+  only inside quotes. The trim-only parse kept the comment, so
+  `DB_DATABASE=odontosuite_test # test base` compared unequal to the test
+  database name and the guard answered `proceed` for the exact wipe it exists to
+  prevent. The provider's refuter corroborated it as critical and
+  candidate-caused (`R1-data-loss-guard-inline-comment`). The variant table now
+  carries the six forms phpdotenv accepts, plus two controls: a quoted hash,
+  which is literal and must not refuse, and a value that is only a comment, which
+  reads as empty and is refused rather than risked. Escapes inside a
+  double-quoted value are still not decoded, and the comment says so: the only
+  name this decision must recognise is the test database's own.
 
 ## Out of scope
 
@@ -68,12 +80,14 @@ candidate with style work and inflate the review.
 ## Checks
 
 - `vendor/bin/phpunit --filter='MySQLTestEngineContractTest|AuditBaselineGuardTest'`
-  → **17 tests, 54 assertions, OK**, including the loopback binding, the eleven
+  → **26 tests, 72 assertions, OK**, including the loopback binding, the eighteen
   env-file decisions, the two export cases and the source-disagreement case.
 - **Proven able to fail:** restoring the legacy parse verbatim (as it stood at
-  `8136345:250`) and removing the loopback prefix produces **13 failures out of
-  17**. A narrower injection that only drops the trimming and quote handling
-  produces 5. Both are recorded, because they are different experiments.
+  `8136345:250`) and removing the loopback prefix produces **13 failures of 17**;
+  a narrower injection that only drops the trimming and quote handling produces 5;
+  and restoring the trim-only parse that kept an inline comment produces **8
+  failures** naming the comment forms. Three different experiments, three numbers,
+  all recorded.
 - `bash scripts/audit/baseline.sh` → COMPLETE, exit 0, 28 counters, none empty.
 - `docker compose config` → `host_ip: 127.0.0.1`, `published: "3307"`.
 
@@ -93,6 +107,9 @@ candidate with style work and inflate the review.
 | **refusal exercised** | `printf 'DB_DATABASE=odontosuite_test\n' > refusal.env; BASELINE_ENV_FILE=refusal.env bash scripts/audit/baseline.sh` | status **PARTIAL**, exit **3**, `mysql_engine=refused`, `mysql_status=refused-app-database-is-test-database`, no `mysql.txt` in that run's raw directory, and no `mysql_*` counters |
 | falsification (narrow) | drop the trimming and quote handling, remove the loopback prefix | 5 failures naming the defects |
 | falsification (legacy parse) | restore `env_value`'s body verbatim from `8136345:250`, remove the loopback prefix | **13 failures of 17**, method names listing every quoted, spaced and export variant |
+| guard vs framework, before the correction | a `php` probe of `Dotenv::parse` against `--explain-database-guard`, six forms | five disagreed and every one of them said `proceed`: a comment after a space, after a tab, with no space, and after single or double quotes. The framework read `odontosuite_test` in all five |
+| guard vs framework, after the correction | the same probe | all six agree; the five now refuse, and the quoted-hash control still proceeds as it should |
+| falsification of the correction | restore the parsing block that kept an inline comment | **8 failures** naming the six comment forms plus `trailing spaces` and `value is only a comment`; md5 `0d596246…` identical before and after |
 | restoration | md5 before/after both falsifications | script `11ebdb219fa238f8ae2f2af09c2bfb34`, compose `e8a285e72771ab7e32015e320ce353ff`, identical both times; `git status --porcelain` clean afterwards |
 
 ## Corrections this document carries
@@ -111,6 +128,19 @@ claims did not survive:
    legacy parse reaches 13. Both numbers are above.
 3. **A quoted md5 was stale.** The fixed script had moved on since that hash was
    taken. The hashes above were all re-measured after the last edit.
+
+A fourth did not come from that verification but from the provider's own refuter,
+and it is the most serious of the session:
+
+4. **The trim-only parse still failed open, and on the exact case the guard
+   exists for.** `phpdotenv` ends an unquoted value at the first `#`, so
+   `DB_DATABASE=odontosuite_test # test base` names the application database after
+   the test database. The guard kept the comment, compared the whole string,
+   found no match, and answered `proceed`. The provider's refuter corroborated it
+   as a critical, candidate-caused finding (`R1-data-loss-guard-inline-comment`),
+   and the correction is one bounded change: cut an unquoted value at the first
+   `#`, keep a `#` inside quotes literal, refuse when the value cannot be read.
+   The probe table above is the before-and-after.
 
 ## Not covered here
 

@@ -19,7 +19,11 @@ use PHPUnit\Framework\TestCase;
  * database the suite would then destroy. An independent verification reached the
  * same conclusion by code inspection, and added a second: an exported
  * `DB_DATABASE` beats the file inside the framework, so a guard that reads only
- * the file can still miss the database the application actually uses.
+ * the file can still miss the database the application actually uses. The
+ * provider's refuter then corroborated a third (`R1-data-loss-guard-inline-comment`):
+ * phpdotenv drops an inline comment, so `DB_DATABASE=odontosuite_test # test`
+ * read as the whole line, compared unequal to the test database name, and the
+ * guard answered proceed for the exact wipe it exists to prevent.
  *
  * These tests drive the decision through the script's own diagnostic mode, so
  * the guard is exercised rather than read. Every env-file variant below is one
@@ -127,6 +131,22 @@ class AuditBaselineGuardTest extends TestCase
             'leading spaces, same database' => ["   DB_DATABASE=odontosuite_test\n", $refuse],
             'trailing spaces, same database' => ["DB_DATABASE=odontosuite_test   \n", $refuse],
             'double quoted, different database' => ["DB_DATABASE=\"odontosuite\"\n", 'proceed'],
+            // The refuter's finding: phpdotenv drops an inline comment, and a
+            // guard that kept it compared unequal to the test database name and
+            // answered proceed. Every form below is one the framework accepts.
+            'inline comment after a space, same database' => ["DB_DATABASE=odontosuite_test # test base\n", $refuse],
+            'inline comment with no space, same database' => ["DB_DATABASE=odontosuite_test#test\n", $refuse],
+            'inline comment after a tab, same database' => ["DB_DATABASE=odontosuite_test\t# test base\n", $refuse],
+            'double quoted then a comment, same database' => ["DB_DATABASE=\"odontosuite_test\" # test base\n", $refuse],
+            'single quoted then a comment, same database' => ["DB_DATABASE='odontosuite_test' # test base\n", $refuse],
+            'two hashes, same database' => ["DB_DATABASE=odontosuite_test##two\n", $refuse],
+            'inline comment, different database' => ["DB_DATABASE=odontosuite # dev\n", 'proceed'],
+            // Controls. Inside quotes the hash is literal, so this name is not
+            // the test database and proceeding is the right answer; a value that
+            // is only a comment reads as empty, which is stricter than the
+            // framework and refuses rather than risks.
+            'quoted hash is literal, different database' => ["DB_DATABASE=\"odontosuite_test # inside\"\n", 'proceed'],
+            'value is only a comment' => ["DB_DATABASE= # nothing\n", 'refuse:cannot-verify-application-database'],
             'key absent' => ["APP_NAME=OdontoSuite\n", 'refuse:cannot-verify-application-database'],
         ];
     }

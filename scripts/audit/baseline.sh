@@ -83,15 +83,24 @@ strip_ansi() {
 }
 
 # env_value <key> [file] — reads one key the way phpdotenv does: whitespace around
-# the separator tolerated, CRLF tolerated, a matched pair of quotes stripped.
-# Prints nothing when the file or the key is absent, which the caller must treat
-# as unknown rather than as a default. BASELINE_ENV_FILE overrides the path; that
-# seam is what makes the data-loss guard testable without touching the real .env.
+# the separator tolerated, CRLF tolerated, a matched pair of quotes stripped and,
+# for an unquoted value, everything from the first `#` treated as a comment.
+# Prints nothing when the file, the key or the value cannot be read, which the
+# caller must treat as unknown rather than as a default. BASELINE_ENV_FILE
+# overrides the path; that seam is what makes the data-loss guard testable
+# without touching the real .env.
 #
-# The previous implementation grepped for `^DB_DATABASE=` and cut on `=`. A
-# quoted value, a CRLF line ending, spaces around the separator or an absent key
-# all slipped through it, and `DB_DATABASE="odontosuite_test"` then named a
-# database the suite would wipe.
+# The first implementation grepped for `^DB_DATABASE=` and cut on `=`. A quoted
+# value, a CRLF line ending, spaces around the separator or an absent key all
+# slipped through it, and `DB_DATABASE="odontosuite_test"` then named a database
+# the suite would wipe. A review of the fix found the trimmed version still kept
+# an inline comment, which phpdotenv drops: `DB_DATABASE=odontosuite_test # test`
+# compared unequal to the test database name, the guard said proceed, and the
+# suite would have wiped the application database. The comment cut below is that
+# finding's fix.
+#
+# Escapes inside a double-quoted value are not decoded. The only value this
+# decision has to recognise is the test database's own name, which contains none.
 env_value() {
   local key=$1 file=${2:-${BASELINE_ENV_FILE:-.env}} line value
   [ -f "$file" ] || return 0
@@ -100,11 +109,33 @@ env_value() {
   value=${line#*=}
   value=${value%$'\r'}
   value=${value#"${value%%[![:space:]]*}"}
-  value=${value%"${value##*[![:space:]]}"}
+
   case "$value" in
-    \"*\") value=${value#\"}; value=${value%\"} ;;
-    \'*\') value=${value#\'}; value=${value%\'} ;;
+    \"*)
+      # Between the quotes everything is literal, '#' included, and only what
+      # follows the closing quote is a comment. An unterminated quote yields
+      # nothing, which the guard reads as unknown.
+      value=${value#\"}
+      case "$value" in
+        *\"*) value=${value%%\"*} ;;
+        *) value="" ;;
+      esac
+      ;;
+    \'*)
+      value=${value#\'}
+      case "$value" in
+        *\'*) value=${value%%\'*} ;;
+        *) value="" ;;
+      esac
+      ;;
+    *)
+      # Unquoted: the value ends at the first '#', with or without whitespace
+      # before it, and the tail is trimmed away.
+      value=${value%%#*}
+      value=${value%"${value##*[![:space:]]}"}
+      ;;
   esac
+
   printf '%s' "$value"
 }
 
