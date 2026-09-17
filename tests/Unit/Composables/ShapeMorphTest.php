@@ -195,8 +195,22 @@ JS;
 
     /**
      * @test
+     *
+     * The pure rule blocks `error → idle`, so NOTHING can reach `idle` from a
+     * terminal state through `transition()`. The sanctioned exit is
+     * `useShapeMorph.release()` — pinned by
+     * `release_is_the_only_exit_from_a_terminal_state` below.
+     *
+     * HISTORY: this test used to be called
+     * `validate_transition_allows_error_to_idle_via_cancel`, and its comment
+     * claimed "cancel() is the only legal exit from a terminal state … the
+     * composable short-circuits cancel() to force `idle`". BOTH were false:
+     * `cancel()` returns early for `success` and `error`. A name and a comment
+     * documenting a contract the code never had is how the LoginPage failure
+     * path ended up bypassing the machine with a raw `state.value` write. The
+     * name now states what the assertion actually pins.
      */
-    public function validate_transition_allows_error_to_idle_via_cancel(): void
+    public function validate_transition_blocks_error_to_idle(): void
     {
         // The composable's cancel() is the only legal exit from a terminal
         // state (per design.md D1 + D2). Pure-math `validateTransition` itself
@@ -394,6 +408,41 @@ JS;
 
     /**
      * @test
+     *
+     * `release()` is the state machine's own door out of a terminal state, and
+     * the only sanctioned one. It exists because the docstring and the test name
+     * above promised that `cancel()` could force a terminal state back to idle
+     * while the implementation refused — so the failure path bypassed the
+     * machine instead of fixing the contract.
+     */
+    public function release_is_the_only_exit_from_a_terminal_state(): void
+    {
+        $body = <<<'JS'
+const result = {
+  fromError: globalThis.__comp.releaseFromError ? globalThis.__comp.releaseFromError() : null,
+  // release() must NOT become a second, unchecked cancel(): a non-terminal
+  // state has nothing to release and must be refused.
+  fromIdle: globalThis.__comp.releaseFromIdleIsRejected ? globalThis.__comp.releaseFromIdleIsRejected() : null,
+  // the asymmetry with cancel() is deliberate and pinned here.
+  cancelFromError: globalThis.__comp.cancelFromErrorIsRefused ? globalThis.__comp.cancelFromErrorIsRefused() : null,
+  terminalSuccess: globalThis.__math.isTerminalState('success'),
+  terminalError: globalThis.__math.isTerminalState('error'),
+  terminalIdle: globalThis.__math.isTerminalState('idle'),
+};
+process.stdout.write(JSON.stringify(result));
+JS;
+        $r = self::runNode($body);
+
+        $this->assertSame('idle', (string) $r['fromError'], 'release() from a terminal state must return to idle');
+        $this->assertSame('rejected:idle', (string) $r['fromIdle'], 'release() from a non-terminal state must be refused');
+        $this->assertSame('error', (string) $r['cancelFromError'], 'cancel() must still refuse terminal states');
+        $this->assertTrue((bool) $r['terminalSuccess'], 'isTerminalState(success) must be true');
+        $this->assertTrue((bool) $r['terminalError'], 'isTerminalState(error) must be true');
+        $this->assertFalse((bool) $r['terminalIdle'], 'isTerminalState(idle) must be false');
+    }
+
+    /**
+     * @test
      */
     public function timer_clears_on_unmount(): void
     {
@@ -412,6 +461,49 @@ JS;
             'clearTimeout',
             $source,
             'useShapeMorph must clearTimeout inside its lifecycle hook'
+        );
+        // `release()` schedules its own delayed exit, so that timer needs the
+        // same cleanup as the dwell timer. Without it, an unmounted login page
+        // writes `idle` onto a machine nobody owns.
+        $this->assertStringContainsString(
+            'releaseTimer',
+            $source,
+            'useShapeMorph must track the release timer so onUnmounted can cancel it'
+        );
+    }
+
+    /**
+     * @test
+     *
+     * LoginPage must NOT assign `state.value` directly: that bypasses every
+     * rule in shapeMorphMath and leaves the machine desynchronised. Two
+     * reviewers independently flagged such a write (R4-001 resilience WARNING,
+     * R3-004 reliability). This is a source-level pin for a runtime property
+     * the pure-math suite cannot observe.
+     */
+    public function login_page_never_writes_the_machine_state_directly(): void
+    {
+        $loginPath = self::projectRootPath() . '/resources/js/modules/auth/LoginPage.vue';
+        $source = (string) file_get_contents($loginPath);
+
+        // Strip comments FIRST. A source-level regex over raw text also matches
+        // prose — this very test failed on its own explanatory comment, which
+        // quotes `state.value = 'idle'` while forbidding it. The writer hit the
+        // identical trap in PrimitivePressTest, whose CSS parser captures the
+        // comment preceding a rule as part of the "selector"; that test only
+        // passes today because its comments happen to contain `:active`. Strip
+        // the comments and the guard measures code, not documentation.
+        $code = (string) preg_replace(['~/\*.*?\*/~s', '~//[^\n]*~'], '', $source);
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/\bstate\.value\s*=(?!=)/',
+            $code,
+            'LoginPage must call transition()/release()/cancel() instead of assigning state.value directly'
+        );
+        $this->assertStringContainsString(
+            'release(',
+            $code,
+            'LoginPage must release the terminal error state through the machine'
         );
     }
 }

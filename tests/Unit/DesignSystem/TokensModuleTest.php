@@ -32,8 +32,73 @@ class TokensModuleTest extends TestCase
     /** Tailwind config absolute path. */
     private const TAILWIND_REL_PATH = '/tailwind.config.js';
 
+    /**
+     * ─── PALETTE SNAPSHOT ──────────────────────────────────────────────
+     * The palette's irreducible identity, written ONCE.
+     *
+     * A palette migration edits ONLY this block. Every other palette
+     * assertion in this file is either structural or a RELATIONSHIP between
+     * keys (`terracotta.500 === <ACCENT_RAMP>.500`, `cream.50 ===
+     * systemGray.50`, `focusRing.color === <ACCENT_RAMP>.500`), so no other
+     * line moves.
+     *
+     * Why this shape: these values used to be scattered across 12 separate
+     * assertions. That made any palette change cost 12 edits and created the
+     * standing temptation to bend a new palette into satisfying the old
+     * tests — which is exactly how a design system fossilises. One block,
+     * one edit.
+     */
+
+    /** The ramp every accent-meaning key must resolve to. One knob. */
+    private const ACCENT_RAMP = 'accent';
+
+    /** Non-ramp anchors: surface, text, separators. */
+    private const PALETTE_ANCHORS = [
+        'systemBackground' => '#FFFFFF',
+        'label' => '#1A1917',
+        'separator' => '#C9C5BD',
+        'hairline' => 'rgba(26, 24, 20, 0.10)',
+    ];
+
+    /**
+     * The identity step of every ramp.
+     *
+     * A2 — `accent` is the canonical ramp; `systemBlue` is now a deprecated
+     * alias of it (the iOS naming is retired). Both are pinned because the
+     * pre-A2 contract required `systemBlue` to exist, and that requirement is
+     * still the thing keeping the 36 un-migrated call sites rendering.
+     */
+    private const RAMP_500 = [
+        'accent' => '#0F7A5F',
+        'systemBlue' => '#0F7A5F',
+        'systemRed' => '#FF3B30',
+        'systemOrange' => '#FF9500',
+        'systemYellow' => '#FFCC00',
+        'systemGreen' => '#34C759',
+        'systemIndigo' => '#5856D6',
+        'systemPurple' => '#AF52DE',
+        'systemPink' => '#FF2D55',
+    ];
+
     /** Project root absolute path. */
     private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+
+    /**
+     * Split a 6-digit hex literal into its decimal r/g/b parts, so assertions
+     * can compare against the source of truth instead of pinning a value.
+     *
+     * @return array{0: int, 1: int, 2: int}
+     */
+    private static function hexToRgbParts(string $hex): array
+    {
+        $hex = ltrim($hex, '#');
+
+        return [
+            (int) hexdec(substr($hex, 0, 2)),
+            (int) hexdec(substr($hex, 2, 2)),
+            (int) hexdec(substr($hex, 4, 2)),
+        ];
+    }
 
     private static function tokensPath(): string
     {
@@ -494,49 +559,40 @@ JS;
     }
 
     /**
-     * Task 1.1.2 — literal hex checks: every iOS system color hex matches
-     * the canonical iOS 13+ reference value, plus background/label/separator.
+     * Task 1.1.2 — the palette's identity steps match the PALETTE SNAPSHOT.
+     * Values come from the constant block at the top of this class, so a
+     * palette migration edits one place.
      *
      * @test
      */
-    public function tokens_module_hex_literals_match_ios_palette(): void
+    public function tokens_module_hex_literals_match_palette_snapshot(): void
     {
         $tokens = self::loadTokens();
         $this->assertNotNull($tokens, 'loadTokens() must succeed');
         $colors = $tokens['colors'];
 
-        $cases = [
-            ['systemBlue', '500', '#007AFF'],
-            ['systemRed', '500', '#FF3B30'],
-            ['systemOrange', '500', '#FF9500'],
-            ['systemYellow', '500', '#FFCC00'],
-            ['systemGreen', '500', '#34C759'],
-            ['systemIndigo', '500', '#5856D6'],
-            ['systemPurple', '500', '#AF52DE'],
-            ['systemPink', '500', '#FF2D55'],
-        ];
-        foreach ($cases as [$ramp, $step, $hex]) {
+        foreach (self::RAMP_500 as $ramp => $hex) {
             $this->assertSame(
                 $hex,
-                strtoupper((string) $colors[$ramp][$step]),
-                "tokens.colors.{$ramp}.{$step} must equal {$hex}"
+                strtoupper((string) $colors[$ramp]['500']),
+                "tokens.colors.{$ramp}.500 must equal the palette snapshot value {$hex}"
             );
         }
 
         $this->assertSame(
-            '#FFFFFF',
+            self::PALETTE_ANCHORS['systemBackground'],
             strtoupper((string) $colors['background']['systemBackground']),
-            'tokens.colors.background.systemBackground must be #FFFFFF'
+            'tokens.colors.background.systemBackground must equal the palette snapshot surface'
         );
         $this->assertSame(
-            '#000000',
+            self::PALETTE_ANCHORS['label'],
             strtoupper((string) $colors['label']['label']),
-            'tokens.colors.label.label must be #000000'
+            'tokens.colors.label.label must equal the palette snapshot text tone'
         );
         $this->assertSame(
-            '#C6C6C8',
+            self::PALETTE_ANCHORS['separator'],
             strtoupper((string) $colors['separator']['separator']),
-            'tokens.colors.separator.separator must be #C6C6C8'
+            'tokens.colors.separator.separator must equal the palette snapshot separator'
         );
     }
 
@@ -767,52 +823,46 @@ JS;
         $this->assertNotNull($tokens, 'loadTokens() must succeed');
         $colors = $tokens['colors'];
 
-        // cream -> systemGray family.
-        $this->assertSame(
-            '#F2F2F7',
-            strtoupper((string) $colors['cream']['50']),
-            'tokens.colors.cream.50 must alias systemGray-50 (#F2F2F7)'
-        );
-        $this->assertSame(
-            '#E5E5EA',
-            strtoupper((string) $colors['cream']['100']),
-            'tokens.colors.cream.100 must alias systemGray-100 (#E5E5EA)'
-        );
-        $this->assertSame(
-            '#D1D1D6',
-            strtoupper((string) $colors['cream']['200']),
-            'tokens.colors.cream.200 must alias systemGray-200 (#D1D1D6)'
-        );
+        // cream -> systemGray family (relationship, never a literal).
+        foreach (['50', '100', '200'] as $step) {
+            $this->assertSame(
+                strtoupper((string) $colors['systemGray'][$step]),
+                strtoupper((string) $colors['cream'][$step]),
+                "tokens.colors.cream.{$step} must alias systemGray-{$step}"
+            );
+        }
 
-        // terracotta -> systemBlue.
-        $this->assertSame(
-            '#007AFF',
-            strtoupper((string) $colors['terracotta']['500']),
-            'tokens.colors.terracotta.500 must alias systemBlue-500 (#007AFF)'
-        );
-        $this->assertSame(
-            '#0062CC',
-            strtoupper((string) $colors['terracotta']['600']),
-            'tokens.colors.terracotta.600 must alias systemBlue-600 (#0062CC)'
-        );
+        // Every accent-meaning alias must resolve to the canonical accent
+        // ramp. This is the rule that survives a palette migration: the
+        // aliases FOLLOW the ramp; they do not pin a value.
+        foreach ([
+            ['terracotta', '500'],
+            ['terracotta', '600'],
+            ['clinicalTeal', '50'],
+            ['clinicalTeal', '500'],
+        ] as [$alias, $step]) {
+            $this->assertSame(
+                strtoupper((string) $colors[self::ACCENT_RAMP][$step]),
+                strtoupper((string) $colors[$alias][$step]),
+                "tokens.colors.{$alias}.{$step} must alias "
+                    . self::ACCENT_RAMP . "-{$step}"
+            );
+        }
 
-        // clinicalTeal -> systemBlue.
+        // A2 — `info` LEFT this group on purpose. It used to alias the accent
+        // ("iOS convention: blue = info", when blue WAS the accent). Once the
+        // accent became green, `info` and `success` collapsed to 27.4 deg of
+        // hue and rendered as the same status pill. `info` is now its own
+        // semantic tone, and it must NOT follow the brand accent.
         $this->assertSame(
-            '#E5F1FF',
-            strtoupper((string) $colors['clinicalTeal']['50']),
-            'tokens.colors.clinicalTeal.50 must alias systemBlue-50 (#E5F1FF)'
-        );
-        $this->assertSame(
-            '#007AFF',
-            strtoupper((string) $colors['clinicalTeal']['500']),
-            'tokens.colors.clinicalTeal.500 must alias systemBlue-500 (#007AFF)'
-        );
-
-        // info -> systemBlue-500 (iOS convention: blue = info).
-        $this->assertSame(
-            '#007AFF',
+            '#4A7191',
             strtoupper((string) $colors['info']['500']),
-            'tokens.colors.info.500 must alias systemBlue-500 (#007AFF)'
+            'tokens.colors.info.500 must be the dedicated informational tone (systemSteel-500), not the brand accent'
+        );
+        $this->assertNotSame(
+            strtoupper((string) $colors[self::ACCENT_RAMP]['500']),
+            strtoupper((string) $colors['info']['500']),
+            'A semantic state must never ride the brand accent: info and success would be indistinguishable.'
         );
     }
 
@@ -874,12 +924,35 @@ JS;
             'tokens.generated.css must not use warm-black rgba(20, 17, 14, ...) shadows'
         );
 
-        // Shadow ramp uses rgba(0, 0, 0, ...).
-        $this->assertMatchesRegularExpression(
-            '/--shadow-(sm|md|lg|xl)\s*:\s*[^;]*rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/i',
-            (string) $css,
-            'tokens.generated.css shadow ramp must use rgba(0, 0, 0, ...) (pure black)'
+        // Every shadow declaration must use pure-black rgba(0, 0, 0, ...).
+        //
+        // The RULE is "shadows are pure black, never warm black" (Decision 5).
+        // This assertion used to name the ramp instead: it looked for
+        // `--shadow-(sm|md|lg|xl)`, a hardcoded PARALLEL ramp that
+        // build-tokens-css.mjs emitted beside the canonical one. Three of its
+        // four values were numerically identical to `--shadow-soft` /
+        // `--shadow-medium` / `--shadow-large`, it declared `--shadow-glass` a
+        // second time with a different alpha, and its only live consumer read
+        // the same shadow it could have read from the token ramp. Deleting it
+        // was correct — and it made this guard fail, because the guard was
+        // written against the NAMES that happened to exist rather than against
+        // the property they were supposed to satisfy.
+        //
+        // It now checks the property across whatever ramp exists, so removing
+        // or renaming a shadow token cannot make it pass vacuously: the
+        // non-empty assertion below fails if the regex finds nothing.
+        preg_match_all('/^[ \t]*(--shadow-[a-z0-9-]+)[ \t]*:[ \t]*([^;]+);/mi', (string) $css, $shadows);
+        $this->assertNotEmpty(
+            $shadows[0],
+            'tokens.generated.css must declare at least one --shadow-* token, or this check means nothing'
         );
+        foreach ($shadows[0] as $index => $declaration) {
+            $this->assertMatchesRegularExpression(
+                '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/i',
+                $declaration,
+                "{$shadows[1][$index]} must use pure-black rgba(0, 0, 0, ...); got: {$declaration}"
+            );
+        }
     }
 
     /**
@@ -946,14 +1019,14 @@ JS;
         $background = $tokens['colors']['background'];
         $this->assertArrayHasKey('canvas', $background, 'tokens.colors.background.canvas must exist');
         $this->assertSame(
-            '#F2F2F7',
+            strtoupper((string) $background['secondaryBackground']),
             strtoupper((string) $background['canvas']),
-            'tokens.colors.background.canvas must equal #F2F2F7 (alias of secondaryBackground)'
+            'tokens.colors.background.canvas must alias secondaryBackground'
         );
         $this->assertSame(
-            '#FFFFFF',
+            self::PALETTE_ANCHORS['systemBackground'],
             strtoupper((string) $background['systemBackground']),
-            'tokens.colors.background.systemBackground must remain #FFFFFF (consumed by all 20 modules)'
+            'tokens.colors.background.systemBackground must equal the palette snapshot surface (consumed by all 20 modules)'
         );
     }
 
@@ -966,9 +1039,9 @@ JS;
         $this->assertArrayHasKey('border', $tokens['colors'], 'tokens.colors.border must exist');
         $this->assertArrayHasKey('hairline', $tokens['colors']['border'], 'tokens.colors.border.hairline must exist');
         $this->assertSame(
-            'rgba(60, 60, 67, 0.12)',
+            self::PALETTE_ANCHORS['hairline'],
             (string) $tokens['colors']['border']['hairline'],
-            'tokens.colors.border.hairline must equal rgba(60, 60, 67, 0.12) (iOS separator opacity)'
+            'tokens.colors.border.hairline must equal the palette snapshot hairline'
         );
     }
 
@@ -981,13 +1054,29 @@ JS;
         $this->assertArrayHasKey('cardLg', $tokens['radius'], 'tokens.radius.cardLg must exist');
         $this->assertSame('16px', $tokens['radius']['cardLg'], 'tokens.radius.cardLg must be 16px');
         $this->assertArrayHasKey('control', $tokens['radius'], 'tokens.radius.control must exist');
-        $this->assertSame('8px', $tokens['radius']['control'], 'tokens.radius.control must be 8px');
+        $this->assertArrayHasKey('panel', $tokens['radius'], 'tokens.radius.panel must exist (Slice A3)');
+        $this->assertArrayHasKey('shell', $tokens['radius'], 'tokens.radius.shell must exist (Slice A3)');
+
+        // The rule behind the nested ladder: every step outward is larger than
+        // the surface it contains. Pinning the three values would only report
+        // "a value changed"; the ordering is what the rhythm MEANS (Slice A3).
+        $rung = static fn (string $key): int => (int) $tokens['radius'][$key];
+        $this->assertLessThan(
+            $rung('panel'),
+            $rung('control'),
+            'tokens.radius.control must stay smaller than tokens.radius.panel (inner < outer)'
+        );
+        $this->assertLessThan(
+            $rung('shell'),
+            $rung('panel'),
+            'tokens.radius.panel must stay smaller than tokens.radius.shell (inner < outer)'
+        );
 
         foreach (['lg', '2xl', '3xl'] as $legacy) {
             $this->assertArrayNotHasKey(
                 $legacy,
                 $tokens['radius'],
-                "tokens.radius.{$legacy} must remain absent (replaced by radius.ios/modal/cardLg/control)"
+                "tokens.radius.{$legacy} must remain absent (replaced by radius.ios/modal/cardLg/panel/shell/control)"
             );
         }
     }
@@ -1023,9 +1112,9 @@ JS;
 
         $this->assertSame('3px', $tokens['focusRing']['width'], 'tokens.focusRing.width must be 3px');
         $this->assertSame(
-            '#007AFF',
+            strtoupper((string) $tokens['colors'][self::ACCENT_RAMP]['500']),
             strtoupper((string) $tokens['focusRing']['color']),
-            'tokens.focusRing.color must be #007AFF (systemBlue-500)'
+            'tokens.focusRing.color must equal ' . self::ACCENT_RAMP . '-500 (the accent ramp)'
         );
         $this->assertSame(0.20, (float) $tokens['focusRing']['alpha'], 'tokens.focusRing.alpha must be 0.20');
         $this->assertSame('2px', $tokens['focusRing']['offset'], 'tokens.focusRing.offset must be 2px');
@@ -1051,7 +1140,14 @@ JS;
         );
     }
 
-    /** Task 1.1.13 — five-rung elevation ramp in the iOS label hue family, two-layer from rung 2 up. */
+    /**
+     * Task 1.1.13 — five-rung elevation ramp, two-layer from rung 2 up.
+     *
+     * The hue family is asserted as a RELATIONSHIP: every rung must use the
+     * `label.secondaryLabel` hue, the same iOS tone the hairline is built on.
+     * Re-tempering `secondaryLabel` therefore re-tempers the whole shadow
+     * ramp with zero test edits.
+     */
     public function test_elevation_ramp_five_rungs_label_hue_family(): void
     {
         $tokens = self::loadTokens();
@@ -1061,13 +1157,16 @@ JS;
         $this->assertArrayHasKey(0, $tokens['elevation'], 'tokens.elevation.0 must exist');
         $this->assertSame('none', (string) $tokens['elevation'][0], 'tokens.elevation.0 must be "none"');
 
+        [$r, $g, $b] = self::hexToRgbParts((string) $tokens['colors']['label']['secondaryLabel']);
+        $huePattern = '/rgba\(\s*' . $r . '\s*,\s*' . $g . '\s*,\s*' . $b . '\s*,/';
+
         for ($rung = 1; $rung <= 4; $rung++) {
             $this->assertArrayHasKey($rung, $tokens['elevation'], "tokens.elevation.{$rung} must exist");
             $value = (string) $tokens['elevation'][$rung];
             $this->assertMatchesRegularExpression(
-                '/rgba\(\s*60\s*,\s*60\s*,\s*67\s*,/',
+                $huePattern,
                 $value,
-                "tokens.elevation.{$rung} must use rgba(60, 60, 67, α) (iOS label/separator hue family)"
+                "tokens.elevation.{$rung} must use the label.secondaryLabel hue (rgb({$r}, {$g}, {$b})) — the same tone family as the hairline"
             );
             $this->assertDoesNotMatchRegularExpression(
                 '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/',

@@ -7,7 +7,7 @@ namespace Tests\Unit\DesignSystem;
  * (ui-rollout-all-modules-2026-08 PR1: `pr1-procedure-stats-tokenise-and-wire-up`).
  *
  * Covers the 9 EC-* MUST rows from
- * `openspec/changes/ui-rollout-all-modules-2026-08/categories/estadisticas-catalogo/spec.md`:
+ * `openspec/changes/archive/2026-08-21-ui-estadisticas-catalogo/spec.md`:
  *
  *   EC-001  router registration for /procedure-stats (covered by AppLayoutCanvasRoutesTest
  *           + the additive app.js entry; the source-level smoke test asserts the route

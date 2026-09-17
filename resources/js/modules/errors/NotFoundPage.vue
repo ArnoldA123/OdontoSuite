@@ -166,7 +166,12 @@ const goHome = () => {
   max-width: 28rem;
   margin: 0 auto;
   border-radius: var(--radius-card-lg);
-  background: linear-gradient(180deg, rgba(60, 60, 67, 0.05) 0%, rgba(60, 60, 67, 0.55) 100%);
+  /* Slice A2 follow-up — the scrim keeps its alphas (0.05 → 0.55 is a
+     deliberate bottom fade, not the 55% shadow typo it resembles) but drops
+     the retired COOL label hue `rgb(60, 60, 67)`. A1 re-tempered that family
+     to warm ink; `rgb(92, 90, 85)` is the same tone the elevation ramp uses,
+     so the 404 page stops being the last surface painted with the old blue-grey. */
+  background: linear-gradient(180deg, rgba(92, 90, 85, 0.05) 0%, rgba(92, 90, 85, 0.55) 100%);
   pointer-events: none;
 }
 

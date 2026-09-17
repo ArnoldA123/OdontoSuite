@@ -14,9 +14,18 @@
  *     │           ▼                                 ▼
  *     └───── error (terminal) ◄──────────────────────┘
  *
- *   - Terminal states (success, error) reject every outbound transition.
- *     Only `useShapeMorph.cancel()` may force them back to idle (it
- *     short-circuits validateTransition entirely).
+ *   - Terminal states (success, error) reject every outbound transition:
+ *     `validateTransition` returns false for any `from` in them. The ONLY
+ *     sanctioned exit is `useShapeMorph.release()` — the state machine's own,
+ *     explicitly named door. `cancel()` deliberately does NOT leave a terminal
+ *     state.
+ *
+ *     A caller must never assign `state.value` directly. Doing so bypasses
+ *     every rule in this module and leaves the machine desynchronised — which
+ *     is exactly what happened on LoginPage: the docstring here promised that
+ *     `cancel()` could force a terminal state back to idle while the code
+ *     refused, so the failure path wrote `state.value` by hand. The machine now
+ *     owns that exit, schedules it, and cancels it on unmount.
  *   - `validating → authenticating` requires the dwell timer to have
  *     elapsed (>= dwellMs since the validating state was entered). This
  *     prevents the validating text from flashing past the API call.
@@ -25,6 +34,20 @@
  */
 
 export const STATES = ['idle', 'validating', 'authenticating', 'success', 'error']
+
+/**
+ * True iff `state` is terminal (success or error).
+ *
+ * Terminal states reject every outbound `validateTransition`, so `release()`
+ * is the only sanctioned way out of them. Kept pure so the PHPUnit suite can
+ * assert the rule without a Vue runtime.
+ *
+ * @param {string} state
+ * @returns {boolean}
+ */
+export function isTerminalState(state) {
+  return state === 'success' || state === 'error'
+}
 
 /**
  * Returns true iff the transition `from → to` is allowed by the state

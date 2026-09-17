@@ -252,7 +252,7 @@ viewBox="0 0 24 24">
             v-model="newType.color"
             label="Código hex"
             type="text"
-            placeholder="#0066CC"
+            :placeholder="DEFAULT_TYPE_COLOR"
             class="flex-1"
           />
         </div>
@@ -390,6 +390,13 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+// A new appointment type starts on the brand accent. It used to default to
+// `#0066CC` — the retired iCloud blue, a colour this app no longer contains, so
+// the first type a clinic created was born off-palette. Read from the token so
+// the next palette move carries it along.
+import { colors } from '../../design-system/tokens.js'
+
+const DEFAULT_TYPE_COLOR = colors.accent[500]
 import UiTextarea from '../../components/ui/UiTextarea.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 
@@ -429,7 +436,7 @@ export default {
       description: '',
       duration_minutes: 60,
       price: 0,
-      color: '#0066CC',
+      color: DEFAULT_TYPE_COLOR,
       is_active: true
     })
 
@@ -506,7 +513,7 @@ export default {
           description: '',
           duration_minutes: 60,
           price: 0,
-          color: '#0066CC',
+          color: DEFAULT_TYPE_COLOR,
           is_active: true
         }
         toast.success('Tipo de cita creado exitosamente')

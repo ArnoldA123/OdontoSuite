@@ -49,7 +49,11 @@ const VARIANT_CLASSES = {
   success: 'bg-systemGreen-50 text-systemGreen-700',
   warning: 'bg-systemYellow-50 text-systemYellow-700',
   error: 'bg-systemRed-50 text-systemRed-700',
-  info: 'bg-systemBlue-50 text-systemBlue-700',
+  // A2 — `info` used `systemBlue`, which stopped being a distinct hue when the
+  // brand accent moved to green: `info` and `success` collapsed to 27.4 deg of
+  // hue and read as the same pill (Programada vs Confirmada). A semantic state
+  // must never ride the brand accent.
+  info: 'bg-systemSteel-50 text-systemSteel-700',
   neutral: 'bg-systemGray-100 text-systemGray-700'
 }
 
@@ -57,7 +61,7 @@ const DOT_CLASSES = {
   success: 'bg-systemGreen-500',
   warning: 'bg-systemYellow-500',
   error: 'bg-systemRed-500',
-  info: 'bg-systemBlue-500',
+  info: 'bg-systemSteel-500',
   neutral: 'bg-systemGray-500'
 }
 

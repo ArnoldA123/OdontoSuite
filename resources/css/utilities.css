@@ -62,22 +62,11 @@
 
 .hover-lift:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
-}
-
-/* Button hover state — preserved for existing call sites */
-.btn-hover {
-  transition: all var(--transition-fast);
-}
-
-.btn-hover:hover {
-  transform: translateY(-0.5px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-hover:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sm);
+  /* `--shadow-medium`, not `--shadow-lg`. Both existed and held the SAME
+     value; `--shadow-lg` was part of a hardcoded parallel ramp in
+     `build-tokens-css.mjs` that did not follow `tokens.shadow`. That ramp is
+     gone, so this reads the canonical name. Zero visual change. */
+  box-shadow: var(--shadow-medium);
 }
 
 /* Skeleton shimmer — kept for Skeleton primitive. Reads token vars. */
@@ -208,7 +197,6 @@
   }
 
   .smooth-transition,
-  .btn-hover,
   .hover-lift,
   .focus-ring {
     transition: none !important;

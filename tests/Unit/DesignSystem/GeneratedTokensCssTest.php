@@ -318,12 +318,22 @@ class GeneratedTokensCssTest extends TestCase
     }
 
     /**
-     * Import tokens.js via Node and return only the `colors` subtree.
-     * Same loader pattern as TokensModuleTest, but smaller output.
+     * Import tokens.js via Node and return the `colors` subtree.
      *
      * @return array<string, mixed>|null
      */
     private static function loadTokensColors(): ?array
+    {
+        return self::loadTokensSubtree('colors');
+    }
+
+    /**
+     * Import tokens.js via Node and return one top-level subtree.
+     * Same loader pattern as TokensModuleTest, but smaller output.
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function loadTokensSubtree(string $key): ?array
     {
         $tokensPath = self::projectRoot() . '/resources/js/design-system/tokens.js';
         if (!is_file($tokensPath)) {
@@ -334,9 +344,14 @@ class GeneratedTokensCssTest extends TestCase
 import { pathToFileURL } from 'node:url';
 const url = pathToFileURL('TARGET_PATH').href;
 const mod = await import(url);
-process.stdout.write(JSON.stringify(mod.default.colors ?? mod.colors ?? null));
+const root = mod.default ?? mod;
+process.stdout.write(JSON.stringify(root[SUBTREE] ?? null));
 JS;
-        $loader = str_replace('TARGET_PATH', $escapedPath, $loader);
+        $loader = str_replace(
+            ['TARGET_PATH', 'SUBTREE'],
+            [$escapedPath, "'" . $key . "'"],
+            $loader
+        );
 
         $tmp = tempnam(sys_get_temp_dir(), 'tokens_colors_loader_');
         $loaderFile = $tmp . '.mjs';
@@ -436,25 +451,65 @@ JS;
         }
     }
 
-    /** Task 1.2.3 — focus-ring parts plus the composed --focus-ring-default shorthand. */
+    /**
+     * Task 1.2.3 — focus-ring parts plus the composed --focus-ring-default
+     * shorthand.
+     *
+     * The colour is read from `tokens.js` and asserted as a RELATIONSHIP:
+     * the generated CSS must AGREE WITH the source of truth. A palette
+     * migration therefore costs zero edits here — the assertion follows the
+     * token instead of pinning the retired hex.
+     */
     public function test_generated_css_emits_focus_ring_parts_and_composed(): void
     {
         $css = self::readGeneratedCss();
         $this->assertNotNull($css, 'tokens.generated.css must exist');
 
+        $colors = self::loadTokensColors();
+        $this->assertNotNull($colors, 'tokens.js must expose its colors subtree');
+        $this->assertArrayHasKey('accent', $colors, 'tokens.colors.accent (the canonical accent ramp) must exist');
+
+        $accentHex = (string) $colors['accent']['500'];
+        $this->assertMatchesRegularExpression(
+            '/^#[0-9A-Fa-f]{6}$/',
+            $accentHex,
+            'the accent 500 step must be a 6-digit hex literal'
+        );
+        [$r, $g, $b] = self::hexToRgbParts($accentHex);
+
         $this->assertMatchesRegularExpression('/--focus-ring-width\s*:\s*3px\s*;/', (string) $css);
         $this->assertMatchesRegularExpression(
-            '/--focus-ring-color\s*:\s*(?:#007AFF|rgba\(\s*0\s*,\s*122\s*,\s*255)\s*[;)]/',
+            '/--focus-ring-color\s*:\s*' . preg_quote($accentHex, '/') . '\s*[;)]/i',
             (string) $css,
-            'tokens.generated.css must declare --focus-ring-color as systemBlue-500 (#007AFF or rgba(0, 122, 255))'
+            "tokens.generated.css must declare --focus-ring-color as the accent from tokens.js ({$accentHex}, hex case-insensitive)"
         );
         $this->assertMatchesRegularExpression('/--focus-ring-alpha\s*:\s*0\.2(?:0)?\s*;/', (string) $css);
         $this->assertMatchesRegularExpression('/--focus-ring-offset\s*:\s*2px\s*;/', (string) $css);
         $this->assertMatchesRegularExpression(
-            '/--focus-ring-default\s*:\s*0\s+0\s+0\s+var\(--focus-ring-width\)\s+rgba\(\s*0\s*,\s*122\s*,\s*255\s*,\s*var\(--focus-ring-alpha\)\)\s*;/',
+            '/--focus-ring-default\s*:\s*0\s+0\s+0\s+var\(--focus-ring-width\)\s+rgba\(\s*'
+                . $r . '\s*,\s*' . $g . '\s*,\s*' . $b
+                . '\s*,\s*var\(--focus-ring-alpha\)\)\s*;/',
             (string) $css,
-            'tokens.generated.css must declare the composed --focus-ring-default shorthand'
+            'tokens.generated.css must declare the composed --focus-ring-default shorthand built from the accent'
         );
+    }
+
+    /**
+     * Split a 6-digit hex literal into its decimal r/g/b parts so the
+     * generated CSS can be compared against the source of truth without
+     * pinning a colour value.
+     *
+     * @return array{0: int, 1: int, 2: int}
+     */
+    private static function hexToRgbParts(string $hex): array
+    {
+        $hex = ltrim($hex, '#');
+
+        return [
+            (int) hexdec(substr($hex, 0, 2)),
+            (int) hexdec(substr($hex, 2, 2)),
+            (int) hexdec(substr($hex, 4, 2)),
+        ];
     }
 
     /** Task 1.2.5 — tabular numerals emit the CSS value, never the Tailwind utility name. */
@@ -527,35 +582,201 @@ JS;
         );
     }
 
-    /** Task 1.2 — the hairline value is pinned to the --color-hairline name. */
+    /**
+     * Task 1.2 — the hairline value reaches the generated CSS under the
+     * `--color-hairline` name.
+     *
+     * Asserted as a RELATIONSHIP against `tokens.colors.border.hairline`, so a
+     * palette migration never edits this line.
+     */
     public function test_generated_css_emits_color_hairline(): void
     {
         $css = self::readGeneratedCss();
         $this->assertNotNull($css, 'tokens.generated.css must exist');
 
+        $colors = self::loadTokensColors();
+        $this->assertNotNull($colors, 'tokens.js must expose its colors subtree');
+        $hairline = (string) ($colors['border']['hairline'] ?? '');
+        $this->assertNotSame('', $hairline, 'tokens.colors.border.hairline must exist');
+
         $this->assertMatchesRegularExpression(
-            '/--color-hairline\s*:\s*rgba\(\s*60\s*,\s*60\s*,\s*67\s*,\s*0\.12\s*\)\s*;/',
+            '/--color-hairline\s*:\s*' . preg_quote($hairline, '/') . '\s*;/',
             (string) $css,
-            'tokens.generated.css must declare --color-hairline: rgba(60, 60, 67, 0.12);'
+            "tokens.generated.css must declare --color-hairline: {$hairline}; (mirroring tokens.js)"
         );
     }
 
-    /** Task 1.2 — radius.cardLg and radius.control reach the generated CSS. */
-    public function test_generated_css_emits_radius_card_lg_and_control(): void
+    /**
+     * R3/R4 convergence (review-c5ea2472df6659cd) — the generator's hairline
+     * guard, proven by BEHAVIOUR rather than by source inspection.
+     *
+     * Two lenses independently flagged `build-tokens-css.mjs`'s guard:
+     * `review-resilience` (R4-001, WARNING) read it as a degradation risk and
+     * `review-reliability` (R3, SUGGESTION) as a coverage gap. Both were
+     * right, and neither could be satisfied by asserting on the script's
+     * text: that is the example-pinning defect this change set out to remove.
+     *
+     * Both tests run the REAL generator against a throwaway project root
+     * holding a transformed copy of the REAL `tokens.js`. Using the real file
+     * (not a hand-written stub) keeps the fixture honest as the token surface
+     * grows — a stub would rot the moment a new required key appears.
+     */
+    public function test_generator_fails_loud_when_hairline_token_is_missing(): void
+    {
+        $fixture = self::makeGeneratorFixture(static function (string $tokensSrc): string {
+            // Drop the whole border ramp, not just the key.
+            return (string) preg_replace('/^\s*border:\s*\{[^}]*\}/ms', 'border: {}', $tokensSrc, 1);
+        });
+
+        try {
+            [$exitCode, $output] = self::runGenerator($fixture);
+
+            $this->assertNotSame(
+                0,
+                $exitCode,
+                'The generator must exit non-zero when tokens.colors.border.hairline is missing. Output: ' . $output
+            );
+            $this->assertStringContainsString(
+                'refusing to emit a hardcoded fallback',
+                $output,
+                'The generator must say WHY it refused; a bare failure is a silent fallback by another name.'
+            );
+            $this->assertFileDoesNotExist(
+                $fixture . '/resources/css/tokens.generated.css',
+                'A refused run must not leave a partial stylesheet behind: that is the silent-drift failure mode.'
+            );
+        } finally {
+            self::removeDirectory($fixture);
+        }
+    }
+
+    /**
+     * The anti-drift property itself: change the token, the emitted CSS
+     * follows. If this fails, the generator has gone back to authoring the
+     * value instead of emitting it — the exact regression the guard exists
+     * to prevent, and the one that let `tokens.js` and the generated CSS
+     * diverge silently before this change.
+     */
+    public function test_generator_emits_the_hairline_it_reads_from_tokens(): void
+    {
+        $sentinel = 'rgba(9, 9, 9, 0.99)';
+
+        $fixture = self::makeGeneratorFixture(
+            static fn (string $tokensSrc): string => (string) preg_replace(
+                "/hairline:\s*'[^']*'/",
+                "hairline: '{$sentinel}'",
+                $tokensSrc,
+                1
+            )
+        );
+
+        try {
+            [$exitCode, $output] = self::runGenerator($fixture);
+            $this->assertSame(0, $exitCode, 'The generator must succeed on a valid fixture. Output: ' . $output);
+
+            $cssPath = $fixture . '/resources/css/tokens.generated.css';
+            $this->assertFileExists($cssPath, 'A successful run must write the stylesheet.');
+
+            $this->assertStringContainsString(
+                '--color-hairline: ' . $sentinel . ';',
+                (string) file_get_contents($cssPath),
+                'The emitted --color-hairline must echo the token value read from tokens.js.'
+            );
+        } finally {
+            self::removeDirectory($fixture);
+        }
+    }
+
+    /**
+     * Materialise a throwaway project root holding the real generator plus a
+     * transformed copy of the real tokens.js, mirroring the layout the
+     * generator resolves from its own location (`<root>/scripts/..`).
+     */
+    private static function makeGeneratorFixture(callable $transformTokens): string
+    {
+        $projectRoot = self::projectRoot();
+        $root = rtrim(sys_get_temp_dir(), '/\\') . '/odonto-tokens-gen-' . bin2hex(random_bytes(6));
+
+        foreach (['/scripts', '/resources/js/design-system', '/resources/css'] as $sub) {
+            $dir = $root . $sub;
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            self::assertDirectoryExists($dir, "Could not create fixture directory {$dir}");
+        }
+
+        copy($projectRoot . '/scripts/build-tokens-css.mjs', $root . '/scripts/build-tokens-css.mjs');
+
+        $tokensSrc = (string) file_get_contents($projectRoot . '/resources/js/design-system/tokens.js');
+        $transformed = $transformTokens($tokensSrc);
+        self::assertNotSame(
+            $tokensSrc,
+            $transformed,
+            'Fixture transform changed nothing — the test would pass vacuously.'
+        );
+        file_put_contents($root . '/resources/js/design-system/tokens.js', $transformed);
+
+        return $root;
+    }
+
+    /**
+     * @return array{0: int, 1: string} exit code and combined output
+     */
+    private static function runGenerator(string $fixtureRoot): array
+    {
+        $output = [];
+        $exitCode = 0;
+        exec('node ' . escapeshellarg($fixtureRoot . '/scripts/build-tokens-css.mjs') . ' 2>&1', $output, $exitCode);
+
+        return [$exitCode, implode("\n", $output)];
+    }
+
+    private static function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($items as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+
+        @rmdir($path);
+    }
+
+    /**
+     * Task 1.2 / Slice A3 — every nested radius token reaches the generated CSS.
+     *
+     * The expected values are read from tokens.js instead of pinned as
+     * literals: a literal pin only reports "a value changed" — it never
+     * checks that the generator still carries the source of truth.
+     */
+    public function test_generated_css_emits_the_nested_radius_ramp(): void
     {
         $css = self::readGeneratedCss();
         $this->assertNotNull($css, 'tokens.generated.css must exist');
 
-        $this->assertMatchesRegularExpression(
-            '/--radius-card-lg\s*:\s*16px\s*;/',
-            (string) $css,
-            'tokens.generated.css must declare --radius-card-lg: 16px;'
-        );
-        $this->assertMatchesRegularExpression(
-            '/--radius-control\s*:\s*8px\s*;/',
-            (string) $css,
-            'tokens.generated.css must declare --radius-control: 8px;'
-        );
+        $radius = self::loadTokensSubtree('radius');
+        $this->assertIsArray($radius, 'tokens.js radius subtree must be loadable');
+
+        foreach (['cardLg', 'panel', 'shell', 'control'] as $key) {
+            $this->assertArrayHasKey($key, $radius, "tokens.radius.{$key} must exist");
+
+            // Mirror of the generator's toKebab() (scripts/build-tokens-css.mjs).
+            $cssName = '--radius-' . strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1-$2', $key));
+            $value = preg_quote((string) $radius[$key], '/');
+
+            $this->assertMatchesRegularExpression(
+                '/' . preg_quote($cssName, '/') . '\s*:\s*' . $value . '\s*;/',
+                (string) $css,
+                "tokens.generated.css must declare {$cssName}: {$radius[$key]};"
+            );
+        }
     }
 
     /** Task 1.2 — no elevation rung may fall back to the pure-black shadow being retired. */
@@ -569,7 +790,7 @@ JS;
                 self::assertDoesNotMatchRegularExpression(
                     '/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,/',
                     (string) $value,
-                    'No elevation rung may use rgba(0, 0, 0, ...) — must use rgba(60, 60, 67, α)'
+                    'No elevation rung may use rgba(0, 0, 0, ...) — shadows come from the label hue family'
                 );
             }
         } else {

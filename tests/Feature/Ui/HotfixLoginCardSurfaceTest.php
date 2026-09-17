@@ -5,12 +5,14 @@ namespace Tests\Feature\Ui;
 use Tests\TestCase;
 
 /**
- * HOTFIX-LOGIN-005 — Form card surface uses elevated variant on solid canvas.
+ * HOTFIX-LOGIN-005 (superseded 2026-09) - login form surface.
  *
- * The <Card> wrapping the login form MUST NOT use variant="glass" (glass on
- * a solid canvas reads flat per tokens.js). It MUST compute a box-shadow
- * referencing `var(--elevation-2)` (or higher rung) when on a solid canvas.
- * Pin the RULE — glass is banned, elevation-2 is required.
+ * HOTFIX-LOGIN-005 required an elevated <Card> around the login form. The
+ * premium craft pass deleted that wrapper: it stacked a second bordered,
+ * shadowed surface inside the white split-card panel, so the form read as a
+ * form in a box inside a box. The rules that survive the deletion are the
+ * ones asserted below: no glass surface on the login, no <Card> consumer at
+ * all, and a surface elevation that still resolves through a tokenised rung.
  */
 class HotfixLoginCardSurfaceTest extends TestCase
 {
@@ -37,36 +39,41 @@ class HotfixLoginCardSurfaceTest extends TestCase
         );
     }
 
-    public function test_login_card_uses_elevated_variant_or_other_non_glass(): void
+    public function test_login_form_is_not_wrapped_in_a_card_surface(): void
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
 
         $source = (string) file_get_contents(self::loginPagePath());
 
-        // Pin the positive half: a <Card> wrapper must be present and must
-        // use either variant="elevated" or no variant (defaulting to
-        // elevated). The login-card-surface class is the load-bearing
-        // contract for the surface treatment.
-        $this->assertMatchesRegularExpression(
-            '/<Card\b[^>]*variant\s*=\s*"(?:elevated|solid|default)"[^>]*>/i',
+        // Premium craft pass (2026-09): the <Card variant="elevated"> wrapper
+        // sat inside the white split-card panel, so the form was a form in a
+        // box inside a box. The form now rests directly on the panel and the
+        // panel padding owns the inset instead.
+        $this->assertStringNotContainsString(
+            '<Card',
             $source,
-            'LoginPage.vue must wrap the login form with <Card variant="elevated"> (or equivalent non-glass variant) — HOTFIX-LOGIN-005'
+            'LoginPage.vue must not wrap the login form in a <Card>: the form rests directly on the split-card panel (premium craft pass, supersedes HOTFIX-LOGIN-005)'
+        );
+        $this->assertStringNotContainsString(
+            "from '@/components/ui/Card.vue'",
+            $source,
+            'LoginPage.vue must not import Card.vue any more: a card inside a card is the defect this pass removed'
         );
     }
 
-    public function test_login_card_surface_references_elevation_2_token(): void
+    public function test_login_surfaces_reference_elevation_2_token(): void
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
 
         $source = (string) file_get_contents(self::loginPagePath());
 
-        // The login-card-surface (or its scoped rule) MUST resolve to a
-        // box-shadow referencing `var(--elevation-2)` or higher rung
-        // (elevation-3) so the surface reads elevated above the canvas.
-        $hasElevatedShadowRule = preg_match(
-            '/\.login-card-surface\s*\{[^}]*box-shadow\s*:[^;}]*var\(--elevation-[23]\b[^;}]*[;}]/is',
+        // The login surfaces must resolve their elevation through a tokenised
+        // rung: the glass overlay widgets on the hero, or the submit button.
+        // (The form Card that used to carry this contract is gone.)
+        $hasWidgetElevation = preg_match(
+            '/\.login-overlay-card\s*\{[^}]*box-shadow\s*:[^;}]*var\(--elevation-[23]\b[^;}]*[;}]/is',
             $source
         );
         $hasDeepButtonShadow = preg_match(
@@ -75,8 +82,8 @@ class HotfixLoginCardSurfaceTest extends TestCase
         );
 
         $this->assertTrue(
-            (bool) ($hasElevatedShadowRule || $hasDeepButtonShadow),
-            'LoginPage.vue must compute a box-shadow referencing var(--elevation-2) or higher for the login card surface (HOTFIX-LOGIN-005, apple-design §12 — bigger surfaces read thicker)'
+            (bool) ($hasWidgetElevation || $hasDeepButtonShadow),
+            'LoginPage.vue must compute a box-shadow referencing var(--elevation-2) or higher for its surfaces (HOTFIX-LOGIN-005, apple-design §12 - bigger surfaces read thicker)'
         );
     }
 }

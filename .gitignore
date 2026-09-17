@@ -3,7 +3,14 @@
 .env
 .env.backup
 .env.production
-CREDENTIALS.md
+# CREDENTIALS.md is deliberately NOT ignored. It holds DEMO credentials that
+# RoleBasedUsersSeeder generates (@test.com / password123), AGENTS.md points
+# developers at it, and a clean clone needs it to log in. It sat in this file
+# for months, which is why nobody reviewed it and three of its fifteen rows
+# rotted into usernames that never existed. It is safe to track because
+# CredentialsDocumentationTest now fails when the document and the seeder
+# disagree in EITHER direction — a real secret could not be added there
+# without breaking the build.
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -49,3 +56,11 @@ tests/visual/
 # Local Pi runtime state
 .atl/
 login-refined-*.png
+
+# Local UI audit scratch (screenshots used as before/after evidence)
+.pi-audit/
+
+# gentle-ai per-repository tool state (persona). Tool scratch, never project
+# content; keeping it ignored also keeps it out of the review untracked
+# inventory, whose digest changes whenever a new untracked path appears.
+.pi/

@@ -122,25 +122,35 @@ class AgentsDocsSyncTest extends TestCase
     /** @test BF-017 */
     public function agentsMd_seeder_count_matches_database_seeder_call_count(): void
     {
-        // Count how many ::class references appear in DatabaseSeeder.php
-        // $this->call([...]); the count must match the seeder count
-        // asserted in AGENTS.md §4 (11 active).
+        // The expected count is DERIVED from DatabaseSeeder.php, never hardcoded.
+        //
+        // This test used to pin the literal `13` in BOTH assertions, so adding a
+        // seeder forced an edit to the test as well as to the docs — and the
+        // test could not tell a real drift from a stale constant. It caught the
+        // move to 14 only because the hardcoded 13 stopped matching, and its
+        // failure message then told the reader to "call exactly 13" when the
+        // code was right and the number was wrong.
+        //
+        // Same defect the credentials suite carried: the guard asserted a VALUE
+        // instead of a RELATIONSHIP. `DentalPieceSeeder` was added in c86ac32
+        // and neither AGENTS.md §4 nor this constant followed.
         $seeder = $this->databaseSeeder();
         preg_match_all('/::class\s*,/', $seeder, $matches);
         $callCount = count($matches[0]);
 
-        $this->assertSame(
-            13,
+        $this->assertGreaterThan(
+            0,
             $callCount,
-            'DatabaseSeeder.php must call exactly 13 seeders in $this->call([...])'
+            'DatabaseSeeder.php must call at least one seeder, or this check means nothing'
         );
 
-        // AGENTS.md §4 must declare 13 activos (was stale at 11).
+        // AGENTS.md §4 must declare the count the seeder actually has.
         $docs = $this->agentsMd();
         $this->assertStringContainsString(
-            '13 activos',
+            "{$callCount} activos",
             $docs,
-            'AGENTS.md §4 must declare 13 active seeders (BF-017 docs drift)'
+            "AGENTS.md §4 must declare {$callCount} active seeders, matching the {$callCount} "
+                . '$this->call([...]) entries in DatabaseSeeder.php'
         );
     }
 }

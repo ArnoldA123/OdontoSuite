@@ -1,37 +1,62 @@
 <template>
-  <!-- HOTFIX-LOGIN-010 · PR-apply ui-login-refinement-dental-split-2026-09
-       Outer card shell wraps the editorial split grid. Rounded-32px utility
-       + 24/64/8 hairline shadow on the outer card per design Decision D8.
-       On mobile the shell collapses to full-bleed so the form keeps the
-       primary focus. -->
+  <!-- Login page · editorial split (Phase 2.1 / HOTFIX-LOGIN-010).
+       Premium craft pass: the form rests directly on the panel. The
+       elevated card wrapper that used to sit inside this panel is gone, so
+       the surface hierarchy comes from the panel itself instead of a second
+       bordered, shadowed box stacked on the first. -->
   <div class="login-page">
     <div class="login-page-shell">
-      <div class="login-split-card rounded-[32px]">
+      <div class="login-split-card rounded-[var(--radius-shell)]">
         <div class="login-grid">
           <!-- Form column (left on desktop, second on mobile).
-               Phase 2.5 · form Card polymorphism wraps the <form> in a
-               TransitionGroup so the success state crossfades into the
-               mini-summary. The MiniSummary lives inside the same group so
-               the crossfade uses the same enter/leave contract as the rest
-               of the page. -->
+               Phase 2.5 · the TransitionGroup crossfades the <form> into the
+               mini-summary; both live in the same group so the crossfade
+               uses one enter/leave contract. -->
           <section class="login-form-column" aria-labelledby="login-headline">
             <div ref="cardRef" class="login-form-wrap">
+              <!-- Wordmark chip: a hairline pill anchoring the top-left so
+                   the brand reads as a mark instead of competing with the
+                   H1 below it. -->
               <header class="login-header">
-                <span class="brand-glyph" aria-hidden="true">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
-                  </svg>
-                </span>
-                <p class="brand-name">OdontoSuite</p>
+                <p class="brand-chip">
+                  <!-- Brand glyph morph (recovered PR2): the tooth hands over
+                       to a check when the auth state reaches `success`. Both
+                       glyphs stay mounted in one grid cell and cross-fade
+                       (opacity + scale) so no path-command parity between
+                       the two `d` attributes is required. The chip markup is
+                       unchanged; only its inner glyph became polymorphic. -->
+                  <span class="brand-glyph" aria-hidden="true">
+                    <svg
+                      class="brand-glyph-tooth"
+                      :class="{ 'is-hidden': state === 'success' }"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
+                    </svg>
+                    <svg
+                      class="brand-glyph-check"
+                      :class="{ 'is-visible': state === 'success' }"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M5 12 L10 17 L19 7" />
+                    </svg>
+                  </span>
+                  <span class="brand-name">OdontoSuite</span>
+                </p>
               </header>
 
               <div class="welcome-section">
@@ -43,104 +68,130 @@
                 </p>
               </div>
 
-              <Card variant="elevated" padding="lg" class="login-card-surface">
-                <!-- Phase 2.5 · form Card polymorphism. The TransitionGroup
-                     crossfades between the <form> and the login-mini-summary
-                     branch on success state. -->
-                <TransitionGroup
-                  name="form-card-morph"
-                  tag="div"
-                  class="login-form-morph"
+              <!-- Phase 2.5 · form → mini-summary polymorphism. No Card
+                   wrapper: the fields are the panel's own content. -->
+              <TransitionGroup name="form-card-morph" tag="div" class="login-form-morph">
+                <form
+                  v-if="state !== 'success'"
+                  key="form"
+                  class="login-form"
+                  novalidate
+                  :aria-busy="loading || undefined"
+                  @submit.prevent="handleLogin"
                 >
-                  <form
-                    v-if="state !== 'success'"
-                    key="form"
-                    class="login-form"
-                    novalidate
-                    :aria-busy="loading || undefined"
-                    @submit.prevent="handleLogin"
-                  >
-                    <div class="field">
-                      <label class="field-label" for="login-username">Usuario</label>
-                      <div class="field-input-wrap">
-                        <span class="field-prefix" aria-hidden="true">
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.75"
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                            />
-                          </svg>
-                        </span>
-                        <input
-                          id="login-username"
-                          ref="usernameInput"
-                          v-model="form.username"
-                          type="text"
-                          name="username"
-                          autocomplete="username"
-                          inputmode="text"
-                          spellcheck="false"
-                          autocapitalize="off"
-                          required
-                          :disabled="loading"
-                          :aria-invalid="!!errors.username"
-                          :aria-describedby="
-                            errors.username ? 'login-username-error' : 'login-username-hint'
-                          "
-                          class="field-input"
-                          placeholder="usuario"
-                        />
-                      </div>
-                      <p v-if="errors.username" id="login-username-error" class="field-error">
-                        {{ errors.username }}
-                      </p>
-                    </div>
-
-                    <div class="field">
-                      <label class="field-label" for="login-password">Contraseña</label>
-                      <div class="field-input-wrap">
-                        <span class="field-prefix" aria-hidden="true">
-                          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.75"
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                            />
-                          </svg>
-                        </span>
-                        <input
-                          id="login-password"
-                          v-model="form.password"
-                          :type="showPassword ? 'text' : 'password'"
-                          name="password"
-                          autocomplete="current-password"
-                          required
-                          :disabled="loading"
-                          :aria-invalid="!!errors.password"
-                          :aria-describedby="
-                            errors.password ? 'login-password-error' : 'login-password-hint'
-                          "
-                          class="field-input"
-                          placeholder="Mínimo 8 caracteres"
-                        />
-                        <button
-                          type="button"
-                          class="password-toggle"
-                          :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                          :aria-pressed="showPassword"
-                          tabindex="-1"
-                          @click="showPassword = !showPassword"
+                  <div class="field login-field-stagger" :style="{ '--field-index': 0 }">
+                    <label class="field-label" for="login-username">Usuario</label>
+                    <div class="field-input-wrap">
+                      <input
+                        id="login-username"
+                        ref="usernameInput"
+                        v-model="form.username"
+                        type="text"
+                        name="username"
+                        autocomplete="username"
+                        inputmode="text"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        required
+                        :disabled="loading"
+                        :aria-invalid="!!fieldErrors.username"
+                        :aria-describedby="
+                          fieldErrors.username ? 'login-username-error' : 'login-username-hint'
+                        "
+                        class="field-input"
+                        :class="{ 'has-success': fieldSuccesses.username }"
+                        @blur="onFieldBlur('username')"
+                        @input="onFieldInput('username')"
+                      />
+                      <!-- Success checkmark. `aria-hidden` because the
+                           programmatic signal is `aria-invalid="false"`;
+                           announcing "valid" on every keystroke would be
+                           noise for a screen-reader user. -->
+                      <span
+                        v-if="fieldSuccesses.username"
+                        class="field-success-mark"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
                         >
+                          <path d="M5 12 L10 17 L19 7" />
+                        </svg>
+                      </span>
+                    </div>
+                    <p
+                      v-if="fieldErrors.username"
+                      id="login-username-error"
+                      class="field-error field-error--animated"
+                    >
+                      {{ fieldErrors.username }}
+                    </p>
+                  </div>
+
+                  <div class="field login-field-stagger" :style="{ '--field-index': 1 }">
+                    <label class="field-label" for="login-password">Contraseña</label>
+                    <div class="field-input-wrap">
+                      <input
+                        id="login-password"
+                        v-model="form.password"
+                        :type="showPassword ? 'text' : 'password'"
+                        name="password"
+                        autocomplete="current-password"
+                        required
+                        :disabled="loading"
+                        :aria-invalid="!!fieldErrors.password"
+                        :aria-describedby="
+                          fieldErrors.password ? 'login-password-error' : 'login-password-hint'
+                        "
+                        class="field-input"
+                        :class="{ 'has-success': fieldSuccesses.password }"
+                        @blur="onFieldBlur('password')"
+                        @input="onFieldInput('password')"
+                      />
+                      <!-- Success mark sits LEFT of the reveal toggle
+                           (right: 52px) so the two never overlap. -->
+                      <span
+                        v-if="fieldSuccesses.password"
+                        class="field-success-mark field-success-mark--before-toggle"
+                        aria-hidden="true"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M5 12 L10 17 L19 7" />
+                        </svg>
+                      </span>
+                      <!-- Password reveal morph (recovered PR2): both eye
+                           glyphs stay mounted and cross-fade + scale instead
+                           of the abrupt v-if swap. `aria-label` /
+                           `aria-pressed` on the button remain the
+                           programmatic contract; the glyphs stay
+                           `aria-hidden`. -->
+                      <button
+                        type="button"
+                        class="password-toggle"
+                        :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                        :aria-pressed="showPassword"
+                        tabindex="-1"
+                        @click="showPassword = !showPassword"
+                      >
+                        <span class="password-toggle-glyphs" aria-hidden="true">
                           <svg
-                            v-if="showPassword"
-                            class="h-5 w-5"
+                            class="password-toggle-glyph"
+                            :class="{ 'is-active': showPassword }"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
-                            aria-hidden="true"
                           >
                             <path
                               stroke-linecap="round"
@@ -150,12 +201,11 @@
                             />
                           </svg>
                           <svg
-                            v-else
-                            class="h-5 w-5"
+                            class="password-toggle-glyph"
+                            :class="{ 'is-active': !showPassword }"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
-                            aria-hidden="true"
                           >
                             <path
                               stroke-linecap="round"
@@ -170,65 +220,98 @@
                               d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                             />
                           </svg>
-                        </button>
-                      </div>
-                      <p v-if="errors.password" id="login-password-error" class="field-error">
-                        {{ errors.password }}
-                      </p>
-                    </div>
-
-                    <div class="form-options">
-                      <label class="remember-me">
-                        <input
-                          v-model="form.remember"
-                          type="checkbox"
-                          class="checkbox-input"
-                          :disabled="loading"
-                        />
-                        <span class="checkbox-label">Recordarme</span>
-                      </label>
-                      <button
-                        type="button"
-                        class="forgot-password-link"
-                        @click="showForgotPasswordModal = true"
-                      >
-                        ¿Olvidaste tu contraseña?
+                        </span>
                       </button>
                     </div>
+                    <p
+                      v-if="fieldErrors.password"
+                      id="login-password-error"
+                      class="field-error field-error--animated"
+                    >
+                      {{ fieldErrors.password }}
+                    </p>
+                  </div>
 
-                    <div v-if="error && state !== 'error'" class="auth-error" role="alert" aria-live="polite">
-                      <svg
-                        class="auth-error-icon"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
+                  <div class="form-options login-field-stagger" :style="{ '--field-index': 2 }">
+                    <label class="remember-me">
+                      <input
+                        v-model="form.remember"
+                        type="checkbox"
+                        class="checkbox-input"
+                        :disabled="loading"
+                      />
+                      <!-- Drawn checkbox: the native control keeps the state,
+                           the keyboard reach and the accessibility tree, but
+                           paints nothing. The visible box and the tick are
+                           drawn here so the check can be *drawn* on
+                           stroke-dashoffset instead of snapping on. -->
+                      <span class="checkbox-box" aria-hidden="true">
+                        <svg
+                          class="checkbox-tick"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.2"
                           stroke-linecap="round"
                           stroke-linejoin="round"
-                          stroke-width="1.75"
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <p class="auth-error-text">{{ error }}</p>
-                    </div>
+                        >
+                          <path d="M3.5 8.5 L6.5 11.5 L12.5 5" />
+                        </svg>
+                      </span>
+                      <span class="checkbox-label">Recordarme</span>
+                    </label>
+                    <button
+                      type="button"
+                      class="forgot-password-link"
+                      @click="showForgotPasswordModal = true"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
 
-                    <!-- Phase 2.4 · polymorphic submit button. Single
-                         <UiButton> with 5 inner <span> children gated by
-                         v-show on the shape-morph state. The magnetic
-                         composable reads state === 'idle' || state ===
-                         'error' to attach listeners only when the button
-                         is in an interactive state. -->
+                  <div v-if="error && state !== 'error'" class="auth-error" role="alert" aria-live="polite">
+                    <svg
+                      class="auth-error-icon"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.75"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p class="auth-error-text">{{ error }}</p>
+                  </div>
+
+                  <!-- Phase 2.4 · polymorphic submit button. Single
+                       <UiButton> with 5 inner <span> children gated by
+                       v-show on the shape-morph state.
+                       Recovered PR2 · the wrapping div carries the magnet
+                       ref: useMagneticHover attaches its two springs to THIS
+                       element and writes --spring-magnet-x/y on it, and the
+                       button inherits the custom properties (they are
+                       inherited by default) so Button.vue's additive
+                       [data-magnetic='true'] rule can consume them. The
+                       wrapper is also the shake target, which keeps the
+                       shake off the button's own transform state machine. -->
+                  <div
+                    ref="submitRef"
+                    class="login-submit-wrap login-field-stagger"
+                    :class="{ 'is-shaking': shakeTrigger }"
+                    :style="{ '--field-index': 3 }"
+                  >
                     <UiButton
-                      ref="submitRef"
                       type="submit"
                       variant="primary"
                       size="lg"
                       :loading="state === 'authenticating'"
                       :disabled="state === 'success' || state === 'authenticating'"
                       :full-width="true"
-                      data-magnetic="true"
+                      :data-magnetic="magnetEnabled"
                       data-state="shape-morph"
                       class="login-submit-shape"
                     >
@@ -269,38 +352,38 @@
                         class="login-submit-stage"
                       >Reintentar</span>
                     </UiButton>
-                  </form>
-
-                  <!-- Phase 2.5 · MiniSummary on success state. Avatar with
-                       initials, role label, and a manual "Ir al dashboard"
-                       button as a defensive fallback if the router.push
-                       timed out. -->
-                  <div
-                    v-else
-                    key="summary"
-                    class="login-mini-summary"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <div class="login-mini-avatar" aria-hidden="true">
-                      {{ miniSummaryInitials }}
-                    </div>
-                    <p class="login-mini-name">{{ miniSummaryName }}</p>
-                    <p v-if="miniSummaryRole" class="login-mini-role">
-                      {{ miniSummaryRole }}
-                    </p>
-                    <button
-                      type="button"
-                      class="login-mini-cta"
-                      @click="router.push('/dashboard')"
-                    >Ir al dashboard</button>
                   </div>
-                </TransitionGroup>
-              </Card>
+                </form>
 
-              <!-- Phase 2.1 · footer row · Términos + Contacta al administrador.
-                   The links sit BELOW the form Card but INSIDE the outer
-                   split-card shell so the white surface carries them. -->
+                <!-- Phase 2.5 · MiniSummary on success state. Avatar with
+                     initials, role label, and a manual "Ir al dashboard"
+                     button as a defensive fallback if the router.push
+                     timed out. -->
+                <div
+                  v-else
+                  key="summary"
+                  class="login-mini-summary"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <div class="login-mini-avatar" aria-hidden="true">
+                    {{ miniSummaryInitials }}
+                  </div>
+                  <p class="login-mini-name">{{ miniSummaryName }}</p>
+                  <p v-if="miniSummaryRole" class="login-mini-role">
+                    {{ miniSummaryRole }}
+                  </p>
+                  <button
+                    type="button"
+                    class="login-mini-cta"
+                    @click="router.push('/dashboard')"
+                  >Ir al dashboard</button>
+                </div>
+              </TransitionGroup>
+
+              <!-- Footer · ONE row: the legal link and the support link. The
+                   brand already sits at the top of this column, so the old
+                   copyright note repeating it was noise. -->
               <div class="login-footer">
                 <a
                   href="/terminos"
@@ -311,21 +394,16 @@
                 <a
                   href="mailto:admin@odontosuite.local"
                   class="login-footer-link"
-                >¿No tienes cuenta? Contacta al administrador</a>
+                >Contacta al administrador</a>
               </div>
-
-              <p class="login-footer-note">
-                © {{ currentYear }} OdontoSuite. Sistema de gestión dental.
-                <a href="mailto:soporte@odontosuite.local" class="login-footer-link">Soporte</a>
-              </p>
             </div>
           </section>
 
           <!-- Phase 2.2 · Hero column. The right column carries the dental
-               Pexels still with 3 floating overlay cards populated from
-               real seeder data. The @error handler swaps to a static SVG
-               placeholder (D6 in design.md). The hero column is `position:
- relative` and the overlays use absolute positioning per design D5. -->
+               still with 3 floating overlay widgets. The @error handler
+               swaps to a static SVG placeholder (D6 in design.md). The hero
+               column is `position: relative` and the overlays use absolute
+               positioning per design D5. -->
           <aside class="login-hero-column" aria-hidden="true" ref="heroRef" data-spring-hero="true">
             <div class="login-hero">
               <img
@@ -337,9 +415,9 @@
                 class="login-hero-image"
                 @error="onImageError"
               />
-              <!-- Phase 2.2 · SVG fallback (D6). Static tooth glyph in
-                   systemBlue-500 over a soft gradient. Reserved aspect
-                   ratio so the layout never collapses while loading. -->
+              <!-- Phase 2.2 · SVG fallback (D6). Static tooth glyph over a
+                   soft gradient. Reserved aspect ratio so the layout never
+                   collapses while loading. -->
               <div v-else class="login-hero-fallback" aria-hidden="true">
                 <svg
                   width="96"
@@ -356,52 +434,47 @@
                 </svg>
               </div>
 
-              <!-- Phase 2.3 · Overlay Card 1 — Pacientes activos.
-                   Top-right of the hero column. -->
+              <!-- Phase 2.3 · Overlay widget 1, curated sample. Top-right. -->
               <div
                 v-motion="overlayMotion(0)"
                 class="login-overlay-card login-overlay-card--top"
               >
-                <p class="login-overlay-eyebrow">Pacientes activos</p>
+                <p class="login-overlay-label">Pacientes activos</p>
                 <p class="login-overlay-figure">
-                  {{ formatThousands(stats.totalPatients) }}
+                  {{ formatThousands(LOGIN_SAMPLE.activePatients) }}
                 </p>
               </div>
 
-              <!-- Phase 2.3 · Overlay Card 2 — Citas hoy. Mid-left of the
-                   hero column. -->
+              <!-- Phase 2.3 · Overlay widget 2, curated sample. Mid-left. -->
               <div
                 v-motion="overlayMotion(1)"
                 class="login-overlay-card login-overlay-card--mid"
               >
-                <p class="login-overlay-eyebrow">Citas hoy</p>
-                <ul v-if="appointments.length > 0" class="login-overlay-list">
+                <p class="login-overlay-label">Agenda de hoy</p>
+                <ul class="login-overlay-list">
                   <li
-                    v-for="(apt, idx) in appointments.slice(0, 3)"
-                    :key="idx"
+                    v-for="slot in LOGIN_SAMPLE.agenda"
+                    :key="slot.time"
                     class="login-overlay-list-row"
                   >
-                    <span class="login-overlay-list-name">{{ apt.patientName }}</span>
-                    <span class="login-overlay-list-time">{{ formatTime(apt.scheduledAt) }}</span>
+                    <span class="login-overlay-list-time">{{ slot.time }}</span>
+                    <span class="login-overlay-list-procedure">{{ slot.procedure }}</span>
                   </li>
                 </ul>
-                <p v-else class="login-overlay-empty">Sin datos para mostrar</p>
               </div>
 
-              <!-- Phase 2.3 · Overlay Card 3 — Equipo. Bottom-right of the
-                   hero column. -->
+              <!-- Phase 2.3 · Overlay widget 3, curated sample. Bottom-right. -->
               <div
                 v-motion="overlayMotion(2)"
                 class="login-overlay-card login-overlay-card--bottom"
               >
-                <p class="login-overlay-eyebrow">Equipo</p>
+                <p class="login-overlay-label">Equipo</p>
                 <div class="login-overlay-avatars">
                   <span
-                    v-for="(member, idx) in activeUsers.slice(0, 3)"
-                    :key="idx"
+                    v-for="initials in LOGIN_SAMPLE.team"
+                    :key="initials"
                     class="login-overlay-avatar"
-                    :title="member.name"
-                  >{{ initialsOf(member.name) }}</span>
+                  >{{ initials }}</span>
                 </div>
               </div>
             </div>
@@ -420,24 +493,23 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSpring } from '@/composables/useSpring'
 import { useAuth } from '@/composables/useAuth'
-import { useApi } from '@/composables/useApi'
 import { useShapeMorph } from '@/composables/useShapeMorph'
 import { useReducedMotion } from '@/composables/useReducedMotion'
-import Card from '@/components/ui/Card.vue'
+import { useMagneticHover } from '@/composables/useMagneticHover'
+import { useFieldValidation } from '@/composables/useFieldValidation'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'
 import UiButton from '@/components/ui/Button.vue'
 
 const router = useRouter()
 const { login } = useAuth()
-const api = useApi()
 
 // Phase 2.4 · polymorphic submit state machine.
-const { state, transition, cancel } = useShapeMorph({ initial: 'idle', dwellMs: 200 })
+const { state, transition, release } = useShapeMorph({ initial: 'idle', dwellMs: 200 })
 
 // Phase 2.6 · reactive reduced-motion detector.
 const prefersReducedMotion = useReducedMotion()
@@ -449,30 +521,75 @@ const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
 const showResetPasswordModal = ref(false)
 const resetEmail = ref('')
-const errors = reactive({
-  username: '',
-  password: ''
-})
 
 // Phase 2.2 · image fallback state.
 const imageFailed = ref(false)
 
-// Phase 2.3 · live overlay data. Fetched on mount, fire-and-forget per
-// design Decision D7. Each card has its own empty state — never breaks
-// the layout.
-const stats = reactive({
-  totalPatients: 0
+// Phase 2.3 · hero widget content. The login is a PUBLIC screen: the three
+// widgets used to fetch dashboard stats, today's appointments and the active
+// user list on mount, and every one of those endpoints answers 401 for a
+// guest, which rendered "PACIENTES ACTIVOS 0" and an empty avatar row. The
+// widgets now render one fixed curated sample instead: zero requests, no
+// empty state, never broken. Aggregate only by design (numbers, procedure
+// types, times) and never a patient name, because a public screen showing
+// names reads as a data leak.
+const LOGIN_SAMPLE = Object.freeze({
+  activePatients: 1284,
+  agenda: Object.freeze([
+    { time: '09:30', procedure: 'Limpieza' },
+    { time: '11:00', procedure: 'Endodoncia' },
+    { time: '15:45', procedure: 'Control de ortodoncia' }
+  ]),
+  team: Object.freeze(['AM', 'JR', 'CS'])
 })
-const appointments = ref([])
-const activeUsers = ref([])
-
-const currentYear = new Date().getFullYear()
 
 const form = reactive({
   username: '',
   password: '',
   remember: false
 })
+
+// Live validation (recovered PR2 · `ui-login-premium-motion-2026-08`).
+// `useFieldValidation` owns the rule state machine: it runs the rules on
+// `@blur` and re-runs them 250ms after the last change. Its internal watch
+// re-validates EVERY declared field whenever any of them changes, so
+// `touched` gates *display* only: without it, the moment the user typed one
+// character into "Usuario" the empty "Contraseña" field would scold them
+// before they ever reached it. Submitting force-reveals every field.
+const {
+  errors: validationErrors,
+  successes: validationSuccesses,
+  validateField,
+  validateAll
+} = useFieldValidation(
+  form,
+  {
+    username: [(value) => (value && value.trim() ? null : 'El usuario es requerido')],
+    password: [(value) => (value && value.trim() ? null : 'La contraseña es requerida')]
+  },
+  { idleMs: 250 }
+)
+
+const touched = reactive({ username: false, password: false })
+
+const fieldErrors = computed(() => ({
+  username: touched.username ? validationErrors.username || '' : '',
+  password: touched.password ? validationErrors.password || '' : ''
+}))
+
+const fieldSuccesses = computed(() => ({
+  username: touched.username && validationSuccesses.username === true,
+  password: touched.password && validationSuccesses.password === true
+}))
+
+function onFieldBlur(field) {
+  touched[field] = true
+  validateField(field)
+}
+
+function onFieldInput(field) {
+  touched[field] = true
+}
 
 // Phase 2.5 · mini-summary bindings (success state).
 const successUser = ref(null)
@@ -524,7 +641,48 @@ const heroOpacitySpring = useSpring({
 
 const cardRef = ref(null)
 const heroRef = ref(null)
+// Recovered PR2 · the magnet binds to the wrapper div that surrounds the
+// submit UiButton, not to the component ref (a component ref does not
+// expose its root element). The springs write --spring-magnet-x/y on the
+// wrapper and the button inherits the custom properties, which is what
+// Button.vue's additive [data-magnetic='true'] rule consumes.
 const submitRef = ref(null)
+
+// `magnetEnabled` keeps the magnet live only while the button is actually
+// interactive (idle / error). Button.vue only paints the magnetic transform
+// under [data-magnetic='true'], so a disabled or morphing button never gets
+// it. `useMagneticHover` additionally short-circuits by itself on
+// prefers-reduced-motion and on coarse pointers.
+const magnetEnabled = computed(() => state.value === 'idle' || state.value === 'error')
+
+useMagneticHover(submitRef, { response: 0.35, damping: 0.7, maxDistanceFactor: 0.4 })
+
+// Recovered PR2 · 220ms failure shake. `shakeTrigger` is a one-shot class
+// toggle; re-arming happens on the next frame so a second failed attempt
+// restarts the animation instead of reusing the finished one.
+const SHAKE_MS = 220
+const shakeTrigger = ref(false)
+let shakeTimer = null
+let shakeRaf = null
+
+function triggerShake() {
+  if (shakeRaf) cancelAnimationFrame(shakeRaf)
+  if (shakeTimer) clearTimeout(shakeTimer)
+  shakeTrigger.value = false
+  shakeRaf = requestAnimationFrame(() => {
+    shakeRaf = null
+    shakeTrigger.value = true
+    shakeTimer = setTimeout(() => {
+      shakeTimer = null
+      shakeTrigger.value = false
+    }, SHAKE_MS)
+  })
+}
+
+onUnmounted(() => {
+  if (shakeRaf) cancelAnimationFrame(shakeRaf)
+  if (shakeTimer) clearTimeout(shakeTimer)
+})
 
 // Phase 2.6 + D9 · motion variants per element. Reduced-motion collapses
 // every transition to opacity-only.
@@ -569,19 +727,6 @@ function formatThousands(n) {
   return new Intl.NumberFormat('es-PE').format(value)
 }
 
-function formatTime(iso) {
-  if (!iso) return ''
-  try {
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) return ''
-    const hh = String(d.getHours()).padStart(2, '0')
-    const mm = String(d.getMinutes()).padStart(2, '0')
-    return `${hh}:${mm}`
-  } catch (_e) {
-    return ''
-  }
-}
-
 onMounted(async () => {
   await nextTick()
   if (cardRef.value) {
@@ -596,87 +741,28 @@ onMounted(async () => {
   opacitySpring.set(1)
   heroSpring.set(1)
   heroOpacitySpring.set(1)
-
-  // Phase 2.3 · fetch overlay data (fire-and-forget per design D7).
-  void fetchStats()
-  void fetchAppointments()
-  void fetchActiveUsers()
 })
-
-async function fetchStats() {
-  try {
-    const response = await api.get('/api/dashboard/stats')
-    const data = response?.data || response || {}
-    stats.totalPatients = Number(data.total_patients ?? data.totalPatients ?? 0)
-  } catch (_e) {
-    stats.totalPatients = 0
-  }
-}
-
-async function fetchAppointments() {
-  try {
-    const response = await api.get('/api/dashboard/appointments-today?per_page=3')
-    const payload = response?.data ?? response ?? []
-    const list = Array.isArray(payload) ? payload : payload.data ?? []
-    appointments.value = list.slice(0, 3).map((apt) => ({
-      patientName: apt?.patient?.name || apt?.patient_name || apt?.name || 'Paciente',
-      scheduledAt: apt?.scheduled_at || apt?.start || apt?.time || ''
-    }))
-  } catch (_e) {
-    appointments.value = []
-  }
-}
-
-async function fetchActiveUsers() {
-  try {
-    const response = await api.get('/api/users/active?per_page=3')
-    const payload = response?.data ?? response ?? []
-    const list = Array.isArray(payload) ? payload : payload.data ?? []
-    activeUsers.value = list.slice(0, 3).map((u) => ({
-      name: u?.name || u?.full_name || ''
-    }))
-  } catch (_e) {
-    activeUsers.value = []
-  }
-}
 
 // Phase 2.2 · image fallback handler (D6).
 function onImageError() {
   imageFailed.value = true
 }
 
-// Validation (unchanged from the PR3 baseline).
-const validateField = (field) => {
-  errors[field] = ''
-  if (field === 'username' && !form.username.trim()) {
-    errors.username = 'El usuario es requerido'
-  }
-  if (field === 'password' && !form.password.trim()) {
-    errors.password = 'La contraseña es requerida'
-  }
-}
-
-const validateForm = () => {
-  let isValid = true
-  errors.username = ''
-  errors.password = ''
-  if (!form.username.trim()) {
-    errors.username = 'El usuario es requerido'
-    isValid = false
-  }
-  if (!form.password.trim()) {
-    errors.password = 'La contraseña es requerida'
-    isValid = false
-  }
-  return isValid
-}
+// Validation (recovered PR2): the hand-rolled `errors` reactive plus
+// `validateField` / `validateForm` pair was dead code: nothing called it and
+// the inputs had no `@blur`. `useFieldValidation` above replaces all three.
 
 // Phase 2.4 · handleLogin rewired to drive the shape-morph state machine.
 // Cycle:
 //   click → validating (200ms dwell) → authenticating → success (600ms) →
-//   /dashboard. Non-2xx → error (220ms) → idle via cancel().
+//   /dashboard. Non-2xx → error + 220ms shake → idle.
 const handleLogin = async () => {
-  if (!validateForm()) return
+  if (!validateAll()) {
+    // Submitting is the explicit "reveal everything" gesture.
+    touched.username = true
+    touched.password = true
+    return
+  }
   error.value = ''
 
   if (!transition('validating')) {
@@ -719,10 +805,25 @@ const handleLogin = async () => {
       msg = `${err.name || 'Error'}: ${err.message}`
     }
     error.value = msg
+    // The shake is the failure feedback, so it fires on EVERY failed
+    // attempt and is deliberately outside the state-machine guard.
+    triggerShake()
     if (transition('error')) {
-      setTimeout(() => {
-        cancel()
-      }, 220)
+      // Hand the button back to `idle` once the shake has played.
+      //
+      // `error` is terminal, so a submit landing there used to leave the page
+      // dead: `validateTransition` rejects every outbound transition and
+      // `cancel()` refuses terminal states, so a second submit was a silent
+      // no-op until the user reloaded.
+      //
+      // `release()` is the machine's own door out. It checks that the current
+      // state really is terminal, schedules the exit, and cancels that schedule
+      // on unmount and on any new transition. Assigning `state.value = 'idle'`
+      // here instead, which is what this used to do, bypasses every rule in
+      // `shapeMorphMath` and leaves the machine desynchronised. Two reviewers
+      // independently flagged that write (R4-001 resilience, R3-004
+      // reliability), and they were right.
+      release(SHAKE_MS)
     }
   } finally {
     loading.value = false
@@ -743,13 +844,16 @@ const handleResetPasswordSuccess = () => {
 </script>
 
 <style scoped>
-/* Slice 12 / fix-viewport-fit: the outer page + shell + card now constrain
-   themselves to the viewport instead of growing with content. The form
-   column gets internal overflow so it can scroll if the form is taller
-   than the available height. The hero column gets overflow:hidden so the
-   image never reflows on resize. */
+/* Nested radius rhythm (roughly 1.4x per step): shell 32px (the shell/panel/
+   control ladder lives in the shared tokens since Slice A3, so the login no
+   longer owns a parallel scale) → panel/widget 22px → control 12px → pill
+   (--radius-full). The previous 32/16/8 ladder jumped 4x from widget to
+   control and read as carelessness. */
 .login-page {
+  --login-radius-panel: var(--radius-panel);
+  --login-radius-control: var(--radius-control);
   @apply min-h-[100dvh] w-full flex items-stretch justify-center;
+  position: relative;
   background: var(--color-canvas);
   /* `height: 100dvh` clamps the page to the dynamic viewport (avoids the
      iOS Safari URL-bar reflow); `min-height` is a fallback for older
@@ -759,9 +863,37 @@ const handleResetPasswordSuccess = () => {
   overflow: hidden;
 }
 
+/* Atmosphere: the flat canvas becomes a lit field. One soft radial that
+   opens white at the centre and falls to the canvas tone at the edges, plus
+   one very faint accent wash in the upper right. Static by design (a slow
+   loop is banned by apple-design §14), so there is no motion path to
+   collapse under prefers-reduced-motion; it IS switched off under
+   prefers-reduced-transparency below. If `color-mix` is unsupported the
+   declaration is dropped and the flat canvas above remains. */
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      60% 55% at 82% 6%,
+      color-mix(in srgb, var(--color-accent) 4%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at 50% 28%,
+      var(--color-background-system-background) 0%,
+      var(--color-canvas) 74%
+    );
+}
+
 .login-page-shell {
   @apply w-full flex items-stretch justify-center;
-  /* Reduced from clamp(16px, 4vw, 48px) to clamp(12px, 2vw, 24px) — the
+  position: relative;
+  z-index: 1;
+  /* Reduced from clamp(16px, 4vw, 48px) to clamp(12px, 2vw, 24px): the
      previous max(48px) added 96px of vertical padding on desktop, pushing
      the card past the viewport. */
   padding: clamp(12px, 2vw, 24px);
@@ -773,9 +905,9 @@ const handleResetPasswordSuccess = () => {
   display: grid;
   width: 100%;
   max-width: 1180px;
-  /* The card now grows to fill the shell (which fills the viewport) but
-     never exceeds `viewport - shell padding`. Without this cap the card
-     grew to 902px on a 900px viewport, causing a 98px vertical overflow. */
+  /* The card grows to fill the shell (which fills the viewport) but never
+     exceeds `viewport - shell padding`. Without this cap the card grew to
+     902px on a 900px viewport, causing a 98px vertical overflow. */
   height: 100%;
   max-height: calc(100dvh - clamp(24px, 4vw, 48px));
   background: var(--color-background-system-background);
@@ -796,8 +928,11 @@ const handleResetPasswordSuccess = () => {
   height: 100%;
 }
 
+/* The panel owns the form's inset. This used to be the inner card's
+   `padding="lg"`; with that wrapper gone the panel's own padding is the
+   single source of breathing room around the fields. */
 .login-form-column {
-  @apply order-2 flex items-center justify-center px-5 py-8 sm:px-8;
+  @apply order-2 flex items-center justify-center px-6 py-10 sm:px-8;
   /* The form column scrolls internally if the form is taller than the
      available height. `min-height: 0` is required for the scroll to fire
      inside a CSS grid cell. */
@@ -819,20 +954,50 @@ const handleResetPasswordSuccess = () => {
   @apply flex items-center gap-3;
 }
 
+/* Wordmark chip: hairline-bordered pill, 18px glyph + name. */
+.brand-chip {
+  @apply inline-flex items-center gap-2;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-full);
+  background: var(--color-background-system-background);
+}
+
 .brand-glyph {
-  @apply inline-flex items-center justify-center;
-  width: 32px;
-  height: 32px;
+  @apply inline-grid place-items-center;
+  width: 22px;
+  height: 22px;
   color: var(--color-system-blue-500);
 }
 
+/* Both glyphs share one grid cell so the cross-fade is a stack and never a
+   layout shift. The tooth hands over to the check on `success`. */
 .brand-glyph svg {
-  width: 24px;
-  height: 24px;
+  grid-area: 1 / 1;
+  width: 18px;
+  height: 18px;
+  transition:
+    opacity 300ms var(--motion-easing-ios),
+    transform 300ms var(--motion-easing-ios);
+}
+
+.brand-glyph-tooth.is-hidden {
+  opacity: 0;
+  transform: scale(0.6) rotate(18deg);
+}
+
+.brand-glyph-check {
+  opacity: 0;
+  transform: scale(0.6) rotate(-18deg);
+}
+
+.brand-glyph-check.is-visible {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 .brand-name {
-  @apply text-base font-semibold tracking-tight;
+  @apply text-sm font-semibold tracking-tight;
   color: var(--color-label-label);
 }
 
@@ -840,27 +1005,19 @@ const handleResetPasswordSuccess = () => {
   @apply flex flex-col gap-2;
 }
 
+/* The display step comes from the token, not from this rule: text-4xl
+   resolves to tokens.js typography.fontSize['4xl'] (36px / 40px line-height /
+   -0.022em tracking). The previous rule hardcoded weight 500 and -0.05em
+   tracking, so the login was disobeying its own type scale. */
 .welcome-headline {
-  font-size: 1.875rem;
-  line-height: 1.05;
-  font-weight: 500;
+  @apply text-4xl font-semibold;
+  letter-spacing: -0.022em;
   color: var(--color-label-label);
-  letter-spacing: -0.05em;
-}
-
-@media (min-width: 640px) {
-  .welcome-headline {
-    font-size: 2.25rem;
-  }
 }
 
 .welcome-subtitle {
   @apply text-base leading-relaxed;
   color: var(--color-label-secondary-label);
-}
-
-.login-card-surface {
-  @apply w-full;
 }
 
 .login-form-morph {
@@ -903,13 +1060,55 @@ const handleResetPasswordSuccess = () => {
 }
 
 .remember-me {
-  @apply inline-flex items-center gap-2 cursor-pointer select-none;
+  @apply relative inline-flex items-center gap-2 cursor-pointer select-none;
 }
 
+/* Recordarme · the native control keeps the state, the keyboard reach and
+   the accessibility tree, but paints nothing. The box and the tick below
+   are the visible surface, which is what lets the tick be *drawn*. */
 .checkbox-input {
-  @apply h-4 w-4 rounded;
-  accent-color: var(--color-accent);
-  border-color: var(--color-border);
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox-box {
+  @apply inline-flex flex-shrink-0 items-center justify-center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-canvas);
+  color: var(--color-background-system-background);
+  transition:
+    background-color var(--motion-duration-normal) var(--motion-easing-ios),
+    border-color var(--motion-duration-normal) var(--motion-easing-ios);
+}
+
+.checkbox-input:checked ~ .checkbox-box {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.checkbox-input:focus-visible ~ .checkbox-box {
+  box-shadow: var(--focus-ring-default);
+}
+
+/* The tick is drawn, not swapped: stroke-dashoffset runs 14 → 0 when the
+   native input is checked. */
+.checkbox-tick {
+  width: 12px;
+  height: 12px;
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+  transition: stroke-dashoffset var(--motion-duration-normal) var(--motion-easing-ios);
+}
+
+.checkbox-input:checked ~ .checkbox-box .checkbox-tick {
+  stroke-dashoffset: 0;
 }
 
 .checkbox-label {
@@ -935,10 +1134,13 @@ const handleResetPasswordSuccess = () => {
 }
 
 .password-toggle {
-  @apply absolute p-1 focus:outline-none rounded-md;
+  @apply absolute inline-flex items-center justify-center focus:outline-none;
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
   color: var(--color-label-secondary-label);
   background: transparent;
   border: none;
@@ -959,6 +1161,31 @@ const handleResetPasswordSuccess = () => {
   outline-offset: 2px;
 }
 
+/* Password reveal morph (recovered PR2) · both eye glyphs stay mounted in
+   one 20px box and cross-fade + scale, instead of the abrupt v-if swap. */
+.password-toggle-glyphs {
+  @apply relative inline-flex items-center justify-center;
+  width: 20px;
+  height: 20px;
+}
+
+.password-toggle-glyph {
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+  transform: scale(0.72) rotate(-12deg);
+  transition:
+    opacity var(--motion-duration-normal) var(--motion-easing-ios),
+    transform var(--motion-duration-normal) var(--motion-easing-ios);
+}
+
+.password-toggle-glyph.is-active {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
 .field {
   @apply flex flex-col gap-1.5;
 }
@@ -972,23 +1199,21 @@ const handleResetPasswordSuccess = () => {
   @apply relative flex items-center;
 }
 
-.field-prefix {
-  @apply absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none;
-  color: var(--color-label-secondary-label);
-}
-
+/* Filled fields: no adornment icon, no border at rest, canvas fill, 12px
+   radius, 52px tall. The visible label names the field, so no placeholder
+   duplicates it. The focus ring is the verified accent ring token. */
 .field-input {
   @apply block w-full text-base;
-  background: var(--color-background-system-background);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-control);
+  background: var(--color-canvas);
+  border: 1px solid transparent;
+  border-radius: var(--login-radius-control);
   color: var(--color-label-label);
-  padding: 14px 44px 14px 40px;
+  padding: 14px 52px 14px 16px;
   min-height: 52px;
   transition:
+    background-color var(--motion-duration-normal) var(--motion-easing-ios),
     border-color var(--motion-duration-normal) var(--motion-easing-ios),
-    box-shadow var(--motion-duration-normal) var(--motion-easing-ios),
-    background-color var(--motion-duration-normal) var(--motion-easing-ios);
+    box-shadow var(--motion-duration-normal) var(--motion-easing-ios);
 }
 
 .field-input::placeholder {
@@ -996,14 +1221,13 @@ const handleResetPasswordSuccess = () => {
 }
 
 .field-input:hover:not(:disabled) {
-  border-color: var(--color-label-tertiary-label);
+  background: var(--color-cream-100);
 }
 
 .field-input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-light);
-  background: var(--color-cream-50);
+  box-shadow: var(--focus-ring-default);
 }
 
 .field-input:disabled {
@@ -1026,13 +1250,100 @@ const handleResetPasswordSuccess = () => {
   color: var(--color-error-700);
 }
 
+/* Live validation (recovered PR2) · the error message slides down and fades
+   in rather than appearing in a single frame. */
+.field-error--animated {
+  animation: field-error-slide-in var(--motion-duration-normal) var(--motion-easing-ios);
+}
+
+@keyframes field-error-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Live validation (recovered PR2) · the success checkmark. It is decorative:
+   the programmatic signal is `aria-invalid="false"` on the input, so
+   announcing "valid" on every keystroke would only add noise. The base state
+   is the visible one and the animation supplies the entrance, which keeps
+   the reduced-motion collapse honest (kill the animation, keep the mark). */
+.field-success-mark {
+  @apply absolute inline-flex items-center justify-center pointer-events-none;
+  right: 16px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  color: var(--color-system-green-500);
+  background: var(--color-system-green-50);
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  animation: field-success-mark-in var(--motion-duration-normal) var(--motion-easing-ios) both;
+}
+
+.field-success-mark svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* The password field already spends its right edge on the reveal toggle. */
+.field-success-mark--before-toggle {
+  right: 52px;
+}
+
+@keyframes field-success-mark-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+.field-input.has-success {
+  border-color: var(--color-system-green-500);
+}
+
+.field-input.has-success:focus {
+  border-color: var(--color-system-green-500);
+  box-shadow: 0 0 0 3px var(--color-system-green-50);
+}
+
+/* Per-field entrance stagger (recovered PR2) · the fields used to appear in
+   one frame. Each block carries --field-index and starts 60ms after the
+   previous one; `backwards` keeps the from-state during the delay so the
+   finished layout never flashes first. */
+.login-field-stagger {
+  animation: login-field-enter 260ms var(--motion-easing-ios) backwards;
+  animation-delay: calc(var(--field-index, 0) * 60ms);
+}
+
+@keyframes login-field-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .field-hint {
   @apply text-xs leading-snug;
   color: var(--color-label-secondary-label);
 }
 
 .auth-error {
-  @apply flex items-start gap-2 p-3 rounded-xl;
+  @apply flex items-start gap-2 p-3;
+  border-radius: var(--login-radius-control);
   background: var(--color-error-50);
   border: 1px solid var(--color-error-100);
 }
@@ -1045,6 +1356,29 @@ const handleResetPasswordSuccess = () => {
 .auth-error-text {
   @apply text-sm leading-snug;
   color: var(--color-error-700);
+}
+
+/* Recovered PR2 · the submit wrapper is the magnet + shake target. The
+   magnet writes --spring-magnet-x/y here and the button inherits them
+   (custom properties are inherited by default), which is what Button.vue's
+   additive [data-magnetic='true'] rule consumes. The shake lives here so it
+   never fights the button's own transform states. */
+.login-submit-wrap {
+  @apply relative;
+}
+
+.login-submit-wrap.is-shaking {
+  animation: login-submit-shake 220ms ease-in-out;
+}
+
+@keyframes login-submit-shake {
+  0% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
 }
 
 /* Phase 2.4 · submit polymorphic stages. The button keeps a single
@@ -1103,7 +1437,7 @@ const handleResetPasswordSuccess = () => {
 .login-mini-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--color-system-blue-500);
   color: var(--color-background-system-background);
   @apply flex items-center justify-center text-sm font-semibold;
@@ -1120,7 +1454,8 @@ const handleResetPasswordSuccess = () => {
 }
 
 .login-mini-cta {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-xl text-sm font-medium;
+  @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium;
+  border-radius: var(--login-radius-control);
   background: var(--color-system-blue-500);
   color: var(--color-background-system-background);
   border: none;
@@ -1132,7 +1467,7 @@ const handleResetPasswordSuccess = () => {
   background: var(--color-system-blue-600);
 }
 
-/* Phase 2.1 · footer row. */
+/* Single footer row: legal + support. */
 .login-footer {
   @apply flex flex-wrap items-center justify-between gap-2 text-xs;
   color: var(--color-label-tertiary-label);
@@ -1148,21 +1483,18 @@ const handleResetPasswordSuccess = () => {
   text-decoration: underline;
 }
 
-.login-footer-note {
-  @apply text-xs text-center;
-  color: var(--color-label-tertiary-label);
-}
-
 /* Phase 2.2 · hero column. The hero carries the dental image with 3
-   floating overlay cards (D5). The hero-column is `position: relative`
+   floating overlay widgets (D5). The hero-column is `position: relative`
    so the absolute overlays anchor correctly. `min-height: 0` and
-   `overflow: hidden` prevent the image from forcing a grid reflow. */
+   `overflow: hidden` prevent the image from forcing a grid reflow.
+   The 16px padding is the inset that stops the hero from butting against
+   the panel's top, right and bottom edges: that gap is what reads as care. */
 .login-hero-column {
   --spring-hero-o: 1;
   --spring-hero-opacity: 1;
   @apply order-1 relative overflow-hidden flex items-stretch justify-stretch;
   min-height: 220px;
-  padding: 0;
+  padding: 16px;
   transform: translate3d(0, calc((1 - var(--spring-hero-o)) * 12px), 0);
   opacity: var(--spring-hero-opacity);
 }
@@ -1173,7 +1505,7 @@ const handleResetPasswordSuccess = () => {
   min-height: 100%;
   background: var(--color-system-gray-50);
   overflow: hidden;
-  border-radius: var(--radius-card-lg);
+  border-radius: var(--login-radius-panel);
 }
 
 .login-hero-image {
@@ -1201,20 +1533,22 @@ const handleResetPasswordSuccess = () => {
   height: clamp(64px, 12vw, 96px);
 }
 
-/* Phase 2.3 · overlay cards. Per design D5: top-right, mid-left,
-   bottom-right. Backdrop-filter blur with white-85% surface. */
+/* Phase 2.3 · overlay widgets. Per design D5: top-right, mid-left,
+   bottom-right. Per-panel radius, a soft tokenised two-layer elevation and
+   a luminous top edge so the glass reads as a material. The old
+   `0 1px 2px rgba(60, 60, 67, 0.55)` second layer was a 55%-opacity typo
+   that drew a dirty dark edge around every widget. */
 .login-overlay-card {
   position: absolute;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--color-hairline);
-  border-radius: 16px;
-  padding: 12px 14px;
-  min-width: 140px;
+  border-radius: var(--login-radius-panel);
+  padding: 14px 16px;
   box-shadow:
-    0 8px 24px rgba(60, 60, 67, 0.05),
-    0 1px 2px rgba(60, 60, 67, 0.55);
+    var(--elevation-2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: var(--color-label-label);
   z-index: 2;
 }
@@ -1228,7 +1562,6 @@ const handleResetPasswordSuccess = () => {
   top: 50%;
   left: 24px;
   transform: translateY(-50%);
-  min-width: 200px;
 }
 
 .login-overlay-card--bottom {
@@ -1236,10 +1569,12 @@ const handleResetPasswordSuccess = () => {
   right: 24px;
 }
 
-.login-overlay-eyebrow {
-  @apply text-[10px] uppercase tracking-wider font-semibold;
+/* Sentence case at 12px, medium weight, secondary label colour. Capitalised
+   eyebrows with wide tracking are the anti-pattern this project banned. */
+.login-overlay-label {
+  @apply text-xs font-medium;
   color: var(--color-label-secondary-label);
-  margin: 0 0 4px;
+  margin: 0 0 6px;
 }
 
 .login-overlay-figure {
@@ -1252,12 +1587,11 @@ const handleResetPasswordSuccess = () => {
   @apply flex flex-col gap-1 m-0 p-0 list-none;
 }
 
+/* Fixed first column so the times line up across the three rows instead of
+   drifting with `justify-content: space-between`. */
 .login-overlay-list-row {
-  @apply flex items-center justify-between gap-2 text-xs;
-}
-
-.login-overlay-list-name {
-  color: var(--color-label-label);
+  @apply grid items-baseline gap-3 text-xs;
+  grid-template-columns: 3.25rem 1fr;
 }
 
 .login-overlay-list-time {
@@ -1265,9 +1599,8 @@ const handleResetPasswordSuccess = () => {
   font-variant-numeric: tabular-nums;
 }
 
-.login-overlay-empty {
-  @apply text-xs m-0;
-  color: var(--color-label-tertiary-label);
+.login-overlay-list-procedure {
+  color: var(--color-label-label);
 }
 
 .login-overlay-avatars {
@@ -1277,10 +1610,10 @@ const handleResetPasswordSuccess = () => {
 .login-overlay-avatar {
   width: 24px;
   height: 24px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--color-system-blue-500);
   color: var(--color-background-system-background);
-  @apply inline-flex items-center justify-center text-[10px] font-semibold;
+  @apply inline-flex items-center justify-center text-xs font-semibold;
 }
 
 /* Tablet and up: form first column, hero second. */
@@ -1289,15 +1622,15 @@ const handleResetPasswordSuccess = () => {
     grid-template-columns: 5fr 7fr;
   }
   .login-form-column {
-    @apply order-1 px-10 py-10;
+    @apply order-1 px-12 py-12;
   }
   .login-hero-column {
     @apply order-2;
-    /* Slice 12 / fix-viewport-fit: removed `min-height: 100dvh` — that rule
-       was the root cause of the 98px vertical overflow on 1440x900. The
-       column now sizes to the grid row, which is constrained by the
-       card's `max-height: calc(100dvh - 48px)`. `min-height: 0` keeps the
-       grid from forcing the column to its content size. */
+    /* Slice 12 / fix-viewport-fit: removed `min-height: 100dvh`, which was
+       the root cause of the 98px vertical overflow on 1440x900. The column
+       now sizes to the grid row, which is constrained by the card's
+       `max-height: calc(100dvh - 48px)`. `min-height: 0` keeps the grid
+       from forcing the column to its content size. */
     min-height: 0;
   }
   .login-form-wrap {
@@ -1331,7 +1664,7 @@ const handleResetPasswordSuccess = () => {
     order: 1;
   }
   .login-form-column {
-    padding: 20px;
+    padding: 24px;
     order: 2;
     /* Mobile: top-align the form so it does not visually overlap with the
        hero's bottom edge. Centering the form inside a column that is
@@ -1347,9 +1680,16 @@ const handleResetPasswordSuccess = () => {
   }
 }
 
-/* Honor reduced motion. Both entrance springs AND every polymorphic
-   crossfade collapse to instant. */
+/* Honor reduced motion. Both entrance springs collapse in the FIRST rule of
+   this block, then the polymorphic crossfades and the widget entrance. */
 @media (prefers-reduced-motion: reduce) {
+  .login-form-wrap,
+  .login-hero-column {
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+
   .login-split-card,
   .login-overlay-card,
   .login-submit-shape,
@@ -1358,24 +1698,53 @@ const handleResetPasswordSuccess = () => {
     transition: none !important;
     transform: none !important;
   }
-  .login-form-wrap {
+
+  /* The mid widget keeps its own centering transform: the collapse above
+     must kill the entrance, never the position. */
+  .login-overlay-card--mid {
+    transform: translateY(-50%) !important;
+  }
+
+  /* Recovered PR2 · collapse for every new motion path. The movement goes,
+     the state stays legible: opacity still carries which glyph is active
+     and the success mark / tick simply arrive already drawn. Positioning
+     transforms (the -50% centering) are deliberately NOT reset; the same
+     exception the mid widget above documents. */
+  .login-field-stagger,
+  .login-submit-wrap.is-shaking,
+  .field-error--animated,
+  .field-success-mark {
+    animation: none !important;
+  }
+
+  .brand-glyph svg,
+  .password-toggle-glyph,
+  .checkbox-tick {
+    transition: none !important;
     transform: none !important;
+  }
+
+  .brand-glyph-check {
+    transform: none !important;
+  }
+
+  .checkbox-box {
     transition: none !important;
   }
-  .login-hero-column {
-    transform: none !important;
-    opacity: 1 !important;
-    transition: none !important;
-  }
+
   .form-card-morph-enter-active,
   .form-card-morph-leave-active {
     transition: none !important;
   }
 }
 
-/* Honor reduced transparency · the outer card flattens to an opaque
-   surface and the overlay cards drop the backdrop blur. */
+/* Honor reduced transparency · the atmosphere layer is switched off, the
+   outer card flattens to an opaque surface and the overlay widgets drop the
+   backdrop blur. */
 @media (prefers-reduced-transparency: reduce) {
+  .login-page::before {
+    background: none;
+  }
   .login-split-card {
     background: var(--color-background-system-background);
     box-shadow: none;
@@ -1387,7 +1756,8 @@ const handleResetPasswordSuccess = () => {
   }
 }
 
-/* High contrast · lift both text colors to AAA-legible label tokens. */
+/* High contrast · lift both text colors to AAA-legible label tokens, and
+   give the recovered validation surfaces a stronger edge. */
 @media (prefers-contrast: more) {
   .welcome-headline {
     color: var(--color-label-label);
@@ -1396,6 +1766,16 @@ const handleResetPasswordSuccess = () => {
   .forgot-password-link,
   .login-footer-link {
     text-decoration: underline;
+  }
+  .checkbox-box {
+    border-color: var(--color-label-secondary-label);
+  }
+  .field-success-mark {
+    color: var(--color-system-green-700);
+    border: 1px solid var(--color-system-green-700);
+  }
+  .field-input.has-success {
+    border-color: var(--color-system-green-700);
   }
 }
 </style>

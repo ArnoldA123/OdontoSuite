@@ -437,6 +437,13 @@ import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { useEcho } from '../../composables/useEcho'
+// Chart.js takes plain JS colour values, so it cannot read the CSS custom
+// properties the rest of the app uses — which is how these two charts ended up
+// on Tailwind's DEFAULT palette (`indigo-500` / `green-500`) while the app moved
+// to the token palette. Importing `colors` makes them follow the design system:
+// change `tokens.js` and the charts move with it. Each chart has a single
+// series, so there is no categorical collision to resolve here.
+import { colors } from '../../design-system/tokens.js'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -640,8 +647,12 @@ export default {
                     {
                       label: 'Citas',
                       data: dashboardData.value.appointmentsByDay.map(item => item.count),
-                      borderColor: 'rgb(99, 102, 241)',
-                      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                      // `systemIndigo` — a neutral operational hue, deliberately
+                      // NOT the accent: the accent is green and the revenue chart
+                      // below is already green, so two green charts would read as
+                      // one. Toned down to the token's mid step.
+                      borderColor: colors.systemIndigo[500],
+                      backgroundColor: `${colors.systemIndigo[500]}1a`,
                       tension: 0.4
                     }
                   ]
@@ -680,8 +691,12 @@ export default {
                     {
                       label: 'Ingresos (S/)',
                       data: dashboardData.value.revenueByMonth.map(item => item.revenue),
-                      backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                      borderColor: 'rgb(34, 197, 94)',
+                      // Revenue reads as "money in", so the success ramp is the
+                      // honest hue. Tailwind's `green-500` was close to
+                      // `systemGreen-500` but not equal, which is exactly the
+                      // drift this import removes.
+                      backgroundColor: `${colors.systemGreen[500]}cc`,
+                      borderColor: colors.systemGreen[500],
                       borderWidth: 1
                     }
                   ]

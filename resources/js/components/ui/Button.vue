@@ -253,8 +253,11 @@ button[data-variant='primary']:not(:disabled):active {
   }
 }
 
-/* Hover effects */
-button:not(:disabled):hover {
+/* Hover effects — EXCLUDE [data-magnetic='true'] so the additive magnetic
+   transform (composed via the --spring-magnet-x/y CSS vars) wins at runtime.
+   Without the exclusion, the hover rule (specificity 0,2,1) silently
+   overrides the data-magnetic rule (0,1,1) — see apply-progress.md F-03. */
+button:not(:disabled):not([data-magnetic='true']):hover {
   transform: translateY(-1px);
 }
 
@@ -318,6 +321,48 @@ button[data-variant='icon'] {
   .spinner,
   .ripple {
     animation: none;
+  }
+}
+
+/* Additive (PR1 ui-login-premium-motion-2026-08, design D17 + spec M7):
+     applies the magnetic effect ONLY when --spring-magnet-x/y are defined
+     on the button root via the data-magnetic attribute. Other buttons are
+     untouched. The hover lift composes with the magnet via transform
+     composition. NO change to the template, the variants, the ripple
+     logic, or any existing scoped CSS — appended at the END of the
+     existing <style scoped> block, after the prefers-reduced-motion block.
+
+   PR2 recovery fix — the declaration as recovered from the branch was
+   inert: `useSpring.writeVar()` writes `String(value)`, so the custom
+   properties resolve to unitless <number> values. `translate3d()` needs
+   <length>, and `calc(0 - 1px)` mixes a number with a length, so the whole
+   `transform` was invalid at computed-value time and dropped — the magnet
+   painted nothing even with both springs correctly attached. `* 1px`
+   promotes each number to a length, which is what makes the effect render. */
+button:not(:disabled)[data-magnetic='true'] {
+  transform: translate3d(
+    calc(var(--spring-magnet-x, 0) * 1px),
+    calc(var(--spring-magnet-y, 0) * 1px - 1px),
+    0
+  );
+}
+button[data-magnetic='true']:not(:disabled):active {
+  /* On press the magnet is inert (cursor is on the button, not hovering
+       around it). The existing translateY(1px) takes over. */
+  transform: translateY(1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* The magnet is already inert under reduced motion — useMagneticHover
+     short-circuits its own listeners — so this rule is the defensive
+     backstop: the transform must resolve to none in EVERY state the
+     magnetic button can be in. `:hover` is listed explicitly because that
+     is the state the magnet engages in, and
+     PrimitivePressTest::test_transform_declarations_are_state_scoped
+     accepts a transform declaration only when its selector names the
+     interaction state it belongs to. */
+  button:not(:disabled)[data-magnetic='true'],
+  button:not(:disabled)[data-magnetic='true']:hover {
+    transform: none;
   }
 }
 </style>

@@ -35,7 +35,7 @@ viewBox="0 0 24 24">
       <div class="flex items-center gap-4">
         <div
           class="h-16 w-16 rounded-xl flex items-center justify-center"
-          :style="{ backgroundColor: appointmentType?.color || '#0066CC' }"
+          :style="{ backgroundColor: appointmentType?.color || DEFAULT_TYPE_COLOR }"
         >
           <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
 viewBox="0 0 24 24">
@@ -246,6 +246,11 @@ import { useAuditLogs } from '../../composables/useAuditLogs'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
+// Fallback swatch for a type with no colour set. It used to fall back to
+// `#0066CC`, the retired iCloud blue — a colour the app no longer contains.
+import { colors } from '../../design-system/tokens.js'
+
+const DEFAULT_TYPE_COLOR = colors.accent[500]
 import UiButton from '../../components/ui/Button.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiTabs from '../../components/ui/Tabs.vue'

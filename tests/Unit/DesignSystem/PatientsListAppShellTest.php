@@ -410,8 +410,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         // The file MUST reference `<AppLayout>` (which provides the
         // canvas surface per `canvasRoutes`). The `<AppLayout>` element
         // is the canonical mount point that inherits the canvas token
-        // (see `categories/pacientes/design.md` §3 + `specs/pacientes/spec.md`
-        // DLR-CORE-001 note).
+        // (see `openspec/changes/archive/2026-08-12-ui-pacientes/design.md` §3
+        // + `specs/pacientes/spec.md` DLR-CORE-001 note).
         $this->assertTrue(
             (bool) preg_match('/<AppLayout\b/', $src),
             sprintf(
@@ -430,7 +430,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * `border-theme` literals (deferred to PR-pacientes-02 with the
      * `<UiModal>` chrome migration); asserting whole-file purity here
      * would RED until PR-pacientes-02 lands. The per-PR scope rule is
-     * documented in `categories/pacientes/design.md` §3.4.
+     * documented in `openspec/changes/archive/2026-08-12-ui-pacientes/design.md` §3.4.
      *
      * The assertion shape is the same as the inherited rule (whole-token
      * regex via negative lookbehind + lookahead; modifier variants

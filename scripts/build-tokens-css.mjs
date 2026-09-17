@@ -11,13 +11,15 @@
  *   1. (no @font-face — system font only per Decision 6)
  *   2. One :root block with --color-systemBlue-*, --color-systemRed-*,
  *      --color-systemGray-*, --color-background-*, --color-label-*,
- *      --color-separator-*, --color-fill-* + the iOS semantic aliases
+ *      --color-separator-*, --color-fill-* + the deprecated alias ramps
  *      (--color-cream-*, --color-terracotta-*, --color-clinical-teal-*,
- *      --color-info-*) for the 17 un-migrated modules.
- *   3. Semantic aliases: --color-accent (systemBlue-500),
+ *      --color-accent-*, --color-primary-*, --color-info-*) for the 17
+ *      un-migrated modules.
+ *   3. Semantic aliases: --color-accent (accent-500, the canonical ramp),
  *      --color-surface (systemBackground / secondaryBackground),
  *      --color-text-* (label ramp), --color-border (separator),
- *      --color-success-* / --color-warning-* / --color-danger-*.
+ *      --color-danger-* (the only state family with real consumers — see the
+ *      note where the other three used to be).
  *   4. Glass tokens (--glass-bg / --glass-border / --glass-backdrop).
  *   5. Shadows using rgba(0, 0, 0, ...) (pure black, Decision 5).
  *   6. Motion vars: --motion-response-default, --motion-damping-*,
@@ -94,15 +96,20 @@ for (const rampName of Object.keys(colors)) {
 
 // Semantic aliases (Decision 5: revalue to iOS clinical).
 push('  /* semantic aliases (iOS clinical) */')
-push('  --color-accent: var(--color-system-blue-500);')
-push('  --color-accent-hover: var(--color-system-blue-600);')
-push('  --color-accent-active: var(--color-system-blue-700);')
-push('  --color-accent-light: var(--color-system-blue-50);')
-push('  --color-primary: var(--color-system-blue-500);')
-push('  --color-primary-hover: var(--color-system-blue-600);')
-push('  --color-primary-active: var(--color-system-blue-700);')
-push('  --color-primary-light: var(--color-system-blue-50);')
-push('  --color-primary-dark: var(--color-system-blue-700);')
+// A2 (ui-login-redesign-arena) — the semantic accent aliases now resolve to
+// the canonical `accent` ramp instead of the retired `system-blue` one. This
+// matters: the generator used to name the OLD ramp explicitly, so re-pointing
+// `tokens.colors.accent` alone would have left every consumer on blue. The
+// aliases follow the canonical ramp name, never a literal.
+push('  --color-accent: var(--color-accent-500);')
+push('  --color-accent-hover: var(--color-accent-600);')
+push('  --color-accent-active: var(--color-accent-700);')
+push('  --color-accent-light: var(--color-accent-50);')
+push('  --color-primary: var(--color-accent-500);')
+push('  --color-primary-hover: var(--color-accent-600);')
+push('  --color-primary-active: var(--color-accent-700);')
+push('  --color-primary-light: var(--color-accent-50);')
+push('  --color-primary-dark: var(--color-accent-700);')
 push('')
 
 push('  --color-background: var(--color-background-system-background);')
@@ -129,26 +136,46 @@ push('  --color-border-strong: var(--color-system-gray-500);')
 push('')
 // PR1 (ui-premium-microdetail-2026-08) — hairline alpha-border semantic
 // alias. The colors loop skips `border` (above), so this is the only
-// public declaration of the hairline. Emitted as `rgba(60, 60, 67, 0.12)`
-// (iOS separator opacity).
-push('  --color-hairline: rgba(60, 60, 67, 0.12);')
+// public declaration of the hairline.
+//
+// A1 (ui-login-redesign-arena) — the value is now READ from the source of
+// truth instead of being hardcoded here. Hardcoding let `tokens.js` and the
+// emitted CSS drift apart silently: both sides pinned the same literal, so
+// neither noticed when one moved. Rule: the generator EMITS, it never
+// AUTHORs a value. Missing token = hard failure, never a silent fallback.
+const hairline = colors.border?.hairline
+if (!hairline) {
+  throw new Error(
+    '[build-tokens-css] tokens.colors.border.hairline is missing — refusing to emit a hardcoded fallback'
+  )
+}
+push(`  --color-hairline: ${hairline};`)
 push('')
 
-push('  --color-info: var(--color-info-500);')
-push('  --color-info-light: var(--color-system-blue-50);')
-push('  --color-info-dark: var(--color-system-blue-700);')
-push('')
-
-push('  --color-success-bg: var(--color-system-green-50);')
-push('  --color-success-text: var(--color-system-green-700);')
-push('  --color-success-light: var(--color-system-green-50);')
-push('  --color-success-dark: var(--color-system-green-700);')
-push('')
-
-push('  --color-warning-bg: var(--color-system-yellow-50);')
-push('  --color-warning-text: var(--color-system-yellow-700);')
-push('  --color-warning-light: var(--color-system-yellow-50);')
-push('  --color-warning-dark: var(--color-system-yellow-700);')
+// DELETED (slice A2 follow-up) — the `--color-info`, `--color-info-light`,
+// `--color-info-dark`, `--color-success-{bg,text,light,dark}` and
+// `--color-warning-{bg,text,light,dark}` aliases.
+//
+// Two reviewers independently flagged the info trio (R2-001 + R3-001, both
+// WARNING, in TWO consecutive reviews). They were right, and this change set
+// caused it: A2 re-pointed `tokens.colors.info` to the steel semantic tone but
+// these lines still hardcoded the GREEN accent, so the info surface was split
+// — a steel base with green variants.
+//
+// The deeper finding is that the whole block was DEAD. Measured across every
+// file type under `resources/`: 0 of the 11 names had a single
+// `var(--color-…)` consumer. The names that ARE consumed are the RAMP steps
+// (`--color-success-700`, `--color-error-50`, …), which the colors loop below
+// emits straight from `tokens.colors.success` / `.warning` / `.error` / `.info`.
+//
+// Deleting removes the defect permanently instead of patching it, and shrinks
+// the generator. Same rule the project already applied to `motion.duration`
+// (instant/base/spring) and `fontFeatures.proportionalNums`: a token with no
+// consumer is not a public surface, it is a liability.
+//
+// `--color-danger-*` is KEPT below: it has three real consumers
+// (`ConfirmDialog.vue:102-103`, `ProgressBar.vue:77`) and points at the
+// unchanged systemRed ramp.
 push('')
 
 push('  --color-danger: var(--color-system-red-500);')
@@ -164,12 +191,30 @@ push('  --glass-border: rgba(255, 255, 255, 0.22);')
 push('  --glass-backdrop: blur(20px) saturate(180%) contrast(1.04);')
 push('')
 
-push('  /* shadows (pure-black rgba per Decision 5) */')
-push('  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);')
-push('  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.10), 0 2px 4px -1px rgba(0, 0, 0, 0.06);')
-push('  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.10), 0 4px 6px -2px rgba(0, 0, 0, 0.05);')
-push('  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 10px 10px -5px rgba(0, 0, 0, 0.04);')
-push('  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.20);')
+// DELETED (slice A2 follow-up) — the hardcoded `--shadow-sm` / `-md` / `-lg` /
+// `-xl` / `-glass` ramp.
+//
+// It was a PARALLEL shadow language: the loop below emits the canonical ramp
+// straight from `tokens.shadow` (`--shadow-subtle` / `-soft` / `-medium` /
+// `-large` / `-elevated` / `-glass`), and these five lines were a second,
+// unwritten-by-the-token set with the Tailwind-ish names. Measured before
+// removing — a string comparison had already misled me once here, because
+// `0.10` and `0.1` are different strings and the same number:
+//
+//   --shadow-md  == --shadow-soft     (numerically identical)
+//   --shadow-lg  == --shadow-medium   (numerically identical)
+//   --shadow-xl  == --shadow-large    (numerically identical)
+//   --shadow-sm  != --shadow-subtle   (the only genuinely different pair)
+//   --shadow-glass was declared TWICE with different alphas (0.20 vs 0.18),
+//   so one silently won by source order.
+//
+// Consumers: `--shadow-lg` was read by `.hover-lift` (11 live call sites) and
+// now reads `var(--shadow-medium)` — the SAME value, canonical name, zero
+// visual change. `--shadow-md` and `--shadow-sm` were read only by `.btn-hover`,
+// a utility with ZERO consumers, which was deleted with them. `--shadow-xl` and
+// `--shadow-glass` had no `var()` consumer at all.
+//
+// Result: one ramp, one source of truth, four fewer lines, no duplicate.
 push('')
 
 push('  /* font stacks (system font only) */')
@@ -261,7 +306,22 @@ push(`  --focus-ring-width: ${focusRing.width};`)
 push(`  --focus-ring-color: ${focusRing.color};`)
 push(`  --focus-ring-alpha: ${focusRing.alpha};`)
 push(`  --focus-ring-offset: ${focusRing.offset};`)
-push(`  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(0, 122, 255, var(--focus-ring-alpha));`)
+// A2 (ui-login-redesign-arena) — the composed shorthand used to hardcode the
+// retired blue as `rgba(0, 122, 255, ...)` while `--focus-ring-color` read the
+// token, so moving the palette left a BLUE focus ring on a GREEN button. Same
+// defect class as the hairline below: the generator AUTHORED a value instead
+// of EMITTING one. Derived from the token now, and a non-hex token is a hard
+// failure rather than a silent fallback.
+const focusRingRgb = (() => {
+  const hex = String(focusRing.color).replace('#', '')
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+    throw new Error(
+      `[build-tokens-css] tokens.focusRing.color must be a 6-digit hex to compose --focus-ring-default; got "${focusRing.color}"`
+    )
+  }
+  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ')
+})()
+push(`  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(${focusRingRgb}, var(--focus-ring-alpha));`)
 push('')
 
 // PR1 (ui-premium-microdetail-2026-08) — font features for tabular nums.

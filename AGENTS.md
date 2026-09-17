@@ -10,6 +10,14 @@
 # 1. Clonar
 git clone <repo> && cd OdontoSuite
 
+# 1b. SOLO WINDOWS — rutas largas (obligatorio)
+#     El repo tiene rutas anidadas que superan los 260 caracteres
+#     (openspec/changes/archive/<nombre-largo>/specs/...). LongPathsEnabled=1
+#     en el registro NO basta: git necesita su propio opt-in. Sin este paso la
+#     app y los tests funcionan, pero el review tooling falla con un error
+#     opaco (candidate-owner-preparation-failed) que cuesta horas diagnosticar.
+git config core.longpaths true
+
 # 2. Instalar dependencias
 composer install
 pnpm install
@@ -26,7 +34,9 @@ composer dev
 # Equivale a: php artisan serve + php artisan reverb:start + queue:listen + pail + pnpm dev
 ```
 
-**Credenciales demo**: ver `CREDENTIALS.md`. Todos los usuarios con password `password123`, dominio `@test.com` (15 usuarios seedados por `RoleBasedUsersSeeder`). Tests automáticos validan que CREDENTIALS.md esté sincronizado con el seeder (`tests/Unit/Documentation/CredentialsDocumentationTest.php`).
+**Credenciales demo**: ver `CREDENTIALS.md`, **rastreado en git a propósito** (contiene credenciales DEMO generadas por un seeder público, no secretos). Todos los usuarios con password `password123`, dominio `@test.com` (15 usuarios seedados por `RoleBasedUsersSeeder`).
+
+`tests/Unit/Documentation/CredentialsDocumentationTest.php` verifica el documento **contra el seeder y en ambas direcciones**: ningún usuario sembrado falta y ninguno documentado se inventa. Como el documento se rastrea, esa verificación es la que impide que una credencial real se cuele ahí sin romper el build.
 
 ---
 
@@ -99,11 +109,11 @@ resources/js/
 
 database/
   migrations/              # 98 migraciones
-  seeders/                 # 13 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+  seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
                            #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
-                           #   SpecialtyRecordSeeder)
+                           #   DentalPieceSeeder, SpecialtyRecordSeeder)
   seeders/_legacy/         # 24 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
@@ -175,7 +185,7 @@ docs/
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
-- **28 tests preexistentes** fallan por `MODIFY COLUMN` en SQLite local. En CI con MySQL (ya configurado) pasan. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
+- **Los tests que tocan la BD fallan en SQLite local.** La causa es que SQLite no puede aplicar cierto DDL de las migraciones — concretamente eliminar una columna referenciada por un índice: `alter table "transactions" drop column "type"` falla con `error in index idx_transactions_patient_type_status`. Una sola migración rompe el esquema y arrastra a **todos** los tests que lo tocan. **El número de fallos no se cita aquí a propósito**: cambia con cada migración nueva y una cifra escrita en la documentación deriva sola (esta línea decía 28 y eran 45). En CI con MySQL (ya configurado) pasan. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
 - **26 eventos huérfanos** marcados con `@deprecated` (no tienen listener). Solo los 10 que necesitan listener activo lo tienen. Los 26 se mantienen por si se cablean en el futuro.
 - **`ReminderController` y `ReminderTemplateController`**: stubs vacíos que devuelven 501. Las rutas apiResource están activas pero los métodos no implementan CRUD. `WaitingListController::update()` y `destroy()` también 501.
 - **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
@@ -183,7 +193,7 @@ docs/
 - **3 FormRequests no migrables** (documentado en Sprint 5 del plan de inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline), `StoreQuotationRequest` (requiere `patient_id` que rompe path `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del controller.
 
 ### 🐛 Bugs conocidos
-- `php artisan test` local: 28 fallidos por MODIFY COLUMN (preexistente, no es de código actual). En CI con MySQL pasan todos.
+- `php artisan test` local: fallan todos los tests que tocan la BD por el DDL de SQLite no soportado (ver §6 Pendiente). Preexistente, no es de código actual. En CI con MySQL pasan todos.
 - El `.env` tiene `BROADCAST_CONNECTION=reverb`. Para tests locales sin servidor Reverb, usar `BROADCAST_CONNECTION=null` (ya configurado en `phpunit.xml`).
 
 ---
@@ -229,7 +239,8 @@ docs/
 |---|---|
 | `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
 | `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
-| Tests fallan con `MODIFY COLUMN` | Solo en SQLite local. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
+| Tests fallan por DDL de SQLite | Solo en SQLite local: `alter table ... drop column` sobre una columna indexada. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
+| `git checkout-index failed` / el review no puede congelar el candidato | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`) y la vista congelada del review antepone un prefijo de ~157 caracteres. `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo). Sin esto, `gentle_review` falla con `candidate-owner-preparation-failed` en cada clon nuevo de Windows. |
 | Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
 | Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES. |
@@ -276,7 +287,7 @@ docs/
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 36 controllers API, 47 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que pasan. La deuda restante (28 tests viejos SQLite, 26 eventos @deprecated, stubs 501) está documentada y no bloquea producción.
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 36 controllers API, 47 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que pasan. La deuda restante (tests que tocan la BD y fallan en SQLite local, 26 eventos @deprecated, stubs 501) está documentada y no bloquea producción.
 
 ---
 

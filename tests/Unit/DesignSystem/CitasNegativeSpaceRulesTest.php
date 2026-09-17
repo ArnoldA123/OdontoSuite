@@ -41,7 +41,8 @@ use PHPUnit\Framework\TestCase;
  *      MUST keep their existing function signatures (proxy: assert each
  *      module's script block contains at least one preserved signature).
  *
- * Per `categories/citas/spec.md` §2 CITAS-CON-001, `useConsultation`
+ * Per `openspec/changes/archive/2026-08-12-ui-citas/specs/citas/spec.md` §2
+ * (`CITAS-CON-001`), `useConsultation`
  * composable contract AND the `useEcho` `appointments` channel
  * subscription are preserved verbatim. The signature assertion below
  * is the cross-cutting pin for that contract.

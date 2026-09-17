@@ -44,15 +44,42 @@ const tokens = {
     // 200/300/400 added so Tailwind generates all utility classes
     // (`border-systemGreen-200`, `ring-systemBlue-400`, etc.) the existing
     // call sites consume.
+    // A2 (ui-login-redesign-arena) — the canonical accent ramp: a deep
+    // clinical green. Neutrals carry identity; the accent is ONE swappable
+    // token, so a future multi-tenant build can re-point this ramp per clinic
+    // without touching a component.
+    //
+    // Measured before writing, not assumed: monotonic in relative luminance,
+    // and every AA pair passes — white on 500 = 5.29:1, white on 600 = 7.65:1,
+    // 500 as text on white = 5.29:1, 500 on canvas = 4.90:1. Distinguished
+    // from `systemGreen` (success) on two independent axes: 29.8 deg of hue
+    // and a 2.9x luminance gap, so an accent CTA and a success badge cannot
+    // be confused.
+    accent: {
+      50: '#e6f4ef',
+      100: '#c9e7dc',
+      200: '#93cdb9',
+      300: '#5cb195',
+      400: '#2a9070',
+      500: '#0f7a5f',
+      600: '#0a5f49',
+      700: '#084c3b',
+      800: '#063a2d',
+      900: '#04281f'
+    },
+
+    // Deprecated alias for `accent` (A2). The iOS naming is retired: blue is
+    // no longer this palette's accent. Kept so the 36 `system-blue-*` call
+    // sites keep resolving while un-migrated; do NOT add new consumers.
     systemBlue: {
-      50: '#e5f1ff',
-      100: '#cce4ff',
-      200: '#99c8ff',
-      300: '#66adff',
-      400: '#3392ff',
-      500: '#007aff',
-      600: '#0062cc',
-      700: '#004999'
+      50: '#e6f4ef', // -> accent-50
+      100: '#c9e7dc', // -> accent-100
+      200: '#93cdb9', // -> accent-200
+      300: '#5cb195', // -> accent-300
+      400: '#2a9070', // -> accent-400
+      500: '#0f7a5f', // -> accent-500
+      600: '#0a5f49', // -> accent-600
+      700: '#084c3b' // -> accent-700
     },
     systemRed: {
       50: '#ffebea',
@@ -84,12 +111,18 @@ const tokens = {
       600: '#a57000',
       700: '#7a5200'
     },
+    // A2 — repaired. The 400 step used to be DARKER than 500 (#56ac63
+    // L=0.324 vs #34c759 L=0.423), so the ramp was non-monotonic: moving from
+    // 400 to 500 made the colour lighter. Found while auditing the palette for
+    // A0; fixed here because A2 touches the green family anyway. 500 stays
+    // #34c759 — it is the iOS success identity, and the bright-end gap is
+    // compressed by that anchor on purpose.
     systemGreen: {
       50: '#e8f5e9',
       100: '#cdedcf',
       200: '#a4d8a8',
-      300: '#7dc285',
-      400: '#56ac63',
+      300: '#8ed29c',
+      400: '#5cc46c',
       500: '#34c759',
       600: '#248a3d',
       700: '#1a6530'
@@ -125,99 +158,128 @@ const tokens = {
       700: '#8e0028'
     },
     systemGray: {
-      50: '#f2f2f7',
-      100: '#e5e5ea',
-      200: '#d1d1d6',
-      300: '#c7c7cc',
-      400: '#aeaeb2',
-      500: '#8e8e93',
-      600: '#636366',
-      700: '#3a3a3c'
+      50: '#f7f6f4',
+      100: '#edebe7',
+      200: '#dcd8d2',
+      300: '#d2cec7',
+      400: '#b5b0a8',
+      500: '#908b82',
+      600: '#635e57',
+      700: '#3b3833'
+    },
+    // A2 (ui-login-redesign-arena) — the INFORMATIONAL state tone. Added
+    // because A2 moved the brand accent to green, and `systemBlue` was
+    // overloaded: 29 files use it as the BRAND (correctly green now) while
+    // StatusBadge used it as a SEMANTIC STATE. A brand accent and a semantic
+    // state are different jobs — `info` vs `success` collapsed to 27.4 deg of
+    // hue (indistinguishable); this tone restores 69.8 deg, in line with the
+    // pre-existing healthy pairs (success/warning 97 deg, success/error 138 deg).
+    systemSteel: {
+      50: '#eef3f8',
+      100: '#dbe5ef',
+      200: '#bed0e0',
+      300: '#9db7cd',
+      400: '#7095b3',
+      500: '#4a7191',
+      600: '#3a5a75',
+      700: '#2b4459'
     },
 
     // iOS background ramp (UIKit: systemBackground etc.).
+    // A1 (ui-login-redesign-arena) — the canvas moved from cool `#f2f2f7`
+    // (R-B = -5) to warm `#f7f6f4` (R-B = +3). Same order of magnitude, so
+    // the warmth reads as a temperature shift, not a colour.
     background: {
       systemBackground: '#ffffff',
-      secondaryBackground: '#f2f2f7',
+      secondaryBackground: '#f7f6f4',
       tertiaryBackground: '#ffffff',
-      groupedBackground: '#f2f2f7',
+      groupedBackground: '#f7f6f4',
       // PR1 (ui-premium-microdetail-2026-08) — alias of secondaryBackground
       // for the canvas/surface separation on the three exemplar screens.
       // `systemBackground` MUST stay `#FFFFFF` (consumed by all 20 modules;
       // mutating it would repaint the whole app).
-      canvas: '#f2f2f7'
+      canvas: '#f7f6f4'
     },
 
     // iOS label ramp (UIKit: label etc.).
+    // A1 — re-tempered warm. `secondaryLabel` is load-bearing: the elevation
+    // ramp derives its hue from it (asserted in TokensModuleTest), so warming
+    // this one value warms every shadow in the app.
     label: {
-      label: '#000000',
-      secondaryLabel: '#3c3c43',
-      tertiaryLabel: 'rgba(60, 60, 67, 0.30)',
-      quaternaryLabel: 'rgba(60, 60, 67, 0.18)'
+      label: '#1a1917',
+      secondaryLabel: '#5c5a55',
+      tertiaryLabel: 'rgba(26, 24, 20, 0.30)',
+      quaternaryLabel: 'rgba(26, 24, 20, 0.18)'
     },
 
     // iOS hairline separator + opaque variants.
+    // A1 — warm; contrast 1.59:1 on canvas (was 1.53:1), so it does not
+    // regress. NOTE: a decorative divider is exempt from WCAG 1.4.11, but a
+    // 1px hairline used as the ONLY boundary of an interactive control is
+    // not — see the finding recorded in the A1 slice notes.
     separator: {
-      separator: '#c6c6c8'
+      separator: '#c9c5bd'
     },
 
     // PR1 (ui-premium-microdetail-2026-08) — hairline alpha-border token.
-    // iOS separator opacity (R2 ruling). Emitted by build-tokens-css.mjs as
-    // `--color-hairline`. The hex-parity test only scans `#RRGGBB` literals,
-    // so the rgba value passes through cleanly.
+    // A1 — warm ink at iOS separator opacity. Emitted by
+    // build-tokens-css.mjs as `--color-hairline`. The hex-parity test only
+    // scans `#RRGGBB` literals, so the rgba value passes through cleanly.
     border: {
-      hairline: 'rgba(60, 60, 67, 0.12)'
+      hairline: 'rgba(26, 24, 20, 0.10)'
     },
 
     // iOS system fill (opaque-ish overlays for grouped rows).
+    // A1 — warm mid-neutral hue.
     fill: {
-      systemFill: 'rgba(120, 120, 128, 0.20)',
-      secondarySystemFill: 'rgba(120, 120, 128, 0.16)',
-      tertiarySystemFill: 'rgba(118, 118, 128, 0.12)'
+      systemFill: 'rgba(120, 116, 108, 0.20)',
+      secondarySystemFill: 'rgba(120, 116, 108, 0.16)',
+      tertiarySystemFill: 'rgba(120, 116, 108, 0.12)'
     },
 
     // Deprecated alias keys — kept so the 17 un-migrated modules' Tailwind
     // classes keep resolving without churn. Do NOT add new consumers.
     cream: {
-      50: '#f2f2f7', // -> systemGray-50
-      100: '#e5e5ea', // -> systemGray-100
-      200: '#d1d1d6' // -> systemGray-200
+      50: '#f7f6f4', // -> systemGray-50
+      100: '#edebe7', // -> systemGray-100
+      200: '#dcd8d2' // -> systemGray-200
     },
+    // A2 — every accent-meaning alias resolves to the deep clinical green.
     terracotta: {
-      500: '#007aff', // -> systemBlue-500
-      600: '#0062cc' // -> systemBlue-600
+      500: '#0f7a5f', // -> accent-500
+      600: '#0a5f49' // -> accent-600
     },
     clinicalTeal: {
-      50: '#e5f1ff', // -> systemBlue-50
-      500: '#007aff', // -> systemBlue-500
-      600: '#0062cc' // -> systemBlue-600
+      50: '#e6f4ef', // -> accent-50
+      500: '#0f7a5f', // -> accent-500
+      600: '#0a5f49' // -> accent-600
     },
     info: {
-      500: '#007aff' // -> systemBlue-500 (iOS convention: blue = info)
+      500: '#4a7191' // -> systemSteel-500 (a semantic state, NOT the brand accent)
     },
     // Deprecated alias for terracotta (kept for the 17 un-migrated
     // modules' bg-primary-* Tailwind classes; do NOT add new consumers).
     primary: {
-      50: '#e5f1ff', // -> systemBlue-50
-      100: '#cce4ff', // -> systemBlue-100
-      200: '#99c8ff', // -> systemBlue-200
-      300: '#66adff', // -> systemBlue-300
-      400: '#3392ff', // -> systemBlue-400
-      500: '#007aff', // -> systemBlue-500
-      600: '#0062cc', // -> systemBlue-600
-      700: '#004999', // -> systemBlue-700
-      800: '#003066', // -> systemBlue-800
-      900: '#001833' // -> systemBlue-900
+      50: '#e6f4ef', // -> accent-50
+      100: '#c9e7dc', // -> accent-100
+      200: '#93cdb9', // -> accent-200
+      300: '#5cb195', // -> accent-300
+      400: '#2a9070', // -> accent-400
+      500: '#0f7a5f', // -> accent-500
+      600: '#0a5f49', // -> accent-600
+      700: '#084c3b', // -> accent-700
+      800: '#063a2d', // -> accent-800
+      900: '#04281f' // -> accent-900
     },
     // Deprecated alias for systemGray (kept for the 17 un-migrated
     // modules' bg-neutral-* Tailwind classes; do NOT add new consumers).
     neutral: {
       50: '#ffffff', // pure white (systemBackground)
-      100: '#f2f2f7', // -> systemGray-50
-      200: '#e5e5ea', // -> systemGray-100
-      500: '#8e8e93', // -> systemGray-500
-      700: '#3a3a3c', // -> systemGray-700
-      900: '#1d1d1f' // near-black (label / display)
+      100: '#f7f6f4', // -> systemGray-50
+      200: '#edebe7', // -> systemGray-100
+      500: '#908b82', // -> systemGray-500
+      700: '#3b3833', // -> systemGray-700
+      900: '#1a1917' // warm near-black (label / display)
     },
     // Deprecated semantic aliases — kept so bg-success-* / bg-warning-* /
     // bg-error-* Tailwind classes resolve for the 17 un-migrated modules.
@@ -277,7 +339,13 @@ const tokens = {
     // The JS key is camelCase; the build script's toKebab() converts it to
     // CSS kebab-case automatically (`--radius-card-lg`).
     cardLg: '16px',
-    control: '8px'
+    // Slice A3 (ui-login-redesign-arena) — the login's ~1.4x ladder, promoted
+    // from LoginPage-local vars to the shared ramp so the nested rhythm has
+    // one source of truth: shell (outer container) > panel (nested surface) >
+    // control (interactive element).
+    panel: '22px',
+    shell: '32px',
+    control: '12px'
     // lg/2xl/3xl removed — see Decision 3.
   },
   typography: {
@@ -362,7 +430,11 @@ const tokens = {
   // generator also emits the composed `--focus-ring-default`.
   focusRing: {
     width: '3px',
-    color: '#007AFF', // systemBlue-500
+    // A2 — follows the canonical accent ramp. The A0 contract asserts this
+    // relationship (`focusRing.color === <ACCENT_RAMP>.500`) and caught the
+    // drift when the accent moved to green: without that assertion the focus
+    // ring would have stayed blue on a green button.
+    color: '#0f7a5f', // accent-500
     alpha: 0.2,
     offset: '2px'
   },
@@ -383,10 +455,10 @@ const tokens = {
   // — that was the cheap-looking defect being fixed.
   elevation: {
     0: 'none',
-    1: '0 1px 3px rgba(60, 60, 67, 0.04)',
-    2: '0 2px 8px rgba(60, 60, 67, 0.06), 0 1px 2px rgba(60, 60, 67, 0.04)',
-    3: '0 8px 16px rgba(60, 60, 67, 0.08), 0 2px 6px rgba(60, 60, 67, 0.06)',
-    4: '0 16px 24px rgba(60, 60, 67, 0.12), 0 4px 8px rgba(60, 60, 67, 0.08)'
+    1: '0 1px 3px rgba(92, 90, 85, 0.04)',
+    2: '0 2px 8px rgba(92, 90, 85, 0.06), 0 1px 2px rgba(92, 90, 85, 0.04)',
+    3: '0 8px 16px rgba(92, 90, 85, 0.08), 0 2px 6px rgba(92, 90, 85, 0.06)',
+    4: '0 16px 24px rgba(92, 90, 85, 0.12), 0 4px 8px rgba(92, 90, 85, 0.08)'
   },
 
   // PR4 (ui-premium-microdetail-2026-08) — topbar control tokens. The

@@ -206,6 +206,23 @@ class LoginPageRenderTest extends TestCase
     /**
      * @test
      */
+    public function login_page_hero_column_is_the_single_editorial_slot(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // The hero owns the right column of the editorial split. Exactly one
+        // slot may declare it: a second one would fork the positioning
+        // context the overlay widgets are placed against.
+        $this->assertSame(
+            1,
+            preg_match_all('/<aside\s+class\s*=\s*"login-hero-column"/i', $source),
+            'LoginPage.vue must declare exactly one <aside class="login-hero-column">'
+        );
+    }
+
+    /**
+     * @test
+     */
     public function login_page_has_no_hand_written_hex_literals(): void
     {
         $path = self::loginPagePath();
@@ -365,13 +382,21 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    public function testPr5_login_inputs_have_placeholders(): void
+    public function testPr5_login_inputs_have_no_placeholders(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         preg_match_all('/<input\\b[^>]*id="login-(?:username|password)"[^>]*>/i', $source, $inputs);
         $this->assertCount(2, $inputs[0]);
+        // Premium craft pass (2026-09): the visible <label> already names the
+        // field, so a placeholder is duplication. "Mínimo 8 caracteres" was
+        // worse than duplication: registration semantics on a LOGIN screen,
+        // and false.
         foreach ($inputs[0] as $input) {
-            $this->assertMatchesRegularExpression('/placeholder\\s*=\\s*"[^"]+"/i', $input);
+            $this->assertDoesNotMatchRegularExpression(
+                '/placeholder\\s*=/i',
+                $input,
+                'Login inputs must not carry a placeholder: the visible label already names the field'
+            );
         }
     }
 
@@ -401,10 +426,18 @@ class LoginPageRenderTest extends TestCase
     public function testPr5_login_hero_uses_neutral_scrim_and_contrast_eyebrow(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
-        $this->assertStringContainsString('rgba(60, 60, 67, 0.05)', $source);
-        $this->assertStringContainsString('rgba(60, 60, 67, 0.55)', $source);
+        // The overlay widgets sit on the photographic hero. Their material
+        // must be the tokenised soft two-layer elevation plus a luminous top
+        // edge. The PR5 pass shipped a 55%-opacity second shadow layer that
+        // read as a dirty dark edge around every widget.
+        $this->assertMatchesRegularExpression(
+            '/\.login-overlay-card\s*\{[^}]*box-shadow\s*:[^;}]*var\(--elevation-2\)/s',
+            $source,
+            '.login-overlay-card must use the tokenised soft elevation (var(--elevation-2)) instead of the 55%-opacity shadow layer'
+        );
+        $this->assertStringContainsString('inset 0 1px 0 rgba(255, 255, 255, 0.4)', $source);
         $this->assertStringContainsString('var(--color-system-gray-50)', $source);
-        $this->assertStringContainsString('border-radius: var(--radius-card-lg)', $source);
+        $this->assertStringContainsString('border-radius: var(--login-radius-panel)', $source);
     }
 
     public function testPr5_not_found_hero_uses_card_radius_hairline_and_scrim(): void
@@ -412,8 +445,33 @@ class LoginPageRenderTest extends TestCase
         $source = (string) file_get_contents(self::notFoundPath());
         $this->assertStringContainsString('border-radius: var(--radius-card-lg)', $source);
         $this->assertStringContainsString('border: 1px solid var(--color-hairline)', $source);
-        $this->assertStringContainsString('rgba(60, 60, 67, 0.55)', $source);
         $this->assertStringContainsString('var(--elevation-2)', $source);
+
+        // The scrim, asserted as a PROPERTY rather than as a literal.
+        //
+        // This spot used to pin `rgba(60, 60, 67, 0.55)` — the COOL label hue.
+        // A1 re-tempered that family to warm ink and re-pointed the elevation
+        // ramp, but it never touched NotFoundPage.vue, so this assertion kept
+        // passing while the 404 hero quietly stayed the LAST surface in the app
+        // painted with the retired blue-grey. Correcting the page then broke
+        // the test — the same defect as pinning a palette hex, and the same one
+        // the token suite carried before it was rewritten to assert
+        // relationships. The assertion described the value that happened to be
+        // there, not the rule it was there to satisfy.
+        //
+        // The rule: a gradient scrim drawn from the palette's warm ink, and
+        // never the retired cool hue. The alpha stops are a design choice and
+        // are deliberately NOT pinned.
+        $this->assertMatchesRegularExpression(
+            '/linear-gradient\([^;]*rgba\(92,\s*90,\s*85,/',
+            $source,
+            'the 404 hero scrim must be a gradient drawn from the palette warm ink (rgb(92, 90, 85))'
+        );
+        $this->assertStringNotContainsString(
+            'rgba(60, 60, 67',
+            $source,
+            'the 404 hero must not be painted with the retired cool label hue'
+        );
     }
 
         // ====================================================================
@@ -438,10 +496,14 @@ class LoginPageRenderTest extends TestCase
                 $source,
                 'LoginPage.vue must wrap the editorial split in a .login-split-card container (Phase 2.1)'
             );
-            $this->assertStringContainsString(
-                'rounded-[32px]',
+            // The outer card takes the shell rung of the radius ladder. Since
+            // Slice A3 that rung is a shared token, so both the token reference
+            // and its resolved value are valid spellings — pinning only the
+            // literal turned a cosmetic refactor into a false defect.
+            $this->assertMatchesRegularExpression(
+                '/rounded-\[(?:32px|var\(--radius-shell\))\]/',
                 $source,
-                'LoginPage.vue must declare the outer-card radius as a Tailwind utility (Phase 2.1)'
+                'LoginPage.vue must give the outer card the shell radius rung, by token reference or by value (Phase 2.1 / Slice A3)'
             );
         }
 
@@ -516,42 +578,80 @@ class LoginPageRenderTest extends TestCase
         /**
          * @test
          */
-        public function login_page_overlays_fetch_dashboard_stats(): void
+        public function login_page_overlays_do_not_fetch_dashboard_stats(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
-            $this->assertStringContainsString(
-                '/api/dashboard/stats',
-                $source,
-                'LoginPage.vue must fetch /api/dashboard/stats for overlay Card 1 (Phase 2.3)'
+            // Polarity inverted by the premium craft pass (2026-09). The
+            // login is a PUBLIC screen: the dashboard stats endpoint answers
+            // 401 for a guest, so fetching on mount rendered
+            // "PACIENTES ACTIVOS 0". The widget reads a curated sample now.
+            $this->assertSame(
+                0,
+                substr_count($source, '/api/dashboard/stats'),
+                'LoginPage.vue must NOT call /api/dashboard/stats: the hero widget renders the curated sample (Phase 2.3, premium craft pass)'
             );
         }
 
         /**
          * @test
          */
-        public function login_page_overlays_fetch_appointments_today(): void
+        public function login_page_overlays_do_not_fetch_appointments_today(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
-            $this->assertStringContainsString(
-                '/api/dashboard/appointments-today',
-                $source,
-                'LoginPage.vue must fetch /api/dashboard/appointments-today for overlay Card 2 (Phase 2.3)'
+            $this->assertSame(
+                0,
+                substr_count($source, '/api/dashboard/appointments-today'),
+                'LoginPage.vue must NOT call /api/dashboard/appointments-today: the agenda widget renders the curated sample (Phase 2.3, premium craft pass)'
             );
         }
 
         /**
          * @test
          */
-        public function login_page_overlays_fetch_users_active(): void
+        public function login_page_overlays_do_not_fetch_users_active(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
+            $this->assertSame(
+                0,
+                substr_count($source, '/api/users/active'),
+                'LoginPage.vue must NOT call /api/users/active: the team widget renders the curated sample (Phase 2.3, premium craft pass)'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_overlays_render_a_curated_sample(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // No request may originate on a public login screen at all.
+            $this->assertSame(
+                0,
+                substr_count($source, '/api/'),
+                'LoginPage.vue must reference no API path: the three hero widgets render a fixed curated sample (Phase 2.3, premium craft pass)'
+            );
             $this->assertStringContainsString(
-                '/api/users/active',
+                'LOGIN_SAMPLE',
                 $source,
-                'LoginPage.vue must fetch /api/users/active for overlay Card 3 (Phase 2.3)'
+                'LoginPage.vue must declare the curated LOGIN_SAMPLE the hero widgets render'
+            );
+
+            // Aggregate only: a public login that shows patient names reads
+            // as a data leak, so the sample carries no name field and the
+            // avatars carry no titles.
+            $this->assertStringNotContainsString(
+                'patientName',
+                $source,
+                'The curated sample must not carry patient names (public screen: names read as a data leak)'
+            );
+            $this->assertSame(
+                0,
+                substr_count($source, ':title='),
+                'The team avatars must not bind a name title: initials only (public screen)'
             );
         }
 
