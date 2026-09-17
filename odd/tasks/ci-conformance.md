@@ -9,11 +9,11 @@ diagnosis was bigger than one session, so it was split.
 
 | Issue | Subject | State |
 |---|---|---|
-| #13 | `Setup Node` fails: pnpm 11 needs Node >= 22.13, the workflow pinned Node 20 | **Fixed and observed** in run `35236959947` (commit `73c7634`). Still open on GitHub; closing it is the repository owner's call. |
+| #13 | `Setup Node` fails: pnpm 11 needs Node >= 22.13, the workflow pinned Node 20 | **Fixed, observed and closed.** Run `35236959947`, commit `73c7634`; the issue was closed with the evidence linked. |
 | #14 | ESLint: 330 real errors across 88 files, including two dead and broken components | Open, and now the first failing step of `quality` — therefore the current blocker. |
 | #15 | Four of the five quality gates cannot fail | Open, with the masking confirmed in the run log (see Slice 3). |
-| #16 | MySQL suite: 177 failures, all from a literal `APP_KEY` in `ci.yml` | **Fixed**: the literal is gone from the workflow. Its premise was wrong — the `APP_KEY` explained 34 of the 177, not all of them. |
-| #18 | The other 143 failures, with their measured distribution | Open, created 2026-09-17 from a pre-fix measurement. |
+| #16 | A literal `APP_KEY` in `ci.yml` broke the encrypter — scoped as "all 177 failures", which was wrong | **Fixed** in `4257db1`: the literal is gone and the encrypter error is at zero. The scope was wrong — 34 of the 177. Still open on GitHub: closing it is the repository owner's call. |
+| #18 | The other 143 failures, with their measured distribution | Open; created 2026-09-17 from a pre-fix measurement, with the post-fix numbers in a comment on the issue. |
 | #17 | `AGENTS.md` documents CI behaviour that was never true | Open. |
 
 The slices below are kept as the reasoning that produced those issues.
@@ -45,11 +45,11 @@ Those last two rows were already stale by the time this section was written:
 decoupling the jobs in Slice 1 (`b9cf8cf`) ran both for the first time, in runs
 `35173263470`, `35173585948` and `35173977805`.
 
-### Current, as measured on 2026-09-17 **after #13** (run `35236959947`, commit `73c7634`)
+### After #13 — as measured on 2026-09-17 (run `35236959947`, commit `73c7634`)
 
 | Signal | Value |
 |---|---|
-| Runs in the workflow's lifetime | **60** |
+| Runs in the workflow's lifetime | **60** at that run. The count moves with every push, so it is never restated as "current"; later runs exist. |
 | Runs that succeeded (run level) | **0** — every one of the 60 ends in `failure` |
 | Jobs that succeeded (job level) | **1** — `Frontend build`, the first green job in the workflow's history |
 | Current failure point | `Lint frontend (ESLint)`, step 12 of `Quality gates` — 330 errors |
@@ -290,8 +290,8 @@ died at `Encrypter.php:61`.
 
 Reproduced locally with the same command CI runs, by exporting that same
 literal: `RuntimeException: Unsupported cipher or incorrect key length … at
-Encrypter.php:61`, in the same test, at the same line (`KpiNumberTabularTest
-.php:32`).
+Encrypter.php:61`, in the same test, at the same line
+(`KpiNumberTabularTest.php:32`).
 
 ### Why `phpunit.xml`'s valid key did not save it — and why the obvious guard is fake
 
@@ -308,13 +308,20 @@ A probe printing all four sources, with the broken literal exported, settled it:
 | `env('APP_KEY')` | **the broken literal** |
 | `config('app.key')` | **the broken literal** |
 
+Reproduction: export that literal, then run a throwaway case extending
+`Tests\TestCase` that prints `getenv`, `$_ENV`, `$_SERVER` and `env('APP_KEY')`.
+The probe file was deleted after use, so the claim to check is those four
+values under that export, not the existence of a file in this repository.
+
 `force` is honoured — `PhpHandler.php:112-120` does `putenv()` and writes
 `$_ENV` — but Laravel resolves from `$_SERVER`, which the attribute never
 touches. The attribute was therefore removed rather than kept: it cannot change
 any outcome, and a guard that cannot fail is the exact defect this repository
-has been retiring. Note also that `force` must never be added to
-`DB_CONNECTION`: that variable is *supposed* to lose to the job env, or the
-MySQL job would run on SQLite.
+has been retiring. The same reasoning constrains `DB_CONNECTION`: the
+`<env name="DB_CONNECTION">` line in `phpunit.xml` must stay without `force`,
+because that is what lets the job's `DB_CONNECTION=mysql` win. Nothing in the
+suite asserts that, so it is a documented constraint, not a guard — adding
+`force` there would silently run the MySQL job on SQLite.
 
 ### The fix
 
@@ -329,6 +336,28 @@ reproduced the CI symptom pass now (`OK (3 tests, 10 assertions)`). Locally
 there was never an export to remove, so the fix's effect is only observable in
 a run.
 
-**Observation pending, and deliberately not claimed:** how many of the 34 now
-pass. They may fail for a different reason once the encrypter stops being the
-first wall they hit. The number belongs to the next run.
+### Observed — run `35240589244`, commit `4257db1`
+
+| Cause | Before | After |
+|---|---|---|
+| `Unsupported cipher or incorrect key length` | 34 | **0** |
+| `Expected response status code [200] but received 500.` | 0 | **34** |
+| `Field 'first_name' doesn't have a default value` | 28 | 28 |
+| `Failed asserting that false is not false.` | 19 | 19 |
+| `Field 'city' doesn't have a default value` | 15 | 15 |
+| `Using $this when not in object context` | 9 | 9 |
+| `PaymentModal.vue must exist` | 6 | 6 |
+| `PatientController source MUST be readable.` | 5 | 5 |
+
+The encrypter wall is gone. The total is not: `177 failed, 833 passed` both
+before and after (assertions 3610 → 3644). The 34 did not vanish, they moved
+one step down their own chain — the encrypter was their *first* wall, not their
+cause, which is exactly what the paragraph above refused to assume. Every
+bucket outside the first two is identical before and after, which is also the
+evidence that removing the export changed nothing else.
+
+The number is written here only because the run exists. An earlier version of
+this section said the figure "belongs to the next run" and left it pending; that
+wording went false the moment the run happened, one commit after the same
+pattern had to be corrected for #13. A prediction with no owner is a stale claim
+with a delay.
