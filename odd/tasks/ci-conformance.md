@@ -12,7 +12,8 @@ diagnosis was bigger than one session, so it was split.
 | #13 | `Setup Node` fails: pnpm 11 needs Node >= 22.13, the workflow pinned Node 20 | **Fixed and observed** in run `35236959947` (commit `73c7634`). Still open on GitHub; closing it is the repository owner's call. |
 | #14 | ESLint: 330 real errors across 88 files, including two dead and broken components | Open, and now the first failing step of `quality` — therefore the current blocker. |
 | #15 | Four of the five quality gates cannot fail | Open, with the masking confirmed in the run log (see Slice 3). |
-| #16 | MySQL suite: 177 failures, all from a literal `APP_KEY` in `ci.yml` | Open, and the suite now executes for real: `Unsupported cipher or incorrect key length` from `Encrypter.php:61`. |
+| #16 | MySQL suite: 177 failures, all from a literal `APP_KEY` in `ci.yml` | **Fixed**: the literal is gone from the workflow. Its premise was wrong — the `APP_KEY` explained 34 of the 177, not all of them. |
+| #18 | The other 143 failures, with their measured distribution | Open, created 2026-09-17 from a pre-fix measurement. |
 | #17 | `AGENTS.md` documents CI behaviour that was never true | Open. |
 
 The slices below are kept as the reasoning that produced those issues.
@@ -258,3 +259,76 @@ ran (above).
 **Consequence for the next units: review while the change is still in the
 working tree.** The workspace projection is the supported route; committing
 first leaves nothing to project.
+
+## Issue #16 — the `APP_KEY` literal — fixed, with the premise corrected
+
+### The premise was wrong, and it was measurable
+
+#16 attributes all 177 MySQL failures to the `APP_KEY`. It explained **34 of
+them (19%)**. The other 143 are a hidden backlog with their own causes,
+measured from the run log and now tracked as #18 with the full distribution.
+
+The distribution is worth stating plainly because it changes what the fix
+buys: the single largest cause is not the key at all, it is 45 failures of
+`Field '…' doesn't have a default value` — MySQL in strict mode rejecting
+insertions that SQLite accepts silently.
+
+### The mechanism, verified rather than assumed
+
+The workflow exported this as an environment value:
+
+```yaml
+APP_KEY: base64:$(php -r "echo base64_encode(random_bytes(32));")
+```
+
+GitHub never shell-interpolates an `env:` value, so it was the literal string.
+Evaluated by PHP: stripping the `base64:` prefix leaves
+`$(php -r "echo base64_encode(random_bytes(32));")`, and
+`base64_decode(..., true)` returns `false` — not a valid 32-byte key. Laravel's
+`Encrypter::supported()` rejects it and every test that touched the encrypter
+died at `Encrypter.php:61`.
+
+Reproduced locally with the same command CI runs, by exporting that same
+literal: `RuntimeException: Unsupported cipher or incorrect key length … at
+Encrypter.php:61`, in the same test, at the same line (`KpiNumberTabularTest
+.php:32`).
+
+### Why `phpunit.xml`'s valid key did not save it — and why the obvious guard is fake
+
+`phpunit.xml` already declares a valid testing key. PHPUnit's `<env>` only sets
+variables that are not already present, so the export won. The obvious defence
+is `force="true"` on that element. It was tried, and it does **not** work here.
+A probe printing all four sources, with the broken literal exported, settled it:
+
+| Source | Value |
+|---|---|
+| `getenv('APP_KEY')` | correct — PHPUnit set it |
+| `$_ENV['APP_KEY']` | correct — PHPUnit set it |
+| `$_SERVER['APP_KEY']` | **the broken literal** — where the shell export lands, because `variables_order` is `GPCS` and lacks `E` |
+| `env('APP_KEY')` | **the broken literal** |
+| `config('app.key')` | **the broken literal** |
+
+`force` is honoured — `PhpHandler.php:112-120` does `putenv()` and writes
+`$_ENV` — but Laravel resolves from `$_SERVER`, which the attribute never
+touches. The attribute was therefore removed rather than kept: it cannot change
+any outcome, and a guard that cannot fail is the exact defect this repository
+has been retiring. Note also that `force` must never be added to
+`DB_CONNECTION`: that variable is *supposed* to lose to the job env, or the
+MySQL job would run on SQLite.
+
+### The fix
+
+One line deleted from `.github/workflows/ci.yml`, with a comment saying why the
+variable is deliberately absent. `phpunit.xml` is the single source for the
+testing key. The rejected alternative was putting a valid literal key in the
+workflow: that duplicates a value in two places, which is the drift class this
+project keeps paying for.
+
+Locally: `tests/Feature/Ui` stays at 36 passing, and the two tests that
+reproduced the CI symptom pass now (`OK (3 tests, 10 assertions)`). Locally
+there was never an export to remove, so the fix's effect is only observable in
+a run.
+
+**Observation pending, and deliberately not claimed:** how many of the 34 now
+pass. They may fail for a different reason once the encrypter stops being the
+first wall they hit. The number belongs to the next run.

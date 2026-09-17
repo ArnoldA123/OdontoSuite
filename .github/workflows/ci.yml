@@ -7,9 +7,12 @@ on:
     branches: [main]
 
 # Defaults: SQLite para el job de quality (rapido, sin servicios).
+# APP_KEY is deliberately absent here. It used to be exported as the literal
+# `base64:$(php -r "echo base64_encode(random_bytes(32));")`, which GitHub never
+# shell-interpolates, so it was not a valid 32-byte key and every test that
+# touched the encrypter died on it. phpunit.xml owns the testing key.
 env:
   APP_ENV: testing
-  APP_KEY: base64:$(php -r "echo base64_encode(random_bytes(32));")
   APP_DEBUG: true
   LOG_CHANNEL: stderr
   DB_CONNECTION: sqlite
