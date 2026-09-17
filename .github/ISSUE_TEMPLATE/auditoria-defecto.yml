@@ -1,0 +1,119 @@
+name: Defecto de auditoría
+description: Registra un defecto verificado con evidencia ejecutable (programa de auditoría integral, plan #12).
+title: '[Auditoría] '
+labels: ['auditoria-2026-08']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este formulario existe para que ningún hallazgo entre sin evidencia.
+        Un test, un gate o una instrucción solo cuentan si **pueden fallar**.
+
+        Criticidad: `alta` = produce confianza falsa o bloquea la verificación del sistema ·
+        `media` = reduce la capacidad de detección · `baja` = consistencia o cosmético.
+  - type: input
+    id: sintoma
+    attributes:
+      label: Síntoma observable
+      description: Qué se ve, en una frase, sin adjetivos.
+      placeholder: La suite MySQL falla con N errores agrupados en M clases raíz.
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: Evidencia
+      description: Comando ejecutado, salida cruda y revisión. Etiqueta el origen del dato.
+      placeholder: |
+        Comando: ...
+        Salida: ...
+        Revisión: <sha>
+        Origen: MEDIDO | INFERIDO | NO VERIFICADO
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: criticidad
+    attributes:
+      label: Criticidad
+      description: alta = produce confianza falsa o bloquea la verificación · media = reduce la detección · baja = consistencia
+      options:
+        - 'crit: alta'
+        - 'crit: media'
+        - 'crit: baja'
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      description: Parte del sistema donde vive la causa.
+      options:
+        - 'area: backend'
+        - 'area: frontend'
+        - 'area: ci'
+        - 'area: docs'
+        - 'area: data'
+        - 'area: realtime'
+        - 'area: tooling'
+    validations:
+      required: true
+  - type: input
+    id: relacionado
+    attributes:
+      label: Relacionado con
+      description: Issues, ejes del plan #12 y documentos con los que se relaciona.
+      placeholder: '#17, eje A9, docs/mejoras/12-programa-auditoria-integral-2026-08.md'
+    validations:
+      required: true
+  - type: textarea
+    id: causa
+    attributes:
+      label: Causa
+      description: Medida (archivo:línea) o "hipótesis a confirmar", declarado explícitamente.
+    validations:
+      required: true
+  - type: textarea
+    id: alcance
+    attributes:
+      label: Alcance de la corrección
+      description: Archivos previstos y qué NO se toca.
+    validations:
+      required: true
+  - type: textarea
+    id: criterio
+    attributes:
+      label: Criterio de aceptación
+      description: El comando exacto que debe salir en verde, o la observación que debe ocurrir.
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: causalidad
+    attributes:
+      label: Causalidad
+      options:
+        - introducido por un cambio (citar sha)
+        - preexistente en la base
+        - no determinada
+    validations:
+      required: true
+  - type: dropdown
+    id: esfuerzo
+    attributes:
+      label: Esfuerzo
+      options:
+        - 'S'
+        - 'M'
+        - 'L'
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmaciones
+    attributes:
+      label: Confirmaciones
+      options:
+        - label: El comando citado en Evidencia fue ejecutado sobre esta revisión, no inferido.
+          required: true
+        - label: El criterio de aceptación es un comando o una observación, no una opinión.
+          required: true
