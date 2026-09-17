@@ -1,0 +1,105 @@
+name: Unidad de trabajo de auditoría
+description: Registra un eje o una decisión pendiente del programa de auditoría integral (plan #12). No es para reportar defectos.
+title: '[Auditoría/eje] '
+labels: ['auditoria-2026-08']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este formulario es para **unidades de trabajo** del programa: un eje (A1–A11) o una
+        decisión pendiente. Para un defecto con reproducción, el formulario correcto es
+        **Defecto de auditoría**; declarar el propósito equivocado invalida el registro.
+
+        Criticidad: `alta` = produce confianza falsa o bloquea la verificación del sistema ·
+        `media` = reduce la capacidad de detección · `baja` = consistencia o cosmético.
+  - type: input
+    id: unidad
+    attributes:
+      label: Eje o unidad de trabajo
+      description: Identificador del plan #12 (A1–A11) o el nombre de la decisión pendiente.
+      placeholder: A1 — Línea base reproducible
+    validations:
+      required: true
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Qué estado del sistema cambia al cerrar esta unidad.
+    validations:
+      required: true
+  - type: textarea
+    id: metodo
+    attributes:
+      label: Método
+      description: Comandos y artefactos previstos, y dónde queda la evidencia.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: entregable
+    attributes:
+      label: Entregable
+      description: Qué queda en el repositorio o en la evidencia al cerrar.
+    validations:
+      required: true
+  - type: textarea
+    id: criterio
+    attributes:
+      label: Criterio de salida
+      description: El comando exacto que debe salir en verde, o la observación que debe ocurrir.
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: relacionado
+    attributes:
+      label: Relacionado con
+      description: Ejes, issues, cambios de OpenSpec y documentos con los que se relaciona.
+      placeholder: plan #12 §2 (A1); #22; #18
+    validations:
+      required: true
+  - type: dropdown
+    id: criticidad
+    attributes:
+      label: Criticidad
+      description: alta = produce confianza falsa o bloquea la verificación · media = reduce la detección · baja = consistencia
+      options:
+        - 'crit:alta'
+        - 'crit:media'
+        - 'crit:baja'
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      description: Parte del sistema donde vive la causa.
+      options:
+        - 'area:backend'
+        - 'area:frontend'
+        - 'area:ci'
+        - 'area:docs'
+        - 'area:data'
+        - 'area:realtime'
+        - 'area:tooling'
+    validations:
+      required: true
+  - type: dropdown
+    id: esfuerzo
+    attributes:
+      label: Esfuerzo
+      options:
+        - 'S'
+        - 'M'
+        - 'L'
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmaciones
+    attributes:
+      label: Confirmaciones
+      options:
+        - label: El método y el criterio de salida están expresados como comandos u observaciones, no como opiniones.
+          required: true
+        - label: Se verificó la lista de issues del repositorio y esta unidad no duplica una existente.
+          required: true
