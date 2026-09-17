@@ -1,7 +1,8 @@
 # Task: harden the audit baseline against the three risk findings
 
-Status: in progress. Branch `fix/audit-baseline-hardening`, from `8136345` (the tip
+Status: on branch `fix/audit-baseline-hardening`, seeded from `8136345` (the tip
 of `chore/audit-phase0-baseline`, whose candidate was reviewed and acknowledged).
+One revision has been independently verified and its findings are folded in below.
 
 ## Why this exists
 
@@ -15,41 +16,47 @@ three findings that can lose or expose data.
 
 | ID | Lens | Location | What it says |
 | --- | --- | --- | --- |
-| `R1-data-loss-guard-fail-open` | risk | `scripts/audit/baseline.sh:250-260` | The guard that stops the audit from running `migrate:fresh` against the application database reads `.env` with a literal `^DB_DATABASE=` match. A quoted value, a CRLF line ending, or a value that is not there at all evades it, and the suite then wipes whatever database the test name points at. |
-| `R1-db-network-exposure` | risk | `docker-compose.yml:36-41` | The container publishes its port on every interface with a fixed development password. |
-| `R1-db-password-in-artifact` | risk | `scripts/audit/baseline.sh:288-290` | The command recorded next to the MySQL counters can carry `DB_PASSWORD` into the artifact, which is written to disk and pasted into documents. |
+| `R1-data-loss-guard-fail-open` | risk | `scripts/audit/baseline.sh` | The guard that stops the audit from running `migrate:fresh` against the application database read `.env` with a literal `^DB_DATABASE=` match. A quoted value, a CRLF ending, spaces around the separator, an absent key or an unreadable file evaded it, and the suite then wipes whatever database the test name points at. |
+| `R1-db-network-exposure` | risk | `docker-compose.yml` | The container published its port on every interface with a fixed development password. |
+| `R1-db-password-in-artifact` | risk | `scripts/audit/baseline.sh` | The command recorded next to the MySQL counters could carry `DB_PASSWORD` into the artifact, which is written to disk and pasted into documents. |
 
-The second verification pass of the previous candidate reached the same conclusion
-about the first finding independently, by code inspection: "the comparison is a
-literal string match against the first `^DB_DATABASE=` line, so a quoted or CRLF
-value would evade the guard; `DB_DATABASE` exported in the shell rather than
-written in `.env` is not seen."
+Two independent observers had already reached the same conclusion about the first
+one: the second verification pass of the previous candidate, by code inspection.
 
 ## Decisions
 
-- **D1 — the guard's rule, stated once, in three parts.** The suite runs
-  `migrate:fresh` on `odontosuite_test`. (a) If `.env` names the application
-  database and that name *is* `odontosuite_test`, the application's data lives in
-  the database the suite will wipe: refuse, always. (b) If the run will use the
-  developer's live engine and the application database name cannot be read, the
-  two cannot be proven different: refuse. (c) Otherwise proceed, always exporting
+- **D1 — the guard's rule, in two sources and three parts.** The suite runs
+  `migrate:fresh` on `odontosuite_test`. Two sources can name the application
+  database: the env file, and an exported `DB_DATABASE`. (a) If *either* source
+  names `odontosuite_test`, the application's data may live in the database the
+  suite will wipe: refuse, whichever engine is used. (b) If the run would use the
+  developer's live engine and *neither* source provides a name, the two cannot be
+  proven different: refuse. (c) Otherwise proceed, always exporting
   `DB_DATABASE=odontosuite_test` so the run cannot drift to another database.
 - **D2 — failing closed is scoped to the dangerous path.** A container engine
-  holds no application data, so an unreadable `.env` is not a reason to refuse
+  holds no application data, so an unreadable env file is not a reason to refuse
   there; the developer's live engine is, and that is where (b) applies.
 - **D3 — parsing follows the framework, not grep.** Quotes stripped, CRLF
   tolerated, whitespace around the separator tolerated. The parse reads
   `BASELINE_ENV_FILE` when set, which is the seam that makes it testable without
   touching the real `.env`.
-- **D4 — a data-loss guard whose decision cannot be tested is not a guard.** A
-  small diagnostic mode prints the parsed name and the decision, so a test can
-  drive every variant the finding names instead of trusting a reading.
+- **D4 — the rule lives in one function.** `database_guard_decision` is consumed by
+  `measure_mysql` and printed by `--explain-database-guard`, so the rule that is
+  tested is the rule that runs; a data-loss guard whose decision cannot be tested
+  is not a guard.
 - **D5 — credentials are masked in the recorded command.** That breaks the
-  "verbatim" property on purpose, for one field, and the comment says so.
-- **D6 — one raw directory per run, not per day.** Reusing a daily directory let
-  a run that refused the MySQL half still list the previous run's `mysql.txt` as
-  its own raw output, so a reader could conclude the suite ran when it had not.
-  The per-run directory removes the possibility of that claim being made.
+  "verbatim" property on purpose, for one field. The script header and the
+  artifact itself now both say so.
+- **D6 — one raw directory per run, not per day.** Reusing a daily directory let a
+  run that refused the MySQL half still list the previous run's `mysql.txt` as its
+  own raw output, so a reader could conclude the suite ran when it had not.
+- **D7 — the exported `DB_DATABASE` counts, and it was the residual hole.** An
+  exported value beats the file inside the framework, because Laravel loads
+  `.env` immutably. The first version of this fix read only the file, so a shell
+  exporting `DB_DATABASE=odontosuite_test` left the guard saying `proceed` while
+  the application's live database was the one the suite wipes. Found by the
+  independent verification of this candidate, not by the original review, and
+  closed by D1(a).
 
 ## Out of scope
 
@@ -60,15 +67,15 @@ candidate with style work and inflate the review.
 
 ## Checks
 
-- `vendor/bin/phpunit --filter=MySQLTestEngineContractTest` passes, including the
-  new assertions that the published port is bound to loopback only.
-- The guard decision test passes for: plain value, double-quoted, single-quoted,
-  CRLF, spaces around `=`, absent key, missing file.
-- **Proven able to fail:** each variant is falsified once and the test must report
-  the difference; the tree is restored and the restoration proven by hash.
-- `bash scripts/audit/baseline.sh` still captures every counter with none empty,
-  and never writes a password into the artifact.
-- `docker compose config` resolves the loopback binding.
+- `vendor/bin/phpunit --filter='MySQLTestEngineContractTest|AuditBaselineGuardTest'`
+  → **17 tests, 54 assertions, OK**, including the loopback binding, the eleven
+  env-file decisions, the two export cases and the source-disagreement case.
+- **Proven able to fail:** restoring the legacy parse verbatim (as it stood at
+  `8136345:250`) and removing the loopback prefix produces **13 failures out of
+  17**. A narrower injection that only drops the trimming and quote handling
+  produces 5. Both are recorded, because they are different experiments.
+- `bash scripts/audit/baseline.sh` → COMPLETE, exit 0, 28 counters, none empty.
+- `docker compose config` → `host_ip: 127.0.0.1`, `published: "3307"`.
 
 ## Evidence log
 
@@ -76,29 +83,43 @@ candidate with style work and inflate the review.
 | --- | --- | --- |
 | before | `grep -n 'app_db=' scripts/audit/baseline.sh` | `app_db=$(grep -E '^DB_DATABASE=' .env … \| cut -d'=' -f2-)` — literal match, no quote or CR handling, nothing when absent |
 | before | `sed -n '36,41p' docker-compose.yml` | `- '${MYSQL_PORT:-3307}:3306'` — every interface |
-| after | `bash scripts/audit/baseline.sh --explain-database-guard` | `app_database=odontosuite`, `fallback_path=proceed` on the real `.env`: the application database is not the one the suite wipes |
-| after | `docker compose config` | `host_ip: 127.0.0.1`, `published: "3307"`, `target: 3306` — loopback only |
-| after | `vendor/bin/phpunit --filter='MySQLTestEngineContractTest\|AuditBaselineGuardTest'` | 15 tests, 46 assertions, OK |
-| after | `vendor/bin/pint --test tests/Unit/Tooling/` | PASS (the new test file needed `phpdoc_align` first) |
-| after | `bash scripts/audit/baseline.sh` | COMPLETE, exit 0, 4m05s, 28 counters, none empty |
-| after | `grep -c 'DB_PASSWORD=[^ *]' .atl/qa-evidence/audit/baseline-2026-09-17.md` | `0`; the recorded MySQL command reads `DB_PASSWORD=***` |
-| **refusal exercised end to end** | `printf 'DB_DATABASE=odontosuite_test\n' > /tmp/refusal.env; BASELINE_ENV_FILE=/tmp/refusal.env bash scripts/audit/baseline.sh` | status **PARTIAL**, exit **3**, `mysql_engine=refused`, `mysql_status=refused-app-database-is-test-database`, partial reason names the file, and **no test command ran** |
-| falsification | strip the robust parse and the loopback prefix, then run the tests | **5 failures naming the defects**: four guard variants (`double quoted`, `single quoted`, `spaces around the separator`, `trailing spaces`) and `runner_and_compose_agree_on_the_engine`. Restoration proven by md5 `6623594f…` (script) and `e8a285e7…` (compose), identical before and after |
+| after | `bash scripts/audit/baseline.sh --explain-database-guard` | `app_database_env_file=odontosuite`, `app_database_exported=(unset)`, `decision=proceed` on the real `.env` |
+| after | `DB_DATABASE=odontosuite_test bash scripts/audit/baseline.sh --explain-database-guard` | `app_database_exported=odontosuite_test`, `decision=**refuse**` — D7 demonstrated live, and it is the case that used to pass |
+| after | `docker compose config` | `host_ip: 127.0.0.1`, `published: "3307"`, `target: 3306` |
+| after | `vendor/bin/phpunit --filter='MySQLTestEngineContractTest\|AuditBaselineGuardTest'` | 17 tests, 54 assertions, OK |
+| after | `vendor/bin/pint --test tests/Unit/Tooling/` | PASS |
+| after | `bash scripts/audit/baseline.sh` | COMPLETE, exit 0, 28 counters, none empty |
+| after | `grep -c 'DB_PASSWORD=[^ *]' <artifact>` | `0`; the recorded command reads `DB_PASSWORD=***`, and the artifact now states that this one field is masked |
+| **refusal exercised** | `printf 'DB_DATABASE=odontosuite_test\n' > refusal.env; BASELINE_ENV_FILE=refusal.env bash scripts/audit/baseline.sh` | status **PARTIAL**, exit **3**, `mysql_engine=refused`, `mysql_status=refused-app-database-is-test-database`, no `mysql.txt` in that run's raw directory, and no `mysql_*` counters |
+| falsification (narrow) | drop the trimming and quote handling, remove the loopback prefix | 5 failures naming the defects |
+| falsification (legacy parse) | restore `env_value`'s body verbatim from `8136345:250`, remove the loopback prefix | **13 failures of 17**, method names listing every quoted, spaced and export variant |
+| restoration | md5 before/after both falsifications | script `11ebdb219fa238f8ae2f2af09c2bfb34`, compose `e8a285e72771ab7e32015e320ce353ff`, identical both times; `git status --porcelain` clean afterwards |
 
-Two observations worth keeping:
+## Corrections this document carries
 
-- The **CRLF variant still passed under falsification**: MSYS `grep` normalises line
-  endings in text mode, so the explicit trim is defence for environments that do
-  not, and the variant stays as a regression check rather than a local
-  discriminator. Saying otherwise would overstate the evidence.
-- The falsification is what exposed the stale `mysql.txt`: the refusal run's raw
-  directory held 681,604 bytes from the previous run. That is fixed by D6 and the
-  fix is proven by the refusal run above, whose raw directory has no `mysql.txt`
-  and whose artifact lists none.
+The first version of this file was itself independently verified, and three of its
+claims did not survive:
+
+1. **"no test command ran" in the refusal path — false as written.** The unit suite
+   runs *before* the guard, inside the same capture: the refusal run's own
+   `unit.txt` is 413 KB and the artifact lists it. What the refusal suppresses is
+   the **MySQL** half, and that is the claim that matters: no `mysql.txt`, no
+   `mysql_*` counters, no `php artisan test --configuration=phpunit.mysql.xml`
+   call site reached, and therefore no `migrate:fresh` in that path.
+2. **The falsification count was short by one, then by eight.** The first figure
+   (5) came from a narrower injection than the one the finding describes; the
+   legacy parse reaches 13. Both numbers are above.
+3. **A quoted md5 was stale.** The fixed script had moved on since that hash was
+   taken. The hashes above were all re-measured after the last edit.
 
 ## Not covered here
 
-The refusal branch is exercised through `BASELINE_ENV_FILE`, which is the same
-code path the live `.env` takes. What is not exercised is a real `.env` whose
-application database is `odontosuite_test` — deliberately: proving that would
-require a database to destroy.
+- The refusal branch is exercised through `BASELINE_ENV_FILE`, which is the same
+  code path a live `.env` takes. A real `.env` naming `odontosuite_test` is not
+  used, deliberately: proving that would require a database to destroy.
+- Masking a non-empty `DB_PASSWORD` is exercised at function level, because the
+  local `.env`'s password is empty and a "search for the secret" would be vacuous.
+- The CRLF variant stays green even under falsification, because MSYS `grep`
+  normalises line endings in text mode. That trim is defence for environments that
+  do not, and the variant is a regression check rather than a local discriminator.
+  Saying otherwise would overstate the evidence.
