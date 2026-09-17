@@ -23,7 +23,10 @@ use PHPUnit\Framework\TestCase;
  * provider's refuter then corroborated a third (`R1-data-loss-guard-inline-comment`):
  * phpdotenv drops an inline comment, so `DB_DATABASE=odontosuite_test # test`
  * read as the whole line, compared unequal to the test database name, and the
- * guard answered proceed for the exact wipe it exists to prevent.
+ * guard answered proceed for the exact wipe it exists to prevent. A later review
+ * corroborated a fourth (`R3-001`): the engine compares database identifiers
+ * without case on Windows, so a comparison that is case-sensitive misses the same
+ * database spelled differently.
  *
  * These tests drive the decision through the script's own diagnostic mode, so
  * the guard is exercised rather than read. Every env-file variant below is one
@@ -114,6 +117,24 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
+    /** @test */
+    public function database_guard_refuses_when_an_exported_value_differs_only_in_case(): void
+    {
+        // The provider's refuter corroborated this as critical and
+        // candidate-caused (R3-001): MySQL and MariaDB on Windows compare
+        // database identifiers case-insensitively, measured as
+        // lower_case_table_names=1 on the engine this project develops against,
+        // so a differently capitalised export names the same database the suite
+        // wipes while a case-sensitive comparison sees two different names.
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", 'ODONTOSUITE_TEST');
+
+        $this->assertSame(
+            'refuse:application-database-is-test-database',
+            $decision['decision'] ?? '(no decision reported)',
+            'A difference of case is not a difference to the engine'
+        );
+    }
+
     /**
      * @return array<string, array{string, string}>
      */
@@ -141,6 +162,11 @@ class AuditBaselineGuardTest extends TestCase
             'single quoted then a comment, same database' => ["DB_DATABASE='odontosuite_test' # test base\n", $refuse],
             'two hashes, same database' => ["DB_DATABASE=odontosuite_test##two\n", $refuse],
             'inline comment, different database' => ["DB_DATABASE=odontosuite # dev\n", 'proceed'],
+            // The engine compares identifiers without case on Windows, so these
+            // three name the same schema as the test database or a different one.
+            'uppercase, same database' => ["DB_DATABASE=ODONTOSUITE_TEST\n", $refuse],
+            'mixed case, same database' => ["DB_DATABASE=Odontosuite_Test\n", $refuse],
+            'uppercase, different database' => ["DB_DATABASE=ODONTOSUITE\n", 'proceed'],
             // Controls. Inside quotes the hash is literal, so this name is not
             // the test database and proceeding is the right answer; a value that
             // is only a comment reads as empty, which is stricter than the

@@ -536,6 +536,17 @@ check() {
 # beats the file inside the framework because Dotenv is immutable. Naming the
 # test database in *either* source is enough to refuse: the cost of refusing is a
 # suite run, and the cost of the other mistake is data.
+# lower <string> — compares database identifiers the way the engine compares
+# them. MySQL and MariaDB on Windows default to lower_case_table_names=1, measured
+# as 1 on the MariaDB this project develops against, so `ODONTOSUITE_TEST` and
+# `odontosuite_test` are one schema and the suite would wipe either spelling. On
+# an engine that is case-sensitive the guard then refuses a run it could have
+# allowed, which is the side to lose: a refusal costs a test run, the opposite
+# mistake costs the database.
+lower() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 database_guard_decision() {
   local env_file=$1
   local app_db_env_file app_db_exported
@@ -546,7 +557,8 @@ database_guard_decision() {
   echo "app_database_exported=${app_db_exported:-(unset)}"
   echo "app_database=${app_db_exported:-${app_db_env_file:-(unset)}}"
 
-  if [ "$app_db_env_file" = "$TEST_DB" ] || [ "$app_db_exported" = "$TEST_DB" ]; then
+  if [ "$(lower "$app_db_env_file")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$app_db_exported")" = "$(lower "$TEST_DB")" ]; then
     echo "decision=refuse:application-database-is-test-database"
     return 0
   fi
