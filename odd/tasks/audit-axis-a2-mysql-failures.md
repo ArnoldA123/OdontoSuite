@@ -67,30 +67,59 @@ Two more things the table says, both worth acting on before anything else:
 
 ## What this does not say
 
-- **71 local failures are not the 143 of issue #18.** Different engine (MariaDB
-  10.4 versus MySQL 8.0), different revision, and the CI run that produced 143
-  predates the `APP_KEY` fix. The distribution above must not be quoted as CI's.
-- The strict-mode class is *expected* to reproduce on MySQL 8.0, because strict
-  mode is the default there, but that is a prediction until it is measured.
+- **71 local failures are not the 143 of issue #18.** Different revision, and the
+  CI run that produced 143 predates the `APP_KEY` fix. The distribution above must
+  not be quoted as CI's. It is, however, engine-independent: see below.
 
-## What is missing, and why
+## Measured again on MySQL 8.0.46: identical
 
-The container engine cannot start on this machine (`wsl -l -v` reports no
-installed distribution; Docker Desktop fails with
-`\\wsl$\docker-desktop-data\isocache`). Until that changes, the local MySQL
-family run is MariaDB and must be labelled as such. Fixing the axis properly
-needs either a working container engine or a native MySQL 8.0 on another port.
+The container engine became reachable on 2026-09-17 — the user enabled Intel VT-x
+in firmware, which is what had stopped WSL from registering any distribution. The
+same method then ran against the compose service through the documented command
+with no overrides:
+
+| | MariaDB 10.4.32 (XAMPP, port 3306) | MySQL 8.0.46 (compose service, port 3307) |
+| --- | --- | --- |
+| failures | 71 | 71 |
+| signatures | 19 | 19 |
+| dominant class | 45 of 71 | 45 of 71 |
+| `first_name` / `city` / `name` | 28 / 15 / 2 | 28 / 15 / 2 |
+| duplicate-entry classes | 2 + 1 | 2 + 1 |
+
+**Every signature matched, with the same counts and in the same order.** The only
+cosmetic difference is how MySQL renders the index inside a duplicate-entry
+message (`users.users_username_unique` against `users_username_unique`): the same
+index.
+
+The conclusion the axis was built to reach, now measured rather than predicted:
+these failures are not engine artefacts, so **fixing the dominant class pays off
+in CI and on the developer's machine at the same time**. The prediction in the
+previous revision of this document — "expected to reproduce on MySQL 8.0, because
+strict mode is the default there" — was right, and is no longer a prediction.
+
+Two engine facts, measured inside the container: `sql_mode` includes
+`STRICT_TRANS_TABLES` (why the dominant class appears at all), and
+`lower_case_table_names` is **0** there against **1** on XAMPP. The data-loss guard
+in `scripts/audit/baseline.sh` compares database names case-insensitively, so on
+the container it over-refuses a run it could have allowed — the side that costs a
+test run rather than a database.
+
+One difference is not explained: the two runs report different total test counts
+and they are not on the same revision, so comparing them properly needs the same
+revision on both engines. This document does not support that comparison yet.
 
 ## Next steps for this axis
 
 1. Commit the classifier as `scripts/audit/cluster-failures.mjs`, so the next
    distribution comes from one command and the numbers stop being
    hand-assembled.
-2. Measure on MySQL 8.0 and produce the CI-comparable distribution, then compare
-   it against the 143 of #18.
-3. One issue per root class — not per test: the strict-mode class is one issue
+2. One issue per root class — not per test: the strict-mode class is one issue
    covering three columns, the seeder-ordering class is another, and the two
-   genuine code defects get their own.
+   genuine code defects get their own. Since the distribution is identical on both
+   engines, a fix here is verifiable locally and in CI.
+3. Compare the distribution against the 143 of #18 on the same revision, once CI
+   runs the suite again; the engine question is settled, the revision question is
+   not.
 4. Hand the design-system source-grep failures (rows 8 and 11, 6 failures) to
    axis A11, which asks whether those guards can fail at all: they assert against
    the file's text, so they break on formatting and cannot see a runtime error.
