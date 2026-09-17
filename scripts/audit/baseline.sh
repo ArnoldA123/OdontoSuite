@@ -303,16 +303,17 @@ measure_mysql() {
   # these figures.
   local MYSQL_CMD="php artisan test --configuration=phpunit.mysql.xml (not run)"
   local env_file=${BASELINE_ENV_FILE:-.env}
-  local app_db
-  app_db=$(env_value DB_DATABASE "$env_file")
+  local decision
+  decision=$(database_guard_decision "$env_file" | grep -E '^decision=' | cut -d'=' -f2-)
 
   # Plan #12 §6: the audit never runs migrate:fresh against the application
-  # database, and this suite targets $TEST_DB. When the application database has
-  # that name the run would wipe real data: refuse, whichever engine is used.
-  if [ -n "$app_db" ] && [ "$app_db" = "$TEST_DB" ]; then
-    record mysql_engine "refused" "env_value DB_DATABASE $env_file"
-    record mysql_status "refused-app-database-is-test-database" "env_value DB_DATABASE $env_file"
-    PARTIAL_REASON="mysql suite refused: $env_file names $TEST_DB as the application database"
+  # database, and this suite targets $TEST_DB. When either source names the test
+  # database the application's data may live there: refuse, whichever engine is
+  # used.
+  if [ "$decision" = "refuse:application-database-is-test-database" ]; then
+    record mysql_engine "refused" "database_guard_decision $env_file"
+    record mysql_status "refused-app-database-is-test-database" "database_guard_decision $env_file"
+    PARTIAL_REASON="mysql suite refused: $env_file or the environment names $TEST_DB as the application database"
     return
   fi
 
@@ -334,12 +335,13 @@ measure_mysql() {
   else
     # Fallback: no container engine, so the suite would run on the developer's
     # live engine, which is where the application database lives. Without its
-    # name the two cannot be proven different, and the suite runs migrate:fresh.
-    # A container holds no application data, so this refusal is scoped to here.
-    if [ -z "$app_db" ]; then
-      record mysql_engine "refused" "env_value DB_DATABASE $env_file"
-      record mysql_status "refused-cannot-verify-application-database" "env_value DB_DATABASE $env_file"
-      PARTIAL_REASON="mysql suite refused: cannot read DB_DATABASE from $env_file"
+    # name from either source the two cannot be proven different, and the suite
+    # runs migrate:fresh. A container holds no application data, so this refusal
+    # is scoped to here.
+    if [ "$decision" = "refuse:cannot-verify-application-database" ]; then
+      record mysql_engine "refused" "database_guard_decision $env_file"
+      record mysql_status "refused-cannot-verify-application-database" "database_guard_decision $env_file"
+      PARTIAL_REASON="mysql suite refused: cannot read DB_DATABASE from $env_file and none is exported"
       return
     fi
 
@@ -407,6 +409,9 @@ capture() {
     echo "\`COMPLETE\` means no required step was skipped. It is not a verdict on the"
     echo "gates: several rows below are red, and a red gate is a measurement, not a failure"
     echo "of this script. A counter whose name says \`before_abort\` is a lower bound."
+    echo
+    echo "One field is not verbatim: \`DB_PASSWORD\` in a recorded command is masked,"
+    echo "because this file is written to disk and quoted into documents."
     [ -n "$PARTIAL_REASON" ] && echo "Unavailable step: $PARTIAL_REASON"
     echo
     echo "## Vital signs"
@@ -491,35 +496,51 @@ check() {
   ' "$claimed" "$measured" "$target"
 }
 
-# explain_database_guard [env_file] — prints what the data-loss guard decided and
-# why, without running anything. It reports the decision the *fallback* path takes,
+# database_guard_decision <env_file> — the data-loss rule, in one place, so the
+# rule that is tested is the rule that runs: measure_mysql() consumes this output
+# and --explain-database-guard prints it.
+#
+# The question is one: is the database the suite will wipe also the database the
+# application lives in? Two sources can answer it, and an exported DB_DATABASE
+# beats the file inside the framework because Dotenv is immutable. Naming the
+# test database in *either* source is enough to refuse: the cost of refusing is a
+# suite run, and the cost of the other mistake is data.
+database_guard_decision() {
+  local env_file=$1
+  local app_db_env_file app_db_exported
+  app_db_env_file=$(env_value DB_DATABASE "$env_file")
+  app_db_exported=$(printenv DB_DATABASE 2>/dev/null || true)
+
+  echo "app_database_env_file=${app_db_env_file:-(unset)}"
+  echo "app_database_exported=${app_db_exported:-(unset)}"
+  echo "app_database=${app_db_exported:-${app_db_env_file:-(unset)}}"
+
+  if [ "$app_db_env_file" = "$TEST_DB" ] || [ "$app_db_exported" = "$TEST_DB" ]; then
+    echo "decision=refuse:application-database-is-test-database"
+    return 0
+  fi
+
+  if [ -z "$app_db_env_file" ] && [ -z "$app_db_exported" ]; then
+    echo "decision=refuse:cannot-verify-application-database"
+    return 0
+  fi
+
+  echo "decision=proceed"
+}
+
+# explain_database_guard [env_file] — prints the decision and the sources behind
+# it, without running anything. It reports what the *fallback* path decides,
 # because that is the path that can reach a live application database; an
 # ephemeral container holds no application data and is never refused for an
 # unreadable env file. So this answers "would the audit wipe this database?" for
 # any env file, which is what makes the guard testable instead of trusted.
 explain_database_guard() {
   local env_file=${1:-${BASELINE_ENV_FILE:-.env}}
-  local app_db
-  app_db=$(env_value DB_DATABASE "$env_file")
 
   echo "env_file=$env_file"
   echo "test_database=$TEST_DB"
   echo "compose_path=proceed"
-
-  if [ -n "$app_db" ] && [ "$app_db" = "$TEST_DB" ]; then
-    echo "app_database=$app_db"
-    echo "fallback_path=refuse:application-database-is-test-database"
-    return 0
-  fi
-
-  if [ -z "$app_db" ]; then
-    echo "app_database=(unset)"
-    echo "fallback_path=refuse:cannot-verify-application-database"
-    return 0
-  fi
-
-  echo "app_database=$app_db"
-  echo "fallback_path=proceed"
+  database_guard_decision "$env_file"
 }
 
 MODE=capture
