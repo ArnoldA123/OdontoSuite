@@ -12,7 +12,11 @@
 # Artifacts (gitignored, under .atl/qa-evidence/audit/):
 #   baseline-<date>.md            human-readable, holds the counters block
 #   baseline-<date>.json          the same counters, machine-readable
-#   raw-<date>/                   every raw output, unedited
+#   raw-<date>-<time>/            every raw output of that run, unedited
+#
+# One raw directory per run, not one per day. A single directory was reused, so a
+# run that refused the MySQL half still listed the previous run's mysql.txt as its
+# own raw output, and a reader could conclude the suite had run when it had not.
 #
 # Any document carrying a fenced ```json block with the same shape as
 # baseline-<date>.json can be checked: --check re-measures and reports every
@@ -24,6 +28,16 @@
 #   1  --check found at least one difference
 #   2  usage or environment error
 #   3  capture is PARTIAL: a required step could not run (recorded, never hidden)
+#
+# Two things the artifact must never be wrong about:
+#   * The data-loss guard reads the application database name the way the
+#     framework does. When the run would use a live engine that holds the
+#     application database, and that name cannot be read, the MySQL half is
+#     refused instead of run. `--explain-database-guard [ENV_FILE]` prints the
+#     decision so it can be tested rather than trusted.
+#   * DB_PASSWORD is masked in the recorded command. Every other counter keeps
+#     its command verbatim; this one field does not, on purpose, because the
+#     artifact is written to disk and quoted into documents.
 #
 # Some counters are lower bounds rather than totals, and their names say so. A
 # gate that aborts part way through has not measured the rest: Prettier stops at
@@ -43,7 +57,7 @@ cd "$ROOT" || exit 2
 
 STAMP=$(date +%Y-%m-%d)
 OUT_DIR=".atl/qa-evidence/audit"
-RAW_DIR="$OUT_DIR/raw-$STAMP"
+RAW_DIR="$OUT_DIR/raw-$STAMP-$(date +%H%M%S)"
 ART_MD="$OUT_DIR/baseline-$STAMP.md"
 ART_JSON="$OUT_DIR/baseline-$STAMP.json"
 TEST_DB="odontosuite_test"
@@ -52,11 +66,53 @@ TEST_DB="odontosuite_test"
 NUMERIC_KEYS="routes_total,routes_api,controllers_api,models,migrations,seeders,js_modules,test_files,eslint_errors,eslint_warnings,eslint_files,prettier_exit,prettier_warned_before_abort,prettier_parse_error,pint_exit,pint_files,pint_issues,build_exit,unit_tests,unit_passed,unit_failed,mysql_tests,mysql_passed,mysql_failed,changed_paths,untracked_paths"
 
 usage() {
-  sed -n '3,32p' "${BASH_SOURCE[0]}"
+  cat <<'USAGE'
+scripts/audit/baseline.sh — axis A1 of plan #12
+
+  bash scripts/audit/baseline.sh                     capture and write the artifact
+  bash scripts/audit/baseline.sh --check FILE        re-measure and diff against FILE
+  bash scripts/audit/baseline.sh --explain-database-guard [ENV_FILE]
+                                                     print the data-loss guard decision
+
+Exit codes: 0 complete, 1 a claimed counter differs, 2 usage error, 3 partial.
+USAGE
 }
 
 strip_ansi() {
   sed -E $'s/\x1b\\[[0-9;]*[A-Za-z]//g'
+}
+
+# env_value <key> [file] — reads one key the way phpdotenv does: whitespace around
+# the separator tolerated, CRLF tolerated, a matched pair of quotes stripped.
+# Prints nothing when the file or the key is absent, which the caller must treat
+# as unknown rather than as a default. BASELINE_ENV_FILE overrides the path; that
+# seam is what makes the data-loss guard testable without touching the real .env.
+#
+# The previous implementation grepped for `^DB_DATABASE=` and cut on `=`. A
+# quoted value, a CRLF line ending, spaces around the separator or an absent key
+# all slipped through it, and `DB_DATABASE="odontosuite_test"` then named a
+# database the suite would wipe.
+env_value() {
+  local key=$1 file=${2:-${BASELINE_ENV_FILE:-.env}} line value
+  [ -f "$file" ] || return 0
+  line=$(grep -E "^[[:space:]]*${key}[[:space:]]*=" "$file" 2>/dev/null | head -1)
+  [ -n "$line" ] || return 0
+  value=${line#*=}
+  value=${value%$'\r'}
+  value=${value#"${value%%[![:space:]]*}"}
+  value=${value%"${value##*[![:space:]]}"}
+  case "$value" in
+    \"*\") value=${value#\"}; value=${value%\"} ;;
+    \'*\') value=${value#\'}; value=${value%\'} ;;
+  esac
+  printf '%s' "$value"
+}
+
+# The artifact is written to disk and quoted into documents, so a password does
+# not belong in it. This is the one field where the recorded command stops being
+# verbatim. A password containing a space would be masked only up to that space.
+mask_secrets() {
+  sed -E 's/(DB_PASSWORD=)[^ ]*/\1***/g'
 }
 
 # record <key> <value> <command> — one TSV row per counter.
@@ -246,16 +302,17 @@ measure_mysql() {
   # would name a run that targets the pinned 3307, not the engine that produced
   # these figures.
   local MYSQL_CMD="php artisan test --configuration=phpunit.mysql.xml (not run)"
+  local env_file=${BASELINE_ENV_FILE:-.env}
   local app_db
-  app_db=$(grep -E '^DB_DATABASE=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
+  app_db=$(env_value DB_DATABASE "$env_file")
 
-  if [ "$app_db" = "$TEST_DB" ]; then
-    # Plan #12 §6: the audit never runs migrate:fresh against the application
-    # database. If .env points the application at the test database, running
-    # the suite would destroy real data.
-    record mysql_engine "refused" "grep DB_DATABASE .env"
-    record mysql_status "refused-app-database-is-test-database" "grep DB_DATABASE .env"
-    PARTIAL_REASON="mysql suite refused: .env DB_DATABASE equals $TEST_DB"
+  # Plan #12 §6: the audit never runs migrate:fresh against the application
+  # database, and this suite targets $TEST_DB. When the application database has
+  # that name the run would wipe real data: refuse, whichever engine is used.
+  if [ -n "$app_db" ] && [ "$app_db" = "$TEST_DB" ]; then
+    record mysql_engine "refused" "env_value DB_DATABASE $env_file"
+    record mysql_status "refused-app-database-is-test-database" "env_value DB_DATABASE $env_file"
+    PARTIAL_REASON="mysql suite refused: $env_file names $TEST_DB as the application database"
     return
   fi
 
@@ -263,8 +320,11 @@ measure_mysql() {
     run_gate mysql_compose_up docker compose up -d --wait mysql
     if [ "$GATE_EXIT" -eq 0 ]; then
       engine="MySQL 8.0 (compose service, labeled by image mysql:8.0)"
-      run_gate mysql php artisan test --configuration=phpunit.mysql.xml
-      MYSQL_CMD="$LAST_CMD"
+      # Pinned even here: an exported DB_DATABASE would point the run at a
+      # database the ephemeral container never creates. Nothing is at risk in a
+      # container, but a figure produced by a failed connection is a false one.
+      run_gate mysql env "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
+      MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
       status="skipped-compose-up-failed"
@@ -272,13 +332,24 @@ measure_mysql() {
     fi
     run_gate mysql_compose_down docker compose down
   else
-    # Fallback: no container engine. Use the engine .env already points at, but
-    # label it with its real version and never call it MySQL 8.0.
+    # Fallback: no container engine, so the suite would run on the developer's
+    # live engine, which is where the application database lives. Without its
+    # name the two cannot be proven different, and the suite runs migrate:fresh.
+    # A container holds no application data, so this refusal is scoped to here.
+    if [ -z "$app_db" ]; then
+      record mysql_engine "refused" "env_value DB_DATABASE $env_file"
+      record mysql_status "refused-cannot-verify-application-database" "env_value DB_DATABASE $env_file"
+      PARTIAL_REASON="mysql suite refused: cannot read DB_DATABASE from $env_file"
+      return
+    fi
+
+    # Keep the engine the env file points at, but label it with its real version
+    # and never call it MySQL 8.0.
     local host port user pass version
-    host=$(grep -E '^DB_HOST=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    port=$(grep -E '^DB_PORT=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    user=$(grep -E '^DB_USERNAME=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    pass=$(grep -E '^DB_PASSWORD=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
+    host=$(env_value DB_HOST "$env_file")
+    port=$(env_value DB_PORT "$env_file")
+    user=$(env_value DB_USERNAME "$env_file")
+    pass=$(env_value DB_PASSWORD "$env_file")
     version=$(DB_HOST="$host" DB_PORT="$port" DB_USERNAME="$user" DB_PASSWORD="$pass" DB_DATABASE="$TEST_DB" \
       php -r 'try{$c=new mysqli(getenv("DB_HOST"),getenv("DB_USERNAME"),getenv("DB_PASSWORD"),getenv("DB_DATABASE"),(int)getenv("DB_PORT"));echo $c->server_info;}catch(Throwable $e){echo "";}' 2>/dev/null)
     if [ -n "$version" ]; then
@@ -287,7 +358,7 @@ measure_mysql() {
       # front of a shell function would not reach `php`.
       run_gate mysql env "DB_HOST=$host" "DB_PORT=$port" "DB_USERNAME=$user" "DB_PASSWORD=$pass" \
         "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
-      MYSQL_CMD="$LAST_CMD"
+      MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
       status="skipped-no-engine"
@@ -420,11 +491,49 @@ check() {
   ' "$claimed" "$measured" "$target"
 }
 
+# explain_database_guard [env_file] — prints what the data-loss guard decided and
+# why, without running anything. It reports the decision the *fallback* path takes,
+# because that is the path that can reach a live application database; an
+# ephemeral container holds no application data and is never refused for an
+# unreadable env file. So this answers "would the audit wipe this database?" for
+# any env file, which is what makes the guard testable instead of trusted.
+explain_database_guard() {
+  local env_file=${1:-${BASELINE_ENV_FILE:-.env}}
+  local app_db
+  app_db=$(env_value DB_DATABASE "$env_file")
+
+  echo "env_file=$env_file"
+  echo "test_database=$TEST_DB"
+  echo "compose_path=proceed"
+
+  if [ -n "$app_db" ] && [ "$app_db" = "$TEST_DB" ]; then
+    echo "app_database=$app_db"
+    echo "fallback_path=refuse:application-database-is-test-database"
+    return 0
+  fi
+
+  if [ -z "$app_db" ]; then
+    echo "app_database=(unset)"
+    echo "fallback_path=refuse:cannot-verify-application-database"
+    return 0
+  fi
+
+  echo "app_database=$app_db"
+  echo "fallback_path=proceed"
+}
+
 MODE=capture
 CHECK_TARGET=""
+GUARD_ENV=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --check) MODE=check; CHECK_TARGET=${2:-}; shift 2 ;;
+    --explain-database-guard)
+      MODE=guard
+      shift
+      # The env file is optional, and a following flag is not one.
+      if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then GUARD_ENV=$1; shift; fi
+      ;;
     --help | -h) usage; exit 0 ;;
     *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -433,6 +542,8 @@ done
 if [ "$MODE" = check ]; then
   [ -n "$CHECK_TARGET" ] || { echo "--check requires a file" >&2; exit 2; }
   check "$CHECK_TARGET"
+elif [ "$MODE" = guard ]; then
+  explain_database_guard "$GUARD_ENV"
 else
   capture
 fi
