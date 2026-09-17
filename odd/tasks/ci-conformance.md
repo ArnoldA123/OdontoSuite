@@ -1,7 +1,28 @@
 # Task: CI conformance — make main green and the gates honest
 
-Status: Slice 1 DONE and pushed; Slice 2-4 open. Slice 4 is now the priority:
-CI runs for the first time, and the real state of the MySQL suite is unknown.
+Status: Slice 1 DONE and pushed. Remaining work is tracked as GitHub issues,
+one per session-sized unit — see below. Nothing here is a plan for a single
+sitting: the diagnosis was bigger than one session, so it was split.
+
+## Tracking
+
+| Issue | Subject |
+|---|---|
+| #13 | `Setup Node` still fails: pnpm 11 needs Node >= 22.13, the workflow pins Node 20 |
+| #14 | ESLint: 330 real errors across 88 files, including two dead and broken components |
+| #15 | Four of the five quality gates cannot fail |
+| #16 | MySQL suite: 177 failures, all from a literal `APP_KEY` in `ci.yml` |
+| #17 | `AGENTS.md` documents CI behaviour that was never true |
+
+The slices below are kept as the reasoning that produced those issues.
+
+## Delivered (Slice 1, commit `b9cf8cf`)
+
+`pnpm/action-setup` added before `setup-node`; `needs: quality` dropped from
+`backend-tests` and `frontend-build`; `@vue/eslint-config-prettier` moved last in
+`extends` and the duplicated formatting rules deleted (1981 → 330 errors, zero
+source churn). The decoupling is what finally ran the MySQL suite and produced
+the evidence for #16.
 Created: 2026-09-17
 Triggered by: the user's requirement that `main` be conformant with best practices
 
