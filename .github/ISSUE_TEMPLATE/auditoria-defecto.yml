@@ -38,9 +38,9 @@ body:
       label: Criticidad
       description: alta = produce confianza falsa o bloquea la verificación · media = reduce la detección · baja = consistencia
       options:
-        - 'crit: alta'
-        - 'crit: media'
-        - 'crit: baja'
+        - 'crit:alta'
+        - 'crit:media'
+        - 'crit:baja'
     validations:
       required: true
   - type: dropdown
@@ -49,13 +49,13 @@ body:
       label: Área
       description: Parte del sistema donde vive la causa.
       options:
-        - 'area: backend'
-        - 'area: frontend'
-        - 'area: ci'
-        - 'area: docs'
-        - 'area: data'
-        - 'area: realtime'
-        - 'area: tooling'
+        - 'area:backend'
+        - 'area:frontend'
+        - 'area:ci'
+        - 'area:docs'
+        - 'area:data'
+        - 'area:realtime'
+        - 'area:tooling'
     validations:
       required: true
   - type: input
