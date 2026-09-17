@@ -14,6 +14,8 @@ diagnosis was bigger than one session, so it was split.
 | #15 | Four of the five quality gates cannot fail | Open, with the masking confirmed in the run log (see Slice 3). |
 | #16 | A literal `APP_KEY` in `ci.yml` broke the encrypter — scoped as "all 177 failures", which was wrong | **Fixed** in `4257db1`: the literal is gone and the encrypter error is at zero. The scope was wrong — 34 of the 177. Still open on GitHub: closing it is the repository owner's call. |
 | #18 | The other 143 failures, with their measured distribution | Open; created 2026-09-17 from a pre-fix measurement, with the post-fix numbers in a comment on the issue. |
+| #19 | Seven empty branches: the behaviour was intended and never written | Open; product work, split out of #14's `no-empty` half rather than fixed as lint cleanup. |
+| #20 | Seventy empty `catch` blocks: user actions and live updates can fail silently | Open; classified by what each one swallows, with an argument against silencing the rule. |
 | #17 | `AGENTS.md` documents CI behaviour that was never true | Open. |
 
 The slices below are kept as the reasoning that produced those issues.
@@ -373,7 +375,7 @@ rule:
 | Rule | Errors | Nature |
 |---|---|---|
 | `no-unused-vars` | 161 | 85 "assigned but never used" + 76 "defined but never used" |
-| `no-empty` | 77 | **68 empty `catch` blocks** + **9 empty `if`/`else` branches** |
+| `no-empty` | 77 | **70 empty `catch` blocks** (#20) + **7 empty `if`/`else` branches** (#19) |
 | `vue/custom-event-name-casing` | 27 | event contract: rename emitter *and* listener |
 | `vue/no-parsing-error` + `vue/valid-attribute-name` | 20 | one dead file with an uncompilable template |
 | `no-undef` | 8 | **6 of them a live runtime crash** |
@@ -463,9 +465,34 @@ noise in the diff.
 ### What remains for #14
 
 299 errors across 85 files. The mechanical dominants are `no-unused-vars` (158
-remaining) and `no-empty` (77, of which 68 are swallowed exceptions and 9 are
-empty branches — the latter include a block whose own comment says it should
-notify and never did, and two canvas guards in the BI charts). Then 27
-`vue/custom-event-name-casing`, which change component contracts and require
-their listeners updated in the same change. `quality` turns green only when the
-last error is gone.
+remaining) and `no-empty` (77: 70 swallowed exceptions and 7 empty branches).
+
+The two halves of `no-empty` were split out as product work rather than fixed
+here, because neither is a style edit:
+
+- **#19 — the 7 empty branches.** Code paths that are reached and do nothing.
+  One sits under its own comment, `// Verificar si hay datos vacíos y notificar`,
+  with two sibling checks that do notify and this one that never did; two more
+  are missing canvas guards in the BI charts; another is the no-token path of
+  the shared API client. Five of the seven need a product decision about what
+  should happen, which is why they are not a mechanical edit.
+- **#20 — the 70 empty catches**, classified by what each swallows: eight
+  user-initiated API calls that fail with no message and no state change, seven
+  real-time subscriptions whose failure leaves the page looking healthy while
+  it stops updating, three unimplemented features (print, PDF download, Excel
+  export) hidden behind an empty catch, and about thirteen that are defensible
+  but undocumented. The issue argues against silencing the rule with
+  `allowEmptyCatch: true`, which would remove 70 errors and keep every silent
+  failure.
+
+Then 27 `vue/custom-event-name-casing`, which change component contracts and
+require their listeners updated in the same change. `quality` turns green only
+when the last error is gone.
+
+**A correction to the numbers above.** An earlier version of this section said
+"68 empty `catch` blocks + 9 empty branches". The total, 77, was measured; the
+split was my own heuristic's, and it was wrong. A second, independent pass says
+70 and 7 — and the 7 are verifiable by eye, each one an empty branch with its
+condition in plain sight. The lesson is the recurring one of this work: a total
+can be measured while its breakdown is inferred, and only the measured half
+deserves to be quoted as fact.
