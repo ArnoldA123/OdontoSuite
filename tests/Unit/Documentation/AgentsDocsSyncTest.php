@@ -17,11 +17,11 @@ use PHPUnit\Framework\TestCase;
  */
 class AgentsDocsSyncTest extends TestCase
 {
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private function agentsMd(): string
     {
-        $path = self::PROJECT_ROOT . '/AGENTS.md';
+        $path = self::projectRootPath() . '/AGENTS.md';
         $this->assertFileExists($path, 'AGENTS.md must exist at project root');
 
         return file_get_contents($path);
@@ -29,12 +29,12 @@ class AgentsDocsSyncTest extends TestCase
 
     private function databaseSeeder(): string
     {
-        return file_get_contents(self::PROJECT_ROOT . '/database/seeders/DatabaseSeeder.php');
+        return file_get_contents(self::projectRootPath() . '/database/seeders/DatabaseSeeder.php');
     }
 
     private function appServiceProvider(): string
     {
-        return file_get_contents(self::PROJECT_ROOT . '/app/Providers/AppServiceProvider.php');
+        return file_get_contents(self::projectRootPath() . '/app/Providers/AppServiceProvider.php');
     }
 
     /** @test BF-017 */
@@ -104,7 +104,7 @@ class AgentsDocsSyncTest extends TestCase
     public function composer_dev_script_uses_pnpm_not_npm(): void
     {
         // composer.json scripts.dev must invoke `pnpm dev`, not `npm run dev`.
-        $composer = file_get_contents(self::PROJECT_ROOT . '/composer.json');
+        $composer = file_get_contents(self::projectRootPath() . '/composer.json');
         $this->assertNotFalse($composer);
 
         $this->assertStringContainsString(

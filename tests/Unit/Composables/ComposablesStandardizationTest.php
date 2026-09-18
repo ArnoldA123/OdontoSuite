@@ -21,8 +21,7 @@ use PHPUnit\Framework\TestCase;
  */
 class ComposablesStandardizationTest extends TestCase
 {
-    /** Project root. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     /**
      * @return array<string, array<string, bool>>
@@ -41,7 +40,7 @@ class ComposablesStandardizationTest extends TestCase
 
         $report = [];
         foreach ($candidates as $name) {
-            $file = self::PROJECT_ROOT . "/resources/js/composables/{$name}.js";
+            $file = self::projectRootPath() . "/resources/js/composables/{$name}.js";
             if (!is_file($file)) {
                 $report[$name] = ['exists' => false];
                 continue;
@@ -137,7 +136,7 @@ class ComposablesStandardizationTest extends TestCase
                 $this->markTestSkipped("Composable {$name} does not exist");
                 continue;
             }
-            $source = file_get_contents(self::PROJECT_ROOT . "/resources/js/composables/{$name}.js");
+            $source = file_get_contents(self::projectRootPath() . "/resources/js/composables/{$name}.js");
             $collection = $allowedCollections[$name];
             $hasCollection = (bool) preg_match('/\b' . preg_quote($collection, '/') . '\b/', $source);
             $hasData = $info['hasData'];

@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
  */
 class FormatPENLabelTest extends TestCase
 {
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private const HELPER_REL_PATH = '/resources/js/composables/useFormatters.js';
 
@@ -309,7 +309,7 @@ class FormatPENLabelTest extends TestCase
             basename(self::sessionListPath()),
         ];
         foreach ($owned as $name) {
-            $file = self::PROJECT_ROOT . '/resources/js';
+            $file = self::projectRootPath() . '/resources/js';
             // Walk only the two known locations.
             $candidates = [
                 self::dashboardPath(),
@@ -526,22 +526,22 @@ class FormatPENLabelTest extends TestCase
 
     private static function helperPath(): string
     {
-        return self::PROJECT_ROOT . self::HELPER_REL_PATH;
+        return self::projectRootPath() . self::HELPER_REL_PATH;
     }
 
     private static function dashboardPath(): string
     {
-        return self::PROJECT_ROOT . self::DASHBOARD_REL_PATH;
+        return self::projectRootPath() . self::DASHBOARD_REL_PATH;
     }
 
     private static function sessionListPath(): string
     {
-        return self::PROJECT_ROOT . self::SESSION_LIST_REL_PATH;
+        return self::projectRootPath() . self::SESSION_LIST_REL_PATH;
     }
 
     private static function currencyInputPath(): string
     {
-        return self::PROJECT_ROOT . self::CURRENCY_INPUT_REL_PATH;
+        return self::projectRootPath() . self::CURRENCY_INPUT_REL_PATH;
     }
 
     /**
@@ -550,7 +550,7 @@ class FormatPENLabelTest extends TestCase
     private static function prPagos01ScopePaths(): array
     {
         return array_map(
-            static fn (string $rel): string => self::PROJECT_ROOT . $rel,
+            static fn (string $rel): string => self::projectRootPath() . $rel,
             self::PR_PAGOS_01_SCOPE_REL_PATHS
         );
     }

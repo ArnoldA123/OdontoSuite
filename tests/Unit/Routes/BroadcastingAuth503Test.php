@@ -20,12 +20,12 @@ use PHPUnit\Framework\TestCase;
  */
 class BroadcastingAuth503Test extends TestCase
 {
-    private const ROUTES_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/routes/api.php';
-    private const APP_DIR = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/app/Http/Controllers/Api';
+    private static function routesFile(): string { return dirname(__DIR__, 3) . '/routes/api.php'; }
+    private static function appDir(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api'; }
 
     public function test_broadcasting_auth_returns_503_when_secret_or_key_missing(): void
     {
-        $routesSource = file_get_contents(self::ROUTES_FILE);
+        $routesSource = file_get_contents(self::routesFile());
         $this->assertNotFalse($routesSource);
 
         $controllerSource = $this->controllerSource();
@@ -60,7 +60,7 @@ class BroadcastingAuth503Test extends TestCase
     {
         // BF-025: the big inline closure in routes/api.php must be extracted
         // into a dedicated BroadcastingAuthController.
-        $controllerFile = self::APP_DIR . '/BroadcastingAuthController.php';
+        $controllerFile = self::appDir() . '/BroadcastingAuthController.php';
         $this->assertFileExists(
             $controllerFile,
             'BF-025: routes/api.php must NOT contain the broadcasting/auth closure inline — extract it to App\Http\Controllers\Api\BroadcastingAuthController'
@@ -69,7 +69,7 @@ class BroadcastingAuth503Test extends TestCase
 
     private function controllerSource(): ?string
     {
-        $controllerFile = self::APP_DIR . '/BroadcastingAuthController.php';
+        $controllerFile = self::appDir() . '/BroadcastingAuthController.php';
         if (!is_file($controllerFile)) {
             return null;
         }

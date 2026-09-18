@@ -17,12 +17,12 @@ use PHPUnit\Framework\TestCase;
  */
 class DeferredStateHandlingTest extends TestCase
 {
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     /** @test T-08.12 */
     public function useNotifications_exposes_a_visibility_auto_refresh_helper(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useNotifications.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useNotifications.js');
         $this->assertNotFalse($source);
 
         // The composable must export a function that listens to the
@@ -58,7 +58,7 @@ class DeferredStateHandlingTest extends TestCase
     /** @test T-08.14 */
     public function useApi_exposes_a_normalize_error_helper(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useApi.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useApi.js');
         $this->assertNotFalse($source);
 
         // The helper must be exported from useApi() return object.

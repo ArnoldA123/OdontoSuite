@@ -21,11 +21,11 @@ use PHPUnit\Framework\TestCase;
 class PermissionsCreateMovementTest extends TestCase
 {
     /** Project root. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private function usePermissionsSource(): string
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/usePermissions.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/usePermissions.js');
         $this->assertNotFalse($source, 'usePermissions.js must exist');
         return $source;
     }
@@ -76,7 +76,7 @@ class PermissionsCreateMovementTest extends TestCase
     /** @test FF-001 */
     public function CashRegisterPage_consumes_createMovement_from_usePermissions(): void
     {
-        $page = file_get_contents(self::PROJECT_ROOT
+        $page = file_get_contents(self::projectRootPath()
             . '/resources/js/modules/cash-register/CashRegisterPage.vue');
         $this->assertNotFalse($page, 'CashRegisterPage.vue must exist');
 

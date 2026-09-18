@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 class StateHandlingTest extends TestCase
 {
     /** Project root. */
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     /**
      * Import a JS module via Node and return the JSON-serialized eval result.
@@ -31,7 +31,7 @@ class StateHandlingTest extends TestCase
      */
     private static function evalModule(string $relPath, string $body)
     {
-        $modulePath = self::PROJECT_ROOT . $relPath;
+        $modulePath = self::projectRootPath() . $relPath;
         if (!is_file($modulePath)) {
             return null;
         }
@@ -127,7 +127,7 @@ JS
     /** @test FF-006 */
     public function useAiAnalysis_uploadAndAnalyze_does_not_pass_ignored_headers_argument(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useAiAnalysis.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useAiAnalysis.js');
         $this->assertNotFalse($source);
 
         // Slice 08 / FF-006: useAiAnalysis.uploadAndAnalyze used to pass a
@@ -144,7 +144,7 @@ JS
     /** @test FF-006 */
     public function useAiAnalysis_uploadAndAnalyze_calls_post_with_two_arguments(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useAiAnalysis.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useAiAnalysis.js');
         $this->assertNotFalse($source);
 
         // After the fix the call should be `post('/api/ai-analysis/upload-and-analyze', formData)`.
@@ -158,7 +158,7 @@ JS
     /** @test FF-007 */
     public function useCashRegister_keeps_subscription_handlers_at_module_level(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useCashRegister.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useCashRegister.js');
         $this->assertNotFalse($source);
 
         // Slice 08 / FF-007: the cashRegisterChannel + cashSessionChannel
@@ -179,7 +179,7 @@ JS
     /** @test FF-007 */
     public function useCashRegister_singleton_guards_repeat_setup_calls(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useCashRegister.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useCashRegister.js');
         $this->assertNotFalse($source);
 
         // A "setup" guard must exist inside setupWebSocketSubscriptions that
@@ -223,7 +223,7 @@ JS;
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $modulePath = self::PROJECT_ROOT . '/resources/js/composables/useNotifications.js';
+        $modulePath = self::projectRootPath() . '/resources/js/composables/useNotifications.js';
         $cmd = 'node "' . $loaderFile . '" "' . $modulePath . '" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
@@ -249,7 +249,7 @@ JS;
     /** @test FF-013 */
     public function useNotifications_loadFromStorage_is_guarded(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/composables/useNotifications.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useNotifications.js');
         $this->assertNotFalse($source);
 
         // After the fix, loadFromStorage() must guard with typeof window
@@ -278,7 +278,7 @@ JS;
     /** @test FF-009 */
     public function app_js_does_not_call_useEcho_before_auth(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/app.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/app.js');
         $this->assertNotFalse($source);
 
         // FF-009: app.js used to call useEcho() unconditionally before the
@@ -314,7 +314,7 @@ JS;
     /** @test FF-005 */
     public function bootstrap_js_no_longer_imports_axios(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/bootstrap.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/bootstrap.js');
         $this->assertNotFalse($source);
 
         $this->assertStringNotContainsString(
@@ -332,7 +332,7 @@ JS;
     /** @test FF-016 */
     public function router_auth_uses_useAuth_for_authentication_check(): void
     {
-        $source = file_get_contents(self::PROJECT_ROOT . '/resources/js/router/auth.js');
+        $source = file_get_contents(self::projectRootPath() . '/resources/js/router/auth.js');
         $this->assertNotFalse($source);
 
         // FF-016: router/auth.js used to read localStorage directly while

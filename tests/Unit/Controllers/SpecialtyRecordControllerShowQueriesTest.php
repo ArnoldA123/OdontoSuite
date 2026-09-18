@@ -19,11 +19,11 @@ use PHPUnit\Framework\TestCase;
  */
 class SpecialtyRecordControllerShowQueriesTest extends TestCase
 {
-    private const CONTROLLER_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/app/Http/Controllers/Api/SpecialtyRecordController.php';
+private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/SpecialtyRecordController.php'; }
 
     public function test_specialty_record_show_iterates_models_in_a_loop(): void
     {
-        $source = file_get_contents(self::CONTROLLER_FILE);
+        $source = file_get_contents(self::controllerFile());
         $this->assertNotFalse($source);
 
         // Count occurrences of the canonical model::find pattern inside

@@ -21,14 +21,14 @@ use PHPUnit\Framework\TestCase;
  */
 class ApiAndSeedersPolishTest extends TestCase
 {
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
-    private const APP_DIR = self::PROJECT_ROOT . '/app/Http/Controllers/Api';
-    private const ROUTES_FILE = self::PROJECT_ROOT . '/routes/api.php';
+    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function appDir(): string { return self::projectRootPath() . '/app/Http/Controllers/Api'; }
+    private static function routesFile(): string { return self::projectRootPath() . '/routes/api.php'; }
 
     /** @test API-022 */
     public function procedure_catalog_destroy_is_soft_deactivate(): void
     {
-        $source = file_get_contents(self::APP_DIR . '/ProcedureCatalogController.php');
+        $source = file_get_contents(self::appDir() . '/ProcedureCatalogController.php');
         $this->assertNotFalse($source);
 
         // destroy() must call a `deactivate` method on the service, not delete().
@@ -42,7 +42,7 @@ class ApiAndSeedersPolishTest extends TestCase
     /** @test API-035 / API-057 */
     public function patient_controller_export_accepts_pdf_and_zip(): void
     {
-        $source = file_get_contents(self::APP_DIR . '/PatientController.php');
+        $source = file_get_contents(self::appDir() . '/PatientController.php');
         $this->assertNotFalse($source);
 
         // The export() handler must accept 'pdf' and 'zip' as the two
@@ -70,7 +70,7 @@ class ApiAndSeedersPolishTest extends TestCase
     /** @test API-015 */
     public function procedure_catalog_index_supports_specialty_filter(): void
     {
-        $controller = file_get_contents(self::APP_DIR . '/ProcedureCatalogController.php');
+        $controller = file_get_contents(self::appDir() . '/ProcedureCatalogController.php');
         $this->assertNotFalse($controller);
 
         // The catalog index endpoint must read specialty from the request
@@ -82,7 +82,7 @@ class ApiAndSeedersPolishTest extends TestCase
         );
 
         // The service must apply the specialty filter via whereHas.
-        $service = file_get_contents(self::PROJECT_ROOT . '/app/Services/ProcedureCatalogService.php');
+        $service = file_get_contents(self::projectRootPath() . '/app/Services/ProcedureCatalogService.php');
         $this->assertMatchesRegularExpression(
             "/whereHas\\(\\s*'specialty'/",
             $service === false ? '' : $service,
@@ -93,7 +93,7 @@ class ApiAndSeedersPolishTest extends TestCase
     /** @test BF-005 */
     public function auth_controller_does_not_expose_orphan_refresh_method(): void
     {
-        $source = file_get_contents(self::APP_DIR . '/AuthController.php');
+        $source = file_get_contents(self::appDir() . '/AuthController.php');
         $this->assertNotFalse($source);
 
         // Per BF-005: AuthController::refresh is an orphan method (no
@@ -108,7 +108,7 @@ class ApiAndSeedersPolishTest extends TestCase
         );
 
         // Sanity: no POST /auth/refresh route registered.
-        $routes = file_get_contents(self::ROUTES_FILE);
+        $routes = file_get_contents(self::routesFile());
         $this->assertStringNotContainsString(
             '/auth/refresh',
             $routes === false ? '' : $routes,
@@ -120,11 +120,11 @@ class ApiAndSeedersPolishTest extends TestCase
     public function role_controller_is_not_present(): void
     {
         $this->assertFileDoesNotExist(
-            self::APP_DIR . '/RoleController.php',
+            self::appDir() . '/RoleController.php',
             'BF-006: RoleController must NOT exist (roles are managed via Users apiResource + a future v2 endpoint).'
         );
 
-        $routes = file_get_contents(self::ROUTES_FILE);
+        $routes = file_get_contents(self::routesFile());
         $this->assertStringNotContainsString(
             "Route::apiResource('roles'",
             $routes === false ? '' : $routes,
