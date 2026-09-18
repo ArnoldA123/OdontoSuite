@@ -47,15 +47,21 @@ class AppointmentTest extends TestCase
     /** @test */
     public function it_can_create_an_appointment()
     {
+        // Both `ends_at` and `created_by` are NOT NULL without a default, so a
+        // model built by hand has to pass them the way AppointmentService does.
+        $scheduledAt = Carbon::now()->addHours(1);
+
         $appointment = Appointment::create([
             'user_id' => $this->user->id,
             'patient_id' => $this->patient->id,
             'dental_chair_id' => $this->dentalChair->id,
             'appointment_type_id' => $this->appointmentType->id,
-            'scheduled_at' => Carbon::now()->addHours(1),
+            'scheduled_at' => $scheduledAt,
+            'ends_at' => $scheduledAt->copy()->addMinutes(60),
             'duration_minutes' => 60,
             'status' => 'scheduled',
-            'notes' => 'Test appointment'
+            'notes' => 'Test appointment',
+            'created_by' => $this->user->id,
         ]);
 
         $this->assertInstanceOf(Appointment::class, $appointment);
