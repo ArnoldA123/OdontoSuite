@@ -38,8 +38,13 @@ class MedicalRecordAttachmentTest extends TestCase
         $user = $this->clinician();
 
         $medicalRecord = MedicalRecord::factory()->create();
+        // There is no `medical_record_id` on `clinical_attachments`: a file
+        // reaches a medical record through a clinical evolution, which is what
+        // MedicalRecord::attachments() (hasManyThrough) and uploadAttachment()
+        // both encode. The delete route resolves the attachment by id alone.
+        // Factories run inside Model::unguarded(), so this key used to reach the
+        // INSERT instead of being discarded by mass-assignment protection.
         $attachment = ClinicalAttachment::factory()->create([
-            'medical_record_id' => $medicalRecord->id,
             'patient_id' => $medicalRecord->patient_id,
         ]);
 
@@ -54,8 +59,9 @@ class MedicalRecordAttachmentTest extends TestCase
         $user = $this->receptionist();
 
         $medicalRecord = MedicalRecord::factory()->create();
+        // See test_clinician_can_delete_attachment_returns_204 for why the
+        // attachment carries no `medical_record_id`.
         $attachment = ClinicalAttachment::factory()->create([
-            'medical_record_id' => $medicalRecord->id,
             'patient_id' => $medicalRecord->patient_id,
         ]);
 
