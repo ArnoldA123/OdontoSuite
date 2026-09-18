@@ -23,8 +23,27 @@
         <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- MySQL 8.0 path: the engine is the `mysql` service declared in
+             docker-compose.yml, which also documents the startup command.
+
+             The connection is pinned here instead of being left to the
+             config/database.php defaults. Unpinned, this runner reached
+             127.0.0.1:3306 as root with an empty password, because .env.testing
+             declares none of those keys. That is the same target as the local
+             development database, while the runner claimed to run the MySQL
+             path, and a container publishing 3306 could never start next to
+             that engine.
+
+             PHPUnit does not replace a variable already set in the
+             environment, so the local engine stays reachable without editing
+             this file: export DB_PORT, DB_USERNAME and DB_PASSWORD before
+             running this configuration. -->
         <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_HOST" value="127.0.0.1"/>
+        <env name="DB_PORT" value="3307"/>
         <env name="DB_DATABASE" value="odontosuite_test"/>
+        <env name="DB_USERNAME" value="odontosuite"/>
+        <env name="DB_PASSWORD" value="secret"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

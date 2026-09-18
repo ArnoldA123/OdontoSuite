@@ -1,0 +1,47 @@
+# MySQL 8.0 engine for the MySQL test path — the local mirror of the service
+# container declared in .github/workflows/ci.yml (job `backend-tests`).
+#
+#   docker compose up -d --wait mysql
+#   php artisan test --configuration=phpunit.mysql.xml
+#   docker compose down
+#
+# `--wait` blocks until the health check reports healthy. Plain `up -d` also
+# works, but `docker compose ps` reports `health: starting` until the first
+# initialization finishes.
+#
+# Host port 3307 by default, not 3306: 3306 is commonly owned by a local
+# MySQL/MariaDB installation, and a 3306 binding would both fail to start and
+# shadow the database `.env` points at. `phpunit.mysql.xml` is pinned to the
+# same port, so the runner and the engine agree by construction. Overriding
+# requires moving both together: `MYSQL_PORT=3308 docker compose up -d` plus
+# `DB_PORT=3308 php artisan test --configuration=phpunit.mysql.xml`.
+#
+# The container keeps no volume: `down` discards the data, so every run starts
+# from an initialized engine with no schema left over from a previous one. That
+# matches the ephemeral CI service and keeps test results reproducible.
+#
+# No `container_name`: Compose names it after the project, so two checkouts of
+# this repository do not fight over one container. They can still fight over the
+# host port, which is what MYSQL_PORT is for.
+#
+# `php artisan test --configuration=phpunit.mysql.xml` runs this configuration,
+# but the artisan wrapper prepends its own phpunit.xml and prints "Option
+# --configuration cannot be used more than once". PHPUnit keeps the last value,
+# so the MySQL configuration is the one that executes. Calling
+# `vendor/bin/phpunit --configuration=phpunit.mysql.xml` avoids the warning.
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: odontosuite_test
+      MYSQL_USER: odontosuite
+      MYSQL_PASSWORD: secret
+    ports:
+      - '${MYSQL_PORT:-3307}:3306'
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-u', 'odontosuite', '-psecret']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
