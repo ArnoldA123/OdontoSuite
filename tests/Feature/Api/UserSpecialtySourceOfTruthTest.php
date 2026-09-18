@@ -58,7 +58,9 @@ class UserSpecialtySourceOfTruthTest extends TestCase
 
         $this->assertCount(1, $user->fresh()->specialties);
         $this->assertSame('Ortodoncia', $user->fresh()->specialties->first()->name);
-        $this->assertTrue($user->fresh()->specialties->first()->pivot->is_primary);
+        // The pivot column stores a tinyint, so the guard pins 1 (not the
+        // PHP boolean) instead of failing on the storage representation.
+        $this->assertSame(1, (int) $user->fresh()->specialties->first()->pivot->is_primary);
     }
 
     /** @test */

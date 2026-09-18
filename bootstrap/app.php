@@ -66,14 +66,33 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Manejar abort(403) que lanza HttpException generico (no AccessDeniedHttpException)
+        // HttpExceptions (abort() helpers and routing failures such as the 405
+        // MethodNotAllowedHttpException on the read-only audit-log routes) keep
+        // their own status code. Without this renderer they fell through to the
+        // generic Throwable handler below and every api/* failure became a 500.
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
-            if ($e->getStatusCode() === 403 && ($request->expectsJson() || $request->is('api/*'))) {
-                return response()->json([
-                    'message' => 'No tienes permisos para acceder a este recurso.',
-                    'error' => config('app.debug') ? $e->getMessage() : null,
-                ], 403);
+            if (!$request->expectsJson() && !$request->is('api/*')) {
+                return null;
             }
+
+            $status = $e->getStatusCode();
+
+            $messages = [
+                400 => 'La solicitud no es válida.',
+                401 => 'No autenticado.',
+                403 => 'No tienes permisos para acceder a este recurso.',
+                404 => 'El recurso solicitado no fue encontrado.',
+                405 => 'El método HTTP no está permitido para esta ruta.',
+                409 => 'La solicitud entra en conflicto con el estado actual del recurso.',
+                419 => 'La sesión ha expirado.',
+                429 => 'Demasiadas solicitudes. Intente nuevamente más tarde.',
+                503 => 'El servicio no está disponible temporalmente.',
+            ];
+
+            return response()->json([
+                'message' => $messages[$status] ?? 'Error al procesar la solicitud.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], $status);
         });
 
         // Slice 07b: explicit AuthenticationException renderer. MUST run before

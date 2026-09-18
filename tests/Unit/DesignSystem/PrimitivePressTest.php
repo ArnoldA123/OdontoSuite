@@ -116,7 +116,7 @@ class PrimitivePressTest extends TestCase
     public function test_existing_press_and_hover_values_are_preserved(): void
     {
         $this->assertMatchesRegularExpression(
-            '/\[data-clickable="true"\]:active\s*\{[^}]*transform:\s*scale\(0\.98\)/s',
+            '/\[data-clickable=[\'"]true[\'"]\]:active\s*\{[^}]*transform:\s*scale\(0\.98\)/s',
             self::primitive('Card.vue'),
             'Card.vue must keep :active scale(0.98) — D10/R10 rejects changing it to 0.97'
         );
@@ -126,7 +126,7 @@ class PrimitivePressTest extends TestCase
             'Avatar.vue must keep its existing active:scale-95 utility (D10/R10)'
         );
         $this->assertMatchesRegularExpression(
-            '/button:not\(:disabled\):hover\s*\{[^}]*transform:\s*translateY\(-1px\)/s',
+            '/button:not\(:disabled\)[^{}]*:hover\s*\{[^}]*transform:\s*translateY\(-1px\)/s',
             self::primitive('Button.vue'),
             'Button.vue must keep its existing translateY(-1px) hover lift (D10/R10)'
         );

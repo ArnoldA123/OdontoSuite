@@ -169,6 +169,75 @@ class Appointment extends Model
     }
 
     /**
+     * Scope a query to only include scheduled appointments.
+     */
+    public function scopeScheduled($query)
+    {
+        return $query->where('status', 'scheduled');
+    }
+
+    /**
+     * Scope a query to only include completed appointments.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
+    }
+
+    /**
+     * Scope a query to only include cancelled appointments.
+     */
+    public function scopeCancelled($query)
+    {
+        return $query->where('status', 'cancelled');
+    }
+
+    /**
+     * Scope a query to only include appointments inside a date range.
+     */
+    public function scopeForDateRange($query, Carbon $startDate, Carbon $endDate)
+    {
+        return $query->whereBetween('scheduled_at', [$startDate, $endDate]);
+    }
+
+    /**
+     * Scope a query to only include appointments of a specific patient.
+     */
+    public function scopeForPatient($query, $patientId)
+    {
+        return $query->where('patient_id', $patientId);
+    }
+
+    /**
+     * End of the appointment. The persisted `ends_at` is the source of truth;
+     * the derivation only covers an instance that has not been saved yet.
+     */
+    public function getEndTimeAttribute(): ?Carbon
+    {
+        return $this->ends_at
+            ?? $this->scheduled_at?->copy()->addMinutes($this->duration_minutes ?? 0);
+    }
+
+    /**
+     * Human readable duration.
+     */
+    public function getFormattedDurationAttribute(): string
+    {
+        $hours = intdiv((int) $this->duration_minutes, 60);
+        $minutes = (int) $this->duration_minutes % 60;
+
+        return $hours > 0 ? "{$hours}h {$minutes}m" : "{$minutes} minutos";
+    }
+
+    /**
+     * Human readable scheduled date and time.
+     */
+    public function getFormattedScheduledTimeAttribute(): ?string
+    {
+        return $this->scheduled_at?->format('d/m/Y H:i');
+    }
+
+    /**
      * Check if the appointment is in the past.
      */
     public function isPast(): bool

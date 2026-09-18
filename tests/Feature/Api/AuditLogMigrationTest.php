@@ -71,8 +71,8 @@ class AuditLogMigrationTest extends TestCase
     {
         $code = $this->migrationUpBody();
 
-        $this->assertStringContainsString(
-            "->after('user_agent')",
+        $this->assertMatchesRegularExpression(
+            "/->after\(\s*['\"]user_agent['\"]\s*\)/",
             $code,
             'Migration up() must anchor is_immutable on the existing user_agent column'
         );
@@ -82,22 +82,21 @@ class AuditLogMigrationTest extends TestCase
     {
         $code = $this->migrationUpBody();
 
-        $this->assertStringNotContainsString(
-            "->after('description')",
-            $code,
-            'Migration up() must not anchor on `description` (column absent from base audit_logs schema)'
-        );
-        $this->assertStringNotContainsString(
-            "->after('metadata')",
-            $code,
-            'Migration up() must not anchor on `metadata` (column absent from base audit_logs schema)'
+        preg_match_all("/->after\(\s*['\"]([^'\"]+)['\"]\s*\)/", $code, $matches);
+
+        $this->assertSame(
+            ['user_agent'],
+            array_values(array_unique($matches[1])),
+            'Migration up() must anchor only on `user_agent`: `description`, `metadata` and every other column absent from the base audit_logs schema would break MySQL'
         );
     }
 
     /**
-     * Extract the body of the migration's `up()` method with comments and
-     * string literals stripped, so docblock references to historical anchors
-     * (used as context for reviewers) do not trip the source assertions.
+     * Extract the body of the migration's `up()` method with comments stripped,
+     * so docblock references to historical anchors (used as context for
+     * reviewers) do not trip the source assertions. String literals are kept:
+     * the anchor being asserted IS a string literal, so stripping it made both
+     * anchor assertions vacuous.
      */
     private function migrationUpBody(): string
     {
@@ -117,13 +116,9 @@ class AuditLogMigrationTest extends TestCase
 
         $body = $m[1];
 
-        // Strip line comments, block comments, and string literals so the
-        // assertion matches only executable code (mirrors SddCheckMigrationsTest).
         $stripped = preg_replace([
             '/\/\/.*$/m',
             '/\/\*.*?\*\//s',
-            "/'(?:\\\\.|[^'\\\\])*'/s",
-            '/"(?:\\\\.|[^"\\\\])*"/s',
         ], '', $body) ?? $body;
 
         return $stripped;
