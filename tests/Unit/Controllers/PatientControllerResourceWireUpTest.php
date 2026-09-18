@@ -29,11 +29,11 @@ use PHPUnit\Framework\TestCase;
  */
 class PatientControllerResourceWireUpTest extends TestCase
 {
-    private const CONTROLLER_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/app/Http/Controllers/Api/PatientController.php';
+private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/PatientController.php'; }
 
     private function controllerSource(): string
     {
-        $source = file_get_contents(self::CONTROLLER_FILE);
+        $source = file_get_contents(self::controllerFile());
         $this->assertNotFalse($source, 'PatientController source MUST be readable.');
         return $source;
     }

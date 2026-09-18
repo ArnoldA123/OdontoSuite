@@ -20,11 +20,11 @@ use PHPUnit\Framework\TestCase;
  */
 class AppServiceProviderSingletonsTest extends TestCase
 {
-    private const PROVIDER_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/app/Providers/AppServiceProvider.php';
+private static function providerFile(): string { return dirname(__DIR__, 3) . '/app/Providers/AppServiceProvider.php'; }
 
     public function test_app_service_provider_register_does_not_contain_redundant_singletons(): void
     {
-        $source = file_get_contents(self::PROVIDER_FILE);
+        $source = file_get_contents(self::providerFile());
         $this->assertNotNull($source);
 
         // Strip block + line comments so the docblock text mentioning the
@@ -46,7 +46,7 @@ class AppServiceProviderSingletonsTest extends TestCase
 
     public function test_app_service_provider_event_listeners_remain_in_boot(): void
     {
-        $source = file_get_contents(self::PROVIDER_FILE);
+        $source = file_get_contents(self::providerFile());
 
         // The fix must not affect boot(). Event::listen calls must remain
         // untouched (they are wiring, not DI bindings).

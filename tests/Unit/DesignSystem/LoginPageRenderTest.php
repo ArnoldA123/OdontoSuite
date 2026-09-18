@@ -4,6 +4,8 @@ namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
 
+use Tests\Support\SourceGrep;
+
 /**
  * PR3 / Phase 3.1 — Login + 404 page anti-requirement guards (source-inspection).
  *
@@ -63,27 +65,7 @@ class LoginPageRenderTest extends TestCase
      */
     private static function grepCount(string $pattern, string ...$paths): int
     {
-        $args = array_map('escapeshellarg', $paths);
-        $pathsPart = implode(' ', $args);
-        $cmd = sprintf(
-            'rg --no-heading --count-matches --no-messages %s %s 2>&1',
-            escapeshellarg($pattern),
-            $pathsPart
-        );
-        $output = (string) shell_exec($cmd);
-        if ($output === '') {
-            return 0;
-        }
-        $total = 0;
-        foreach (preg_split('/\r?\n/', $output) as $line) {
-            $line = trim((string) $line);
-            if ($line === '') {
-                continue;
-            }
-            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
-            $total += $count;
-        }
-        return $total;
+        return SourceGrep::count($pattern, ...$paths);
     }
 
     /**

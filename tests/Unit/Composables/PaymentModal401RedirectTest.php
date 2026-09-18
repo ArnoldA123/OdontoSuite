@@ -22,11 +22,11 @@ use PHPUnit\Framework\TestCase;
  */
 class PaymentModal401RedirectTest extends TestCase
 {
-    private const PROJECT_ROOT = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite';
+private static function projectRootPath(): string { return dirname(__DIR__, 3); }
 
     private function paymentModalSource(): string
     {
-        $path = self::PROJECT_ROOT . '/resources/js/modules/cash-register/components/PaymentModal.vue';
+        $path = self::projectRootPath() . '/resources/js/modules/cash-register/components/PaymentModal.vue';
         $source = file_get_contents($path);
         $this->assertNotFalse($source, 'PaymentModal.vue must exist');
         return $source;
@@ -34,7 +34,7 @@ class PaymentModal401RedirectTest extends TestCase
 
     private function useAuthSource(): string
     {
-        $path = self::PROJECT_ROOT . '/resources/js/composables/useAuth.js';
+        $path = self::projectRootPath() . '/resources/js/composables/useAuth.js';
         $source = file_get_contents($path);
         $this->assertNotFalse($source, 'useAuth.js must exist');
         return $source;

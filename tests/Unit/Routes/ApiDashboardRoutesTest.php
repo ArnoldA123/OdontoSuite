@@ -15,11 +15,11 @@ use PHPUnit\Framework\TestCase;
  */
 class ApiDashboardRoutesTest extends TestCase
 {
-    private const ROUTES_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/routes/api.php';
+private static function routesFile(): string { return dirname(__DIR__, 3) . '/routes/api.php'; }
 
     public function test_dashboard_today_alias_route_is_removed(): void
     {
-        $source = file_get_contents(self::ROUTES_FILE);
+        $source = file_get_contents(self::routesFile());
         $this->assertNotFalse($source);
 
         // The duplicate "dashboard/today" route must be removed; only
@@ -40,7 +40,7 @@ class ApiDashboardRoutesTest extends TestCase
 
     public function test_dashboard_stats_route_is_preserved(): void
     {
-        $source = file_get_contents(self::ROUTES_FILE);
+        $source = file_get_contents(self::routesFile());
 
         $this->assertStringContainsString(
             "Route::get('dashboard/stats'",

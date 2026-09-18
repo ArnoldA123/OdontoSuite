@@ -13,11 +13,11 @@ use PHPUnit\Framework\TestCase;
  */
 class AppointmentControllerInjectionStyleTest extends TestCase
 {
-    private const CONTROLLER_FILE = 'E:/UNIVERSIDAD PRIVADA DEL NORTE/UPN 10 CICLO/Capstone/Proyecto/OdontoSuiteV2/OdontoSuite/app/Http/Controllers/Api/AppointmentController.php';
+private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/AppointmentController.php'; }
 
     public function test_appointment_controller_uses_private_readonly_services(): void
     {
-        $source = file_get_contents(self::CONTROLLER_FILE);
+        $source = file_get_contents(self::controllerFile());
         $this->assertNotFalse($source);
 
         // The protected assignment must NOT exist in the modern form.
