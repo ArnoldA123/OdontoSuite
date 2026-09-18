@@ -22,7 +22,7 @@ class AppointmentServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new AppointmentService();
+        $this->service = app(AppointmentService::class);
     }
 
     /**
@@ -34,6 +34,10 @@ class AppointmentServiceTest extends TestCase
         $user = User::factory()->create(['is_active' => true, 'role' => 'odontologo']);
         $chair = DentalChair::factory()->create();
         $type = AppointmentType::factory()->create();
+
+        // `created_by` / `updated_by` are NOT NULL and stamped from the
+        // authenticated actor, so the service needs a caller identity.
+        $this->actingAs($user, 'sanctum');
 
         $data = [
             'patient_id' => $patient->id,

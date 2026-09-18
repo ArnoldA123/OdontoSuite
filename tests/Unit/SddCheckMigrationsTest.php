@@ -215,19 +215,41 @@ class SddCheckMigrationsTest extends TestCase
         );
     }
 
-    /** @test */
+    /**
+     * Guards the guard: the scan window is `>= slice 05`. Pre-slice migration
+     * debt must stay out of it, and the cutoff date itself must stay in it
+     * (the window is `>=`, not `>`).
+     *
+     * @test
+     */
     public function guard_only_scans_migrations_added_during_or_after_slice_05(): void
     {
-        $guarded = self::guardedMigrations();
-        foreach ($guarded as $file) {
-            $name = basename($file);
-            $this->assertStringStartsWith(
-                self::GUARD_CUTOFF_PREFIX,
-                substr($name, 0, 10),
-                "{$name} should have a date prefix >= " . self::GUARD_CUTOFF_PREFIX
-            );
-        }
+        $guarded = array_map('basename', self::guardedMigrations());
+        $all = array_map('basename', glob(self::migrationsDir() . '/*.php') ?: []);
+
         $this->assertNotEmpty($guarded, 'Expected at least one migration in the guard window');
+
+        $preSlice = array_values(array_filter(
+            $all,
+            fn (string $name): bool => substr($name, 0, 10) < self::GUARD_CUTOFF_PREFIX
+        ));
+        $this->assertNotEmpty($preSlice, 'Expected pre-slice migrations to exist — otherwise the cutoff is untested');
+        $this->assertSame(
+            [],
+            array_values(array_intersect($guarded, $preSlice)),
+            'Pre-slice migration debt (AGENTS.md §6) must stay outside the additive-only guard window'
+        );
+
+        $atCutoff = array_values(array_filter(
+            $all,
+            fn (string $name): bool => substr($name, 0, 10) === self::GUARD_CUTOFF_PREFIX
+        ));
+        $this->assertNotEmpty($atCutoff, 'Expected at least one migration dated exactly on the cutoff');
+        $this->assertSame(
+            [],
+            array_values(array_diff($atCutoff, $guarded)),
+            'The cutoff date is inside the guard window — the comparison is >=, not >'
+        );
     }
 
     /**

@@ -11,6 +11,10 @@ use Illuminate\Support\Collection;
 
 class CalendarService
 {
+    public function __construct(private readonly AppointmentService $appointmentService)
+    {
+    }
+
     /**
      * Get appointments for a specific day.
      */
@@ -155,22 +159,27 @@ class CalendarService
      */
     public function getCalendarStats(Carbon $startDate, Carbon $endDate, ?int $userId = null): array
     {
-        $query = Appointment::whereBetween('scheduled_at', [$startDate, $endDate]);
+        // Fresh builder per bucket: chaining the status filters onto a shared
+        // builder would stack every bucket on top of the previous one.
+        $inRange = function () use ($startDate, $endDate, $userId) {
+            $query = Appointment::whereBetween('scheduled_at', [$startDate, $endDate]);
 
-        if ($userId) {
-            $query->where('user_id', $userId);
-        }
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
 
-        $totalAppointments = $query->count();
-        $completedAppointments = $query->where('status', 'completed')->count();
-        $cancelledAppointments = $query->where('status', 'cancelled')->count();
-        $noShowAppointments = $query->where('status', 'no_show')->count();
+            return $query;
+        };
+
+        $totalAppointments = $inRange()->count();
+        $completedAppointments = $inRange()->where('status', 'completed')->count();
 
         return [
-            'total' => $totalAppointments,
-            'completed' => $completedAppointments,
-            'cancelled' => $cancelledAppointments,
-            'no_show' => $noShowAppointments,
+            'total_appointments' => $totalAppointments,
+            'scheduled_appointments' => $inRange()->where('status', 'scheduled')->count(),
+            'completed_appointments' => $completedAppointments,
+            'cancelled_appointments' => $inRange()->where('status', 'cancelled')->count(),
+            'no_show_appointments' => $inRange()->where('status', 'no_show')->count(),
             'completion_rate' => $totalAppointments > 0 ? round(($completedAppointments / $totalAppointments) * 100, 2) : 0,
         ];
     }
@@ -200,8 +209,7 @@ class CalendarService
      */
     public function getAvailableSlots(Carbon $date, int $userId, int $duration = 60): array
     {
-        $appointmentService = new AppointmentService();
-        return $appointmentService->getAvailableTimeSlots($userId, $date, $duration);
+        return $this->appointmentService->getAvailableTimeSlots($userId, $date, $duration);
     }
 
     /**

@@ -67,9 +67,9 @@ class AuditLogFiltersTest extends TestCase
 
         AuditLog::create([
             'user_id' => $other->id,
-            'action' => 'patient.viewed',
-            'auditable_type' => Patient::class,
-            'auditable_id' => 1,
+            'action' => 'user.viewed',
+            'auditable_type' => User::class,
+            'auditable_id' => $other->id,
         ]);
 
         $response = $this->actingAs($admin, 'sanctum')

@@ -26,7 +26,7 @@ class CalendarServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->calendarService = new CalendarService();
+        $this->calendarService = app(CalendarService::class);
 
         // Create test data
         $this->user = User::factory()->create([
@@ -252,7 +252,13 @@ class CalendarServiceTest extends TestCase
         $this->assertEquals($appointment->id, $event['id']);
         $this->assertEquals($appointment->scheduled_at->toISOString(), $event['start']);
         $this->assertEquals($appointment->scheduled_at->addMinutes(60)->toISOString(), $event['end']);
-        $this->assertEquals($appointment->notes, $event['title']);
+        // FullCalendar renders `title` as the event label, so it carries the
+        // appointment identity; the free-text note travels in extendedProps.
+        $this->assertEquals(
+            $appointment->patient->full_name . ' - ' . $appointment->appointmentType->name,
+            $event['title']
+        );
+        $this->assertEquals($appointment->notes, $event['extendedProps']['notes']);
     }
 
     /** @test */
@@ -282,6 +288,16 @@ class CalendarServiceTest extends TestCase
             'status' => 'completed'
         ]);
 
+        Appointment::factory()->create([
+            'user_id' => $this->user->id,
+            'patient_id' => $this->patient->id,
+            'dental_chair_id' => $this->dentalChair->id,
+            'appointment_type_id' => $this->appointmentType->id,
+            'scheduled_at' => $startDate->copy()->addDays(3)->setTime(11, 0),
+            'duration_minutes' => 60,
+            'status' => 'cancelled'
+        ]);
+
         $stats = $this->calendarService->getCalendarStats($startDate, $endDate);
 
         $this->assertIsArray($stats);
@@ -289,9 +305,12 @@ class CalendarServiceTest extends TestCase
         $this->assertArrayHasKey('scheduled_appointments', $stats);
         $this->assertArrayHasKey('completed_appointments', $stats);
         $this->assertArrayHasKey('cancelled_appointments', $stats);
-        $this->assertEquals(2, $stats['total_appointments']);
+        // Each bucket is counted independently: a shared query builder would
+        // have made every count after the first a subset of the previous one.
+        $this->assertEquals(3, $stats['total_appointments']);
         $this->assertEquals(1, $stats['scheduled_appointments']);
         $this->assertEquals(1, $stats['completed_appointments']);
+        $this->assertEquals(1, $stats['cancelled_appointments']);
     }
 
     /** @test */
