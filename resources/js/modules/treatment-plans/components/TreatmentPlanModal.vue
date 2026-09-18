@@ -283,7 +283,6 @@
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useToast } from '@/composables/useToast'
-import { useConfirm } from '@/composables/useConfirm'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
 import CreatePatientInline from './CreatePatientInline.vue'
 import {

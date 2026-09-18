@@ -48,7 +48,7 @@ Formatos: JPG, PNG, DICOM (Max 20MB)
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { PhotoIcon, DocumentIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import UiButton from '@/components/ui/Button.vue'
 
@@ -67,7 +67,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['file-selected', 'file-cleared'])
+const emit = defineEmits(['fileSelected', 'fileCleared'])
 
 const file = ref(null)
 const previewUrl = ref('')
@@ -113,7 +113,7 @@ const handleFile = selectedFile => {
     reader.readAsDataURL(selectedFile)
   }
 
-  emit('file-selected', selectedFile)
+  emit('fileSelected', selectedFile)
 }
 
 const clearFile = () => {
@@ -122,7 +122,7 @@ const clearFile = () => {
   if (fileInput.value) {
     fileInput.value.value = ''
   }
-  emit('file-cleared')
+  emit('fileCleared')
 }
 
 const formatFileSize = bytes => {

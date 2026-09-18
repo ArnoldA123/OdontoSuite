@@ -118,7 +118,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'plan-selected'])
+const emit = defineEmits(['update:modelValue', 'planSelected'])
 
 const { get } = useApi()
 
@@ -188,7 +188,7 @@ const selectPlan = plan => {
 
   selectedPlan.value = plan
   emit('update:modelValue', plan)
-  emit('plan-selected', plan)
+  emit('planSelected', plan)
 }
 
 const clearSelection = () => {

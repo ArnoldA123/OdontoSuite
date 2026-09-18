@@ -220,9 +220,6 @@ const loadAudit = async id => {
 }
 
 const goBack = () => router.push('/procedure-catalog')
-const goEdit = () => {
-  showEdit.value = true
-}
 const onSaved = () => {
   showEdit.value = false
   load()

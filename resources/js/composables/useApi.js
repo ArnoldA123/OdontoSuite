@@ -2,7 +2,6 @@ import { ref } from 'vue'
 
 const baseURL = import.meta.env.VITE_APP_URL || window.location.origin
 const token = ref(localStorage.getItem('auth_token'))
-const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
 
 export function useApi() {
   const setToken = newToken => {
@@ -22,7 +21,6 @@ export function useApi() {
 
     if (token.value) {
       headers['Authorization'] = `Bearer ${token.value}`
-    } else {
     }
 
     return headers
@@ -47,7 +45,7 @@ export function useApi() {
     if (!contentType.includes('application/json')) {
       // Clone the response to read it without consuming the original
       const clonedResponse = response.clone()
-      const text = await clonedResponse.text()
+      await clonedResponse.text()
 
       // If it's an error status, provide more context
       if (!response.ok) {
@@ -97,7 +95,7 @@ export function useApi() {
     return handleResponse(response)
   }
 
-  const post = async (url, data, options = {}) => {
+  const post = async (url, data) => {
     const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
 
     // Detectar si es FormData

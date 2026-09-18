@@ -20,7 +20,9 @@ const loadFromStorage = () => {
       notifications.value = parsed.notifications || []
       notificationId.value = parsed.lastId || 0
     }
-  } catch (error) {}
+  } catch (error) {
+    // Storage corrupto: se arranca con notificaciones vacías
+  }
 }
 
 // Guardar notificaciones en localStorage
@@ -36,7 +38,9 @@ const saveToStorage = () => {
         lastId: notificationId.value
       })
     )
-  } catch (error) {}
+  } catch (error) {
+    // Sin persistencia las notificaciones siguen vivas en memoria
+  }
 }
 
 // Cargar al inicializar — guarded for SSR per FF-013

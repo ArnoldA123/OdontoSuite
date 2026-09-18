@@ -205,7 +205,11 @@ const onSubmit = async () => {
     let result
     if (isEdit.value) {
       // No enviamos code (es inmutable) ni timestamps
-      const { code: _code, created_at: _ca, updated_at: _ua, id: _id, ...payload } = form.value
+      const payload = { ...form.value }
+      delete payload.code
+      delete payload.created_at
+      delete payload.updated_at
+      delete payload.id
       result = await updateBranch(props.branch.id, payload)
     } else {
       result = await createBranch(form.value)

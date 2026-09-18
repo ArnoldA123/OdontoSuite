@@ -196,11 +196,9 @@ Agregar Evolución
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useConfirm } from '@/composables/useConfirm'
 import { PlusIcon, ClockIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   evolutions: {
     type: Array,
     default: () => []

@@ -134,7 +134,6 @@
 import { ref, computed } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
 import { usePermissions } from '@/composables/usePermissions'
-import { useConfirm } from '@/composables/useConfirm'
 import AiAnalysisButton from '@/modules/ai-analysis/components/AiAnalysisButton.vue'
 import {
   PlusIcon,
@@ -157,7 +156,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['upload', 'delete', 'analysis-completed', 'view-analysis'])
+const emit = defineEmits(['upload', 'delete', 'analysisCompleted', 'viewAnalysis'])
 
 const { deleteAttachment: removeAttachment } = useMedicalRecords()
 const { can } = usePermissions()
@@ -225,18 +224,20 @@ const deleteAttachment = async attachment => {
     try {
       await removeAttachment(attachment.id)
       emit('delete', attachment)
-    } catch (err) {}
+    } catch (err) {
+      // El toast de error ya se mostró en el composable
+    }
   }
 }
 
 const handleAnalysisCompleted = analysis => {
   // Emit event to parent component if needed
-  emit('analysis-completed', analysis)
+  emit('analysisCompleted', analysis)
 }
 
 const viewAnalysis = analysis => {
   // Emit event to parent component if needed
-  emit('view-analysis', analysis)
+  emit('viewAnalysis', analysis)
 }
 </script>
 

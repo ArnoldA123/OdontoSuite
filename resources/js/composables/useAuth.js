@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
 export function useAuth() {
-  const { setToken, getHeaders, get, post } = useApi()
+  const { setToken, get, post } = useApi()
 
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const token = ref(localStorage.getItem('auth_token'))
@@ -24,8 +24,6 @@ export function useAuth() {
         return response
       }
       throw new Error('Invalid response format')
-    } catch (error) {
-      throw error
     } finally {
       isLoading.value = false
     }
@@ -37,6 +35,7 @@ export function useAuth() {
         await post('/api/auth/logout')
       }
     } catch (error) {
+      // El logout local continúa aunque falle la sesión en el servidor
     } finally {
       setToken(null)
       user.value = null
@@ -51,14 +50,10 @@ export function useAuth() {
   const authLogout = logout
 
   const getCurrentUser = async () => {
-    try {
-      const response = await get('/api/auth/me')
-      user.value = response.data
-      localStorage.setItem('user', JSON.stringify(response.data))
-      return response
-    } catch (error) {
-      throw error
-    }
+    const response = await get('/api/auth/me')
+    user.value = response.data
+    localStorage.setItem('user', JSON.stringify(response.data))
+    return response
   }
 
   const hasRole = role => {

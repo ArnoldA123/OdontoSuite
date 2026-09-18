@@ -4,14 +4,14 @@
       <button
         :disabled="!hasPrevPage"
         class="relative inline-flex items-center rounded-md border border-theme bg-theme-surface-elevated px-4 py-2 text-sm font-medium text-theme-primary hover:bg-theme-surface disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="$emit('prev-page')"
+        @click="$emit('prevPage')"
       >
         Anterior
       </button>
       <button
         :disabled="!hasNextPage"
         class="relative ml-3 inline-flex items-center rounded-md border border-theme bg-theme-surface-elevated px-4 py-2 text-sm font-medium text-theme-primary hover:bg-theme-surface disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="$emit('next-page')"
+        @click="$emit('nextPage')"
       >
         Siguiente
       </button>
@@ -38,7 +38,7 @@
             id="per-page"
             :value="pagination.perPage"
             class="rounded-md border-theme text-sm focus:border-primary-500 focus:ring-primary-500 bg-theme-surface-elevated text-theme-primary"
-            @change="$emit('change-per-page', parseInt($event.target.value))"
+            @change="$emit('changePerPage', parseInt($event.target.value))"
           >
             <option value="10">10</option>
             <option value="20">20</option>
@@ -52,7 +52,7 @@
           <button
             :disabled="!hasPrevPage"
             class="relative inline-flex items-center rounded-l-md px-2 py-2 text-theme-secondary ring-1 ring-inset ring-theme hover:bg-theme-surface focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="$emit('prev-page')"
+            @click="$emit('prevPage')"
           >
             <span class="sr-only">Anterior</span>
             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
@@ -75,7 +75,7 @@ aria-hidden="true">
                   ? 'z-10 bg-accent text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
                   : 'text-theme-primary ring-1 ring-inset ring-theme hover:bg-theme-surface focus:z-20 focus:outline-offset-0'
               ]"
-              @click="$emit('go-to-page', page)"
+              @click="$emit('goToPage', page)"
             >
               {{ page }}
             </button>
@@ -90,7 +90,7 @@ aria-hidden="true">
           <button
             :disabled="!hasNextPage"
             class="relative inline-flex items-center rounded-r-md px-2 py-2 text-theme-secondary ring-1 ring-inset ring-theme hover:bg-theme-surface focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
-            @click="$emit('next-page')"
+            @click="$emit('nextPage')"
           >
             <span class="sr-only">Siguiente</span>
             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
@@ -127,7 +127,7 @@ export default {
       required: true
     }
   },
-  emits: ['prev-page', 'next-page', 'go-to-page', 'change-per-page'],
+  emits: ['prevPage', 'nextPage', 'goToPage', 'changePerPage'],
   setup(props) {
     const visiblePages = computed(() => {
       const current = props.pagination.currentPage

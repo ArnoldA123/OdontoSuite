@@ -304,7 +304,9 @@ export default {
       if (!environment.value) return
       try {
         await getDentalChairAuditLogs(environment.value.id)
-      } catch (error) {}
+      } catch (error) {
+        // La auditoría es informativa, el detalle sigue visible sin ella
+      }
     }
 
     const getStatusText = status => {

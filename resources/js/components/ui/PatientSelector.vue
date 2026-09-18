@@ -128,7 +128,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'patient-selected', 'create-patient'])
+const emit = defineEmits(['update:modelValue', 'patientSelected', 'createPatient'])
 
 const { get } = useApi()
 
@@ -196,7 +196,7 @@ const selectPatient = patient => {
 
   selectedPatient.value = patient
   emit('update:modelValue', patient)
-  emit('patient-selected', patient)
+  emit('patientSelected', patient)
 }
 
 const clearSelection = () => {
@@ -205,7 +205,7 @@ const clearSelection = () => {
 }
 
 const createNewPatient = () => {
-  emit('create-patient')
+  emit('createPatient')
 }
 
 // Watch for external changes

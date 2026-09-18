@@ -1,4 +1,4 @@
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 
 const toasts = ref([])
 let toastId = 0

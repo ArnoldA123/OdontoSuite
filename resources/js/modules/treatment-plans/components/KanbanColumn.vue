@@ -48,7 +48,7 @@ const props = defineProps({
   plans: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['view', 'change-status', 'drop-plan'])
+const emit = defineEmits(['view', 'changeStatus', 'dropPlan'])
 
 const isOver = ref(false)
 
@@ -62,8 +62,10 @@ const onDrop = e => {
   try {
     const plan = JSON.parse(e.dataTransfer.getData('application/json'))
     if (plan.status === props.column.value) return
-    emit('drop-plan', { plan, newStatus: props.column.value })
-  } catch (err) {}
+    emit('dropPlan', { plan, newStatus: props.column.value })
+  } catch (err) {
+    // Drop fuera del kanban: se ignora sin mover el plan
+  }
 }
 
 const formatPrice = price =>

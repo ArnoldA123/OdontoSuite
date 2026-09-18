@@ -201,7 +201,7 @@ import { PencilIcon, DocumentDuplicateIcon, XMarkIcon } from '@heroicons/vue/24/
 import PlanStatusBadge from './PlanStatusBadge.vue'
 import QuotationStatusBadge from '@/modules/quotations/components/QuotationStatusBadge.vue'
 
-const props = defineProps({
+defineProps({
   plan: {
     type: Object,
     required: true

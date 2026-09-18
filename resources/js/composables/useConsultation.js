@@ -142,8 +142,6 @@ export function useConsultation() {
         toast.success(`Cotización ${data.quotation.quotation_number} generada automáticamente`)
       }
       return data
-    } catch (error) {
-      throw error
     } finally {
       submitting.value = false
     }

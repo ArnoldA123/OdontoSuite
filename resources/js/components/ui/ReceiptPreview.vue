@@ -240,6 +240,7 @@ const handlePrint = async () => {
 
     emit('print', props.transaction)
   } catch (error) {
+    // La ventana de impresión ya se cerró, nada que revertir
   } finally {
     printing.value = false
   }
@@ -256,6 +257,7 @@ const handleDownload = async () => {
     // Simular descarga
     await new Promise(resolve => setTimeout(resolve, 1000))
   } catch (error) {
+    // La descarga simulada falló, el estado downloading se resetea abajo
   } finally {
     downloading.value = false
   }

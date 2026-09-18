@@ -198,7 +198,6 @@ Limpiar filtros
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
-import { useAuth } from '@/composables/useAuth'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -218,20 +217,16 @@ import {
   ViewColumnsIcon
 } from '@heroicons/vue/24/outline'
 
-const { user } = useAuth()
 const { channel, echo } = useEcho()
 const toast = useToast()
 const {
   plans,
   loading,
-  error,
   hasPlans,
   totalPages,
   currentPage,
   pagination,
   getPlans,
-  createPlan,
-  updatePlan,
   deletePlan,
   changeStatus,
   duplicatePlan
@@ -323,7 +318,6 @@ const handlePlanSaved = () => {
   loadPlans()
 }
 
-const applyFilters = () => loadPlans()
 const clearFilters = () => {
   filters.value = { patient_name: '', status: '', date_from: '', date_to: '' }
   activeQuick.value = 'all'
@@ -355,7 +349,9 @@ const loadPlans = async (additional = {}) => {
       if (all[k] === '' || all[k] === null) delete all[k]
     })
     await getPlans(all)
-  } catch (err) {}
+  } catch (err) {
+    // La lista conserva los planes ya cargados si falla la recarga
+  }
 }
 
 // Debounce reactivo en patient_name (sin click en Buscar)
@@ -412,7 +408,9 @@ onMounted(() => {
           }
         })
     }
-  } catch (err) {}
+  } catch (err) {
+    // Sin WebSocket el kanban sigue operativo vía fetch inicial
+  }
 })
 
 onUnmounted(() => {
@@ -420,7 +418,9 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('treatment-plans')
-    } catch (e) {}
+    } catch (e) {
+      // El canal ya estaba cerrado, nada que limpiar
+    }
   }
   clearTimeout(debounceTimer)
 })

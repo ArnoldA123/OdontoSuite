@@ -184,7 +184,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
-import { useAuth } from '@/composables/useAuth'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -208,7 +207,6 @@ import {
 } from '@heroicons/vue/24/outline'
 
 // Composables
-const { user } = useAuth()
 const { channel, echo } = useEcho()
 const toast = useToast()
 const {
@@ -217,19 +215,13 @@ const {
   attachments,
   stats,
   loading,
-  error,
   hasRecords,
   getRecords,
   getEvolutions,
   getAttachmentsByCategory,
   getStats,
-  createRecord,
-  updateRecord,
   deleteRecord,
-  addEvolution,
-  updateEvolution,
   deleteEvolution,
-  uploadAttachment,
   deleteAttachment
 } = useMedicalRecords()
 
@@ -272,7 +264,9 @@ const loadPatientRecords = async () => {
       getAttachmentsByCategory(selectedPatient.value.id, 'general'),
       getStats(selectedPatient.value.id)
     ])
-  } catch (err) {}
+  } catch (err) {
+    // Se conservan los datos ya cargados si falla una fuente
+  }
 }
 
 const openCreateModal = () => {
@@ -331,17 +325,17 @@ const closeUploadModal = () => {
   showUploadModal.value = false
 }
 
-const handleRecordSaved = record => {
+const handleRecordSaved = () => {
   closeModal()
   loadPatientRecords()
 }
 
-const handleEvolutionSaved = evolution => {
+const handleEvolutionSaved = () => {
   closeEvolutionModal()
   loadPatientRecords()
 }
 
-const handleAttachmentUploaded = attachment => {
+const handleAttachmentUploaded = () => {
   closeUploadModal()
   loadPatientRecords()
 }
@@ -399,7 +393,9 @@ onMounted(() => {
           }
         })
     }
-  } catch (error) {}
+  } catch (error) {
+    // WebSocket no disponible, se sigue con carga manual
+  }
 })
 
 onUnmounted(() => {
@@ -407,7 +403,9 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('medical-records')
-    } catch (e) {}
+    } catch (e) {
+      // Error al limpiar suscripción, se ignora en desmontaje
+    }
   }
 })
 </script>

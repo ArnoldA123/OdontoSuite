@@ -1,21 +1,21 @@
 import { useToast } from './useToast.js'
 
 export function useErrorHandler() {
-  const { error: showError, warning: showWarning, info: showInfo } = useToast()
+  const { error: showError, warning: showWarning } = useToast()
 
   const handleError = (err, customMessage = null) => {
     let message = customMessage
 
     if (!message) {
       if (err.response?.data?.message) {
-        message = err.response.data.message
+        ;({ message } = err.response.data)
       } else if (err.response?.data?.errors) {
         // Handle validation errors
         const { errors } = err.response.data
         const firstError = Object.values(errors)[0]
         message = Array.isArray(firstError) ? firstError[0] : firstError
       } else if (err.message) {
-        message = err.message
+        ;({ message } = err)
       } else {
         message = 'Ha ocurrido un error inesperado'
       }

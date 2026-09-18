@@ -64,6 +64,7 @@ const PEN_FORMATTER = new Intl.NumberFormat('es-PE', {
  * @returns {string}
  */
 export function formatCurrency (amount, options) {
+  void options // Reservado para uso futuro (PAGOS-SCP-001), se ignora hoy
   const numeric = Number(amount)
   const safe = Number.isFinite(numeric) ? numeric : 0
   return PEN_FORMATTER.format(safe)

@@ -194,7 +194,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'edit', 'view-history'])
+const emit = defineEmits(['close', 'edit', 'viewHistory'])
 
 const { can } = usePermissions()
 
@@ -269,7 +269,7 @@ const getSurgeryTypeLabel = type => {
 }
 
 const viewHistory = () => {
-  emit('view-history', props.record)
+  emit('viewHistory', props.record)
 }
 </script>
 

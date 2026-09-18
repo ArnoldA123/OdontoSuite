@@ -119,7 +119,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['page-change'])
+const emit = defineEmits(['pageChange'])
 
 const visiblePages = computed(() => {
   const pages = []
@@ -164,7 +164,7 @@ const visiblePages = computed(() => {
 
 const goToPage = page => {
   if (page >= 1 && page <= props.totalPages && page !== props.currentPage) {
-    emit('page-change', page)
+    emit('pageChange', page)
   }
 }
 </script>

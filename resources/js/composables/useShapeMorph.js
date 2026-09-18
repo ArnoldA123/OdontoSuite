@@ -21,7 +21,7 @@
  */
 
 import { ref, onUnmounted, getCurrentInstance } from 'vue'
-import { validateTransition, isTerminalState, STATES } from './shapeMorphMath.js'
+import { validateTransition, isTerminalState } from './shapeMorphMath.js'
 
 /**
  * @param {object} [options]

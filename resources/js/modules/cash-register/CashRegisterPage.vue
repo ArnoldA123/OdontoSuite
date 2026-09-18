@@ -295,8 +295,6 @@ const {
   isClosed,
   realTimeTotals,
   loadCurrentSession,
-  openSession,
-  closeSession,
   getSessions,
   setupWebSocketSubscriptions
 } = useCashRegister()
@@ -305,9 +303,7 @@ const {
   transactions,
   pagination,
   getTransactions,
-  createTransaction,
-  voidTransaction: voidTransactionApi,
-  generateReceipt: generateReceiptApi
+  voidTransaction: voidTransactionApi
 } = useTransactions()
 
 const { createTransaction: canCreateTransaction, createMovement: canCreateMovement } =
@@ -424,7 +420,7 @@ const handleOpenSuccess = session => {
   loadMovements()
 }
 
-const handleCloseSuccess = async result => {
+const handleCloseSuccess = async () => {
   currentSession.value = null
   showCloseModal.value = false
 
@@ -434,7 +430,7 @@ const handleCloseSuccess = async result => {
   await loadSessions()
 }
 
-const handleTransactionSuccess = async transaction => {
+const handleTransactionSuccess = async () => {
   toast.success('Transacción registrada exitosamente')
 
   // Pequeño delay para asegurar que la BD se haya actualizado
@@ -449,7 +445,7 @@ const handleTransactionSuccess = async transaction => {
   await loadMovements()
 }
 
-const handleMovementSuccess = async movement => {
+const handleMovementSuccess = async () => {
   toast.success('Movimiento registrado exitosamente')
   await loadCurrentSession()
   await loadMovements()
@@ -534,7 +530,7 @@ const handlePaymentModalClose = () => {
   }, 300)
 }
 
-const editTransaction = transaction => {
+const editTransaction = () => {
   // Implementar edición de transacción
 }
 
@@ -557,7 +553,7 @@ const generateReport = async () => {
   }
 }
 
-const exportReport = async filters => {
+const exportReport = async () => {
   // Este método será llamado por CashReports
 }
 
@@ -584,11 +580,11 @@ const generateReceipt = transaction => {
   showReceiptModal.value = true
 }
 
-const handlePrint = transaction => {
+const handlePrint = () => {
   toast.info('Imprimiendo comprobante...')
 }
 
-const handleDownload = transaction => {
+const handleDownload = () => {
   toast.info('Descargando comprobante...')
 }
 
@@ -600,7 +596,6 @@ onMounted(async () => {
   if (hasActiveSession.value) {
     await loadTransactions()
     await loadMovements()
-  } else {
   }
   await loadSessions()
 

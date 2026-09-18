@@ -58,7 +58,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['analysis-completed', 'view-analysis'])
+const emit = defineEmits(['analysisCompleted', 'viewAnalysis'])
 
 const {
   loading,
@@ -66,8 +66,7 @@ const {
   analyzeImage,
   getAnalysisByAttachment,
   getStatusLabel,
-  getReviewDecisionLabel,
-  getConfidenceColor
+  getReviewDecisionLabel
 } = useAiAnalysis()
 
 const { can } = usePermissions()
@@ -96,19 +95,23 @@ const loadAnalysis = async () => {
       analysis.value = existingAnalysis
       hasAnalysis.value = true
     }
-  } catch (error) {}
+  } catch (error) {
+    // Sin análisis previo se ofrece crear uno nuevo
+  }
 }
 
 const startAnalysis = async () => {
   try {
     await analyzeImage(props.attachmentId)
     hasAnalysis.value = true
-    emit('analysis-completed', analysis.value)
-  } catch (error) {}
+    emit('analysisCompleted', analysis.value)
+  } catch (error) {
+    // El error ya se muestra vía toast en el composable
+  }
 }
 
 const viewAnalysis = () => {
-  emit('view-analysis', analysis.value)
+  emit('viewAnalysis', analysis.value)
 }
 
 const getStatusClass = status => {

@@ -175,14 +175,9 @@ const { channel, echo } = useEcho()
 const toast = useToast()
 const {
   records,
-  allRecords,
   loading,
-  error,
   hasRecords,
-  getRecords,
   getAllRecords,
-  createRecord,
-  updateRecord,
   deleteRecord
 } = useSpecialtyRecords()
 
@@ -234,7 +229,9 @@ const loadPatientRecords = async () => {
 
   try {
     await getAllRecords(selectedPatient.value.id)
-  } catch (err) {}
+  } catch (err) {
+    // La lista conserva los registros ya cargados si falla la recarga
+  }
 }
 
 const openCreateModal = () => {
@@ -265,7 +262,7 @@ const closeDetailModal = () => {
   selectedRecord.value = null
 }
 
-const handleRecordSaved = record => {
+const handleRecordSaved = () => {
   closeModal()
   loadPatientRecords()
 }
@@ -329,7 +326,9 @@ onMounted(() => {
           }
         })
     }
-  } catch (error) {}
+  } catch (error) {
+    // Sin WebSocket la lista sigue operativa vía fetch inicial
+  }
 })
 
 onUnmounted(() => {
@@ -337,7 +336,9 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('specialty-records')
-    } catch (e) {}
+    } catch (e) {
+      // El canal ya estaba cerrado, nada que limpiar
+    }
   }
 })
 </script>

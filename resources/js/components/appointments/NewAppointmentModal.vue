@@ -327,8 +327,6 @@ const loadData = async () => {
     dentalChairs.value = chairsRes?.data || []
 
     // Verificar si hay datos vacíos y notificar
-    if (patients.value.length === 0) {
-    }
     if (professionals.value.length === 0) {
       toast.warning('No se encontraron profesionales activos')
     }
@@ -503,7 +501,7 @@ onMounted(() => {
     patientsChannel = channel('patients')
     if (patientsChannel) {
       patientsChannel
-        .listen('.patient.created', async e => {
+        .listen('.patient.created', async () => {
           // Recargar todos los pacientes para incluir el nuevo
           await loadData()
         })
@@ -522,7 +520,9 @@ onMounted(() => {
           patients.value = patients.value.filter(p => p.id !== e.patient_id)
         })
     }
-  } catch (error) {}
+  } catch (error) {
+    // Sin WebSocket la lista se carga solo vía fetch inicial
+  }
 })
 
 onUnmounted(() => {
@@ -530,7 +530,9 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('patients')
-    } catch (e) {}
+    } catch (e) {
+      // El canal ya estaba cerrado, nada que limpiar
+    }
   }
 })
 </script>

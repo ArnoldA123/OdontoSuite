@@ -601,7 +601,6 @@ import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
-import { useConfirm } from '../../composables/useConfirm'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -645,21 +644,6 @@ export default {
     })
     const searchQuery = ref('')
     const statusFilter = ref('')
-    const statusFilterOptions = [
-      { value: '', label: 'Todos' },
-      { value: 'active', label: 'Activos' },
-      { value: 'inactive', label: 'Inactivos' }
-    ]
-    const genderOptions = [
-      { value: '', label: 'Seleccionar' },
-      { value: 'male', label: 'Masculino' },
-      { value: 'female', label: 'Femenino' },
-      { value: 'other', label: 'Otro' }
-    ]
-    const statusOptions = [
-      { value: true, label: 'Activo' },
-      { value: false, label: 'Inactivo' }
-    ]
     const showNewPatientModal = ref(false)
     const showEditPatientModal = ref(false)
     const editingPatientId = ref(null)
@@ -900,10 +884,10 @@ export default {
         const errors = error.response?.data?.errors
         let details = ''
         if (errors) {
-          details = '\n' + Object.values(errors).flat().join('\n')
+          details = `\n${Object.values(errors).flat().join('\n')}`
         }
         toast.error(
-          errorMsg + details,
+          `${errorMsg}${details}`,
           {
             duration: 8000,
             title: '✗ Error al Crear Paciente'
@@ -940,7 +924,7 @@ export default {
 
       updating.value = true
       try {
-        const response = await put(`/api/patients/${editingPatientId.value}`, editPatientData.value)
+        await put(`/api/patients/${editingPatientId.value}`, editPatientData.value)
         await loadPatients()
         showEditPatientModal.value = false
         resetEditPatient()
@@ -957,10 +941,10 @@ export default {
         const errors = error.response?.data?.errors
         let details = ''
         if (errors) {
-          details = '\n' + Object.values(errors).flat().join('\n')
+          details = `\n${Object.values(errors).flat().join('\n')}`
         }
         toast.error(
-          errorMsg + details,
+          `${errorMsg}${details}`,
           {
             duration: 8000,
             title: '✗ Error al Actualizar Paciente'
@@ -1146,6 +1130,7 @@ export default {
             })
         }
       } catch (error) {
+        // Sin WebSocket la lista sigue operativa vía fetch inicial
       }
     })
 
@@ -1155,6 +1140,7 @@ export default {
         try {
           echo.leave('patients')
         } catch (e) {
+          // El canal ya estaba cerrado, nada que limpiar
         }
       }
     })

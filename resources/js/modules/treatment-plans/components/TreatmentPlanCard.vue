@@ -162,7 +162,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'edit', 'duplicate', 'change-status', 'delete'])
+const emit = defineEmits(['view', 'edit', 'duplicate', 'changeStatus', 'delete'])
 
 const { user } = useAuth()
 const { confirm } = useConfirm()
@@ -240,7 +240,7 @@ const formatDate = date => {
 
 const changeStatus = status => {
   showStatusMenu.value = false
-  emit('change-status', props.plan.id, status)
+  emit('changeStatus', props.plan.id, status)
 }
 
 const confirmDelete = async () => {

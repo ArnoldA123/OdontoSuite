@@ -122,7 +122,9 @@ const handleSubmit = async () => {
     await approveQuotation(props.quotation.id, approvalData)
     emit('approved', props.quotation)
     closeModal()
-  } catch (err) {}
+  } catch (err) {
+    // El modal sigue abierto para reintentar la aprobación
+  }
 }
 
 const closeModal = () => {

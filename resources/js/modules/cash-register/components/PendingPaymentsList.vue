@@ -247,14 +247,7 @@ import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useApi } from '@/composables/useApi'
 import { formatCurrency } from '@/composables/useFormatters'
 
-const props = defineProps({
-  key: {
-    type: [String, Number],
-    default: 0
-  }
-})
-
-const emit = defineEmits(['payment', 'payments-loaded'])
+const emit = defineEmits(['payment', 'paymentsLoaded'])
 
 // Composables
 const { get } = useApi()
@@ -316,11 +309,11 @@ const loadPendingPayments = async () => {
     const response = await get('/api/cash-register/pending-payments', { params: filters.value })
     payments.value = response.data || []
     // Emitir los pagos cargados
-    emit('payments-loaded', payments.value)
+    emit('paymentsLoaded', payments.value)
   } catch (error) {
     // En caso de error, mostrar lista vacía
     payments.value = []
-    emit('payments-loaded', [])
+    emit('paymentsLoaded', [])
   } finally {
     loading.value = false
   }
@@ -371,12 +364,4 @@ watch(
 onMounted(() => {
   loadPendingPayments()
 })
-
-// Watch para recargar cuando cambie la key del componente
-watch(
-  () => props.key,
-  () => {
-    loadPendingPayments()
-  }
-)
 </script>

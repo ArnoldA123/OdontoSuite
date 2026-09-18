@@ -461,7 +461,7 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const { user, logout: authLogout, get } = useApi()
+    const { user, get } = useApi()
     const toast = useToast()
     const { channel, echo } = useEcho()
 
@@ -592,6 +592,7 @@ export default {
         reportData.value = response.data || []
         reportColumns.value = response.columns || []
       } catch (error) {
+        // Se conserva el reporte anterior si falla la carga
       } finally {
         loading.value = false
       }
@@ -611,13 +612,17 @@ export default {
         if (appointmentsChartInstance.value) {
           try {
             appointmentsChartInstance.value.destroy()
-          } catch (e) {}
+          } catch (e) {
+            // El gráfico anterior ya no es válido, se recrea abajo
+          }
           appointmentsChartInstance.value = null // Nullificar después de destruir
         }
         if (revenueChartInstance.value) {
           try {
             revenueChartInstance.value.destroy()
-          } catch (e) {}
+          } catch (e) {
+            // El gráfico anterior ya no es válido, se recrea abajo
+          }
           revenueChartInstance.value = null // Nullificar después de destruir
         }
 
@@ -637,8 +642,7 @@ export default {
         ) {
           try {
             const appointmentsCtx = appointmentsChart.value.getContext('2d')
-            if (!appointmentsCtx) {
-            } else {
+            if (appointmentsCtx) {
               appointmentsChartInstance.value = new Chart(appointmentsCtx, {
                 type: 'line',
                 data: {
@@ -668,8 +672,9 @@ export default {
                 }
               })
             }
-          } catch (error) {}
-        } else {
+          } catch (error) {
+            // Se conserva el gráfico anterior si falla la creación
+          }
         }
 
         // Verificar que el canvas esté disponible antes de crear chart
@@ -681,8 +686,7 @@ export default {
         if (dashboardData.value.revenueByMonth && dashboardData.value.revenueByMonth.length > 0) {
           try {
             const revenueCtx = revenueChart.value.getContext('2d')
-            if (!revenueCtx) {
-            } else {
+            if (revenueCtx) {
               revenueChartInstance.value = new Chart(revenueCtx, {
                 type: 'bar',
                 data: {
@@ -712,8 +716,9 @@ export default {
                 }
               })
             }
-          } catch (error) {}
-        } else {
+          } catch (error) {
+            // Se conserva el gráfico anterior si falla la creación
+          }
         }
       } catch (error) {
         // Continue without charts if Chart.js fails to load
@@ -800,15 +805,6 @@ export default {
       }
     }
 
-    const getMimeType = format => {
-      const mimeTypes = {
-        excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        csv: 'text/csv',
-        pdf: 'application/pdf'
-      }
-      return mimeTypes[format] || 'application/octet-stream'
-    }
-
     const getReportTitle = () => {
       const titles = {
         appointments: 'Reporte de Citas',
@@ -829,7 +825,6 @@ export default {
           router.push('/login')
           return
         }
-      } else {
       }
 
       await loadInitialData()
@@ -839,63 +834,65 @@ export default {
         dashboardChannel = channel('dashboard-updates')
         if (dashboardChannel) {
           dashboardChannel
-            .listen('.dashboard.stats-updated', async e => {
+            .listen('.dashboard.stats-updated', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.appointment.created', async e => {
+            .listen('.appointment.created', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.appointment.updated', async e => {
+            .listen('.appointment.updated', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.appointment.deleted', async e => {
+            .listen('.appointment.deleted', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.patient.created', async e => {
+            .listen('.patient.created', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.patient.updated', async e => {
+            .listen('.patient.updated', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.patient.deleted', async e => {
+            .listen('.patient.deleted', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.user.created', async e => {
+            .listen('.user.created', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.user.updated', async e => {
+            .listen('.user.updated', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.transaction.created', async e => {
+            .listen('.transaction.created', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
-            .listen('.transaction.updated', async e => {
+            .listen('.transaction.updated', async () => {
               if (selectedReport.value === 'dashboard') {
                 await loadDashboardData()
               }
             })
         }
-      } catch (error) {}
+      } catch (error) {
+        // WebSocket no disponible, se sigue con carga manual
+      }
     })
 
     onUnmounted(() => {
@@ -903,13 +900,17 @@ export default {
       if (appointmentsChartInstance.value) {
         try {
           appointmentsChartInstance.value.destroy()
-        } catch (e) {}
+        } catch (e) {
+          // El gráfico ya fue destruido, se continúa con la limpieza
+        }
         appointmentsChartInstance.value = null
       }
       if (revenueChartInstance.value) {
         try {
           revenueChartInstance.value.destroy()
-        } catch (e) {}
+        } catch (e) {
+          // El gráfico ya fue destruido, se continúa con la limpieza
+        }
         revenueChartInstance.value = null
       }
 
@@ -917,7 +918,9 @@ export default {
       if (echo) {
         try {
           echo.leave('dashboard-updates')
-        } catch (e) {}
+        } catch (e) {
+          // Error al limpiar suscripción, se ignora en desmontaje
+        }
       }
     })
 

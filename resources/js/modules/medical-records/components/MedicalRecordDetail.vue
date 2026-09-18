@@ -133,7 +133,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'edit', 'add-evolution', 'upload-attachment'])
+const emit = defineEmits(['close', 'edit', 'addEvolution', 'uploadAttachment'])
 
 const { can } = usePermissions()
 
@@ -161,11 +161,11 @@ const formatDate = date => {
 }
 
 const addEvolution = () => {
-  emit('add-evolution', props.record)
+  emit('addEvolution', props.record)
 }
 
 const uploadAttachment = () => {
-  emit('upload-attachment', props.record)
+  emit('uploadAttachment', props.record)
 }
 </script>
 

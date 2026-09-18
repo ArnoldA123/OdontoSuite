@@ -177,11 +177,11 @@ const handleFileSelect = event => {
   addFiles(selectedFiles)
 }
 
-const handleDragOver = event => {
+const handleDragOver = () => {
   isDragOver.value = true
 }
 
-const handleDragLeave = event => {
+const handleDragLeave = () => {
   isDragOver.value = false
 }
 

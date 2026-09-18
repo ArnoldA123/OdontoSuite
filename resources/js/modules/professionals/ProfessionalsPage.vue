@@ -422,15 +422,12 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
-import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
-import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
-import UiEmptyState from '../../components/ui/EmptyState.vue'
 
 export default {
   name: 'ProfessionalsPage',
@@ -438,10 +435,8 @@ export default {
     AppLayout,
     UiButton,
     UiInput,
-    UiSelect,
     UiCard,
-    UiModal,
-    UiEmptyState
+    UiModal
   },
   setup() {
     const router = useRouter()

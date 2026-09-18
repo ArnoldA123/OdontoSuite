@@ -127,7 +127,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useQuotations } from '@/composables/useQuotations'
-import { useAuth } from '@/composables/useAuth'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -144,19 +143,15 @@ import Pagination from '@/components/ui/Pagination.vue'
 import { PlusIcon, MagnifyingGlassIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
 
 // Composables
-const { user } = useAuth()
 const { channel, echo } = useEcho()
 const toast = useToast()
 const {
   quotations,
   loading,
-  error,
   hasQuotations,
   totalPages,
   currentPage,
   getQuotations,
-  createQuotation,
-  updateQuotation,
   deleteQuotation,
   approveQuotation,
   rejectQuotation,
@@ -220,12 +215,12 @@ const closeApprovalModal = () => {
   selectedQuotation.value = null
 }
 
-const handleQuotationSaved = quotation => {
+const handleQuotationSaved = () => {
   closeModal()
   loadQuotations()
 }
 
-const handleQuotationApproved = quotation => {
+const handleQuotationApproved = () => {
   closeApprovalModal()
   loadQuotations()
 }
@@ -252,7 +247,9 @@ const loadQuotations = async (additionalFilters = {}) => {
   try {
     const allFilters = { ...filters.value, ...additionalFilters }
     await getQuotations(allFilters)
-  } catch (err) {}
+  } catch (err) {
+    // La lista conserva los presupuestos ya cargados si falla la recarga
+  }
 }
 
 // WebSocket subscriptions
@@ -267,7 +264,7 @@ onMounted(() => {
     quotationsChannel = channel('quotations')
     if (quotationsChannel) {
       quotationsChannel
-        .listen('.quotation.created', async e => {
+        .listen('.quotation.created', async () => {
           // Recargar lista para incluir el nuevo presupuesto
           await loadQuotations()
           toast.success('Nuevo presupuesto creado')
@@ -294,7 +291,9 @@ onMounted(() => {
           toast.success('Presupuesto aprobado', { duration: 6000 })
         })
     }
-  } catch (error) {}
+  } catch (error) {
+    // Sin WebSocket la lista sigue operativa vía fetch inicial
+  }
 })
 
 onUnmounted(() => {
@@ -302,7 +301,9 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('quotations')
-    } catch (e) {}
+    } catch (e) {
+      // El canal ya estaba cerrado, nada que limpiar
+    }
   }
 })
 </script>

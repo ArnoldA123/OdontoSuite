@@ -266,7 +266,9 @@ export function useCashRegister() {
 
       subscribedSessionId = sessionId
       subscriberCount = Math.max(subscriberCount, 1)
-    } catch (error) {}
+    } catch (error) {
+      // Sin WebSocket la caja sigue operativa vía polling manual
+    }
   }
 
   // Suscribirse al canal privado de la sesión
@@ -277,17 +279,19 @@ export function useCashRegister() {
       cashSessionChannel = privateChannel(`cash-session.${sessionId}`)
       if (cashSessionChannel) {
         cashSessionChannel
-          .listen('.payment.registered', async e => {
+          .listen('.payment.registered', async () => {
             await loadCurrentSession()
           })
-          .listen('.cash-movement.created', async e => {
+          .listen('.cash-movement.created', async () => {
             await loadCurrentSession()
           })
-          .listen('.transaction.created', async e => {
+          .listen('.transaction.created', async () => {
             await loadCurrentSession()
           })
       }
-    } catch (error) {}
+    } catch (error) {
+      // Sin canal privado la sesión sigue operativa vía canal público
+    }
   }
 
   // Limpiar suscripciones WebSocket
@@ -303,7 +307,9 @@ export function useCashRegister() {
       cashRegisterChannel = null
       subscribedSessionId = null
       subscriberCount = 0
-    } catch (error) {}
+    } catch (error) {
+      // La limpieza de canales es best-effort, el estado local ya se reseteó
+    }
   }
 
   // Watch para suscribirse cuando hay sesión activa

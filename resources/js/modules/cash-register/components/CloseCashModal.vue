@@ -61,7 +61,7 @@
               v-model="formData.closing_amount"
               label="Monto Real en Caja"
               placeholder="0.00"
-              :required="true"
+              required
               :min="0"
               :precision="2"
               :error="errors.closing_amount"
@@ -258,7 +258,7 @@ variant="secondary" :disabled="loading" @click="$emit('close')"
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'

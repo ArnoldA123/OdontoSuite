@@ -210,7 +210,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive } from 'vue'
 import { useAiAnalysis } from '@/composables/useAiAnalysis'
 import {
   CpuChipIcon,
@@ -229,7 +229,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'review'])
 
-const { getStatusLabel, getReviewDecisionLabel, getConfidenceColor, formatDate } = useAiAnalysis()
+const { getStatusLabel, getReviewDecisionLabel, formatDate } = useAiAnalysis()
 
 // Review form
 const reviewForm = reactive({

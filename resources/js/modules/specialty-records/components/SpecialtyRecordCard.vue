@@ -138,14 +138,14 @@ import { computed } from 'vue'
 import { usePermissions } from '@/composables/usePermissions'
 import { EyeIcon, PencilIcon, TrashIcon, UserIcon } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   record: {
     type: Object,
     required: true
   }
 })
 
-const emit = defineEmits(['view', 'edit', 'delete'])
+defineEmits(['view', 'edit', 'delete'])
 
 const { can } = usePermissions()
 

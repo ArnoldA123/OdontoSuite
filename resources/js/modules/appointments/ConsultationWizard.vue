@@ -75,7 +75,7 @@ viewBox="0 0 24 24">
                     :variant="modeBadgeVariant(opt.value)"
                     :label="opt.label"
                     size="sm"
-                    :show-dot="true"
+                    show-dot
                   />
                 </div>
                 <div class="font-semibold text-theme-primary">
@@ -942,7 +942,9 @@ const handleSubmit = async () => {
       quotation_generated: !!result?.meta?.quotation_generated
     })
     handleClose()
-  } catch (e) {}
+  } catch (e) {
+    // submit ya muestra el toast de error
+  }
 }
 
 const formatDateTime = iso => {
