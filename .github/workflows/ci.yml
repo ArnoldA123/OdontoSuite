@@ -142,6 +142,24 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      # Node suites (ShapeMorph, StateHandling, TokensModule...) import
+      # composables that resolve 'vue' via node_modules. Without this step
+      # the ESM import throws ERR_MODULE_NOT_FOUND and the tests fail with
+      # misleading TypeErrors (sibling of #65: runner lacks what tests assume).
+      # Ordering: pnpm BEFORE setup-node, same as quality (cache key shells
+      # out to `pnpm store path`). Version from .nvmrc, single source.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Install ripgrep (source-grep guards, issue #65)
         run: |
           if ! command -v rg >/dev/null 2>&1; then
