@@ -152,7 +152,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'edit'])
+defineEmits(['close', 'edit'])
 
 const { downloadPDF, approveQuotation, rejectQuotation, loading } = useQuotations()
 const { can } = usePermissions()
@@ -204,28 +204,6 @@ const getStatusLabel = status => {
   return labels[status] || 'Desconocido'
 }
 
-const handleDownloadPDF = async () => {
-  try {
-    await downloadPDF(props.quotation.id)
-  } catch (err) {}
-}
-
-const handleApprove = async () => {
-  try {
-    await approveQuotation(props.quotation.id)
-    emit('close')
-  } catch (err) {}
-}
-
-const handleReject = async () => {
-  const reason = prompt('Motivo del rechazo:')
-  if (reason) {
-    try {
-      await rejectQuotation(props.quotation.id, reason)
-      emit('close')
-    } catch (err) {}
-  }
-}
 </script>
 
 <style scoped>

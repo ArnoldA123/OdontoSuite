@@ -121,7 +121,7 @@ const displayValue = computed({
       return formatCurrency(numericValue.value)
     }
   },
-  set(value) {
+  set() {
     // No hacer nada aquí, se maneja en handleInput
   }
 })

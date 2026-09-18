@@ -72,7 +72,7 @@
             <button
               type="button"
               class="reset-link"
-              @click="emit('request-reset', lastSubmittedEmail)"
+              @click="emit('requestReset', lastSubmittedEmail)"
             >
               ¿Ya tienes el código? Restablecer contraseña
             </button>
@@ -137,7 +137,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'success', 'request-reset'])
+const emit = defineEmits(['update:modelValue', 'success', 'requestReset'])
 
 const { post } = useApi()
 

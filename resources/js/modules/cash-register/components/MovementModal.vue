@@ -50,7 +50,7 @@
             v-model="formData.amount"
             label="Monto"
             placeholder="0.00"
-            :required="true"
+            required
             :min="0.01"
             :precision="2"
             :error="errors.amount"

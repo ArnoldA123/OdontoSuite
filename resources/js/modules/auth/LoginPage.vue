@@ -84,7 +84,6 @@
                     <div class="field-input-wrap">
                       <input
                         id="login-username"
-                        ref="usernameInput"
                         v-model="form.username"
                         type="text"
                         name="username"
@@ -310,7 +309,7 @@
                       size="lg"
                       :loading="state === 'authenticating'"
                       :disabled="state === 'success' || state === 'authenticating'"
-                      :full-width="true"
+                      full-width
                       :data-magnetic="magnetEnabled"
                       data-state="shape-morph"
                       class="login-submit-shape"

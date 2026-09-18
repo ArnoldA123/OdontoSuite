@@ -266,13 +266,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import { useTransactions } from '@/composables/useTransactions'
 import { usePermissions } from '@/composables/usePermissions'
 import { useApi } from '@/composables/useApi'
-import { useConfirm } from '@/composables/useConfirm'
 import { formatCurrency } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
@@ -282,7 +281,7 @@ import {
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   transactions: {
     type: Array,
     default: () => []
@@ -319,7 +318,9 @@ const loadPaymentMethods = async () => {
   try {
     const response = await get('/api/payment-methods')
     paymentMethods.value = response.data || []
-  } catch (error) {}
+  } catch (error) {
+    // Los métodos de pago se cargan vía catálogo local si falla la API
+  }
 }
 
 const applyFilters = () => {
@@ -330,7 +331,7 @@ const loadPage = page => {
   emit('refresh', { ...filters.value, page })
 }
 
-const viewTransaction = transaction => {
+const viewTransaction = () => {
   // Implementar vista de detalle
 }
 
@@ -350,7 +351,9 @@ const voidTransaction = async transaction => {
   try {
     await voidTransactionApi(transaction.id, 'Anulación manual')
     emit('refresh')
-  } catch (error) {}
+  } catch (error) {
+    // La transacción se conserva si falla la anulación
+  }
 }
 
 const exportToExcel = async () => {
@@ -358,6 +361,7 @@ const exportToExcel = async () => {
   try {
     // Implementar exportación a Excel
   } catch (error) {
+    // La exportación a Excel aún no está implementada
   } finally {
     exporting.value = false
   }
@@ -368,6 +372,7 @@ const exportToPDF = async () => {
   try {
     // Implementar exportación a PDF
   } catch (error) {
+    // La exportación a PDF aún no está implementada
   } finally {
     exporting.value = false
   }

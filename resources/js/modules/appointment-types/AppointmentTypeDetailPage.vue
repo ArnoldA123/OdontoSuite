@@ -246,11 +246,6 @@ import { useAuditLogs } from '../../composables/useAuditLogs'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
-// Fallback swatch for a type with no colour set. It used to fall back to
-// `#0066CC`, the retired iCloud blue — a colour the app no longer contains.
-import { colors } from '../../design-system/tokens.js'
-
-const DEFAULT_TYPE_COLOR = colors.accent[500]
 import UiButton from '../../components/ui/Button.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiTabs from '../../components/ui/Tabs.vue'
@@ -330,7 +325,9 @@ export default {
       if (!appointmentType.value) return
       try {
         await getAppointmentTypeAuditLogs(appointmentType.value.id)
-      } catch (error) {}
+      } catch (error) {
+        // La auditoría es informativa, el detalle sigue visible sin ella
+      }
     }
 
     // PR-citas-04 — Thin wrapper around the canonical `formatCurrency` from

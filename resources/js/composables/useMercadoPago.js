@@ -20,6 +20,7 @@ export function useMercadoPago () {
   let sdkPromise = null
 
   const loadSdk = (publicKey = null) => {
+    void publicKey // La key la consume el backend vía preferenceId (FF-002), se conserva la firma
     if (sdkLoaded.value) return Promise.resolve(window.MercadoPago)
     if (sdkPromise) return sdkPromise
 

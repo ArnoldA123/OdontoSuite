@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useNotifications } from '@/composables/useNotifications'
 import {
   BellIcon,

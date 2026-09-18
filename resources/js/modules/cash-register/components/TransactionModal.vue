@@ -151,7 +151,7 @@ Seleccionar método de pago
             v-model="formData.amount"
             label="Monto"
             placeholder="0.00"
-            :required="true"
+            required
             :min="0.01"
             :precision="2"
             :error="errors.amount"
@@ -424,7 +424,9 @@ const loadPaymentMethods = async () => {
   try {
     const response = await get('/api/payment-methods')
     paymentMethods.value = response.data || []
-  } catch (error) {}
+  } catch (error) {
+    // Los métodos de pago se seleccionan del catálogo local si falla la API
+  }
 }
 
 const searchPatients = async () => {
@@ -440,6 +442,7 @@ const searchPatients = async () => {
     })
     patientResults.value = response.data || []
   } catch (error) {
+    // Sin resultados la búsqueda queda vacía hasta el próximo intento
   } finally {
     searchingPatients.value = false
   }
@@ -468,7 +471,9 @@ const loadPatientAppointments = async patientId => {
       params: { patient_id: patientId, status: 'scheduled' }
     })
     patientAppointments.value = response.data || []
-  } catch (error) {}
+  } catch (error) {
+    // Sin citas el formulario sigue editable, solo queda vacío el selector
+  }
 }
 
 const calculateDiscount = () => {

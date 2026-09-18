@@ -829,7 +829,7 @@ Sin cambios registrados
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
@@ -998,6 +998,7 @@ export default {
         const response = await get(`/api/treatment-plans?patient_id=${patient.value.id}`)
         treatmentPlans.value = response.data
       } catch (error) {
+        // La ficha sigue visible con las demás secciones aunque fallen los planes
       } finally {
         treatmentPlansLoading.value = false
       }
@@ -1010,6 +1011,7 @@ export default {
         const response = await get(`/api/quotations?patient_id=${patient.value.id}`)
         quotations.value = response.data
       } catch (error) {
+        // La ficha sigue visible con las demás secciones aunque fallen los presupuestos
       } finally {
         quotationsLoading.value = false
       }
@@ -1022,6 +1024,7 @@ export default {
         const response = await get(`/api/medical-records?patient_id=${patient.value.id}`)
         medicalRecords.value = response.data
       } catch (error) {
+        // La ficha sigue visible con las demás secciones aunque fallen las historias
       } finally {
         medicalRecordsLoading.value = false
       }
@@ -1034,6 +1037,7 @@ export default {
         const response = await get(`/api/specialty-records/patient/${patient.value.id}/all`)
         specialtyRecords.value = response.data
       } catch (error) {
+        // La ficha sigue visible con las demás secciones aunque fallen los registros
       } finally {
         specialtyRecordsLoading.value = false
       }
@@ -1469,7 +1473,9 @@ export default {
                 }
               })
           }
-        } catch (error) {}
+        } catch (error) {
+          // Sin WebSocket la ficha sigue operativa vía fetch inicial
+        }
       }
     })
 
@@ -1482,7 +1488,9 @@ export default {
           echo.leave('quotations')
           echo.leave('medical-records')
           echo.leave('specialty-records')
-        } catch (e) {}
+        } catch (e) {
+          // Los canales ya estaban cerrados, nada que limpiar
+        }
       }
     })
 

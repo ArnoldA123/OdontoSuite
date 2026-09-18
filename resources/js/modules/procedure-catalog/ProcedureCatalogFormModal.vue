@@ -230,7 +230,8 @@ const onSubmit = async () => {
   try {
     let result
     if (isEdit.value) {
-      const { code: _code, ...payload } = form.value
+      const { code, ...payload } = form.value
+      void code // Se excluye el código del payload de actualización sin mutar el form
       result = await updateProcedure(props.procedure.id, payload)
     } else {
       result = await createProcedure(form.value)

@@ -122,7 +122,7 @@ viewBox="0 0 24 24">
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useSpecialties } from '../../composables/useSpecialties'

@@ -302,10 +302,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import { useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
 import { formatCurrency } from '@/composables/useFormatters'
 import {
@@ -318,7 +317,7 @@ import {
   PrinterIcon
 } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   summary: {
     type: Object,
     default: null
@@ -329,7 +328,6 @@ const props = defineProps({
   }
 })
 const emit = defineEmits(['export'])
-const { post } = useApi()
 const toast = useToast()
 
 // Estado

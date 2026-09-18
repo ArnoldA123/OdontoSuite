@@ -501,14 +501,11 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
-import { useConfirm } from '../../composables/useConfirm'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiInput from '../../components/ui/Input.vue'
-import UiSelect from '../../components/ui/Select.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
@@ -520,15 +517,13 @@ export default {
     AppLayout,
     UiCard,
     UiButton,
-    UiInput,
-    UiSelect,
     UiStatusBadge,
     NewAppointmentModal,
     ConsultationWizard
   },
   setup() {
     const router = useRouter()
-    const { get, post, put, del } = useApi()
+    const { get, del } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
@@ -636,12 +631,13 @@ export default {
             month: 'long',
             day: 'numeric'
           })
-        case 'week':
+        case 'week': {
           const startOfWeek = new Date(date)
           startOfWeek.setDate(date.getDate() - date.getDay() + 1)
           const endOfWeek = new Date(startOfWeek)
           endOfWeek.setDate(startOfWeek.getDate() + 6)
           return `${startOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        }
         case 'month':
           return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
         default:
@@ -673,7 +669,6 @@ export default {
       const month = date.getMonth()
 
       const firstDay = new Date(year, month, 1)
-      const lastDay = new Date(year, month + 1, 0)
       const startDate = new Date(firstDay)
       startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
 
@@ -748,12 +743,12 @@ export default {
     const loadAppointments = async () => {
       loading.value = true
       try {
-        const { start_date, end_date } = getDateRangeForCurrentView()
+        const dateRange = getDateRangeForCurrentView()
 
         const response = await get('/api/appointments', {
           params: {
-            start_date,
-            end_date,
+            start_date: dateRange.start_date,
+            end_date: dateRange.end_date,
             per_page: 1000 // Obtener todas las citas del rango sin paginación
           }
         })
@@ -761,9 +756,6 @@ export default {
         // La API devuelve { data: [...], meta: {...} }
         // useApi ya parsea el JSON, por lo que response.data es el array directamente
         appointments.value = response?.data || []
-
-        if (appointments.value.length === 0) {
-        }
       } catch (error) {
         toast.error('Error al cargar las citas')
         appointments.value = []
@@ -1011,7 +1003,7 @@ export default {
         appointmentsChannel = channel('appointments')
         if (appointmentsChannel) {
           appointmentsChannel
-            .listen('.appointment.created', async e => {
+            .listen('.appointment.created', async () => {
               await loadAppointments()
               toast.success('Nueva cita agregada')
             })
@@ -1028,7 +1020,9 @@ export default {
               toast.success('Cita eliminada')
             })
         }
-      } catch (error) {}
+      } catch (error) {
+        // WebSocket no disponible, se sigue con polling manual
+      }
     })
 
     onUnmounted(() => {
@@ -1036,7 +1030,9 @@ export default {
       if (echo) {
         try {
           echo.leave('appointments')
-        } catch (e) {}
+        } catch (e) {
+          // Error al limpiar suscripción, se ignora en desmontaje
+        }
       }
     })
 

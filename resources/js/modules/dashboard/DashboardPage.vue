@@ -853,7 +853,6 @@ import { useAuth } from '@/composables/useAuth'
 // custom property. Stagger: 0ms / 60ms / 120ms / 180ms post-mount.
 // Critically damped (damping 1.0) by default - no overshoot on a
 // non-momentum entrance.
-import { useSpring } from '../../composables/useSpring'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
@@ -932,27 +931,6 @@ const chipToneClass = deltaLabel => {
 // prefers-reduced-motion internally - the springs collapse to instant
 // settle when the OS preference is on (see composables/useSpring.js
 // contract, item 6).
-const greetingSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-greeting-o'
-})
-const kpiSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-kpi-o'
-})
-const quickActionsSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-quick-o'
-})
-const emptyStateSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-empty-o'
-})
-
 // Utility functions
 const getGreeting = () => {
   const hour = new Date().getHours()
@@ -1002,19 +980,6 @@ const getShortTodayDate = () => {
   const day = now.getDate()
   const month = months[now.getMonth()]
   return `${day} de ${month}`
-}
-
-const getRoleLabel = role => {
-  const labels = {
-    administrador: 'Administrador',
-    recepcionista: 'Recepcionista',
-    odontologo: 'Odontólogo',
-    implantologo: 'Implantólogo',
-    tecnico_dental: 'Técnico Dental',
-    asistente: 'Asistente',
-    finanzas: 'Finanzas'
-  }
-  return labels[role] || role
 }
 
 const formatTime = dateTime => {
@@ -1132,10 +1097,6 @@ const cashBalanceText = computed(() => {
 
 const goToEnvironments = () => {
   router.push('/environments')
-}
-
-const goToAppointmentTypes = () => {
-  router.push('/appointment-types')
 }
 
 const goToBusinessIntelligence = () => {

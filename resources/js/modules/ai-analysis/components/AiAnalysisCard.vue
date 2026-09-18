@@ -115,9 +115,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'review', 'delete'])
+defineEmits(['view', 'review', 'delete'])
 
-const { getStatusLabel, getReviewDecisionLabel, getConfidenceColor, formatDate } = useAiAnalysis()
+const { getStatusLabel, getReviewDecisionLabel, formatDate } = useAiAnalysis()
 
 // Computed
 const mainFindings = computed(() => {

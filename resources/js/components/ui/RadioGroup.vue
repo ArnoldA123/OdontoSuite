@@ -21,8 +21,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-
 const props = defineProps({
   label: String,
   name: { type: String, required: true },

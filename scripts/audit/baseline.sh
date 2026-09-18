@@ -73,6 +73,9 @@ scripts/audit/baseline.sh — axis A1 of plan #12
   bash scripts/audit/baseline.sh --check FILE        re-measure and diff against FILE
   bash scripts/audit/baseline.sh --explain-database-guard [ENV_FILE]
                                                      print the data-loss guard decision
+  bash scripts/audit/baseline.sh --mask-secrets      mask DB_PASSWORD on stdin (diagnostic)
+  bash scripts/audit/baseline.sh --read-counters FILE
+                                                     print the counters block FILE carries (diagnostic)
 
 Exit codes: 0 complete, 1 a claimed counter differs, 2 usage error, 3 partial.
 USAGE
@@ -141,9 +144,37 @@ env_value() {
 
 # The artifact is written to disk and quoted into documents, so a password does
 # not belong in it. This is the one field where the recorded command stops being
-# verbatim. A password containing a space would be masked only up to that space.
+# verbatim. The secret runs from `DB_PASSWORD=` to the next `KEY=` assignment or
+# to the end of the line: the recorded command is `$*`, where quoting is gone,
+# so a password with a space spans several words and masking to the first space
+# printed the rest (`DB_PASSWORD=*** bar`). A password that itself contains
+# ` WORD=` still ends the mask early; that shape cannot be recovered from `$*`
+# and is noted rather than solved here.
 mask_secrets() {
-  sed -E 's/(DB_PASSWORD=)[^ ]*/\1***/g'
+  local line tail out word
+  while IFS= read -r line || [ -n "${line:-}" ]; do
+    tail=$line
+    out=""
+    while [[ $tail == *"DB_PASSWORD="* ]]; do
+      out+="${tail%%DB_PASSWORD=*}DB_PASSWORD=***"
+      tail="${tail#*DB_PASSWORD=}"
+      while [[ $tail == " "* ]]; do tail="${tail# }"; done
+      while [ -n "$tail" ]; do
+        word="${tail%% *}"
+        case "$word" in
+          [A-Z_][A-Z0-9_]*=*) break ;;
+        esac
+        if [ "$tail" = "$word" ]; then
+          tail=""
+        else
+          tail="${tail#* }"
+        fi
+      done
+      if [ -n "$tail" ]; then out+=" "; fi
+    done
+    out+="$tail"
+    printf '%s\n' "$out"
+  done
 }
 
 # record <key> <value> <command> — one TSV row per counter.
@@ -201,12 +232,38 @@ read_fenced_counters() {
       // braces share the line with the fence is still readable. An earlier
       // generator wrote `}``` ` on one line and this guard could not read the
       // artifact it had just produced.
-      const match = text.match(/```json\s*\n([\s\S]*?)```/)
-      if (!match) {
+      const blocks = [...text.matchAll(/```json\s*\n([\s\S]*?)```/g)].map((m) => m[1])
+      if (blocks.length === 0) {
         console.error("no fenced json counters block found in " + process.argv[1])
         process.exit(3)
       }
-      process.stdout.write(match[1])
+      // A document may carry other ```json blocks (examples, configs). The
+      // counters block is the one whose object holds `counters`: the first
+      // block won before, so a document with an unrelated block on top was
+      // read as a foreign object and every comparison below was noise.
+      let chosen = null
+      for (const block of blocks) {
+        try {
+          const parsed = JSON.parse(block)
+          if (parsed && typeof parsed === "object" && parsed.counters && typeof parsed.counters === "object") {
+            chosen = block
+            break
+          }
+        } catch (error) { /* not JSON, keep looking */ }
+      }
+      if (chosen === null && blocks.length === 1) {
+        // A single block stays readable even without the wrapper, which keeps
+        // documents quoting bare counters working.
+        try {
+          JSON.parse(blocks[0])
+          chosen = blocks[0]
+        } catch (error) { /* falls through to the error below */ }
+      }
+      if (chosen === null) {
+        console.error("no fenced json counters block found in " + process.argv[1])
+        process.exit(3)
+      }
+      process.stdout.write(chosen)
     }
   ' "$1"
 }
@@ -499,7 +556,13 @@ check() {
 
   local check_dir="$RAW_DIR/check-$(basename "$target" | tr -c 'A-Za-z0-9._-' '_')"
   mkdir -p "$check_dir" || exit 2
-  measure "$check_dir/counters.txt"
+  # BASELINE_CHECK_STUB points at a ready-made counters.txt and skips the live
+  # measurement, which is what makes --check testable without running every gate.
+  if [ -n "${BASELINE_CHECK_STUB:-}" ]; then
+    cp "$BASELINE_CHECK_STUB" "$check_dir/counters.txt" || exit 2
+  else
+    measure "$check_dir/counters.txt"
+  fi
 
   local claimed measured
   claimed=$(read_fenced_counters "$target" 2>/dev/null) || {
@@ -522,10 +585,17 @@ check() {
       .filter((key) => !ignored.has(key))
       .sort()
     const differences = []
+    const label = (value) => (value === "" ? "(unmeasured)" : value)
     for (const key of keys) {
       const a = claimed[key]
       const b = measured[key]
-      if (a !== b) differences.push({ key, claimed: a, measured: b })
+      // An empty counter was never measured: a gate that fails leaves its
+      // record empty. Two runs that both failed to measure prove nothing, so
+      // an empty side never matches and the guard fails closed instead of
+      // passing without measuring.
+      if (a === "" || b === "") {
+        differences.push({ key, claimed: label(a), measured: label(b) })
+      } else if (a !== b) differences.push({ key, claimed: a, measured: b })
     }
     if (differences.length === 0) {
       console.log(`OK: ${keys.length} counter(s) match in ${process.argv[3]}`)
@@ -655,10 +725,13 @@ explain_database_guard() {
 
 MODE=capture
 CHECK_TARGET=""
+READ_TARGET=""
 GUARD_ENV=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --check) MODE=check; CHECK_TARGET=${2:-}; shift 2 ;;
+    --mask-secrets) MODE=mask; shift ;;
+    --read-counters) MODE=read; READ_TARGET=${2:-}; shift 2 ;;
     --explain-database-guard)
       MODE=guard
       shift
@@ -673,6 +746,12 @@ done
 if [ "$MODE" = check ]; then
   [ -n "$CHECK_TARGET" ] || { echo "--check requires a file" >&2; exit 2; }
   check "$CHECK_TARGET"
+elif [ "$MODE" = mask ]; then
+  mask_secrets
+elif [ "$MODE" = read ]; then
+  [ -n "$READ_TARGET" ] || { echo "--read-counters requires a file" >&2; exit 2; }
+  [ -f "$READ_TARGET" ] || { echo "no such file: $READ_TARGET" >&2; exit 2; }
+  read_fenced_counters "$READ_TARGET"
 elif [ "$MODE" = guard ]; then
   explain_database_guard "$GUARD_ENV"
 else

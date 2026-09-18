@@ -127,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
 import { XMarkIcon, CloudArrowUpIcon, DocumentIcon } from '@heroicons/vue/24/outline'
 

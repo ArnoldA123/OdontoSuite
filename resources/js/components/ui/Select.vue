@@ -286,13 +286,6 @@ const selectedOption = computed(() => {
   return props.options?.find(option => option.value === value) || null
 })
 
-const selectedOptions = computed(() => {
-  if (!props.multiple) return []
-
-  const values = Array.isArray(props.modelValue) ? props.modelValue : []
-  return props.options?.filter(option => values.includes(option.value)) || []
-})
-
 const filteredOptions = computed(() => {
   if (!props.searchable || !searchQuery.value) return props.options || []
 

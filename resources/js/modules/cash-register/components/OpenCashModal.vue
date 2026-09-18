@@ -53,7 +53,7 @@
           v-model="formData.opening_amount"
           label="Monto de Apertura"
           placeholder="0.00"
-          :required="true"
+          required
           :min="0"
           :precision="2"
           :error="errors.opening_amount"

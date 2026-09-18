@@ -1,6 +1,6 @@
 # AGENTS.md — OdontoSuite V2
 
-> **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart, stack, comandos, estructura, convenciones, troubleshooting y planes cerrados. Actualizado al 2026-08-05 tras aplicar el slice 11 del change `bugfix-2026-08` (docs sync + polish).
+> **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart, stack, comandos, estructura, convenciones, troubleshooting y planes cerrados. Actualizado al 2026-09-18 tras el fix de #21 (docs drift: §4, §6, §11, §12 con valores medidos).
 
 ---
 
@@ -86,13 +86,13 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 36 controllers API
+  Http/Controllers/Api/    # 32 controllers API (31 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 47 modelos Eloquent
+  Models/                  # 50 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
   Events/                  # 33 eventos (10 con listener cableado + 21 con consumer WS, 2 sin dispatch)
-  Listeners/               # 9 listener classes; 13 cableos en AppServiceProvider::boot
+  Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
 
@@ -108,7 +108,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 98 migraciones
+  migrations/              # 111 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -117,7 +117,7 @@ database/
   seeders/_legacy/         # 24 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
-  api.php                  # 148 rutas
+  api.php                  # 194 rutas API (medido con php artisan route:list --json: uris api/…; 207 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -167,7 +167,7 @@ docs/
 
 ### ✅ Todo funcional (3 planes cerrados, 22 hallazgos resueltos)
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía MAIL_MAILER=log)
-- 47 modelos, 36 controllers, 33 eventos (9 listener classes / 13 cableos en AppServiceProvider)
+- 50 modelos, 32 controllers API, 33 eventos (10 listener classes / 13 cableos en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
@@ -188,8 +188,8 @@ docs/
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 - **Los tests que tocan la BD fallan en SQLite local.** La causa es que SQLite no puede aplicar cierto DDL de las migraciones — concretamente eliminar una columna referenciada por un índice: `alter table "transactions" drop column "type"` falla con `error in index idx_transactions_patient_type_status`. Una sola migración rompe el esquema y arrastra a **todos** los tests que lo tocan. **El número de fallos no se cita aquí a propósito**: cambia con cada migración nueva y una cifra escrita en la documentación deriva sola (esta línea decía 28 y eran 45). En CI con MySQL (ya configurado) pasan. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
-- **26 eventos huérfanos** marcados con `@deprecated` (no tienen listener). Solo los 10 que necesitan listener activo lo tienen. Los 26 se mantienen por si se cablean en el futuro.
-- **`ReminderController` y `ReminderTemplateController`**: stubs vacíos que devuelven 501. Las rutas apiResource están activas pero los métodos no implementan CRUD. `WaitingListController::update()` y `destroy()` también 501.
+- **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007) y `ProcedureCatalog.php:24` (`legacy_specialty`, ADR-0008).
+- **Reminders con CRUD real, WaitingList eliminada.** `ReminderController` y `ReminderTemplateController` implementan CRUD completo desde el slice 03. `WaitingListController` no existe: fue eliminado en el slice 04 y sus endpoints devuelven 404 (guardado por `StubsRemovedEndpointsTest`).
 - **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
 - **`procedure_catalog.legacy_specialty`**: conservado en BD por compatibilidad. Sprint 2 DM-7 lo deprecó formalmente, creó accessor `specialty_code`. Plan de drop documentado en ADR-0008.
 - **3 FormRequests no migrables** (documentado en Sprint 5 del plan de inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline), `StoreQuotationRequest` (requiere `patient_id` que rompe path `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del controller.
@@ -289,13 +289,14 @@ docs/
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 36 controllers API, 47 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que pasan. La deuda restante (tests que tocan la BD y fallan en SQLite local, 26 eventos @deprecated, stubs 501) está documentada y no bloquea producción.
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y broadcasting. Auth Sanctum con tokens bearer. Estado global via composables. Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que pasan. La deuda restante (tests que tocan la BD y fallan en SQLite local) está documentada y no bloquea producción.
 
 ---
 
 ## 12. Changelog de AGENTS.md
 
-- **2026-08-05 (Slice 11)** — Actualizado tras aplicar slice 11 de `bugfix-2026-08`. Datos: §4 lista ahora 13 seeders activos (antes 11 — añadidos `BranchSeeder` + `PaymentMethodSeeder`), §4 listeners corregido a "9 listener classes, 13 cableos" (antes "7 listeners"), §6 añade workaround SQLite (`docker compose up -d mysql` + `--group=mysql`), §12 changelog sincronizado. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida los 4 invariantes en CI.
+- **2026-09-18 (Fix #21)** — Deriva de docs corregida con valores medidos: §4 (32 controllers API, 50 modelos, 111 migraciones, 194 rutas API, 10 listener classes), §6 (0 eventos `@deprecated` huérfanos; reminders con CRUD real; `WaitingListController` eliminado en slice 04), §11 sincronizado. Nuevo guard `scripts/audit/doc-drift.mjs` (falla con el diff ante cualquier deriva). Corrige el apunte de slice 11: eran 14 seeders activos, no 13. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida 5 invariantes en CI.
+- **2026-08-05 (Slice 11)** — Actualizado tras aplicar slice 11 de `bugfix-2026-08`. Datos: §4 lista ahora 14 seeders activos (antes 11 — añadidos `BranchSeeder` + `PaymentMethodSeeder` más `DentalPieceSeeder`), §4 listeners corregido a "10 listener classes, 13 cableos" (antes "7 listeners"), §6 añade workaround SQLite (`docker compose up -d mysql` + `--group=mysql`), §12 changelog sincronizado. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida los 5 invariantes en CI.
 - **2026-06-11 (Sprint 4)** — Actualizado tras cerrar el plan de mejoras futuras (5/5 sprints). Datos: 36 controllers, 47 modelos, 36 eventos, 7 listeners, 18 services, 98 migraciones, 148 rutas, 17 módulos, 24 pages, 19 tests. CI/CD con GitHub Actions + MySQL. Multi-idioma catálogo. 2 ADRs. Estado §6 refleja los 3 planes cerrados.
 - **2026-06-11 (Sprint 1)** — Reescrito desde 428 → 236 líneas. Datos: 35 controllers, 45 modelos. Estructura reorganizada.
 - **<fecha anterior>** — Versión desactualizada con worktrees inexistentes, Sprint 1-3 pendientes, imports rotos ya arreglados.

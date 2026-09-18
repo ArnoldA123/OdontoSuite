@@ -270,7 +270,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['row-click', 'row-select', 'sort', 'page-change'])
+const emit = defineEmits(['rowClick', 'rowSelect', 'sort', 'pageChange'])
 
 // State
 const searchQuery = ref('')
@@ -423,7 +423,7 @@ const handleSort = column => {
 
 const handleRowClick = (row, index) => {
   if (props.clickable) {
-    emit('row-click', { row, index })
+    emit('rowClick', { row, index })
   }
 }
 
@@ -437,7 +437,7 @@ const handleRowSelect = (row, index) => {
     selectedRows.value.push(key)
   }
 
-  emit('row-select', { row, index, selected: !isSelected })
+  emit('rowSelect', { row, index, selected: !isSelected })
 }
 
 const toggleSelectAll = () => {
@@ -451,7 +451,7 @@ const toggleSelectAll = () => {
 const goToPage = page => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
-    emit('page-change', page)
+    emit('pageChange', page)
   }
 }
 

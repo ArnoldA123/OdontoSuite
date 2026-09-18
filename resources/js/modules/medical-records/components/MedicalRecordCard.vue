@@ -87,7 +87,6 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useConfirm } from '@/composables/useConfirm'
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({

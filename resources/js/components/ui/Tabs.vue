@@ -139,7 +139,7 @@ const indicatorClasses = computed(() => {
 })
 
 // Methods
-const getTabClasses = (tab, index) => {
+const getTabClasses = tab => {
   const base = [
     'relative flex items-center justify-center',
     'px-4 py-2 text-sm font-medium',
@@ -194,7 +194,7 @@ const getTabClasses = (tab, index) => {
   return [...base, sizes[props.size], orientation, fullWidth, ...variants[props.variant]].join(' ')
 }
 
-const getPanelClasses = tab => {
+const getPanelClasses = () => {
   return ['tabs-panel', 'focus:outline-none']
 }
 

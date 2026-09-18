@@ -35,7 +35,7 @@ Volver
 
       <!-- Payment brick container (no transition — brick owns its mount) -->
       <div v-else-if="step === 'ready'" key="ready">
-        <div :id="containerId" ref="brickContainer" class="min-h-[300px]" />
+        <div :id="containerId" class="min-h-[300px]" />
         <div class="flex justify-center mt-4">
           <UiButton variant="ghost" size="sm" @click="handleCancel">
 Cancelar y volver
@@ -142,7 +142,7 @@ onMounted(async () => {
         onSubmit: () => {
           step.value = 'processing'
         },
-        onError: error => {
+        onError: () => {
           step.value = 'error'
           errorMessage.value = 'Error al procesar el pago con Mercado Pago'
         }

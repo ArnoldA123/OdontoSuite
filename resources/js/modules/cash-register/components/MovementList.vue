@@ -300,7 +300,6 @@ import Button from '@/components/ui/Button.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { useConfirm } from '@/composables/useConfirm'
 import { formatCurrency } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
@@ -404,7 +403,7 @@ const loadPage = page => {
   emit('refresh', { ...filters.value, page })
 }
 
-const viewMovement = movement => {
+const viewMovement = () => {
   // Implementar vista de detalle
 }
 
@@ -428,6 +427,7 @@ const exportToExcel = async () => {
   try {
     // Implementar exportación a Excel
   } catch (error) {
+    // La exportación a Excel aún no está implementada
   } finally {
     exporting.value = false
   }
@@ -438,6 +438,7 @@ const exportToPDF = async () => {
   try {
     // Implementar exportación a PDF
   } catch (error) {
+    // La exportación a PDF aún no está implementada
   } finally {
     exporting.value = false
   }

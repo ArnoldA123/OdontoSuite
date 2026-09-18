@@ -39,7 +39,7 @@ import { defineProps } from 'vue'
 import UiModal from '@/components/ui/Modal.vue'
 import { CpuChipIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   show: {
     type: Boolean,
     default: false

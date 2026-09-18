@@ -4,7 +4,8 @@
       <div class="toolbar-group">
         <button
           type="button"
-          :class="['toolbar-btn', isActive('bold') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('bold') ? 'active' : ''"
           @click="execCommand('bold')"
           title="Negrita"
         >
@@ -12,7 +13,8 @@
         </button>
         <button
           type="button"
-          :class="['toolbar-btn', isActive('italic') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('italic') ? 'active' : ''"
           @click="execCommand('italic')"
           title="Cursiva"
         >
@@ -20,7 +22,8 @@
         </button>
         <button
           type="button"
-          :class="['toolbar-btn', isActive('underline') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('underline') ? 'active' : ''"
           @click="execCommand('underline')"
           title="Subrayado"
         >
@@ -31,7 +34,8 @@
       <div class="toolbar-group">
         <button
           type="button"
-          :class="['toolbar-btn', isActive('insertUnorderedList') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('insertUnorderedList') ? 'active' : ''"
           @click="execCommand('insertUnorderedList')"
           title="Lista con viñetas"
         >
@@ -39,7 +43,8 @@
         </button>
         <button
           type="button"
-          :class="['toolbar-btn', isActive('insertOrderedList') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('insertOrderedList') ? 'active' : ''"
           @click="execCommand('insertOrderedList')"
           title="Lista numerada"
         >
@@ -76,7 +81,8 @@ Enorme
       <div class="toolbar-group">
         <button
           type="button"
-          :class="['toolbar-btn', isActive('justifyLeft') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('justifyLeft') ? 'active' : ''"
           @click="execCommand('justifyLeft')"
           title="Alinear izquierda"
         >
@@ -84,7 +90,8 @@ Enorme
         </button>
         <button
           type="button"
-          :class="['toolbar-btn', isActive('justifyCenter') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('justifyCenter') ? 'active' : ''"
           @click="execCommand('justifyCenter')"
           title="Centrar"
         >
@@ -92,7 +99,8 @@ Enorme
         </button>
         <button
           type="button"
-          :class="['toolbar-btn', isActive('justifyRight') ? 'active' : '']"
+          class="toolbar-btn"
+          :class="isActive('justifyRight') ? 'active' : ''"
           @click="execCommand('justifyRight')"
           title="Alinear derecha"
         >
@@ -132,7 +140,7 @@ Enorme
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   BoldIcon,
   ItalicIcon,
@@ -176,10 +184,6 @@ const charCount = computed(() => {
   return props.modelValue.length
 })
 
-const isOverLimit = computed(() => {
-  return props.maxLength && charCount.value > props.maxLength
-})
-
 // Métodos
 const execCommand = (command, value = null) => {
   if (props.disabled) return
@@ -204,7 +208,6 @@ const changeFontSize = event => {
 const handleInput = () => {
   if (isComposing.value) return
 
-  const content = editor.value?.innerHTML || ''
   emitChange()
 }
 

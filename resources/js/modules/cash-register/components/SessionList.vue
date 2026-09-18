@@ -299,13 +299,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { useApi } from '@/composables/useApi'
-import { useConfirm } from '@/composables/useConfirm'
 import { formatPENLabel } from '@/composables/useFormatters'
 import {
   MagnifyingGlassIcon,
@@ -315,7 +313,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/vue/24/outline'
 
-const props = defineProps({
+defineProps({
   sessions: {
     type: Array,
     default: () => []
@@ -332,7 +330,6 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'view', 'reopen'])
 
-const { get } = useApi()
 const { manageCashRegister } = usePermissions()
 
 // Estado
@@ -347,13 +344,6 @@ const users = ref([])
 const exporting = ref(false)
 
 // Métodos
-const loadUsers = async () => {
-  try {
-    const response = await get('/api/users/active')
-    users.value = response.data || []
-  } catch (error) {}
-}
-
 const applyFilters = () => {
   emit('refresh', filters.value)
 }
@@ -366,7 +356,7 @@ const viewSession = session => {
   emit('view', session)
 }
 
-const generateReport = session => {
+const generateReport = () => {
   // Implementar generación de reporte
 }
 
@@ -415,6 +405,7 @@ const exportToExcel = async () => {
   try {
     // Implementar exportación a Excel
   } catch (error) {
+    // La exportación a Excel aún no está implementada
   } finally {
     exporting.value = false
   }
@@ -425,6 +416,7 @@ const exportToPDF = async () => {
   try {
     // Implementar exportación a PDF
   } catch (error) {
+    // La exportación a PDF aún no está implementada
   } finally {
     exporting.value = false
   }

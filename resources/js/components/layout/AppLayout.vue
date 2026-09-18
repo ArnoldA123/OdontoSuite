@@ -205,7 +205,7 @@ viewBox="0 0 24 24">
       position="right"
       size="md"
       title="Navegación"
-      :closable="true"
+      closable
     >
       <template #header>
         <div class="flex items-center gap-3">
@@ -501,7 +501,6 @@ Cerrar Sesión
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { usePermissions } from '../../composables/usePermissions'
 import { useNotifications } from '../../composables/useNotifications'
 import { useWebSocketNotifications } from '../../composables/useWebSocketNotifications'
 import { useEcho } from '../../composables/useEcho'
@@ -522,7 +521,6 @@ import { BellIcon } from '@heroicons/vue/24/outline'
 const route = useRoute()
 const router = useRouter()
 const { user, logout: authLogout } = useAuth()
-const { can } = usePermissions()
 const { connectionStatus: wsStatus } = useEcho()
 
 // Handlers del modal global de confirmacion (useConfirm).
@@ -589,7 +587,7 @@ const canvasRoutes = [
 // category PRs MUST NOT touch `canvasRoutes` again.
 function matchesCanvasRoute(path) {
   return canvasRoutes.some(
-    route => path === route || path.startsWith(route + '/')
+    route => path === route || path.startsWith(`${route}/`)
   )
 }
 
@@ -776,14 +774,6 @@ const AcademicCapIcon = {
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-    </svg>
-  `
-}
-
-const ChatBubbleLeftRightIcon = {
-  template: `
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
     </svg>
   `
 }

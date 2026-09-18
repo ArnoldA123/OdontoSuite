@@ -108,7 +108,7 @@
 import { ref } from 'vue'
 import { useApi } from '@/composables/useApi'
 
-const props = defineProps({
+defineProps({
   open: { type: Boolean, default: false }
 })
 const emit = defineEmits(['close', 'imported'])

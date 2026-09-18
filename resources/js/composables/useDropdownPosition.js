@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 export function useDropdownPosition(triggerRef, dropdownRef) {
   const position = ref({ top: 0, left: 0, right: 0, bottom: 0 })
@@ -22,15 +22,9 @@ export function useDropdownPosition(triggerRef, dropdownRef) {
     const dropdownHeight = dropdownRef.value?.offsetHeight || 300
     const dropdownWidth = dropdownRef.value?.offsetWidth || 200
     const viewportHeight = window.innerHeight
-    const viewportWidth = window.innerWidth
 
-    // Calcular si hay espacio abajo o arriba
+    // Calcular si hay espacio abajo
     const spaceBelow = viewportHeight - rect.bottom
-    const spaceAbove = rect.top
-
-    // Calcular si hay espacio a la derecha o izquierda
-    const spaceRight = viewportWidth - rect.left
-    const spaceLeft = rect.left
 
     let top
     let left

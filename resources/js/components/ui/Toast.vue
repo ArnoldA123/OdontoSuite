@@ -188,14 +188,6 @@ onUnmounted(() => {
   clearTimer()
 })
 
-// Pause timer on hover
-const handleMouseEnter = () => {
-  clearTimer()
-}
-
-const handleMouseLeave = () => {
-  startTimer()
-}
 </script>
 
 <style scoped>

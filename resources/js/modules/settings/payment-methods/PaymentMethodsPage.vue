@@ -326,7 +326,7 @@ viewBox="0 0 24 24">
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePaymentMethods } from '../../../composables/usePaymentMethods'
 import { useToast } from '../../../composables/useToast'

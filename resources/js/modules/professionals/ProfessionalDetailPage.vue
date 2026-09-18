@@ -315,7 +315,9 @@ export default {
       if (!professional.value) return
       try {
         await getUserAuditLogs(professional.value.id)
-      } catch (error) {}
+      } catch (error) {
+        // La auditoría es informativa, el detalle sigue visible sin ella
+      }
     }
 
     const getSpecialtyText = specialty => {

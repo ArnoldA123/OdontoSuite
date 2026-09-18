@@ -47,7 +47,7 @@
           </label>
           <FileUpload
             accept="image/*"
-            :preview="true"
+            preview
             @file-selected="handleFileSelected"
             @file-cleared="handleFileCleared"
           />
@@ -345,7 +345,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAiAnalysis } from '@/composables/useAiAnalysis'
-import { usePermissions } from '@/composables/usePermissions'
 import { useConfirm } from '@/composables/useConfirm'
 import AiAnalysisCard from './components/AiAnalysisCard.vue'
 import AiAnalysisModal from './components/AiAnalysisModal.vue'
@@ -369,14 +368,12 @@ const {
   analyses,
   stats,
   getAnalyses,
-  getPendingAnalyses,
   getStats,
   reviewAnalysis: reviewAnalysisApi,
   deleteAnalysis: deleteAnalysisApi,
   uploadAndAnalyze
 } = useAiAnalysis()
 
-const { can } = usePermissions()
 const { confirm } = useConfirm()
 
 // State
@@ -507,7 +504,9 @@ const visiblePages = computed(() => {
 const loadData = async () => {
   try {
     await Promise.all([getAnalyses(), getStats()])
-  } catch (error) {}
+  } catch (error) {
+    // Se conserva la lista anterior si falla la recarga
+  }
 }
 
 const refreshData = async () => {
@@ -532,7 +531,9 @@ const reviewAnalysis = async (analysisId, decision, notes) => {
     await reviewAnalysisApi(analysisId, decision, notes)
     selectedAnalysis.value = null
     await loadData() // Refresh data
-  } catch (error) {}
+  } catch (error) {
+    // La revisión falló, el análisis sigue pendiente
+  }
 }
 
 const deleteAnalysis = async analysisId => {
@@ -546,7 +547,9 @@ const deleteAnalysis = async analysisId => {
     try {
       await deleteAnalysisApi(analysisId)
       await loadData() // Refresh data
-    } catch (error) {}
+    } catch (error) {
+      // El análisis se conserva si falla la eliminación
+    }
   }
 }
 

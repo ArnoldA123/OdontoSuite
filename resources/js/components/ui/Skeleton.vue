@@ -48,7 +48,6 @@ const props = defineProps({
 const containerClasses = computed(() => ['skeleton-container', 'space-y-2'])
 
 const items = computed(() => {
-  const { count } = props
   const variants = {
     text: [
       { width: '100%', height: '1rem' },
@@ -85,7 +84,7 @@ const items = computed(() => {
     }))
 })
 
-const getItemClasses = item => [
+const getItemClasses = () => [
   'skeleton-item',
   'bg-systemGray-100',
   props.rounded ? 'rounded-ios' : 'rounded-none',
