@@ -133,7 +133,7 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (17)
+## 5. Módulos del frontend (17 módulos, 19 páginas)
 
 | Módulo | Ruta | Roles |
 |---|---|---|
@@ -143,6 +143,8 @@ docs/
 | Profesionales | `/professionals` | admin |
 | Ambientes | `/environments` | admin |
 | Tipos de cita | `/appointment-types` | admin |
+| Sucursales | `/settings/branches` | admin |
+| Métodos de pago | `/settings/payment-methods` | admin |
 | Caja | `/cash-register` | admin, finanzas, recep |
 | BI | `/business-intelligence` | admin, finanzas |
 | Planes de tratamiento | `/treatment-plans` | clínicos |
@@ -153,7 +155,7 @@ docs/
 | Catálogo procedimientos | `/procedure-catalog` | admin |
 | Mis procedimientos | `/my-procedures` | clínicos (favoritos) |
 | Recepción procedimientos | `/reception-procedures` | recep |
-| Estadísticas catálogo | `/procedure-stats` | admin, finanzas (vía `/procedure-catalog`) |
+| Estadísticas catálogo | `/procedure-stats` | admin, finanzas |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el frontend muestra toast. El control de visibilidad es por `AppLayout` (computed `navigation` con `useAuth().hasRole(...)`).
 

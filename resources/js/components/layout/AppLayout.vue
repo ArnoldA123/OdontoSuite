@@ -879,6 +879,13 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      name: 'Estadísticas Catálogo',
+      to: '/procedure-stats',
+      icon: ChartIcon,
+      roles: ['administrador', 'finanzas'],
+      badge: null
+    },
+    {
       name: 'Mis Procedimientos',
       to: '/my-procedures',
       icon: StarIcon,
