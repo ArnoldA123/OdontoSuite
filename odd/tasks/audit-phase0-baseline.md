@@ -82,8 +82,11 @@ matching. Three defects found, all fixed in `f6d78c1` (rows 9-11 below).
 - **D3 — `AGENTS.md` is not edited here.** Its §6/§8 `--group=mysql` instruction
   names the wrong runner; #21 owns §4/§6/§11/§12. Handed over as measured
   evidence, independently confirmed by the verifier (its D5).
-- **D4 — the acceptance criterion is verified only as far as the environment
-  allows.** `docker compose config` is not a container run; the artifact says so.
+- **D4 — the acceptance criterion was verified only as far as the environment
+  allowed, until the environment was repaired.** `docker compose config` is not a
+  container run, and for the first half of this work the artifact said so instead
+  of implying otherwise. The criterion has since been executed in full; item 1 of
+  the last section records the observed sequence.
 - **D5 — one artifact beyond the issue's letter.** #22 asks for the compose file
   and the runner, not a test. The guard test was added because the same silent
   defect was introduced twice by hand in one session: a `--` inside an XML
@@ -127,12 +130,24 @@ matching. Three defects found, all fixed in `f6d78c1` (rows 9-11 below).
 Note on the 299: it matches the figure the CI tracker in `odd/tasks/ci-conformance.md`
 already recorded for the ESLint half (330 → 299), measured independently.
 
-## Unverified, blocked, or waiting on the owner
+## Open items: verified since, still unverified, or waiting on the owner
 
-1. **Unverified (environment, not repository):** `docker compose up -d mysql`,
-   the `healthy` state, and a real MySQL 8.0 suite run. The compose file is
-   valid and resolves; whether the image pulls and the health gate passes cannot
-   be shown on a machine whose Docker engine cannot start.
+1. **Verified on 2026-09-17, after the environment was repaired.** The acceptance
+   criterion ran in the issue's own words: `docker compose up -d mysql` started the
+   service, `docker compose ps` reported `health: starting` immediately and
+   `Up (healthy)` about thirty seconds later, `php artisan test
+   --configuration=phpunit.mysql.xml` ran against **MySQL 8.0.46** with no
+   overrides and reported 71 failed and 979 passed, and `docker compose down`
+   removed the network and left no container behind. Measured inside the
+   container: `sql_mode` carries `STRICT_TRANS_TABLES` and
+   `lower_case_table_names` is 0.
+
+   The blocker was never the repository. WSL reported no installed distribution
+   because Intel VT-x was disabled in firmware; enabling it let Docker Desktop
+   register its own distribution and start. The honest sequence before the repair
+   — valid file, no engine, every claim about the container marked unverified —
+   is what the rest of this document records, and it stands as the reason the
+   acceptance criterion was reported as unmet rather than assumed.
 2. **Handover to #21:** `AGENTS.md` §6/§8 still tell the reader to run
    `php artisan test --group=mysql`, which executes on SQLite. #22 does not
    authorise editing `AGENTS.md`.

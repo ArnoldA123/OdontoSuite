@@ -95,12 +95,16 @@ class MySQLTestEngineContractTest extends TestCase
         // The published host port defaults to something other than 3306: a
         // local MySQL/MariaDB commonly owns 3306, and a container bound to it
         // cannot start. The runner must follow the same default.
+        //
+        // It is also bound to loopback. The engine serves a test database behind
+        // a fixed development password, and publishing that on every interface
+        // offers it to the local network for no benefit.
         $this->assertMatchesRegularExpression(
-            '/ports:\s*\n\s*-\s*[\'"]?\$\{MYSQL_PORT:-(\d+)\}:\d+[\'"]?/',
+            '/ports:\s*\n\s*-\s*[\'"]?127\.0\.0\.1:\$\{MYSQL_PORT:-(\d+)\}:/',
             $compose,
-            'docker-compose.yml must publish the container port through MYSQL_PORT'
+            'docker-compose.yml must publish the container port on loopback through MYSQL_PORT'
         );
-        preg_match('/ports:\s*\n\s*-\s*[\'"]?\$\{MYSQL_PORT:-(\d+)\}/', $compose, $matches);
+        preg_match('/ports:\s*\n\s*-\s*[\'"]?127\.0\.0\.1:\$\{MYSQL_PORT:-(\d+)\}/', $compose, $matches);
         $published = $matches[1];
 
         $this->assertNotSame(

@@ -12,7 +12,11 @@
 # Artifacts (gitignored, under .atl/qa-evidence/audit/):
 #   baseline-<date>.md            human-readable, holds the counters block
 #   baseline-<date>.json          the same counters, machine-readable
-#   raw-<date>/                   every raw output, unedited
+#   raw-<date>-<time>/            every raw output of that run, unedited
+#
+# One raw directory per run, not one per day. A single directory was reused, so a
+# run that refused the MySQL half still listed the previous run's mysql.txt as its
+# own raw output, and a reader could conclude the suite had run when it had not.
 #
 # Any document carrying a fenced ```json block with the same shape as
 # baseline-<date>.json can be checked: --check re-measures and reports every
@@ -24,6 +28,16 @@
 #   1  --check found at least one difference
 #   2  usage or environment error
 #   3  capture is PARTIAL: a required step could not run (recorded, never hidden)
+#
+# Two things the artifact must never be wrong about:
+#   * The data-loss guard reads the application database name the way the
+#     framework does. When the run would use a live engine that holds the
+#     application database, and that name cannot be read, the MySQL half is
+#     refused instead of run. `--explain-database-guard [ENV_FILE]` prints the
+#     decision so it can be tested rather than trusted.
+#   * DB_PASSWORD is masked in the recorded command. Every other counter keeps
+#     its command verbatim; this one field does not, on purpose, because the
+#     artifact is written to disk and quoted into documents.
 #
 # Some counters are lower bounds rather than totals, and their names say so. A
 # gate that aborts part way through has not measured the rest: Prettier stops at
@@ -43,7 +57,7 @@ cd "$ROOT" || exit 2
 
 STAMP=$(date +%Y-%m-%d)
 OUT_DIR=".atl/qa-evidence/audit"
-RAW_DIR="$OUT_DIR/raw-$STAMP"
+RAW_DIR="$OUT_DIR/raw-$STAMP-$(date +%H%M%S)"
 ART_MD="$OUT_DIR/baseline-$STAMP.md"
 ART_JSON="$OUT_DIR/baseline-$STAMP.json"
 TEST_DB="odontosuite_test"
@@ -52,11 +66,84 @@ TEST_DB="odontosuite_test"
 NUMERIC_KEYS="routes_total,routes_api,controllers_api,models,migrations,seeders,js_modules,test_files,eslint_errors,eslint_warnings,eslint_files,prettier_exit,prettier_warned_before_abort,prettier_parse_error,pint_exit,pint_files,pint_issues,build_exit,unit_tests,unit_passed,unit_failed,mysql_tests,mysql_passed,mysql_failed,changed_paths,untracked_paths"
 
 usage() {
-  sed -n '3,32p' "${BASH_SOURCE[0]}"
+  cat <<'USAGE'
+scripts/audit/baseline.sh — axis A1 of plan #12
+
+  bash scripts/audit/baseline.sh                     capture and write the artifact
+  bash scripts/audit/baseline.sh --check FILE        re-measure and diff against FILE
+  bash scripts/audit/baseline.sh --explain-database-guard [ENV_FILE]
+                                                     print the data-loss guard decision
+
+Exit codes: 0 complete, 1 a claimed counter differs, 2 usage error, 3 partial.
+USAGE
 }
 
 strip_ansi() {
   sed -E $'s/\x1b\\[[0-9;]*[A-Za-z]//g'
+}
+
+# env_value <key> [file] — reads one key the way phpdotenv does: whitespace around
+# the separator tolerated, CRLF tolerated, a matched pair of quotes stripped and,
+# for an unquoted value, everything from the first `#` treated as a comment.
+# Prints nothing when the file, the key or the value cannot be read, which the
+# caller must treat as unknown rather than as a default. BASELINE_ENV_FILE
+# overrides the path; that seam is what makes the data-loss guard testable
+# without touching the real .env.
+#
+# The first implementation grepped for `^DB_DATABASE=` and cut on `=`. A quoted
+# value, a CRLF line ending, spaces around the separator or an absent key all
+# slipped through it, and `DB_DATABASE="odontosuite_test"` then named a database
+# the suite would wipe. A review of the fix found the trimmed version still kept
+# an inline comment, which phpdotenv drops: `DB_DATABASE=odontosuite_test # test`
+# compared unequal to the test database name, the guard said proceed, and the
+# suite would have wiped the application database. The comment cut below is that
+# finding's fix.
+#
+# Escapes inside a double-quoted value are not decoded. The only value this
+# decision has to recognise is the test database's own name, which contains none.
+env_value() {
+  local key=$1 file=${2:-${BASELINE_ENV_FILE:-.env}} line value
+  [ -f "$file" ] || return 0
+  line=$(grep -E "^[[:space:]]*${key}[[:space:]]*=" "$file" 2>/dev/null | head -1)
+  [ -n "$line" ] || return 0
+  value=${line#*=}
+  value=${value%$'\r'}
+  value=${value#"${value%%[![:space:]]*}"}
+
+  case "$value" in
+    \"*)
+      # Between the quotes everything is literal, '#' included, and only what
+      # follows the closing quote is a comment. An unterminated quote yields
+      # nothing, which the guard reads as unknown.
+      value=${value#\"}
+      case "$value" in
+        *\"*) value=${value%%\"*} ;;
+        *) value="" ;;
+      esac
+      ;;
+    \'*)
+      value=${value#\'}
+      case "$value" in
+        *\'*) value=${value%%\'*} ;;
+        *) value="" ;;
+      esac
+      ;;
+    *)
+      # Unquoted: the value ends at the first '#', with or without whitespace
+      # before it, and the tail is trimmed away.
+      value=${value%%#*}
+      value=${value%"${value##*[![:space:]]}"}
+      ;;
+  esac
+
+  printf '%s' "$value"
+}
+
+# The artifact is written to disk and quoted into documents, so a password does
+# not belong in it. This is the one field where the recorded command stops being
+# verbatim. A password containing a space would be masked only up to that space.
+mask_secrets() {
+  sed -E 's/(DB_PASSWORD=)[^ ]*/\1***/g'
 }
 
 # record <key> <value> <command> — one TSV row per counter.
@@ -246,16 +333,29 @@ measure_mysql() {
   # would name a run that targets the pinned 3307, not the engine that produced
   # these figures.
   local MYSQL_CMD="php artisan test --configuration=phpunit.mysql.xml (not run)"
-  local app_db
-  app_db=$(grep -E '^DB_DATABASE=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
+  local env_file=${BASELINE_ENV_FILE:-.env}
+  local decision
+  decision=$(database_guard_decision "$env_file" | grep -E '^decision=' | cut -d'=' -f2-)
 
-  if [ "$app_db" = "$TEST_DB" ]; then
-    # Plan #12 §6: the audit never runs migrate:fresh against the application
-    # database. If .env points the application at the test database, running
-    # the suite would destroy real data.
-    record mysql_engine "refused" "grep DB_DATABASE .env"
-    record mysql_status "refused-app-database-is-test-database" "grep DB_DATABASE .env"
-    PARTIAL_REASON="mysql suite refused: .env DB_DATABASE equals $TEST_DB"
+  # Plan #12 §6: the audit never runs migrate:fresh against the application
+  # database, and this suite targets $TEST_DB. When either source names the test
+  # database the application's data may live there: refuse, whichever engine is
+  # used.
+  if [ "$decision" = "refuse:application-database-is-test-database" ]; then
+    record mysql_engine "refused" "database_guard_decision $env_file"
+    record mysql_status "refused-app-database-is-test-database" "database_guard_decision $env_file"
+    PARTIAL_REASON="mysql suite refused: an env-file key or an exported value names $TEST_DB as the application database"
+    return
+  fi
+
+  # A connection URL that is present and whose database cannot be read means the
+  # application's database cannot be proven different: refuse, whichever engine is
+  # used. The run itself is pinned below, so this refusal protects the reading, not
+  # the run.
+  if [ "$decision" = "refuse:unreadable-connection-url" ]; then
+    record mysql_engine "refused" "database_guard_decision $env_file"
+    record mysql_status "refused-unreadable-connection-url" "database_guard_decision $env_file"
+    PARTIAL_REASON="mysql suite refused: a DB_URL is set whose database cannot be read"
     return
   fi
 
@@ -263,8 +363,15 @@ measure_mysql() {
     run_gate mysql_compose_up docker compose up -d --wait mysql
     if [ "$GATE_EXIT" -eq 0 ]; then
       engine="MySQL 8.0 (compose service, labeled by image mysql:8.0)"
-      run_gate mysql php artisan test --configuration=phpunit.mysql.xml
-      MYSQL_CMD="$LAST_CMD"
+      # Pinned even here: an exported DB_DATABASE would point the run at a
+      # database the ephemeral container never creates. Nothing is at risk in a
+      # container, but a figure produced by a failed connection is a false one.
+      #
+      # DB_URL is emptied as well: a URL beats the explicit keys inside the
+      # framework, measured on this project, so an inherited one would redirect
+      # the pinned run.
+      run_gate mysql env "DB_URL=" "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
+      MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
       status="skipped-compose-up-failed"
@@ -272,22 +379,36 @@ measure_mysql() {
     fi
     run_gate mysql_compose_down docker compose down
   else
-    # Fallback: no container engine. Use the engine .env already points at, but
-    # label it with its real version and never call it MySQL 8.0.
+    # Fallback: no container engine, so the suite would run on the developer's
+    # live engine, which is where the application database lives. Without its
+    # name from either source the two cannot be proven different, and the suite
+    # runs migrate:fresh. A container holds no application data, so this refusal
+    # is scoped to here.
+    if [ "$decision" = "refuse:cannot-verify-application-database" ]; then
+      record mysql_engine "refused" "database_guard_decision $env_file"
+      record mysql_status "refused-cannot-verify-application-database" "database_guard_decision $env_file"
+      PARTIAL_REASON="mysql suite refused: cannot read DB_DATABASE from $env_file and none is exported"
+      return
+    fi
+
+    # Keep the engine the env file points at, but label it with its real version
+    # and never call it MySQL 8.0.
     local host port user pass version
-    host=$(grep -E '^DB_HOST=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    port=$(grep -E '^DB_PORT=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    user=$(grep -E '^DB_USERNAME=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
-    pass=$(grep -E '^DB_PASSWORD=' .env 2>/dev/null | head -1 | cut -d'=' -f2-)
+    host=$(env_value DB_HOST "$env_file")
+    port=$(env_value DB_PORT "$env_file")
+    user=$(env_value DB_USERNAME "$env_file")
+    pass=$(env_value DB_PASSWORD "$env_file")
     version=$(DB_HOST="$host" DB_PORT="$port" DB_USERNAME="$user" DB_PASSWORD="$pass" DB_DATABASE="$TEST_DB" \
       php -r 'try{$c=new mysqli(getenv("DB_HOST"),getenv("DB_USERNAME"),getenv("DB_PASSWORD"),getenv("DB_DATABASE"),(int)getenv("DB_PORT"));echo $c->server_info;}catch(Throwable $e){echo "";}' 2>/dev/null)
     if [ -n "$version" ]; then
       engine="$version (local engine on $host:$port, not the CI container)"
       # `env` exports the overrides to the child process; a bare VAR=value in
-      # front of a shell function would not reach `php`.
+      # front of a shell function would not reach `php`. DB_URL is emptied so the
+      # run's connection resolves to the pinned database: a URL beats the explicit
+      # keys, measured on this project, and an inherited one would redirect it.
       run_gate mysql env "DB_HOST=$host" "DB_PORT=$port" "DB_USERNAME=$user" "DB_PASSWORD=$pass" \
-        "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
-      MYSQL_CMD="$LAST_CMD"
+        "DB_URL=" "DB_DATABASE=$TEST_DB" php artisan test --configuration=phpunit.mysql.xml
+      MYSQL_CMD=$(printf '%s' "$LAST_CMD" | mask_secrets)
       status=$([ "$GATE_EXIT" -eq 0 ] && echo ok || echo failed)
     else
       status="skipped-no-engine"
@@ -336,6 +457,9 @@ capture() {
     echo "\`COMPLETE\` means no required step was skipped. It is not a verdict on the"
     echo "gates: several rows below are red, and a red gate is a measurement, not a failure"
     echo "of this script. A counter whose name says \`before_abort\` is a lower bound."
+    echo
+    echo "One field is not verbatim: \`DB_PASSWORD\` in a recorded command is masked,"
+    echo "because this file is written to disk and quoted into documents."
     [ -n "$PARTIAL_REASON" ] && echo "Unavailable step: $PARTIAL_REASON"
     echo
     echo "## Vital signs"
@@ -420,11 +544,127 @@ check() {
   ' "$claimed" "$measured" "$target"
 }
 
+# database_guard_decision <env_file> — the data-loss rule, in one place, so the
+# rule that is tested is the rule that runs: measure_mysql() consumes this output
+# and --explain-database-guard prints it.
+#
+# The question is one: is the database the suite will wipe also the database the
+# application lives in? Two sources can answer it, and an exported DB_DATABASE
+# beats the file inside the framework because Dotenv is immutable. Naming the
+# test database in *either* source is enough to refuse: the cost of refusing is a
+# suite run, and the cost of the other mistake is data.
+# lower <string> — compares database identifiers the way the engine compares
+# them. MySQL and MariaDB on Windows default to lower_case_table_names=1, measured
+# as 1 on the MariaDB this project develops against, so `ODONTOSUITE_TEST` and
+# `odontosuite_test` are one schema and the suite would wipe either spelling. On
+# an engine that is case-sensitive the guard then refuses a run it could have
+# allowed, which is the side to lose: a refusal costs a test run, the opposite
+# mistake costs the database.
+lower() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# url_database <url> — the database a connection URL selects. Prints it and exits
+# 0; exits 3 when there is no URL, and 4 when the URL is present but carries no
+# database this parse can read, which the guard treats as unknown rather than as
+# absent. `parse_url`, which the framework uses, keeps the database in the path,
+# a query string follows it, and a URL with no path selects no database at all.
+#
+# This reads the MySQL-family shapes the runner uses. A URL for another driver
+# would be read as a name that is not the test database, which decides the same
+# way the framework decides it: the URL does not select the database the suite
+# wipes.
+url_database() {
+  local url=$1 candidate
+  [ -n "$url" ] || return 3
+  candidate=${url%%\?*}
+  candidate=${candidate%%\#*}
+  case "$candidate" in
+    *://*/*) candidate=${candidate##*/} ;;
+    *) return 4 ;;
+  esac
+  [ -n "$candidate" ] || return 4
+  printf '%s' "$candidate"
+}
+
+database_guard_decision() {
+  local env_file=$1
+  local app_db_env_file app_db_exported url_env_file url_exported
+  local url_db_env_file="" url_db_exported=""
+  app_db_env_file=$(env_value DB_DATABASE "$env_file")
+  app_db_exported=$(printenv DB_DATABASE 2>/dev/null || true)
+  url_env_file=$(env_value DB_URL "$env_file")
+  url_exported=$(printenv DB_URL 2>/dev/null || true)
+
+  # A URL that is present and whose database cannot be read is left empty rather
+  # than ignored, and the refusal below treats it as unknown: the reviewer's
+  # remedy for the source this guard used to miss.
+  local url_unreadable=0
+  if [ -n "$url_env_file" ]; then
+    url_db_env_file=$(url_database "$url_env_file") || { url_db_env_file=""; url_unreadable=1; }
+  fi
+  if [ -n "$url_exported" ]; then
+    url_db_exported=$(url_database "$url_exported") || { url_db_exported=""; url_unreadable=1; }
+  fi
+
+  echo "app_database_env_file=${app_db_env_file:-(unset)}"
+  echo "app_database_exported=${app_db_exported:-(unset)}"
+  echo "app_database_url_env_file=${url_db_env_file:-(unset)}"
+  echo "app_database_url_exported=${url_db_exported:-(unset)}"
+  # What the framework resolves, in its own order: a URL beats the explicit keys,
+  # and an exported value beats the file for each key. Measured on this project:
+  # with DB_URL selecting odontosuite_test and DB_DATABASE naming odontosuite, the
+  # resolved connection is odontosuite_test.
+  echo "app_database=${url_db_exported:-${url_db_env_file:-${app_db_exported:-${app_db_env_file:-(unset)}}}}"
+
+  if [ "$(lower "$app_db_env_file")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$app_db_exported")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$url_db_env_file")" = "$(lower "$TEST_DB")" ] ||
+    [ "$(lower "$url_db_exported")" = "$(lower "$TEST_DB")" ]; then
+    echo "decision=refuse:application-database-is-test-database"
+    return 0
+  fi
+
+  if [ "$url_unreadable" -eq 1 ]; then
+    echo "decision=refuse:unreadable-connection-url"
+    return 0
+  fi
+
+  if [ -z "$app_db_env_file" ] && [ -z "$app_db_exported" ]; then
+    echo "decision=refuse:cannot-verify-application-database"
+    return 0
+  fi
+
+  echo "decision=proceed"
+}
+
+# explain_database_guard [env_file] — prints the decision and the sources behind
+# it, without running anything. It reports what the *fallback* path decides,
+# because that is the path that can reach a live application database; an
+# ephemeral container holds no application data and is never refused for an
+# unreadable env file. So this answers "would the audit wipe this database?" for
+# any env file, which is what makes the guard testable instead of trusted.
+explain_database_guard() {
+  local env_file=${1:-${BASELINE_ENV_FILE:-.env}}
+
+  echo "env_file=$env_file"
+  echo "test_database=$TEST_DB"
+  echo "compose_path=proceed"
+  database_guard_decision "$env_file"
+}
+
 MODE=capture
 CHECK_TARGET=""
+GUARD_ENV=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --check) MODE=check; CHECK_TARGET=${2:-}; shift 2 ;;
+    --explain-database-guard)
+      MODE=guard
+      shift
+      # The env file is optional, and a following flag is not one.
+      if [ $# -gt 0 ] && [ "${1#--}" = "$1" ]; then GUARD_ENV=$1; shift; fi
+      ;;
     --help | -h) usage; exit 0 ;;
     *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -433,6 +673,8 @@ done
 if [ "$MODE" = check ]; then
   [ -n "$CHECK_TARGET" ] || { echo "--check requires a file" >&2; exit 2; }
   check "$CHECK_TARGET"
+elif [ "$MODE" = guard ]; then
+  explain_database_guard "$GUARD_ENV"
 else
   capture
 fi
