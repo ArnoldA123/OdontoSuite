@@ -16,9 +16,9 @@
 <body>
     <div class="header">
         <h2>Reporte de Cierre de Caja</h2>
-        <p>Sesión #{{ $session->id }} - {{ $session->branch->name }}</p>
-        <p>Usuario: {{ $session->user->name }}</p>
-        <p>Fecha: {{ $session->closed_at->format('d/m/Y H:i') }}</p>
+        <p>Sesión #{{ $session->id }} - {{ $session->branch->name ?? 'N/A' }}</p>
+        <p>Usuario: {{ $session->user->name ?? 'N/A' }}</p>
+        <p>Fecha: {{ $session->closed_at ? $session->closed_at->format('d/m/Y H:i') : 'En curso (sesión abierta)' }}</p>
     </div>
 
     <div class="section">
@@ -38,15 +38,15 @@
             </tr>
             <tr class="total">
                 <td>Monto Esperado:</td>
-                <td>S/ {{ number_format($session->expected_amount, 2) }}</td>
+                <td>S/ {{ number_format($session->expected_amount ?? $summary['expected_amount'] ?? 0, 2) }}</td>
             </tr>
             <tr class="total">
                 <td>Monto Real:</td>
-                <td>S/ {{ number_format($session->closing_amount, 2) }}</td>
+                <td>S/ {{ number_format($session->closing_amount ?? 0, 2) }}</td>
             </tr>
             <tr class="total">
                 <td>Diferencia:</td>
-                <td>S/ {{ number_format($session->difference_amount, 2) }}</td>
+                <td>S/ {{ number_format($session->difference_amount ?? 0, 2) }}</td>
             </tr>
         </table>
     </div>
@@ -89,10 +89,10 @@
         </table>
     </div>
 
-    @if($session->notes)
+    @if($session->closing_notes)
     <div class="section">
         <h3>Notas de Cierre</h3>
-        <p>{{ $session->notes }}</p>
+        <p>{{ $session->closing_notes }}</p>
     </div>
     @endif
 
