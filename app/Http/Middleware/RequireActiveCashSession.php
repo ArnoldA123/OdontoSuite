@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\Auth;
  *
  * Alias: `cash.session` (registrado en bootstrap/app.php).
  *
- * Aplica a creación/modificación de transacciones y movimientos de caja:
+ * Aplica a creación/modificación/anulación de transacciones y movimientos:
  *   - POST   /api/transactions           (TransactionController@store)
  *   - PUT    /api/transactions/{id}      (TransactionController@update)
+ *   - DELETE /api/transactions/{id}      (TransactionController@destroy)
  *   - POST   /api/cash-movements         (CashMovementController@store)
+ *   - DELETE /api/cash-movements/{id}    (CashMovementController@destroy)
  *
  * Si el usuario no tiene una sesión de caja abierta (status=open), devuelve 422
  * con `error: 'NO_ACTIVE_SESSION'`. Si la tiene, agrega `active_cash_session`
@@ -29,11 +31,11 @@ class RequireActiveCashSession
 {
     public function handle(Request $request, Closure $next)
     {
-        // Solo en operaciones de escritura (POST/PUT/PATCH) sobre los recursos
-        // que requieren caja abierta. La verificación exacta de la ruta está
-        // en el método de cada controller, pero aquí filtramos por método HTTP
-        // para no romper lecturas (GET).
-        if (!in_array($request->method(), ['POST', 'PUT', 'PATCH'], true)) {
+        // Solo en operaciones de escritura (POST/PUT/PATCH/DELETE) sobre los
+        // recursos que requieren caja abierta. La verificación exacta de la
+        // ruta está en el método de cada controller, pero aquí filtramos por
+        // método HTTP para no romper lecturas (GET).
+        if (!in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             return $next($request);
         }
 

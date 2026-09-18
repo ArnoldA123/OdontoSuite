@@ -277,7 +277,8 @@ checkCred('CRED-reports-odonto', 'Ver reportes', 3, 'odontologo', 'reports', 'GE
 
 // cash.session structural gaps.
 const cashDeletes = routes.filter(r => r.cash && r.method === 'DELETE')
-if (cashDeletes.length > 0 && /POST.*PUT.*PATCH/.test(cashSrc) && !/DELETE/.test(cashSrc.match(/in_array\(.*?\)/s)?.[0] ?? ''))
+const cashGateMethods = cashSrc.match(/in_array\(\$request->method\(\),\s*\[([^\]]*)\]/s)?.[1] ?? ''
+if (cashDeletes.length > 0 && /POST/.test(cashGateMethods) && !/DELETE/.test(cashGateMethods))
   div('CASH-delete-bypass', 'media', 'cash.session gates POST/PUT/PATCH only: DELETE bypasses the active-session check', cashDeletes.map(r => `${r.method} ${r.uri} (routes/api.php:${r.line})`).join(' | '), 'follow-up: extend gate or accept DELETE-without-session in writing')
 
 // Auth throttle vs lockout (owner-delegated policy question on #26).

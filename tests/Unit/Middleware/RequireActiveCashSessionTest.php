@@ -38,6 +38,20 @@ class RequireActiveCashSessionTest extends TestCase
     }
 
     /**
+     * Issue #58: el gate debe cubrir DELETE. Anular sin caja abierta
+     * puenteaba el control en su operacion mas sensible.
+     */
+    public function test_middleware_gates_delete_requests(): void
+    {
+        $src = file_get_contents(app_path('Http/Middleware/RequireActiveCashSession.php'));
+        $this->assertStringContainsString(
+            'DELETE',
+            $src,
+            'cash.session debe filtrar DELETE ademas de POST/PUT/PATCH (#58)'
+        );
+    }
+
+    /**
      * El middleware NO debe aplicar a GET (deja pasar lecturas).
      */
     public function test_middleware_bypasses_get_requests(): void
