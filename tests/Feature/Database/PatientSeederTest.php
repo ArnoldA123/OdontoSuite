@@ -71,6 +71,20 @@ class PatientSeederTest extends TestCase
     /**
      * @test
      */
+    public function phones_are_unique(): void
+    {
+        $this->seed(PatientSeeder::class);
+
+        $this->assertSame(
+            100,
+            Patient::distinct()->count('phone'),
+            'The 100 seeded patients must not share any phone (patients_phone_unique)'
+        );
+    }
+
+    /**
+     * @test
+     */
     public function emails_are_position_derived(): void
     {
         $this->seed(PatientSeeder::class);

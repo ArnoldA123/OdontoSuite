@@ -66,6 +66,7 @@ Datos verificados contra la BD activa (MySQL, 2026-06-11).
 | Ver pacientes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Editar pacientes | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Eliminar pacientes | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Exportar ficha de paciente | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 | **Citas/Agenda** |
 | Crear citas | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Ver citas | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |

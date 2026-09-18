@@ -11,6 +11,7 @@ use App\Events\PatientCreated;
 use App\Events\PatientUpdated;
 use App\Events\PatientDeleted;
 use App\Listeners\ClearDashboardCache;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 
 class PatientController extends Controller
 {
+    use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
@@ -351,6 +353,8 @@ class PatientController extends Controller
      */
     public function export(Request $request, Patient $patient): \Illuminate\Http\Response|JsonResponse
     {
+        $this->authorize('export', $patient);
+
         // For synchronous export (small files), use service directly
         // For large exports, dispatch job and return status
         $format = $request->get('format', 'pdf');
@@ -379,6 +383,8 @@ class PatientController extends Controller
      */
     private function exportSync(Request $request, Patient $patient): \Illuminate\Http\Response|JsonResponse
     {
+        $this->authorize('export', $patient);
+
         $request->validate([
             'format' => 'required|in:pdf,zip',
         ]);

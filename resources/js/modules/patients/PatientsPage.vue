@@ -211,7 +211,7 @@
                     Ver
                   </UiButton>
                   <UiButton
-                    v-if="can.updatePatient?.value"
+                    v-if="can.editPatient?.value"
                     variant="ghost"
                     size="sm"
                     @click="editPatient(patient)"
@@ -304,7 +304,7 @@
               Ver
             </UiButton>
             <UiButton
-              v-if="can.updatePatient?.value"
+              v-if="can.editPatient?.value"
               variant="ghost"
               size="sm"
               @click="editPatient(patient)"

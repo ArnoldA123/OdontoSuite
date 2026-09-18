@@ -133,13 +133,11 @@ class PatientSeeder extends Seeder
             $emailDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com'];
             $email = strtolower($firstName . '.' . $lastName . '.' . $i . '@' . $emailDomains[$i % count($emailDomains)]);
 
-            // Generar teléfono celular peruano
             $phonePrefix = ['987', '986', '985', '984', '983', '982', '981', '980'];
-            $phone = '+51 ' . $phonePrefix[array_rand($phonePrefix)] . ' ' . sprintf('%03d %03d', rand(100, 999), rand(100, 999));
+            $phone = '+51 ' . $phonePrefix[$i % count($phonePrefix)] . ' ' . sprintf('%03d %03d', 100 + $i, 100 + (($i * 37) % 900));
 
-            // Generar contacto de emergencia
             $emergencyName = $firstNames[array_rand($firstNames)] . ' ' . $lastNames[array_rand($lastNames)];
-            $emergencyPhone = '+51 ' . $phonePrefix[array_rand($phonePrefix)] . ' ' . sprintf('%03d %03d', rand(100, 999), rand(100, 999));
+            $emergencyPhone = '+51 ' . $phonePrefix[($i + 4) % count($phonePrefix)] . ' ' . sprintf('%03d %03d', 600 + $i, 100 + (($i * 53 + 7) % 900));
 
             $patients[] = [
                 'first_name' => $firstName,

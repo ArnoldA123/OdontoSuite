@@ -178,7 +178,7 @@ const MODULES = [
   { to: '/my-procedures', api: ['procedure-catalog-favorites', 'procedure-catalog'], family: 'catalog' },
   { to: '/reception-procedures', api: ['procedure-catalog'], family: 'catalog' },
   { to: '/business-intelligence', api: ['reports'] },
-  { to: '/cash-register', api: ['transactions', 'cash-movements', 'cash-register-sessions', 'cash-reports', 'cash-register', 'pending-payments', 'payments/mercadopago', 'appointments'] },
+  { to: '/cash-register', api: ['transactions', 'cash-movements', 'cash-register-sessions', 'cash-reports', 'cash-register', 'pending-payments', 'payments/mercadopago'] },
   { to: '/treatment-plans', api: ['treatment-plans'] },
   { to: '/quotations', api: ['quotations'] },
   { to: '/medical-records', api: ['medical-records'] },
