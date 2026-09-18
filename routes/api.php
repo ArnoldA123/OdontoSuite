@@ -221,13 +221,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('treatment-plans/items/{itemId}', [TreatmentPlanController::class, 'removeItem']);
     });
 
-    // Presupuestos (clínicos, admin y finanzas)
+    // Presupuestos: lectura abierta a recepcion (issue #55, CRED-quot-recep),
+    // escritura reservada a clinicos, admin y finanzas.
+    Route::middleware('role:administrador,finanzas,odontologo,implantologo,recepcionista')->group(function () {
+        Route::get('quotations', [QuotationController::class, 'index']);
+        Route::get('quotations/patient/{patientId}', [QuotationController::class, 'byPatient']);
+        Route::get('quotations/{id}/pdf', [QuotationController::class, 'downloadPDF']);
+        Route::get('quotations/{id}', [QuotationController::class, 'show']);
+    });
     Route::middleware('role:administrador,finanzas,odontologo,implantologo')->group(function () {
-        Route::apiResource('quotations', QuotationController::class);
+        Route::post('quotations', [QuotationController::class, 'store']);
+        Route::put('quotations/{id}', [QuotationController::class, 'update']);
+        Route::patch('quotations/{id}', [QuotationController::class, 'update']);
+        Route::delete('quotations/{id}', [QuotationController::class, 'destroy']);
         Route::post('quotations/{id}/approve', [QuotationController::class, 'approve']);
         Route::post('quotations/{id}/reject', [QuotationController::class, 'reject']);
-        Route::get('quotations/{id}/pdf', [QuotationController::class, 'downloadPDF']);
-        Route::get('quotations/patient/{patientId}', [QuotationController::class, 'byPatient']);
     });
 
     // Historias clínicas (solo clínicos)
@@ -253,16 +261,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('specialty-records/patient/{patientId}/{specialty}/stats', [SpecialtyRecordController::class, 'getStats']);
     });
 
-    // Sistema de caja (finanzas y admin)
-    Route::middleware('role:administrador,finanzas')->group(function () {
-        // CRUD admin solo administrador (B-CASH-3, Sprint 2).
-        // El endpoint publico /payment-methods/active esta en el
-        // grupo sin role (linea ~201), Pattern L del skill.
-        Route::middleware('role:administrador')->apiResource('payment-methods', PaymentMethodController::class);
-        // Transacciones y movimientos requieren sesion de caja abierta.
-        // La apertura/cierre de sesion NO requiere sesion (la crea/termina),
-        // asi que se aplica el middleware cash.session solo a los resources
-        // que necesitan caja ya abierta.
+    // Sistema de caja. Issue #55: recepcion opera caja (sesiones y
+    // transacciones, CRED-cash-recep / CRED-tx-recep) porque es el rol que
+    // cobra en recepcion; movimientos, reportes, pagos pendientes y Mercado
+    // Pago quedan en administrador/finanzas como promete CREDENTIALS.md.
+    Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
+        // Transacciones requieren sesion de caja abierta.
         // Slice 01 / T-01.1: register `transactions/list` BEFORE apiResource so
         // the fixed segment is not swallowed by `{transaction}` model binding.
         // Verify-correction slice: register `void` and `receipt` BEFORE apiResource
@@ -273,9 +277,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('transactions/{transaction}/receipt', [TransactionController::class, 'generateReceipt']);
             Route::apiResource('transactions', TransactionController::class);
         });
-        Route::middleware('cash.session')->apiResource('cash-movements', CashMovementController::class);
 
-        // Sesiones de caja
+        // Sesiones de caja. La apertura/cierre NO requiere sesion (la
+        // crea/termina), asi que no llevan cash.session.
         // IMPORTANTE: las rutas con segmentos fijos (active, closure-report) deben
         // ir ANTES del apiResource para que no sean pisadas por
         // GET /cash-register-sessions/{cash_register_session} -> show($id).
@@ -285,9 +289,32 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'open']);
         Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'close']);
 
-        // Reportes de caja
+        // Rutas alias para compatibilidad con frontend
+        Route::get('cash-register/current', [CashRegisterController::class, 'current']);
+        Route::get('cash-register/sessions', [CashRegisterController::class, 'index']);
+        Route::post('cash-register/open', [CashRegisterController::class, 'open']);
+        Route::post('cash-register/close', [CashRegisterController::class, 'close']);
+        Route::get('cash-register/sessions/{id}/movements', [CashRegisterController::class, 'movements']);
+
+        // Slice 01 / T-01.1: 5 cash-register endpoints previously 404.
+        Route::get('cash-register/summary', [CashRegisterController::class, 'summary']);
+        Route::get('cash-register/sessions/{id}', [CashRegisterController::class, 'show']);
+        Route::get('cash-register/sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
+    });
+
+    Route::middleware('role:administrador,finanzas')->group(function () {
+        // CRUD admin solo administrador (B-CASH-3, Sprint 2).
+        // El endpoint publico /payment-methods/active esta en el
+        // grupo sin role (linea ~201), Pattern L del skill.
+        Route::middleware('role:administrador')->apiResource('payment-methods', PaymentMethodController::class);
+        Route::middleware('cash.session')->apiResource('cash-movements', CashMovementController::class);
+
+        // Reportes de caja (recepcion no accede, segun matriz CREDENTIALS.md)
         Route::get('cash-reports/daily', [CashReportController::class, 'daily']);
         Route::get('cash-reports/period', [CashReportController::class, 'period']);
+        Route::get('cash-register/reports/period', [CashReportController::class, 'period']);
+        Route::post('cash-register/reports/export/{format}', [CashReportController::class, 'export'])
+            ->where('format', 'excel|pdf|csv');
 
         // Pagos pendientes
         Route::get('pending-payments', [PendingPaymentsController::class, 'index']);
@@ -298,19 +325,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Rutas alias para compatibilidad con frontend
         Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index']);
-        Route::get('cash-register/current', [CashRegisterController::class, 'current']);
-        Route::get('cash-register/sessions', [CashRegisterController::class, 'index']);
-        Route::post('cash-register/open', [CashRegisterController::class, 'open']);
-        Route::post('cash-register/close', [CashRegisterController::class, 'close']);
-        Route::get('cash-register/sessions/{id}/movements', [CashRegisterController::class, 'movements']);
-
-        // Slice 01 / T-01.1: 5 cash-register endpoints previously 404.
-        Route::get('cash-register/summary', [CashRegisterController::class, 'summary']);
-        Route::get('cash-register/reports/period', [CashReportController::class, 'period']);
-        Route::post('cash-register/reports/export/{format}', [CashReportController::class, 'export'])
-            ->where('format', 'excel|pdf|csv');
-        Route::get('cash-register/sessions/{id}', [CashRegisterController::class, 'show']);
-        Route::get('cash-register/sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
     });
 
     // IA Asistiva (solo odontólogos y especialistas)

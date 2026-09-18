@@ -55,16 +55,22 @@ export function usePermissions() {
     // Recordatorios
     manageReminders: computed(() => !['finanzas'].includes(safeUser.value?.role)),
 
-    // Gestión de caja
-    openCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    closeCashRegister: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
+    // Gestión de caja (issue #55: recepcion opera caja, igual que la API)
+    openCashRegister: computed(() =>
+      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
+    ),
+    closeCashRegister: computed(() =>
+      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
+    ),
     viewCashRegister: computed(() =>
       ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
     ),
     manageCashRegister: computed(() =>
       ['administrador', 'finanzas'].includes(safeUser.value?.role)
     ),
-    createTransaction: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
+    createTransaction: computed(() =>
+      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
+    ),
     // Slice 09 / FF-001 — RBAC bypass fix. The "Nuevo Movimiento" button in
     // CashRegisterPage used to render for every role because this permission
     // was missing. Allowed roles mirror the backend middleware at
@@ -88,12 +94,14 @@ export function usePermissions() {
     // Presupuestos
     createQuotation: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
     editQuotation: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
-    viewQuotation: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
+    viewQuotation: computed(
+      () => isClinical.value || isFinanzas.value || isAdministrador.value || isRecepcionista.value
+    ),
     deleteQuotation: computed(() => isFinanzas.value || isAdministrador.value),
     approveQuotation: computed(() => isFinanzas.value || isAdministrador.value),
     rejectQuotation: computed(() => isFinanzas.value || isAdministrador.value),
     downloadQuotationPDF: computed(
-      () => isClinical.value || isFinanzas.value || isAdministrador.value
+      () => isClinical.value || isFinanzas.value || isAdministrador.value || isRecepcionista.value
     ),
 
     // Historias clínicas

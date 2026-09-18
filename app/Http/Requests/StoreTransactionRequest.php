@@ -30,7 +30,7 @@ class StoreTransactionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return in_array(Auth::user()->role, ['administrador', 'finanzas']);
+        return in_array(Auth::user()->role, ['administrador', 'finanzas', 'recepcionista']);
     }
 
     /**

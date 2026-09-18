@@ -326,11 +326,12 @@ class CashRegisterService
     }
 
     /**
-     * Only administrador and finanzas may open or close cash register sessions.
+     * Only administrador, finanzas and recepcionista may open or close cash
+     * register sessions (issue #55: recepcion opera caja).
      */
     private function userCanManageCashRegister(): bool
     {
-        return in_array(Auth::user()?->role, ['administrador', 'finanzas'], true);
+        return in_array(Auth::user()?->role, ['administrador', 'finanzas', 'recepcionista'], true);
     }
 
     /**
