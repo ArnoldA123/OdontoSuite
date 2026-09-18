@@ -6,6 +6,7 @@ use App\Models\ProcedureCatalog;
 use App\Models\Specialty;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -41,6 +42,16 @@ use Tests\TestCase;
 class CatalogFilterTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // `MigrateFreshPortabilityTest` runs `migrate:fresh --seed` on its own
+        // committed connection, so the 41 seeded procedure rows survive into
+        // this class and break the absolute `meta.total` assertion below.
+        DB::table('procedure_catalog')->delete();
+    }
 
     private function odontologo(): User
     {

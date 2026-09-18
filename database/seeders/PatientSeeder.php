@@ -128,9 +128,10 @@ class PatientSeeder extends Seeder
             $birthDay = rand(1, 28);
             $birthDate = sprintf('%04d-%02d-%02d', $birthYear, $birthMonth, $birthDay);
 
-            // Generar email variado
+            // Email derivado del índice del bucle: las 100 filas son distintas
+            // por construcción, sin depender de los nombres aleatorios.
             $emailDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com'];
-            $email = strtolower($firstName . '.' . $lastName . '@' . $emailDomains[array_rand($emailDomains)]);
+            $email = strtolower($firstName . '.' . $lastName . '.' . $i . '@' . $emailDomains[$i % count($emailDomains)]);
 
             // Generar teléfono celular peruano
             $phonePrefix = ['987', '986', '985', '984', '983', '982', '981', '980'];
