@@ -93,14 +93,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('appointment-types/active', [AppointmentTypeController::class, 'active']);
     Route::get('dental-chairs/active', [DentalChairController::class, 'active']);
 
-    // Rutas de reportes para BusinessIntelligencePage
-    Route::get('reports/dashboard', [ReportController::class, 'dashboard']);
-    Route::get('reports/appointments', [ReportController::class, 'appointments']);
-    Route::get('reports/patients', [ReportController::class, 'patients']);
-    Route::get('reports/professionals', [ReportController::class, 'professionals']);
-    Route::get('reports/revenue', [ReportController::class, 'revenue']);
-    Route::get('reports/utilization', [ReportController::class, 'utilization']);
-    Route::get('reports/{reportType}/export', [ReportController::class, 'export']);
+    // Rutas de reportes para BusinessIntelligencePage (solo administrador y finanzas)
+    Route::middleware('role:administrador,finanzas')->group(function () {
+        Route::get('reports/dashboard', [ReportController::class, 'dashboard']);
+        Route::get('reports/appointments', [ReportController::class, 'appointments']);
+        Route::get('reports/patients', [ReportController::class, 'patients']);
+        Route::get('reports/professionals', [ReportController::class, 'professionals']);
+        Route::get('reports/revenue', [ReportController::class, 'revenue']);
+        Route::get('reports/utilization', [ReportController::class, 'utilization']);
+        Route::get('reports/{reportType}/export', [ReportController::class, 'export']);
+    });
 
     // Rutas de sucursales para el frontend (accesible para todos los roles autenticados)
     Route::get('branches/active', [BranchController::class, 'index']);
@@ -125,17 +127,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    // Pacientes (todos los roles)
+    // Pacientes: lectura abierta a los 7 roles; escritura segun matriz CREDENTIALS.md
     Route::get('patients/search', [PatientController::class, 'search']);
-    Route::apiResource('patients', PatientController::class);
+    Route::get('patients', [PatientController::class, 'index']);
+    Route::get('patients/{patient}', [PatientController::class, 'show']);
     Route::get('patients/{patient}/export', [PatientController::class, 'export']);
+    Route::middleware('role:administrador,recepcionista')->group(function () {
+        Route::post('patients', [PatientController::class, 'store']);
+    });
+    Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente')->group(function () {
+        Route::put('patients/{patient}', [PatientController::class, 'update']);
+        Route::patch('patients/{patient}', [PatientController::class, 'update']);
+    });
+    Route::middleware('role:administrador')->group(function () {
+        Route::delete('patients/{patient}', [PatientController::class, 'destroy']);
+    });
 
     // Citas (todos los roles excepto finanzas)
     Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente')->group(function () {
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
         Route::apiResource('appointments', AppointmentController::class);
-        Route::apiResource('dental-chairs', DentalChairController::class);
-        Route::apiResource('appointment-types', AppointmentTypeController::class);
         Route::apiResource('reminder-templates', ReminderTemplateController::class)->middleware('role:administrador');
 
         // Audit logs: read-only (BF-004). Previously apiResource('audit-logs')
@@ -199,8 +210,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('specialties/{id}', [SpecialtyController::class, 'update']);
     });
 
-    // Billing / hook de pago (Sprint 3)
-    Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente,finanzas')->group(function () {
+    // Ambientes y tipos de cita (solo administrador; el resto consume /active)
+    Route::middleware('role:administrador')->group(function () {
+        Route::apiResource('dental-chairs', DentalChairController::class);
+        Route::apiResource('appointment-types', AppointmentTypeController::class);
+    });
+
+    // Billing / hook de pago (Sprint 3, pagina de caja: administrador, finanzas, recepcion)
+    Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
         Route::get('appointments/ready-to-bill', [BillingController::class, 'readyToBill']);
         Route::get('appointments/{appointment}/payment-preview', [BillingController::class, 'paymentPreview']);
         Route::post('appointments/{appointment}/generate-quotation', [BillingController::class, 'generateQuotation']);

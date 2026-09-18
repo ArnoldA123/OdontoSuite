@@ -830,7 +830,8 @@ const navigation = computed(() => {
         'odontologo',
         'implantologo',
         'tecnico_dental',
-        'asistente'
+        'asistente',
+        'finanzas'
       ],
       badge: null
     },

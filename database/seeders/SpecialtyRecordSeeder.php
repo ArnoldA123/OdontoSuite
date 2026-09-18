@@ -40,12 +40,12 @@ class SpecialtyRecordSeeder extends Seeder
         $users = User::whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental'])->limit(3)->get();
         $dentalPieces = DentalPiece::limit(10)->get();
 
-        $this->command->info('Pacientes: ' . $patients->count());
-        $this->command->info('Usuarios: ' . $users->count());
-        $this->command->info('Piezas dentales: ' . $dentalPieces->count());
+        $this->command?->info('Pacientes: ' . $patients->count());
+        $this->command?->info('Usuarios: ' . $users->count());
+        $this->command?->info('Piezas dentales: ' . $dentalPieces->count());
 
         if ($patients->isEmpty() || $users->isEmpty() || $dentalPieces->isEmpty()) {
-            $this->command->info('No hay suficientes datos para crear registros de especialidades. Ejecute primero los seeders de pacientes, usuarios y piezas dentales.');
+            $this->command?->info('No hay suficientes datos para crear registros de especialidades. Ejecute primero los seeders de pacientes, usuarios y piezas dentales.');
             return;
         }
 
@@ -213,6 +213,6 @@ class SpecialtyRecordSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Registros de especialidades creados exitosamente.');
+        $this->command?->info('Registros de especialidades creados exitosamente.');
     }
 }

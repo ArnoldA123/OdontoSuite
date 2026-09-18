@@ -7,6 +7,7 @@ use App\Models\ImplantologyRecord;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -22,12 +23,24 @@ class SpecialtyRecordsRoundTripTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // `MigrateFreshPortabilityTest` runs `migrate:fresh --seed` on its own
+        // committed connection, so the seeded implantology rows survive into
+        // this class and break the absolute count assertion below.
+        DB::table('implantology_records')->delete();
+    }
+
     private function implantologo(): User
     {
+        $suffix = uniqid();
+
         return User::create([
             'name' => 'Implantologo Test',
-            'email' => 'implantologo.test@example.com',
-            'username' => 'implantologo_test',
+            'email' => "implantologo.test.{$suffix}@example.com",
+            'username' => "implantologo_test_{$suffix}",
             'password' => bcrypt('password'),
             'role' => 'implantologo',
             'is_active' => true,
@@ -36,10 +49,12 @@ class SpecialtyRecordsRoundTripTest extends TestCase
 
     private function recepcionista(): User
     {
+        $suffix = uniqid();
+
         return User::create([
             'name' => 'Recep Test',
-            'email' => 'recep.test@example.com',
-            'username' => 'recep_test',
+            'email' => "recep.test.{$suffix}@example.com",
+            'username' => "recep_test_{$suffix}",
             'password' => bcrypt('password'),
             'role' => 'recepcionista',
             'is_active' => true,
@@ -59,15 +74,17 @@ class SpecialtyRecordsRoundTripTest extends TestCase
 
     private function dentalPiece(): DentalPiece
     {
-        return DentalPiece::create([
-            'fdi_number' => '16',
-            'name' => 'Upper right first molar',
-            'type' => 'molar',
-            'quadrant' => 'superior_derecho',
-            'position' => 6,
-            'is_permanent' => true,
-            'is_active' => true,
-        ]);
+        return DentalPiece::firstOrCreate(
+            ['fdi_number' => '16'],
+            [
+                'name' => 'Upper right first molar',
+                'type' => 'molar',
+                'quadrant' => 'superior_derecho',
+                'position' => 6,
+                'is_permanent' => true,
+                'is_active' => true,
+            ]
+        );
     }
 
     private function validPayload(Patient $patient, DentalPiece $piece): array
