@@ -159,6 +159,27 @@ class CashRegisterService
     }
 
     /**
+     * Empty summary shape for days without a cash session (issue #52).
+     * Mirrors the keys of getSessionSummary() so consumers can render
+     * an empty state instead of handling a null payload.
+     */
+    public function getEmptySummary(): array
+    {
+        return [
+            'session' => null,
+            'opening_amount' => 0,
+            'total_income' => 0,
+            'total_expenses' => 0,
+            'total_movements' => 0,
+            'expected_amount' => 0,
+            'transactions_count' => 0,
+            'movements_count' => 0,
+            'by_payment_method' => [],
+            'by_hour' => [],
+        ];
+    }
+
+    /**
      * Get session summary
      */
     public function getSessionSummary(CashRegisterSession $session): array
@@ -305,11 +326,12 @@ class CashRegisterService
     }
 
     /**
-     * Only administrador and finanzas may open or close cash register sessions.
+     * Only administrador, finanzas and recepcionista may open or close cash
+     * register sessions (issue #55: recepcion opera caja).
      */
     private function userCanManageCashRegister(): bool
     {
-        return in_array(Auth::user()?->role, ['administrador', 'finanzas'], true);
+        return in_array(Auth::user()?->role, ['administrador', 'finanzas', 'recepcionista'], true);
     }
 
     /**

@@ -201,7 +201,13 @@ class CashRegisterController extends Controller
     }
 
     /**
-     * Get cash register summary for today
+     * Get cash register summary for today.
+     *
+     * Issue #52: the session lookup is nullable (no session that day) and
+     * used to be passed straight into the non-nullable
+     * CashRegisterService::getSessionSummary(), producing a TypeError 500.
+     * Without a session there is nothing to summarize, so a 200 envelope
+     * with an empty summary is returned instead of an exception.
      */
     public function summary(Request $request): JsonResponse
     {
@@ -210,9 +216,26 @@ class CashRegisterController extends Controller
             $branchId = $request->input('branch_id');
             $userId = $request->input('user_id');
 
-            $summary = $this->cashRegisterService->getSessionSummary(
-                \App\Models\CashRegisterSession::whereDate('opened_at', $date)->first()
-            );
+            $query = \App\Models\CashRegisterSession::whereDate('opened_at', $date);
+
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+
+            $session = $query->latest('opened_at')->first();
+
+            if (!$session) {
+                return response()->json([
+                    'data' => $this->cashRegisterService->getEmptySummary(),
+                    'meta' => ['message' => 'No hay sesión de caja para la fecha indicada'],
+                ]);
+            }
+
+            $summary = $this->cashRegisterService->getSessionSummary($session);
 
             return response()->json([
                 'data' => $summary,

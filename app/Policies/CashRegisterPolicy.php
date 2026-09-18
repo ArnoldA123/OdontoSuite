@@ -12,10 +12,11 @@ class CashRegisterPolicy
 
     /**
      * Determine whether the user can view any cash register sessions.
+     * Issue #55: recepcion opera caja, misma terna que el middleware.
      */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, ['administrador', 'finanzas']);
+        return in_array($user->role, ['administrador', 'finanzas', 'recepcionista']);
     }
 
     /**
@@ -32,7 +33,7 @@ class CashRegisterPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['administrador', 'finanzas']);
+        return in_array($user->role, ['administrador', 'finanzas', 'recepcionista']);
     }
 
     /**
@@ -40,7 +41,7 @@ class CashRegisterPolicy
      */
     public function open(User $user): bool
     {
-        return in_array($user->role, ['administrador', 'finanzas']);
+        return in_array($user->role, ['administrador', 'finanzas', 'recepcionista']);
     }
 
     /**
@@ -48,7 +49,7 @@ class CashRegisterPolicy
      */
     public function close(User $user, CashRegisterSession $cashRegisterSession): bool
     {
-        return in_array($user->role, ['administrador', 'finanzas']);
+        return in_array($user->role, ['administrador', 'finanzas', 'recepcionista']);
     }
 
     /**

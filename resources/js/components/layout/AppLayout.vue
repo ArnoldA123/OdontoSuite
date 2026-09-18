@@ -921,10 +921,11 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // Issue #55: recepcionista ve presupuestos (lectura, igual que la API).
       name: 'Presupuestos',
       to: '/quotations',
       icon: DocumentTextIcon,
-      roles: ['administrador', 'finanzas', 'odontologo', 'implantologo'],
+      roles: ['administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista'],
       badge: null
     },
     {
