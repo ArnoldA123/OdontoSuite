@@ -19,7 +19,11 @@ class CashRegisterSessionFactory extends Factory
             'opening_amount' => 100.00,
             'status' => 'open',
             'opened_at' => now(),
-            'session_code' => 'CS-' . $this->faker->bothify('####-####'),
+            // `session_code` used to be set here and no migration ever declared
+            // that column, so every insert failed with "Unknown column
+            // 'session_code' in 'field list'" -- 15 of the 71 failures of the
+            // MySQL runner. The schema is the truth; a code for the session is a
+            // product decision, not something a fixture may invent.
         ];
     }
 }
