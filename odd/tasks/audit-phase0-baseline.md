@@ -1,9 +1,12 @@
 # Task: Audit phase 0 — make the baseline executable (issues #22, #24)
 
-Status: both work units committed on `chore/audit-phase0-baseline`, plus a third
-commit carrying the corrections two independent verifications produced. One half
-of #22's acceptance criterion is unverified for an environment reason, and four
-points wait on the repository owner; both are named at the end.
+Status: **closed.** Both work units are committed on
+`chore/audit-phase0-baseline`, plus a third commit carrying the corrections two
+independent verifications produced, and both PRs are merged into `main`
+(`59146e1`, `9dd820e`). The two things open at implementation time — the
+unverified container half and the points waiting on the repository owner — are
+resolved one by one in "Resolution of the open items" at the end. The list
+itself is kept as it was written: it is the record of what was open then.
 
 Phase 0 of plan #12 (`docs/mejoras/12-programa-auditoria-integral-2026-08.md` §3)
 is axis **A1** (#24), a single reproducible baseline. #24 states in its own body
@@ -181,3 +184,26 @@ document (`3 of 27`, exit 1) and the override reaching MariaDB 10.4.
 Phase 1 is **A2 (#18), A4 (#26), A3 (#25)**, in that order of defect yield. A2 can
 now group its failures by root class using the baseline's MySQL half, which is
 blocked on the same environment blocker as item 1.
+
+## Resolution of the open items (2026-09-18)
+
+Closed one by one, with the evidence that closed them. The list above is kept as
+written: it is the record of what was open when the phase was implemented, not a
+current status.
+
+| Item | Resolution |
+| --- | --- |
+| 1. Container half unverified | **Executed in full.** The blocker was outside the repository: Intel VT-x was disabled in firmware, so WSL had no distribution and the Docker engine could not start. With virtualization enabled, #22's acceptance criterion ran in its own words — `up` → `health: starting` → `Up (healthy)` → full suite on MySQL 8.0.46 → `down`. Recorded in the #22 closing comment. |
+| 2. Handover to #21 | **Done.** #21 carries the measured handover: `docker compose up -d mysql` is executable now that `docker-compose.yml` is on `main`, `php artisan test --group=mysql` still runs `phpunit.xml` (SQLite) and does not switch engine, and the local override the pinned runner now demands. |
+| 3. Handover to #18 (`AuditLogMigrationTest:74`) | **Still failing, still unowned.** It is one of the ~18 failures that axis A2's exit criterion has to cover: A2 closes when every failure of the run has an assigned cause and an owner, and that triage is the next session's work (#44). |
+| 4. `pnpm format:check` cannot complete | **Owned by #15**, whose body documents the cause verbatim (`Couldn't resolve parser "php"`: `.prettierrc` maps `*.php` to a parser whose plugin is not installed) and lists the two fixes. No separate issue was opened, so as not to duplicate it. |
+| 5. **Owner decision: does the guard test (D5) stay?** | **It stays.** The defect it guards is silent — a `--` inside an XML comment makes PHPUnit refuse the whole configuration and report nothing — and it was introduced by hand twice in one session. It is proven able to fail (an injected `--` plus a port mismatch yields 2 failures, with the file restored byte for byte), it pins runner/engine agreement on database, user, password and port, and it pins the health gate the acceptance criterion reads. Axis A11 of plan #12 holds that a guard which cannot fail is worse than none, so a guard that can fail, over a defect observed twice, is not optional surface. |
+| 6. Append the findings to #22, #24 and #21, and close what is closed | **Done, and verified against the issues rather than assumed:** #22 is closed with the executed acceptance criterion, #24 with the end-to-end delivery note, and #21 received the handover. |
+| 7. Repair WSL for the container half | **Resolved by item 1.** The repair turned out to be a firmware setting, not a repository change. |
+
+Two notes belong to this document rather than to the list above.
+"## Next step per plan #12 §3" is **superseded**: A2's MySQL half is no longer
+blocked, it was measured on both engines with an identical distribution, and its
+fixture layers shipped in #42 and #48. And the two numerals the evidence log
+declares non-reproducible stay declared as such, because the mechanisms behind
+them were confirmed independently by verification pass 2.
