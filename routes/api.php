@@ -212,6 +212,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Ambientes y tipos de cita (solo administrador; el resto consume /active)
     Route::middleware('role:administrador')->group(function () {
+        Route::get('dental-chairs/search', [DentalChairController::class, 'search']);
+        Route::get('appointment-types/search', [AppointmentTypeController::class, 'search']);
         Route::apiResource('dental-chairs', DentalChairController::class);
         Route::apiResource('appointment-types', AppointmentTypeController::class);
     });
