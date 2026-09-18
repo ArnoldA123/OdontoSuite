@@ -55,12 +55,17 @@ class AuthTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Make 5 failed attempts
+        // The 3/min burst throttle shadows the 5-failure/10-min lockout on
+        // rapid loops: the 4th request returns before $next runs, so the
+        // failure counter stalls at 3 and the blocked key stays unreachable
+        // within one window. Forgetting the burst bucket between attempts
+        // emulates minute-boundary passage and isolates the lockout layer.
         for ($i = 1; $i <= 5; $i++) {
             $this->postJson('/api/auth/login', [
                 'username' => 'testuser',
                 'password' => 'wrongpassword',
             ]);
+            Cache::forget('login_attempts:127.0.0.1:testuser');
         }
 
         // 6th attempt should be blocked
