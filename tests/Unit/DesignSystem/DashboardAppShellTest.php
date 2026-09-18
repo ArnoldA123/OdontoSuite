@@ -4,6 +4,8 @@ namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
 
+use Tests\Support\SourceGrep;
+
 /**
  * PR3 — Dashboard + AppShell anti-requirement guards (PR3 slice scope).
  *
@@ -48,41 +50,12 @@ class DashboardAppShellTest extends TestCase
 
     private static function grepCount(string $pattern, string $rootPath): int
     {
-        $cmd = sprintf(
-            'rg --no-heading --count-matches --no-messages %s %s 2>&1',
-            escapeshellarg($pattern),
-            escapeshellarg($rootPath)
-        );
-        $output = (string) shell_exec($cmd);
-        if ($output === '') {
-            return 0;
-        }
-        $total = 0;
-        foreach (preg_split('/\r?\n/', $output) as $line) {
-            $line = trim((string) $line);
-            if ($line === '') {
-                continue;
-            }
-            // rg --count-matches prints "path:count" per file
-            $parts = explode(':', $line);
-            $count = (int) end($parts);
-            $total += $count;
-        }
-        return $total;
+        return SourceGrep::count($pattern, $rootPath);
     }
 
     private static function grepLines(string $pattern, string $path): array
     {
-        $cmd = sprintf(
-            'rg --no-heading --no-messages %s %s 2>&1',
-            escapeshellarg($pattern),
-            escapeshellarg($path)
-        );
-        $output = (string) shell_exec($cmd);
-        if ($output === '') {
-            return [];
-        }
-        return array_values(array_filter(preg_split('/\r?\n/', $output), fn($l) => $l !== ''));
+        return SourceGrep::lines($pattern, $path);
     }
 
     /**
@@ -479,26 +452,7 @@ class DashboardAppShellTest extends TestCase
         $layoutDir = self::projectRootPath() . '/resources/js/components/layout/';
         $this->assertDirectoryExists($layoutDir);
 
-        $hexCount = 0;
-
-        $cmd = sprintf(
-            'rg --no-heading --count-matches --no-messages %s %s %s 2>&1',
-            escapeshellarg('#[0-9a-fA-F]{6}'),
-            escapeshellarg($dir),
-            escapeshellarg($layoutDir)
-        );
-        $output = (string) shell_exec($cmd);
-        if ($output !== '') {
-            foreach (preg_split('/\r?\n/', $output) as $line) {
-                $line = trim((string) $line);
-                if ($line === '') {
-                    continue;
-                }
-                $parts = explode(':', $line);
-                $count = (int) end($parts);
-                $hexCount += $count;
-            }
-        }
+        $hexCount = SourceGrep::count('#[0-9a-fA-F]{6}', $dir, $layoutDir);
 
         $this->assertSame(
             0,

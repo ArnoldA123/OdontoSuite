@@ -4,6 +4,8 @@ namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
 
+use Tests\Support\SourceGrep;
+
 /**
  * PR2 / Phase 2.1 — generated tokens CSS anti-requirement guards.
  *
@@ -83,25 +85,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     private static function grepCount(string $pattern, string $rootPath): int
     {
-        $cmd = sprintf(
-            'rg --no-heading --count-matches --no-messages %s %s 2>&1',
-            escapeshellarg($pattern),
-            escapeshellarg($rootPath)
-        );
-        $output = (string) shell_exec($cmd);
-        if ($output === '') {
-            return 0;
-        }
-        $total = 0;
-        foreach (preg_split('/\r?\n/', $output) as $line) {
-            $line = trim((string) $line);
-            if ($line === '') {
-                continue;
-            }
-            $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
-            $total += $count;
-        }
-        return $total;
+        return SourceGrep::count($pattern, $rootPath);
     }
 
     /**
@@ -241,17 +225,14 @@ class GeneratedTokensCssTest extends TestCase
     public function no_universal_transition_selector_in_css(): void
     {
         $root = self::projectRoot();
-        $cmd = sprintf(
-            'rg --no-heading -n "^\s*\*\s*\{" %s/resources/css/themes.css %s/resources/css/tokens.generated.css %s/resources/css/utilities.css 2>&1',
-            escapeshellarg($root),
-            escapeshellarg($root),
-            escapeshellarg($root)
-        );
-        $output = (string) shell_exec($cmd);
-        $matches = array_filter(
-            preg_split('/\r?\n/', $output) ?: [],
-            static fn($line) => trim((string) $line) !== ''
-        );
+        $candidates = [
+            $root . '/resources/css/themes.css',
+            $root . '/resources/css/tokens.generated.css',
+            $root . '/resources/css/utilities.css',
+        ];
+        $existing = array_values(array_filter($candidates, 'is_file'));
+        $this->assertNotEmpty($existing, 'At least one CSS surface must exist for the universal-selector guard');
+        $matches = SourceGrep::lines('^\s*\*\s*\{', ...$existing);
         $transitions = 0;
         foreach ($matches as $line) {
             // Each ripgrep result is `path:line:content`; check content for "transition".

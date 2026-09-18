@@ -142,6 +142,13 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Install ripgrep (source-grep guards, issue #65)
+        run: |
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y ripgrep
+          fi
+          rg --version
+
       - name: Wait for MySQL ready
         run: |
           for i in {1..30}; do
