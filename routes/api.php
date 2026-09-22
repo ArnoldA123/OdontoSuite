@@ -143,6 +143,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('patients/{patient}', [PatientController::class, 'destroy']);
     });
 
+    // Billing / hook de pago (Sprint 3, pagina de caja: administrador, finanzas, recepcion)
+    Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
+        Route::get('appointments/ready-to-bill', [BillingController::class, 'readyToBill']);
+        Route::get('appointments/{appointment}/payment-preview', [BillingController::class, 'paymentPreview']);
+        Route::post('appointments/{appointment}/generate-quotation', [BillingController::class, 'generateQuotation']);
+    });
+
     // Citas (todos los roles excepto finanzas)
     Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente')->group(function () {
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
@@ -216,13 +223,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('appointment-types/search', [AppointmentTypeController::class, 'search']);
         Route::apiResource('dental-chairs', DentalChairController::class);
         Route::apiResource('appointment-types', AppointmentTypeController::class);
-    });
-
-    // Billing / hook de pago (Sprint 3, pagina de caja: administrador, finanzas, recepcion)
-    Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
-        Route::get('appointments/ready-to-bill', [BillingController::class, 'readyToBill']);
-        Route::get('appointments/{appointment}/payment-preview', [BillingController::class, 'paymentPreview']);
-        Route::post('appointments/{appointment}/generate-quotation', [BillingController::class, 'generateQuotation']);
     });
 
     // Sucursales (solo administrador)
