@@ -86,41 +86,7 @@ class TreatmentPlanController extends Controller
         $this->normalizeEmptyStrings($request);
 
         try {
-            $validated = $request->validate([
-                'patient_id' => 'required|exists:patients,id',
-                'title' => 'required|string|max:200',
-                'description' => 'nullable|string',
-                'estimated_duration_weeks' => 'nullable|integer|min:1',
-                'start_date' => 'nullable|date|after_or_equal:today',
-                'end_date' => 'nullable|date|after:start_date',
-                'notes' => 'nullable|string',
-                'patient_notes' => 'nullable|string',
-                'phases' => 'nullable|array',
-                'requires_anesthesia' => 'boolean',
-                'is_urgent' => 'boolean',
-                'items' => 'nullable|array',
-                'items.*.description' => 'nullable|string|max:500',
-                'items.*.procedure_name' => 'required_with:items|nullable|string|max:200',
-                'items.*.quantity' => 'required_with:items|numeric|min:0.01',
-                'items.*.unit_cost' => 'required_with:items|numeric|min:0',
-                'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
-                'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
-                'items.*.specialty' => 'nullable|string|max:50',
-                'items.*.phase_number' => 'nullable|integer|min:1',
-                'items.*.category' => 'nullable|string|max:50',
-            ], [
-                'patient_id.required' => 'Selecciona un paciente',
-                'patient_id.exists' => 'El paciente seleccionado no existe',
-                'title.required' => 'El título del plan es obligatorio',
-                'title.max' => 'El título no puede exceder 200 caracteres',
-                'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',
-                'items.*.unit_cost.required_with' => 'El precio unitario es obligatorio',
-                'items.*.unit_cost.min' => 'El precio no puede ser negativo',
-                'items.*.quantity.required_with' => 'La cantidad es obligatoria',
-                'items.*.quantity.min' => 'La cantidad mínima es 0.01',
-                'start_date.after_or_equal' => 'La fecha de inicio no puede ser anterior a hoy',
-                'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
-            ]);
+            $validated = $request->validated();
 
             $plan = $this->treatmentPlanService->createPlan($validated);
 
