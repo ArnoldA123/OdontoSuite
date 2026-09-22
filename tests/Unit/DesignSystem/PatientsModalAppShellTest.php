@@ -476,14 +476,14 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `const { can } = usePermissions()` destructure (PAC-CON-001). '
-                    . 'The `can.createPatient / can.updatePatient / can.deletePatient` flags '
+                    . 'The `can.createPatient / can.editPatient / can.deletePatient` flags '
                     . 'gate the action buttons + the New Patient modal open button.',
                 $path
             )
         );
 
         // POSITIVE: the 3 patient permission flags are referenced in the template.
-        $flags = ['can.createPatient', 'can.updatePatient', 'can.deletePatient'];
+        $flags = ['can.createPatient', 'can.editPatient', 'can.deletePatient'];
         foreach ($flags as $flag) {
             $this->assertTrue(
                 (bool) preg_match(
