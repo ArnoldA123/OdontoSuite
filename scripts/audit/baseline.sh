@@ -448,6 +448,19 @@ measure_mysql() {
       return
     fi
 
+    # Any refusal this path has not already handled still refuses: the guard
+    # answers with a `refuse:` code precisely when it cannot prove the two
+    # databases different, and running the suite here would wipe a live
+    # application database. Fail closed on the prefix, not on a list of codes.
+    case "$decision" in
+      refuse:*)
+        record mysql_engine "refused" "database_guard_decision $env_file"
+        record mysql_status "refused-${decision#refuse:}" "database_guard_decision $env_file"
+        PARTIAL_REASON="mysql suite refused: $decision"
+        return
+        ;;
+    esac
+
     # Keep the engine the env file points at, but label it with its real version
     # and never call it MySQL 8.0.
     local host port user pass version
@@ -657,10 +670,60 @@ url_database() {
   printf '%s' "$candidate"
 }
 
+# framework_database <env_file> — asks the framework which database the `mysql`
+# connection resolves to, instead of inferring it from the env file's text.
+#
+# The answer is the one the run gets: an exported value beats the file (Dotenv is
+# immutable inside the framework) and a URL beats the explicit keys
+# (config/database.php maps `url` => env('DB_URL')), and the connection's own
+# getConfig('database') is read after both are applied. DB_DATABASE and DB_URL
+# absent from both sources are exported empty, so a repository `.env` cannot
+# answer behind the env file's back. DB_CONNECTION is deliberately left alone: an
+# empty one makes the framework refuse to boot ("Database connection [] not
+# configured"), and the connection under test is named explicitly anyway.
+#
+# Prints the resolved name, or FRAMEWORK_UNAVAILABLE when the probe cannot run:
+# the caller refuses on that, because a guard that cannot see the resolution has
+# proven nothing.
+#
+# BASELINE_FRAMEWORK_PROBE replaces the probe with an arbitrary shell command (the
+# same seam idea as BASELINE_ENV_FILE), so the tests can prove the decision
+# follows the framework's answer even when it contradicts every static source.
+FRAMEWORK_UNAVAILABLE='__framework-resolution-unavailable__'
+
+framework_database() {
+  local env_file=$1 key value out status
+  local probe_env=()
+  local probe_cmd=${BASELINE_FRAMEWORK_PROBE:-}
+
+  for key in DB_DATABASE DB_URL; do
+    value=$(printenv "$key" 2>/dev/null || true)
+    if [ -z "$value" ] && [ -n "$env_file" ]; then
+      value=$(env_value "$key" "$env_file")
+    fi
+    probe_env+=("$key=$value")
+  done
+
+  if [ -n "$probe_cmd" ]; then
+    out=$(cd "$ROOT" && env "${probe_env[@]}" sh -c "$probe_cmd" 2>/dev/null)
+  else
+    out=$(cd "$ROOT" && env "${probe_env[@]}" php artisan tinker --execute='echo DB::connection("mysql")->getConfig("database");' 2>/dev/null)
+  fi
+  status=$?
+
+  if [ "$status" -ne 0 ]; then
+    printf '%s' "$FRAMEWORK_UNAVAILABLE"
+    return 0
+  fi
+
+  printf '%s' "$(printf '%s' "$out" | tail -n 1 | tr -d '\r')"
+}
+
 database_guard_decision() {
   local env_file=$1
   local app_db_env_file app_db_exported url_env_file url_exported
   local url_db_env_file="" url_db_exported=""
+  local framework_db
   app_db_env_file=$(env_value DB_DATABASE "$env_file")
   app_db_exported=$(printenv DB_DATABASE 2>/dev/null || true)
   url_env_file=$(env_value DB_URL "$env_file")
@@ -686,6 +749,22 @@ database_guard_decision() {
   # with DB_URL selecting odontosuite_test and DB_DATABASE naming odontosuite, the
   # resolved connection is odontosuite_test.
   echo "app_database=${url_db_exported:-${url_db_env_file:-${app_db_exported:-${app_db_env_file:-(unset)}}}}"
+
+  # The decision comes from the framework's own resolution (issue #41), not from
+  # comparing strings: the static sources above name the source when the
+  # framework cannot be asked, and stay as the second net below.
+  framework_db=$(framework_database "$env_file")
+  if [ "$framework_db" = "$FRAMEWORK_UNAVAILABLE" ]; then
+    echo "app_database_framework=unavailable"
+    echo "decision=refuse:framework-resolution-unavailable"
+    return 0
+  fi
+  echo "app_database_framework=${framework_db:-(empty)}"
+
+  if [ -n "$framework_db" ] && [ "$(lower "$framework_db")" = "$(lower "$TEST_DB")" ]; then
+    echo "decision=refuse:application-database-is-test-database"
+    return 0
+  fi
 
   if [ "$(lower "$app_db_env_file")" = "$(lower "$TEST_DB")" ] ||
     [ "$(lower "$app_db_exported")" = "$(lower "$TEST_DB")" ] ||
