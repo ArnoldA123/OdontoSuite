@@ -839,10 +839,12 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * 4.4.2 — Each quick-action card carries a `data-keyhint` attribute
-     * and renders a `<kbd>` element with a keyhint class binding in the
-     * top-right corner. The keyhint is the non-chevron affordance device
-     * (G4 — banned SVG path `M9 5l7 7-7 7`).
+     * HOTFIX-DASH-006 wins over the PR5-era G4 keyhint-chip contract below.
+     * The source removed the letter-key shortcut badge on purpose
+     * (design-taste §9.D "no Material keyboard-shortcut reference visual"):
+     * affordance is hover-lift + the whole card being clickable. This test
+     * now pins the REMOVAL: ≥5 data-action cards, no chevron (PR3 contract
+     * stays), and no data-keyhint / <kbd> badge anywhere in the region.
      */
     public function test_quick_action_cards_carry_keyhint_chip_no_chevron(): void
     {
@@ -872,20 +874,17 @@ class DashboardAppShellTest extends TestCase
                 "Quick-action card #{$idx} must not contain the banned chevron path (G4 — replace with keyhint)."
             );
 
-            // Each card must carry a data-keyhint attribute that names
-            // the keyboard shortcut for the action (G4 device).
-            $this->assertMatchesRegularExpression(
+            // HOTFIX-DASH-006: no keyboard-shortcut badge. The data-keyhint
+            // attribute and the <kbd> chip must be absent from every card.
+            $this->assertDoesNotMatchRegularExpression(
                 '/data-keyhint="[A-Z]"/',
                 $card,
-                "Quick-action card #{$idx} must carry data-keyhint=\"<single uppercase letter>\" (G4)."
+                "Quick-action card #{$idx} must not carry data-keyhint (HOTFIX-DASH-006 removed the badge)."
             );
-
-            // The card body must render a <kbd> chip element with the
-            // keyhint letter visible to the user (not just as data).
-            $this->assertMatchesRegularExpression(
-                '/<kbd\b[^>]*class="[^"]*rounded[^"]*"[^>]*>[^<]+<\/kbd>/',
+            $this->assertDoesNotMatchRegularExpression(
+                '/<kbd\b/',
                 $card,
-                "Quick-action card #{$idx} must render a visible <kbd> keyhint chip in the top-right corner."
+                "Quick-action card #{$idx} must not render a <kbd> keyhint chip (HOTFIX-DASH-006 removed the badge)."
             );
         }
     }
@@ -911,13 +910,15 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The EmptyState for today-appointments must still be present
-        // (the no-CTA bug from PR3 stays fixed), but it MUST NOT carry
-        // an illustration attribute pointing to a third-party host.
+        // The empty state for today-appointments is an inline <div> carrying
+        // data-state="empty-appointments" (HOTFIX-DASH-007: inline line-art
+        // SVG, NOT a child <EmptyState> component, so the rule stays
+        // auditable in source). It MUST NOT carry an illustration attribute
+        // pointing to a third-party host.
         $this->assertMatchesRegularExpression(
-            '/<EmptyState[^>]*data-state="empty-appointments"[^>]*>/',
+            '/<div[^>]*data-state="empty-appointments"[^>]*>/',
             $src,
-            'DashboardPage.vue must render <EmptyState data-state="empty-appointments"> for the today-appointments empty case.'
+            'DashboardPage.vue must render <div data-state="empty-appointments"> for the today-appointments empty case (HOTFIX-DASH-007 inline SVG, no <EmptyState> component).'
         );
         $this->assertDoesNotMatchRegularExpression(
             '/<EmptyState\b[^>]*\billustration="[^"]*picsum\.photos/i',
@@ -1195,15 +1196,11 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * Defect 6 — The five icon plates (the small square containing the
-     * card icon) MUST share one coherent tint. The previous mix
-     * (systemBlue-100 / success-50 / warning-50 / cream-200 / systemGreen-100)
-     * was random colour noise. The fix: every plate uses the same tint.
-     *
-     * Source-level: every plate <div> emits the same bg-* and text-*
-     * class pair. We allow the chosen pair to be either
-     * (bg-systemGray-100 + text-systemGray-600) — iOS Settings — or
-     * (bg-systemBlue-50 + text-systemBlue-600) — accent treatment.
+     * HOTFIX-DASH-002 wins over the PR5-era one-tint icon-plate contract below.
+     * The source removed the icon plates from the 5 stat cards on purpose
+     * (pinned by IconInBoxAuditTest). This test now pins the REMOVAL: ≥5
+     * data-stat-card elements, no plate tint classes in any card, and ≥5
+     * inline 1.5 stroke-width SVGs file-wide.
      */
     public function test_dashboard_kpi_icon_plates_share_one_tint(): void
     {
@@ -1211,7 +1208,6 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // Scope: the icon-plate <div> lives inside each data-stat-card.
         preg_match_all(
             '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
             $src,
@@ -1221,71 +1217,47 @@ class DashboardAppShellTest extends TestCase
         $this->assertGreaterThanOrEqual(
             5,
             count($cards),
-            'DashboardPage.vue must render at least 5 data-stat-card elements for the icon-plate tint check.'
+            'DashboardPage.vue must render at least 5 data-stat-card elements for the icon-plate removal check.'
         );
 
-        // Each plate must carry exactly ONE pair (the "tint class") so
-        // a future contributor who adds a coloured tint to a single
-        // card fails the test. We assert the tint pair is present and
-        // that the legacy multi-tint strings are gone from the
-        // icon-plate regions.
-        $tintPairs = [
-            ['bg-systemGray-100', 'text-systemGray-600'],
-            ['bg-systemBlue-50',  'text-systemBlue-600'],
+        $bannedPlateTints = [
+            'bg-systemGray-100',
+            'bg-systemBlue-50',
+            'bg-systemBlue-100',
+            'bg-success-50 text-success-600',
+            'bg-warning-50 text-warning-600',
+            'bg-cream-200 text-ink-500',
+            'bg-systemGreen-100 text-systemGreen-600',
         ];
-        $foundTint = null;
         foreach ($cards as $idx => $card) {
-            $cardTint = null;
-            foreach ($tintPairs as $pair) {
-                if (
-                    str_contains($card, $pair[0]) &&
-                    str_contains($card, $pair[1])
-                ) {
-                    $cardTint = $pair;
-                    break;
-                }
-            }
-            $this->assertNotNull(
-                $cardTint,
-                "KPI card #{$idx} icon plate must use a unified tint "
-                    . "(bg-systemGray-100 + text-systemGray-600, or bg-systemBlue-50 + text-systemBlue-600)."
-            );
-            if ($foundTint === null) {
-                $foundTint = $cardTint;
-            } else {
-                $this->assertSame(
-                    $foundTint,
-                    $cardTint,
-                    "KPI card #{$idx} icon plate must use the SAME tint as the other four cards (defect 6 — coherent treatment)."
+            foreach ($bannedPlateTints as $banned) {
+                $this->assertStringNotContainsString(
+                    $banned,
+                    $card,
+                    "KPI card #{$idx} must not carry the removed icon-plate tint `{$banned}` (HOTFIX-DASH-002 removed the plates)."
                 );
             }
         }
 
-        // Belt-and-braces: the legacy multi-tint classes must be absent
-        // from the data-stat-card regions. They were the noise the fix
-        // removes.
-        $legacyTints = [
-            'bg-success-50 text-success-600',   // Pacientes old green
-            'bg-warning-50 text-warning-600',   // Profesionales old yellow
-            'bg-cream-200 text-ink-500',        // Total Citas old cream
-            'bg-systemGreen-100 text-systemGreen-600', // Caja old green-bordered
-        ];
-        foreach ($cards as $idx => $card) {
-            foreach ($legacyTints as $legacy) {
-                $this->assertStringNotContainsString(
-                    $legacy,
-                    $card,
-                    "KPI card #{$idx} icon plate must not use the legacy tint `{$legacy}` (defect 6 fix)."
-                );
-            }
-        }
+        $inlineIcons = preg_match_all('/<svg\b[^>]*stroke-width="1\.5"/', $src);
+        $this->assertGreaterThanOrEqual(
+            5,
+            (int) $inlineIcons,
+            'DashboardPage.vue must render at least 5 inline SVGs with stroke-width="1.5" (HOTFIX-DASH-002 inline icons, no plates).'
+        );
     }
+    /**
+     * HOTFIX-DASH-001 wins over the PR5 sidebar headers: section labels
+     * were removed (hairline dividers instead), pinned by
+     * SidebarEyebrowAuditTest. This test now pins the removal — zero group
+     * headers and no Operaciones/Configuración labels in AppLayout.vue.
+     */
     public function testPr5SidebarGroupHeadersAdded(): void
     {
         $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
-        $this->assertSame(2, substr_count($source, 'class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"'));
-        $this->assertMatchesRegularExpression('/>\s*Operaciones\s*<\/div>/', $source);
-        $this->assertMatchesRegularExpression('/>\s*Configuración\s*<\/div>/', $source);
+        $this->assertSame(0, substr_count($source, 'class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"'));
+        $this->assertDoesNotMatchRegularExpression('/>\s*Operaciones\s*<\/div>/', $source);
+        $this->assertDoesNotMatchRegularExpression('/>\s*Configuración\s*<\/div>/', $source);
     }
 
     public function testPr5NavLabelsRemainInFrozenOrder(): void
