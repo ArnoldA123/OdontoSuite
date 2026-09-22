@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Http\Requests\StoreAppointmentRequest;
+use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\User;
@@ -38,6 +40,7 @@ class AppointmentService
             ]);
 
             $this->validateAppointmentData($data);
+            $this->assertParticipantsAreActive($data);
 
             Log::info('AppointmentService::createAppointment - Data validated');
 
@@ -166,6 +169,7 @@ class AppointmentService
     public function updateAppointment(Appointment $appointment, array $data): Appointment
     {
         $this->validateAppointmentData($data, $appointment);
+        $this->assertParticipantsAreActive($data, $appointment);
         $oldValues = $appointment->toArray();
 
         // Check for conflicts if time is being changed
@@ -554,32 +558,50 @@ class AppointmentService
 
     /**
      * Validate appointment data.
+     *
+     * The rule set lives in the FormRequests (single source of truth); this
+     * method only reuses it so direct service callers get the same contract.
      */
     private function validateAppointmentData(array $data, ?Appointment $appointment = null): void
     {
-        $rules = [
-            'patient_id' => 'required|exists:patients,id',
-            'user_id' => 'required|exists:users,id',
-            'dental_chair_id' => 'required|exists:dental_chairs,id',
-            'appointment_type_id' => 'required|exists:appointment_types,id',
-            'scheduled_at' => 'required|date',
-            'duration_minutes' => 'nullable|integer|min:15|max:480',
-            'status' => 'sometimes|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show',
-            'notes' => 'nullable|string|max:1000',
-        ];
-
-        if ($appointment) {
-            $rules['scheduled_at'] = 'sometimes|required|date';
-            $rules['patient_id'] = 'sometimes|required|exists:patients,id';
-            $rules['user_id'] = 'sometimes|required|exists:users,id';
-            $rules['dental_chair_id'] = 'sometimes|required|exists:dental_chairs,id';
-            $rules['appointment_type_id'] = 'sometimes|required|exists:appointment_types,id';
-        }
+        $rules = $appointment
+            ? (new UpdateAppointmentRequest())->rules()
+            : (new StoreAppointmentRequest())->rules();
 
         $validator = validator($data, $rules);
 
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+    }
+
+    /**
+     * Ensure the patient and professional referenced by the appointment are
+     * active. Shared by the create and update paths.
+     *
+     * On update, only participants that actually change are checked, matching
+     * the previous controller behaviour.
+     */
+    private function assertParticipantsAreActive(array $data, ?Appointment $appointment = null): void
+    {
+        if (array_key_exists('patient_id', $data)
+            && ($appointment === null || $data['patient_id'] != $appointment->patient_id)) {
+            $patient = Patient::find($data['patient_id']);
+            if ($patient && !$patient->is_active) {
+                throw ValidationException::withMessages([
+                    'patient_id' => ['El paciente seleccionado está inactivo.'],
+                ]);
+            }
+        }
+
+        if (array_key_exists('user_id', $data)
+            && ($appointment === null || $data['user_id'] != $appointment->user_id)) {
+            $user = User::find($data['user_id']);
+            if ($user && !$user->is_active) {
+                throw ValidationException::withMessages([
+                    'user_id' => ['El profesional seleccionado está inactivo.'],
+                ]);
+            }
         }
     }
 }

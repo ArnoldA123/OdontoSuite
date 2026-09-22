@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AppointmentType;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
@@ -13,6 +14,23 @@ use Illuminate\Support\Facades\Log;
 
 class AppointmentTypeController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'duration_minutes' => 'required|integer|min:15|max:480',
+            'price' => 'nullable|numeric|min:0',
+            'color' => 'required|string|max:7',
+            'is_active' => 'boolean'
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -41,14 +59,7 @@ class AppointmentTypeController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'duration_minutes' => 'required|integer|min:15|max:480',
-                'price' => 'nullable|numeric|min:0',
-                'color' => 'required|string|max:7',
-                'is_active' => 'boolean'
-            ]);
+            $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
             
@@ -130,14 +141,7 @@ class AppointmentTypeController extends Controller
         try {
             $type = AppointmentType::findOrFail($id);
 
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
-                'duration_minutes' => 'sometimes|integer|min:15|max:480',
-                'price' => 'nullable|numeric|min:0',
-                'color' => 'sometimes|string|max:7',
-                'is_active' => 'boolean'
-            ]);
+            $validated = $request->validate($this->updateRules($this->storeRules()));
 
             // Map duration_minutes to default_duration_minutes if needed
             if (isset($validated['duration_minutes'])) {

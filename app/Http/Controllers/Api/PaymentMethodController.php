@@ -3,12 +3,35 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class PaymentMethodController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'code' => 'required|string|max:20|unique:payment_methods,code',
+            'name' => 'required|string|max:50',
+            'description' => 'sometimes|nullable|string|max:500',
+            'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
+            'gateway_config' => 'sometimes|nullable|array',
+            'requires_authorization' => 'sometimes|boolean',
+            'allows_change' => 'sometimes|boolean',
+            'commission_percentage' => 'sometimes|numeric|min:0|max:100',
+            'is_active' => 'sometimes|boolean',
+            // Los metodos custom (no-seed) no son del sistema
+            'is_system' => 'sometimes|boolean'
+        ];
+    }
+
     /**
      * Display a listing of payment methods
      */
@@ -58,19 +81,7 @@ class PaymentMethodController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'code' => 'required|string|max:20|unique:payment_methods,code',
-                'name' => 'required|string|max:50',
-                'description' => 'sometimes|nullable|string|max:500',
-                'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
-                'gateway_config' => 'sometimes|nullable|array',
-                'requires_authorization' => 'sometimes|boolean',
-                'allows_change' => 'sometimes|boolean',
-                'commission_percentage' => 'sometimes|numeric|min:0|max:100',
-                'is_active' => 'sometimes|boolean',
-                // Los metodos custom (no-seed) no son del sistema
-                'is_system' => 'sometimes|boolean'
-            ]);
+            $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
             $validated['is_system'] = $validated['is_system'] ?? false;
@@ -131,17 +142,10 @@ class PaymentMethodController extends Controller
     public function update(Request $request, PaymentMethod $paymentMethod): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                // code inmutable
+            $validated = $request->validate($this->updateRules($this->storeRules(), ['code', 'is_system'], [
+                // name sigue siendo obligatorio al actualizar
                 'name' => 'required|string|max:50',
-                'description' => 'sometimes|nullable|string|max:500',
-                'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
-                'gateway_config' => 'sometimes|nullable|array',
-                'requires_authorization' => 'sometimes|boolean',
-                'allows_change' => 'sometimes|boolean',
-                'commission_percentage' => 'sometimes|numeric|min:0|max:100',
-                'is_active' => 'sometimes|boolean'
-            ]);
+            ]));
 
             $paymentMethod->update($validated);
 

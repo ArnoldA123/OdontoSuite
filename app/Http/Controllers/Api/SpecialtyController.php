@@ -3,12 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\Specialty;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SpecialtyController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'code' => 'required|string|max:50|unique:specialties,code',
+            'name' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Specialty::query();
@@ -53,12 +69,7 @@ class SpecialtyController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:50|unique:specialties,code',
-            'name' => 'required|string|max:100',
-            'description' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validate($this->storeRules());
 
         $specialty = Specialty::create($validated);
 
@@ -72,12 +83,9 @@ class SpecialtyController extends Controller
     {
         $specialty = Specialty::findOrFail($id);
 
-        $validated = $request->validate([
+        $validated = $request->validate($this->updateRules($this->storeRules(), [], [
             'code' => "sometimes|string|max:50|unique:specialties,code,{$id}",
-            'name' => 'sometimes|string|max:100',
-            'description' => 'sometimes|nullable|string',
-            'is_active' => 'sometimes|boolean',
-        ]);
+        ]));
 
         $specialty->update($validated);
 
