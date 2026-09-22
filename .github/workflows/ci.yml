@@ -105,6 +105,11 @@ jobs:
       - name: Lint frontend (ESLint)
         run: pnpm lint:check
 
+      # Blocking (issue #23): every frontend module mounts under jsdom in a
+      # smoke test, so a page that throws on mount turns this step red.
+      - name: Frontend smoke (Vitest)
+        run: pnpm test:js
+
       # Deliberately non-blocking (issue #15): the tree is not
       # Prettier-clean (`pnpm format:check` lists the files), so enforcing
       # it now would block on formatting debt. The tool itself runs for
