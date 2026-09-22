@@ -82,7 +82,7 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
         // `canvasRoutes.some(route => path === route || path.startsWith(route + '/'))`.
         $this->assertTrue(
             (bool) preg_match(
-                '#canvasRoutes\s*\.\s*some\s*\(\s*route\s*=>\s*path\s*===\s*route\s*\|\|\s*path\s*\.\s*startsWith\s*\(\s*route\s*\+\s*[\'"]\/[\'"]\s*\)\s*\)#s',
+                '#canvasRoutes\s*\.\s*some\s*\(\s*route\s*=>\s*path\s*===\s*route\s*\|\|\s*path\s*\.\s*startsWith\s*\(\s*(?:route\s*\+\s*[\'"]\/[\'"]|`\$\{route\}\/`)\s*\)\s*\)#s',
                 $src
             ),
             sprintf(

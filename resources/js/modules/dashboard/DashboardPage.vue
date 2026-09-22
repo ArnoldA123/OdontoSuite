@@ -65,7 +65,7 @@
         in HotfixDashboardDateTabularTest anchors on getTodayDate()
         followed within 400 chars by the declaration.
       -->
-      <header class="flex items-end justify-between flex-wrap gap-4">
+      <header ref="greetingSection" class="flex items-end justify-between flex-wrap gap-4">
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
             {{ getGreeting() }},
@@ -105,7 +105,7 @@
         + systemGray-600 - the iOS Settings / List treatment).
       -->
       <section aria-label="Resumen del día">
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div ref="kpiSection" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
           <UiCard
             v-if="can.viewAppointment?.value"
@@ -509,7 +509,7 @@ Este mes
           apple-design §16 - icon stroke 1.5 (NOT icon-in-box) - applied
           via inline stroke-width="1.5" on each Quick Action SVG.
         -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div ref="quickActionsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Patients -->
           <UiCard
             variant="flat"
@@ -737,6 +737,7 @@ Este mes
         -->
         <div
           v-if="todayAppointments.length === 0"
+          ref="emptyStateSection"
           data-state="empty-appointments"
           class="relative rounded-ios p-10 text-center"
           style="
@@ -853,6 +854,7 @@ import { useAuth } from '@/composables/useAuth'
 // custom property. Stagger: 0ms / 60ms / 120ms / 180ms post-mount.
 // Critically damped (damping 1.0) by default - no overshoot on a
 // non-momentum entrance.
+import { useSpring } from '../../composables/useSpring'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
@@ -931,6 +933,32 @@ const chipToneClass = deltaLabel => {
 // prefers-reduced-motion internally - the springs collapse to instant
 // settle when the OS preference is on (see composables/useSpring.js
 // contract, item 6).
+const greetingSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-greeting-o'
+})
+const kpiSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-kpi-o'
+})
+const quickActionsSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-quick-o'
+})
+const emptyStateSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-dash-empty-o'
+})
+
+const greetingSection = ref(null)
+const kpiSection = ref(null)
+const quickActionsSection = ref(null)
+const emptyStateSection = ref(null)
+
 // Utility functions
 const getGreeting = () => {
   const hour = new Date().getHours()
@@ -1284,6 +1312,21 @@ onMounted(async () => {
   } catch (error) {
     // Reverb unreacheable in dev is expected.
   }
+})
+
+// HOTFIX-DASH-009 - attach each entrance spring to its section and fire the
+// 0/60/120/180ms stagger once the DOM is mounted. The composable starts at 0
+// (default `from`), so each spring animates 0 -> 1 on `set(1)`.
+onMounted(() => {
+  if (greetingSection.value) greetingSpring.attach(greetingSection.value)
+  if (kpiSection.value) kpiSpring.attach(kpiSection.value)
+  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
+  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
+
+  setTimeout(() => greetingSpring.set(1), 0)
+  setTimeout(() => kpiSpring.set(1), 60)
+  setTimeout(() => quickActionsSpring.set(1), 120)
+  setTimeout(() => emptyStateSpring.set(1), 180)
 })
 
 onUnmounted(() => {
