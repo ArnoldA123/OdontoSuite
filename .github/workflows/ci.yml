@@ -162,7 +162,12 @@ jobs:
       DB_PASSWORD: secret
 
     steps:
+      # Full history: git-based guards (e.g. PacientesNegativeSpaceRulesTest
+      # `git diff HEAD~5`, see #106) need refs the default depth-1 shallow
+      # clone does not have. Other jobs stay shallow for speed.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
