@@ -39,6 +39,11 @@ use PHPUnit\Framework\TestCase;
  * process gets `env -u DB_DATABASE` unless a test says otherwise, because
  * PHPUnit exports its own `DB_DATABASE` from phpunit.xml and an inherited value
  * would decide these cases instead of the file under test.
+ *
+ * The framework rule (issue #41) is exercised through `BASELINE_FRAMEWORK_PROBE`,
+ * the script's seam for the probe command: the tests prove the decision follows
+ * the framework's answer — including when it contradicts every static source,
+ * and when the framework cannot answer at all — without booting it per case.
  */
 class AuditBaselineGuardTest extends TestCase
 {
@@ -192,6 +197,67 @@ class AuditBaselineGuardTest extends TestCase
     }
 
     /**
+     * @test
+     */
+    public function database_guard_follows_the_framework_resolution_not_the_static_sources(): void
+    {
+        // Issue #41. The env file names a database the suite will not wipe and no
+        // static source names the test database, so every string comparison in
+        // the script answers proceed. The framework resolves the test database,
+        // and the guard must refuse: with the framework rule removed this test
+        // answers proceed, which is what makes it a falsification.
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", null, null, 'echo odontosuite_test');
+
+        $this->assertSame('odontosuite_test', $decision['app_database_framework'] ?? '(absent)');
+        $this->assertSame(
+            'refuse:application-database-is-test-database',
+            $decision['decision'] ?? '(no decision reported)',
+            'The decision must come from what the framework resolves, not from comparing the env file strings'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function database_guard_proceeds_only_when_the_framework_resolves_another_database(): void
+    {
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", null, null, 'echo odontosuite');
+
+        $this->assertSame('odontosuite', $decision['app_database_framework'] ?? '(absent)');
+        $this->assertSame('proceed', $decision['decision'] ?? '(no decision reported)');
+    }
+
+    /**
+     * @test
+     */
+    public function database_guard_refuses_when_the_framework_cannot_answer(): void
+    {
+        // A guard that cannot see the resolution has proven nothing, and the
+        // suite runs migrate:fresh: it fails closed instead of assuming.
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", null, null, 'exit 1');
+
+        $this->assertSame('unavailable', $decision['app_database_framework'] ?? '(absent)');
+        $this->assertSame(
+            'refuse:framework-resolution-unavailable',
+            $decision['decision'] ?? '(no decision reported)',
+            'An unanswered framework resolution is not a licence to run the suite'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function database_guard_hands_the_probe_the_run_environment(): void
+    {
+        // The probe reads the connection-defining keys back, so this pins the
+        // wiring (what the run would see) rather than the answer: an exported
+        // value wins over the file, exactly as it does inside the framework.
+        $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", 'odontosuite_test', null, 'echo "$DB_DATABASE"');
+
+        $this->assertSame('odontosuite_test', $decision['app_database_framework'] ?? '(absent)');
+    }
+
+    /**
      * @return array<string, array{string, string}>
      */
     public static function envFileVariants(): array
@@ -245,7 +311,8 @@ class AuditBaselineGuardTest extends TestCase
     private function guardDecision(
         ?string $envContents,
         ?string $exportedDatabase = null,
-        ?string $exportedUrl = null
+        ?string $exportedUrl = null,
+        ?string $frameworkProbe = null
     ): array {
         $path = sys_get_temp_dir().'/baseline-guard-'.uniqid('', true).'.env';
         if ($envContents !== null) {
@@ -253,7 +320,7 @@ class AuditBaselineGuardTest extends TestCase
         }
 
         try {
-            return $this->runScript(['--explain-database-guard', $path], $exportedDatabase, $exportedUrl);
+            return $this->runScript(['--explain-database-guard', $path], $exportedDatabase, $exportedUrl, $frameworkProbe);
         } finally {
             if (file_exists($path)) {
                 unlink($path);
@@ -268,7 +335,8 @@ class AuditBaselineGuardTest extends TestCase
     private function runScript(
         array $arguments,
         ?string $exportedDatabase = null,
-        ?string $exportedUrl = null
+        ?string $exportedUrl = null,
+        ?string $frameworkProbe = null
     ): array {
         $script = str_replace('\\', '/', dirname(__DIR__, 3).'/scripts/audit/baseline.sh');
 
@@ -281,6 +349,9 @@ class AuditBaselineGuardTest extends TestCase
         }
         if ($exportedUrl !== null) {
             $command .= 'DB_URL='.escapeshellarg($exportedUrl).' ';
+        }
+        if ($frameworkProbe !== null) {
+            $command .= 'BASELINE_FRAMEWORK_PROBE='.escapeshellarg($frameworkProbe).' ';
         }
         $command .= 'bash '.escapeshellarg($script);
         foreach ($arguments as $argument) {
