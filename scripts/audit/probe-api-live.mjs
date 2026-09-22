@@ -8,15 +8,23 @@
  * route with `php artisan route:list --json` and calls it once per role token,
  * recording the HTTP status and the top-level JSON keys (or `non-json`).
  *
- * Routes with a required parameter (`{...}`) are never guessed: they are
- * recorded as `skipped-needs-fixture` with a written reason. Fabricating ids
- * would turn a coverage gap into a false green.
+ * Fixtures close part of that gap without inventing data, declared in two fixed
+ * tables inside this file:
+ *   - QUERY_FIXTURES maps a parameterless route to the query string it needs to
+ *     answer (e.g. `api/patients/search` 422s without `?search=`).
+ *   - PATH_FIXTURES maps a `{...}` route to the index route used to resolve one
+ *     real id live, at sweep time: first row's `id` from the first role token
+ *     that can read the index. No id is hardcoded.
+ * A route with a fixture is swept normally and classified by its real status; a
+ * `{...}` route with no declared fixture, or whose index is empty/unreadable,
+ * stays `skipped-needs-fixture` with the observed reason. Fabricating ids would
+ * turn a coverage gap into a false green.
  *
  * Per-route classes:
- *   ok                   2xx in at least one role
+ *   ok                   2xx in at least one role (with or without a fixture)
  *   auth-gated           only 401/403 across the swept roles
  *   server-error         any 5xx observed
- *   skipped-needs-fixture path carries a `{...}` parameter
+ *   skipped-needs-fixture `{...}` route with no declared, resolvable fixture
  *   unclassified         any other status (3xx, 404, 422, 429, ...)
  *
  * Usage:
@@ -72,6 +80,42 @@ const ROLE_USERS = [
   { role: 'finanzas', username: 'milagros' }
 ]
 const PASSWORD = 'password123'
+
+// --- Fixtures ----------------------------------------------------------------
+// Values verified against the seeded demo DB (elizabet/password123, live :8000).
+//
+// QUERY_FIXTURES: keyed by `"METHOD path"` (route:list uri), value is the query
+// string appended to the request. A parameterless route that needs query params
+// is swept with them; the recorded path stays the plain route uri.
+//   GET api/patients/search     PatientController@search requires `search` of at
+//                               least 2 chars (HTTP 422 otherwise). `?search=an`
+//                               matches seeded patients and answers 200.
+//   GET api/specialty-records   SpecialtyRecordController@index requires both
+//                               `specialty` and `patient_id` (HTTP 400 otherwise).
+//                               `orthodontics` is an accepted specialty code and
+//                               patient_id=1 exists in the seed; it answers 200
+//                               (empty `data` is fine: the class tracks status,
+//                               not content).
+const QUERY_FIXTURES = {
+  'GET api/patients/search': '?search=an',
+  'GET api/specialty-records': '?specialty=orthodontics&patient_id=1'
+}
+
+// PATH_FIXTURES: keyed by the route:list uri with `{...}` placeholders; value is
+// the index route whose first real `id` fills the placeholder. Resolved live in
+// `resolveFixture()`, never hardcoded. Chosen for contractual weight (detail and
+// billing/clinical read paths); all are pure GETs.
+const PATH_FIXTURES = {
+  'api/patients/{patient}': { index: 'api/patients' },
+  'api/appointments/{appointment}': { index: 'api/appointments' },
+  'api/procedure-catalog/{id}': { index: 'api/procedure-catalog' },
+  'api/transactions/{transaction}': { index: 'api/transactions' },
+  'api/reminders/{reminder}': { index: 'api/reminders' },
+  'api/users/{user}': { index: 'api/users' }
+}
+
+// One live resolution per index route, shared by every route that declares it.
+const fixtureCache = new Map()
 
 class ConnectionError extends Error {}
 
@@ -174,23 +218,85 @@ const targets = routeList
 
 // --- 3. Sweep every target with every role token ----------------------------
 
+// Resolve the first real id from an index route, live. Cached per index so the
+// same index is queried once even when several routes declare it. Returns
+// { ok: true, id, resolvedWith } or { ok: false, reason }.
+async function resolveFixture(index) {
+  if (fixtureCache.has(index)) return fixtureCache.get(index)
+  let readable = false
+  let result = null
+  for (const role of roles) {
+    let res
+    try {
+      res = await request(`/${index}`, { token: role.token })
+    } catch (err) {
+      if (err instanceof ConnectionError) {
+        console.error(reachError())
+        process.exit(1)
+      }
+      continue
+    }
+    if (res.status < 200 || res.status >= 300) continue
+    readable = true
+    const rows = Array.isArray(res.json) ? res.json : res.json?.data
+    if (!Array.isArray(rows) || rows.length === 0) continue
+    const id = rows[0]?.id
+    if (id === undefined || id === null) continue
+    result = { ok: true, id, resolvedWith: role.role }
+    break
+  }
+  if (!result)
+    result = {
+      ok: false,
+      reason: readable
+        ? `fixture index ${index} is empty in this DB; no real id to fill the parameter`
+        : `fixture index ${index} is not readable with any swept role`
+    }
+  fixtureCache.set(index, result)
+  return result
+}
+
 const routes = []
 for (const target of targets) {
+  const fixtureKey = `${target.method} ${target.path}`
+  let requestPath = target.path
+  let fixture = null
+
   if (target.params) {
-    routes.push({
-      method: target.method,
-      path: target.path,
-      class: 'skipped-needs-fixture',
-      reason: 'path carries a required {...} parameter; the live half does not fabricate fixture ids',
-      cells: []
-    })
-    continue
+    const spec = PATH_FIXTURES[target.path]
+    if (!spec) {
+      routes.push({
+        method: target.method,
+        path: target.path,
+        class: 'skipped-needs-fixture',
+        reason: 'path carries a required {...} parameter and no fixture is declared for it',
+        cells: []
+      })
+      continue
+    }
+    const resolved = await resolveFixture(spec.index)
+    if (!resolved.ok) {
+      routes.push({
+        method: target.method,
+        path: target.path,
+        class: 'skipped-needs-fixture',
+        reason: `${resolved.reason} (declared index: ${spec.index})`,
+        cells: []
+      })
+      continue
+    }
+    requestPath = target.path.replace(/\{[^}]+\}/, String(resolved.id))
+    fixture = `${spec.index} -> id ${resolved.id}`
+  } else if (QUERY_FIXTURES[fixtureKey]) {
+    requestPath = `${target.path}${QUERY_FIXTURES[fixtureKey]}`
+    fixture = QUERY_FIXTURES[fixtureKey]
   }
+
   const cells = []
   for (const role of roles) {
     let cell
     try {
-      const res = await request(`/${target.path}`, { token: role.token })
+      const res = await request(`/${requestPath}`, { token: role.token })
       const cls = cellClass(res.status)
       cell = {
         role: role.role,
@@ -208,7 +314,9 @@ for (const target of targets) {
     }
     cells.push(cell)
   }
-  routes.push({ method: target.method, path: target.path, class: classify(cells), cells })
+  const record = { method: target.method, path: target.path, class: classify(cells), cells }
+  if (fixture) record.fixture = fixture
+  routes.push(record)
 }
 
 // --- 4. Classify, accept, write ---------------------------------------------
