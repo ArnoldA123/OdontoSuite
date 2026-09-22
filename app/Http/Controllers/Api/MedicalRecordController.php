@@ -64,23 +64,7 @@ class MedicalRecordController extends Controller
     public function store(\App\Http\Requests\StoreMedicalRecordRequest $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'patient_id' => 'required|exists:patients,id',
-                'first_visit_date' => 'nullable|date',
-                'chief_complaint' => 'nullable|string',
-                'medical_history' => 'nullable|string',
-                'dental_history' => 'nullable|string',
-                'allergies' => 'nullable|string',
-                'medications' => 'nullable|string',
-                'systemic_conditions' => 'nullable|string',
-                'family_history' => 'nullable|string',
-                'social_history' => 'nullable|string',
-                'vital_signs' => 'nullable|array',
-                'clinical_examination' => 'nullable|string',
-                'diagnosis' => 'nullable|string',
-                'treatment_plan' => 'nullable|string',
-                'notes' => 'nullable|string'
-            ]);
+            $validated = $request->validated();
 
             $record = $this->medicalRecordService->createRecord($validated['patient_id'], $validated);
 
@@ -213,24 +197,7 @@ class MedicalRecordController extends Controller
     public function addEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'appointment_id' => 'nullable|exists:appointments,id',
-                'evolution_date' => 'nullable|date',
-                'specialty' => 'nullable|string',
-                'subjective' => 'nullable|string',
-                'objective' => 'nullable|string',
-                'assessment' => 'nullable|string',
-                'plan' => 'nullable|string',
-                'procedures_performed' => 'nullable|string',
-                'materials_used' => 'nullable|string',
-                'prescriptions' => 'nullable|string',
-                'recommendations' => 'nullable|string',
-                'next_appointment_notes' => 'nullable|string',
-                'vital_signs' => 'nullable|array',
-                'clinical_measurements' => 'nullable|array',
-                'requires_follow_up' => 'boolean',
-                'follow_up_date' => 'nullable|date|after:evolution_date'
-            ]);
+            $validated = $request->validated();
 
             $evolution = $this->medicalRecordService->addEvolution($id, $validated);
             $evolution->load('medicalRecord.patient', 'createdBy');

@@ -298,17 +298,7 @@ class AppointmentController extends Controller
             // Ignore logging errors
         }
 
-        $validated = $request->validate([
-            'patient_id' => 'sometimes|required|exists:patients,id',
-            'user_id' => 'sometimes|required|exists:users,id',
-            'dental_chair_id' => 'sometimes|required|exists:dental_chairs,id',
-            'appointment_type_id' => 'sometimes|required|exists:appointment_types,id',
-            'scheduled_at' => 'sometimes|required|date',
-            'duration_minutes' => 'sometimes|required|integer|min:15|max:480',
-            'status' => 'sometimes|required|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
-            'notes' => 'nullable|string|max:1000',
-            'treatment_notes' => 'nullable|string|max:2000',
-        ]);
+        $validated = $request->validated();
 
         // Validar que el paciente esté activo si se está cambiando
         if (isset($validated['patient_id']) && $validated['patient_id'] != $appointment->patient_id) {
