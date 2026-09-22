@@ -64,3 +64,7 @@ login-refined-*.png
 # content; keeping it ignored also keeps it out of the review untracked
 # inventory, whose digest changes whenever a new untracked path appears.
 .pi/
+
+# pnpm-only project (AGENTS.md §2): npm/yarn lockfiles must never be tracked.
+package-lock.json
+yarn.lock
