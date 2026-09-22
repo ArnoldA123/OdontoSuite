@@ -35,9 +35,12 @@ class BroadcastingAuth503Test extends TestCase
         $closureUses503 = str_contains($routesSource, "response()->json(['message' => 'Server configuration error'], 503)")
             || preg_match("/response\\(\\)->json\\([^)]*Server configuration error[^)]*503/s", $routesSource) === 1;
 
-        $controllerUses503 = $controllerSource !== null && (
-            str_contains($controllerSource, '503')
-        );
+        // Assert the emitted status code, not a comment mention. The
+        // controller's BF-019 rationale comment contains the literal "503"
+        // even when the response is 500, so a bare str_contains() passed on
+        // a regression.
+        $controllerUses503 = $controllerSource !== null
+            && preg_match('/,\s*503\s*\)/', $controllerSource) === 1;
 
         $this->assertTrue(
             $closureUses503 || $controllerUses503,
