@@ -3,19 +3,19 @@
 Status: EN CURSO. Documentos de features cerradas: `ci-quality-gates-15.md`,
 `cierre-evidencia-14-19-20.md`, `remove-npm-lockfile-34.md` (con espejos Engram).
 
-## Inventario (17 abiertas al 2026-09-22, tras cerrar #14/#19/#20)
+## Inventario (12 abiertas al 2026-09-22, tras cerrar #14/#15/#17/#19/#20/#34/#41/#71/#79)
 
 | # | Tema | Paquete | Estado |
 |---|---|---|---|
-| #15 | Gates CI que no fallan | P0 hecho (PR #80 merge) | Cerrar con evidencia |
-| #34 | Lock npm sobrante | P0 hecho (PR #81) | Mergear (cierra sola) |
-| #17 | AGENTS.md describe CI inexistente | P1 docs CI | Pendiente |
-| #71 | 3 suites guards a la deriva (lote 2) | P1 tests chicos | Pendiente |
-| #41 | Guard baseline enumera fuentes | P1 tooling script | Pendiente |
-| #79 | SQLite choca con dropColumn indexada | P1 datos | Pendiente |
+| #15 | Gates CI que no fallan | P0 hecho (PR #80 merge) | Cerrada (PR #80 merge) |
+| #34 | Lock npm sobrante | P0 hecho (PR #81) | Cerrada (PR #81, cierra sola) |
+| #17 | AGENTS.md describe CI inexistente | P1 docs CI | Cerrada (PR #82) |
+| #71 | 3 suites guards a la deriva (lote 2) | P1 tests chicos | Cerrada (PR #83) |
+| #41 | Guard baseline enumera fuentes | P1 tooling script | Cerrada (PR #84) |
+| #79 | SQLite choca con dropColumn indexada | P1 datos | Cerrada (PR #85) |
 | #32 | Decisión package-correct.json | P1 decisión dueño | Preguntada |
-| #33 | Review harness: campo "inspections" | P2 doc-only (tooling externo) | Pendiente |
-| #45 | Review harness: lock huérfano | P2 doc-only (tooling externo) | Pendiente |
+| #33 | Review harness: campo "inspections" | P2 doc-only (tooling externo) | Documentado aquí (AGENTS.md §8); pendiente comment en issue |
+| #45 | Review harness: lock huérfano | P2 doc-only (tooling externo) | Documentado aquí (AGENTS.md §8); pendiente comment en issue |
 | #23 | Frontend sin verificación ejecutable | P3 vitest + smoke + CI | Pendiente |
 | #18 | MySQL: 143 fallos restantes | P3 suite con MySQL local | Pendiente |
 | #27 | Eje A6 integridad/portabilidad | P3 (bloqueada por #79/#22) | Pendiente |
