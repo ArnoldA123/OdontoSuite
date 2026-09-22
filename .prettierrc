@@ -23,14 +23,6 @@
       }
     },
     {
-      "files": "*.php",
-      "options": {
-        "parser": "php",
-        "tabWidth": 4,
-        "useTabs": false
-      }
-    },
-    {
       "files": "*.json",
       "options": {
         "parser": "json",
