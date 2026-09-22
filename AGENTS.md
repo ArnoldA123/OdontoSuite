@@ -183,11 +183,11 @@ docs/
 - Branding migrado de EasyDent a OdontoSuite
 - AGENTS.md actualizado (236 líneas)
 - `composer dev` usa `pnpm dev`
-- CI/CD con GitHub Actions (3 jobs: quality, backend-tests MySQL, frontend-build)
+- CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL, frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
-- **Los tests que tocan la BD fallan en SQLite local.** La causa es que SQLite no puede aplicar cierto DDL de las migraciones — concretamente eliminar una columna referenciada por un índice: `alter table "transactions" drop column "type"` falla con `error in index idx_transactions_patient_type_status`. Una sola migración rompe el esquema y arrastra a **todos** los tests que lo tocan. **El número de fallos no se cita aquí a propósito**: cambia con cada migración nueva y una cifra escrita en la documentación deriva sola (esta línea decía 28 y eran 45). En CI con MySQL (ya configurado) pasan. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
+- **Los tests que tocan la BD fallan en SQLite local.** La causa es que SQLite no puede aplicar cierto DDL de las migraciones — concretamente eliminar una columna referenciada por un índice: `alter table "transactions" drop column "type"` falla con `error in index idx_transactions_patient_type_status`. Una sola migración rompe el esquema y arrastra a **todos** los tests que lo tocan. **El número de fallos no se cita aquí a propósito**: cambia con cada migración nueva y una cifra escrita en la documentación deriva sola (esta línea decía 28 y eran 45). En CI la suite corre sobre MySQL real (`backend-tests`); si está en verde se observa en los runs del workflow, no se afirma aquí. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007) y `ProcedureCatalog.php:24` (`legacy_specialty`, ADR-0008).
 - **Reminders con CRUD real, WaitingList eliminada.** `ReminderController` y `ReminderTemplateController` implementan CRUD completo desde el slice 03. `WaitingListController` no existe: fue eliminado en el slice 04 y sus endpoints devuelven 404 (guardado por `StubsRemovedEndpointsTest`).
 - **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
@@ -195,7 +195,7 @@ docs/
 - **3 FormRequests no migrables** (documentado en Sprint 5 del plan de inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline), `StoreQuotationRequest` (requiere `patient_id` que rompe path `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del controller.
 
 ### 🐛 Bugs conocidos
-- `php artisan test` local: fallan todos los tests que tocan la BD por el DDL de SQLite no soportado (ver §6 Pendiente). Preexistente, no es de código actual. En CI con MySQL pasan todos.
+- `php artisan test` local: fallan todos los tests que tocan la BD por el DDL de SQLite no soportado (ver §6 Pendiente). Preexistente, no es de código actual. En CI la suite corre sobre MySQL real; su estado se observa en los runs del workflow, no se afirma aquí.
 - El `.env` tiene `BROADCAST_CONNECTION=reverb`. Para tests locales sin servidor Reverb, usar `BROADCAST_CONNECTION=null` (ya configurado en `phpunit.xml`).
 
 ---
@@ -241,7 +241,7 @@ docs/
 |---|---|
 | `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
 | `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
-| Tests fallan por DDL de SQLite | Solo en SQLite local: `alter table ... drop column` sobre una columna indexada. En CI con MySQL (ya configurado) pasan. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
+| Tests fallan por DDL de SQLite | Solo en SQLite local: `alter table ... drop column` sobre una columna indexada. En CI la suite corre sobre MySQL real; su estado se observa en los runs. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
 | `git checkout-index failed` / el review no puede congelar el candidato | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`) y la vista congelada del review antepone un prefijo de ~157 caracteres. `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo). Sin esto, `gentle_review` falla con `candidate-owner-preparation-failed` en cada clon nuevo de Windows. |
 | Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
@@ -275,13 +275,15 @@ docs/
 
 ## 10. CI/CD
 
-`.github/workflows/ci.yml` con 3 jobs:
+`.github/workflows/ci.yml` con 3 jobs desacoplados (ninguno bloquea a otro:
+un lint en rojo nunca esconde si los tests pasan). El workflow es la fuente de
+verdad; esta tabla lo resume sin repetir su contenido.
 
-| Job | Runner | Qué hace |
-|---|---|---|
-| `quality` | ubuntu-latest | PHP syntax, JSON validation, Pint, ESLint, Prettier |
-| `backend-tests` | ubuntu-latest + MySQL 8.0 service | `php artisan migrate --force`, `php artisan test` (suite completa, MySQL real) |
-| `frontend-build` | ubuntu-latest | `pnpm build`, upload artifact |
+| Job | Qué verifica |
+|---|---|
+| `quality` | Bloqueantes: PHP syntax, validación JSON, ESLint. Avisos explícitos (no-bloqueantes con motivo anotado en el workflow): Pint y Prettier, con deuda de formato pendiente (#15). |
+| `backend-tests` | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa. |
+| `frontend-build` | `pnpm build` + upload del artifact. |
 
 **Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a `main`.
 
