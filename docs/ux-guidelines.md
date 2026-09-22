@@ -16,35 +16,35 @@ El design system esta implementado en tres capas que se complementan:
 
 | Capa | Archivo | Que aporta |
 |---|---|---|
-| Tokens CSS | `resources/css/themes.css` | Variables CSS (`--color-accent`, `--color-text-primary`, `--shadow-md`, etc.) y utilities `.bg-theme-*` / `.text-theme-*` |
-| Configuracion Tailwind | `tailwind.config.js` | Escala `primary` / `success` / `warning` / `error` / `info`, `fontSize`, `borderRadius`, `boxShadow`, `animation` y `keyframes` |
-| Animaciones | `resources/css/animations.css` | Keyframes globales (`fadeIn`, `slideInUp`, `scaleIn`, `bounceIn`) y clases `.animate-*` |
+| Tokens CSS | `resources/css/tokens.generated.css` | Variables CSS (`--color-accent`, `--color-text-primary`, `--shadow-md`, etc.) |
+| Configuracion Tailwind | `tailwind.config.js` | Escala `primary` / `success` / `warning` / `error` / `info`, `fontSize`, `borderRadius`, `boxShadow`, `animation`, `keyframes` y las utilities `.bg-theme-*` / `.text-theme-*` |
+| Animaciones | `resources/css/utilities.css` | Keyframes globales (`skeleton-loading`, `spinner-rotate`, `pulse-subtle-keyframes`) y clases auxiliares (`.skeleton`, `.spinner-ring`, `.pulse-subtle`, `.ripple`) |
 
-Componentes UI reusables viven en `resources/js/components/ui/` (31 archivos, ver §9) y en `resources/js/components/layout/` (3 archivos). Antes de crear un componente nuevo, busca aqui.
+Componentes UI reusables viven en `resources/js/components/ui/` (33 archivos, ver §9) y en `resources/js/components/layout/` (4 archivos). Antes de crear un componente nuevo, busca aqui.
 
 ## 2. Paleta canonica
 
-Toda la aplicacion usa la paleta semantica definida en `tailwind.config.js` y `resources/css/themes.css`. Las utility classes se resuelven a variables CSS, lo que permite ajustar el color en un solo lugar.
+Toda la aplicacion usa la paleta semantica definida en `tailwind.config.js` y `resources/css/tokens.generated.css`. Las utility classes se resuelven a variables CSS, lo que permite ajustar el color en un solo lugar.
 
 | Caso de uso | Utility CSS | Hex | Ejemplo |
 |---|---|---|---|
-| Accion primaria (boton principal) | `bg-accent` | `#0066CC` | Boton "Guardar", "Crear cita" |
-| Accion en hover | `bg-accent-hover` | `#0052a3` | Estado hover del boton primario |
-| Accion active / pressed | `bg-accent-active` | `#003d7a` | Estado active del boton primario |
-| Acento fondo suave | `bg-primary-50` / `bg-accent-light` | `#e6f0ff` | Fondo de un input enfocado, badge informativo |
-| Texto sobre acento | `text-primary-700` | `#003d7a` | Texto dentro de un fondo `bg-primary-50` |
-| Texto link | `text-accent` | `#0066CC` | Links inline, iconos de accion |
-| Exito | `bg-success-500` / `bg-success-badge` | `#10b981` / `#d1fae5` | Badge de estado "Completado" |
-| Advertencia | `bg-warning-500` / `bg-warning-badge` | `#f59e0b` / `#fef3c7` | Badge "Pendiente", alerta de stock bajo |
-| Error / peligro | `bg-error-500` / `bg-danger-badge` | `#ef4444` / `#fee2e2` | Badge "Cancelado", mensaje de error |
-| Informacion | `bg-info-500` | `#0066CC` | Tooltips, banners informativos |
-| Texto principal | `text-theme-primary` | `#1D1D1F` | Parrafos, titulos |
-| Texto secundario | `text-theme-secondary` | `#86868B` | Subtitulos, captions, labels de formulario |
-| Borde | `border-theme` | `#d2d2d7` | Borde de inputs, separadores |
-| Borde sutil | `border-theme-light` | `#e5e5e7` | Divisores dentro de cards |
+| Accion primaria (boton principal) | `bg-accent` | `#0f7a5f` | Boton "Guardar", "Crear cita" |
+| Accion en hover | `bg-accent-hover` | `#0a5f49` | Estado hover del boton primario |
+| Accion active / pressed | `bg-accent-active` | `#084c3b` | Estado active del boton primario |
+| Acento fondo suave | `bg-primary-50` / `bg-accent-light` | `#e6f4ef` | Fondo de un input enfocado, badge informativo |
+| Texto sobre acento | `text-primary-700` | `#084c3b` | Texto dentro de un fondo `bg-primary-50` |
+| Texto link | `text-accent` | `#0f7a5f` | Links inline, iconos de accion |
+| Exito | `bg-success-500` / `bg-success-badge` | `#34c759` / `#d1fae5` | Badge de estado "Completado" |
+| Advertencia | `bg-warning-500` / `bg-warning-badge` | `#ffcc00` / `#fef3c7` | Badge "Pendiente", alerta de stock bajo |
+| Error / peligro | `bg-error-500` / `bg-danger-badge` | `#ff3b30` / `#ffebea` | Badge "Cancelado", mensaje de error |
+| Informacion | `bg-info-500` | `#4a7191` | Tooltips, banners informativos |
+| Texto principal | `text-theme-primary` | `#1a1917` | Parrafos, titulos |
+| Texto secundario | `text-theme-secondary` | `#5c5a55` | Subtitulos, captions, labels de formulario |
+| Borde | `border-theme` | `#c9c5bd` | Borde de inputs, separadores |
+| Borde sutil | `border-theme-light` | `#edebe7` | Divisores dentro de cards |
 | Surface (cards) | `bg-theme-surface-elevated` | `#FFFFFF` | Fondo de cards y modales |
 | Background | `bg-theme-background` | `#FFFFFF` | Fondo de pagina |
-| Fondo secundario | `bg-theme-background-secondary` | `#F5F5F7` | Fondo de areas inactivas, headers laterales |
+| Fondo secundario | `bg-theme-background-secondary` | `#f7f6f4` | Fondo de areas inactivas, headers laterales |
 
 ### Prohibido
 
@@ -96,57 +96,60 @@ Tamano y line-height ya estan configurados en `tailwind.config.js` (verificar an
 
 | Token | px / line-height | Caso de uso |
 |---|---|---|
-| `text-xs` | 11px / 16px | Labels pequenos, captions, atajos de teclado |
+| `text-xs` | 12px / 16px | Labels pequenos, captions, atajos de teclado |
 | `text-sm` | 13px / 18px | Body secundario, contenido de tablas, metadata |
 | `text-base` | 15px / 22px | Body principal, descripciones, parrafos |
 | `text-lg` | 17px / 24px | Subtitulos, titulo de card |
 | `text-xl` | 20px / 28px | h3, titulo de dialog |
 | `text-2xl` | 24px / 32px | h2, titulo de modal grande |
-| `text-3xl` | 28px / 36px | h1, titulo de pagina |
-| `text-4xl` | 34px / 40px | Display (hero, splash) |
+| `text-3xl` | 30px / 36px | h1, titulo de pagina |
+| `text-4xl` | 36px / 40px | Display (hero, splash) |
 
 ### Letter spacing
 
-- `tracking-tight` (-0.01em) en titulos `h1` / `h2` / `h3` (jerarquia visual tipo Apple).
-- `tracking-normal` en body, botones, captions.
+- El `letter-spacing` viene por paso desde `tokens.js`: `0` hasta `text-lg`, y `-0.01em` / `-0.015em` / `-0.02em` / `-0.022em` en `text-xl` / `text-2xl` / `text-3xl` / `text-4xl` (jerarquia visual tipo Apple).
+- `0` (normal) en body, botones y captions.
 
 ### Line height
 
-Los line-heights ya estan en `tailwind.config.js` y son Apple-correct (mas compactos a medida que el tamano crece: 1.45 en xs, 1.18 en 4xl). **No sobreescribir** con clases como `leading-tight` salvo caso muy justificado.
+Los line-heights ya estan en `tailwind.config.js` y son Apple-correct (mas compactos a medida que el tamano crece: 1.33 en xs, 1.11 en 4xl). **No sobreescribir** con clases como `leading-tight` salvo caso muy justificado.
 
 ## 4. Sombras
 
-Escala de 6 niveles, definida en `tailwind.config.js` y duplicada como variables CSS en `themes.css` (`--shadow-sm/md/lg/xl/glass`). La migracion entre tokens se hace con `shadow-{token}` en clases Tailwind.
+Escala de 6 niveles, definida en `tailwind.config.js` y duplicada como variables CSS en `resources/css/tokens.generated.css` (`--shadow-subtle/soft/medium/large/elevated/glass`). La migracion entre tokens se hace con `shadow-{token}` en clases Tailwind.
 
 | Token | Valor CSS | Caso de uso |
 |---|---|---|
-| `shadow-subtle` | `0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)` | Cards en reposo |
+| `shadow-subtle` | `0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06)` | Cards en reposo |
 | `shadow-soft` | `0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)` | Cards en hover, dropdowns |
 | `shadow-medium` | `0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)` | Botones en hover, popovers |
 | `shadow-large` | `0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)` | Modales, sheets (side panel) |
 | `shadow-elevated` | `0 25px 50px -12px rgba(0,0,0,0.25)` | Elementos que sobresalen (toasts, tooltips) |
-| `shadow-glass` | `0 8px 32px rgba(31,38,135,0.37)` | Glass morphism (cards con `backdrop-blur`) |
+| `shadow-glass` | `0 8px 32px 0 rgba(0,0,0,0.18)` | Glass morphism (cards con `backdrop-blur`) |
 
 Regla practica: a mayor elevacion, mayor sombra. Una card en reposo usa `shadow-subtle`; al hacer hover pasa a `shadow-soft`; al abrir un modal hijo usa `shadow-large`.
 
 ## 5. Border radius
 
-Tokens en `tailwind.config.js` (alineados con los valores de iOS/macOS):
+Tokens en `tailwind.config.js` (fuente: `tokens.js` -> `radius`):
 
 | Token | px | Caso de uso |
 |---|---|---|
-| `rounded-md` | 10px | Inputs, textareas, selects |
-| `rounded-lg` | 12px | Botones, badges, tags |
-| `rounded-xl` | 16px | Cards, contenedores principales |
-| `rounded-2xl` | 20px | Modales, dialogs |
-| `rounded-3xl` | 24px | Sheets (side panels), contenedores hero |
+| `rounded-sm` | 4px | Chips pequenos |
+| `rounded-md` | 8px | Inputs (leve inset) |
+| `rounded-ios` | 10px | Cards, botones, chips de estado (estandar iOS) |
+| `rounded-control` | 12px | Elemento interactivo interno (input, boton) |
+| `rounded-modal` | 14px | Modal, Sheet, bottom pickers |
+| `rounded-card-lg` | 16px | Superficie de card externa (KPI cards, hero) |
+| `rounded-panel` | 22px | Superficie anidada (panel) |
+| `rounded-shell` | 32px | Contenedor externo (shell) |
 | `rounded-full` | 9999px | Avatares, pills, status badges, icon-buttons |
 
-Regla practica: el radius escala con el tamano del contenedor. Un input pequeno usa `rounded-md`, una card mediana usa `rounded-xl`, un modal grande usa `rounded-2xl`.
+Regla practica: el radius escala con el tamano del contenedor. Un control interno usa `rounded-control` (12px), una card externa usa `rounded-card-lg` (16px), un modal usa `rounded-modal` (14px) y un contenedor hero usa `rounded-shell` (32px).
 
 ## 6. Animaciones
 
-Las animaciones se definen en `tailwind.config.js` (10 keyframes) y se complementan con clases globales en `resources/css/animations.css`. Todas usan `transform` u `opacity` (aceleracion GPU, no causan layout reflow).
+Las animaciones se definen en `tailwind.config.js` (11 keyframes) y se complementan con clases globales en `resources/css/utilities.css`. Todas usan `transform` u `opacity` (aceleracion GPU, no causan layout reflow).
 
 | Animacion | Cuando usarla | Duracion |
 |---|---|---|
@@ -190,7 +193,7 @@ box-shadow: 0 0 0 2px var(--color-accent);
 
 ### prefers-reduced-motion
 
-`animations.css` y `LoadingSpinner.vue` ya respetan la media query `prefers-reduced-motion: reduce`. Al crear componentes nuevos, agregar el override:
+`resources/css/utilities.css` y `LoadingSpinner.vue` ya respetan la media query `prefers-reduced-motion: reduce`. Al crear componentes nuevos, agregar el override:
 
 ```css
 @media (prefers-reduced-motion: reduce) {
@@ -231,7 +234,7 @@ Agregar `<keep-alive :include="['DashboardPage', 'CalendarPage']">` selectivo, c
 
 ## 9. Componentes UI disponibles
 
-`resources/js/components/ui/` contiene 31 componentes. Antes de crear un componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
+`resources/js/components/ui/` contiene 33 componentes. Antes de crear un componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 
 | Componente | Cuando usarlo |
 |---|---|
@@ -259,19 +262,20 @@ Agregar `<keep-alive :include="['DashboardPage', 'CalendarPage']">` selectivo, c
 | `Sheet.vue` | Panel lateral deslizante (side panel) |
 | `Skeleton.vue` | Placeholder de carga animado. Usar en listas, cards, dashboards |
 | `Tabs.vue` | Tabs horizontales con contenido lazy |
-| `ThemeSelector.vue` | Selector de tema (actualmente solo hay tema claro) |
+| `StatusBadge.vue` | Badge de estado con variantes semanticas (`success` / `warning` / `error` / `info` / `neutral`) |
 | `TreatmentPlanSelector.vue` | Selector buscable de plan de tratamiento |
 | `UiTextarea.vue` | Textarea multilinea con validacion y contador |
 | `Pagination.vue` | Paginacion (ya listada, no duplicar) |
 | `ReceiptPreview.vue` | Vista previa de comprobante (ya listada) |
 
-`resources/js/components/layout/` tiene 3 adicionales:
+`resources/js/components/layout/` tiene 4 adicionales:
 
 | Componente | Cuando usarlo |
 |---|---|
 | `AppLayout.vue` | Layout raiz: header + sidebar + main. Lo usan todas las paginas autenticadas |
 | `FloatingActionButton.vue` | FAB para accion primaria en mobile (ej. "Nueva cita") |
 | `MobileMenu.vue` | Menu hamburguesa para resolucion mobile |
+| `PageHeader.vue` | Cabecera de pagina (titulo + subtitulo + acciones + breadcrumbs). Detallado en la tabla de componentes nuevos |
 
 ### Componentes nuevos del Sprint 1
 

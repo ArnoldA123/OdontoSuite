@@ -18,8 +18,8 @@
  *   3. Semantic aliases: --color-accent (accent-500, the canonical ramp),
  *      --color-surface (systemBackground / secondaryBackground),
  *      --color-text-* (label ramp), --color-border (separator),
- *      --color-danger-* (the only state family with real consumers — see the
- *      note where the other three used to be).
+ *      --color-{danger,success,warning}-* (the state families with real
+ *      consumers — see the note at the state-alias block).
  *   4. Glass tokens (--glass-bg / --glass-border / --glass-backdrop).
  *   5. Shadows using rgba(0, 0, 0, ...) (pure black, Decision 5).
  *   6. Motion vars: --motion-response-default, --motion-damping-*,
@@ -152,30 +152,26 @@ if (!hairline) {
 push(`  --color-hairline: ${hairline};`)
 push('')
 
-// DELETED (slice A2 follow-up) — the `--color-info`, `--color-info-light`,
-// `--color-info-dark`, `--color-success-{bg,text,light,dark}` and
-// `--color-warning-{bg,text,light,dark}` aliases.
+// State aliases. The `--color-info*` trio stays DELETED: two reviewers
+// independently flagged it (R2-001 + R3-001, both WARNING, in TWO consecutive
+// reviews). They were right, and that change set caused it — A2 re-pointed
+// `tokens.colors.info` to the steel semantic tone while these lines still
+// hardcoded the GREEN accent, splitting the info surface into a steel base
+// with green variants. Removing it settled the defect instead of patching it.
 //
-// Two reviewers independently flagged the info trio (R2-001 + R3-001, both
-// WARNING, in TWO consecutive reviews). They were right, and this change set
-// caused it: A2 re-pointed `tokens.colors.info` to the steel semantic tone but
-// these lines still hardcoded the GREEN accent, so the info surface was split
-// — a steel base with green variants.
+// `--color-danger-*`, `--color-success-*` and `--color-warning-*` are KEPT.
+// An earlier slice deleted the success/warning families on a measurement that
+// was scoped to `resources/` only, so it missed the consumers that live at the
+// repository root: `tailwind.config.js` defines `.bg-success-badge` /
+// `.bg-warning-badge` against `--color-success-{bg,text}` and
+// `--color-warning-{bg,text}`, and five components consume those utility
+// classes. Deleting the variables left those badges resolving to nothing. The
+// rule that survives either way: a token name is dead only after the search
+// covers every file type that can reference it, not just one directory.
 //
-// The deeper finding is that the whole block was DEAD. Measured across every
-// file type under `resources/`: 0 of the 11 names had a single
-// `var(--color-…)` consumer. The names that ARE consumed are the RAMP steps
-// (`--color-success-700`, `--color-error-50`, …), which the colors loop below
-// emits straight from `tokens.colors.success` / `.warning` / `.error` / `.info`.
-//
-// Deleting removes the defect permanently instead of patching it, and shrinks
-// the generator. Same rule the project already applied to `motion.duration`
-// (instant/base/spring) and `fontFeatures.proportionalNums`: a token with no
-// consumer is not a public surface, it is a liability.
-//
-// `--color-danger-*` is KEPT below: it has three real consumers
-// (`ConfirmDialog.vue:102-103`, `ProgressBar.vue:77`) and points at the
-// unchanged systemRed ramp.
+// `--color-danger-*` has three direct consumers (`ConfirmDialog.vue:102-103`,
+// `ProgressBar.vue:77`); all three families point at the unchanged systemRed,
+// systemGreen and systemYellow ramps respectively.
 push('')
 
 push('  --color-danger: var(--color-system-red-500);')
@@ -183,6 +179,20 @@ push('  --color-danger-bg: var(--color-system-red-50);')
 push('  --color-danger-text: var(--color-system-red-700);')
 push('  --color-danger-light: var(--color-system-red-50);')
 push('  --color-danger-dark: var(--color-system-red-700);')
+push('')
+
+push('  --color-success: var(--color-system-green-500);')
+push('  --color-success-bg: var(--color-system-green-50);')
+push('  --color-success-text: var(--color-system-green-700);')
+push('  --color-success-light: var(--color-system-green-50);')
+push('  --color-success-dark: var(--color-system-green-700);')
+push('')
+
+push('  --color-warning: var(--color-system-yellow-500);')
+push('  --color-warning-bg: var(--color-system-yellow-50);')
+push('  --color-warning-text: var(--color-system-yellow-700);')
+push('  --color-warning-light: var(--color-system-yellow-50);')
+push('  --color-warning-dark: var(--color-system-yellow-700);')
 push('')
 
 push('  /* glass effect (chrome only) */')

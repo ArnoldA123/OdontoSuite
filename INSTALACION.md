@@ -31,8 +31,8 @@ Antes de comenzar, asegúrate de tener instalado:
 ### Requisitos Mínimos:
 - **PHP**: 8.2 o superior
 - **Composer**: 2.0 o superior
-- **Node.js**: 18.0 o superior
-- **npm**: 9.0 o superior (viene con Node.js)
+- **Node.js**: 22 o superior (versión fijada en `.nvmrc`)
+- **pnpm**: 11 o superior (gestor de paquetes; el proyecto no usa npm)
 - **MySQL**: 8.0 o superior (o MariaDB 10.3+)
 - **Git**: Para clonar el repositorio (opcional)
 
@@ -71,13 +71,17 @@ Antes de comenzar, asegúrate de tener instalado:
    composer --version
    ```
 
-#### 3. Instalar Node.js
-1. Descarga Node.js desde [nodejs.org](https://nodejs.org/)
-2. Ejecuta el instalador (incluye npm)
-3. Verifica la instalación:
+#### 3. Instalar Node.js y pnpm
+1. Descarga Node.js 22 desde [nodejs.org](https://nodejs.org/)
+2. Ejecuta el instalador
+3. Habilita pnpm (Node incluye Corepack):
+   ```bash
+   corepack enable
+   ```
+4. Verifica la instalación:
    ```bash
    node -v
-   npm -v
+   pnpm -v
    ```
 
 #### 4. Instalar MySQL
@@ -102,9 +106,10 @@ sudo apt install php8.2 php8.2-cli php8.2-common php8.2-mysql php8.2-zip \
 curl -sS https://getcomposer.org/installer | php
 sudo mv composer.phar /usr/local/bin/composer
 
-# Instalar Node.js y npm
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Instalar Node.js 22 y habilitar pnpm
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
+corepack enable
 
 # Instalar MySQL
 sudo apt install mysql-server -y
@@ -123,8 +128,9 @@ brew install php@8.2
 # Instalar Composer
 brew install composer
 
-# Instalar Node.js
+# Instalar Node.js y habilitar pnpm
 brew install node
+corepack enable
 
 # Instalar MySQL
 brew install mysql
@@ -236,15 +242,15 @@ composer install --no-dev --optimize-autoloader
 
 **Tiempo estimado:** 2-5 minutos
 
-### Paso 2: Instalar dependencias JavaScript (npm)
+### Paso 2: Instalar dependencias JavaScript (pnpm)
 
 ```bash
-# Instalar todas las dependencias
-npm install
+# Instalar todas las dependencias (respeta pnpm-lock.yaml)
+pnpm install
 
-# Si tienes problemas, limpia la caché primero:
-npm cache clean --force
-npm install
+# Si tienes problemas de caché local:
+pnpm store prune
+pnpm install
 ```
 
 **Tiempo estimado:** 3-7 minutos
@@ -346,42 +352,30 @@ php artisan migrate
 
 ## 🌱 Ejecutar Seeders (Datos Iniciales)
 
-Los seeders insertan los datos esenciales para que el sistema funcione.
-
-### Opción 1: Solo Datos Esenciales (Recomendado para producción)
-
-```bash
-php artisan db:seed --class=EssentialDataSeeder
-```
-
-**Esto creará:**
-- ✅ 3 usuarios básicos (admin, recepcionista, odontólogo)
-- ✅ 8 tipos de citas predefinidos
-- ✅ 8 ambientes/sillas dentales
-- ✅ 6 métodos de pago
-- ✅ 1 sucursal principal
-- ✅ 32 piezas dentales (sistema de numeración FDI)
-
-**Credenciales por defecto:**
-- **Administrador:** `admin@odontosuite.com` / `password`
-- **Recepcionista:** `recepcionista@odontosuite.com` / `password`
-- **Odontólogo:** `odontologo@odontosuite.com` / `password`
-
-**⚠️ IMPORTANTE:** Cambia estas contraseñas después del primer inicio de sesión.
-
-### Opción 2: Con Datos de Prueba (Solo para desarrollo)
+Los seeders insertan el juego de datos demo. `DatabaseSeeder` orquesta todos los
+seeders del proyecto (usuarios por rol, sedes, métodos de pago, configuración
+clínica, pacientes, citas, caja, piezas dentales y registros de especialidad).
+Se ejecutan junto con las migraciones:
 
 ```bash
-php artisan db:seed --class=DatabaseSeeder
+php artisan migrate --seed
 ```
 
-**Esto creará además:**
-- 100 pacientes ficticios
-- 100 citas de ejemplo
-- 30 días de sesiones de caja
-- Registros de especialidades de prueba
+Si ya migraste y solo quieres re-sembrar:
 
-**⚠️ NO uses esto en producción.**
+```bash
+php artisan db:seed
+```
+
+**Credenciales demo** (el campo de login es el **usuario**, no el email; todas
+usan la contraseña `password123`):
+- **Administrador:** `elizabet`
+- **Recepcionista:** `recepcionista_test`
+- **Odontólogo:** `ever_odontologo`
+
+Lista completa de los usuarios demo en [CREDENTIALS.md](CREDENTIALS.md).
+
+**⚠️ IMPORTANTE:** Son cuentas de desarrollo creadas por seeders públicos. No las uses en producción.
 
 ---
 
@@ -392,7 +386,7 @@ El frontend necesita compilarse para que funcione correctamente.
 ### Opción 1: Modo Desarrollo (con recarga automática)
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Deja este comando corriendo en una terminal. Se recompilará automáticamente cuando hagas cambios.
@@ -400,7 +394,7 @@ Deja este comando corriendo en una terminal. Se recompilará automáticamente cu
 ### Opción 2: Modo Producción (compilación optimizada)
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Esto compila los assets una vez y los optimiza para producción.
@@ -457,10 +451,19 @@ Esto habilita las funcionalidades en tiempo real (notificaciones, actualizacione
 
 ### Paso 3: Iniciar Vite (si estás en desarrollo)
 
-Si ejecutaste `npm run dev`, ya está corriendo. Si no, ejecuta:
+Si ejecutaste `pnpm dev`, ya está corriendo. Si no, ejecuta:
 
 ```bash
-npm run dev
+pnpm dev
+```
+
+### Opción rápida: un solo comando
+
+`composer dev` levanta todo el stack con `concurrently`: servidor Laravel,
+Reverb (WebSockets), worker de cola (`queue:listen`), logs (`pail`) y Vite.
+
+```bash
+composer dev
 ```
 
 ---
@@ -475,9 +478,9 @@ Deberías ver la página de login de OdontoSuite.
 
 ### Paso 2: Iniciar sesión
 
-Usa las credenciales del administrador:
-- **Email:** `admin@odontosuite.com`
-- **Contraseña:** `password`
+Usa las credenciales del administrador (el campo de login es el **usuario**, no el email):
+- **Usuario:** `elizabet`
+- **Contraseña:** `password123`
 
 ### Paso 3: Verificar funcionalidades básicas
 
@@ -533,10 +536,10 @@ chmod -R 775 storage bootstrap/cache
 **Solución:**
 ```bash
 # Compila los assets
-npm run build
+pnpm build
 
 # O inicia Vite en modo desarrollo
-npm run dev
+pnpm dev
 ```
 
 ### Error: "APP_KEY is not set"
@@ -554,8 +557,7 @@ php artisan key:generate
 php artisan migrate:status
 
 # Si hay problemas, resetea y vuelve a ejecutar (CUIDADO: borra datos)
-php artisan migrate:fresh
-php artisan db:seed --class=EssentialDataSeeder
+php artisan migrate:fresh --seed
 ```
 
 ### Puerto 8000 ya está en uso
@@ -568,19 +570,43 @@ php artisan serve --port=8001
 
 Luego accede a: `http://localhost:8001`
 
-### Error: "npm install" falla
+### Error: "pnpm install" falla
 
 **Solución:**
 ```bash
-# Limpiar caché
-npm cache clean --force
+# Limpiar la caché local de pnpm
+pnpm store prune
 
-# Eliminar node_modules y package-lock.json
-rm -rf node_modules package-lock.json
-
-# Reinstalar
-npm install
+# (Opcional) reinstalar desde cero
+rm -rf node_modules
+pnpm install
 ```
+
+### Error: "git checkout-index failed" / rutas largas (Windows)
+
+El repo contiene rutas que superan los 260 caracteres. `LongPathsEnabled=1` en
+el registro de Windows **no basta**: git necesita su propio opt-in.
+
+**Solución:**
+```bash
+git config core.longpaths true
+```
+
+### Los tests con base de datos fallan ("no such column", esquema incompleto)
+
+`php artisan test` a secas corre con SQLite `:memory:`, que **no** puede construir
+el esquema del proyecto (decisión del repo: `migrate:fresh` es solo-MySQL).
+Corre la suite contra un motor real.
+
+**Solución (MySQL 8 local vía Docker, puerto 3307):**
+```bash
+docker compose up -d --wait mysql
+php artisan test --configuration=phpunit.mysql.xml
+docker compose down
+```
+
+También puedes apuntar a tu MySQL/MariaDB local exportando `DB_PORT`,
+`DB_USERNAME` y `DB_PASSWORD` antes de correr esa configuración.
 
 ---
 
@@ -599,7 +625,10 @@ php artisan migrate:rollback
 php artisan migrate:reset
 
 # Ejecutar migraciones y seeders juntos
-php artisan migrate --seed --class=EssentialDataSeeder
+php artisan migrate --seed
+
+# Re-ejecutar solo los seeders
+php artisan db:seed
 ```
 
 ### Cache
@@ -666,11 +695,11 @@ Marca cada paso cuando lo completes:
 - [ ] Base de datos creada en MySQL
 - [ ] Variables de base de datos configuradas en `.env`
 - [ ] Dependencias PHP instaladas (`composer install`)
-- [ ] Dependencias JavaScript instaladas (`npm install`)
+- [ ] Dependencias JavaScript instaladas (`pnpm install`)
 - [ ] `APP_KEY` generado (`php artisan key:generate`)
 - [ ] Migraciones ejecutadas (`php artisan migrate`)
-- [ ] Seeders ejecutados (`php artisan db:seed --class=EssentialDataSeeder`)
-- [ ] Assets compilados (`npm run build` o `npm run dev`)
+- [ ] Seeders ejecutados (`php artisan migrate --seed` o `php artisan db:seed`)
+- [ ] Assets compilados (`pnpm build` o `pnpm dev`)
 - [ ] Permisos configurados (storage y bootstrap/cache)
 - [ ] Servidor iniciado (`php artisan serve`)
 - [ ] Login exitoso con credenciales por defecto
