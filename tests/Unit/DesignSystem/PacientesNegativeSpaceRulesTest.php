@@ -405,10 +405,21 @@ class PacientesNegativeSpaceRulesTest extends TestCase
         exec($cmd, $output, $exitCode);
 
         // `git diff --quiet` exit codes: 0 = no diff, 1 = diff present,
-        // 2+ = error. We accept 0 (no diff = unchanged) and treat 1 as
-        // a fail. Other exit codes are treated as inconclusive — the test
-        // passes with a note (better than a false positive when the git
-        // history is shallow).
+        // 2+ = error (e.g. 128 `bad revision` on a shallow clone where
+        // HEAD~5 does not exist — actions/checkout defaults to depth 1).
+        // Exit 1 is a fail; 2+ is inconclusive (see #106) — the test is
+        // marked incomplete instead of failing, so CI infra can never
+        // turn this guard red on a false positive.
+        if ($exitCode > 1) {
+            $this->markTestIncomplete(
+                sprintf(
+                    '%s guard inconclusive: `git diff HEAD~5 HEAD` exited %d (shallow history or missing ref, see #106). ',
+                    self::PDF_EXPORT_TEMPLATE_PATH,
+                    $exitCode
+                )
+            );
+        }
+
         $this->assertSame(
             0,
             $exitCode,
