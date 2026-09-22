@@ -281,7 +281,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 | Job | Qué verifica |
 |---|---|
-| `quality` | Bloqueantes: PHP syntax, validación JSON, ESLint. Avisos explícitos (no-bloqueantes con motivo anotado en el workflow): Pint y Prettier, con deuda de formato pendiente (#15). |
+| `quality` | Bloqueantes: PHP syntax, validación JSON, ESLint, Vitest smoke (`pnpm test:js`). Avisos explícitos (no-bloqueantes con motivo anotado en el workflow): Pint y Prettier, con deuda de formato pendiente (#15). |
 | `backend-tests` | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa. |
 | `frontend-build` | `pnpm build` + upload del artifact. |
 

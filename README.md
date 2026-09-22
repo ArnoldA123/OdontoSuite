@@ -97,7 +97,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - **FullCalendar 6.1** - Calendario interactivo
 - **Chart.js 4.4** - Gráficos y visualizaciones
 - **Laravel Echo** - WebSockets cliente
-- **Axios 1.6** - Cliente HTTP
+- **Fetch API** (a través del composable `useApi`) - Cliente HTTP
 
 ### Herramientas de Desarrollo
 - **ESLint** - Linter JavaScript
@@ -105,7 +105,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - **Laravel Pint** - Formateador PHP
 - **PHPUnit** - Testing PHP
 - **Composer** - Gestor de dependencias PHP
-- **npm** - Gestor de paquetes Node.js
+- **pnpm** - Gestor de paquetes Node.js (versión fijada en `package.json`)
 
 ### Integraciones
 - **OpenAI API** - Análisis de imágenes con IA
@@ -116,8 +116,8 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 
 - PHP >= 8.2
 - Composer >= 2.0
-- Node.js >= 18.0
-- npm >= 9.0
+- Node.js >= 22 (versión fijada en `.nvmrc`)
+- pnpm >= 11 (gestor de paquetes; el proyecto no usa npm)
 - MySQL >= 8.0 (o MariaDB >= 10.3)
 - Extensiones PHP: OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath, Fileinfo, GD
 
@@ -136,8 +136,8 @@ cd OdontoSuite
 # Dependencias PHP
 composer install
 
-# Dependencias JavaScript
-npm install
+# Dependencias JavaScript (pnpm, no npm)
+pnpm install
 ```
 
 ### 3. Configurar entorno
@@ -166,21 +166,18 @@ DB_PASSWORD=tu_password
 ### 5. Ejecutar migraciones y seeders
 
 ```bash
-# Crear estructura de base de datos
-php artisan migrate
-
-# Insertar datos esenciales
-php artisan db:seed --class=EssentialDataSeeder
+# Crea el esquema y ejecuta los seeders demo (DatabaseSeeder)
+php artisan migrate --seed
 ```
 
 ### 6. Compilar assets
 
 ```bash
 # Desarrollo
-npm run dev
+pnpm dev
 
 # Producción
-npm run build
+pnpm build
 ```
 
 ### 7. Iniciar servidores
@@ -192,20 +189,22 @@ php artisan serve
 # Terminal 2: Reverb (WebSockets)
 php artisan reverb:start
 
-# Terminal 3: Vite (si usas npm run dev)
-npm run dev
+# Terminal 3: Vite (si usas pnpm dev)
+pnpm dev
 ```
 
 ### 8. Acceder al sistema
 
 Abre tu navegador en: `http://localhost:8000`
 
-**Credenciales por defecto:**
-- Admin: `admin@odontosuite.com` / `password`
-- Recepcionista: `recepcionista@odontosuite.com` / `password`
-- Odontólogo: `odontologo@odontosuite.com` / `password`
+**Credenciales demo** (el campo de login es el **usuario**, no el email; todas usan la contraseña `password123`):
+- Administrador: `elizabet` / `password123`
+- Recepcionista: `recepcionista_test` / `password123`
+- Odontólogo: `ever_odontologo` / `password123`
 
-⚠️ **Importante:** Cambia estas contraseñas después del primer inicio de sesión.
+Lista completa de usuarios demo en [CREDENTIALS.md](CREDENTIALS.md).
+
+⚠️ **Importante:** Son cuentas de desarrollo creadas por los seeders. No las uses en producción.
 
 Para una guía de instalación detallada, consulta [INSTALACION.md](INSTALACION.md).
 

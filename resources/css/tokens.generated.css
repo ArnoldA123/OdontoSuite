@@ -234,6 +234,18 @@
   --color-danger-light: var(--color-system-red-50);
   --color-danger-dark: var(--color-system-red-700);
 
+  --color-success: var(--color-system-green-500);
+  --color-success-bg: var(--color-system-green-50);
+  --color-success-text: var(--color-system-green-700);
+  --color-success-light: var(--color-system-green-50);
+  --color-success-dark: var(--color-system-green-700);
+
+  --color-warning: var(--color-system-yellow-500);
+  --color-warning-bg: var(--color-system-yellow-50);
+  --color-warning-text: var(--color-system-yellow-700);
+  --color-warning-light: var(--color-system-yellow-50);
+  --color-warning-dark: var(--color-system-yellow-700);
+
   /* glass effect (chrome only) */
   --glass-bg: rgba(255, 255, 255, 0.78);
   --glass-border: rgba(255, 255, 255, 0.22);
