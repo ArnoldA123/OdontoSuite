@@ -98,7 +98,7 @@ Datos verificados contra la BD activa (MySQL, 2026-06-11).
 ## Cómo loguearse
 
 1. Ir a `/` en el navegador.
-2. En el campo **"Usuario"** ingresar el `username` (ej: `adm1n`).
+2. En el campo **"Usuario"** ingresar el `username` (ej: `elizabet`).
 3. En el campo **"Contraseña"** ingresar `password123`.
 4. Click en "Iniciar sesión".
 
