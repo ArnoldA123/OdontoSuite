@@ -65,11 +65,22 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm install --frozen-lockfile
 
+      # Blocking: exits non-zero on the first file with a syntax error.
+      # (Issue #15: the old loop piped through `grep -v ... || true`, so
+      # this step could never fail.)
       - name: PHP syntax check
         run: |
+          FAIL=0
           for f in $(find app -name "*.php" -not -path "*/vendor/*"); do
-            php -l "$f" 2>&1 | grep -v "No syntax errors" || true
+            if ! php -l "$f" > /dev/null 2>&1; then
+              echo "::error file=$f::PHP syntax error"
+              FAIL=1
+            fi
           done
+          if [ "$FAIL" -ne 0 ]; then
+            echo "PHP syntax errors found (see annotations above)"
+            exit 1
+          fi
           echo "PHP syntax OK"
 
       - name: Validate JSON files
@@ -78,14 +89,37 @@ jobs:
             php -r "json_decode(file_get_contents('$f'), false, 512, JSON_THROW_ON_ERROR); echo '$f OK'.PHP_EOL;"
           done
 
+      # Deliberately non-blocking (issue #15): 365 files fail `pint --test`
+      # today, so enforcing it would turn `quality` red on formatting debt
+      # instead of real defects. Fix incrementally, then make this step
+      # blocking as the follow-up. `continue-on-error` keeps the failure
+      # visible as an annotation instead of a silent `|| echo` pass.
       - name: Lint backend (Laravel Pint dry-run)
-        run: vendor/bin/pint --test || echo "Pint not configured yet — skipping"
+        continue-on-error: true
+        run: |
+          vendor/bin/pint --test || {
+            echo "::warning::Pint reports style violations (non-blocking, see #15)"
+            exit 1
+          }
 
       - name: Lint frontend (ESLint)
         run: pnpm lint:check
 
+      # Deliberately non-blocking (issue #15): the tree is not
+      # Prettier-clean (`pnpm format:check` lists the files), so enforcing
+      # it now would block on formatting debt. The tool itself runs for
+      # real since the un-runnable `*.php` override was removed from
+      # .prettierrc (`@prettier/plugin-php` was never installed, so the
+      # step crashed before checking anything; PHP formatting is Pint's
+      # job). Follow-up: clean the tree with `pnpm format`, then make this
+      # step blocking.
       - name: Format check (Prettier)
-        run: pnpm format:check || echo "Prettier issues found — non-blocking for now"
+        continue-on-error: true
+        run: |
+          pnpm format:check || {
+            echo "::warning::Prettier reports unformatted files (non-blocking, see #15)"
+            exit 1
+          }
 
   backend-tests:
     name: Backend tests (MySQL)
