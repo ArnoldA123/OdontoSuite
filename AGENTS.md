@@ -114,7 +114,7 @@ database/
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
                            #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
-  seeders/_legacy/         # 24 legacy (no se ejecutan, ver README.md en esa carpeta)
+  seeders/_legacy/         # 22 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
   api.php                  # 194 rutas API (medido con php artisan route:list --json: uris api/…; 207 totales con web)
@@ -187,7 +187,7 @@ docs/
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
-- **Los tests que tocan la BD fallan en SQLite local.** La causa es que SQLite no puede aplicar cierto DDL de las migraciones — concretamente eliminar una columna referenciada por un índice: `alter table "transactions" drop column "type"` falla con `error in index idx_transactions_patient_type_status`. Una sola migración rompe el esquema y arrastra a **todos** los tests que lo tocan. **El número de fallos no se cita aquí a propósito**: cambia con cada migración nueva y una cifra escrita en la documentación deriva sola (esta línea decía 28 y eran 45). En CI la suite corre sobre MySQL real (`backend-tests`); si está en verde se observa en los runs del workflow, no se afirma aquí. **Workaround local**: levantar MySQL vía `docker compose up -d mysql` y correr `php artisan test --group=mysql` (los tests afectados están anotados con `@group mysql` en el docblock). Ver `phpunit.xml` para `BROADCAST_CONNECTION=null` que resuelve el TypeError de Pusher en tests.
+- **`migrate:fresh` es solo-MySQL por decisión (#79).** El esquema no se construye en SQLite: eliminar `transactions.type` choca con el índice `idx_transactions_patient_type_status` (`no such column: type`), y las migraciones aplicadas no se reescriben. La suite con base de datos corre con `php artisan test --configuration=phpunit.mysql.xml` contra un motor real (local: MySQL/MariaDB de XAMPP por socket; CI: service MySQL 8.0). `php artisan test` a secas (SQLite `:memory:`) no puede construir el esquema: los tests con BD fallan ahí por diseño, no por regresión. **El número de fallos no se cita aquí a propósito** (deriva con cada migración). Lo ejecutable que fija esta declaración: `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest`.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007) y `ProcedureCatalog.php:24` (`legacy_specialty`, ADR-0008).
 - **Reminders con CRUD real, WaitingList eliminada.** `ReminderController` y `ReminderTemplateController` implementan CRUD completo desde el slice 03. `WaitingListController` no existe: fue eliminado en el slice 04 y sus endpoints devuelven 404 (guardado por `StubsRemovedEndpointsTest`).
 - **`User::specialty` (string legacy)**: conservado como display denormalizado. Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó cast JSON inexistente. Ver ADR-0007.
@@ -241,12 +241,12 @@ docs/
 |---|---|
 | `npm` o `yarn` reclamando | Usar `pnpm` exclusivamente. AGENTS.md §2. |
 | `vite.config.js` no resuelve `@/` | Alias ya está configurado (M-3 fix). Si se rompe, revisar. |
-| Tests fallan por DDL de SQLite | Solo en SQLite local: `alter table ... drop column` sobre una columna indexada. En CI la suite corre sobre MySQL real; su estado se observa en los runs. `phpunit.xml` tiene `BROADCAST_CONNECTION=null`. Workaround local: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
+| Tests fallan por DDL de SQLite | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6). Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql. |
 | `git checkout-index failed` / el review no puede congelar el candidato | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`) y la vista congelada del review antepone un prefijo de ~157 caracteres. `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo). Sin esto, `gentle_review` falla con `candidate-owner-preparation-failed` en cada clon nuevo de Windows. |
 | Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
 | Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES. |
-| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 11. Legacy: 24 (no se ejecutan). |
+| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 14. Legacy: 22 (no se ejecutan). |
 | Frontend no encuentra módulo | `pnpm install` y reiniciar `pnpm dev`. |
 | WebSocket no conecta | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`. |
 | CI falla por `MissingAppKeyException` | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar. |
