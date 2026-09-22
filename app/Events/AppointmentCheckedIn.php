@@ -25,7 +25,7 @@ class AppointmentCheckedIn implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('private-appointment.' . $this->appointment->id),
+            new PrivateChannel('appointment.' . $this->appointment->id),
         ];
     }
 

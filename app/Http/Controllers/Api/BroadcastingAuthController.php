@@ -43,6 +43,12 @@ class BroadcastingAuthController extends Controller
             } elseif (preg_match('/^user\.(\d+)$/', $cleanChannelName, $matches)) {
                 $userId = $matches[1];
                 $authorized = (int) $user->id === (int) $userId;
+            } elseif (preg_match('/^appointment\.(\d+)$/', $cleanChannelName)) {
+                $authorized = in_array($user->role ?? null, [
+                    'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'recepcionista',
+                ], true);
+            } elseif (preg_match('/^cash-register\.(\d+|global)$/', $cleanChannelName)) {
+                $authorized = in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
             } else {
                 Log::warning('Broadcasting auth: Canal no reconocido', ['channel' => $cleanChannelName]);
                 return response()->json(['message' => 'Channel not found'], 404);

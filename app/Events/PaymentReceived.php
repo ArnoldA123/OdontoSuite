@@ -35,7 +35,7 @@ class PaymentReceived implements ShouldBroadcast
     {
         // Canal privado por sucursal de la transaccion.
         $branchId = $this->transaction->branch_id ?? 'global';
-        return new PrivateChannel("private-cash-register.{$branchId}");
+        return new PrivateChannel("cash-register.{$branchId}");
     }
 
     public function broadcastWith(): array
