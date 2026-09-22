@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\ReminderTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,24 @@ use Illuminate\Http\Request;
  */
 class ReminderTemplateController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:100'],
+            'type' => ['required', 'string', 'max:50'],
+            'subject' => ['required', 'string', 'max:255'],
+            'body_html' => ['required', 'string'],
+            'body_text' => ['required', 'string'],
+            'variables' => ['nullable', 'array'],
+            'is_active' => ['boolean'],
+        ];
+    }
+
     public function index(Request $request): JsonResponse
     {
         $perPage = (int) min((int) $request->get('per_page', 25), 100);
@@ -43,15 +62,7 @@ class ReminderTemplateController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'type' => ['required', 'string', 'max:50'],
-            'subject' => ['required', 'string', 'max:255'],
-            'body_html' => ['required', 'string'],
-            'body_text' => ['required', 'string'],
-            'variables' => ['nullable', 'array'],
-            'is_active' => ['boolean'],
-        ]);
+        $data = $request->validate($this->storeRules());
 
         $template = ReminderTemplate::create($data);
 
@@ -72,15 +83,7 @@ class ReminderTemplateController extends Controller
     {
         $template = ReminderTemplate::findOrFail($id);
 
-        $data = $request->validate([
-            'name' => ['sometimes', 'string', 'max:100'],
-            'type' => ['sometimes', 'string', 'max:50'],
-            'subject' => ['sometimes', 'string', 'max:255'],
-            'body_html' => ['sometimes', 'string'],
-            'body_text' => ['sometimes', 'string'],
-            'variables' => ['nullable', 'array'],
-            'is_active' => ['sometimes', 'boolean'],
-        ]);
+        $data = $request->validate($this->updateRules($this->storeRules()));
 
         $template->fill($data)->save();
 

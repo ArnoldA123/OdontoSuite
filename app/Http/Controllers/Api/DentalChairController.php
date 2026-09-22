@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AuditLog;
 use App\Models\DentalChair;
 use Illuminate\Http\Request;
@@ -13,6 +14,22 @@ use Illuminate\Support\Facades\Log;
 
 class DentalChairController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'equipment' => 'nullable|string',
+            'status' => 'required|in:active,inactive,maintenance',
+            'is_active' => 'boolean'
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -41,13 +58,7 @@ class DentalChairController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'description' => 'nullable|string',
-                'equipment' => 'nullable|string',
-                'status' => 'required|in:active,inactive,maintenance',
-                'is_active' => 'boolean'
-            ]);
+            $validated = $request->validate($this->storeRules());
 
             $validated['code'] = 'AMB-' . str_pad(DentalChair::count() + 1, 3, '0', STR_PAD_LEFT);
             $validated['is_active'] = $validated['is_active'] ?? true;
@@ -124,13 +135,7 @@ class DentalChairController extends Controller
         try {
             $chair = DentalChair::findOrFail($id);
 
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'description' => 'nullable|string',
-                'equipment' => 'nullable|string',
-                'status' => 'sometimes|in:active,inactive,maintenance',
-                'is_active' => 'boolean'
-            ]);
+            $validated = $request->validate($this->updateRules($this->storeRules()));
 
             // Capture old values for audit (only relevant fields)
             $oldValues = [

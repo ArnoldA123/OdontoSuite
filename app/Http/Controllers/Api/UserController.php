@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Events\UserCreated;
@@ -17,6 +18,25 @@ use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|email|unique:users',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:6',
+            'role' => 'required|in:admin,recepcion,odontologo',
+            'specialty' => 'nullable|string|max:255',
+            'is_active' => 'boolean'
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -52,16 +72,7 @@ class UserController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'username' => 'required|string|max:255|unique:users',
-                'email' => 'required|email|unique:users',
-                'phone' => 'nullable|string|max:20',
-                'password' => 'required|string|min:6',
-                'role' => 'required|in:admin,recepcion,odontologo',
-                'specialty' => 'nullable|string|max:255',
-                'is_active' => 'boolean'
-            ]);
+            $validated = $request->validate($this->storeRules());
 
             $validated['password'] = Hash::make($validated['password']);
             $validated['is_active'] = $validated['is_active'] ?? true;
@@ -145,16 +156,10 @@ class UserController extends Controller
         try {
             $user = User::findOrFail($id);
 
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
+            $validated = $request->validate($this->updateRules($this->storeRules(), [], [
                 'username' => 'sometimes|string|max:255|unique:users,username,' . $id,
                 'email' => 'sometimes|email|unique:users,email,' . $id,
-                'phone' => 'nullable|string|max:20',
-                'password' => 'sometimes|string|min:6',
-                'role' => 'sometimes|in:admin,recepcion,odontologo',
-                'specialty' => 'nullable|string|max:255',
-                'is_active' => 'boolean'
-            ]);
+            ]));
 
             // Capture old values for audit (only relevant fields)
             $oldValues = [

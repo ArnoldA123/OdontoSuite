@@ -89,8 +89,9 @@ class CashMovementController extends Controller
                 ], 422);
             }
 
-            // Check if user has permission to access this session
-            if ($session->user_id !== Auth::id() && !Auth::user()->isAdministrador()) {
+            // Check if user has permission to access this session (policy is
+            // the single source of the "session owner OR administrador" rule).
+            if ($request->user()->cannot('createInSession', [CashMovement::class, $session])) {
                 return response()->json([
                     'message' => 'No tienes permisos para registrar movimientos en esta sesión de caja'
                 ], 403);
@@ -146,8 +147,8 @@ class CashMovementController extends Controller
     public function update(Request $request, CashMovement $cashMovement): JsonResponse
     {
         try {
-            // Check permissions
-            if ($cashMovement->cashRegisterSession->user_id !== Auth::id() && !Auth::user()->isAdministrador()) {
+            // Check permissions (policy is the single source of the rule)
+            if ($request->user()->cannot('update', $cashMovement)) {
                 return response()->json([
                     'message' => 'No tienes permisos para actualizar este movimiento de caja'
                 ], 403);
@@ -188,8 +189,8 @@ class CashMovementController extends Controller
     public function destroy(CashMovement $cashMovement): JsonResponse
     {
         try {
-            // Check permissions
-            if ($cashMovement->cashRegisterSession->user_id !== Auth::id() && !Auth::user()->isAdministrador()) {
+            // Check permissions (policy is the single source of the rule)
+            if (Auth::user()->cannot('delete', $cashMovement)) {
                 return response()->json([
                     'message' => 'No tienes permisos para eliminar este movimiento de caja'
                 ], 403);

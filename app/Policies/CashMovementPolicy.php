@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\CashMovement;
+use App\Models\CashRegisterSession;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -44,23 +45,41 @@ class CashMovementPolicy
     }
 
     /**
-     * Determine whether the user can update a cash movement.
-     * Mirrors the in-controller rule used by CashMovementController@update
+     * Determine whether the user can record a movement in a cash session.
+     *
+     * The route middleware and StoreCashMovementRequest already restrict the
+     * role set; this method owns the per-session rule (session owner OR
+     * administrador).
+     */
+    public function createInSession(User $user, CashRegisterSession $session): bool
+    {
+        return $this->managesSession($user, $session->user_id);
+    }
+
+    /**
+     * Determine whether the user can update a cash movement
      * (session owner OR administrador).
      */
     public function update(User $user, CashMovement $cashMovement): bool
     {
-        return in_array($user->role, self::ALLOWED_ROLES, true)
-            && ($user->role === 'administrador'
-                || optional($cashMovement->cashRegisterSession)->user_id === $user->id);
+        return $this->managesSession($user, optional($cashMovement->cashRegisterSession)->user_id);
     }
 
     /**
-     * Determine whether the user can delete a cash movement.
-     * Only administrador can delete (mirrors the controller's existing rule).
+     * Determine whether the user can delete a cash movement
+     * (session owner OR administrador).
      */
     public function delete(User $user, CashMovement $cashMovement): bool
     {
-        return $user->role === 'administrador';
+        return $this->managesSession($user, optional($cashMovement->cashRegisterSession)->user_id);
+    }
+
+    /**
+     * Single source of the "session owner OR administrador" rule.
+     */
+    private function managesSession(User $user, ?int $sessionOwnerId): bool
+    {
+        return in_array($user->role, self::ALLOWED_ROLES, true)
+            && ($user->role === 'administrador' || $sessionOwnerId === $user->id);
     }
 }

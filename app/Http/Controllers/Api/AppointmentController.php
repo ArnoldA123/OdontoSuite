@@ -8,8 +8,6 @@ use App\Events\AppointmentUpdated;
 use App\Events\AppointmentDeleted;
 use App\Listeners\ClearDashboardCache;
 use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\User;
 use App\Models\DentalChair;
 use App\Models\AppointmentType;
 use App\Models\AuditLog;
@@ -169,29 +167,8 @@ class AppointmentController extends Controller
     {
         $validated = $request->validated();
 
-        // Validar que el paciente esté activo
-        $patient = Patient::findOrFail($validated['patient_id']);
-        if (!$patient->is_active) {
-            return response()->json([
-                'message' => 'No se puede crear una cita para un paciente inactivo.',
-                'errors' => [
-                    'patient_id' => ['El paciente seleccionado está inactivo.'],
-                ],
-            ], 422);
-        }
-
-        // Validar que el usuario (profesional) esté activo
-        $user = User::findOrFail($validated['user_id']);
-        if (!$user->is_active) {
-            return response()->json([
-                'message' => 'No se puede crear una cita con un profesional inactivo.',
-                'errors' => [
-                    'user_id' => ['El profesional seleccionado está inactivo.'],
-                ],
-            ], 422);
-        }
-
-        // Usar el servicio para crear la cita (incluye validaciones de conflictos, horarios, etc.)
+        // Usar el servicio para crear la cita (valida reglas de datos,
+        // participantes activos, conflictos y horarios).
         try {
             Log::info('Creating appointment', [
                 'user_id' => Auth::id(),
@@ -300,33 +277,8 @@ class AppointmentController extends Controller
 
         $validated = $request->validated();
 
-        // Validar que el paciente esté activo si se está cambiando
-        if (isset($validated['patient_id']) && $validated['patient_id'] != $appointment->patient_id) {
-            $patient = Patient::findOrFail($validated['patient_id']);
-            if (!$patient->is_active) {
-                return response()->json([
-                    'message' => 'No se puede asignar una cita a un paciente inactivo.',
-                    'errors' => [
-                        'patient_id' => ['El paciente seleccionado está inactivo.'],
-                    ],
-                ], 422);
-            }
-        }
-
-        // Validar que el usuario (profesional) esté activo si se está cambiando
-        if (isset($validated['user_id']) && $validated['user_id'] != $appointment->user_id) {
-            $user = User::findOrFail($validated['user_id']);
-            if (!$user->is_active) {
-                return response()->json([
-                    'message' => 'No se puede asignar una cita a un profesional inactivo.',
-                    'errors' => [
-                        'user_id' => ['El profesional seleccionado está inactivo.'],
-                    ],
-                ], 422);
-            }
-        }
-
-        // Usar el servicio para actualizar la cita (incluye validaciones de conflictos, horarios, etc.)
+        // Usar el servicio para actualizar la cita (valida reglas de datos,
+        // participantes activos, conflictos y horarios).
         try {
             $appointment = $this->appointmentService->updateAppointment($appointment, $validated);
 

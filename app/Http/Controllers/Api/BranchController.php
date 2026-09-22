@@ -3,12 +3,38 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class BranchController extends Controller
 {
+    use HasCrudRules;
+
+    /**
+     * Rules shared by the store and update actions.
+     */
+    protected function storeRules(): array
+    {
+        return [
+            'code' => 'required|string|max:10|unique:branches,code',
+            'name' => 'required|string|max:255',
+            'address' => 'sometimes|nullable|string|max:500',
+            'city' => 'required|string|max:100',
+            'state' => 'sometimes|nullable|string|max:100',
+            'country' => 'sometimes|nullable|string|max:100',
+            'postal_code' => 'sometimes|nullable|string|max:10',
+            'phone' => 'sometimes|nullable|string|max:20',
+            'email' => 'sometimes|nullable|email|max:255',
+            'timezone' => 'sometimes|nullable|string|max:50',
+            'latitude' => 'sometimes|nullable|numeric',
+            'longitude' => 'sometimes|nullable|numeric',
+            'description' => 'sometimes|nullable|string|max:1000',
+            'is_active' => 'sometimes|boolean'
+        ];
+    }
+
     /**
      * Display a listing of branches
      */
@@ -56,22 +82,7 @@ class BranchController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'code' => 'required|string|max:10|unique:branches,code',
-                'name' => 'required|string|max:255',
-                'address' => 'sometimes|nullable|string|max:500',
-                'city' => 'required|string|max:100',
-                'state' => 'sometimes|nullable|string|max:100',
-                'country' => 'sometimes|nullable|string|max:100',
-                'postal_code' => 'sometimes|nullable|string|max:10',
-                'phone' => 'sometimes|nullable|string|max:20',
-                'email' => 'sometimes|nullable|email|max:255',
-                'timezone' => 'sometimes|nullable|string|max:50',
-                'latitude' => 'sometimes|nullable|numeric',
-                'longitude' => 'sometimes|nullable|numeric',
-                'description' => 'sometimes|nullable|string|max:1000',
-                'is_active' => 'sometimes|boolean'
-            ]);
+            $validated = $request->validate($this->storeRules());
 
             // Default country/timezone si no se enviaron
             $validated['country'] = $validated['country'] ?? 'Peru';
@@ -124,22 +135,10 @@ class BranchController extends Controller
     public function update(Request $request, Branch $branch): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                // code es inmutable (es la PK logica de la sede)
+            $validated = $request->validate($this->updateRules($this->storeRules(), ['code'], [
                 'name' => 'required|string|max:255',
-                'address' => 'sometimes|nullable|string|max:500',
                 'city' => 'required|string|max:100',
-                'state' => 'sometimes|nullable|string|max:100',
-                'country' => 'sometimes|nullable|string|max:100',
-                'postal_code' => 'sometimes|nullable|string|max:10',
-                'phone' => 'sometimes|nullable|string|max:20',
-                'email' => 'sometimes|nullable|email|max:255',
-                'timezone' => 'sometimes|nullable|string|max:50',
-                'latitude' => 'sometimes|nullable|numeric',
-                'longitude' => 'sometimes|nullable|numeric',
-                'description' => 'sometimes|nullable|string|max:1000',
-                'is_active' => 'sometimes|boolean'
-            ]);
+            ]));
 
             $branch->update($validated);
 
