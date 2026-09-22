@@ -52,7 +52,7 @@ const allOccurrences = (re) => {
   const out = []
   const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g')
   let m
-  while ((m = g.exec(docs)) !== null) out.push(Number(m[1]))
+  while ((m = g.exec(docs)) !== null) out.push(Number(m[1] ?? m[2]))
   return out
 }
 
@@ -64,6 +64,7 @@ try {
   const reminderTplSrc = read('app/Http/Controllers/Api/ReminderTemplateController.php')
   measured = {
     seeders: countMatches(seederSrc, /::class\s*,/g),
+    legacySeeders: countDir('database/seeders/_legacy', '.php'),
     controllers:
       countDir('app/Http/Controllers/Api', '.php') +
       countDir('app/Http/Controllers/Api/Reports', '.php'),
@@ -100,6 +101,10 @@ const structural = (id, label, pass, evidence) => {
 
 numeric('seeders', 'active seeders (§4 "N activos")',
   allOccurrences(/(\d+)\s+activos/), measured.seeders, 'grep -c "::class," database/seeders/DatabaseSeeder.php')
+// §4 writes "N legacy" and §8 writes "Legacy: N"; both are counting lines, so
+// the pattern accepts either order and allOccurrences reads the first defined group.
+numeric('legacy-seeders', 'legacy seeders (§4/§8 "N legacy")',
+  allOccurrences(/(\d+)\s+legacy\b|legacy:\s*(\d+)/i), measured.legacySeeders, 'ls database/seeders/_legacy/*.php')
 numeric('controllers', 'API controllers (§4/§6/§11 "N controllers API")',
   allOccurrences(/(\d+)\s+controllers?\s+API/), measured.controllers, 'ls app/Http/Controllers/Api/*.php + Api/Reports/*.php')
 numeric('models', 'Eloquent models (§4/§6/§11 "N modelos")',
