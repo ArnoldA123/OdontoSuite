@@ -3,7 +3,7 @@
 Status: EN CURSO. Documentos de features cerradas: `ci-quality-gates-15.md`,
 `cierre-evidencia-14-19-20.md`, `remove-npm-lockfile-34.md` (con espejos Engram).
 
-## Inventario (12 abiertas al 2026-09-22, tras cerrar #14/#15/#17/#19/#20/#34/#41/#71/#79)
+## Inventario (0 abiertas: #33 y #45 cerradas como ajenas al repo; el resto del programa cerrado)
 
 | # | Tema | Paquete | Estado |
 |---|---|---|---|
@@ -14,8 +14,6 @@ Status: EN CURSO. Documentos de features cerradas: `ci-quality-gates-15.md`,
 | #41 | Guard baseline enumera fuentes | P1 tooling script | Cerrada (PR #84) |
 | #79 | SQLite choca con dropColumn indexada | P1 datos | Cerrada (PR #85) |
 | #32 | Decisión package-correct.json | P1 decisión dueño | Preguntada |
-| #33 | Review harness: campo "inspections" | P2 doc-only (tooling externo) | Documentado aquí (AGENTS.md §8); pendiente comment en issue |
-| #45 | Review harness: lock huérfano | P2 doc-only (tooling externo) | Documentado aquí (AGENTS.md §8); pendiente comment en issue |
 | #23 | Frontend sin verificación ejecutable | P3 vitest + smoke + CI | Pendiente |
 | #18 | MySQL: 143 fallos restantes | P3 suite con MySQL local | Pendiente |
 | #27 | Eje A6 integridad/portabilidad | P3 (bloqueada por #79/#22) | Pendiente |

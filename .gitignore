@@ -60,9 +60,7 @@ login-refined-*.png
 # Local UI audit scratch (screenshots used as before/after evidence)
 .pi-audit/
 
-# gentle-ai per-repository tool state (persona). Tool scratch, never project
-# content; keeping it ignored also keeps it out of the review untracked
-# inventory, whose digest changes whenever a new untracked path appears.
+# Pi agent local state (persona). Tool scratch, never project content
 .pi/
 
 # pnpm-only project (AGENTS.md §2): npm/yarn lockfiles must never be tracked.
