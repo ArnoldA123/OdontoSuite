@@ -33,6 +33,11 @@ class HotfixDashboardStaggerTest extends TestCase
      */
     private static function extractUseSpringOptions(string $source): array
     {
+        // Strip `//` line comments first. A commented-out useSpring would
+        // otherwise still match the pattern and be counted as a live spring,
+        // so the guard could not tell a removed entrance from a live one.
+        $source = (string) preg_replace('#//[^\n]*#', '', $source);
+
         $opts = [];
         $pattern = '/useSpring\s*\(\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\)/s';
         if (!preg_match_all($pattern, $source, $matches)) {
