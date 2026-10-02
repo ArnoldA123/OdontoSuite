@@ -29,7 +29,7 @@
  *   node scripts/audit/probe-realtime.mjs [--base=url] [--ws=url] [--out=dir]
  *                                         [--fail-on-unproven] [--json]
  *
- * Exit 0 unless a connection to :8000/:8080 is refused (hint printed) or
+ * Exit 0 unless a connection to :8000/:<REVERB_PORT> is refused (hint printed) or
  * --fail-on-unproven and a required case is neither live-verified nor an
  * allowed skip.
  */
