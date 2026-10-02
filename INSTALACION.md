@@ -291,7 +291,7 @@ REVERB_APP_ID=tu_app_id
 REVERB_APP_KEY=tu_app_key
 REVERB_APP_SECRET=tu_app_secret
 REVERB_HOST=localhost
-REVERB_PORT=8080
+REVERB_PORT=8081
 REVERB_SCHEME=http
 
 # Mail (opcional, para envío de correos)
