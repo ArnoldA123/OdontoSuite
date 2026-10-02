@@ -91,7 +91,7 @@ const pick = (name, fallback) => {
 }
 const REVERB_KEY = pick('REVERB_APP_KEY', 'local-key')
 const REVERB_HOST = pick('REVERB_HOST', 'localhost')
-const REVERB_PORT = pick('REVERB_PORT', '8080')
+const REVERB_PORT = pick('REVERB_PORT', '8081')
 const REVERB_SCHEME = pick('REVERB_SCHEME', 'http')
 const WS_BASE =
   String(args.ws ?? '') ||
