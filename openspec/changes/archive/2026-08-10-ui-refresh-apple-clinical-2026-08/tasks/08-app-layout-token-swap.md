@@ -14,7 +14,7 @@ Edit `resources/js/components/layout/AppLayout.vue`: page background `bg-cream-5
 - `pnpm build` exits 0.
 - `grep -n "bg-cream-50\|bg-cream-100\|text-ink-700" resources/js/components/layout/AppLayout.vue` returns 0 rows.
 - `grep -n "bg-success-100\|text-success-700" resources/js/components/layout/AppLayout.vue` returns 0 rows on the WS indicator.
-- Visual: manual render of `/dashboard` (after `adm1n`/`password123` login) shows white sidebar + topbar instead of cream.
+- Visual: manual render of `/dashboard` (after login) shows white sidebar + topbar instead of cream.
 
 ## Files touched
 

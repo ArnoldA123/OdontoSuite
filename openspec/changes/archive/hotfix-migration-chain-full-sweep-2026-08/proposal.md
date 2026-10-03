@@ -20,7 +20,7 @@ Without this fix, no developer or CI scratch job can bootstrap the database; the
 
 - **9 documented AGENTS.md §6 tech-debt items** (NEW-A01..A05, NEW-LENSB-001..007): driver-guard gaps on `->change()` / raw `MODIFY COLUMN` / `DATE_SUB` / `UPDATE ... INNER JOIN` / `INSERT ... SELECT ... NOW()` / `indexExists()` information_schema. All predate the `2026_08_05` `SddCheckMigrationsTest::GUARD_CUTOFF_PREFIX`. Do not block the canonical MySQL gate (Lens D empirical proof on `odontosuite_migtest`). Route to a future `techdebt-migration-driver-guards-2026-08`.
 - **NEW-A05 redundant non-unique indexes** on `patients.document_number`, `patients.email`, `patients.phone`: code smell, not a runtime defect. Route to `techdebt-migration-index-cleanup-2026-08`.
-- **NEW-004-SEEDER**: `DatabaseSeeder` references `EnvironmentSeeder::class` that only lives in `database/seeders/_legacy/`. Not a migration defect; aborts `migrate:fresh --seed` AFTER the migrations pass. Route to `hotfix-seeder-environment-seeder-2026-08`.
+- **NEW-004-SEEDER**: `DatabaseSeeder` references `EnvironmentSeeder::class`. Not a migration defect; aborts `migrate:fresh --seed` AFTER the migrations pass. Route to `hotfix-seeder-environment-seeder-2026-08`.
 - **Sibling `hotfix-migration-eloquent-softdeletes-2026-08`** (NEW-002, `d4f34b2`): currently `state: blocked, reason: maintainer_decision` per the runtime ledger. Unrelated to NEW-003 and not unblocked by this change; its apply decision remains separate.
 - **Pre-existing ~28-104 SQLite local-test failures**: documented AGENTS.md §6; CI MySQL 8.0 is the canonical gate and is unaffected.
 - **Sibling `hotfix-audit-log-immutable-2026-08`** (NEW-001, `d811f1a`): already source-correct, unlanded; this change does not modify that file.

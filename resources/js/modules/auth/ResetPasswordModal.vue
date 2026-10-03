@@ -41,6 +41,35 @@
         </template>
       </UiInput>
 
+      <!-- Recovery Code Field -->
+      <UiInput
+        id="reset-password-token"
+        v-model="recoveryCode"
+        label="Código de recuperación"
+        type="text"
+        placeholder="Ingresa el código que enviamos a tu correo"
+        autocomplete="one-time-code"
+        :disabled="loading"
+        :error="errors.token"
+      >
+        <template #prefix>
+          <svg
+            class="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            />
+          </svg>
+        </template>
+      </UiInput>
+
       <!-- Password Field -->
       <UiInput
         v-model="password"
@@ -264,14 +293,6 @@ import UiModal from '@/components/ui/Modal.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiButton from '@/components/ui/Button.vue'
 
-// The Reset modal is now user-driven only (never auto-opens from the Forgot
-// success state). The dev-only reset_token field has been removed from the UI
-// surface — the API contract (POST /api/auth/reset-password) still accepts an
-// optional token, but the modal no longer renders an input for it. Callers
-// that need to seed the token programmatically can pass it via the `token`
-// prop, which is forwarded in the request body. The `:token="..."` prop is
-// retained for backwards compatibility with any consumer that still emits it,
-// but it never renders an input.
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -294,6 +315,7 @@ const { post } = useApi()
 // State
 const loading = ref(false)
 const email = ref(props.email || '')
+const recoveryCode = ref('')
 const password = ref('')
 const passwordConfirmation = ref('')
 const showPassword = ref(false)
@@ -303,6 +325,7 @@ const success = ref(false)
 const successMessage = ref('')
 const errors = reactive({
   email: '',
+  token: '',
   password: '',
   passwordConfirmation: ''
 })
@@ -397,16 +420,14 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    // The token is optional in the API. If a caller passed one via props
-    // (e.g. a dev-only handoff), forward it; otherwise omit. The token is
-    // never displayed in the UI.
+    const token = String(props.token ?? '').trim() || recoveryCode.value.trim()
     const payload = {
       email: email.value,
       password: password.value,
       password_confirmation: passwordConfirmation.value
     }
-    if (props.token) {
-      payload.token = props.token
+    if (token) {
+      payload.token = token
     }
 
     const response = await post('/api/auth/reset-password', payload)
@@ -427,6 +448,11 @@ const handleSubmit = async () => {
           serverErrors.email[0] :
           serverErrors.email
       }
+      if (serverErrors.token) {
+        errors.token = Array.isArray(serverErrors.token)
+          ? serverErrors.token[0]
+          : serverErrors.token
+      }
       if (serverErrors.password) {
         errors.password = Array.isArray(serverErrors.password) ?
           serverErrors.password[0] :
@@ -444,6 +470,7 @@ const handleSubmit = async () => {
 
 const handleClose = () => {
   email.value = props.email || ''
+  recoveryCode.value = ''
   password.value = ''
   passwordConfirmation.value = ''
   error.value = ''
@@ -467,11 +494,13 @@ watch(
   () => props.modelValue,
   newValue => {
     if (!newValue) {
+      recoveryCode.value = ''
       password.value = ''
       passwordConfirmation.value = ''
       error.value = ''
       success.value = false
       successMessage.value = ''
+      errors.token = ''
       errors.password = ''
       errors.passwordConfirmation = ''
     }

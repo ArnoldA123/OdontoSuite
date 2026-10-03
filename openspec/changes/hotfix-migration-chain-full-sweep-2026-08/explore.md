@@ -30,7 +30,7 @@ These are real defects per their lenses but are **explicitly documented AGENTS.m
 | **NEW-LENSB-005** | B | `2026_06_10_100100_add_specialty_id_to_procedure_catalog_table.php` | `UPDATE ... INNER JOIN` MySQL-only backfill | medium |
 | **NEW-LENSB-006** | B | `2026_06_10_100200_create_user_specialties_table.php` | `INSERT ... SELECT ... NOW()` MySQL-only backfill | medium |
 | **NEW-A05** | A | `2025_10_25_030053_add_additional_performance_indexes.php` | Redundant non-unique indexes over already-unique columns (`patients.document_number`, `patients.email`, `patients.phone`) | low |
-| **NEW-004-SEEDER** | D | `database/seeders/DatabaseSeeder.php` (NOT a migration) | References `EnvironmentSeeder::class` which only lives in `database/seeders/_legacy/EnvironmentSeeder.php`. Aborts `migrate:fresh --seed` after migrations pass. | medium |
+| **NEW-004-SEEDER** | D | `database/seeders/DatabaseSeeder.php` (NOT a migration) | References `EnvironmentSeeder::class`. Aborts `migrate:fresh --seed` after migrations pass. | medium |
 
 **All Lens A, B, C "severity high/medium" labels are valid as raw defect labels**, but they are out of scope for THIS change because:
 1. They do **not** block the canonical MySQL gate (Lens D empirical proof on `odontosuite_migtest` MariaDB 10.4).
@@ -141,7 +141,7 @@ if (! empty($dropColumns)) {
 | `NEW-LENSB-005` `UPDATE ... INNER JOIN` MySQL-only backfill (procedure_catalog.specialty_id) | Same | Same |
 | `NEW-LENSB-006` `INSERT ... SELECT ... NOW()` MySQL-only backfill (user_specialties) | Same | Same |
 | `NEW-A05` redundant non-unique indexes on patients.document_number/email/phone | Code smell; not a runtime defect | `techdebt-migration-index-cleanup-2026-08` |
-| `NEW-004-SEEDER` EnvironmentSeeder reference resolves to `_legacy/` | Not a migration defect; breaks seed only | `hotfix-seeder-environment-seeder-2026-08` |
+| `NEW-004-SEEDER` EnvironmentSeeder reference | Not a migration defect; breaks seed only | `hotfix-seeder-environment-seeder-2026-08` |
 | Pre-existing ~28-104 SQLite test failures | Documented AGENTS.md §6; canonical MySQL gate unaffected | Already tracked separately |
 
 ---

@@ -111,7 +111,7 @@ Per the proposal and the explore synthesis, nine (9) tech-debt findings + `NEW-0
 | NEW-LENSB-006 (`INSERT ... SELECT ... NOW()` MySQL-only backfill) | `2026_06_10_100200_create_user_specialties_table.php` | `techdebt-migration-driver-guards-2026-08` |
 | NEW-LENSB-001..007 driver-guard subset already enumerated | (see lens-B output) | `techdebt-migration-driver-guards-2026-08` |
 | NEW-A05 (redundant non-unique indexes on `patients.document_number`, `patients.email`, `patients.phone`) | `2025_10_25_030053_add_additional_performance_indexes.php` | `techdebt-migration-index-cleanup-2026-08` |
-| **NEW-004-SEEDER** (`DatabaseSeeder` references `EnvironmentSeeder::class` which only lives in `database/seeders/_legacy/EnvironmentSeeder.php`; aborts `migrate:fresh --seed` AFTER the migrations pass) | `database/seeders/DatabaseSeeder.php` | `hotfix-seeder-environment-seeder-2026-08` |
+| **NEW-004-SEEDER** (`DatabaseSeeder` references `EnvironmentSeeder::class`; aborts `migrate:fresh --seed` AFTER the migrations pass) | `database/seeders/DatabaseSeeder.php` | `hotfix-seeder-environment-seeder-2026-08` |
 
 The pre-existing ~28-104 SQLite test failures on local development also remain documented in AGENTS.md §6 and are NOT addressed by this change.
 

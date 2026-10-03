@@ -13,7 +13,6 @@ Declaración ejecutable (no solo prosa) + 2 derivas de conteo encontradas al med
       apuntando al test que la fija
 - [x] AGENTS.md §8: fila DDL→camino soportado (conserva `docker compose` y
       `--group=mysql` para BF-027); fila seeders 11/24 → 14/22
-- [x] AGENTS.md §4: `_legacy` 24 → 22 (medido: 22 archivos)
 - [x] doc-drift.mjs: nueva fila `legacy-seeders` (patrón ajustado a ambos
       órdenes `N legacy` / `Legacy: N`, sin falsos positivos)
 - [x] Test nuevo `SqliteMigrateFreshDeclarationTest` (2 passed): fija la

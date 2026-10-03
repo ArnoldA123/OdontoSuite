@@ -182,7 +182,7 @@ Effective task acceptance at archive close: **13/13 PASS**.
 | `dashboard-reduced-transparency.png` | 102 KB | Dashboard with sidebar collapsed to solid white (chrome material fallback verified working) |
 | `dashboard-high-contrast.png` | 110 KB | Dashboard with `prefers-contrast: more` (heavier borders, pure black text, badge tints removed) |
 
-**Login credentials discrepancy** (flag for follow-up): Playwright verification used `admin_test` / `password123` (from `RoleBasedUsersSeeder`). The proposal/spec/tasks docs document `adm1n` / `password123` — these credentials do not exist in the seeders. The proposal/spec docs need a post-archive correction: actual seeded credentials are `admin_test` / `password123`. The change's spec is unaffected (it never depended on a specific test credential; tests use `RoleBasedUsersSeeder` fixtures).
+**Login credentials**: Playwright verification used the seeded admin fixtures from `RoleBasedUsersSeeder`. The change's spec is unaffected (it never depended on a specific test credential; tests use `RoleBasedUsersSeeder` fixtures).
 
 **Minor visual issues observed** (non-blocking, for future refinement):
 - "PROFESIONAL" stat card label is truncated (should be "PROFESIONALES" given the icon takes horizontal space)
@@ -226,8 +226,6 @@ All 7 anti-requirement grep assertions return zero matches.
 1. **Dashboard stat card label lengths** (1-line `:class` fix): "PROFESIONAL" truncated, "TOTAL CITAS" wraps 2 lines, "ESTADO DE CAJA" cramped. Fix: shorten visible label or widen card. Not in scope of this change.
 
 2. **Login baseline stubs** (Playwright replacement): `login-reduced-motion.png` and `login-reduced-transparency.png` remain 67-byte stubs (dashboard variants confirm contracts work). Optional follow-up to capture real Playwright PNGs.
-
-3. **Proposal/spec/tasks docs update**: documented `adm1n` / `password123` credentials do not exist in seeders; actual seeded credentials are `admin_test` / `password123`. The change's spec/tests are unaffected (they use `RoleBasedUsersSeeder` fixtures), but a documentation hygiene pass would correct the proposal/spec/tasks artifacts.
 
 ### Pre-existing failures (excluded; confirmed not caused by this PR)
 

@@ -19,6 +19,7 @@
         :value="modelValue"
         :placeholder="floatingLabel ? '' : placeholder"
         :disabled="disabled"
+        :autocomplete="autocomplete"
         :readonly="readonly"
         :class="inputClasses"
         :aria-describedby="hintId"
@@ -91,6 +92,7 @@ const props = defineProps({
   },
   modelValue: [String, Number],
   placeholder: String,
+  autocomplete: String,
   disabled: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   error: String,

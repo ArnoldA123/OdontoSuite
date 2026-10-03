@@ -128,7 +128,7 @@ pnpm dev             # :5173
 1. `playwright-cli open http://localhost:8000/login` → screenshot `login-light.png`. Card center, hero image right, systemBlue primary button visible.
 2. `prefers-reduced-motion: reduce` context → screenshot `login-reduced-motion.png`. No entrance translation; opacity settles instantly.
 3. `prefers-reduced-transparency: reduce` context → screenshot `login-reduced-transparency.png`. Sidebar/top bar solid white, no blur.
-4. `fill e1 "adm1n"` + `fill e2 "password123"` + `click e3` → expect `/dashboard`. Screenshot `after-login.png`.
+4. Log in through the login form → expect `/dashboard`. Screenshot `after-login.png`.
 5. `goto http://localhost:8000/dashboard` → screenshot `dashboard.png`. 5 stat cards, 5 quick actions, today's appointments visible; status icon chips use iOS system color fills.
 6. `goto http://localhost:8000/404` (or any unmatched route) → screenshot `not-found.png`. 404 image + back-to-login button visible; serif headline gone, system font headline.
 7. `prefers-contrast: more` on dashboard → screenshot `dashboard-high-contrast.png`. Text pure black, borders pure `label` `#3C3C43`.

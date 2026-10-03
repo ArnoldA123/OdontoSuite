@@ -28,7 +28,7 @@ Chain strategy: stacked-to-main
 | Unit | Goal | PR | Focused test command | Runtime harness | Rollback boundary |
 |------|------|----|----------------------|-----------------|--------------------|
 | 1 | Token swap + primitives + chrome + Newsreader deletion; no page-template change | PR1 | `vendor/bin/phpunit tests/Unit/DesignSystem/TokensModuleTest.php` + `pnpm tokens:build` + `pnpm build` | `php artisan serve` + `pnpm dev`; 3 verticals (Login + Dashboard + 404) still render cream + terracotta + Newsreader because page templates land in PR2 | `git revert <sha>` restores `tokens.js` + `tokens.generated.css` + `tailwind.config.js` + primitives + composable + font binary |
-| 2 | Login + Dashboard + 404 visual revalue + visual baseline refresh | PR2 | `vendor/bin/phpunit tests/Unit/DesignSystem/TokensModuleTest.php` + Playwright 7-step recipe | `php artisan serve` + `pnpm dev`; `adm1n` / `password123`; Playwright checkpoints 1-7 | `git revert <sha>` (PR1 stays merged; tokens stay iOS; 3 pages revert to cream + terracotta + Newsreader serif headlines) |
+| 2 | Login + Dashboard + 404 visual revalue + visual baseline refresh | PR2 | `vendor/bin/phpunit tests/Unit/DesignSystem/TokensModuleTest.php` + Playwright 7-step recipe | `php artisan serve` + `pnpm dev`; Playwright checkpoints 1-7 | `git revert <sha>` (PR1 stays merged; tokens stay iOS; 3 pages revert to cream + terracotta + Newsreader serif headlines) |
 
 ### Environment / tool prerequisites (apply phase must verify)
 
@@ -103,7 +103,7 @@ PR1 running-total budget cap: **<= 400 LOC changed** (current estimate: ~240).
 - [x] 1.6.1 Run `vendor/bin/phpunit tests/Unit/DesignSystem/TokensModuleTest.php` -> exit 0.
 - [x] 1.6.2 Run `pnpm tokens:build` -> exit 0; `git diff tokens.generated.css` is non-empty (regen confirmed).
 - [x] 1.6.3 Run `pnpm build` -> exit 0.
-- [x] 1.6.4 Run `php artisan serve` (`:8000`) + `pnpm dev` (`:5173`); confirm `GET /login`, `GET /dashboard` (after `adm1n`/`password123` login), `GET /404` still render cream + terracotta + Newsreader serif headlines (page-template changes are PR2 scope; only primitives and chrome changed). Manual visual diff: card surfaces look cleaner (no `cream-on-cream` glass) and no font-flash.
+- [x] 1.6.4 Run `php artisan serve` (`:8000`) + `pnpm dev` (`:5173`); confirm `GET /login`, `GET /dashboard` (after login), `GET /404` still render cream + terracotta + Newsreader serif headlines (page-template changes are PR2 scope; only primitives and chrome changed). Manual visual diff: card surfaces look cleaner (no `cream-on-cream` glass) and no font-flash.
 - [x] 1.6.5 Confirm the 17 un-migrated modules still render correctly via deprecated alias keys: `bg-cream-50` resolves to `bg-systemGray-50`, `bg-terracotta-500` resolves to `bg-systemBlue-500`, `bg-clinicalTeal-50` resolves to `bg-systemBlue-50`, `bg-info-500` resolves to `bg-systemBlue-500`. Manual: navigate to `/pacientes`, `/citas`, `/profesionales` (or any 1-2 un-migrated routes) and confirm colored badges still render.
 
 PR1 changed-line estimate: **~240 LOC**. Budget cap 400 -> 60% used. Comfortable headroom.
@@ -145,12 +145,12 @@ PR2 running-total budget cap: **<= 400 LOC changed** (current estimate: ~130).
 
 ### Phase 2.5: PR2 regression gate - Playwright 7-step recipe
 
-Pre-check: `php artisan serve` (`:8000`) + `pnpm dev` (`:5173`); log in with username `adm1n` / password `password123`.
+Pre-check: `php artisan serve` (`:8000`) + `pnpm dev` (`:5173`).
 
 - [x] 2.5.1 Checkpoint 1 - Login default: `playwright-cli open http://localhost:8000/login --filename=login-light.png`. Visual: white card, systemBlue primary button, system-font headline (NOT serif). Exit 0.
 - [x] 2.5.2 Checkpoint 2 - Login reduced motion: `playwright-cli open http://localhost:8000/login --filename=login-reduced-motion.png --emulate-media='{"reducedMotion":"reduce"}'`. Visual: no entrance translation; opacity cross-fade only. Exit 0.
 - [x] 2.5.3 Checkpoint 3 - Login reduced transparency: `--emulate-media='{"reducedTransparency":"reduce"}'` -> `login-reduced-transparency.png`. Visual: chrome solid white (`bg-systemBackground`), no `backdrop-filter`. Exit 0.
-- [x] 2.5.4 Checkpoint 4 - Login flow: `playwright-cli fill e1 "adm1n"` + `fill e2 "password123"` + `click e3` (use `snapshot` first to resolve element ids). Expect URL `/dashboard`. Screenshot `after-login.png`. Exit 0.
+- [x] 2.5.4 Checkpoint 4 - Login flow: submit the login form via `playwright-cli` (use `snapshot` first to resolve element ids). Expect URL `/dashboard`. Screenshot `after-login.png`. Exit 0.
 - [x] 2.5.5 Checkpoint 5 - Dashboard default: `playwright-cli open http://localhost:8000/dashboard --filename=dashboard.png`. Visual: 5 stat cards, 5 quick actions, status icon chips in iOS filled pattern, "Citas Hoy" big number is pure black (`text-label`), cash status badge is iOS filled pattern. Exit 0.
 - [x] 2.5.6 Checkpoint 6 - 404: `playwright-cli open http://localhost:8000/this-route-does-not-exist --filename=not-found.png`. Visual: system-font headline (NOT serif), image with hairline `border-separator`. Exit 0.
 - [x] 2.5.7 Checkpoint 7 - High contrast: `--emulate-media='{"contrast":"more"}'` on dashboard -> `dashboard-high-contrast.png`. Visual: text pure black (`#000000`), borders `label #3C3C43`. Exit 0.

@@ -70,7 +70,7 @@ Chain strategy: stacked-to-main
 - [x] 3b.3 GREEN: rewrite `RehabilitationRecord::create([...])` block (`created_by`, `prosthesis_type`, `material_type`, `laboratory_name`, `impression_date`, `delivery_date`, `cementation_date`, `shade_selection`)
 - [x] 3b.4 GREEN: rewrite `OralSurgeryRecord::create([...])` block (`created_by`, `procedure_type`, `surgery_site`, `surgical_technique`, `surgery_start_time`, `surgery_end_time`, `surgery_duration_minutes`)
 - [x] 3b.5 GREEN: confirm `ImplantologyRecord::create([...])` already aligned; no change
-- [x] 3b.6 GREEN: add `database/seeders/DentalPieceSeeder.php` (32 FDI-notated rows) if no real seeder exists outside `_legacy/`; update `database/seeders/DatabaseSeeder.php` to call it before `SpecialtyRecordSeeder`
+- [x] 3b.6 GREEN: add `database/seeders/DentalPieceSeeder.php` (32 FDI-notated rows); update `database/seeders/DatabaseSeeder.php` to call it before `SpecialtyRecordSeeder`
 - [x] 3b.7 VERIFY: `php artisan migrate:fresh --seed` completes with exit 0; no SQLSTATE 42S22; field-contract test passes
 
 ## Phase 4: Module Validation Tests (split across 2 PRs)

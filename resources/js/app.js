@@ -42,6 +42,11 @@ const routes = [
     beforeEnter: requireGuest
   },
   {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: LoginPage
+  },
+  {
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('./modules/dashboard/DashboardPage.vue'),

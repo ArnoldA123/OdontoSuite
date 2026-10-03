@@ -8,8 +8,8 @@ use Tests\TestCase;
  * HOTFIX-LOGIN-009 — Reduced-transparency + High-contrast legibility.
  *
  * The login page MUST honor:
- *   - prefers-reduced-motion: reduce (BOTH form and hero collapse to instant)
- *   - prefers-reduced-transparency: reduce (hero overlay becomes solid, no alpha)
+ *   - prefers-reduced-motion: reduce (BOTH form and backdrop collapse to instant)
+ *   - prefers-reduced-transparency: reduce (backdrop overlay becomes solid, no alpha)
  *   - prefers-contrast: more (text contrast lifts to var(--color-label-label))
  *
  * Pin the RULES — the page must actively neutralize transparency and lift
@@ -24,7 +24,7 @@ class HotfixLoginAccessibilityTest extends TestCase
         return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
     }
 
-    public function test_reduced_motion_neutralizes_form_and_hero_transforms(): void
+    public function test_reduced_motion_neutralizes_form_and_backdrop_transforms(): void
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
@@ -38,23 +38,23 @@ class HotfixLoginAccessibilityTest extends TestCase
             'prefers-reduced-motion must neutralize .login-form-wrap transform (HOTFIX-LOGIN-009, apple-design §14)'
         );
 
-        // The hero column MUST also be neutralized so the spring entrance
+        // The backdrop wrapper MUST also be neutralized so the spring entrance
         // does not run for users who opted out of motion.
         $this->assertMatchesRegularExpression(
-            '/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[^}]*\.login-hero-column[^}]*(?:transform\s*:\s*none|opacity\s*:\s*1)/s',
+            '/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)\s*\{[^}]*\.login-backdrop[^}]*(?:transform\s*:\s*none|opacity\s*:\s*1)/s',
             $source,
-            'prefers-reduced-motion must neutralize .login-hero-column (HOTFIX-LOGIN-009, apple-design §14)'
+            'prefers-reduced-motion must neutralize .login-backdrop (HOTFIX-LOGIN-009, apple-design §14)'
         );
     }
 
-    public function test_reduced_transparency_flattens_hero_overlay_to_solid(): void
+    public function test_reduced_transparency_flattens_backdrop_overlay_to_solid(): void
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
 
         $source = (string) file_get_contents(self::loginPagePath());
 
-        // The hero overlay under reduced-transparency MUST be a SOLID color
+        // The backdrop overlay under reduced-transparency MUST be a SOLID color
         // (no alpha). Pin the RULE: the declaration inside the media query
         // must not contain "rgba(" with a fractional alpha nor the modern
         // slash notation "rgb(... / 0.x)".
@@ -72,20 +72,20 @@ class HotfixLoginAccessibilityTest extends TestCase
         $this->assertSame(
             0,
             preg_match('/rgba\s*\([^)]*,\s*(?:0?\.[0-9]+|0)\s*\)/i', $block),
-            'prefers-reduced-transparency hero overlay must NOT use rgba() with fractional alpha — flatten to solid (HOTFIX-LOGIN-009, apple-design §14)'
+            'prefers-reduced-transparency backdrop overlay must NOT use rgba() with fractional alpha — flatten to solid (HOTFIX-LOGIN-009, apple-design §14)'
         );
         // Reject rgb(... / 0.x) modern syntax with fractional alpha.
         $this->assertSame(
             0,
             preg_match('/rgb[a]?\s*\([^)]*\/\s*(?:0?\.[0-9]+|0)\s*\)/i', $block),
-            'prefers-reduced-transparency hero overlay must NOT use rgb(... / 0.x) fractional alpha — flatten to solid (HOTFIX-LOGIN-009, apple-design §14)'
+            'prefers-reduced-transparency backdrop overlay must NOT use rgb(... / 0.x) fractional alpha — flatten to solid (HOTFIX-LOGIN-009, apple-design §14)'
         );
 
         // The block MUST declare a background value (the flattened overlay).
         $this->assertMatchesRegularExpression(
             '/background\s*:/i',
             $block,
-            'prefers-reduced-transparency block must declare a solid background for the hero overlay (HOTFIX-LOGIN-009)'
+            'prefers-reduced-transparency block must declare a solid background for the backdrop overlay (HOTFIX-LOGIN-009)'
         );
     }
 

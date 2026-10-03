@@ -9,9 +9,7 @@ use Illuminate\Database\Seeder;
  * full-user-browser-audit-2026-08-05 / PR4 / Phase 3b.
  *
  * Idempotent 32-row FDI-notated seed of the canonical permanent dentition.
- * The two `_legacy/DentalPieceSeeder.php` and `_legacy/DentalPiecesSeeder.php`
- * duplicates are NOT called by DatabaseSeeder (per `database/seeders/_legacy/README.md`),
- * so this seeder is the canonical source. Foreign keys from endodontics,
+ * Foreign keys from endodontics,
  * rehabilitation, oral surgery, and implantology require dental pieces to
  * exist BEFORE the specialty record seeder runs.
  *
