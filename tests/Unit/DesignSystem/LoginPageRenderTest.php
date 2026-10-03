@@ -401,23 +401,18 @@ class LoginPageRenderTest extends TestCase
     public function testPr5_login_primary_button_has_elevation_and_highlight(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
+        // The inset highlight and the 1px ring were dropped by the subtractive
+        // pass (flat surfaces, no freeform rgba in the component): the login
+        // CTA elevates through the token alone.
         $this->assertStringContainsString('var(--elevation-3)', $source);
-        $this->assertStringContainsString('inset 0 1px 0 rgba(255, 255, 255, 0.30)', $source);
     }
 
     public function testPr5_login_hero_uses_neutral_scrim_and_contrast_eyebrow(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
-        // The overlay widgets sit on the photographic hero. Their material
-        // must be the tokenised soft two-layer elevation plus a luminous top
-        // edge. The PR5 pass shipped a 55%-opacity second shadow layer that
-        // read as a dirty dark edge around every widget.
-        $this->assertMatchesRegularExpression(
-            '/\.login-overlay-card\s*\{[^}]*box-shadow\s*:[^;}]*var\(--elevation-2\)/s',
-            $source,
-            '.login-overlay-card must use the tokenised soft elevation (var(--elevation-2)) instead of the 55%-opacity shadow layer'
-        );
-        $this->assertStringContainsString('inset 0 1px 0 rgba(255, 255, 255, 0.4)', $source);
+        // The hero surface keeps its neutral token background and the shared
+        // panel radius rung. The glass overlay widgets that sat on it (their
+        // elevation and luminous top edge) were deleted with the mockup noise.
         $this->assertStringContainsString('var(--color-system-gray-50)', $source);
         $this->assertStringContainsString('border-radius: var(--login-radius-panel)', $source);
     }
@@ -606,63 +601,14 @@ class LoginPageRenderTest extends TestCase
         /**
          * @test
          */
-        public function login_page_overlays_render_a_curated_sample(): void
+        public function login_page_references_no_api_paths(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
-            // No request may originate on a public login screen at all.
             $this->assertSame(
                 0,
                 substr_count($source, '/api/'),
-                'LoginPage.vue must reference no API path: the three hero widgets render a fixed curated sample (Phase 2.3, premium craft pass)'
-            );
-            $this->assertStringContainsString(
-                'LOGIN_SAMPLE',
-                $source,
-                'LoginPage.vue must declare the curated LOGIN_SAMPLE the hero widgets render'
-            );
-
-            // Aggregate only: a public login that shows patient names reads
-            // as a data leak, so the sample carries no name field and the
-            // avatars carry no titles.
-            $this->assertStringNotContainsString(
-                'patientName',
-                $source,
-                'The curated sample must not carry patient names (public screen: names read as a data leak)'
-            );
-            $this->assertSame(
-                0,
-                substr_count($source, ':title='),
-                'The team avatars must not bind a name title: initials only (public screen)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_overlays_have_v_motion_stagger(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // v-motion on overlay cards with a stagger delay. The exact
-            // delay value is unconstrained; the test pins that SOME
-            // stagger is declared (an index-driven `100 + i * 80` or
-            // equivalent). The total count of v-motion directives is
-            // intentionally NOT asserted — the submit button also uses
-            // v-motion for its polymorphic crossfade, so any strict
-            // `== 3` would couple the test to a single implementation.
-            $this->assertGreaterThanOrEqual(
-                3,
-                substr_count($source, 'v-motion'),
-                'LoginPage.vue must declare at least 3 v-motion directives (overlay stagger + submit polymorphism)'
-            );
-            // The stagger delay can live inline (`v-motion="{ ..., delay: 100 + i * 80 }"`)
-            // or inside a motion factory function (`enter: { ..., delay: 100 + index * 80 }`).
-            // Both patterns are accepted; the test pins that the 80ms step is present.
-            $this->assertMatchesRegularExpression(
-                '/delay\s*:\s*[^,}]*\*\s*80/',
-                $source,
-                'LoginPage.vue overlay motion must declare a stagger delay with the 80ms step (Phase 2.3)'
+                'LoginPage.vue must reference no API path: the login is a public screen and fetches nothing on mount'
             );
         }
 

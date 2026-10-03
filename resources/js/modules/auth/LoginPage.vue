@@ -14,18 +14,13 @@
                uses one enter/leave contract. -->
           <section class="login-form-column" aria-labelledby="login-headline">
             <div ref="cardRef" class="login-form-wrap">
-              <!-- Wordmark chip: a hairline pill anchoring the top-left so
-                   the brand reads as a mark instead of competing with the
-                   H1 below it. -->
+              <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
               <header class="login-header">
-                <p class="brand-chip">
-                  <!-- Brand glyph morph (recovered PR2): the tooth hands over
-                       to a check when the auth state reaches `success`. Both
-                       glyphs stay mounted in one grid cell and cross-fade
-                       (opacity + scale) so no path-command parity between
-                       the two `d` attributes is required. The chip markup is
-                       unchanged; only its inner glyph became polymorphic. -->
-                  <span class="brand-glyph" aria-hidden="true">
+                <p class="brand-lockup">
+                  <!-- The tooth hands over to a check on `success`. Both
+                       glyphs share one grid cell so the cross-fade is a
+                       stack, never a layout shift. -->
+                  <span class="brand-lockup-glyph" aria-hidden="true">
                     <svg
                       class="brand-glyph-tooth"
                       :class="{ 'is-hidden': state === 'success' }"
@@ -397,11 +392,8 @@
             </div>
           </section>
 
-          <!-- Phase 2.2 · Hero column. The right column carries the dental
-               still with 3 floating overlay widgets. The @error handler
-               swaps to a static SVG placeholder (D6 in design.md). The hero
-               column is `position: relative` and the overlays use absolute
-               positioning per design D5. -->
+          <!-- Hero column: the dental still, with a static SVG placeholder
+               if the image fails to load. -->
           <aside class="login-hero-column" aria-hidden="true" ref="heroRef" data-spring-hero="true">
             <div class="login-hero">
               <img
@@ -413,9 +405,7 @@
                 class="login-hero-image"
                 @error="onImageError"
               />
-              <!-- Phase 2.2 · SVG fallback (D6). Static tooth glyph over a
-                   soft gradient. Reserved aspect ratio so the layout never
-                   collapses while loading. -->
+              <!-- SVG fallback for the hero image. -->
               <div v-else class="login-hero-fallback" aria-hidden="true">
                 <svg
                   width="96"
@@ -430,50 +420,6 @@
                 >
                   <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
                 </svg>
-              </div>
-
-              <!-- Phase 2.3 · Overlay widget 1, curated sample. Top-right. -->
-              <div
-                v-motion="overlayMotion(0)"
-                class="login-overlay-card login-overlay-card--top"
-              >
-                <p class="login-overlay-label">Pacientes activos</p>
-                <p class="login-overlay-figure">
-                  {{ formatThousands(LOGIN_SAMPLE.activePatients) }}
-                </p>
-              </div>
-
-              <!-- Phase 2.3 · Overlay widget 2, curated sample. Mid-left. -->
-              <div
-                v-motion="overlayMotion(1)"
-                class="login-overlay-card login-overlay-card--mid"
-              >
-                <p class="login-overlay-label">Agenda de hoy</p>
-                <ul class="login-overlay-list">
-                  <li
-                    v-for="slot in LOGIN_SAMPLE.agenda"
-                    :key="slot.time"
-                    class="login-overlay-list-row"
-                  >
-                    <span class="login-overlay-list-time">{{ slot.time }}</span>
-                    <span class="login-overlay-list-procedure">{{ slot.procedure }}</span>
-                  </li>
-                </ul>
-              </div>
-
-              <!-- Phase 2.3 · Overlay widget 3, curated sample. Bottom-right. -->
-              <div
-                v-motion="overlayMotion(2)"
-                class="login-overlay-card login-overlay-card--bottom"
-              >
-                <p class="login-overlay-label">Equipo</p>
-                <div class="login-overlay-avatars">
-                  <span
-                    v-for="initials in LOGIN_SAMPLE.team"
-                    :key="initials"
-                    class="login-overlay-avatar"
-                  >{{ initials }}</span>
-                </div>
               </div>
             </div>
           </aside>
@@ -543,24 +489,6 @@ onMounted(openResetFromRoute)
 
 // Phase 2.2 · image fallback state.
 const imageFailed = ref(false)
-
-// Phase 2.3 · hero widget content. The login is a PUBLIC screen: the three
-// widgets used to fetch dashboard stats, today's appointments and the active
-// user list on mount, and every one of those endpoints answers 401 for a
-// guest, which rendered "PACIENTES ACTIVOS 0" and an empty avatar row. The
-// widgets now render one fixed curated sample instead: zero requests, no
-// empty state, never broken. Aggregate only by design (numbers, procedure
-// types, times) and never a patient name, because a public screen showing
-// names reads as a data leak.
-const LOGIN_SAMPLE = Object.freeze({
-  activePatients: 1284,
-  agenda: Object.freeze([
-    { time: '09:30', procedure: 'Limpieza' },
-    { time: '11:00', procedure: 'Endodoncia' },
-    { time: '15:45', procedure: 'Control de ortodoncia' }
-  ]),
-  team: Object.freeze(['AM', 'JR', 'CS'])
-})
 
 const form = reactive({
   username: '',
@@ -709,31 +637,10 @@ function morphMotion() {
       }
 }
 
-function overlayMotion(index) {
-  return prefersReducedMotion.value
-    ? {
-        initial: { opacity: 0 },
-        enter: { opacity: 1, transition: { duration: 200, delay: 100 + index * 80 } }
-      }
-    : {
-        initial: { opacity: 0, y: 8 },
-        enter: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 320, delay: 100 + index * 80, ease: [0.16, 1, 0.3, 1] }
-        }
-      }
-}
-
 function initialsOf(name) {
   if (!name) return '··'
   const parts = String(name).trim().split(/\s+/).slice(0, 2)
   return parts.map((p) => p.charAt(0).toUpperCase()).join('') || '··'
-}
-
-function formatThousands(n) {
-  const value = Number(n || 0)
-  return new Intl.NumberFormat('es-PE').format(value)
 }
 
 onMounted(async () => {
@@ -935,9 +842,7 @@ watch(
   max-height: calc(100dvh - clamp(24px, 4vw, 48px));
   background: var(--color-background-system-background);
   border: 1px solid var(--color-hairline);
-  box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: var(--elevation-4);
   overflow: hidden;
 }
 
@@ -974,28 +879,24 @@ watch(
 }
 
 .login-header {
-  @apply flex items-center gap-3;
+  @apply flex items-center;
 }
 
-/* Wordmark chip: hairline-bordered pill, 18px glyph + name. */
-.brand-chip {
+/* One lockup: 18px glyph + wordmark, no pill chrome. */
+.brand-lockup {
   @apply inline-flex items-center gap-2;
-  padding: 6px 14px 6px 10px;
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--radius-full);
-  background: var(--color-background-system-background);
 }
 
-.brand-glyph {
+.brand-lockup-glyph {
   @apply inline-grid place-items-center;
-  width: 22px;
-  height: 22px;
-  color: var(--color-system-blue-500);
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent-500);
 }
 
 /* Both glyphs share one grid cell so the cross-fade is a stack and never a
    layout shift. The tooth hands over to the check on `success`. */
-.brand-glyph svg {
+.brand-lockup-glyph svg {
   grid-area: 1 / 1;
   width: 18px;
   height: 18px;
@@ -1069,13 +970,9 @@ watch(
   @apply flex flex-col gap-5;
 }
 
-/* HOTFIX-LOGIN-004 · primary submit button keeps the elevation + inset
-   highlight inline at the consumer (LoginPage) as a defensive backstop. */
+/* Flat surface: the elevation token, no duplicated inset highlight. */
 .login-form :deep(button[type='submit']) {
-  box-shadow:
-    var(--elevation-3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.30),
-    0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--elevation-3);
 }
 
 .form-options {
@@ -1176,7 +1073,7 @@ watch(
 .password-toggle:hover,
 .password-toggle:focus-visible {
   color: var(--color-label-label);
-  background: var(--color-cream-200);
+  background: var(--color-system-gray-100);
 }
 
 .password-toggle:focus-visible {
@@ -1244,7 +1141,7 @@ watch(
 }
 
 .field-input:hover:not(:disabled) {
-  background: var(--color-cream-100);
+  background: var(--color-system-gray-100);
 }
 
 .field-input:focus {
@@ -1254,7 +1151,7 @@ watch(
 }
 
 .field-input:disabled {
-  background: var(--color-cream-100);
+  background: var(--color-system-gray-100);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -1461,7 +1358,7 @@ watch(
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
-  background: var(--color-system-blue-500);
+  background: var(--color-accent-500);
   color: var(--color-background-system-background);
   @apply flex items-center justify-center text-sm font-semibold;
 }
@@ -1479,7 +1376,7 @@ watch(
 .login-mini-cta {
   @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium;
   border-radius: var(--login-radius-control);
-  background: var(--color-system-blue-500);
+  background: var(--color-accent-500);
   color: var(--color-background-system-background);
   border: none;
   cursor: pointer;
@@ -1487,7 +1384,7 @@ watch(
 }
 
 .login-mini-cta:hover {
-  background: var(--color-system-blue-600);
+  background: var(--color-accent-600);
 }
 
 /* Single footer row: legal + support. */
@@ -1506,12 +1403,9 @@ watch(
   text-decoration: underline;
 }
 
-/* Phase 2.2 · hero column. The hero carries the dental image with 3
-   floating overlay widgets (D5). The hero-column is `position: relative`
-   so the absolute overlays anchor correctly. `min-height: 0` and
-   `overflow: hidden` prevent the image from forcing a grid reflow.
-   The 16px padding is the inset that stops the hero from butting against
-   the panel's top, right and bottom edges: that gap is what reads as care. */
+/* Hero column: the dental image inside the panel inset. `min-height: 0` and
+   `overflow: hidden` prevent the image from forcing a grid reflow. The 16px
+   padding keeps the hero off the panel's top, right and bottom edges. */
 .login-hero-column {
   --spring-hero-o: 1;
   --spring-hero-opacity: 1;
@@ -1546,97 +1440,13 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(135deg, var(--color-system-gray-50), var(--color-system-blue-50));
-  color: var(--color-system-blue-500);
+  background: linear-gradient(135deg, var(--color-system-gray-50), var(--color-accent-50));
+  color: var(--color-accent-500);
 }
 
 .login-hero-fallback-glyph {
   width: clamp(64px, 12vw, 96px);
   height: clamp(64px, 12vw, 96px);
-}
-
-/* Phase 2.3 · overlay widgets. Per design D5: top-right, mid-left,
-   bottom-right. Per-panel radius, a soft tokenised two-layer elevation and
-   a luminous top edge so the glass reads as a material. The old
-   `0 1px 2px rgba(60, 60, 67, 0.55)` second layer was a 55%-opacity typo
-   that drew a dirty dark edge around every widget. */
-.login-overlay-card {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--color-hairline);
-  border-radius: var(--login-radius-panel);
-  padding: 14px 16px;
-  box-shadow:
-    var(--elevation-2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  color: var(--color-label-label);
-  z-index: 2;
-}
-
-.login-overlay-card--top {
-  top: 24px;
-  right: 24px;
-}
-
-.login-overlay-card--mid {
-  top: 50%;
-  left: 24px;
-  transform: translateY(-50%);
-}
-
-.login-overlay-card--bottom {
-  bottom: 24px;
-  right: 24px;
-}
-
-/* Sentence case at 12px, medium weight, secondary label colour. Capitalised
-   eyebrows with wide tracking are the anti-pattern this project banned. */
-.login-overlay-label {
-  @apply text-xs font-medium;
-  color: var(--color-label-secondary-label);
-  margin: 0 0 6px;
-}
-
-.login-overlay-figure {
-  @apply text-2xl font-semibold leading-none;
-  color: var(--color-label-label);
-  margin: 0;
-}
-
-.login-overlay-list {
-  @apply flex flex-col gap-1 m-0 p-0 list-none;
-}
-
-/* Fixed first column so the times line up across the three rows instead of
-   drifting with `justify-content: space-between`. */
-.login-overlay-list-row {
-  @apply grid items-baseline gap-3 text-xs;
-  grid-template-columns: 3.25rem 1fr;
-}
-
-.login-overlay-list-time {
-  color: var(--color-label-secondary-label);
-  font-variant-numeric: tabular-nums;
-}
-
-.login-overlay-list-procedure {
-  color: var(--color-label-label);
-}
-
-.login-overlay-avatars {
-  @apply flex items-center gap-2;
-}
-
-.login-overlay-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-full);
-  background: var(--color-system-blue-500);
-  color: var(--color-background-system-background);
-  @apply inline-flex items-center justify-center text-xs font-semibold;
 }
 
 /* Tablet and up: form first column, hero second. */
@@ -1704,7 +1514,7 @@ watch(
 }
 
 /* Honor reduced motion. Both entrance springs collapse in the FIRST rule of
-   this block, then the polymorphic crossfades and the widget entrance. */
+   this block, then the polymorphic crossfades. */
 @media (prefers-reduced-motion: reduce) {
   .login-form-wrap,
   .login-hero-column {
@@ -1714,7 +1524,6 @@ watch(
   }
 
   .login-split-card,
-  .login-overlay-card,
   .login-submit-shape,
   .login-mini-summary {
     animation: none !important;
@@ -1722,17 +1531,11 @@ watch(
     transform: none !important;
   }
 
-  /* The mid widget keeps its own centering transform: the collapse above
-     must kill the entrance, never the position. */
-  .login-overlay-card--mid {
-    transform: translateY(-50%) !important;
-  }
-
   /* Recovered PR2 · collapse for every new motion path. The movement goes,
      the state stays legible: opacity still carries which glyph is active
      and the success mark / tick simply arrive already drawn. Positioning
-     transforms (the -50% centering) are deliberately NOT reset; the same
-     exception the mid widget above documents. */
+     transforms (the -50% centering on the password toggle) are deliberately
+     NOT reset. */
   .login-field-stagger,
   .login-submit-wrap.is-shaking,
   .field-error--animated,
@@ -1740,7 +1543,7 @@ watch(
     animation: none !important;
   }
 
-  .brand-glyph svg,
+  .brand-lockup-glyph svg,
   .password-toggle-glyph,
   .checkbox-tick {
     transition: none !important;
@@ -1761,9 +1564,8 @@ watch(
   }
 }
 
-/* Honor reduced transparency · the atmosphere layer is switched off, the
-   outer card flattens to an opaque surface and the overlay widgets drop the
-   backdrop blur. */
+/* Honor reduced transparency: the atmosphere layer is switched off and the
+   outer card flattens to an opaque surface. */
 @media (prefers-reduced-transparency: reduce) {
   .login-page::before {
     background: none;
@@ -1771,11 +1573,6 @@ watch(
   .login-split-card {
     background: var(--color-background-system-background);
     box-shadow: none;
-  }
-  .login-overlay-card {
-    background: var(--color-background-system-background);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
   }
 }
 
