@@ -9,23 +9,35 @@ const nativeMatchMedia = window.matchMedia
 
 const LAYER_NAMES = ['far', 'mid', 'near']
 
-// The art is authored in this viewBox, so a width in scene units over
-// SCENE_WIDTH is the fraction of the viewport the mark covers.
+// Marks position themselves in percentages of the 1440x900 design frame the
+// scene is composed on, and size themselves in viewport width units, so a
+// width in vw over 100 is the fraction of the viewport a mark covers.
 const SCENE_WIDTH = 1440
+const SCENE_HEIGHT = 900
 
 // The desktop form card anchors left (padding-left clamp(56px, 14vw, 220px)
 // plus a 26rem card), so the strong tiers stay clear of that band and the
 // deep tier carries the scene there instead.
 const CARD_KEEP_OUT = { left: 190, right: 660, top: 40, bottom: 860 }
 
-const TOOTH_SHAPE_IDS = ['incisor', 'molar', 'premolar']
+const LOGIN_ASSETS = {
+  tooth: '/images/login/tooth-1.png',
+  sparkleTooth: '/images/login/tooth-2.png',
+  toothbrush: '/images/login/toothbrush.png'
+}
 
-// Perceived-contrast band each layer must land in, so the scene stays visible
-// without darkening the light clinical page.
+// The shipped tooth PNGs paint a near-flat light gray body (#dedede, channel
+// 222). The visibility model pushes that channel through the per-tier
+// brightness filter and the layer opacity, then composites over the canvas
+// gradient endpoints.
+const TOOTH_BASE_CHANNEL = 222
+
+// Perceived-contrast band each layer must land in (contrastRatio - 1). The
+// far tier stays the faintest but above 12% so no mark disappears.
 const CONTRAST_BANDS = {
-  far: [0.09, 0.2],
-  mid: [0.3, 0.55],
-  near: [0.45, 0.9]
+  far: [0.12, 0.3],
+  mid: [0.25, 0.55],
+  near: [0.4, 1]
 }
 
 function mockMedia({ reducedMotion = false, reducedTransparency = false } = {}) {
@@ -99,23 +111,58 @@ function keyframesBlock(name) {
   return inner
 }
 
-function tierRule(block, name) {
-  const match = block.match(new RegExp(`\\.dental-parallax-${name}\\s*\\{([^}]*)\\}`))
-  if (!match) throw new Error(`no .dental-parallax-${name} rule in the reduced-transparency block`)
-  return match[1]
+function layerMarkup(name) {
+  const anchor = componentSource.indexOf(`data-layer="${name}"`)
+  if (anchor === -1) throw new Error(`no markup for layer ${name}`)
+
+  const next = LAYER_NAMES.map(other =>
+    componentSource.indexOf(`data-layer="${other}"`, anchor + 1)
+  )
+    .filter(index => index > anchor)
+    .sort((a, b) => a - b)[0]
+
+  return componentSource.slice(anchor, next ?? componentSource.indexOf('</template>', anchor))
 }
 
-function layerDeclarations(name) {
-  const rule = cssRule(`\\.dental-parallax-${name}`)
-  const color = rule.match(/color:\s*var\(--color-([a-z]+)-(\d+)\)/)
-  const opacity = rule.match(/opacity:\s*([\d.]+)/)
-  return {
-    ramp: color?.[1],
-    step: color?.[2],
-    opacity: opacity ? Number(opacity[1]) : 1,
-    amplitude: Number(rule.match(/--parallax-amplitude:\s*(\d+)px/)?.[1] ?? 0),
-    drift: driftClock(rule, name)
+function tagAttributes(tag) {
+  const attributes = {}
+  for (const [, key, value] of tag.matchAll(/([a-zA-Z:-]+)="([^"]*)"/g)) {
+    attributes[key] = value
   }
+  return attributes
+}
+
+// Every mark is an <img> whose inline style declares the center (--mark-x /
+// --mark-y as design-frame percentages), the viewport-relative width
+// (--mark-w in vw) and the rotation (--mark-r in deg).
+function marks(name) {
+  return [...layerMarkup(name).matchAll(/<img\b[^>]*>/g)].map(([tag]) => {
+    const attributes = tagAttributes(tag)
+    const style = attributes.style ?? ''
+    const x = style.match(/--mark-x:\s*(-?[\d.]+)%/)
+    const y = style.match(/--mark-y:\s*(-?[\d.]+)%/)
+    const w = style.match(/--mark-w:\s*(-?[\d.]+)vw/)
+    const r = style.match(/--mark-r:\s*(-?[\d.]+)deg/)
+
+    if (!x || !y || !w || !r) throw new Error(`unparsable mark style: ${style}`)
+
+    return {
+      src: attributes.src,
+      className: attributes.class ?? '',
+      width: Number(w[1]) / 100,
+      rotate: Number(r[1]),
+      centerX: (Number(x[1]) / 100) * SCENE_WIDTH,
+      centerY: (Number(y[1]) / 100) * SCENE_HEIGHT
+    }
+  })
+}
+
+function toothMarks(name) {
+  return marks(name).filter(mark => !mark.className.includes('toothbrush'))
+}
+
+function brushMarks(name) {
+  return marks(name).filter(mark => mark.className.includes('toothbrush'))
 }
 
 function driftClock(rule, name) {
@@ -129,52 +176,16 @@ function driftClock(rule, name) {
   }
 }
 
-function layerMarkup(name) {
-  const anchor = componentSource.indexOf(`data-layer="${name}"`)
-  if (anchor === -1) throw new Error(`no markup for layer ${name}`)
-
-  const start = componentSource.indexOf('<svg', anchor)
-  return componentSource
-    .slice(start, componentSource.indexOf('</svg>', start))
-    .replace(/<!--[\s\S]*?-->/g, '')
-}
-
-function tagAttributes(tag) {
-  const attributes = {}
-  for (const [, key, value] of tag.matchAll(/([a-zA-Z:-]+)="([^"]*)"/g)) {
-    attributes[key] = value
+function layerDeclarations(name) {
+  const rule = cssRule(`\\.dental-parallax-${name}`)
+  const opacity = rule.match(/opacity:\s*([\d.]+)/)
+  const brightness = rule.match(/--mark-brightness:\s*([\d.]+)/)
+  return {
+    opacity: opacity ? Number(opacity[1]) : 1,
+    brightness: brightness ? Number(brightness[1]) : 1,
+    amplitude: Number(rule.match(/--parallax-amplitude:\s*(\d+)px/)?.[1] ?? 0),
+    drift: driftClock(rule, name)
   }
-  return attributes
-}
-
-// Every tooth is a `use` mark on a shared `dental-parallax-tooth-*` shape, and
-// the transform is `translate(center) rotate(angle) scale(size)`, so a mark's
-// painted width is its declared frame width times its scale.
-function toothMarks(name) {
-  return [...layerMarkup(name).matchAll(/<use\b[\s\S]*?\/>/g)].map(([tag]) => {
-    const attributes = tagAttributes(tag)
-    const transform = (attributes.transform ?? '').match(
-      /translate\((-?[\d.]+) (-?[\d.]+)\)(?:\s+rotate\((-?[\d.]+)\))?\s+scale\(([\d.]+)\)/
-    )
-    if (!transform) throw new Error(`unparsable tooth transform: ${attributes.transform}`)
-
-    return {
-      shape: (attributes.href ?? '').replace('#dental-parallax-tooth-', ''),
-      frameX: Number(attributes.x),
-      frameY: Number(attributes.y),
-      frameWidth: Number(attributes.width),
-      frameHeight: Number(attributes.height),
-      centerX: Number(transform[1]),
-      centerY: Number(transform[2]),
-      rotate: Number(transform[3] ?? 0),
-      scale: Number(transform[4]),
-      width: Number(attributes.width) * Number(transform[4])
-    }
-  })
-}
-
-function toothViewportShare(mark) {
-  return mark.width / SCENE_WIDTH
 }
 
 function driftStops(name) {
@@ -189,33 +200,6 @@ function driftStops(name) {
 
 function driftTravel(name) {
   return Math.max(...driftStops(name).map(stop => Math.max(Math.abs(stop.x), Math.abs(stop.y))))
-}
-
-function toothFrames() {
-  const frames = {}
-  for (const [, id, viewBox] of componentSource.matchAll(
-    /<symbol\s+id="dental-parallax-tooth-([a-z]+)"\s+viewBox="([^"]*)"/g
-  )) {
-    const [minX, minY, width, height] = viewBox.split(/\s+/).map(Number)
-    frames[id] = { minX, minY, width, height }
-  }
-  return frames
-}
-
-function paintedAttributes() {
-  return [...componentSource.matchAll(/\s(fill|stroke|color)="([^"]*)"/g)].map(
-    ([, , value]) => value
-  )
-}
-
-function strongestElementOpacity(name) {
-  // The layer rule carries the fog alpha; each mark inside the layer may damp
-  // it further. The strongest declared mark is the layer's visibility ceiling,
-  // and the flat fill it composites from (the blur can only soften it).
-  const declared = [...layerMarkup(name).matchAll(/opacity="([\d.]+)"/g)].map(match =>
-    Number(match[1])
-  )
-  return declared.length ? Math.max(...declared) : 1
 }
 
 function toLinear(channel) {
@@ -252,11 +236,19 @@ function overBackground(hex, alpha, background) {
     .join('')}`
 }
 
-function perceivedContrast(fg, alpha) {
+function grayHex(channel) {
+  const value = Math.max(0, Math.min(255, Math.round(channel)))
+    .toString(16)
+    .padStart(2, '0')
+  return `#${value}${value}${value}`
+}
+
+function markPerceivedContrast(brightness, opacity) {
   // The scene paints over a 160deg gradient between both canvas endpoints, so
   // every pixel sits between these two backgrounds.
+  const painted = grayHex(TOOTH_BASE_CHANNEL * brightness)
   return [tokens.colors.background.canvas, tokens.colors.accent[50]]
-    .map(background => contrastRatio(overBackground(fg, alpha, background), background) - 1)
+    .map(background => contrastRatio(overBackground(painted, opacity, background), background) - 1)
     .sort((a, b) => a - b)
 }
 
@@ -353,6 +345,73 @@ describe('DentalParallaxBackground', () => {
       /\.dental-parallax\.is-parallax-active\s+\.dental-parallax-layer\s*\{[^}]*will-change:\s*transform/
     )
     expect(componentSource).not.toMatch(/^\s*\.dental-parallax-layer\s*\{[^}]*will-change/m)
+  })
+})
+
+describe('DentalParallaxBackground art assets', () => {
+  it('retires the inline vector tooth art for real image marks', () => {
+    expect(componentSource).not.toMatch(/<svg\b/)
+    expect(componentSource).not.toMatch(/<symbol\b/)
+    expect(componentSource).not.toMatch(/<use\b/)
+    expect(componentSource).not.toContain('dental-parallax-tooth-')
+
+    LAYER_NAMES.forEach(name => {
+      expect(marks(name).length, `${name} layer must carry image marks`).toBeGreaterThanOrEqual(2)
+      marks(name).forEach(mark => expect(mark.src).toMatch(/^\/images\/login\//))
+    })
+  })
+
+  it('mounts every parsed mark as a real image element', () => {
+    const wrapper = mount(DentalParallaxBackground)
+    const images = wrapper.findAll('img')
+    const parsed = LAYER_NAMES.flatMap(name => marks(name))
+
+    expect(images).toHaveLength(parsed.length)
+    expect(images.every(image => image.attributes('alt') === '')).toBe(true)
+    expect(new Set(images.map(image => image.attributes('src')))).toEqual(
+      new Set(Object.values(LOGIN_ASSETS))
+    )
+
+    wrapper.unmount()
+  })
+
+  it('references all three shipped login PNGs through /images/login/', () => {
+    const srcs = LAYER_NAMES.flatMap(name => marks(name).map(mark => mark.src))
+    const unique = [...new Set(srcs)].sort()
+
+    expect(unique).toEqual(Object.values(LOGIN_ASSETS).sort())
+  })
+
+  it('mixes the plain tooth, the sparkle tooth and the toothbrush across the tiers', () => {
+    LAYER_NAMES.forEach(name => {
+      const assets = new Set(marks(name).map(mark => mark.src))
+      expect(assets.size, `${name} layer must mix assets`).toBeGreaterThanOrEqual(2)
+    })
+
+    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
+    expect(brushes.length).toBe(1)
+    expect(brushes[0].src).toBe(LOGIN_ASSETS.toothbrush)
+  })
+
+  it('positions every mark with the center, size and rotation style contract', () => {
+    LAYER_NAMES.forEach(name => {
+      marks(name).forEach(mark => {
+        expect(Number.isFinite(mark.centerX)).toBe(true)
+        expect(Number.isFinite(mark.centerY)).toBe(true)
+        expect(mark.width).toBeGreaterThan(0)
+        expect(Number.isFinite(mark.rotate)).toBe(true)
+      })
+    })
+  })
+
+  it('drives each mark layout from the inline custom properties', () => {
+    const rule = cssRule('\\.dental-parallax-mark')
+
+    expect(rule).toMatch(/left:\s*var\(--mark-x\)/)
+    expect(rule).toMatch(/top:\s*var\(--mark-y\)/)
+    expect(rule).toMatch(/width:\s*var\(--mark-w\)/)
+    expect(rule).toMatch(/rotate\(var\(--mark-r/)
+    expect(rule).toMatch(/filter:\s*brightness\(var\(--mark-brightness/)
   })
 })
 
@@ -494,49 +553,23 @@ describe('DentalParallaxBackground visibility budget', () => {
     expect(grow).toBeGreaterThanOrEqual(2 * (largest + drift))
   })
 
-  it('deepens the token ramp from the far layer to the near layer', () => {
-    const steps = LAYER_NAMES.map(name => Number(layerDeclarations(name).step))
-
-    expect(steps).toEqual([...steps].sort((a, b) => a - b))
-    expect(new Set(steps).size).toBe(LAYER_NAMES.length)
-  })
-
-  it('draws every tooth inside a normal-tooth scale budget', () => {
-    // The excess this replaces: one silhouette spanning ~23% of the viewport.
-    const shares = LAYER_NAMES.flatMap(name => toothMarks(name).map(toothViewportShare))
+  it('draws every tooth inside the normal-tooth scale budget', () => {
+    const shares = LAYER_NAMES.flatMap(name => toothMarks(name).map(mark => mark.width))
 
     expect(shares.length).toBeGreaterThanOrEqual(10)
     shares.forEach(share => {
-      expect(share).toBeLessThanOrEqual(0.13)
-      expect(share).toBeGreaterThanOrEqual(0.02)
+      expect(share).toBeLessThanOrEqual(0.09)
+      expect(share).toBeGreaterThanOrEqual(0.025)
     })
   })
 
-  it('reuses three crowned-and-rooted tooth shapes across the tiers', () => {
-    const frames = toothFrames()
+  it('scales the toothbrush one step above the tooth budget', () => {
+    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
 
-    expect(Object.keys(frames).sort()).toEqual(TOOTH_SHAPE_IDS)
-    LAYER_NAMES.forEach(name => {
-      const shapes = new Set(toothMarks(name).map(mark => mark.shape))
-      expect(shapes.size, `${name} layer must mix shapes`).toBeGreaterThanOrEqual(2)
-    })
-  })
-
-  it('frames every tooth mark with the frame its shared shape declares', () => {
-    const frames = toothFrames()
-
-    LAYER_NAMES.forEach(name => {
-      const marks = toothMarks(name)
-      expect(marks.length, `${name} layer must carry teeth`).toBeGreaterThanOrEqual(2)
-
-      marks.forEach(mark => {
-        const frame = frames[mark.shape]
-        expect(frame, `${mark.shape} must be a shared shape`).toBeTruthy()
-        expect(mark.frameX).toBe(frame.minX)
-        expect(mark.frameY).toBe(frame.minY)
-        expect(mark.frameWidth).toBe(frame.width)
-        expect(mark.frameHeight).toBe(frame.height)
-      })
+    expect(brushes.length).toBeGreaterThanOrEqual(1)
+    brushes.forEach(mark => {
+      expect(mark.width).toBeGreaterThan(0.09)
+      expect(mark.width).toBeLessThanOrEqual(0.13)
     })
   })
 
@@ -552,10 +585,9 @@ describe('DentalParallaxBackground visibility budget', () => {
 
     expect(heroes.length).toBeGreaterThanOrEqual(2)
     heroes.forEach(mark => {
-      const share = toothViewportShare(mark)
       expect(
-        share >= 0.07 && share <= 0.13,
-        `${mark.shape} hero covers ${(share * 100).toFixed(1)}% of the viewport`
+        mark.width >= 0.07 && mark.width <= 0.09,
+        `${mark.src} hero covers ${(mark.width * 100).toFixed(1)}% of the viewport`
       ).toBe(true)
     })
   })
@@ -569,15 +601,17 @@ describe('DentalParallaxBackground visibility budget', () => {
   })
 
   it('puts the largest tooth in the half the card leaves free', () => {
-    const marks = LAYER_NAMES.flatMap(name => toothMarks(name))
-    const largest = marks.reduce((widest, mark) => (mark.width > widest.width ? mark : widest))
+    const marksOnTiers = LAYER_NAMES.flatMap(name => toothMarks(name))
+    const largest = marksOnTiers.reduce((widest, mark) =>
+      mark.width > widest.width ? mark : widest
+    )
 
     expect(largest.centerX).toBeGreaterThanOrEqual(SCENE_WIDTH / 2)
   })
 
   it('keeps the strong tiers out from under the left-anchored form card', () => {
     ;['mid', 'near'].forEach(name => {
-      toothMarks(name).forEach(mark => {
+      marks(name).forEach(mark => {
         const behindCard =
           mark.centerX > CARD_KEEP_OUT.left &&
           mark.centerX < CARD_KEEP_OUT.right &&
@@ -586,18 +620,46 @@ describe('DentalParallaxBackground visibility budget', () => {
 
         expect(
           behindCard,
-          `${name} tooth at (${mark.centerX}, ${mark.centerY}) sits under the form card`
+          `${name} mark at (${mark.centerX}, ${mark.centerY}) sits under the form card`
         ).toBe(false)
       })
     })
   })
 
-  it('keeps each layer inside its perceived-contrast band over the canvas gradient', () => {
+  it('deepens the image treatment from the far tier to the near tier', () => {
+    const brightness = LAYER_NAMES.map(name => layerDeclarations(name).brightness)
+    const opacities = LAYER_NAMES.map(name => layerDeclarations(name).opacity)
+
+    expect(new Set(brightness).size).toBe(LAYER_NAMES.length)
+    expect(brightness[0]).toBeGreaterThan(brightness[1])
+    expect(brightness[1]).toBeGreaterThan(brightness[2])
+    expect(opacities[0]).toBeLessThan(opacities[1])
+    expect(opacities[1]).toBeLessThan(opacities[2])
+  })
+
+  it('harmonizes the intrinsically black toothbrush instead of pasting it in', () => {
+    const rule = cssRule('\\.dental-parallax-toothbrush')
+    const opacity = Number(rule.match(/opacity:\s*([\d.]+)/)?.[1] ?? 1)
+
+    expect(opacity).toBeGreaterThanOrEqual(0.25)
+    expect(opacity).toBeLessThanOrEqual(0.6)
+  })
+
+  it('keeps the warm sparkle accents from flattening to black', () => {
+    const rule = cssRule('\\.dental-parallax-sparkle')
+
+    expect(rule).toMatch(/brightness\(var\(--mark-brightness/)
+    expect(rule).toMatch(/saturate\(/)
+    expect(rule).toMatch(/drop-shadow\(/)
+    expect(rule).toMatch(/rgba\(255,\s*171,\s*73/)
+    expect(componentSource).not.toMatch(/grayscale\(/)
+  })
+
+  it('keeps each layer clearly perceptible over the canvas gradient', () => {
     LAYER_NAMES.forEach(name => {
-      const { ramp, step, opacity } = layerDeclarations(name)
+      const { brightness, opacity } = layerDeclarations(name)
       const [floor, ceiling] = CONTRAST_BANDS[name]
-      const alpha = opacity * strongestElementOpacity(name)
-      const ratios = perceivedContrast(tokens.colors[ramp][step], alpha)
+      const ratios = markPerceivedContrast(brightness, opacity)
 
       expect(
         ratios[0] >= floor,
@@ -634,67 +696,27 @@ describe('DentalParallaxBackground reduced transparency', () => {
     expect(inner).not.toMatch(/visibility\s*:\s*hidden/)
   })
 
-  it('repaints every tier from solid token tints at full opacity', () => {
+  it('raises every layer to solid opacity and keeps the image treatment', () => {
     const inner = reducedTransparencyBlock()
 
     expect(inner).toMatch(/\.dental-parallax-layer\s*\{[^}]*opacity\s*:\s*1/)
-    expect(inner).toMatch(/\.dental-parallax-layer\s+\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
+    expect(inner).not.toMatch(/filter\s*:\s*none/)
+    expect(inner).not.toMatch(/--mark-brightness/)
     expect(inner).not.toMatch(/opacity\s*:\s*0?\.\d/)
-    expect(inner).not.toMatch(/rgba?\s*\(/)
-
-    const steps = LAYER_NAMES.map(name => {
-      const step = tierRule(inner, name).match(/color\s*:\s*var\(--color-accent-(\d+)\)/)?.[1]
-      expect(step, `${name} must repaint from a solid accent token`).toBeTruthy()
-      return Number(step)
-    })
-
-    expect(new Set(steps).size).toBe(LAYER_NAMES.length)
-    expect(steps).toEqual([...steps].sort((a, b) => a - b))
   })
 
-  it('paints the redesigned marks from the tier tint alone', () => {
-    // Solid mode neutralizes the `opacity` presentation attribute; a
-    // fill-opacity / stroke-opacity mark would slip past that rule, so the
-    // scene never declares one.
-    expect(componentSource).not.toMatch(/(fill|stroke)-opacity/)
-
-    const painted = paintedAttributes()
-    expect(painted.length).toBeGreaterThan(0)
-    painted.forEach(value => {
-      const tokenised = /^var\(--color-[a-z0-9-]+\)$/.test(value)
-      expect(
-        ['currentColor', 'none'].includes(value) || tokenised,
-        `unexpected paint value: ${value}`
-      ).toBe(true)
-    })
-  })
-
-  it('reaches every tier with the new shapes in solid mode', () => {
-    const inner = reducedTransparencyBlock()
-
+  it('keeps every tier populated with image marks in solid mode', () => {
     LAYER_NAMES.forEach(name => {
-      expect(toothMarks(name).length).toBeGreaterThanOrEqual(2)
-      expect(tierRule(inner, name)).toMatch(/--color-accent-\d+/)
+      expect(marks(name).length).toBeGreaterThanOrEqual(2)
+      expect(marks(name).every(mark => mark.src.startsWith('/images/login/'))).toBe(true)
     })
-    expect(inner).toMatch(/\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
   })
 
-  it('keeps every tier above its visibility floor in solid mode', () => {
-    const floors = { far: 0.09, mid: 0.3, near: 0.45 }
-    const inner = reducedTransparencyBlock()
-    const contrasts = LAYER_NAMES.map(name => {
-      const step = tierRule(inner, name).match(/--color-accent-(\d+)/)[1]
-      return perceivedContrast(tokens.colors.accent[step], 1)[0]
+  it('keeps every tier clearly visible in solid mode', () => {
+    LAYER_NAMES.forEach(name => {
+      const { brightness } = layerDeclarations(name)
+      expect(markPerceivedContrast(brightness, 1)[0]).toBeGreaterThanOrEqual(0.5)
     })
-
-    LAYER_NAMES.forEach((name, index) => {
-      expect(
-        contrasts[index] >= floors[name],
-        `${name} solid tint is too faint: ${contrasts[index].toFixed(3)} contrast (floor ${floors[name]})`
-      ).toBe(true)
-    })
-    expect(contrasts[0]).toBeLessThan(contrasts[1])
-    expect(contrasts[1]).toBeLessThan(contrasts[2])
   })
 
   it('keeps the login backdrop visible under reduced transparency', () => {
