@@ -1,286 +1,284 @@
 <template>
-  <!-- Login page · editorial split (Phase 2.1 / HOTFIX-LOGIN-010).
-       Premium craft pass: the form rests directly on the panel. The
-       elevated card wrapper that used to sit inside this panel is gone, so
-       the surface hierarchy comes from the panel itself instead of a second
-       bordered, shadowed box stacked on the first. -->
+  <!-- Login page · full-bleed parallax backdrop with a floating form card.
+       The decorative scene owns the viewport; the form rides on its own
+       elevated surface over it. Phase 2.5 · the TransitionGroup crossfades
+       the <form> into the mini-summary; both live in the same group so the
+       crossfade uses one enter/leave contract. -->
   <div class="login-page">
-    <div class="login-page-shell">
-      <div class="login-split-card rounded-[var(--radius-shell)]">
-        <div class="login-grid">
-          <!-- Form column (left on desktop, second on mobile).
-               Phase 2.5 · the TransitionGroup crossfades the <form> into the
-               mini-summary; both live in the same group so the crossfade
-               uses one enter/leave contract. -->
-          <section class="login-form-column" aria-labelledby="login-headline">
-            <div ref="cardRef" class="login-form-wrap">
-              <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
-              <header class="login-header">
-                <p class="brand-lockup">
-                  <!-- The tooth hands over to a check on `success`. Both
+    <div ref="heroRef" class="login-hero-column" aria-hidden="true" data-spring-hero="true">
+      <DentalParallaxBackground />
+    </div>
+
+    <main class="login-stage">
+      <section class="login-card" aria-labelledby="login-headline">
+        <div ref="cardRef" class="login-form-wrap">
+          <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
+          <header class="login-header">
+            <p class="brand-lockup">
+              <!-- The tooth hands over to a check on `success`. Both
                        glyphs share one grid cell so the cross-fade is a
                        stack, never a layout shift. -->
-                  <span class="brand-lockup-glyph" aria-hidden="true">
+              <span class="brand-lockup-glyph" aria-hidden="true">
+                <svg
+                  class="brand-glyph-tooth"
+                  :class="{ 'is-hidden': state === 'success' }"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+                  />
+                </svg>
+                <svg
+                  class="brand-glyph-check"
+                  :class="{ 'is-visible': state === 'success' }"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.1"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M5 12 L10 17 L19 7" />
+                </svg>
+              </span>
+              <span class="brand-name">OdontoSuite</span>
+            </p>
+          </header>
+
+          <div class="welcome-section">
+            <h1 id="login-headline" class="welcome-headline">Gestiona tu clínica con calma</h1>
+            <p class="welcome-subtitle">
+              Inicia sesión para revisar citas, caja y pacientes en un solo lugar.
+            </p>
+          </div>
+
+          <!-- Phase 2.5 · form → mini-summary polymorphism. No Card
+               wrapper: the fields are the card's own content. -->
+          <TransitionGroup name="form-card-morph" tag="div" class="login-form-morph">
+            <form
+              v-if="state !== 'success'"
+              key="form"
+              class="login-form"
+              novalidate
+              :aria-busy="isBusy || undefined"
+              @submit.prevent="handleLogin"
+            >
+              <div class="field login-field-stagger" :style="{ '--field-index': 0 }">
+                <label class="field-label" for="login-username">Usuario</label>
+                <div class="field-input-wrap">
+                  <input
+                    id="login-username"
+                    v-model="form.username"
+                    type="text"
+                    name="username"
+                    autocomplete="username"
+                    inputmode="text"
+                    spellcheck="false"
+                    autocapitalize="off"
+                    required
+                    :disabled="isBusy"
+                    :aria-invalid="!!fieldErrors.username"
+                    :aria-describedby="
+                      fieldErrors.username ? 'login-username-error' : 'login-username-hint'
+                    "
+                    class="field-input"
+                    :class="{ 'has-success': fieldSuccesses.username }"
+                    @blur="onFieldBlur('username')"
+                    @input="onFieldInput('username')"
+                  />
+                  <!-- Success checkmark. `aria-hidden` because the
+                           programmatic signal is `aria-invalid="false"`;
+                           announcing "valid" on every keystroke would be
+                           noise for a screen-reader user. -->
+                  <span
+                    v-if="fieldSuccesses.username"
+                    class="field-success-mark"
+                    aria-hidden="true"
+                  >
                     <svg
-                      class="brand-glyph-tooth"
-                      :class="{ 'is-hidden': state === 'success' }"
-                      width="18"
-                      height="18"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
-                    </svg>
-                    <svg
-                      class="brand-glyph-check"
-                      :class="{ 'is-visible': state === 'success' }"
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.1"
+                      stroke-width="2.5"
                       stroke-linecap="round"
                       stroke-linejoin="round"
                     >
                       <path d="M5 12 L10 17 L19 7" />
                     </svg>
                   </span>
-                  <span class="brand-name">OdontoSuite</span>
-                </p>
-              </header>
-
-              <div class="welcome-section">
-                <h1 id="login-headline" class="welcome-headline">
-                  Gestiona tu clínica con calma
-                </h1>
-                <p class="welcome-subtitle">
-                  Inicia sesión para revisar citas, caja y pacientes en un solo lugar.
+                </div>
+                <p
+                  v-if="fieldErrors.username"
+                  id="login-username-error"
+                  class="field-error field-error--animated"
+                >
+                  {{ fieldErrors.username }}
                 </p>
               </div>
 
-              <!-- Phase 2.5 · form → mini-summary polymorphism. No Card
-                   wrapper: the fields are the panel's own content. -->
-              <TransitionGroup name="form-card-morph" tag="div" class="login-form-morph">
-                <form
-                  v-if="state !== 'success'"
-                  key="form"
-                  class="login-form"
-                  novalidate
-                  :aria-busy="isBusy || undefined"
-                  @submit.prevent="handleLogin"
-                >
-                  <div class="field login-field-stagger" :style="{ '--field-index': 0 }">
-                    <label class="field-label" for="login-username">Usuario</label>
-                    <div class="field-input-wrap">
-                      <input
-                        id="login-username"
-                        v-model="form.username"
-                        type="text"
-                        name="username"
-                        autocomplete="username"
-                        inputmode="text"
-                        spellcheck="false"
-                        autocapitalize="off"
-                        required
-                        :disabled="isBusy"
-                        :aria-invalid="!!fieldErrors.username"
-                        :aria-describedby="
-                          fieldErrors.username ? 'login-username-error' : 'login-username-hint'
-                        "
-                        class="field-input"
-                        :class="{ 'has-success': fieldSuccesses.username }"
-                        @blur="onFieldBlur('username')"
-                        @input="onFieldInput('username')"
-                      />
-                      <!-- Success checkmark. `aria-hidden` because the
-                           programmatic signal is `aria-invalid="false"`;
-                           announcing "valid" on every keystroke would be
-                           noise for a screen-reader user. -->
-                      <span
-                        v-if="fieldSuccesses.username"
-                        class="field-success-mark"
-                        aria-hidden="true"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path d="M5 12 L10 17 L19 7" />
-                        </svg>
-                      </span>
-                    </div>
-                    <p
-                      v-if="fieldErrors.username"
-                      id="login-username-error"
-                      class="field-error field-error--animated"
-                    >
-                      {{ fieldErrors.username }}
-                    </p>
-                  </div>
-
-                  <div class="field login-field-stagger" :style="{ '--field-index': 1 }">
-                    <label class="field-label" for="login-password">Contraseña</label>
-                    <div class="field-input-wrap">
-                      <input
-                        id="login-password"
-                        v-model="form.password"
-                        :type="showPassword ? 'text' : 'password'"
-                        name="password"
-                        autocomplete="current-password"
-                        required
-                        :disabled="isBusy"
-                        :aria-invalid="!!fieldErrors.password"
-                        :aria-describedby="
-                          fieldErrors.password ? 'login-password-error' : 'login-password-hint'
-                        "
-                        class="field-input"
-                        :class="{ 'has-success': fieldSuccesses.password }"
-                        @blur="onFieldBlur('password')"
-                        @input="onFieldInput('password')"
-                      />
-                      <!-- Success mark sits LEFT of the reveal toggle
+              <div class="field login-field-stagger" :style="{ '--field-index': 1 }">
+                <label class="field-label" for="login-password">Contraseña</label>
+                <div class="field-input-wrap">
+                  <input
+                    id="login-password"
+                    v-model="form.password"
+                    :type="showPassword ? 'text' : 'password'"
+                    name="password"
+                    autocomplete="current-password"
+                    required
+                    :disabled="isBusy"
+                    :aria-invalid="!!fieldErrors.password"
+                    :aria-describedby="
+                      fieldErrors.password ? 'login-password-error' : 'login-password-hint'
+                    "
+                    class="field-input"
+                    :class="{ 'has-success': fieldSuccesses.password }"
+                    @blur="onFieldBlur('password')"
+                    @input="onFieldInput('password')"
+                  />
+                  <!-- Success mark sits LEFT of the reveal toggle
                            (right: 52px) so the two never overlap. -->
-                      <span
-                        v-if="fieldSuccesses.password"
-                        class="field-success-mark field-success-mark--before-toggle"
-                        aria-hidden="true"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path d="M5 12 L10 17 L19 7" />
-                        </svg>
-                      </span>
-                      <!-- Password reveal morph (recovered PR2): both eye
+                  <span
+                    v-if="fieldSuccesses.password"
+                    class="field-success-mark field-success-mark--before-toggle"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M5 12 L10 17 L19 7" />
+                    </svg>
+                  </span>
+                  <!-- Password reveal morph (recovered PR2): both eye
                            glyphs stay mounted and cross-fade + scale instead
                            of the abrupt v-if swap. `aria-label` /
                            `aria-pressed` on the button remain the
                            programmatic contract; the glyphs stay
                            `aria-hidden`. -->
-                      <button
-                        type="button"
-                        class="password-toggle"
-                        :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                        :aria-pressed="showPassword"
-                        @click="showPassword = !showPassword"
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    :aria-pressed="showPassword"
+                    @click="showPassword = !showPassword"
+                  >
+                    <span class="password-toggle-glyphs" aria-hidden="true">
+                      <svg
+                        class="password-toggle-glyph"
+                        :class="{ 'is-active': showPassword }"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <span class="password-toggle-glyphs" aria-hidden="true">
-                          <svg
-                            class="password-toggle-glyph"
-                            :class="{ 'is-active': showPassword }"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.75"
-                              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                            />
-                          </svg>
-                          <svg
-                            class="password-toggle-glyph"
-                            :class="{ 'is-active': !showPassword }"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.75"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="1.75"
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
-                          </svg>
-                        </span>
-                      </button>
-                    </div>
-                    <p
-                      v-if="fieldErrors.password"
-                      id="login-password-error"
-                      class="field-error field-error--animated"
-                    >
-                      {{ fieldErrors.password }}
-                    </p>
-                  </div>
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.75"
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                        />
+                      </svg>
+                      <svg
+                        class="password-toggle-glyph"
+                        :class="{ 'is-active': !showPassword }"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.75"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.75"
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    </span>
+                  </button>
+                </div>
+                <p
+                  v-if="fieldErrors.password"
+                  id="login-password-error"
+                  class="field-error field-error--animated"
+                >
+                  {{ fieldErrors.password }}
+                </p>
+              </div>
 
-                  <div class="form-options login-field-stagger" :style="{ '--field-index': 2 }">
-                    <label class="remember-me">
-                      <input
-                        v-model="form.remember"
-                        type="checkbox"
-                        class="checkbox-input"
-                        :disabled="isBusy"
-                      />
-                      <!-- Drawn checkbox: the native control keeps the state,
+              <div class="form-options login-field-stagger" :style="{ '--field-index': 2 }">
+                <label class="remember-me">
+                  <input
+                    v-model="form.remember"
+                    type="checkbox"
+                    class="checkbox-input"
+                    :disabled="isBusy"
+                  />
+                  <!-- Drawn checkbox: the native control keeps the state,
                            the keyboard reach and the accessibility tree, but
                            paints nothing. The visible box and the tick are
                            drawn here so the check can be *drawn* on
                            stroke-dashoffset instead of snapping on. -->
-                      <span class="checkbox-box" aria-hidden="true">
-                        <svg
-                          class="checkbox-tick"
-                          viewBox="0 0 16 16"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2.2"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path d="M3.5 8.5 L6.5 11.5 L12.5 5" />
-                        </svg>
-                      </span>
-                      <span class="checkbox-label">Recordarme</span>
-                    </label>
-                    <button
-                      type="button"
-                      class="forgot-password-link"
-                      @click="showForgotPasswordModal = true"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </button>
-                  </div>
-
-                  <div v-if="error" class="auth-error" role="alert" aria-live="polite">
+                  <span class="checkbox-box" aria-hidden="true">
                     <svg
-                      class="auth-error-icon"
+                      class="checkbox-tick"
+                      viewBox="0 0 16 16"
                       fill="none"
                       stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.75"
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
+                      <path d="M3.5 8.5 L6.5 11.5 L12.5 5" />
                     </svg>
-                    <p class="auth-error-text">{{ error }}</p>
-                  </div>
+                  </span>
+                  <span class="checkbox-label">Recordarme</span>
+                </label>
+                <button
+                  type="button"
+                  class="forgot-password-link"
+                  @click="showForgotPasswordModal = true"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
 
-                  <!-- Phase 2.4 · polymorphic submit button. Single
+              <div v-if="error" class="auth-error" role="alert" aria-live="polite">
+                <svg
+                  class="auth-error-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.75"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p class="auth-error-text">{{ error }}</p>
+              </div>
+
+              <!-- Phase 2.4 · polymorphic submit button. Single
                        <UiButton> with 5 inner <span> children gated by
                        v-show on the shape-morph state.
                        Recovered PR2 · the wrapping div carries the magnet
@@ -291,141 +289,95 @@
                        [data-magnetic='true'] rule can consume them. The
                        wrapper is also the shake target, which keeps the
                        shake off the button's own transform state machine. -->
-                  <div
-                    ref="submitRef"
-                    class="login-submit-wrap login-field-stagger"
-                    :class="{ 'is-shaking': shakeTrigger }"
-                    :style="{ '--field-index': 3 }"
+              <div
+                ref="submitRef"
+                class="login-submit-wrap login-field-stagger"
+                :class="{ 'is-shaking': shakeTrigger }"
+                :style="{ '--field-index': 3 }"
+              >
+                <UiButton
+                  type="submit"
+                  variant="primary"
+                  size="lg"
+                  :loading="state === 'authenticating'"
+                  :disabled="state === 'success' || state === 'authenticating'"
+                  full-width
+                  :data-magnetic="magnetEnabled"
+                  data-state="shape-morph"
+                  class="login-submit-shape"
+                >
+                  <span v-show="state === 'idle'" v-motion="morphMotion" class="login-submit-stage">
+                    Iniciar sesión
+                  </span>
+                  <span
+                    v-show="state === 'validating'"
+                    v-motion="morphMotion"
+                    class="login-submit-stage"
                   >
-                    <UiButton
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      :loading="state === 'authenticating'"
-                      :disabled="state === 'success' || state === 'authenticating'"
-                      full-width
-                      :data-magnetic="magnetEnabled"
-                      data-state="shape-morph"
-                      class="login-submit-shape"
-                    >
-                      <span
-                        v-show="state === 'idle'"
-                        v-motion="morphMotion"
-                        class="login-submit-stage"
-                      >Iniciar sesión</span>
-                      <span
-                        v-show="state === 'validating'"
-                        v-motion="morphMotion"
-                        class="login-submit-stage"
-                      >
-                        <span class="login-submit-dot" aria-hidden="true" />
-                        Validando
-                      </span>
-                      <span
-                        v-show="state === 'authenticating'"
-                        v-motion="morphMotion"
-                        class="login-submit-stage"
-                      >
-                        <span class="login-submit-dot" aria-hidden="true" />
-                        Autenticando
-                      </span>
-                      <span
-                        v-show="state === 'success'"
-                        v-motion="morphMotion"
-                        class="login-submit-stage"
-                      >
-                        <svg class="login-submit-check" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M5 12 L10 17 L19 7" />
-                        </svg>
-                        Listo
-                      </span>
-                      <span
-                        v-show="state === 'error'"
-                        v-motion="morphMotion"
-                        class="login-submit-stage"
-                      >Reintentar</span>
-                    </UiButton>
-                  </div>
-                </form>
+                    <span class="login-submit-dot" aria-hidden="true" />
+                    Validando
+                  </span>
+                  <span
+                    v-show="state === 'authenticating'"
+                    v-motion="morphMotion"
+                    class="login-submit-stage"
+                  >
+                    <span class="login-submit-dot" aria-hidden="true" />
+                    Autenticando
+                  </span>
+                  <span
+                    v-show="state === 'success'"
+                    v-motion="morphMotion"
+                    class="login-submit-stage"
+                  >
+                    <svg class="login-submit-check" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M5 12 L10 17 L19 7" />
+                    </svg>
+                    Listo
+                  </span>
+                  <span
+                    v-show="state === 'error'"
+                    v-motion="morphMotion"
+                    class="login-submit-stage"
+                  >
+                    Reintentar
+                  </span>
+                </UiButton>
+              </div>
+            </form>
 
-                <!-- Phase 2.5 · MiniSummary on success state. Avatar with
+            <!-- Phase 2.5 · MiniSummary on success state. Avatar with
                      initials, role label, and a manual "Ir al dashboard"
                      button as a defensive fallback if the router.push
                      timed out. -->
-                <div
-                  v-else
-                  key="summary"
-                  class="login-mini-summary"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div class="login-mini-avatar" aria-hidden="true">
-                    {{ miniSummaryInitials }}
-                  </div>
-                  <p class="login-mini-name">{{ miniSummaryName }}</p>
-                  <p v-if="miniSummaryRole" class="login-mini-role">
-                    {{ miniSummaryRole }}
-                  </p>
-                  <button
-                    type="button"
-                    class="login-mini-cta"
-                    @click="router.push('/dashboard')"
-                  >Ir al dashboard</button>
-                </div>
-              </TransitionGroup>
-
-              <!-- Footer · ONE row: the legal link and the support link. The
-                   brand already sits at the top of this column, so the old
-                   copyright note repeating it was noise. -->
-              <div class="login-footer">
-                <a
-                  href="/terminos"
-                  target="_blank"
-                  rel="noopener"
-                  class="login-footer-link"
-                >Términos y Condiciones</a>
-                <a
-                  href="mailto:admin@odontosuite.local"
-                  class="login-footer-link"
-                >Contacta al administrador</a>
+            <div v-else key="summary" class="login-mini-summary" role="status" aria-live="polite">
+              <div class="login-mini-avatar" aria-hidden="true">
+                {{ miniSummaryInitials }}
               </div>
+              <p class="login-mini-name">{{ miniSummaryName }}</p>
+              <p v-if="miniSummaryRole" class="login-mini-role">
+                {{ miniSummaryRole }}
+              </p>
+              <button type="button" class="login-mini-cta" @click="router.push('/dashboard')">
+                Ir al dashboard
+              </button>
             </div>
-          </section>
+          </TransitionGroup>
 
-          <!-- Hero column: the dental still, with a static SVG placeholder
-               if the image fails to load. -->
-          <aside class="login-hero-column" aria-hidden="true" ref="heroRef" data-spring-hero="true">
-            <div class="login-hero">
-              <img
-                v-if="!imageFailed"
-                src="/images/ui/login-hero.jpg"
-                alt="Interior de una clínica dental moderna"
-                loading="lazy"
-                decoding="async"
-                class="login-hero-image"
-                @error="onImageError"
-              />
-              <!-- SVG fallback for the hero image. -->
-              <div v-else class="login-hero-fallback" aria-hidden="true">
-                <svg
-                  width="96"
-                  height="96"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="login-hero-fallback-glyph"
-                >
-                  <path d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z" />
-                </svg>
-              </div>
-            </div>
-          </aside>
+          <!-- Footer · ONE row: the legal link and the support link. The
+               brand already sits at the top of the card, so the old
+               copyright note repeating it was noise. -->
+          <div class="login-footer">
+            <a href="/terminos" target="_blank" rel="noopener" class="login-footer-link">
+              Términos y Condiciones
+            </a>
+            <a href="mailto:admin@odontosuite.local" class="login-footer-link">
+              Contacta al administrador
+            </a>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <ForgotPasswordModal
       v-model="showForgotPasswordModal"
@@ -454,6 +406,7 @@ import { roleLabel } from './roleLabels'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'
 import UiButton from '@/components/ui/Button.vue'
+import DentalParallaxBackground from '@/components/login/DentalParallaxBackground.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -487,9 +440,6 @@ function openResetFromRoute() {
 
 onMounted(openResetFromRoute)
 
-// Phase 2.2 · image fallback state.
-const imageFailed = ref(false)
-
 const form = reactive({
   username: '',
   password: '',
@@ -511,8 +461,8 @@ const {
 } = useFieldValidation(
   form,
   {
-    username: [(value) => (value && value.trim() ? null : 'El usuario es requerido')],
-    password: [(value) => (value && value.trim() ? null : 'La contraseña es requerida')]
+    username: [value => (value && value.trim() ? null : 'El usuario es requerido')],
+    password: [value => (value && value.trim() ? null : 'La contraseña es requerida')]
   },
   { idleMs: 250 }
 )
@@ -640,7 +590,7 @@ function morphMotion() {
 function initialsOf(name) {
   if (!name) return '··'
   const parts = String(name).trim().split(/\s+/).slice(0, 2)
-  return parts.map((p) => p.charAt(0).toUpperCase()).join('') || '··'
+  return parts.map(p => p.charAt(0).toUpperCase()).join('') || '··'
 }
 
 onMounted(async () => {
@@ -658,11 +608,6 @@ onMounted(async () => {
   heroSpring.set(1)
   heroOpacitySpring.set(1)
 })
-
-// Phase 2.2 · image fallback handler (D6).
-function onImageError() {
-  imageFailed.value = true
-}
 
 // Validation (recovered PR2): the hand-rolled `errors` reactive plus
 // `validateField` / `validateForm` pair was dead code: nothing called it and
@@ -688,7 +633,7 @@ const handleLogin = async () => {
   // 200ms dwell so the validating label reads cleanly even if the API
   // responds instantly. The state machine itself blocks
   // `validating → authenticating` until the dwell elapses.
-  await new Promise((resolve) => setTimeout(resolve, 220))
+  await new Promise(resolve => setTimeout(resolve, 220))
 
   if (!transition('authenticating')) {
     return
@@ -776,104 +721,62 @@ watch(
 <style scoped>
 /* Nested radius rhythm (roughly 1.4x per step): shell 32px (the shell/panel/
    control ladder lives in the shared tokens since Slice A3, so the login no
-   longer owns a parallel scale) → panel/widget 22px → control 12px → pill
-   (--radius-full). The previous 32/16/8 ladder jumped 4x from widget to
-   control and read as carelessness. */
+   longer owns a parallel scale) → panel 22px → control 12px → pill
+   (--radius-full). */
 .login-page {
   --login-radius-panel: var(--radius-panel);
   --login-radius-control: var(--radius-control);
-  @apply min-h-[100dvh] w-full flex items-stretch justify-center;
-  position: relative;
+  @apply relative min-h-[100dvh] w-full;
   background: var(--color-canvas);
-  /* `height: 100dvh` clamps the page to the dynamic viewport (avoids the
-     iOS Safari URL-bar reflow); `min-height` is a fallback for older
-     browsers that do not support dvh. */
-  height: 100dvh;
-  min-height: 100vh;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
-/* Atmosphere: the flat canvas becomes a lit field. One soft radial that
-   opens white at the centre and falls to the canvas tone at the edges, plus
-   one very faint accent wash in the upper right. Static by design (a slow
-   loop is banned by apple-design §14), so there is no motion path to
-   collapse under prefers-reduced-motion; it IS switched off under
-   prefers-reduced-transparency below. If `color-mix` is unsupported the
-   declaration is dropped and the flat canvas above remains. */
-.login-page::before {
-  content: '';
-  position: absolute;
+/* Full-bleed decorative layer. The parallax scene paints the viewport and
+   the entrance spring mirrors the card, so both surfaces arrive together. */
+.login-hero-column {
+  --spring-hero-o: 1;
+  --spring-hero-opacity: 1;
+  position: fixed;
   inset: 0;
   z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      60% 55% at 82% 6%,
-      color-mix(in srgb, var(--color-accent) 4%, transparent) 0%,
-      transparent 70%
-    ),
-    radial-gradient(
-      circle at 50% 28%,
-      var(--color-background-system-background) 0%,
-      var(--color-canvas) 74%
-    );
-}
-
-.login-page-shell {
-  @apply w-full flex items-stretch justify-center;
-  position: relative;
-  z-index: 1;
-  /* Reduced from clamp(16px, 4vw, 48px) to clamp(12px, 2vw, 24px): the
-     previous max(48px) added 96px of vertical padding on desktop, pushing
-     the card past the viewport. */
-  padding: clamp(12px, 2vw, 24px);
-  min-height: 0;
-}
-
-.login-split-card {
-  position: relative;
-  display: grid;
-  width: 100%;
-  max-width: 1180px;
-  /* The card grows to fill the shell (which fills the viewport) but never
-     exceeds `viewport - shell padding`. Without this cap the card grew to
-     902px on a 900px viewport, causing a 98px vertical overflow. */
-  height: 100%;
-  max-height: calc(100dvh - clamp(24px, 4vw, 48px));
-  background: var(--color-background-system-background);
-  border: 1px solid var(--color-hairline);
-  box-shadow: var(--elevation-4);
   overflow: hidden;
+  pointer-events: none;
+  transform: translate3d(0, calc((1 - var(--spring-hero-o)) * 12px), 0);
+  opacity: var(--spring-hero-opacity);
 }
 
-.login-grid {
-  @apply grid w-full;
-  grid-template-columns: 1fr;
-  /* `minmax(0, 1fr)` lets the row shrink below its content size, which is
-     the prerequisite for the form column's `overflow-y: auto` to fire. */
-  grid-template-rows: minmax(0, 1fr);
-  min-height: 0;
-  height: 100%;
+/* The stage centres the card and owns the safe spacing around it. On wide
+   viewports the card anchors left of centre so the scene reads as
+   composition, not wallpaper. */
+.login-stage {
+  @apply relative flex items-center justify-center;
+  z-index: 1;
+  min-height: 100dvh;
+  padding: clamp(16px, 4vw, 56px);
 }
 
-/* The panel owns the form's inset. This used to be the inner card's
-   `padding="lg"`; with that wrapper gone the panel's own padding is the
-   single source of breathing room around the fields. */
-.login-form-column {
-  @apply order-2 flex items-center justify-center px-6 py-10 sm:px-8;
-  /* The form column scrolls internally if the form is taller than the
-     available height. `min-height: 0` is required for the scroll to fire
-     inside a CSS grid cell. */
-  min-height: 0;
+/* Floating flat card: panel radius + the elevation-4 rung over the scene.
+   The card owns the form's inset and scrolls internally when the form is
+   taller than the viewport. */
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 26rem;
+  max-height: calc(100dvh - 2 * clamp(16px, 4vw, 56px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  padding: clamp(24px, 3.2vw, 36px);
+  background: var(--color-background-system-background);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--login-radius-panel);
+  box-shadow: var(--elevation-4);
 }
 
 .login-form-wrap {
   --spring-card-o: 1;
   --spring-card-opacity: 1;
-  @apply relative w-full max-w-md flex flex-col gap-7;
+  @apply relative w-full flex flex-col gap-7;
   transform: translate3d(0, calc((1 - var(--spring-card-o)) * 12px), 0);
   opacity: var(--spring-card-opacity);
 }
@@ -953,7 +856,9 @@ watch(
    leave/enter rules below drive the opacity + translate crossfade. */
 .form-card-morph-enter-active,
 .form-card-morph-leave-active {
-  transition: opacity 220ms ease-out, transform 220ms ease-out;
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out;
 }
 .form-card-morph-enter-from,
 .form-card-morph-leave-to {
@@ -1292,13 +1197,27 @@ watch(
 }
 
 @keyframes login-submit-shake {
-  0% { transform: translateX(0); }
-  15% { transform: translateX(-6px); }
-  30% { transform: translateX(6px); }
-  45% { transform: translateX(-4px); }
-  60% { transform: translateX(4px); }
-  75% { transform: translateX(-2px); }
-  100% { transform: translateX(0); }
+  0% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-6px);
+  }
+  30% {
+    transform: translateX(6px);
+  }
+  45% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 
 /* Phase 2.4 · submit polymorphic stages. The button keeps a single
@@ -1340,12 +1259,21 @@ watch(
 }
 
 @keyframes login-submit-pulse {
-  0%, 100% { opacity: 0.35; transform: scale(0.85); }
-  50%      { opacity: 1;    transform: scale(1.05); }
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 @keyframes login-submit-check-draw {
-  to { stroke-dashoffset: 0; }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Phase 2.5 · mini-summary on success. */
@@ -1403,112 +1331,26 @@ watch(
   text-decoration: underline;
 }
 
-/* Hero column: the dental image inside the panel inset. `min-height: 0` and
-   `overflow: hidden` prevent the image from forcing a grid reflow. The 16px
-   padding keeps the hero off the panel's top, right and bottom edges. */
-.login-hero-column {
-  --spring-hero-o: 1;
-  --spring-hero-opacity: 1;
-  @apply order-1 relative overflow-hidden flex items-stretch justify-stretch;
-  min-height: 220px;
-  padding: 16px;
-  transform: translate3d(0, calc((1 - var(--spring-hero-o)) * 12px), 0);
-  opacity: var(--spring-hero-opacity);
-}
-
-.login-hero {
-  position: relative;
-  width: 100%;
-  min-height: 100%;
-  background: var(--color-system-gray-50);
-  overflow: hidden;
-  border-radius: var(--login-radius-panel);
-}
-
-.login-hero-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.login-hero-fallback {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-system-gray-50), var(--color-accent-50));
-  color: var(--color-accent-500);
-}
-
-.login-hero-fallback-glyph {
-  width: clamp(64px, 12vw, 96px);
-  height: clamp(64px, 12vw, 96px);
-}
-
-/* Tablet and up: form first column, hero second. */
-@media (min-width: 768px) {
-  .login-grid {
-    grid-template-columns: 5fr 7fr;
-  }
-  .login-form-column {
-    @apply order-1 px-12 py-12;
-  }
-  .login-hero-column {
-    @apply order-2;
-    /* Slice 12 / fix-viewport-fit: removed `min-height: 100dvh`, which was
-       the root cause of the 98px vertical overflow on 1440x900. The column
-       now sizes to the grid row, which is constrained by the card's
-       `max-height: calc(100dvh - 48px)`. `min-height: 0` keeps the grid
-       from forcing the column to its content size. */
-    min-height: 0;
-  }
-  .login-form-wrap {
-    max-width: 28rem;
-  }
-}
-
-/* Mobile (below 768px): single column, hero fixed at 240px, form takes the
-   remaining height and scrolls internally. The page itself never scrolls. */
-@media (max-width: 767px) {
-  .login-page { padding: 0; }
-  .login-page-shell { padding: 0; max-width: 100%; }
-  .login-split-card {
-    border-radius: 0;
-    box-shadow: none;
-    border-left: 0;
-    border-right: 0;
-    max-height: 100dvh;
-  }
-  /* Switch the grid from a 1-column / 1-row layout to a 1-column /
-     2-row layout: hero on top (240px), form below (1fr). Without this
-     the form and the hero would render in the same row and visually
-     overlap. */
-  .login-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: 240px minmax(0, 1fr);
-  }
-  .login-hero-column {
-    height: 240px;
-    min-height: 240px;
-    order: 1;
-  }
-  .login-form-column {
-    padding: 24px;
-    order: 2;
-    /* Mobile: top-align the form so it does not visually overlap with the
-       hero's bottom edge. Centering the form inside a column that is
-       shorter than the natural content height pushes the form's first
-       row upward into the hero's z-stack region. */
-    align-items: flex-start;
+/* Wide viewports: the card anchors left of centre so the scene carries the
+   right half of the composition. */
+@media (min-width: 1024px) {
+  .login-stage {
     justify-content: flex-start;
+    padding-left: clamp(56px, 14vw, 220px);
+  }
+}
+
+/* Mobile: the card takes the safe width and the gaps tighten so the form
+   stays readable above the decorative scene. */
+@media (max-width: 767px) {
+  .login-stage {
+    padding: 12px;
+  }
+  .login-card {
+    max-height: calc(100dvh - 24px);
+    padding: 24px 20px;
   }
   .login-form-wrap {
-    /* Mobile: drop the gap to 16px to keep the form compact and the
-       content's vertical footprint smaller. */
     gap: 16px;
   }
 }
@@ -1523,7 +1365,7 @@ watch(
     transition: none !important;
   }
 
-  .login-split-card,
+  .login-card,
   .login-submit-shape,
   .login-mini-summary {
     animation: none !important;
@@ -1564,13 +1406,16 @@ watch(
   }
 }
 
-/* Honor reduced transparency: the atmosphere layer is switched off and the
-   outer card flattens to an opaque surface. */
+/* Honor reduced transparency: the decorative scene is dropped and the card
+   flattens to an opaque surface. */
 @media (prefers-reduced-transparency: reduce) {
-  .login-page::before {
-    background: none;
+  .login-page {
+    background: var(--color-canvas);
   }
-  .login-split-card {
+  .login-hero-column {
+    display: none;
+  }
+  .login-card {
     background: var(--color-background-system-background);
     box-shadow: none;
   }
@@ -1581,7 +1426,9 @@ watch(
 @media (prefers-contrast: more) {
   .welcome-headline {
     color: var(--color-label-label);
-    & + .welcome-subtitle { color: var(--color-label-secondary-label); }
+    & + .welcome-subtitle {
+      color: var(--color-label-secondary-label);
+    }
   }
   .forgot-password-link,
   .login-footer-link {

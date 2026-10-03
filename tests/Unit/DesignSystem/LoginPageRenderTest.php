@@ -165,13 +165,13 @@ class LoginPageRenderTest extends TestCase
     /**
      * @test
      */
-    public function login_page_references_hero_image_via_ui_subpath(): void
+    public function login_page_references_no_stock_photography(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
 
-        // PR3 ships two committed hero images under public/images/ui/.
-        // The Pexels directory is gitignored — referencing it would break on
-        // a fresh clone.
+        // The redesign dropped stock photography: the backdrop is the vector
+        // parallax scene. The Pexels tree stays banned because it is
+        // gitignored and absent on a fresh clone.
         $this->assertSame(
             0,
             substr_count($source, 'images/pexels'),
@@ -179,26 +179,31 @@ class LoginPageRenderTest extends TestCase
         );
 
         $this->assertSame(
-            1,
-            substr_count($source, '/images/ui/login-hero.jpg'),
-            'LoginPage.vue must reference the committed login hero at /images/ui/login-hero.jpg'
+            0,
+            substr_count($source, '<img'),
+            'LoginPage.vue must render no stock photography: the backdrop is the vector parallax scene'
         );
     }
 
     /**
      * @test
      */
-    public function login_page_hero_column_is_the_single_editorial_slot(): void
+    public function login_page_hosts_one_aria_hidden_parallax_backdrop(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
 
-        // The hero owns the right column of the editorial split. Exactly one
-        // slot may declare it: a second one would fork the positioning
-        // context the overlay widgets are placed against.
+        // Exactly one decorative scene: a second mount would stack two
+        // parallax roots and double the pointer work for no visual gain.
         $this->assertSame(
             1,
-            preg_match_all('/<aside\s+class\s*=\s*"login-hero-column"/i', $source),
-            'LoginPage.vue must declare exactly one <aside class="login-hero-column">'
+            preg_match_all('/<DentalParallaxBackground\b/', $source),
+            'LoginPage.vue must mount exactly one DentalParallaxBackground (the full-bleed decorative scene)'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/<div\b[^>]*class\s*=\s*"login-hero-column"[^>]*aria-hidden\s*=\s*"true"/is',
+            $source,
+            'the parallax backdrop wrapper must be aria-hidden="true" so the decorative scene stays out of the accessibility tree'
         );
     }
 
@@ -407,13 +412,17 @@ class LoginPageRenderTest extends TestCase
         $this->assertStringContainsString('var(--elevation-3)', $source);
     }
 
-    public function testPr5_login_hero_uses_neutral_scrim_and_contrast_eyebrow(): void
+    public function testPr5_login_card_keeps_neutral_panel_surface(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
-        // The hero surface keeps its neutral token background and the shared
-        // panel radius rung. The glass overlay widgets that sat on it (their
-        // elevation and luminous top edge) were deleted with the mockup noise.
-        $this->assertStringContainsString('var(--color-system-gray-50)', $source);
+        // The floating card keeps the neutral system background and the
+        // shared panel radius rung. The hero surface it replaced is gone,
+        // along with the glass overlay widgets that sat on it.
+        $this->assertMatchesRegularExpression(
+            '/\.login-card\s*\{[^}]*background:\s*var\(--color-background-system-background\)/s',
+            $source,
+            'the floating login card must keep the neutral system background token'
+        );
         $this->assertStringContainsString('border-radius: var(--login-radius-panel)', $source);
     }
 
@@ -464,23 +473,27 @@ class LoginPageRenderTest extends TestCase
         /**
          * @test
          */
-        public function login_page_has_outer_login_split_card(): void
+        public function login_page_has_floating_login_card(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
             $this->assertStringContainsString(
-                'login-split-card',
+                'login-card',
                 $source,
-                'LoginPage.vue must wrap the editorial split in a .login-split-card container (Phase 2.1)'
+                'LoginPage.vue must wrap the form in the floating .login-card surface over the backdrop'
             );
-            // The outer card takes the shell rung of the radius ladder. Since
-            // Slice A3 that rung is a shared token, so both the token reference
-            // and its resolved value are valid spellings — pinning only the
+            // The card takes the panel rung of the radius ladder. Both the
+            // local alias and the shared token are valid spellings — pinning only the
             // literal turned a cosmetic refactor into a false defect.
             $this->assertMatchesRegularExpression(
-                '/rounded-\[(?:32px|var\(--radius-shell\))\]/',
+                '/border-radius:\s*var\(--(?:login-)?radius-panel\)/',
                 $source,
-                'LoginPage.vue must give the outer card the shell radius rung, by token reference or by value (Phase 2.1 / Slice A3)'
+                'LoginPage.vue must give the floating card the panel radius rung, by token reference or by value'
+            );
+            $this->assertStringContainsString(
+                'box-shadow: var(--elevation-4)',
+                $source,
+                'LoginPage.vue must float the card on the elevation-4 token'
             );
         }
 
@@ -506,50 +519,19 @@ class LoginPageRenderTest extends TestCase
         /**
          * @test
          */
-        public function login_page_image_uses_committed_dental_pexels_asset(): void
+        public function login_page_has_no_image_fallback_machinery(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
-            // The dental Pexels still is the chosen hero image. The committed
-            // path under public/images/ui/ is the safe location (the
-            // public/images/pexels/ tree is gitignored — referencing it from
-            // an auth module would fail the regression suite).
-            $this->assertSame(
-                0,
-                substr_count($source, 'images/pexels'),
-                'LoginPage.vue must NOT reference images/pexels (gitignored directory)'
-            );
-            $this->assertSame(
-                1,
-                substr_count($source, '/images/ui/login-hero.jpg'),
-                'LoginPage.vue must reference the committed login hero at /images/ui/login-hero.jpg (Phase 2.2)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_image_has_error_fallback(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // The hero image must declare an @error handler that swaps to
-            // the SVG placeholder (Phase 2.2 — D6 in design.md).
-            $this->assertSame(
-                1,
-                (int) preg_match('/<img\b[^>]*@error\s*=\s*"onImageError"/is', $source),
-                'LoginPage.vue hero <img> must declare @error="onImageError" (Phase 2.2 — D6)'
-            );
-            $this->assertStringContainsString(
-                'onImageError',
-                $source,
-                'LoginPage.vue must implement onImageError to swap to the SVG fallback'
-            );
-            $this->assertStringContainsString(
-                'imageFailed',
-                $source,
-                'LoginPage.vue must track imageFailed state for the SVG fallback toggle'
-            );
+            // No stock photography means no @error fallback path either: the
+            // vector scene always renders.
+            foreach (['onImageError', 'imageFailed', 'login-hero-image', 'login-hero-fallback'] as $retired) {
+                $this->assertStringNotContainsString(
+                    $retired,
+                    $source,
+                    'LoginPage.vue must not carry hero image fallback machinery (' . $retired . ') now that the backdrop is vector'
+                );
+            }
         }
 
         /**
@@ -728,26 +710,26 @@ class LoginPageRenderTest extends TestCase
             $this->assertStringContainsString(
                 'max-height: calc(100dvh',
                 $source,
-                'LoginPage.vue must constrain .login-split-card height to the viewport (max-height: calc(100dvh - ...))'
+                'LoginPage.vue must constrain the login card height to the viewport (max-height: calc(100dvh - ...))'
             );
         }
 
         /**
          * @test
          */
-        public function login_page_form_column_scrolls_internally(): void
+        public function login_page_card_scrolls_internally(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
             $this->assertStringContainsString(
-                '.login-form-column',
+                '.login-card',
                 $source,
-                'LoginPage.vue must declare a .login-form-column rule'
+                'LoginPage.vue must declare the floating .login-card rule'
             );
             $this->assertStringContainsString(
                 'overflow-y: auto',
                 $source,
-                '.login-form-column must scroll internally (overflow-y: auto) when the form is taller than the column'
+                '.login-card must scroll internally (overflow-y: auto) when the form is taller than the viewport'
             );
         }
 
@@ -768,19 +750,24 @@ class LoginPageRenderTest extends TestCase
         /**
          * @test
          */
-        public function login_page_collapses_to_single_column_below_768(): void
+        public function login_page_condenses_card_below_768(): void
         {
             $source = (string) file_get_contents(self::loginPagePath());
 
             $this->assertStringContainsString(
                 '@media (max-width: 767px)',
                 $source,
-                'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile single-column collapse'
+                'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile card insets'
             );
-            $this->assertStringContainsString(
-                'grid-template-rows: 240px minmax(0, 1fr)',
+            $this->assertMatchesRegularExpression(
+                '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-card\s*\{[^}]*max-height:\s*calc\(100dvh/s',
                 $source,
-                'Mobile grid must stack hero (240px) on top of form (1fr) so the two do not overlap'
+                'Below 768px the card must condense to the viewport with reduced insets'
+            );
+            $this->assertMatchesRegularExpression(
+                '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-form-wrap\s*\{[^}]*gap:\s*16px/s',
+                $source,
+                'Below 768px the form gap must tighten to 16px'
             );
         }
 }
