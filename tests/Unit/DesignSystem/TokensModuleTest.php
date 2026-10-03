@@ -708,7 +708,7 @@ JS;
     private static function gitLsFilesTracked(string $relPath): bool
     {
         $cmd = sprintf(
-            'git ls-files --error-unmatch -- %s 1>nul 2>nul',
+            'git ls-files --error-unmatch -- %s 2>&1',
             escapeshellarg($relPath)
         );
         $rc = 0;
@@ -719,7 +719,7 @@ JS;
         if ($prev !== false) {
             chdir($exe);
         }
-        exec('git ls-files --error-unmatch ' . escapeshellarg($relPath) . ' 1>nul 2>nul', $output, $rc);
+        exec('git ls-files --error-unmatch ' . escapeshellarg($relPath) . ' 2>&1', $output, $rc);
         if ($prev !== false) {
             chdir($prev);
         }
