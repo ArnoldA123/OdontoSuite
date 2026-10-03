@@ -481,18 +481,23 @@
       </div>
     </div>
 
-    <ForgotPasswordModal v-model="showForgotPasswordModal" @success="handleForgotPasswordSuccess" />
+    <ForgotPasswordModal
+      v-model="showForgotPasswordModal"
+      @success="handleForgotPasswordSuccess"
+      @request-reset="handleForgotPasswordResetRequest"
+    />
     <ResetPasswordModal
       v-model="showResetPasswordModal"
       :email="resetEmail"
+      :token="resetToken"
       @success="handleResetPasswordSuccess"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useSpring } from '@/composables/useSpring'
 import { useAuth } from '@/composables/useAuth'
 import { useShapeMorph } from '@/composables/useShapeMorph'
@@ -505,6 +510,7 @@ import ResetPasswordModal from './ResetPasswordModal.vue'
 import UiButton from '@/components/ui/Button.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { login } = useAuth()
 
 // Phase 2.4 · polymorphic submit state machine.
@@ -521,6 +527,19 @@ const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
 const showResetPasswordModal = ref(false)
 const resetEmail = ref('')
+const resetToken = ref('')
+
+function openResetFromRoute() {
+  if (route.path !== '/reset-password') return
+  const email = typeof route.query.email === 'string' ? route.query.email : ''
+  const token = typeof route.query.token === 'string' ? route.query.token : ''
+  if (!email && !token) return
+  resetEmail.value = email
+  resetToken.value = token
+  showResetPasswordModal.value = true
+}
+
+onMounted(openResetFromRoute)
 
 // Phase 2.2 · image fallback state.
 const imageFailed = ref(false)
@@ -817,17 +836,34 @@ const handleLogin = async () => {
   }
 }
 
-const handleForgotPasswordSuccess = (data) => {
-  showForgotPasswordModal.value = false
+const handleForgotPasswordSuccess = data => {
   if (data?.email) {
     resetEmail.value = data.email
   }
 }
 
+const handleForgotPasswordResetRequest = email => {
+  showForgotPasswordModal.value = false
+  resetEmail.value = email || ''
+  resetToken.value = ''
+  showResetPasswordModal.value = true
+}
+
 const handleResetPasswordSuccess = () => {
   showResetPasswordModal.value = false
-  resetEmail.value = ''
 }
+
+watch(
+  () => showResetPasswordModal.value,
+  isOpen => {
+    if (isOpen) return
+    resetEmail.value = ''
+    resetToken.value = ''
+    if (route.path === '/reset-password' && (route.query.token || route.query.email)) {
+      router.replace({ path: '/reset-password', query: {} })
+    }
+  }
+)
 </script>
 
 <style scoped>
