@@ -399,12 +399,7 @@ php artisan migrate:fresh --seed
 # 2. Servidor
 php artisan serve --port=8765
 
-# 3. Login admin (credenciales en CREDENTIAL.md)
-curl -X POST http://127.0.0.1:8765/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"adm1n","password":"password123"}'
-
-# 4. Endpoints disponibles
+# 3. Endpoints disponibles
 GET    /api/procedure-catalog                    # Paginado, filtros q/specialty/is_active
 GET    /api/procedure-catalog/active             # Solo activos (para selects)
 GET    /api/procedure-catalog/for-me             # Para clínico (favoritos + especialidad)
@@ -416,7 +411,7 @@ POST   /api/procedure-catalog                    # Crear (admin only)
 PUT    /api/procedure-catalog/{id}               # Actualizar (admin only)
 DELETE /api/procedure-catalog/{id}               # Desactivar (admin only)
 
-# 5. Frontend
+# 4. Frontend
 pnpm dev
 # Admin: /procedure-catalog (CRUD)
 # Clínico: /my-procedures (favoritos)

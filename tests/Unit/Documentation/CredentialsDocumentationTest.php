@@ -37,15 +37,7 @@ class CredentialsDocumentationTest extends TestCase
      * CREDENTIALS.md must document every username the SEEDER creates, and no
      * username it does not.
      *
-     * HISTORY: this test used to hardcode `['adm1n', 'ever', 'admin_test']` and
-     * assert those strings appeared in the document. `adm1n` exists in neither
-     * the seeder nor the database — the list had hardened a ghost into a
-     * contract, so CORRECTING the document broke the test. Exactly the defect
-     * `tokens_module_hex_literals_match_ios_palette` carried before it was
-     * rewritten to assert relationships: the guard was written against the
-     * artifact it was meant to police instead of against the source of truth.
-     *
-     * It now derives BOTH sides. The seeder is the source of truth, and the
+     * It derives BOTH sides. The seeder is the source of truth, and the
      * comparison runs in both directions: nothing missing, nothing invented.
      */
     public function credentials_md_matches_the_seeder_username_list(): void
@@ -74,9 +66,7 @@ class CredentialsDocumentationTest extends TestCase
     /**
      * @test
      *
-     * Every documented email must be the seeder's email for that username. The
-     * three ghost rows also carried invented placeholder addresses
-     * (`admin@x.com`, `rec@x.com`, `odon@x.com`) that nothing ever compared.
+     * Every documented email must be the seeder's email for that username.
      */
     public function credentials_md_documents_the_seeder_email_for_each_username(): void
     {
@@ -206,7 +196,7 @@ class CredentialsDocumentationTest extends TestCase
     {
         $content = file_get_contents(self::credentialsPath());
         // Cuenta filas de tabla que contienen backtick (username en formato `username`).
-        // Ejemplo: "| Elizabet Cunia Cruz | admin@x.com | `adm1n` | administrador |"
+        // Ejemplo: "| Elizabet Cunia Cruz | elizabet+administrador@test.com | `elizabet` | administrador |"
         preg_match_all('/^\| .+ \| .+ \| `[^`]+` \| .+ \|/m', $content, $matches);
         $this->assertGreaterThanOrEqual(15, count($matches[0]), 'CREDENTIALS.md should document at least 15 users');
     }

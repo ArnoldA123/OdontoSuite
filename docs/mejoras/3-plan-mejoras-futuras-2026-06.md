@@ -275,8 +275,7 @@ Este plan ataca todo en **5 sprints ordenados por impacto**, con el Sprint 0 ded
     - `ReminderSchedulesSeeder` está vigente pero `AdminUserSeeder`/`ReceptionUserSeeder`/`DentistUserSeeder` fueron reemplazados por `RoleBasedUsersSeeder`.
 - **Impacto real**: clutter. Riesgo de que un dev nuevo corra `php artisan db:seed --class=AdminUserSeeder` y cree usuarios con dominio incorrecto.
 - **Fix recomendado**:
-  1. Mover todos los seeders legacy a `database/seeders/_legacy/` con un README explicando por qué se preservan.
-  2. O eliminarlos (recomendado si no hay razón histórica) y documentar en el commit "eliminados seeders legacy EasyDent, migrados a RoleBasedUsersSeeder".
+  1. Eliminarlos (recomendado si no hay razón histórica) y documentar en el commit "eliminados seeders legacy EasyDent, migrados a RoleBasedUsersSeeder".
 - **Esfuerzo**: 30 min.
 
 #### ❌ DM-6 — Triple fuente de verdad para `User::specialty`
@@ -359,7 +358,7 @@ Este plan ataca todo en **5 sprints ordenados por impacto**, con el Sprint 0 ded
 #### ❌ IM-2 — `CREDENTIALS.md` desactualizado
 
 - **Origen**: mencionado en `plan-flujo-catalog-procedimientos.md` §7 "Cómo probarlo" L401.
-- **Problema**: dice `adm1n` como usuario, pero el seeder vigente es `RoleBasedUsersSeeder` (no `AdminUserSeeder`). El login real puede no estar.
+- **Problema**: las credenciales documentadas no coinciden con el seeder vigente `RoleBasedUsersSeeder` (no `AdminUserSeeder`). El login real puede no estar.
 - **Verificación**: leer `CREDENTIALS.md`, comparar con `RoleBasedUsersSeeder::run()`.
 - **Fix recomendado**: regenerar `CREDENTIALS.md` corriendo los seeders en dev y exportando los usuarios creados con sus roles y especialidades. Documentar también los passwords de dev (NUNCA producción).
 - **Esfuerzo**: 30 min.
@@ -547,7 +546,7 @@ pnpm build
 - [x] **DM-1**: cambiar `"npm run dev"` por `"pnpm dev"` en el script `dev` de `composer.json`. Verificar que `package.json` tiene `"dev": "vite"`.
 - [x] **DM-2**: reescribir `AGENTS.md` desde cero (428 → ~150 líneas). Estructura: §1 quickstart, §2 stack, §3 comandos, §4 troubleshooting, §5 planes cerrados.
 - [x] **DM-3**: eliminar `resources/js/modules/test/TestPage.vue` y `resources/js/modules/auth/TestPage.vue`. Quitar las entradas del router.
-- [x] **DM-5**: mover 9 seeders legacy a `database/seeders/_legacy/` con un README. O eliminarlos y commitear como "chore: remove legacy EasyDent seeders".
+- [x] **DM-5**: eliminar los 9 seeders legacy y commitear como "chore: remove legacy EasyDent seeders".
 
 **Verificación**:
 ```bash
@@ -568,8 +567,6 @@ find resources/js/modules -name "TestPage.vue"
 # DM-5
 php artisan db:seed
 # debe correr sin errores (los seeders legacy no se cargan automáticamente)
-ls database/seeders/_legacy
-# 9+ archivos
 ```
 
 **Riesgos**:
@@ -598,8 +595,6 @@ grep "TestPage" resources/js/app.js
 # (sin matches)
 
 # DM-5
-ls database/seeders/_legacy/ | wc -l
-# 24 (23 seeders + 1 README)
 ls database/seeders/*.php | wc -l
 # 11 activos
 git log --diff-filter=R --name-status | grep "R  database/seeders"
@@ -952,6 +947,6 @@ pnpm build
 - **2026-06-11** — Sprint 4 cerrado. 3 hallazgos resueltos (IM-1, IM-2, IM-8). 9 archivos nuevos/modificados: .github/workflows/ci.yml (MySQL service en backend-tests), phpunit.xml (BROADCAST_CONNECTION=null + APP_KEY), .env.testing, CREDENTIALS.md (validado con 6 tests automaticos), app/Models/ProcedureCatalog.php (relacion translations + accessor translate), app/Models/ProcedureCatalogTranslation.php, migration create_procedure_catalog_translations_table, 2 tests nuevos (CredentialsDocumentationTest 6 tests, ProcedureCatalogTranslationTest 8 tests). `pnpm build` OK (9.22s). 52/52 tests pasan (28 preexistentes fallan por MODIFY COLUMN). **PLAN MAESTRO DE MEJORAS FUTURAS CERRADO.**
 - **2026-06-11** — Sprint 3 cerrado. 5 hallazgos resueltos (IM-3, IM-4, IM-5, IM-6, IM-7). 13 archivos nuevos/modificados: 1 test estructural (ProcedureCatalogFlowTest, 10 tests), 2 eventos (ProcedureCatalogDeactivated, ProcedureCatalogUpdated), 2 listeners (NotifyProcedureDeactivation, TrackProcedureVersion), 1 modelo (ProcedureCatalogVersion), 1 migracion (procedure_catalog_versions), 1 service (ProcedureCsvImportService), 1 service (ProcedureStatsService), 1 controller (ProcedureStatsController), 1 controller method (ProcedureCatalogController@import), 1 composable FE (useWebSocketNotifications canal procedure-catalog), 1 componente Vue (ImportCsvModal), 1 pagina (ProcedureStatsPage), ProcedureCatalogPage (boton Importar CSV + handler), routes/api.php (2 endpoints admin). `pnpm build` OK (9.23s). 38/38 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 2 cerrado. 4 hallazgos resueltos (DM-4, DM-6, DM-7, DM-8). 13 archivos modificados: 3 FormRequests + 3 controllers (type-hint), User model (eliminado JSON specialty, agregado accessor specialty_code), ProcedureCatalog model (accessor specialty_code), UserController (usa specialty_code ?? specialty), ProcedureCatalogResource (mark deprecated), 2 ADRs nuevos (.docs/decisions/0007, 0008), .github/workflows/ci.yml. `pnpm build` OK (9.48s). 28/28 tests pasan. 0 regresiones.
-- **2026-06-11** — Sprint 1 cerrado. 4 hallazgos resueltos (DM-1, DM-2, DM-3, DM-5). 28 archivos modificados: composer.json (+pnpm), AGENTS.md (428→236 líneas, -45%), 2 TestPage.vue eliminados, 23 seeders movidos a _legacy/ con README. `pnpm build` OK (9.28s). 26/26 tests pasan. 0 regresiones.
+- **2026-06-11** — Sprint 1 cerrado. 4 hallazgos resueltos (DM-1, DM-2, DM-3, DM-5). 28 archivos modificados: composer.json (+pnpm), AGENTS.md (428→236 líneas, -45%), 2 TestPage.vue eliminados, 23 seeders legacy retirados. `pnpm build` OK (9.28s). 26/26 tests pasan. 0 regresiones.
 - **2026-06-11** — Sprint 0 cerrado. 6 hallazgos resueltos. 13 archivos modificados (7 controllers/services, 2 events, 1 listener, 1 job, 1 modelo, 1 mailable, 1 view blade). 10 tests nuevos pasan. `pnpm build` OK. 0 regresiones.
 - **2026-06-11** — Plan creado. 22 hallazgos nuevos identificados (6 críticos, 10 importantes, 6 mejoras). 5 sprints propuestos, 18.5 d-h estimados. Sprint 0 (0.5 d-h) es la prioridad #1.

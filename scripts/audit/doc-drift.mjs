@@ -38,7 +38,9 @@ const fullDocs = read('AGENTS.md')
 const docs = fullDocs.split(/^## 12\. /m)[0]
 
 const countDir = (dir, ext) =>
-  readdirSync(resolve(ROOT, dir)).filter(f => f.endsWith(ext)).length
+  existsSync(resolve(ROOT, dir))
+    ? readdirSync(resolve(ROOT, dir)).filter(f => f.endsWith(ext)).length
+    : 0
 
 const countMatches = (src, re) => (src.match(re) ?? []).length
 
@@ -92,7 +94,7 @@ try {
 
 const rows = []
 const numeric = (id, label, documented, expected, source) => {
-  const ok = documented.length > 0 && documented.every(v => v === expected)
+  const ok = documented.every(v => v === expected) && (documented.length > 0 || expected === 0)
   rows.push({ id, label, documented, measured: expected, source, ok })
 }
 const structural = (id, label, pass, evidence) => {
@@ -134,7 +136,7 @@ if (JSON_OUT) {
   console.log(JSON.stringify({ ok: failed.length === 0, checks: rows }, null, 2))
 } else {
   for (const r of rows) {
-    const doc = r.documented === null ? 'structural' : (r.documented.length ? r.documented.join(',') : 'NOT-FOUND')
+    const doc = r.documented === null ? 'structural' : (r.documented.length ? r.documented.join(',') : (r.ok ? 'none' : 'NOT-FOUND'))
     console.log(`${r.ok ? 'OK   ' : 'DRIFT'} ${r.id}: documented=${doc} measured=${r.measured} [${r.source}]`)
   }
   console.log(failed.length === 0

@@ -114,7 +114,6 @@ database/
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
                            #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
-  seeders/_legacy/         # 22 legacy (no se ejecutan, ver README.md en esa carpeta)
 
 routes/
   api.php                  # 194 rutas API (medido con php artisan route:list --json: uris api/…; 207 totales con web)
@@ -246,7 +245,7 @@ docs/
 | Pusher TypeError en tests | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`. |
 | `composer dev` no levanta Vite | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix. |
 | Email no se envía | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES. |
-| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 14. Legacy: 22 (no se ejecutan). |
+| `php artisan migrate:fresh --seed` falla | Verificar conexión MySQL en `.env`. Seeders activos: 14. |
 | Frontend no encuentra módulo | `pnpm install` y reiniciar `pnpm dev`. |
 | WebSocket no conecta | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`. |
 | CI falla por `MissingAppKeyException` | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar. |
