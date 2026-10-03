@@ -939,8 +939,8 @@ class DashboardAppShellTest extends TestCase
      * a request from a patient-scheduling surface to picsum.photos /
      * unsplash / pexels is an unnecessary leak. If an illustration is
      * ever needed, it must be a committed local asset under
-     * `public/images/ui/` (the same rule the login-hero and
-     * not-found images follow). This test catches the regression at
+     * `public/images/ui/` (the same rule the not-found image follows).
+     * This test catches the regression at
      * the source level so the previous Picsum bug cannot return.
      */
     public function test_no_external_image_host_anywhere_in_js_source(): void

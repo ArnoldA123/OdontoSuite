@@ -1,6 +1,7 @@
 # Task: saldar el backlog completo de issues
 
-Status: EN CURSO. Documentos de features cerradas: `ci-quality-gates-15.md`,
+Status: CERRADO (programa saldado). Medido 2026-10-03: 62 issues en el repo,
+0 abiertos. Documentos de features cerradas: `ci-quality-gates-15.md`,
 `cierre-evidencia-14-19-20.md`, `remove-npm-lockfile-34.md` (con espejos Engram).
 
 ## Inventario (0 abiertas: #33 y #45 cerradas como ajenas al repo; el resto del programa cerrado)
@@ -13,16 +14,16 @@ Status: EN CURSO. Documentos de features cerradas: `ci-quality-gates-15.md`,
 | #71 | 3 suites guards a la deriva (lote 2) | P1 tests chicos | Cerrada (PR #83) |
 | #41 | Guard baseline enumera fuentes | P1 tooling script | Cerrada (PR #84) |
 | #79 | SQLite choca con dropColumn indexada | P1 datos | Cerrada (PR #85) |
-| #32 | Decisión package-correct.json | P1 decisión dueño | Preguntada |
-| #23 | Frontend sin verificación ejecutable | P3 vitest + smoke + CI | Pendiente |
-| #18 | MySQL: 143 fallos restantes | P3 suite con MySQL local | Pendiente |
-| #27 | Eje A6 integridad/portabilidad | P3 (bloqueada por #79/#22) | Pendiente |
-| #25 | Eje A3 contratos API | P4 probes | Pendiente |
-| #26 | Eje A4 matriz RBAC | P4 probes | Pendiente |
-| #28 | Eje A8 realtime | P4 probe realtime | Pendiente |
-| #30 | Eje A11 auditoría guards | P4 mutación | Pendiente |
-| #29 | Eje A10 deuda estructural | P5 (último a propósito) | Pendiente |
-| #31 | Índice del programa (eje) | P5 mantener al día | Pendiente |
+| #32 | Decisión package-correct.json | P1 decisión dueño | Cerrada (issue cerrado) |
+| #23 | Frontend sin verificación ejecutable | P3 vitest + smoke + CI | Cerrada (issue cerrado; doc `frontend-smoke-23.md`) |
+| #18 | MySQL: 143 fallos restantes | P3 suite con MySQL local | Cerrada (issue cerrado; doc `engine-suite-3-failures-18.md`) |
+| #27 | Eje A6 integridad/portabilidad | P3 (bloqueada por #79/#22) | Cerrada (issue cerrado) |
+| #25 | Eje A3 contratos API | P4 probes | Cerrada (issue cerrado; doc `live-probes-25-26.md`) |
+| #26 | Eje A4 matriz RBAC | P4 probes | Cerrada (issue cerrado; doc `live-probes-25-26.md`) |
+| #28 | Eje A8 realtime | P4 probe realtime | Cerrada (issue cerrado; doc `realtime-a8-28.md`) |
+| #30 | Eje A11 auditoría guards | P4 mutación | Cerrada (issue cerrado; doc `guard-mutation-a11-30.md`) |
+| #29 | Eje A10 deuda estructural | P5 (último a propósito) | Cerrada (issue cerrado; doc `structural-debt-a10-29.md`) |
+| #31 | Índice del programa (eje) | P5 mantener al día | Cerrada (PR #101; doc `ci-conformance.md`) |
 
 ## Orden
 

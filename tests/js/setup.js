@@ -143,7 +143,7 @@ if (typeof window !== 'undefined') {
 if (typeof Element !== 'undefined') {
   Element.prototype.scrollTo = () => {}
   Element.prototype.scrollIntoView = () => {}
-  // @vueuse/motion falls back to the Web Animations API on some paths.
+  // Some libraries fall back to the Web Animations API on some paths.
   if (!Element.prototype.animate) {
     Element.prototype.animate = () => ({
       cancel: () => {},
