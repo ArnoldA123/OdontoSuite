@@ -13,49 +13,112 @@
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: -1%; --mark-y: 14%; --mark-w: 3.4vw; --mark-r: -14deg"
+            style="
+              --mark-x: -1%;
+              --mark-y: 14%;
+              --mark-w: 3.4vw;
+              --mark-r: -14deg;
+              --mark-sm-x: 19.7%;
+              --mark-sm-y: 11.3%;
+              --mark-sm-w: 17vw;
+              --mark-sm-r: -12deg;
+            "
           />
           <img
             class="dental-parallax-mark dental-parallax-sparkle"
             src="/images/login/tooth-2.png"
             alt=""
             draggable="false"
-            style="--mark-x: 23%; --mark-y: 19%; --mark-w: 3.6vw; --mark-r: 12deg"
+            style="
+              --mark-x: 23%;
+              --mark-y: 19%;
+              --mark-w: 3.6vw;
+              --mark-r: 12deg;
+              --mark-sm-x: 35.1%;
+              --mark-sm-y: 10.5%;
+              --mark-sm-w: 14vw;
+              --mark-sm-r: -6deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 49%; --mark-y: 10%; --mark-w: 3.2vw; --mark-r: -7deg"
+            style="
+              --mark-x: 49%;
+              --mark-y: 10%;
+              --mark-w: 3.2vw;
+              --mark-r: -7deg;
+              --mark-sm-x: 48.6%;
+              --mark-sm-y: 11.9%;
+              --mark-sm-w: 16vw;
+              --mark-sm-r: 10deg;
+            "
           />
           <img
             class="dental-parallax-mark dental-parallax-sparkle"
             src="/images/login/tooth-2.png"
             alt=""
             draggable="false"
-            style="--mark-x: 13%; --mark-y: 73%; --mark-w: 3.6vw; --mark-r: 16deg"
+            style="
+              --mark-x: 13%;
+              --mark-y: 73%;
+              --mark-w: 3.6vw;
+              --mark-r: 16deg;
+              --mark-sm-x: 41.7%;
+              --mark-sm-y: 86.4%;
+              --mark-sm-w: 14vw;
+              --mark-sm-r: -12deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 58%; --mark-y: 67%; --mark-w: 3.4vw; --mark-r: -18deg"
+            style="
+              --mark-x: 58%;
+              --mark-y: 67%;
+              --mark-w: 3.4vw;
+              --mark-r: -18deg;
+              --mark-sm-x: 83.4%;
+              --mark-sm-y: 87.9%;
+              --mark-sm-w: 13vw;
+              --mark-sm-r: -8deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 86%; --mark-y: 29%; --mark-w: 3.2vw; --mark-r: 11deg"
+            style="
+              --mark-x: 86%;
+              --mark-y: 29%;
+              --mark-w: 3.2vw;
+              --mark-r: 11deg;
+              --mark-sm-x: -14.7%;
+              --mark-sm-y: 37.4%;
+              --mark-sm-w: 16vw;
+              --mark-sm-r: -10deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 76%; --mark-y: 84%; --mark-w: 3.6vw; --mark-r: -9deg"
+            style="
+              --mark-x: 76%;
+              --mark-y: 84%;
+              --mark-w: 3.6vw;
+              --mark-r: -9deg;
+              --mark-sm-x: 116.6%;
+              --mark-sm-y: 60.1%;
+              --mark-sm-w: 18vw;
+              --mark-sm-r: 12deg;
+            "
           />
         </div>
       </div>
@@ -69,28 +132,64 @@
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 54%; --mark-y: 23%; --mark-w: 5.4vw; --mark-r: -10deg"
+            style="
+              --mark-x: 54%;
+              --mark-y: 23%;
+              --mark-w: 5.4vw;
+              --mark-r: -10deg;
+              --mark-sm-x: 80.3%;
+              --mark-sm-y: 10.9%;
+              --mark-sm-w: 18vw;
+              --mark-sm-r: 12deg;
+            "
           />
           <img
             class="dental-parallax-mark dental-parallax-sparkle"
             src="/images/login/tooth-2.png"
             alt=""
             draggable="false"
-            style="--mark-x: 70%; --mark-y: 52%; --mark-w: 5.8vw; --mark-r: 15deg"
+            style="
+              --mark-x: 70%;
+              --mark-y: 52%;
+              --mark-w: 5.8vw;
+              --mark-r: 15deg;
+              --mark-sm-x: 50%;
+              --mark-sm-y: 104.3%;
+              --mark-sm-w: 20vw;
+              --mark-sm-r: 10deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 83%; --mark-y: 71%; --mark-w: 5.6vw; --mark-r: -7deg"
+            style="
+              --mark-x: 83%;
+              --mark-y: 71%;
+              --mark-w: 5.6vw;
+              --mark-r: -7deg;
+              --mark-sm-x: 71.4%;
+              --mark-sm-y: 86.6%;
+              --mark-sm-w: 15vw;
+              --mark-sm-r: 6deg;
+            "
           />
           <img
             class="dental-parallax-mark dental-parallax-sparkle"
             src="/images/login/tooth-2.png"
             alt=""
             draggable="false"
-            style="--mark-x: 10.5%; --mark-y: 90%; --mark-w: 5vw; --mark-r: 12deg"
+            style="
+              --mark-x: 10.5%;
+              --mark-y: 90%;
+              --mark-w: 5vw;
+              --mark-r: 12deg;
+              --mark-sm-x: 50%;
+              --mark-sm-y: -6.8%;
+              --mark-sm-w: 20vw;
+              --mark-sm-r: -10deg;
+            "
           />
         </div>
       </div>
@@ -104,28 +203,64 @@
             src="/images/login/tooth-2.png"
             alt=""
             draggable="false"
-            style="--mark-x: 83%; --mark-y: 44%; --mark-w: 8.6vw; --mark-r: 8deg"
+            style="
+              --mark-x: 83%;
+              --mark-y: 44%;
+              --mark-w: 8.6vw;
+              --mark-r: 8deg;
+              --mark-sm-x: -20.5%;
+              --mark-sm-y: 37.4%;
+              --mark-sm-w: 22vw;
+              --mark-sm-r: 8deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 84%; --mark-y: 16%; --mark-w: 8.8vw; --mark-r: -6deg"
+            style="
+              --mark-x: 84%;
+              --mark-y: 16%;
+              --mark-w: 8.8vw;
+              --mark-r: -6deg;
+              --mark-sm-x: 64.1%;
+              --mark-sm-y: 11.1%;
+              --mark-sm-w: 19vw;
+              --mark-sm-r: -8deg;
+            "
           />
           <img
             class="dental-parallax-mark"
             src="/images/login/tooth-1.png"
             alt=""
             draggable="false"
-            style="--mark-x: 64%; --mark-y: 80%; --mark-w: 8.4vw; --mark-r: -11deg"
+            style="
+              --mark-x: 64%;
+              --mark-y: 80%;
+              --mark-w: 8.4vw;
+              --mark-r: -11deg;
+              --mark-sm-x: 56.8%;
+              --mark-sm-y: 87.9%;
+              --mark-sm-w: 19vw;
+              --mark-sm-r: 9deg;
+            "
           />
           <img
             class="dental-parallax-mark dental-parallax-toothbrush"
             src="/images/login/toothbrush.png"
             alt=""
             draggable="false"
-            style="--mark-x: 7%; --mark-y: 72%; --mark-w: 11vw; --mark-r: 26deg"
+            style="
+              --mark-x: 7%;
+              --mark-y: 72%;
+              --mark-w: 11vw;
+              --mark-r: 26deg;
+              --mark-sm-x: 23.9%;
+              --mark-sm-y: 88.3%;
+              --mark-sm-w: 26vw;
+              --mark-sm-r: 8deg;
+            "
           />
         </div>
       </div>
@@ -321,6 +456,22 @@ watch(reduced, value => {
   --dental-drift-delay: 5s;
   --mark-brightness: 0.68;
   opacity: 0.62;
+}
+
+/* Small screens: the centred card owns the middle of the viewport, so the
+   design-frame spread leaves it only edge slivers. Every mark switches to
+   its --mark-sm-* slot (the top and bottom bands plus the clipped side
+   corners) by rebinding the layout properties themselves; the inline base
+   custom properties stay as the fallback, which keeps the override outside
+   the inline-vs-stylesheet cascade. Five rear marks park off-frame and the
+   ten-mark constellation keeps every tier represented around the card. */
+@media (max-width: 640px) {
+  .dental-parallax-mark {
+    left: var(--mark-sm-x, var(--mark-x));
+    top: var(--mark-sm-y, var(--mark-y));
+    width: var(--mark-sm-w, var(--mark-w));
+    transform: translate(-50%, -50%) rotate(var(--mark-sm-r, var(--mark-r, 0deg)));
+  }
 }
 
 /* Reduced motion: the scene is fully static. The pointer listener is never

@@ -134,25 +134,45 @@ function tagAttributes(tag) {
 
 // Every mark is an <img> whose inline style declares the center (--mark-x /
 // --mark-y as design-frame percentages), the viewport-relative width
-// (--mark-w in vw) and the rotation (--mark-r in deg).
+// (--mark-w in vw) and the rotation (--mark-r in deg). The optional
+// --mark-sm-* set is the small-screen override the max-width: 640px block
+// consumes; it stays optional here so the desktop contract keeps parsing on
+// its own.
 function marks(name) {
   return [...layerMarkup(name).matchAll(/<img\b[^>]*>/g)].map(([tag]) => {
     const attributes = tagAttributes(tag)
     const style = attributes.style ?? ''
-    const x = style.match(/--mark-x:\s*(-?[\d.]+)%/)
-    const y = style.match(/--mark-y:\s*(-?[\d.]+)%/)
-    const w = style.match(/--mark-w:\s*(-?[\d.]+)vw/)
-    const r = style.match(/--mark-r:\s*(-?[\d.]+)deg/)
+    const read = pattern => {
+      const match = style.match(pattern)
+      return match ? Number(match[1]) : null
+    }
 
-    if (!x || !y || !w || !r) throw new Error(`unparsable mark style: ${style}`)
+    const x = read(/--mark-x:\s*(-?[\d.]+)%/)
+    const y = read(/--mark-y:\s*(-?[\d.]+)%/)
+    const w = read(/--mark-w:\s*(-?[\d.]+)vw/)
+    const r = read(/--mark-r:\s*(-?[\d.]+)deg/)
+
+    if (x === null || y === null || w === null || r === null) {
+      throw new Error(`unparsable mark style: ${style}`)
+    }
+
+    const smX = read(/--mark-sm-x:\s*(-?[\d.]+)%/)
+    const smY = read(/--mark-sm-y:\s*(-?[\d.]+)%/)
+    const smW = read(/--mark-sm-w:\s*(-?[\d.]+)vw/)
+    const smR = read(/--mark-sm-r:\s*(-?[\d.]+)deg/)
 
     return {
+      layer: name,
       src: attributes.src,
       className: attributes.class ?? '',
-      width: Number(w[1]) / 100,
-      rotate: Number(r[1]),
-      centerX: (Number(x[1]) / 100) * SCENE_WIDTH,
-      centerY: (Number(y[1]) / 100) * SCENE_HEIGHT
+      width: w / 100,
+      rotate: r,
+      centerX: (x / 100) * SCENE_WIDTH,
+      centerY: (y / 100) * SCENE_HEIGHT,
+      sm:
+        smX === null || smY === null || smW === null || smR === null
+          ? null
+          : { x: smX, y: smY, width: smW / 100, rotate: smR }
     }
   })
 }
@@ -163,6 +183,49 @@ function toothMarks(name) {
 
 function brushMarks(name) {
   return marks(name).filter(mark => mark.className.includes('toothbrush'))
+}
+
+// The layers overscan the viewport, so a mark's percentage runs over the
+// layer frame (viewport + 2 x overscan), not the raw viewport. The
+// small-screen contract converts the --mark-sm-* percentages back to
+// viewport pixels and treats every 512x512 asset as the square it is, so the
+// rotated bounding box is the mark's spatial footprint.
+function layerOverscan() {
+  const rule = cssRule('\\.dental-parallax-layer')
+  const inset = rule.match(/inset:\s*-(\d+)px/)
+  const grow = rule.match(/calc\(100%\s*\+\s*(\d+)px\)/)
+  if (!inset || !grow) throw new Error('unparsable layer overscan')
+  return { inset: Number(inset[1]), grow: Number(grow[1]) }
+}
+
+function smRect(mark, viewport) {
+  const { inset, grow } = layerOverscan()
+  const centerX = -inset + (mark.sm.x / 100) * (viewport.width + grow)
+  const centerY = -inset + (mark.sm.y / 100) * (viewport.height + grow)
+  const size = mark.sm.width * viewport.width
+  const radians = (mark.sm.rotate * Math.PI) / 180
+  const half = (size / 2) * (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)))
+
+  return {
+    left: centerX - half,
+    right: centerX + half,
+    top: centerY - half,
+    bottom: centerY + half
+  }
+}
+
+function viewportRect(viewport) {
+  return { left: 0, top: 0, right: viewport.width, bottom: viewport.height }
+}
+
+function rectArea(rect) {
+  return (rect.right - rect.left) * (rect.bottom - rect.top)
+}
+
+function overlapArea(a, b) {
+  const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+  const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+  return width * height
 }
 
 function driftClock(rule, name) {
@@ -729,5 +792,117 @@ describe('DentalParallaxBackground reduced transparency', () => {
     ).not.toBeNull()
     expect(backdrop[1]).not.toMatch(/display\s*:\s*none/)
     expect(backdrop[1]).toMatch(/display\s*:\s*block/)
+  })
+})
+
+describe('DentalParallaxBackground small-screen composition', () => {
+  const VIEWPORT = { width: 390, height: 844 }
+
+  // The centred card envelope on the reference viewport, padded past the
+  // measured card so title wrapping and validation copy stay inside it.
+  const CARD_KEEP_OUT = { left: 12, right: 378, top: 110, bottom: 730 }
+
+  const smallScreenRects = () =>
+    LAYER_NAMES.flatMap(name => marks(name).map(mark => ({ mark, rect: smRect(mark, VIEWPORT) })))
+
+  const visibleRects = () =>
+    smallScreenRects().filter(
+      ({ rect }) => overlapArea(rect, viewportRect(VIEWPORT)) / rectArea(rect) >= 0.75
+    )
+
+  it('declares the small-screen coordinate set on every mark', () => {
+    LAYER_NAMES.forEach(name => {
+      marks(name).forEach(mark => {
+        expect(mark.sm, `${name} mark ${mark.src} lacks a --mark-sm-* set`).not.toBeNull()
+        expect(mark.sm.width).toBeGreaterThan(0)
+        expect(Number.isFinite(mark.sm.rotate)).toBe(true)
+      })
+    })
+  })
+
+  it('rebinds the mark layout in the small-screen block so the inline custom properties stay fallbacks', () => {
+    expect(componentSource).toContain('@media (max-width: 640px)')
+
+    const rule = mediaBlock('max-width: 640px').match(/\.dental-parallax-mark\s*\{([^}]*)\}/)?.[1]
+    expect(rule, 'the small-screen block must retarget the mark layout').toBeTruthy()
+
+    // The override rebinds the stylesheet-owned layout properties, never the
+    // inline custom properties, so no cascade trick (or !important) is load
+    // bearing: the media block simply wins the layout declaration.
+    expect(rule).toMatch(/left:\s*var\(--mark-sm-x,\s*var\(--mark-x\)\)/)
+    expect(rule).toMatch(/top:\s*var\(--mark-sm-y,\s*var\(--mark-y\)\)/)
+    expect(rule).toMatch(/width:\s*var\(--mark-sm-w,\s*var\(--mark-w\)\)/)
+    expect(rule).toMatch(/rotate\(var\(--mark-sm-r,\s*var\(--mark-r,\s*0deg\)\)\)/)
+    expect(rule).not.toMatch(/!important/)
+
+    // Source order is what lets the block win over the base mark rule.
+    expect(componentSource.indexOf('@media (max-width: 640px)')).toBeGreaterThan(
+      componentSource.indexOf('left: var(--mark-x)')
+    )
+
+    // The override is consumed in exactly one place, so desktop and tablet
+    // cannot pick it up.
+    expect(componentSource.match(/var\(--mark-sm-x/g)).toHaveLength(1)
+    expect(componentSource.match(/var\(--mark-sm-y/g)).toHaveLength(1)
+    expect(componentSource.match(/var\(--mark-sm-w/g)).toHaveLength(1)
+    expect(componentSource.match(/var\(--mark-sm-r/g)).toHaveLength(1)
+  })
+
+  it('composes at least seven visible marks around the small-screen card', () => {
+    const visible = visibleRects()
+
+    expect(visible.length).toBeGreaterThanOrEqual(7)
+
+    LAYER_NAMES.forEach(name => {
+      expect(
+        visible.filter(({ mark }) => mark.layer === name).length,
+        `${name} tier contributes no visible small-screen mark`
+      ).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('spreads the small-screen marks into the top band, the bottom band and the side edges', () => {
+    const visible = visibleRects().map(({ rect }) => rect)
+
+    const topBand = visible.filter(rect => rect.bottom <= CARD_KEEP_OUT.top)
+    const bottomBand = visible.filter(rect => rect.top >= CARD_KEEP_OUT.bottom)
+    const sideEdges = visible.filter(rect => rect.left <= 0 || rect.right >= VIEWPORT.width)
+
+    expect(topBand.length).toBeGreaterThanOrEqual(3)
+    expect(bottomBand.length).toBeGreaterThanOrEqual(3)
+    expect(sideEdges.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('keeps every small-screen mark clear of the form card band', () => {
+    smallScreenRects().forEach(({ mark, rect }) => {
+      expect(
+        overlapArea(rect, CARD_KEEP_OUT),
+        `${mark.layer} mark ${mark.src} overlaps the small-screen card band`
+      ).toBe(0)
+    })
+  })
+
+  it('keeps the small-screen toothbrush recognizable instead of a sliver', () => {
+    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
+    expect(brushes).toHaveLength(1)
+
+    const [brush] = brushes
+    expect(brush.sm, 'the toothbrush needs a small-screen slot').not.toBeNull()
+
+    const rect = smRect(brush, VIEWPORT)
+    const shown = overlapArea(rect, viewportRect(VIEWPORT))
+
+    expect(shown / rectArea(rect)).toBeGreaterThanOrEqual(0.75)
+    expect(brush.sm.width * VIEWPORT.width).toBeGreaterThanOrEqual(0.2 * VIEWPORT.width)
+  })
+
+  it('keeps the clipping chain that makes horizontal overflow impossible', () => {
+    const scene = cssRule('\\.dental-parallax')
+
+    expect(scene).toMatch(/position:\s*absolute/)
+    expect(scene).toMatch(/overflow:\s*hidden/)
+    expect(loginPageSource).toMatch(/\.login-page\s*\{[^}]*overflow-x:\s*hidden/)
+    expect(loginPageSource).toMatch(/\.login-backdrop\s*\{[^}]*position:\s*fixed/)
+    expect(loginPageSource).toMatch(/\.login-backdrop\s*\{[^}]*overflow:\s*hidden/)
   })
 })
