@@ -95,4 +95,36 @@ describe('DentalParallaxBackground', () => {
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transform: none/
     )
   })
+
+  it('promotes the layers for the compositor only while the parallax is live', async () => {
+    mockMedia({ reducedMotion: false })
+    const wrapper = mount(DentalParallaxBackground)
+
+    expect(wrapper.classes()).not.toContain('is-parallax-active')
+
+    dispatchPointerMove(900, 200)
+    await flushPromises()
+    expect(wrapper.classes()).toContain('is-parallax-active')
+
+    wrapper.unmount()
+  })
+
+  it('never promotes the layers under prefers-reduced-motion: reduce', async () => {
+    mockMedia({ reducedMotion: true })
+    const wrapper = mount(DentalParallaxBackground)
+    await flushPromises()
+
+    dispatchPointerMove(900, 200)
+    await flushPromises()
+    expect(wrapper.classes()).not.toContain('is-parallax-active')
+
+    wrapper.unmount()
+  })
+
+  it('scopes will-change to the active parallax class', () => {
+    expect(componentSource).toMatch(
+      /\.dental-parallax\.is-parallax-active\s+\.dental-parallax-layer\s*\{[^}]*will-change:\s*transform/
+    )
+    expect(componentSource).not.toMatch(/^\s*\.dental-parallax-layer\s*\{[^}]*will-change/m)
+  })
 })

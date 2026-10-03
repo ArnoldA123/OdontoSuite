@@ -5,7 +5,7 @@
        the <form> into the mini-summary; both live in the same group so the
        crossfade uses one enter/leave contract. -->
   <div class="login-page">
-    <div ref="heroRef" class="login-hero-column" aria-hidden="true" data-spring-hero="true">
+    <div ref="backdropRef" class="login-backdrop" aria-hidden="true" data-spring-backdrop="true">
       <DentalParallaxBackground />
     </div>
 
@@ -310,42 +310,22 @@
                   data-state="shape-morph"
                   class="login-submit-shape"
                 >
-                  <span v-show="state === 'idle'" v-motion="morphMotion" class="login-submit-stage">
-                    Iniciar sesión
-                  </span>
-                  <span
-                    v-show="state === 'validating'"
-                    v-motion="morphMotion"
-                    class="login-submit-stage"
-                  >
+                  <span v-show="state === 'idle'" class="login-submit-stage">Iniciar sesión</span>
+                  <span v-show="state === 'validating'" class="login-submit-stage">
                     <span class="login-submit-dot" aria-hidden="true" />
                     Validando
                   </span>
-                  <span
-                    v-show="state === 'authenticating'"
-                    v-motion="morphMotion"
-                    class="login-submit-stage"
-                  >
+                  <span v-show="state === 'authenticating'" class="login-submit-stage">
                     <span class="login-submit-dot" aria-hidden="true" />
                     Autenticando
                   </span>
-                  <span
-                    v-show="state === 'success'"
-                    v-motion="morphMotion"
-                    class="login-submit-stage"
-                  >
+                  <span v-show="state === 'success'" class="login-submit-stage">
                     <svg class="login-submit-check" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M5 12 L10 17 L19 7" />
                     </svg>
                     Listo
                   </span>
-                  <span
-                    v-show="state === 'error'"
-                    v-motion="morphMotion"
-                    class="login-submit-stage"
-                  >
-                    Reintentar
-                  </span>
+                  <span v-show="state === 'error'" class="login-submit-stage">Reintentar</span>
                 </UiButton>
               </div>
             </form>
@@ -541,24 +521,24 @@ const opacitySpring = useSpring({
   cssVar: '--spring-card-opacity'
 })
 
-// HOTFIX-LOGIN-007 · Hero column mirror spring.
-const heroSpring = useSpring({
+// HOTFIX-LOGIN-007 · Backdrop mirror spring.
+const backdropSpring = useSpring({
   response: 0.45,
   damping: 1.0,
   from: 0,
   to: 1,
-  cssVar: '--spring-hero-o'
+  cssVar: '--spring-backdrop-o'
 })
-const heroOpacitySpring = useSpring({
+const backdropOpacitySpring = useSpring({
   response: 0.3,
   damping: 1.0,
   from: 0,
   to: 1,
-  cssVar: '--spring-hero-opacity'
+  cssVar: '--spring-backdrop-opacity'
 })
 
 const cardRef = ref(null)
-const heroRef = ref(null)
+const backdropRef = ref(null)
 // Recovered PR2 · the magnet binds to the wrapper div that surrounds the
 // submit UiButton, not to the component ref (a component ref does not
 // expose its root element). The springs write --spring-magnet-x/y on the
@@ -571,9 +551,15 @@ const submitRef = ref(null)
 // under [data-magnetic='true'], so a disabled or morphing button never gets
 // it. `useMagneticHover` additionally short-circuits by itself on
 // prefers-reduced-motion and on coarse pointers.
-const magnetEnabled = computed(() => state.value === 'idle' || state.value === 'error')
+const magnetEnabled = computed(
+  () => !prefersReducedMotion.value && (state.value === 'idle' || state.value === 'error')
+)
 
-useMagneticHover(submitRef, { response: 0.35, damping: 0.7, maxDistanceFactor: 0.4 })
+// Reduced motion resolves the magnet target to null, so the composable
+// attaches no listeners and writes no offset vars at all.
+const magnetTarget = computed(() => (prefersReducedMotion.value ? null : submitRef.value))
+
+useMagneticHover(magnetTarget, { response: 0.35, damping: 0.7, maxDistanceFactor: 0.4 })
 
 // Recovered PR2 · 220ms failure shake. `shakeTrigger` is a one-shot class
 // toggle; re-arming happens on the next frame so a second failed attempt
@@ -584,6 +570,7 @@ let shakeTimer = null
 let shakeRaf = null
 
 function triggerShake() {
+  if (prefersReducedMotion.value) return
   if (shakeRaf) cancelAnimationFrame(shakeRaf)
   if (shakeTimer) clearTimeout(shakeTimer)
   shakeTrigger.value = false
@@ -602,22 +589,6 @@ onUnmounted(() => {
   if (shakeTimer) clearTimeout(shakeTimer)
 })
 
-// Phase 2.6 + D9 · motion variants per element. Reduced-motion collapses
-// every transition to opacity-only.
-function morphMotion() {
-  return prefersReducedMotion.value
-    ? {
-        initial: { opacity: 0 },
-        enter: { opacity: 1, transition: { duration: 150 } },
-        leave: { opacity: 0, transition: { duration: 100 } }
-      }
-    : {
-        initial: { opacity: 0, y: -4 },
-        enter: { opacity: 1, y: 0, transition: { duration: 200 } },
-        leave: { opacity: 0, y: 4, transition: { duration: 150 } }
-      }
-}
-
 function initialsOf(name) {
   if (!name) return '··'
   const parts = String(name).trim().split(/\s+/).slice(0, 2)
@@ -626,18 +597,21 @@ function initialsOf(name) {
 
 onMounted(async () => {
   await nextTick()
+  // Motion budget: under reduced motion the springs are never attached, so
+  // the CSS fallbacks (--spring-*-o: 1) hold the final static layout.
+  if (prefersReducedMotion.value) return
   if (cardRef.value) {
     cardSpring.attach(cardRef.value)
     opacitySpring.attach(cardRef.value)
   }
-  if (heroRef.value) {
-    heroSpring.attach(heroRef.value)
-    heroOpacitySpring.attach(heroRef.value)
+  if (backdropRef.value) {
+    backdropSpring.attach(backdropRef.value)
+    backdropOpacitySpring.attach(backdropRef.value)
   }
   cardSpring.set(1)
   opacitySpring.set(1)
-  heroSpring.set(1)
-  heroOpacitySpring.set(1)
+  backdropSpring.set(1)
+  backdropOpacitySpring.set(1)
 })
 
 // Validation (recovered PR2): the hand-rolled `errors` reactive plus
@@ -764,16 +738,16 @@ watch(
 
 /* Full-bleed decorative layer. The parallax scene paints the viewport and
    the entrance spring mirrors the card, so both surfaces arrive together. */
-.login-hero-column {
-  --spring-hero-o: 1;
-  --spring-hero-opacity: 1;
+.login-backdrop {
+  --spring-backdrop-o: 1;
+  --spring-backdrop-opacity: 1;
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  transform: translate3d(0, calc((1 - var(--spring-hero-o)) * 12px), 0);
-  opacity: var(--spring-hero-opacity);
+  transform: translate3d(0, calc((1 - var(--spring-backdrop-o)) * 12px), 0);
+  opacity: var(--spring-backdrop-opacity);
 }
 
 /* The stage centres the card and owns the safe spacing around it. On wide
@@ -1395,7 +1369,7 @@ watch(
    this block, then the polymorphic crossfades. */
 @media (prefers-reduced-motion: reduce) {
   .login-form-wrap,
-  .login-hero-column {
+  .login-backdrop {
     transform: none !important;
     opacity: 1 !important;
     transition: none !important;
@@ -1417,8 +1391,14 @@ watch(
   .login-field-stagger,
   .login-submit-wrap.is-shaking,
   .field-error--animated,
-  .field-success-mark {
+  .field-success-mark,
+  .login-submit-dot,
+  .login-submit-check {
     animation: none !important;
+  }
+
+  .login-submit-check {
+    stroke-dashoffset: 0;
   }
 
   .brand-lockup-glyph svg,
@@ -1448,7 +1428,7 @@ watch(
   .login-page {
     background: var(--color-canvas);
   }
-  .login-hero-column {
+  .login-backdrop {
     display: none;
   }
   .login-card {

@@ -1,5 +1,10 @@
 <template>
-  <div ref="rootRef" class="dental-parallax" aria-hidden="true">
+  <div
+    ref="rootRef"
+    class="dental-parallax"
+    :class="{ 'is-parallax-active': active }"
+    aria-hidden="true"
+  >
     <svg
       class="dental-parallax-layer dental-parallax-far"
       data-layer="far"
@@ -12,24 +17,16 @@
         <filter id="dental-parallax-soft" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="14" />
         </filter>
+        <path
+          id="dental-parallax-tooth"
+          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+        />
       </defs>
       <g fill="currentColor" filter="url(#dental-parallax-soft)">
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-          transform="translate(-30 560) scale(15) rotate(16)"
-        />
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-          transform="translate(150 40) scale(18) rotate(-10)"
-        />
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-          transform="translate(700 330) scale(13) rotate(8)"
-        />
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-          transform="translate(1090 500) scale(21) rotate(14)"
-        />
+        <use href="#dental-parallax-tooth" transform="translate(-30 560) scale(15) rotate(16)" />
+        <use href="#dental-parallax-tooth" transform="translate(150 40) scale(18) rotate(-10)" />
+        <use href="#dental-parallax-tooth" transform="translate(700 330) scale(13) rotate(8)" />
+        <use href="#dental-parallax-tooth" transform="translate(1090 500) scale(21) rotate(14)" />
       </g>
     </svg>
 
@@ -52,13 +49,9 @@
         opacity="0.38"
       />
       <g transform="translate(924 112) scale(23) rotate(10)">
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
-          fill="currentColor"
-          opacity="0.26"
-        />
-        <path
-          d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+        <use href="#dental-parallax-tooth" fill="currentColor" opacity="0.26" />
+        <use
+          href="#dental-parallax-tooth"
           fill="none"
           stroke="currentColor"
           stroke-width="1.1"
@@ -104,7 +97,7 @@ import { usePointerParallax } from '@/composables/usePointerParallax'
 
 const rootRef = ref(null)
 
-usePointerParallax(rootRef, { response: 0.45, damping: 0.85 })
+const { active } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 })
 </script>
 
 <style scoped>
@@ -126,12 +119,17 @@ usePointerParallax(rootRef, { response: 0.45, damping: 0.85 })
   inset: -32px;
   width: calc(100% + 64px);
   height: calc(100% + 64px);
-  will-change: transform;
   transform: translate3d(
     calc(var(--parallax-x, 0) * var(--parallax-amplitude, 0px)),
     calc(var(--parallax-y, 0) * var(--parallax-amplitude, 0px)),
     0
   );
+}
+
+/* Three full-viewport layers: promote them for the compositor only while
+   the parallax is live (or settling), never at rest. */
+.dental-parallax.is-parallax-active .dental-parallax-layer {
+  will-change: transform;
 }
 
 .dental-parallax-far {

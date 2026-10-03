@@ -201,7 +201,7 @@ class LoginPageRenderTest extends TestCase
         );
 
         $this->assertMatchesRegularExpression(
-            '/<div\b[^>]*class\s*=\s*"login-hero-column"[^>]*aria-hidden\s*=\s*"true"/is',
+            '/<div\b[^>]*class\s*=\s*"login-backdrop"[^>]*aria-hidden\s*=\s*"true"/is',
             $source,
             'the parallax backdrop wrapper must be aria-hidden="true" so the decorative scene stays out of the accessibility tree'
         );

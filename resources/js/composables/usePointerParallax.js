@@ -11,11 +11,21 @@
  *     (and any already attached is released), so the layers never move.
  *   - The listeners are passive (pointermove on `window`, pointerleave on
  *     `document`) and are always removed on unmount.
+ *   - `active` reports whether the offsets are moving (a pointer event is
+ *     in flight, or the settle window has not elapsed), so consumers can
+ *     scope `will-change` to the animation instead of reserving a
+ *     compositor layer at rest.
  *   - The springs handle their own rAF lifecycle and reduced-motion settle.
  */
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useSpring2D } from './useSpring2D.js'
 import { useReducedMotion } from './useReducedMotion.js'
+
+/**
+ * How long `active` stays true after the last pointer event: long enough to
+ * cover the damped return to rest, short enough to release the layer.
+ */
+const ACTIVITY_IDLE_MS = 1200
 
 const clamp = value => Math.max(-1, Math.min(1, value))
 
@@ -26,7 +36,12 @@ const clamp = value => Math.max(-1, Math.min(1, value))
  * @param {number} [options.damping=0.8]
  * @param {string} [options.cssVarX='--parallax-x']
  * @param {string} [options.cssVarY='--parallax-y']
- * @returns {{ reduced: import('vue').Ref<boolean>, x: ReturnType<typeof useSpring2D>['x'], y: ReturnType<typeof useSpring2D>['y'] }}
+ * @returns {{
+ *   reduced: import('vue').Ref<boolean>,
+ *   active: import('vue').Ref<boolean>,
+ *   x: ReturnType<typeof useSpring2D>['x'],
+ *   y: ReturnType<typeof useSpring2D>['y']
+ * }}
  */
 export function usePointerParallax(elementRef, options = {}) {
   const {
@@ -37,20 +52,36 @@ export function usePointerParallax(elementRef, options = {}) {
   } = options
 
   const reduced = useReducedMotion()
+  const active = ref(false)
   const { x, y } = useSpring2D({ response, damping, cssVarX, cssVarY })
 
   let listening = false
+  let idleTimer = null
+
+  const settleActivity = () => {
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = null
+    active.value = false
+  }
+
+  const markActivity = () => {
+    active.value = true
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = setTimeout(settleActivity, ACTIVITY_IDLE_MS)
+  }
 
   const onPointerMove = event => {
     const width = window.innerWidth || 1
     const height = window.innerHeight || 1
     x.set(clamp((event.clientX / width) * 2 - 1))
     y.set(clamp((event.clientY / height) * 2 - 1))
+    markActivity()
   }
 
   const onPointerLeave = () => {
     x.set(0)
     y.set(0)
+    markActivity()
   }
 
   const attach = () => {
@@ -67,16 +98,16 @@ export function usePointerParallax(elementRef, options = {}) {
     listening = false
   }
 
-  // Live reduced-motion flips also recentre the layers.
-  const detach = () => {
+  const teardown = () => {
     release()
-    x.set(0)
-    y.set(0)
+    settleActivity()
   }
 
   const sync = () => {
     if (reduced.value) {
-      detach()
+      teardown()
+      x.set(0)
+      y.set(0)
       return
     }
     attach()
@@ -91,9 +122,9 @@ export function usePointerParallax(elementRef, options = {}) {
   })
 
   watch(reduced, sync)
-  onUnmounted(release)
+  onUnmounted(teardown)
 
-  return { reduced, x, y }
+  return { reduced, active, x, y }
 }
 
 export default usePointerParallax
