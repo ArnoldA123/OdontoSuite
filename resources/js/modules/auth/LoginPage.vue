@@ -76,7 +76,7 @@
                   key="form"
                   class="login-form"
                   novalidate
-                  :aria-busy="loading || undefined"
+                  :aria-busy="isBusy || undefined"
                   @submit.prevent="handleLogin"
                 >
                   <div class="field login-field-stagger" :style="{ '--field-index': 0 }">
@@ -92,7 +92,7 @@
                         spellcheck="false"
                         autocapitalize="off"
                         required
-                        :disabled="loading"
+                        :disabled="isBusy"
                         :aria-invalid="!!fieldErrors.username"
                         :aria-describedby="
                           fieldErrors.username ? 'login-username-error' : 'login-username-hint'
@@ -142,7 +142,7 @@
                         name="password"
                         autocomplete="current-password"
                         required
-                        :disabled="loading"
+                        :disabled="isBusy"
                         :aria-invalid="!!fieldErrors.password"
                         :aria-describedby="
                           fieldErrors.password ? 'login-password-error' : 'login-password-hint'
@@ -181,7 +181,6 @@
                         class="password-toggle"
                         :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                         :aria-pressed="showPassword"
-                        tabindex="-1"
                         @click="showPassword = !showPassword"
                       >
                         <span class="password-toggle-glyphs" aria-hidden="true">
@@ -237,7 +236,7 @@
                         v-model="form.remember"
                         type="checkbox"
                         class="checkbox-input"
-                        :disabled="loading"
+                        :disabled="isBusy"
                       />
                       <!-- Drawn checkbox: the native control keeps the state,
                            the keyboard reach and the accessibility tree, but
@@ -268,7 +267,7 @@
                     </button>
                   </div>
 
-                  <div v-if="error && state !== 'error'" class="auth-error" role="alert" aria-live="polite">
+                  <div v-if="error" class="auth-error" role="alert" aria-live="polite">
                     <svg
                       class="auth-error-icon"
                       fill="none"
@@ -500,6 +499,7 @@ import { useShapeMorph } from '@/composables/useShapeMorph'
 import { useReducedMotion } from '@/composables/useReducedMotion'
 import { useMagneticHover } from '@/composables/useMagneticHover'
 import { useFieldValidation } from '@/composables/useFieldValidation'
+import { roleLabel } from './roleLabels'
 import ForgotPasswordModal from './ForgotPasswordModal.vue'
 import ResetPasswordModal from './ResetPasswordModal.vue'
 import UiButton from '@/components/ui/Button.vue'
@@ -510,11 +510,12 @@ const { login } = useAuth()
 // Phase 2.4 · polymorphic submit state machine.
 const { state, transition, release } = useShapeMorph({ initial: 'idle', dwellMs: 200 })
 
+const isBusy = computed(() => state.value === 'validating' || state.value === 'authenticating')
+
 // Phase 2.6 · reactive reduced-motion detector.
 const prefersReducedMotion = useReducedMotion()
 
 // State
-const loading = ref(false)
 const error = ref('')
 const showPassword = ref(false)
 const showForgotPasswordModal = ref(false)
@@ -594,17 +595,7 @@ function onFieldInput(field) {
 const successUser = ref(null)
 const miniSummaryInitials = computed(() => initialsOf(successUser.value?.name || ''))
 const miniSummaryName = computed(() => successUser.value?.name || 'Sesión iniciada')
-const miniSummaryRole = computed(() => {
-  const role = successUser.value?.role
-  if (!role) return ''
-  const map = {
-    admin: 'Administrador',
-    doctor: 'Odontólogo',
-    receptionist: 'Recepción',
-    assistant: 'Asistente'
-  }
-  return map[role] || role
-})
+const miniSummaryRole = computed(() => roleLabel(successUser.value?.role))
 
 // Card entrance spring.
 const cardSpring = useSpring({
@@ -776,7 +767,6 @@ const handleLogin = async () => {
   if (!transition('authenticating')) {
     return
   }
-  loading.value = true
 
   try {
     const response = await login(form)
@@ -824,8 +814,6 @@ const handleLogin = async () => {
       // reliability), and they were right.
       release(SHAKE_MS)
     }
-  } finally {
-    loading.value = false
   }
 }
 
