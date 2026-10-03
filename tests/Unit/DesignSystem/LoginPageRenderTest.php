@@ -770,4 +770,97 @@ class LoginPageRenderTest extends TestCase
                 'Below 768px the form gap must tighten to 16px'
             );
         }
+
+        /**
+         * @test
+         */
+        public function login_page_card_is_a_keyboard_reachable_labelled_scroll_region(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertMatchesRegularExpression(
+                '/<section\b[^>]*class\s*=\s*"login-card"[^>]*role\s*=\s*"region"[^>]*tabindex\s*=\s*"0"/is',
+                $source,
+                'the scrollable login card must be announced as a region and be keyboard-scrollable (role="region" + tabindex="0")'
+            );
+            $this->assertStringContainsString(
+                'aria-labelledby="login-headline"',
+                $source,
+                'the scrollable login card must keep its accessible name from the headline'
+            );
+            $this->assertMatchesRegularExpression(
+                '/\.login-card:focus-visible\s*\{[^}]*outline\s*:\s*var\(--focus-ring-width\)\s*solid\s*var\(--focus-ring-color\)/s',
+                $source,
+                'the focusable scroll region must show the tokenised focus ring on :focus-visible'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_announces_valid_state_through_a_polite_live_region(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertStringContainsString(
+                'id="login-username-success"',
+                $source,
+                'the username field must expose a screen-reader success text once valid'
+            );
+            $this->assertStringContainsString(
+                'id="login-password-success"',
+                $source,
+                'the password field must expose a screen-reader success text once valid'
+            );
+            $this->assertMatchesRegularExpression(
+                '/<p\b[^>]*class\s*=\s*"sr-only"[^>]*role\s*=\s*"status"[^>]*aria-live\s*=\s*"polite"[^>]*>\s*\{\{\s*validationAnnouncement\s*\}\}\s*<\/p>/s',
+                $source,
+                'the login must announce full-form validity through a single polite live region'
+            );
+        }
+
+        /**
+         * @test
+         */
+        public function login_page_min_length_rules_admit_seeded_credentials(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            $this->assertSame(
+                1,
+                (int) preg_match('/MIN_USERNAME_LENGTH\s*=\s*(\d+)/', $source, $usernameMin),
+                'LoginPage.vue must declare the username minimum length as a named constant'
+            );
+            $this->assertSame(
+                1,
+                (int) preg_match('/MIN_PASSWORD_LENGTH\s*=\s*(\d+)/', $source, $passwordMin),
+                'LoginPage.vue must declare the password minimum length as a named constant'
+            );
+
+            $seeder = (string) file_get_contents(
+                self::projectRootPath() . '/database/seeders/RoleBasedUsersSeeder.php'
+            );
+
+            preg_match_all("/'username'\s*=>\s*'([^']+)'/", $seeder, $usernames);
+            $this->assertNotEmpty($usernames[1], 'RoleBasedUsersSeeder must declare demo usernames');
+
+            foreach ($usernames[1] as $username) {
+                $this->assertGreaterThanOrEqual(
+                    (int) $usernameMin[1],
+                    strlen($username),
+                    "Seeded username '{$username}' must satisfy the login minimum-length rule"
+                );
+            }
+
+            preg_match_all("/'password'\s*=>\s*Hash::make\('([^']+)'\)/", $seeder, $passwords);
+            $this->assertNotEmpty($passwords[1], 'RoleBasedUsersSeeder must declare demo passwords');
+
+            foreach (array_unique($passwords[1]) as $password) {
+                $this->assertGreaterThanOrEqual(
+                    (int) $passwordMin[1],
+                    strlen($password),
+                    'The seeded demo password must satisfy the login minimum-length rule'
+                );
+            }
+        }
 }

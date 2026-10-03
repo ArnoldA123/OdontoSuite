@@ -10,7 +10,7 @@
     </div>
 
     <main class="login-stage">
-      <section class="login-card" aria-labelledby="login-headline">
+      <section class="login-card" role="region" aria-labelledby="login-headline" tabindex="0">
         <div ref="cardRef" class="login-form-wrap">
           <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
           <header class="login-header">
@@ -61,6 +61,8 @@
             </p>
           </div>
 
+          <p class="sr-only" role="status" aria-live="polite">{{ validationAnnouncement }}</p>
+
           <!-- Phase 2.5 · form → mini-summary polymorphism. No Card
                wrapper: the fields are the card's own content. -->
           <TransitionGroup name="form-card-morph" tag="div" class="login-form-morph">
@@ -87,9 +89,7 @@
                     required
                     :disabled="isBusy"
                     :aria-invalid="!!fieldErrors.username"
-                    :aria-describedby="
-                      fieldErrors.username ? 'login-username-error' : 'login-username-hint'
-                    "
+                    :aria-describedby="fieldDescribedBy.username"
                     class="field-input"
                     :class="{ 'has-success': fieldSuccesses.username }"
                     @blur="onFieldBlur('username')"
@@ -123,6 +123,9 @@
                 >
                   {{ fieldErrors.username }}
                 </p>
+                <p v-else-if="fieldSuccesses.username" id="login-username-success" class="sr-only">
+                  Usuario válido
+                </p>
               </div>
 
               <div class="field login-field-stagger" :style="{ '--field-index': 1 }">
@@ -137,9 +140,7 @@
                     required
                     :disabled="isBusy"
                     :aria-invalid="!!fieldErrors.password"
-                    :aria-describedby="
-                      fieldErrors.password ? 'login-password-error' : 'login-password-hint'
-                    "
+                    :aria-describedby="fieldDescribedBy.password"
                     class="field-input"
                     :class="{ 'has-success': fieldSuccesses.password }"
                     @blur="onFieldBlur('password')"
@@ -220,6 +221,9 @@
                   class="field-error field-error--animated"
                 >
                   {{ fieldErrors.password }}
+                </p>
+                <p v-else-if="fieldSuccesses.password" id="login-password-success" class="sr-only">
+                  Contraseña válida
                 </p>
               </div>
 
@@ -453,6 +457,9 @@ const form = reactive({
 // `touched` gates *display* only: without it, the moment the user typed one
 // character into "Usuario" the empty "Contraseña" field would scold them
 // before they ever reached it. Submitting force-reveals every field.
+const MIN_USERNAME_LENGTH = 3
+const MIN_PASSWORD_LENGTH = 8
+
 const {
   errors: validationErrors,
   successes: validationSuccesses,
@@ -461,8 +468,14 @@ const {
 } = useFieldValidation(
   form,
   {
-    username: [value => (value && value.trim() ? null : 'El usuario es requerido')],
-    password: [value => (value && value.trim() ? null : 'La contraseña es requerida')]
+    username: [
+      value => (value && value.trim() ? null : 'El usuario es requerido'),
+      value => (value.trim().length >= MIN_USERNAME_LENGTH ? null : 'Mínimo 3 caracteres')
+    ],
+    password: [
+      value => (value && value.trim() ? null : 'La contraseña es requerida'),
+      value => (value.length >= MIN_PASSWORD_LENGTH ? null : 'Mínimo 8 caracteres')
+    ]
   },
   { idleMs: 250 }
 )
@@ -478,6 +491,24 @@ const fieldSuccesses = computed(() => ({
   username: touched.username && validationSuccesses.username === true,
   password: touched.password && validationSuccesses.password === true
 }))
+
+const fieldDescribedBy = computed(() => {
+  const describedBy = {}
+  for (const field of ['username', 'password']) {
+    if (fieldErrors.value[field]) {
+      describedBy[field] = `login-${field}-error`
+    } else if (fieldSuccesses.value[field]) {
+      describedBy[field] = `login-${field}-success`
+    }
+  }
+  return describedBy
+})
+
+const validationAnnouncement = computed(() =>
+  fieldSuccesses.value.username && fieldSuccesses.value.password
+    ? 'Usuario y contraseña válidos'
+    : ''
+)
 
 function onFieldBlur(field) {
   touched[field] = true
@@ -771,6 +802,11 @@ watch(
   border: 1px solid var(--color-hairline);
   border-radius: var(--login-radius-panel);
   box-shadow: var(--elevation-4);
+}
+
+.login-card:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .login-form-wrap {
