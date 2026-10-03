@@ -7,21 +7,15 @@ use PHPUnit\Framework\TestCase;
 use Tests\Support\SourceGrep;
 
 /**
- * PR1 / Sub-phase 1.1 — source-inspection guard for the MotionPlugin
- * registration in `resources/js/app.js`.
+ * Source-inspection guard for the MotionPlugin retirement.
  *
- * The login premium motion slice (design D17) adds `@vueuse/motion` v3.0.3
- * as a dependency. The plugin MUST be registered with the Vue app so that
- * the `v-motion` directive (and the variant presets the LoginPage
- * composes in PR2) actually attach at runtime. This test pins that
- * contract: app.js MUST reference `MotionPlugin` exactly where the design
- * says it does (import line + `app.use(MotionPlugin)` immediately after
- * `app.use(router)`).
- *
- * If the registration is removed or the import is dropped, the bundle still
- * builds (the dep is still imported by the LoginPage composables), but the
- * runtime directive silently no-ops — the most expensive failure mode for
- * the slice. A static assertion here prevents that regression at CI time.
+ * Design D17 once pinned `@vueuse/motion` v3.0.3 registration in
+ * `resources/js/app.js`, but the `v-motion` consumers it was meant to
+ * serve never materialized (the directive accepted only objects/strings,
+ * so every function-valued usage was inert). The plugin and the
+ * dependency were retired together. This test pins the retirement:
+ * neither `MotionPlugin` nor `@vueuse/motion` may return to the JS
+ * source or the manifest without a real directive consumer.
  *
  * Source-grep via ripgrep through `shell_exec`, matching the existing
  * precedent in `LoginPageRenderTest::grepCount()` and `UseSpringMathTest`.
@@ -32,9 +26,16 @@ class AppShellTest extends TestCase
 
     private const APP_JS_REL = '/resources/js/app.js';
 
+    private const PACKAGE_JSON_REL = '/package.json';
+
     private static function appJsPath(): string
     {
         return self::projectRootPath() . self::APP_JS_REL;
+    }
+
+    private static function packageJsonPath(): string
+    {
+        return self::projectRootPath() . self::PACKAGE_JSON_REL;
     }
 
     /**
@@ -50,46 +51,50 @@ class AppShellTest extends TestCase
     }
 
     /**
-     * The literal string `MotionPlugin` MUST appear at least once in
-     * resources/js/app.js. This is the minimal contract that pins the
-     * plugin registration; the import line and the `app.use(MotionPlugin)`
-     * call both contain the substring, so a single count assertion catches
-     * either a missing import or a missing registration.
+     * The literal string `MotionPlugin` MUST NOT appear in
+     * resources/js/app.js: the plugin was retired with its dependency.
      *
      * @test
      */
-    public function app_js_registers_motion_plugin(): void
+    public function app_js_does_not_register_motion_plugin(): void
     {
         $this->assertFileExists(
             self::appJsPath(),
-            'resources/js/app.js must exist for the PR1 plugin registration'
+            'resources/js/app.js must exist'
         );
 
         $count = self::grepCount('MotionPlugin', self::appJsPath());
-        $this->assertGreaterThanOrEqual(
-            1,
+        $this->assertSame(
+            0,
             $count,
-            'resources/js/app.js must reference `MotionPlugin` at least once '
-            . '(design D17 + PR1 sub-phase 1.1: import line + app.use(MotionPlugin) call).'
-            . ' Got count=' . $count . '.'
+            'resources/js/app.js must not reference `MotionPlugin` '
+                . '(retired with @vueuse/motion: no real v-motion consumer).'
+                . ' Got count=' . $count . '.'
         );
     }
 
     /**
-     * Defensive second assertion: the import path MUST point to the
-     * `@vueuse/motion` package (not a typo'd local module). Catches the
-     * failure mode where someone re-adds the import but mistypes the
-     * package name — the runtime would silently no-op.
+     * Neither app.js nor package.json MAY reference `@vueuse/motion`:
+     * the dependency was removed alongside the plugin registration.
      *
      * @test
      */
-    public function app_js_imports_motion_plugin_from_vueuse_motion_package(): void
+    public function vueuse_motion_dependency_is_retired(): void
     {
-        $count = self::grepCount('@vueuse/motion', self::appJsPath());
-        $this->assertGreaterThanOrEqual(
-            1,
-            $count,
-            'resources/js/app.js must import MotionPlugin from "@vueuse/motion". Got count=' . $count . '.'
+        $this->assertFileExists(
+            self::packageJsonPath(),
+            'package.json must exist'
         );
+
+        foreach ([self::appJsPath(), self::packageJsonPath()] as $path) {
+            $count = self::grepCount('@vueuse/motion', $path);
+            $this->assertSame(
+                0,
+                $count,
+                basename($path) . ' must not reference "@vueuse/motion" '
+                    . '(dependency retired with the plugin registration).'
+                    . ' Got count=' . $count . '.'
+            );
+        }
     }
 }
