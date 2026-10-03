@@ -9,6 +9,17 @@ const nativeMatchMedia = window.matchMedia
 
 const LAYER_NAMES = ['far', 'mid', 'near']
 
+// The art is authored in this viewBox, so a width in scene units over
+// SCENE_WIDTH is the fraction of the viewport the mark covers.
+const SCENE_WIDTH = 1440
+
+// The desktop form card anchors left (padding-left clamp(56px, 14vw, 220px)
+// plus a 26rem card), so the strong tiers stay clear of that band and the
+// deep tier carries the scene there instead.
+const CARD_KEEP_OUT = { left: 190, right: 660, top: 40, bottom: 860 }
+
+const TOOTH_SHAPE_IDS = ['incisor', 'molar', 'premolar']
+
 // Perceived-contrast band each layer must land in, so the scene stays visible
 // without darkening the light clinical page.
 const CONTRAST_BANDS = {
@@ -53,12 +64,39 @@ function cssRule(selector) {
   return match[1]
 }
 
+function block(source, anchor) {
+  const open = source.indexOf('{', anchor)
+  if (anchor === -1 || open === -1) return null
+
+  let depth = 0
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    if (source[index] === '}') {
+      depth -= 1
+      if (depth === 0) return source.slice(open + 1, index)
+    }
+  }
+  throw new Error(`unbalanced block at ${anchor}`)
+}
+
+function mediaBlock(query, source = componentSource) {
+  const inner = block(source, source.indexOf(`@media (${query})`))
+  if (inner === null) throw new Error(`no @media (${query}) block`)
+  return inner
+}
+
+function reducedMotionBlock() {
+  return mediaBlock('prefers-reduced-motion: reduce')
+}
+
 function reducedTransparencyBlock(source = componentSource) {
-  const match = source.match(
-    /@media \(prefers-reduced-transparency:\s*reduce\)\s*\{\n([\s\S]*?)\n\}/
-  )
-  if (!match) throw new Error('no @media (prefers-reduced-transparency: reduce) block')
-  return match[1]
+  return mediaBlock('prefers-reduced-transparency: reduce', source)
+}
+
+function keyframesBlock(name) {
+  const inner = block(componentSource, componentSource.indexOf(`@keyframes ${name}`))
+  if (inner === null) throw new Error(`no @keyframes ${name}`)
+  return inner
 }
 
 function tierRule(block, name) {
@@ -75,16 +113,98 @@ function layerDeclarations(name) {
     ramp: color?.[1],
     step: color?.[2],
     opacity: opacity ? Number(opacity[1]) : 1,
-    amplitude: Number(rule.match(/--parallax-amplitude:\s*(\d+)px/)?.[1] ?? 0)
+    amplitude: Number(rule.match(/--parallax-amplitude:\s*(\d+)px/)?.[1] ?? 0),
+    drift: driftClock(rule, name)
+  }
+}
+
+function driftClock(rule, name) {
+  const names = cssRule(
+    `\\.dental-parallax\\.has-drift\\s+\\.dental-parallax-${name}\\s+\\.dental-parallax-drift`
+  )
+  return {
+    name: names.match(/animation-name:\s*([a-z-]+)/)?.[1],
+    duration: Number(rule.match(/--dental-drift-duration:\s*([\d.]+)s/)?.[1] ?? NaN),
+    delay: Number(rule.match(/--dental-drift-delay:\s*(-?[\d.]+)s/)?.[1] ?? NaN)
   }
 }
 
 function layerMarkup(name) {
   const anchor = componentSource.indexOf(`data-layer="${name}"`)
   if (anchor === -1) throw new Error(`no markup for layer ${name}`)
-  return componentSource.slice(
-    componentSource.lastIndexOf('<svg', anchor),
-    componentSource.indexOf('</svg>', anchor)
+
+  const start = componentSource.indexOf('<svg', anchor)
+  return componentSource
+    .slice(start, componentSource.indexOf('</svg>', start))
+    .replace(/<!--[\s\S]*?-->/g, '')
+}
+
+function tagAttributes(tag) {
+  const attributes = {}
+  for (const [, key, value] of tag.matchAll(/([a-zA-Z:-]+)="([^"]*)"/g)) {
+    attributes[key] = value
+  }
+  return attributes
+}
+
+// Every tooth is a `use` mark on a shared `dental-parallax-tooth-*` shape, and
+// the transform is `translate(center) rotate(angle) scale(size)`, so a mark's
+// painted width is its declared frame width times its scale.
+function toothMarks(name) {
+  return [...layerMarkup(name).matchAll(/<use\b[\s\S]*?\/>/g)].map(([tag]) => {
+    const attributes = tagAttributes(tag)
+    const transform = (attributes.transform ?? '').match(
+      /translate\((-?[\d.]+) (-?[\d.]+)\)(?:\s+rotate\((-?[\d.]+)\))?\s+scale\(([\d.]+)\)/
+    )
+    if (!transform) throw new Error(`unparsable tooth transform: ${attributes.transform}`)
+
+    return {
+      shape: (attributes.href ?? '').replace('#dental-parallax-tooth-', ''),
+      frameX: Number(attributes.x),
+      frameY: Number(attributes.y),
+      frameWidth: Number(attributes.width),
+      frameHeight: Number(attributes.height),
+      centerX: Number(transform[1]),
+      centerY: Number(transform[2]),
+      rotate: Number(transform[3] ?? 0),
+      scale: Number(transform[4]),
+      width: Number(attributes.width) * Number(transform[4])
+    }
+  })
+}
+
+function toothViewportShare(mark) {
+  return mark.width / SCENE_WIDTH
+}
+
+function driftStops(name) {
+  return [
+    ...keyframesBlock(layerDeclarations(name).drift.name).matchAll(/([\d.]+)%\s*\{([^}]*)\}/g)
+  ].map(([, percent, body]) => {
+    const translate = body.match(/translate3d\((-?[\d.]+)(?:px)?,\s*(-?[\d.]+)(?:px)?,\s*0\)/)
+    if (!translate) throw new Error(`unparsable drift stop at ${percent}%: ${body.trim()}`)
+    return { percent: Number(percent), x: Number(translate[1]), y: Number(translate[2]) }
+  })
+}
+
+function driftTravel(name) {
+  return Math.max(...driftStops(name).map(stop => Math.max(Math.abs(stop.x), Math.abs(stop.y))))
+}
+
+function toothFrames() {
+  const frames = {}
+  for (const [, id, viewBox] of componentSource.matchAll(
+    /<symbol\s+id="dental-parallax-tooth-([a-z]+)"\s+viewBox="([^"]*)"/g
+  )) {
+    const [minX, minY, width, height] = viewBox.split(/\s+/).map(Number)
+    frames[id] = { minX, minY, width, height }
+  }
+  return frames
+}
+
+function paintedAttributes() {
+  return [...componentSource.matchAll(/\s(fill|stroke|color)="([^"]*)"/g)].map(
+    ([, , value]) => value
   )
 }
 
@@ -200,9 +320,7 @@ describe('DentalParallaxBackground', () => {
 
   it('declares the static layer fallback for prefers-reduced-motion in its CSS', () => {
     expect(componentSource).toContain('@media (prefers-reduced-motion: reduce)')
-    expect(componentSource).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?transform: none/
-    )
+    expect(reducedMotionBlock()).toMatch(/transform: none/)
   })
 
   it('promotes the layers for the compositor only while the parallax is live', async () => {
@@ -238,19 +356,142 @@ describe('DentalParallaxBackground', () => {
   })
 })
 
+describe('DentalParallaxBackground ambient drift', () => {
+  it('runs the drift loop on the mounted scene while motion is allowed', async () => {
+    mockMedia({ reducedMotion: false })
+    const wrapper = mount(DentalParallaxBackground)
+    await flushPromises()
+
+    expect(wrapper.classes()).toContain('has-drift')
+    expect(componentSource).toMatch(
+      /\.dental-parallax\.has-drift\s+\.dental-parallax-drift\s*\{[^}]*animation-duration:\s*var\(--dental-drift-duration\)/
+    )
+    expect(componentSource).toMatch(
+      /\.dental-parallax\.has-drift\s+\.dental-parallax-drift\s*\{[^}]*animation-iteration-count:\s*infinite/
+    )
+
+    wrapper.unmount()
+  })
+
+  it('names each keyframe literally, so the scoped-style rename rewrites name and reference together', () => {
+    // A keyframe name that only travels through a custom property escapes the
+    // scoped-style hash: the @keyframes rule gets renamed and the animation
+    // never resolves. Every name stays literal in an animation-name.
+    const references = [...componentSource.matchAll(/animation-name:\s*([a-z-]+)/g)].map(
+      ([, value]) => value
+    )
+
+    expect(componentSource).not.toMatch(/animation-name:\s*var\(/)
+    LAYER_NAMES.forEach(name => {
+      expect(componentSource).toContain(`@keyframes dental-parallax-drift-${name}`)
+      expect(references).toContain(`dental-parallax-drift-${name}`)
+    })
+  })
+
+  it('stays fully static under prefers-reduced-motion: reduce', async () => {
+    mockMedia({ reducedMotion: true })
+    const wrapper = mount(DentalParallaxBackground)
+    await flushPromises()
+
+    expect(wrapper.classes()).not.toContain('has-drift')
+
+    wrapper.unmount()
+  })
+
+  it('kills every drift loop in the reduced-motion CSS block', () => {
+    const inner = reducedMotionBlock()
+
+    expect(inner).toMatch(/\.dental-parallax-drift\s*\{[^}]*animation:\s*none/)
+    expect(inner).toMatch(/\.dental-parallax-drift\s*\{[^}]*transform:\s*none/)
+  })
+
+  it('nestles the art in a drift wrapper inside each pointer-transformed layer', () => {
+    expect(componentSource).toMatch(/\.dental-parallax-drift\s*\{[^}]*position:\s*absolute/)
+    expect(componentSource).toMatch(/\.dental-parallax-art\s*\{[^}]*width:\s*100%/)
+
+    LAYER_NAMES.forEach(name => {
+      const layer = componentSource.indexOf(`data-layer="${name}"`)
+      const drift = componentSource.indexOf('dental-parallax-drift', layer)
+      const art = componentSource.indexOf('dental-parallax-art', layer)
+
+      expect(drift, `${name} layer must own a drift wrapper`).toBeGreaterThan(layer)
+      expect(art, `${name} art must sit inside the drift wrapper`).toBeGreaterThan(drift)
+    })
+  })
+
+  it('gives every tier its own slow clock and start phase', () => {
+    const clocks = LAYER_NAMES.map(name => layerDeclarations(name).drift)
+
+    expect(new Set(clocks.map(clock => clock.name)).size).toBe(LAYER_NAMES.length)
+    expect(new Set(clocks.map(clock => clock.duration)).size).toBe(LAYER_NAMES.length)
+    expect(new Set(clocks.map(clock => clock.delay)).size).toBe(LAYER_NAMES.length)
+
+    clocks.forEach(clock => {
+      expect(clock.duration).toBeGreaterThanOrEqual(30)
+      expect(clock.duration).toBeLessThanOrEqual(60)
+      expect(clock.delay).toBeGreaterThanOrEqual(0)
+      expect(clock.delay).toBeLessThan(clock.duration)
+      expect(keyframesBlock(clock.name)).toBeTruthy()
+    })
+  })
+
+  it('keeps the drift travel small and widest for the nearest tier', () => {
+    const travels = LAYER_NAMES.map(name => {
+      expect(driftStops(name).length).toBeGreaterThanOrEqual(3)
+      return driftTravel(name)
+    })
+
+    travels.forEach(travel => {
+      expect(travel).toBeGreaterThanOrEqual(10)
+      expect(travel).toBeLessThanOrEqual(25)
+    })
+    expect(travels[0]).toBeLessThan(travels[1])
+    expect(travels[1]).toBeLessThan(travels[2])
+  })
+
+  it('animates transform only, so the loops never trigger layout or paint work', () => {
+    LAYER_NAMES.forEach(name => {
+      const declarations = [
+        ...keyframesBlock(layerDeclarations(name).drift.name).matchAll(
+          /([a-z-]+)\s*:\s*([^;{}]+);/g
+        )
+      ]
+
+      expect(declarations.length).toBeGreaterThanOrEqual(3)
+      declarations.forEach(([, property]) => expect(property).toBe('transform'))
+    })
+  })
+
+  it('returns every loop to its origin so the loop never jumps', () => {
+    LAYER_NAMES.forEach(name => {
+      const stops = driftStops(name)
+
+      expect(stops[0].percent).toBe(0)
+      expect(stops[stops.length - 1].percent).toBe(100)
+      expect([stops[0].x, stops[0].y]).toEqual([0, 0])
+      expect([stops[stops.length - 1].x, stops[stops.length - 1].y]).toEqual([0, 0])
+    })
+  })
+
+  it('leaves will-change off the drift wrapper', () => {
+    expect(componentSource).not.toMatch(/\.dental-parallax-drift\s*\{[^}]*will-change/)
+  })
+})
+
 describe('DentalParallaxBackground visibility budget', () => {
   it('carries per-layer travel large enough to be perceptible', () => {
     expect(LAYER_NAMES.map(name => layerDeclarations(name).amplitude)).toEqual([10, 22, 36])
   })
 
-  it('overscans every layer past the largest amplitude so no edge shows', () => {
+  it('overscans every layer past the largest pointer offset plus drift', () => {
     const rule = cssRule('\\.dental-parallax-layer')
     const inset = Number(rule.match(/inset:\s*-(\d+)px/)?.[1] ?? 0)
     const grow = Number(rule.match(/calc\(100%\s*\+\s*(\d+)px\)/)?.[1] ?? 0)
     const largest = Math.max(...LAYER_NAMES.map(name => layerDeclarations(name).amplitude))
+    const drift = Math.max(...LAYER_NAMES.map(driftTravel))
 
-    expect(inset).toBeGreaterThanOrEqual(largest)
-    expect(grow).toBeGreaterThanOrEqual(2 * largest)
+    expect(inset).toBeGreaterThanOrEqual(largest + drift)
+    expect(grow).toBeGreaterThanOrEqual(2 * (largest + drift))
   })
 
   it('deepens the token ramp from the far layer to the near layer', () => {
@@ -260,18 +501,95 @@ describe('DentalParallaxBackground visibility budget', () => {
     expect(new Set(steps).size).toBe(LAYER_NAMES.length)
   })
 
-  it('puts the strongest dental silhouette in the half the card leaves free', () => {
-    // The form card anchors left on desktop, so the mid layer must carry at
-    // least two teeth with the biggest one in the right half.
-    const teeth = [...layerMarkup('mid').matchAll(/translate\((\d+) (\d+)\) scale\((\d+)\)/g)].map(
-      ([, x, , scale]) => ({ x: Number(x), scale: Number(scale) })
-    )
+  it('draws every tooth inside a normal-tooth scale budget', () => {
+    // The excess this replaces: one silhouette spanning ~23% of the viewport.
+    const shares = LAYER_NAMES.flatMap(name => toothMarks(name).map(toothViewportShare))
 
-    expect(teeth.length).toBeGreaterThanOrEqual(2)
-    const largest = teeth.reduce((widest, tooth) => {
-      return tooth.scale > widest.scale ? tooth : widest
+    expect(shares.length).toBeGreaterThanOrEqual(10)
+    shares.forEach(share => {
+      expect(share).toBeLessThanOrEqual(0.13)
+      expect(share).toBeGreaterThanOrEqual(0.02)
     })
-    expect(largest.x).toBeGreaterThanOrEqual(720)
+  })
+
+  it('reuses three crowned-and-rooted tooth shapes across the tiers', () => {
+    const frames = toothFrames()
+
+    expect(Object.keys(frames).sort()).toEqual(TOOTH_SHAPE_IDS)
+    LAYER_NAMES.forEach(name => {
+      const shapes = new Set(toothMarks(name).map(mark => mark.shape))
+      expect(shapes.size, `${name} layer must mix shapes`).toBeGreaterThanOrEqual(2)
+    })
+  })
+
+  it('frames every tooth mark with the frame its shared shape declares', () => {
+    const frames = toothFrames()
+
+    LAYER_NAMES.forEach(name => {
+      const marks = toothMarks(name)
+      expect(marks.length, `${name} layer must carry teeth`).toBeGreaterThanOrEqual(2)
+
+      marks.forEach(mark => {
+        const frame = frames[mark.shape]
+        expect(frame, `${mark.shape} must be a shared shape`).toBeTruthy()
+        expect(mark.frameX).toBe(frame.minX)
+        expect(mark.frameY).toBe(frame.minY)
+        expect(mark.frameWidth).toBe(frame.width)
+        expect(mark.frameHeight).toBe(frame.height)
+      })
+    })
+  })
+
+  it('keeps the depth order: the far tier is the smallest and the near tier the largest', () => {
+    const widest = name => Math.max(...toothMarks(name).map(mark => mark.width))
+
+    expect(widest('far')).toBeLessThan(widest('mid'))
+    expect(widest('mid')).toBeLessThan(widest('near'))
+  })
+
+  it('lands the near-tier hero teeth in the normal-tooth band of the viewport', () => {
+    const heroes = toothMarks('near')
+
+    expect(heroes.length).toBeGreaterThanOrEqual(2)
+    heroes.forEach(mark => {
+      const share = toothViewportShare(mark)
+      expect(
+        share >= 0.07 && share <= 0.13,
+        `${mark.shape} hero covers ${(share * 100).toFixed(1)}% of the viewport`
+      ).toBe(true)
+    })
+  })
+
+  it('spreads the deep tier across both halves so the scene breathes everywhere', () => {
+    const far = toothMarks('far')
+
+    expect(far.length).toBeGreaterThanOrEqual(6)
+    expect(far.filter(mark => mark.centerX < SCENE_WIDTH / 2).length).toBeGreaterThanOrEqual(2)
+    expect(far.filter(mark => mark.centerX >= SCENE_WIDTH / 2).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('puts the largest tooth in the half the card leaves free', () => {
+    const marks = LAYER_NAMES.flatMap(name => toothMarks(name))
+    const largest = marks.reduce((widest, mark) => (mark.width > widest.width ? mark : widest))
+
+    expect(largest.centerX).toBeGreaterThanOrEqual(SCENE_WIDTH / 2)
+  })
+
+  it('keeps the strong tiers out from under the left-anchored form card', () => {
+    ;['mid', 'near'].forEach(name => {
+      toothMarks(name).forEach(mark => {
+        const behindCard =
+          mark.centerX > CARD_KEEP_OUT.left &&
+          mark.centerX < CARD_KEEP_OUT.right &&
+          mark.centerY > CARD_KEEP_OUT.top &&
+          mark.centerY < CARD_KEEP_OUT.bottom
+
+        expect(
+          behindCard,
+          `${name} tooth at (${mark.centerX}, ${mark.centerY}) sits under the form card`
+        ).toBe(false)
+      })
+    })
   })
 
   it('keeps each layer inside its perceived-contrast band over the canvas gradient', () => {
@@ -310,22 +628,22 @@ describe('DentalParallaxBackground reduced transparency', () => {
   })
 
   it('never hides the layers in its reduced-transparency CSS', () => {
-    const block = reducedTransparencyBlock()
+    const inner = reducedTransparencyBlock()
 
-    expect(block).not.toMatch(/display\s*:\s*none/)
-    expect(block).not.toMatch(/visibility\s*:\s*hidden/)
+    expect(inner).not.toMatch(/display\s*:\s*none/)
+    expect(inner).not.toMatch(/visibility\s*:\s*hidden/)
   })
 
   it('repaints every tier from solid token tints at full opacity', () => {
-    const block = reducedTransparencyBlock()
+    const inner = reducedTransparencyBlock()
 
-    expect(block).toMatch(/\.dental-parallax-layer\s*\{[^}]*opacity\s*:\s*1/)
-    expect(block).toMatch(/\.dental-parallax-layer\s+\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
-    expect(block).not.toMatch(/opacity\s*:\s*0?\.\d/)
-    expect(block).not.toMatch(/rgba?\s*\(/)
+    expect(inner).toMatch(/\.dental-parallax-layer\s*\{[^}]*opacity\s*:\s*1/)
+    expect(inner).toMatch(/\.dental-parallax-layer\s+\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
+    expect(inner).not.toMatch(/opacity\s*:\s*0?\.\d/)
+    expect(inner).not.toMatch(/rgba?\s*\(/)
 
     const steps = LAYER_NAMES.map(name => {
-      const step = tierRule(block, name).match(/color\s*:\s*var\(--color-accent-(\d+)\)/)?.[1]
+      const step = tierRule(inner, name).match(/color\s*:\s*var\(--color-accent-(\d+)\)/)?.[1]
       expect(step, `${name} must repaint from a solid accent token`).toBeTruthy()
       return Number(step)
     })
@@ -334,11 +652,38 @@ describe('DentalParallaxBackground reduced transparency', () => {
     expect(steps).toEqual([...steps].sort((a, b) => a - b))
   })
 
+  it('paints the redesigned marks from the tier tint alone', () => {
+    // Solid mode neutralizes the `opacity` presentation attribute; a
+    // fill-opacity / stroke-opacity mark would slip past that rule, so the
+    // scene never declares one.
+    expect(componentSource).not.toMatch(/(fill|stroke)-opacity/)
+
+    const painted = paintedAttributes()
+    expect(painted.length).toBeGreaterThan(0)
+    painted.forEach(value => {
+      const tokenised = /^var\(--color-[a-z0-9-]+\)$/.test(value)
+      expect(
+        ['currentColor', 'none'].includes(value) || tokenised,
+        `unexpected paint value: ${value}`
+      ).toBe(true)
+    })
+  })
+
+  it('reaches every tier with the new shapes in solid mode', () => {
+    const inner = reducedTransparencyBlock()
+
+    LAYER_NAMES.forEach(name => {
+      expect(toothMarks(name).length).toBeGreaterThanOrEqual(2)
+      expect(tierRule(inner, name)).toMatch(/--color-accent-\d+/)
+    })
+    expect(inner).toMatch(/\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
+  })
+
   it('keeps every tier above its visibility floor in solid mode', () => {
     const floors = { far: 0.09, mid: 0.3, near: 0.45 }
-    const block = reducedTransparencyBlock()
+    const inner = reducedTransparencyBlock()
     const contrasts = LAYER_NAMES.map(name => {
-      const step = tierRule(block, name).match(/--color-accent-(\d+)/)[1]
+      const step = tierRule(inner, name).match(/--color-accent-(\d+)/)[1]
       return perceivedContrast(tokens.colors.accent[step], 1)[0]
     })
 
@@ -353,8 +698,8 @@ describe('DentalParallaxBackground reduced transparency', () => {
   })
 
   it('keeps the login backdrop visible under reduced transparency', () => {
-    const block = reducedTransparencyBlock(loginPageSource)
-    const backdrop = block.match(/\.login-backdrop\s*\{([^}]*)\}/)
+    const inner = reducedTransparencyBlock(loginPageSource)
+    const backdrop = inner.match(/\.login-backdrop\s*\{([^}]*)\}/)
 
     expect(
       backdrop,
