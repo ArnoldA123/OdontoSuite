@@ -173,11 +173,30 @@ const { active } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 }
   }
 }
 
-/* Reduced transparency: drop the translucent layers and keep the flat
-   canvas tone. */
+/* Reduced transparency: keep the scene and drop the translucency. The
+   layers stay fully visible; each tier repaints from a solid token tint so
+   the far/near hierarchy survives without alpha compositing. */
 @media (prefers-reduced-transparency: reduce) {
   .dental-parallax-layer {
-    display: none;
+    opacity: 1;
+  }
+
+  .dental-parallax-far {
+    color: var(--color-accent-100);
+  }
+
+  .dental-parallax-mid {
+    color: var(--color-accent-200);
+  }
+
+  .dental-parallax-near {
+    color: var(--color-accent-300);
+  }
+
+  /* The marks carry opacity presentation attributes; neutralize them so
+     every mark paints its tier tint as a solid fill. */
+  .dental-parallax-layer [opacity] {
+    opacity: 1;
   }
 }
 </style>

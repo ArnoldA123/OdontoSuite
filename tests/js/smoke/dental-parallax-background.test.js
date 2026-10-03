@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import DentalParallaxBackground from '@/components/login/DentalParallaxBackground.vue'
 import componentSource from '@/components/login/DentalParallaxBackground.vue?raw'
+import loginPageSource from '@/modules/auth/LoginPage.vue?raw'
 import tokens from '@/design-system/tokens'
 
 const nativeMatchMedia = window.matchMedia
@@ -16,9 +17,13 @@ const CONTRAST_BANDS = {
   near: [0.45, 0.9]
 }
 
-function mockMedia({ reducedMotion = false } = {}) {
+function mockMedia({ reducedMotion = false, reducedTransparency = false } = {}) {
   const matchMedia = vi.fn(query => ({
-    matches: query.includes('prefers-reduced-motion') ? reducedMotion : false,
+    matches: query.includes('prefers-reduced-transparency')
+      ? reducedTransparency
+      : query.includes('prefers-reduced-motion')
+        ? reducedMotion
+        : false,
     media: query,
     onchange: null,
     addEventListener: vi.fn(),
@@ -45,6 +50,20 @@ function waitFrames(ms = 80) {
 function cssRule(selector) {
   const match = componentSource.match(new RegExp(`^${selector}\\s*\\{([^}]*)\\}`, 'm'))
   if (!match) throw new Error(`no CSS rule for ${selector}`)
+  return match[1]
+}
+
+function reducedTransparencyBlock(source = componentSource) {
+  const match = source.match(
+    /@media \(prefers-reduced-transparency:\s*reduce\)\s*\{\n([\s\S]*?)\n\}/
+  )
+  if (!match) throw new Error('no @media (prefers-reduced-transparency: reduce) block')
+  return match[1]
+}
+
+function tierRule(block, name) {
+  const match = block.match(new RegExp(`\\.dental-parallax-${name}\\s*\\{([^}]*)\\}`))
+  if (!match) throw new Error(`no .dental-parallax-${name} rule in the reduced-transparency block`)
   return match[1]
 }
 
@@ -271,5 +290,77 @@ describe('DentalParallaxBackground visibility budget', () => {
         `${name} layer is too heavy: ${ratios[1].toFixed(3)} contrast (ceiling ${ceiling})`
       ).toBe(true)
     })
+  })
+})
+
+describe('DentalParallaxBackground reduced transparency', () => {
+  it('keeps the three layers mounted and visible under prefers-reduced-transparency: reduce', () => {
+    mockMedia({ reducedTransparency: true })
+    const wrapper = mount(DentalParallaxBackground)
+
+    const layers = wrapper.findAll('[data-layer]')
+    expect(layers.map(layer => layer.attributes('data-layer'))).toEqual(['far', 'mid', 'near'])
+    layers.forEach(layer => {
+      expect(window.getComputedStyle(layer.element).display).not.toBe('none')
+      expect(layer.element.style.display).not.toBe('none')
+    })
+    expect(wrapper.element.getAttribute('aria-hidden')).toBe('true')
+
+    wrapper.unmount()
+  })
+
+  it('never hides the layers in its reduced-transparency CSS', () => {
+    const block = reducedTransparencyBlock()
+
+    expect(block).not.toMatch(/display\s*:\s*none/)
+    expect(block).not.toMatch(/visibility\s*:\s*hidden/)
+  })
+
+  it('repaints every tier from solid token tints at full opacity', () => {
+    const block = reducedTransparencyBlock()
+
+    expect(block).toMatch(/\.dental-parallax-layer\s*\{[^}]*opacity\s*:\s*1/)
+    expect(block).toMatch(/\.dental-parallax-layer\s+\[opacity\]\s*\{[^}]*opacity\s*:\s*1/)
+    expect(block).not.toMatch(/opacity\s*:\s*0?\.\d/)
+    expect(block).not.toMatch(/rgba?\s*\(/)
+
+    const steps = LAYER_NAMES.map(name => {
+      const step = tierRule(block, name).match(/color\s*:\s*var\(--color-accent-(\d+)\)/)?.[1]
+      expect(step, `${name} must repaint from a solid accent token`).toBeTruthy()
+      return Number(step)
+    })
+
+    expect(new Set(steps).size).toBe(LAYER_NAMES.length)
+    expect(steps).toEqual([...steps].sort((a, b) => a - b))
+  })
+
+  it('keeps every tier above its visibility floor in solid mode', () => {
+    const floors = { far: 0.09, mid: 0.3, near: 0.45 }
+    const block = reducedTransparencyBlock()
+    const contrasts = LAYER_NAMES.map(name => {
+      const step = tierRule(block, name).match(/--color-accent-(\d+)/)[1]
+      return perceivedContrast(tokens.colors.accent[step], 1)[0]
+    })
+
+    LAYER_NAMES.forEach((name, index) => {
+      expect(
+        contrasts[index] >= floors[name],
+        `${name} solid tint is too faint: ${contrasts[index].toFixed(3)} contrast (floor ${floors[name]})`
+      ).toBe(true)
+    })
+    expect(contrasts[0]).toBeLessThan(contrasts[1])
+    expect(contrasts[1]).toBeLessThan(contrasts[2])
+  })
+
+  it('keeps the login backdrop visible under reduced transparency', () => {
+    const block = reducedTransparencyBlock(loginPageSource)
+    const backdrop = block.match(/\.login-backdrop\s*\{([^}]*)\}/)
+
+    expect(
+      backdrop,
+      'LoginPage.vue must keep a .login-backdrop rule in its reduced-transparency block'
+    ).not.toBeNull()
+    expect(backdrop[1]).not.toMatch(/display\s*:\s*none/)
+    expect(backdrop[1]).toMatch(/display\s*:\s*block/)
   })
 })

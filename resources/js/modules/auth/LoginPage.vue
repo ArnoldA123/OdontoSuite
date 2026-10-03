@@ -1422,14 +1422,15 @@ watch(
   }
 }
 
-/* Honor reduced transparency: the decorative scene is dropped and the card
-   flattens to an opaque surface. */
+/* Honor reduced transparency: the card flattens to an opaque surface and
+   the decorative scene STAYS visible: its layers repaint from solid tints
+   (DentalParallaxBackground) instead of disappearing. */
 @media (prefers-reduced-transparency: reduce) {
   .login-page {
     background: var(--color-canvas);
   }
   .login-backdrop {
-    display: none;
+    display: block;
   }
   .login-card {
     background: var(--color-background-system-background);
