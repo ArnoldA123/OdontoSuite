@@ -15,7 +15,7 @@
     >
       <defs>
         <filter id="dental-parallax-soft" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="14" />
+          <feGaussianBlur stdDeviation="10" />
         </filter>
         <path
           id="dental-parallax-tooth"
@@ -23,9 +23,9 @@
         />
       </defs>
       <g fill="currentColor" filter="url(#dental-parallax-soft)">
+        <use href="#dental-parallax-tooth" transform="translate(-60 60) scale(19) rotate(-10)" />
+        <use href="#dental-parallax-tooth" transform="translate(690 240) scale(13) rotate(8)" />
         <use href="#dental-parallax-tooth" transform="translate(-30 560) scale(15) rotate(16)" />
-        <use href="#dental-parallax-tooth" transform="translate(150 40) scale(18) rotate(-10)" />
-        <use href="#dental-parallax-tooth" transform="translate(700 330) scale(13) rotate(8)" />
         <use href="#dental-parallax-tooth" transform="translate(1090 500) scale(21) rotate(14)" />
       </g>
     </svg>
@@ -41,24 +41,37 @@
       <path
         d="M0 606 C 240 552 430 692 724 630 C 1016 568 1196 704 1440 640 L1440 900 L0 900 Z"
         fill="currentColor"
-        opacity="0.5"
+        opacity="0.55"
       />
       <path
         d="M0 748 C 300 686 546 812 844 750 C 1142 688 1284 824 1440 766 L1440 900 L0 900 Z"
         fill="currentColor"
-        opacity="0.38"
+        opacity="0.42"
       />
-      <g transform="translate(924 112) scale(23) rotate(10)">
-        <use href="#dental-parallax-tooth" fill="currentColor" opacity="0.26" />
+      <g transform="translate(520 460) scale(17) rotate(-14)">
+        <use href="#dental-parallax-tooth" fill="currentColor" opacity="0.4" />
         <use
           href="#dental-parallax-tooth"
           fill="none"
           stroke="currentColor"
-          stroke-width="1.1"
+          stroke-width="1.2"
           stroke-linecap="round"
           stroke-linejoin="round"
           vector-effect="non-scaling-stroke"
-          opacity="0.45"
+          opacity="0.7"
+        />
+      </g>
+      <g transform="translate(924 112) scale(23) rotate(10)">
+        <use href="#dental-parallax-tooth" fill="currentColor" opacity="0.8" />
+        <use
+          href="#dental-parallax-tooth"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          vector-effect="non-scaling-stroke"
+          opacity="1"
         />
       </g>
     </svg>
@@ -72,20 +85,21 @@
       focusable="false"
     >
       <g fill="currentColor">
-        <circle cx="238" cy="182" r="3" />
-        <circle cx="384" cy="646" r="2" />
-        <circle cx="862" cy="138" r="2.5" />
-        <circle cx="1184" cy="322" r="3" />
-        <circle cx="662" cy="782" r="2" />
-        <circle cx="1322" cy="702" r="2.5" />
-        <circle cx="96" cy="486" r="2" />
+        <circle cx="96" cy="486" r="4" />
+        <circle cx="168" cy="168" r="3.5" />
+        <circle cx="384" cy="646" r="3.5" />
+        <circle cx="662" cy="782" r="3.5" />
+        <circle cx="862" cy="138" r="3.5" />
+        <circle cx="1184" cy="322" r="4" />
+        <circle cx="1322" cy="702" r="4" />
       </g>
-      <g fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" opacity="0.8">
+      <g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity="1">
         <path d="M520 244 L562 206" />
         <path d="M1002 522 L1044 482" />
         <path d="M142 422 L178 390" />
         <path d="M762 302 L798 266" />
         <path d="M1268 176 L1302 144" />
+        <path d="M1108 640 L1150 600" />
       </g>
     </svg>
   </div>
@@ -103,7 +117,7 @@ const { active } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 }
 <style scoped>
 /* Full-bleed vector scene. The base gradient and the three silhouette
    layers compose the depth; the layers translate against the pointer with
-   amplitudes that grow toward the viewer (4px / 8px / 12px). Everything is
+   amplitudes that grow toward the viewer (10px / 22px / 36px). Everything is
    vector + transforms, no raster assets. */
 .dental-parallax {
   position: absolute;
@@ -116,9 +130,9 @@ const { active } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 }
 .dental-parallax-layer {
   position: absolute;
   /* Overscan so the largest translation never reveals an edge. */
-  inset: -32px;
-  width: calc(100% + 64px);
-  height: calc(100% + 64px);
+  inset: -48px;
+  width: calc(100% + 96px);
+  height: calc(100% + 96px);
   transform: translate3d(
     calc(var(--parallax-x, 0) * var(--parallax-amplitude, 0px)),
     calc(var(--parallax-y, 0) * var(--parallax-amplitude, 0px)),
@@ -133,21 +147,21 @@ const { active } = usePointerParallax(rootRef, { response: 0.45, damping: 0.85 }
 }
 
 .dental-parallax-far {
-  --parallax-amplitude: 4px;
-  color: var(--color-accent-100);
-  opacity: 0.4;
+  --parallax-amplitude: 10px;
+  color: var(--color-accent-200);
+  opacity: 0.27;
 }
 
 .dental-parallax-mid {
-  --parallax-amplitude: 8px;
-  color: var(--color-accent-200);
-  opacity: 0.38;
+  --parallax-amplitude: 22px;
+  color: var(--color-accent-300);
+  opacity: 0.5;
 }
 
 .dental-parallax-near {
-  --parallax-amplitude: 12px;
-  color: var(--color-accent-300);
-  opacity: 0.5;
+  --parallax-amplitude: 36px;
+  color: var(--color-accent-400);
+  opacity: 0.45;
 }
 
 /* Reduced motion: the scene is fully static. The pointer listener is never
