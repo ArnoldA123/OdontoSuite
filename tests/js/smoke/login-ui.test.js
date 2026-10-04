@@ -32,6 +32,7 @@ vi.mock('@/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '@/plugins/ui-components'
 import Page from '@/modules/auth/LoginPage.vue'
+import pageSource from '@/modules/auth/LoginPage.vue?raw'
 
 function makeRouter() {
   return createRouter({
@@ -70,6 +71,18 @@ async function waitForBoth(wrapper, timeoutMs = 3000) {
 afterEach(() => {
   loginMock.mockReset()
   localStorage.clear()
+})
+
+describe('login card centering', () => {
+  it('centers the card at desktop widths', () => {
+    expect(pageSource).toMatch(/\.login-stage\s*\{[^}]*justify-center/)
+    expect(pageSource).not.toMatch(/justify-content:\s*flex-start/)
+    expect(pageSource).not.toMatch(/padding-left:\s*clamp\(56px,\s*14vw,\s*220px\)/)
+  })
+
+  it('keeps the stage padding symmetric at every breakpoint', () => {
+    expect(pageSource).toMatch(/\.login-stage\s*\{[^}]*padding:\s*clamp\(16px,\s*4vw,\s*56px\)/)
+  })
 })
 
 describe('login password toggle', () => {

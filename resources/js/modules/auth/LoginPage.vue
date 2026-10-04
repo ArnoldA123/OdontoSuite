@@ -750,9 +750,9 @@ watch(
   opacity: var(--spring-backdrop-opacity);
 }
 
-/* The stage centres the card and owns the safe spacing around it. On wide
-   viewports the card anchors left of centre so the scene reads as
-   composition, not wallpaper. */
+/* The stage centres the card and owns the safe spacing around it. The card
+   stays centred at every viewport, so the scene distributes around it in the
+   top and bottom bands and on both flanks. */
 .login-stage {
   @apply relative flex items-center justify-center;
   z-index: 1;
@@ -1339,15 +1339,6 @@ watch(
 .login-footer-link:hover {
   color: var(--color-accent-active);
   text-decoration: underline;
-}
-
-/* Wide viewports: the card anchors left of centre so the scene carries the
-   right half of the composition. */
-@media (min-width: 1024px) {
-  .login-stage {
-    justify-content: flex-start;
-    padding-left: clamp(56px, 14vw, 220px);
-  }
 }
 
 /* Mobile: the card takes the safe width and the gaps tighten so the form
