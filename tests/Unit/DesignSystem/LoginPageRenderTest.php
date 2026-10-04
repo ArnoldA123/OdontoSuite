@@ -863,4 +863,32 @@ class LoginPageRenderTest extends TestCase
                 );
             }
         }
+
+        /**
+         * @test
+         */
+        public function login_page_centers_the_card_on_desktop(): void
+        {
+            $source = (string) file_get_contents(self::loginPagePath());
+
+            // The centered layout is the design decision: the card no longer
+            // anchors left on wide viewports, and the decorative scene
+            // distributes around it. Both the old flex anchor and its
+            // padding escape hatch must stay gone.
+            $this->assertMatchesRegularExpression(
+                '/\.login-stage\s*\{[^}]*justify-center/s',
+                $source,
+                'LoginPage.vue must center the floating card at every viewport'
+            );
+            $this->assertStringNotContainsString(
+                'justify-content: flex-start',
+                $source,
+                'LoginPage.vue must not left-anchor the card on wide viewports'
+            );
+            $this->assertStringNotContainsString(
+                'padding-left: clamp(56px, 14vw, 220px)',
+                $source,
+                'the retired left-anchor padding must not come back'
+            );
+        }
 }

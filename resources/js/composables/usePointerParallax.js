@@ -9,12 +9,18 @@
  * Contract:
  *   - `prefers-reduced-motion: reduce` — no pointer listener is attached
  *     (and any already attached is released), so the layers never move.
- *   - The listeners are passive (pointermove on `window`, pointerleave on
- *     `document`) and are always removed on unmount.
- *   - `active` reports whether the offsets are moving (a pointer event is
- *     in flight, or the settle window has not elapsed), so consumers can
- *     scope `will-change` to the animation instead of reserving a
- *     compositor layer at rest.
+ *   - `pointermove` is the only event that retargets the springs, for every
+ *     pointer type (mouse, pen, touch). A mouse retargets from the first
+ *     move; a touch or pen press has to travel past the tap slop before it
+ *     steers, so a tap (and its jitter) leaves the scene perfectly still.
+ *   - `pointerdown` only records where a touch or pen gesture started and
+ *     `pointerup` / `pointercancel` only close it: neither ever sets a
+ *     target, and no `touchstart` / `click` handler exists.
+ *   - The listeners are passive and are always removed on unmount.
+ *   - `active` reports whether the offsets are moving (a retarget is in
+ *     flight, or the settle window has not elapsed), so consumers can scope
+ *     `will-change` to the animation instead of reserving a compositor
+ *     layer at rest.
  *   - The springs handle their own rAF lifecycle and reduced-motion settle.
  */
 import { onMounted, onUnmounted, ref, watch } from 'vue'
@@ -27,7 +33,17 @@ import { useReducedMotion } from './useReducedMotion.js'
  */
 const ACTIVITY_IDLE_MS = 1200
 
+/**
+ * How far a touch or pen press must travel before it steers the parallax.
+ * Below it the gesture stays a tap: the scene never shudders at the tap point.
+ */
+const TAP_SLOP_PX = 4
+
 const clamp = value => Math.max(-1, Math.min(1, value))
+
+const isDragPointer = event => event.pointerType === 'touch' || event.pointerType === 'pen'
+
+const pointerKey = event => event.pointerId ?? event.pointerType ?? 'primary'
 
 /**
  * @param {import('vue').Ref<HTMLElement|null>} elementRef
@@ -57,6 +73,7 @@ export function usePointerParallax(elementRef, options = {}) {
 
   let listening = false
   let idleTimer = null
+  let gesture = null
 
   const settleActivity = () => {
     if (idleTimer) clearTimeout(idleTimer)
@@ -70,7 +87,27 @@ export function usePointerParallax(elementRef, options = {}) {
     idleTimer = setTimeout(settleActivity, ACTIVITY_IDLE_MS)
   }
 
+  const onPointerDown = event => {
+    if (!isDragPointer(event)) return
+    gesture = {
+      key: pointerKey(event),
+      startX: event.clientX,
+      startY: event.clientY,
+      engaged: false
+    }
+  }
+
+  const endGesture = event => {
+    if (gesture && gesture.key === pointerKey(event)) gesture = null
+  }
+
   const onPointerMove = event => {
+    if (gesture && gesture.key === pointerKey(event) && !gesture.engaged) {
+      const travelled = Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY)
+      if (travelled < TAP_SLOP_PX) return
+      gesture.engaged = true
+    }
+
     const width = window.innerWidth || 1
     const height = window.innerHeight || 1
     x.set(clamp((event.clientX / width) * 2 - 1))
@@ -78,7 +115,8 @@ export function usePointerParallax(elementRef, options = {}) {
     markActivity()
   }
 
-  const onPointerLeave = () => {
+  const onPointerLeave = event => {
+    if (event.pointerType && isDragPointer(event)) return
     x.set(0)
     y.set(0)
     markActivity()
@@ -87,6 +125,9 @@ export function usePointerParallax(elementRef, options = {}) {
   const attach = () => {
     if (listening) return
     window.addEventListener('pointermove', onPointerMove, { passive: true })
+    window.addEventListener('pointerdown', onPointerDown, { passive: true })
+    window.addEventListener('pointerup', endGesture, { passive: true })
+    window.addEventListener('pointercancel', endGesture, { passive: true })
     document.addEventListener('pointerleave', onPointerLeave)
     listening = true
   }
@@ -94,12 +135,16 @@ export function usePointerParallax(elementRef, options = {}) {
   const release = () => {
     if (!listening) return
     window.removeEventListener('pointermove', onPointerMove)
+    window.removeEventListener('pointerdown', onPointerDown)
+    window.removeEventListener('pointerup', endGesture)
+    window.removeEventListener('pointercancel', endGesture)
     document.removeEventListener('pointerleave', onPointerLeave)
     listening = false
   }
 
   const teardown = () => {
     release()
+    gesture = null
     settleActivity()
   }
 

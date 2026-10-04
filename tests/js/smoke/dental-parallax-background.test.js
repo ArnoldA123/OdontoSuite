@@ -9,24 +9,39 @@ const nativeMatchMedia = window.matchMedia
 
 const LAYER_NAMES = ['far', 'mid', 'near']
 
-// Marks position themselves in percentages of the 1440x900 design frame the
-// scene is composed on, and size themselves in viewport width units, so a
-// width in vw over 100 is the fraction of the viewport a mark covers.
+// Marks position themselves in percentages of the overscanned layer frame and
+// size themselves in viewport width units, so a width in vw over 100 is the
+// fraction of the viewport a mark covers.
 const SCENE_WIDTH = 1440
 const SCENE_HEIGHT = 900
+const DESKTOP_VIEWPORT = { width: SCENE_WIDTH, height: SCENE_HEIGHT }
 
-// The desktop form card anchors left (padding-left clamp(56px, 14vw, 220px)
-// plus a 26rem card), so the strong tiers stay clear of that band and the
-// deep tier carries the scene there instead.
-const CARD_KEEP_OUT = { left: 190, right: 660, top: 40, bottom: 860 }
+// The card is centered at every viewport now: 26rem wide (416px) in the 900px
+// tall frame, so the free zones are the top band, the bottom band and both
+// flanks. The interior is the card inset past its border: a mark may peek
+// behind the edge, never over the fields.
+const DESKTOP_CARD = { left: 512, right: 928, top: 130, bottom: 770 }
+const DESKTOP_INTERIOR = { left: 544, right: 896, top: 162, bottom: 738 }
 
+// The user asked for roughly half the previous widths: teeth sit at 1.8-4.5%
+// of the viewport (heroes at most 4.5%, typical teeth 1.8-3.5%), and the
+// toothbrush may lead the largest tooth but never pass 6%.
+const TOOTH_MIN = 0.018
+const TOOTH_MAX = 0.045
+const TYPICAL_TOOTH_MAX = 0.035
+const BRUSH_MAX = 0.06
+const BRUSH_LEAD = 1.35
+
+// Only the plain tooth and the toothbrush were ever requested: the sparkle
+// tooth (tooth-2.png) and its warm glow are retired.
 const LOGIN_ASSETS = {
   tooth: '/images/login/tooth-1.png',
-  sparkleTooth: '/images/login/tooth-2.png',
   toothbrush: '/images/login/toothbrush.png'
 }
 
-// The shipped tooth PNGs paint a near-flat light gray body (#dedede, channel
+const MARK_MIX = { min: 12, max: 15, minBrushes: 5 }
+
+// The shipped tooth PNG paints a near-flat light gray body (#dedede, channel
 // 222). The visibility model pushes that channel through the per-tier
 // brightness filter and the layer opacity, then composites over the canvas
 // gradient endpoints.
@@ -133,11 +148,10 @@ function tagAttributes(tag) {
 }
 
 // Every mark is an <img> whose inline style declares the center (--mark-x /
-// --mark-y as design-frame percentages), the viewport-relative width
-// (--mark-w in vw) and the rotation (--mark-r in deg). The optional
-// --mark-sm-* set is the small-screen override the max-width: 640px block
-// consumes; it stays optional here so the desktop contract keeps parsing on
-// its own.
+// --mark-y as frame percentages), the viewport-relative width (--mark-w in vw)
+// and the rotation (--mark-r in deg). The optional --mark-sm-* set is the
+// small-screen override the max-width: 640px block consumes; it stays optional
+// here so the desktop contract keeps parsing on its own.
 function marks(name) {
   return [...layerMarkup(name).matchAll(/<img\b[^>]*>/g)].map(([tag]) => {
     const attributes = tagAttributes(tag)
@@ -167,12 +181,11 @@ function marks(name) {
       className: attributes.class ?? '',
       width: w / 100,
       rotate: r,
-      centerX: (x / 100) * SCENE_WIDTH,
-      centerY: (y / 100) * SCENE_HEIGHT,
+      position: { x: x / 100, y: y / 100 },
       sm:
         smX === null || smY === null || smW === null || smR === null
           ? null
-          : { x: smX, y: smY, width: smW / 100, rotate: smR }
+          : { x: smX / 100, y: smY / 100, width: smW / 100, rotate: smR }
     }
   })
 }
@@ -185,11 +198,22 @@ function brushMarks(name) {
   return marks(name).filter(mark => mark.className.includes('toothbrush'))
 }
 
-// The layers overscan the viewport, so a mark's percentage runs over the
-// layer frame (viewport + 2 x overscan), not the raw viewport. The
-// small-screen contract converts the --mark-sm-* percentages back to
-// viewport pixels and treats every 512x512 asset as the square it is, so the
-// rotated bounding box is the mark's spatial footprint.
+function allMarks() {
+  return LAYER_NAMES.flatMap(name => marks(name))
+}
+
+function allToothMarks() {
+  return LAYER_NAMES.flatMap(name => toothMarks(name))
+}
+
+function allBrushMarks() {
+  return LAYER_NAMES.flatMap(name => brushMarks(name))
+}
+
+// The layers overscan the viewport, so a mark percentage runs over the layer
+// frame (viewport + 2 x overscan), not the raw viewport. The rotated bounding
+// box is the mark's spatial footprint, because every asset is square-ish and
+// rotates in place.
 function layerOverscan() {
   const rule = cssRule('\\.dental-parallax-layer')
   const inset = rule.match(/inset:\s*-(\d+)px/)
@@ -198,19 +222,31 @@ function layerOverscan() {
   return { inset: Number(inset[1]), grow: Number(grow[1]) }
 }
 
-function smRect(mark, viewport) {
+function markRect(mark, viewport, slot = 'base') {
+  if (slot === 'sm' && !mark.sm) {
+    throw new Error(`${mark.src} lacks the --mark-sm-* slot`)
+  }
+
   const { inset, grow } = layerOverscan()
-  const centerX = -inset + (mark.sm.x / 100) * (viewport.width + grow)
-  const centerY = -inset + (mark.sm.y / 100) * (viewport.height + grow)
-  const size = mark.sm.width * viewport.width
-  const radians = (mark.sm.rotate * Math.PI) / 180
+  const frame = { width: viewport.width + grow, height: viewport.height + grow }
+  const placement = slot === 'sm' ? mark.sm : mark.position
+  const width = slot === 'sm' ? mark.sm.width : mark.width
+  const rotate = slot === 'sm' ? mark.sm.rotate : mark.rotate
+
+  const centerX = -inset + placement.x * frame.width
+  const centerY = -inset + placement.y * frame.height
+  const size = width * viewport.width
+  const radians = (rotate * Math.PI) / 180
   const half = (size / 2) * (Math.abs(Math.cos(radians)) + Math.abs(Math.sin(radians)))
 
   return {
     left: centerX - half,
     right: centerX + half,
     top: centerY - half,
-    bottom: centerY + half
+    bottom: centerY + half,
+    centerX,
+    centerY,
+    size
   }
 }
 
@@ -226,6 +262,11 @@ function overlapArea(a, b) {
   const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
   const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
   return width * height
+}
+
+function visibleShare(mark, viewport, slot = 'base') {
+  const rect = markRect(mark, viewport, slot)
+  return overlapArea(rect, viewportRect(viewport)) / rectArea(rect)
 }
 
 function driftClock(rule, name) {
@@ -427,7 +468,7 @@ describe('DentalParallaxBackground art assets', () => {
   it('mounts every parsed mark as a real image element', () => {
     const wrapper = mount(DentalParallaxBackground)
     const images = wrapper.findAll('img')
-    const parsed = LAYER_NAMES.flatMap(name => marks(name))
+    const parsed = allMarks()
 
     expect(images).toHaveLength(parsed.length)
     expect(images.every(image => image.attributes('alt') === '')).toBe(true)
@@ -438,32 +479,24 @@ describe('DentalParallaxBackground art assets', () => {
     wrapper.unmount()
   })
 
-  it('references all three shipped login PNGs through /images/login/', () => {
-    const srcs = LAYER_NAMES.flatMap(name => marks(name).map(mark => mark.src))
+  it('ships only the plain tooth and the toothbrush', () => {
+    const srcs = allMarks().map(mark => mark.src)
     const unique = [...new Set(srcs)].sort()
 
     expect(unique).toEqual(Object.values(LOGIN_ASSETS).sort())
-  })
-
-  it('mixes the plain tooth, the sparkle tooth and the toothbrush across the tiers', () => {
-    LAYER_NAMES.forEach(name => {
-      const assets = new Set(marks(name).map(mark => mark.src))
-      expect(assets.size, `${name} layer must mix assets`).toBeGreaterThanOrEqual(2)
-    })
-
-    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
-    expect(brushes.length).toBe(1)
-    expect(brushes[0].src).toBe(LOGIN_ASSETS.toothbrush)
+    expect(componentSource).not.toContain('tooth-2')
+    expect(componentSource).not.toContain('dental-parallax-sparkle')
+    expect(componentSource).not.toMatch(/sparkle/i)
+    expect(componentSource).not.toMatch(/drop-shadow/)
+    expect(componentSource).not.toMatch(/rgba\(/)
   })
 
   it('positions every mark with the center, size and rotation style contract', () => {
-    LAYER_NAMES.forEach(name => {
-      marks(name).forEach(mark => {
-        expect(Number.isFinite(mark.centerX)).toBe(true)
-        expect(Number.isFinite(mark.centerY)).toBe(true)
-        expect(mark.width).toBeGreaterThan(0)
-        expect(Number.isFinite(mark.rotate)).toBe(true)
-      })
+    allMarks().forEach(mark => {
+      expect(Number.isFinite(mark.position.x)).toBe(true)
+      expect(Number.isFinite(mark.position.y)).toBe(true)
+      expect(mark.width).toBeGreaterThan(0)
+      expect(Number.isFinite(mark.rotate)).toBe(true)
     })
   })
 
@@ -475,6 +508,119 @@ describe('DentalParallaxBackground art assets', () => {
     expect(rule).toMatch(/width:\s*var\(--mark-w\)/)
     expect(rule).toMatch(/rotate\(var\(--mark-r/)
     expect(rule).toMatch(/filter:\s*brightness\(var\(--mark-brightness/)
+  })
+})
+
+describe('DentalParallaxBackground mark mix', () => {
+  it('mixes at least five toothbrush marks with plain teeth', () => {
+    const all = allMarks()
+
+    expect(all.length).toBeGreaterThanOrEqual(MARK_MIX.min)
+    expect(all.length).toBeLessThanOrEqual(MARK_MIX.max)
+    expect(allBrushMarks().length).toBeGreaterThanOrEqual(MARK_MIX.minBrushes)
+    expect(allToothMarks().length).toBeGreaterThanOrEqual(MARK_MIX.minBrushes)
+    expect(new Set(all.map(mark => mark.src)).size).toBe(2)
+  })
+
+  it('puts both assets in every tier so no tier reads as one asset only', () => {
+    LAYER_NAMES.forEach(name => {
+      expect(brushMarks(name).length, `${name} tier needs toothbrushes`).toBeGreaterThanOrEqual(1)
+      expect(toothMarks(name).length, `${name} tier needs plain teeth`).toBeGreaterThanOrEqual(1)
+    })
+  })
+
+  it('varies sizes and rotations instead of stamping one recipe', () => {
+    const widths = new Set(allMarks().map(mark => mark.width))
+    const rotations = new Set(allMarks().map(mark => mark.rotate))
+
+    expect(widths.size).toBeGreaterThanOrEqual(6)
+    expect(rotations.size).toBeGreaterThanOrEqual(8)
+  })
+
+  it('spreads both assets across the canvas thirds', () => {
+    const rects = allMarks().map(mark => ({
+      mark,
+      rect: markRect(mark, DESKTOP_VIEWPORT)
+    }))
+
+    const thirds = [
+      [0, SCENE_WIDTH / 3],
+      [SCENE_WIDTH / 3, (2 * SCENE_WIDTH) / 3],
+      [(2 * SCENE_WIDTH) / 3, SCENE_WIDTH]
+    ]
+
+    thirds.forEach(([left, right]) => {
+      const inThird = rects.filter(({ rect }) => rect.centerX >= left && rect.centerX < right)
+      const brushes = inThird.filter(({ mark }) => mark.className.includes('toothbrush'))
+      const teeth = inThird.filter(({ mark }) => !mark.className.includes('toothbrush'))
+
+      expect(brushes.length, `no toothbrush in the ${left}-${right} third`).toBeGreaterThanOrEqual(
+        1
+      )
+      expect(teeth.length, `no plain tooth in the ${left}-${right} third`).toBeGreaterThanOrEqual(1)
+    })
+  })
+})
+
+describe('DentalParallaxBackground size budget', () => {
+  it('draws every tooth inside the reduced scale budget', () => {
+    const teeth = allToothMarks()
+
+    expect(teeth.length).toBeGreaterThanOrEqual(7)
+    teeth.forEach(mark => {
+      expect(mark.width).toBeLessThanOrEqual(TOOTH_MAX)
+      expect(mark.width).toBeGreaterThanOrEqual(TOOTH_MIN)
+    })
+  })
+
+  it('keeps far and mid teeth typical and the near heroes under 4.5%', () => {
+    ;['far', 'mid'].forEach(name => {
+      toothMarks(name).forEach(mark => {
+        expect(mark.width, `${name} mark ${mark.src}`).toBeLessThanOrEqual(TYPICAL_TOOTH_MAX)
+      })
+    })
+
+    const heroes = toothMarks('near')
+    expect(heroes.length).toBeGreaterThanOrEqual(2)
+    heroes.forEach(mark => {
+      expect(mark.width).toBeGreaterThanOrEqual(0.034)
+      expect(mark.width).toBeLessThanOrEqual(TOOTH_MAX)
+    })
+  })
+
+  it('caps the toothbrush just above the largest tooth', () => {
+    LAYER_NAMES.forEach(name => {
+      const largest = Math.max(...toothMarks(name).map(mark => mark.width))
+      brushMarks(name).forEach(mark => {
+        expect(mark.width, `${name} brush ${mark.src}`).toBeGreaterThan(largest)
+        expect(mark.width).toBeLessThanOrEqual(largest * BRUSH_LEAD)
+        expect(mark.width).toBeLessThanOrEqual(BRUSH_MAX)
+      })
+    })
+  })
+
+  it('keeps the depth order: the far tier is the smallest and the near tier the largest', () => {
+    const widest = name => Math.max(...toothMarks(name).map(mark => mark.width))
+
+    expect(widest('far')).toBeLessThan(widest('mid'))
+    expect(widest('mid')).toBeLessThan(widest('near'))
+  })
+
+  it('keeps the small-screen overrides inside the same budget', () => {
+    LAYER_NAMES.forEach(name => {
+      const largestTooth = Math.max(...toothMarks(name).map(mark => mark.sm.width))
+
+      toothMarks(name).forEach(mark => {
+        expect(mark.sm.width).toBeGreaterThanOrEqual(TOOTH_MIN)
+        expect(mark.sm.width).toBeLessThanOrEqual(TOOTH_MAX)
+      })
+
+      brushMarks(name).forEach(mark => {
+        expect(mark.sm.width).toBeGreaterThanOrEqual(largestTooth)
+        expect(mark.sm.width).toBeLessThanOrEqual(largestTooth * BRUSH_LEAD)
+        expect(mark.sm.width).toBeLessThanOrEqual(BRUSH_MAX)
+      })
+    })
   })
 })
 
@@ -616,79 +762,6 @@ describe('DentalParallaxBackground visibility budget', () => {
     expect(grow).toBeGreaterThanOrEqual(2 * (largest + drift))
   })
 
-  it('draws every tooth inside the normal-tooth scale budget', () => {
-    const shares = LAYER_NAMES.flatMap(name => toothMarks(name).map(mark => mark.width))
-
-    expect(shares.length).toBeGreaterThanOrEqual(10)
-    shares.forEach(share => {
-      expect(share).toBeLessThanOrEqual(0.09)
-      expect(share).toBeGreaterThanOrEqual(0.025)
-    })
-  })
-
-  it('scales the toothbrush one step above the tooth budget', () => {
-    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
-
-    expect(brushes.length).toBeGreaterThanOrEqual(1)
-    brushes.forEach(mark => {
-      expect(mark.width).toBeGreaterThan(0.09)
-      expect(mark.width).toBeLessThanOrEqual(0.13)
-    })
-  })
-
-  it('keeps the depth order: the far tier is the smallest and the near tier the largest', () => {
-    const widest = name => Math.max(...toothMarks(name).map(mark => mark.width))
-
-    expect(widest('far')).toBeLessThan(widest('mid'))
-    expect(widest('mid')).toBeLessThan(widest('near'))
-  })
-
-  it('lands the near-tier hero teeth in the normal-tooth band of the viewport', () => {
-    const heroes = toothMarks('near')
-
-    expect(heroes.length).toBeGreaterThanOrEqual(2)
-    heroes.forEach(mark => {
-      expect(
-        mark.width >= 0.07 && mark.width <= 0.09,
-        `${mark.src} hero covers ${(mark.width * 100).toFixed(1)}% of the viewport`
-      ).toBe(true)
-    })
-  })
-
-  it('spreads the deep tier across both halves so the scene breathes everywhere', () => {
-    const far = toothMarks('far')
-
-    expect(far.length).toBeGreaterThanOrEqual(6)
-    expect(far.filter(mark => mark.centerX < SCENE_WIDTH / 2).length).toBeGreaterThanOrEqual(2)
-    expect(far.filter(mark => mark.centerX >= SCENE_WIDTH / 2).length).toBeGreaterThanOrEqual(2)
-  })
-
-  it('puts the largest tooth in the half the card leaves free', () => {
-    const marksOnTiers = LAYER_NAMES.flatMap(name => toothMarks(name))
-    const largest = marksOnTiers.reduce((widest, mark) =>
-      mark.width > widest.width ? mark : widest
-    )
-
-    expect(largest.centerX).toBeGreaterThanOrEqual(SCENE_WIDTH / 2)
-  })
-
-  it('keeps the strong tiers out from under the left-anchored form card', () => {
-    ;['mid', 'near'].forEach(name => {
-      marks(name).forEach(mark => {
-        const behindCard =
-          mark.centerX > CARD_KEEP_OUT.left &&
-          mark.centerX < CARD_KEEP_OUT.right &&
-          mark.centerY > CARD_KEEP_OUT.top &&
-          mark.centerY < CARD_KEEP_OUT.bottom
-
-        expect(
-          behindCard,
-          `${name} mark at (${mark.centerX}, ${mark.centerY}) sits under the form card`
-        ).toBe(false)
-      })
-    })
-  })
-
   it('deepens the image treatment from the far tier to the near tier', () => {
     const brightness = LAYER_NAMES.map(name => layerDeclarations(name).brightness)
     const opacities = LAYER_NAMES.map(name => layerDeclarations(name).opacity)
@@ -706,15 +779,6 @@ describe('DentalParallaxBackground visibility budget', () => {
 
     expect(opacity).toBeGreaterThanOrEqual(0.25)
     expect(opacity).toBeLessThanOrEqual(0.6)
-  })
-
-  it('keeps the warm sparkle accents from flattening to black', () => {
-    const rule = cssRule('\\.dental-parallax-sparkle')
-
-    expect(rule).toMatch(/brightness\(var\(--mark-brightness/)
-    expect(rule).toMatch(/saturate\(/)
-    expect(rule).toMatch(/drop-shadow\(/)
-    expect(rule).toMatch(/rgba\(255,\s*171,\s*73/)
     expect(componentSource).not.toMatch(/grayscale\(/)
   })
 
@@ -733,6 +797,54 @@ describe('DentalParallaxBackground visibility budget', () => {
         `${name} layer is too heavy: ${ratios[1].toFixed(3)} contrast (ceiling ${ceiling})`
       ).toBe(true)
     })
+  })
+})
+
+describe('DentalParallaxBackground centered card composition', () => {
+  it('keeps every mark clear of the centered card interior', () => {
+    allMarks().forEach(mark => {
+      const rect = markRect(mark, DESKTOP_VIEWPORT)
+      const covered = overlapArea(rect, DESKTOP_INTERIOR)
+
+      expect(
+        covered,
+        `${mark.layer} mark ${mark.src} at (${rect.centerX.toFixed(0)}, ${rect.centerY.toFixed(0)}) covers the form interior`
+      ).toBe(0)
+    })
+  })
+
+  it('never centres a mark inside the centered card band', () => {
+    allMarks().forEach(mark => {
+      const { centerX, centerY } = markRect(mark, DESKTOP_VIEWPORT)
+      const behindCard =
+        centerX > DESKTOP_CARD.left &&
+        centerX < DESKTOP_CARD.right &&
+        centerY > DESKTOP_CARD.top &&
+        centerY < DESKTOP_CARD.bottom
+
+      expect(behindCard, `${mark.layer} mark sits under the centered card`).toBe(false)
+    })
+  })
+
+  it('distributes marks on both flanks plus the top and bottom bands', () => {
+    const rects = allMarks().map(mark => markRect(mark, DESKTOP_VIEWPORT))
+
+    expect(rects.filter(rect => rect.centerX < DESKTOP_CARD.left).length).toBeGreaterThanOrEqual(3)
+    expect(rects.filter(rect => rect.centerX > DESKTOP_CARD.right).length).toBeGreaterThanOrEqual(3)
+    expect(rects.filter(rect => rect.bottom <= DESKTOP_CARD.top).length).toBeGreaterThanOrEqual(2)
+    expect(rects.filter(rect => rect.top >= DESKTOP_CARD.bottom).length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('spreads the deep tier across both halves so the scene breathes everywhere', () => {
+    const far = toothMarks('far')
+
+    expect(far.length).toBeGreaterThanOrEqual(3)
+    expect(
+      far.filter(mark => markRect(mark, DESKTOP_VIEWPORT).centerX < SCENE_WIDTH / 2).length
+    ).toBeGreaterThanOrEqual(1)
+    expect(
+      far.filter(mark => markRect(mark, DESKTOP_VIEWPORT).centerX >= SCENE_WIDTH / 2).length
+    ).toBeGreaterThanOrEqual(1)
   })
 })
 
@@ -798,12 +910,13 @@ describe('DentalParallaxBackground reduced transparency', () => {
 describe('DentalParallaxBackground small-screen composition', () => {
   const VIEWPORT = { width: 390, height: 844 }
 
-  // The centred card envelope on the reference viewport, padded past the
-  // measured card so title wrapping and validation copy stay inside it.
-  const CARD_KEEP_OUT = { left: 12, right: 378, top: 110, bottom: 730 }
+  // The centered card envelope on the reference viewport, inset past the card
+  // border: side-edge peeks behind the border are allowed, marks over the
+  // fields are not.
+  const CARD_KEEP_OUT = { left: 36, right: 354, top: 120, bottom: 724 }
 
   const smallScreenRects = () =>
-    LAYER_NAMES.flatMap(name => marks(name).map(mark => ({ mark, rect: smRect(mark, VIEWPORT) })))
+    allMarks().map(mark => ({ mark, rect: markRect(mark, VIEWPORT, 'sm') }))
 
   const visibleRects = () =>
     smallScreenRects().filter(
@@ -811,12 +924,10 @@ describe('DentalParallaxBackground small-screen composition', () => {
     )
 
   it('declares the small-screen coordinate set on every mark', () => {
-    LAYER_NAMES.forEach(name => {
-      marks(name).forEach(mark => {
-        expect(mark.sm, `${name} mark ${mark.src} lacks a --mark-sm-* set`).not.toBeNull()
-        expect(mark.sm.width).toBeGreaterThan(0)
-        expect(Number.isFinite(mark.sm.rotate)).toBe(true)
-      })
+    allMarks().forEach(mark => {
+      expect(mark.sm, `${mark.layer} mark ${mark.src} lacks a --mark-sm-* set`).not.toBeNull()
+      expect(mark.sm.width).toBeGreaterThan(0)
+      expect(Number.isFinite(mark.sm.rotate)).toBe(true)
     })
   })
 
@@ -848,10 +959,10 @@ describe('DentalParallaxBackground small-screen composition', () => {
     expect(componentSource.match(/var\(--mark-sm-r/g)).toHaveLength(1)
   })
 
-  it('composes at least seven visible marks around the small-screen card', () => {
+  it('composes at least twelve visible marks around the small-screen card', () => {
     const visible = visibleRects()
 
-    expect(visible.length).toBeGreaterThanOrEqual(7)
+    expect(visible.length).toBeGreaterThanOrEqual(12)
 
     LAYER_NAMES.forEach(name => {
       expect(
@@ -861,19 +972,21 @@ describe('DentalParallaxBackground small-screen composition', () => {
     })
   })
 
-  it('spreads the small-screen marks into the top band, the bottom band and the side edges', () => {
+  it('spreads the small-screen marks into the top band, the bottom band and both side edges', () => {
     const visible = visibleRects().map(({ rect }) => rect)
 
     const topBand = visible.filter(rect => rect.bottom <= CARD_KEEP_OUT.top)
     const bottomBand = visible.filter(rect => rect.top >= CARD_KEEP_OUT.bottom)
-    const sideEdges = visible.filter(rect => rect.left <= 0 || rect.right >= VIEWPORT.width)
+    const leftEdge = visible.filter(rect => rect.left <= 0)
+    const rightEdge = visible.filter(rect => rect.right >= VIEWPORT.width)
 
     expect(topBand.length).toBeGreaterThanOrEqual(3)
     expect(bottomBand.length).toBeGreaterThanOrEqual(3)
-    expect(sideEdges.length).toBeGreaterThanOrEqual(2)
+    expect(leftEdge.length).toBeGreaterThanOrEqual(1)
+    expect(rightEdge.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('keeps every small-screen mark clear of the form card band', () => {
+  it('keeps every small-screen mark off the form card interactive band', () => {
     smallScreenRects().forEach(({ mark, rect }) => {
       expect(
         overlapArea(rect, CARD_KEEP_OUT),
@@ -882,18 +995,25 @@ describe('DentalParallaxBackground small-screen composition', () => {
     })
   })
 
-  it('keeps the small-screen toothbrush recognizable instead of a sliver', () => {
-    const brushes = LAYER_NAMES.flatMap(name => brushMarks(name))
-    expect(brushes).toHaveLength(1)
+  it('keeps every small-screen toothbrush fully visible and just above the largest tooth', () => {
+    const brushes = allBrushMarks()
+    expect(brushes.length).toBeGreaterThanOrEqual(5)
 
-    const [brush] = brushes
-    expect(brush.sm, 'the toothbrush needs a small-screen slot').not.toBeNull()
+    const largestBrush = Math.max(...brushes.map(mark => mark.sm.width))
+    const largestTooth = Math.max(...allToothMarks().map(mark => mark.sm.width))
 
-    const rect = smRect(brush, VIEWPORT)
-    const shown = overlapArea(rect, viewportRect(VIEWPORT))
+    brushes.forEach(mark => {
+      expect(
+        visibleShare(mark, VIEWPORT, 'sm'),
+        `${mark.src} is clipped on small screens`
+      ).toBeGreaterThanOrEqual(0.75)
+      expect(mark.sm.width).toBeLessThanOrEqual(BRUSH_MAX)
+    })
 
-    expect(shown / rectArea(rect)).toBeGreaterThanOrEqual(0.75)
-    expect(brush.sm.width * VIEWPORT.width).toBeGreaterThanOrEqual(0.2 * VIEWPORT.width)
+    // The biggest brush may lead the biggest tooth by a step, never past the
+    // cap the user set (roughly 5-6% of the viewport, not the old 26vw).
+    expect(largestBrush).toBeGreaterThanOrEqual(largestTooth)
+    expect(largestBrush).toBeLessThanOrEqual(largestTooth * BRUSH_LEAD)
   })
 
   it('keeps the clipping chain that makes horizontal overflow impossible', () => {
