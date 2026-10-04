@@ -41,18 +41,18 @@
             "
           />
           <img
-            class="dental-parallax-mark"
-            src="/images/login/tooth-1.png"
+            class="dental-parallax-mark dental-parallax-toothbrush"
+            src="/images/login/toothbrush.png"
             alt=""
             draggable="false"
             style="
               --mark-x: 13.7%;
               --mark-y: 40.3%;
-              --mark-w: 1.8vw;
+              --mark-w: 2.2vw;
               --mark-r: -8deg;
               --mark-sm-x: 13.5%;
               --mark-sm-y: 42%;
-              --mark-sm-w: 2.4vw;
+              --mark-sm-w: 2.6vw;
               --mark-sm-r: 8deg;
             "
           />
@@ -238,11 +238,11 @@
             style="
               --mark-x: 87%;
               --mark-y: 58.8%;
-              --mark-w: 4.8vw;
+              --mark-w: 4.5vw;
               --mark-r: 24deg;
               --mark-sm-x: 74%;
               --mark-sm-y: 92%;
-              --mark-sm-w: 4.8vw;
+              --mark-sm-w: 4.5vw;
               --mark-sm-r: 20deg;
             "
           />
@@ -254,11 +254,11 @@
             style="
               --mark-x: 25.5%;
               --mark-y: 15.5%;
-              --mark-w: 5.2vw;
+              --mark-w: 4.45vw;
               --mark-r: -20deg;
               --mark-sm-x: 30%;
               --mark-sm-y: 12%;
-              --mark-sm-w: 5.2vw;
+              --mark-sm-w: 4.45vw;
               --mark-sm-r: -18deg;
             "
           />
