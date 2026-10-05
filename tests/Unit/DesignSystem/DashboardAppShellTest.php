@@ -647,9 +647,11 @@ class DashboardAppShellTest extends TestCase
     /* ============================================================ */
 
     /**
-     * 4.1.1 — Each of the 5 stat cards carries the four-row fixed-slot
-     * grid (h-4 / h-12 / h-6 / h-4) plus a `data-stat-card` attribute
-     * so Playwright can verify the row baseline.
+     * 4.1.1 - Each of the 5 stat cards carries the four-row slot grid
+     * (h-4 / h-12 / min-h-6 / h-4) plus a `data-stat-card` attribute
+     * so Playwright can verify the row baseline. The chip slot reserves
+     * a 24px minimum height (min-h-6) and may grow when the comparison
+     * period_label wraps onto a second line.
      */
     public function test_dashboard_stat_cards_use_fixed_slot_grid(): void
     {
@@ -657,9 +659,9 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // Every stat card must declare the fixed-slot four-row grid via
-        // the explicit Tailwind row-heights, in this exact order:
-        //   eyebrow (h-4) / number (h-12) / chip (h-6) / caption (h-4)
+        // Every stat card must declare the slot grid via the explicit
+        // Tailwind row classes, in this exact order:
+        //   eyebrow (h-4) / number (h-12) / chip (min-h-6) / caption (h-4)
         preg_match_all(
             '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>([\s\S]*?)<\/UiCard>/',
             $src,
@@ -674,11 +676,11 @@ class DashboardAppShellTest extends TestCase
 
         foreach ($cards as $idx => $card) {
             // The slot order matters: h-4 must precede h-12, h-12 must
-            // precede h-6, h-6 must precede h-4. Strict strpos checks
+            // precede min-h-6, min-h-6 must precede h-4. Strict strpos checks
             // enforce the slot order; they do NOT enforce equal margins.
             $eyebrowPos = strpos($card, 'h-4');
             $numberPos  = strpos($card, 'h-12');
-            $chipPos    = strpos($card, 'h-6');
+            $chipPos    = strpos($card, 'min-h-6');
             $captionPos = strpos($card, 'h-4', $chipPos === false ? 0 : $chipPos);
 
             $this->assertNotFalse(
@@ -691,7 +693,7 @@ class DashboardAppShellTest extends TestCase
             );
             $this->assertNotFalse(
                 $chipPos,
-                "Stat card #{$idx} must reserve a chip slot (h-6) — even when empty, the slot must exist."
+                "Stat card #{$idx} must reserve a chip slot (min-h-6) - even when empty, the slot must exist."
             );
             $this->assertNotFalse(
                 $captionPos,
@@ -717,13 +719,14 @@ class DashboardAppShellTest extends TestCase
 
     /**
      * 4.1.3 — Each of the 5 stat cards renders the chip slot as an
-     * empty `<div class="h-6">` (no chip) when `comparisons[statKey]
+     * empty `<div class="min-h-6">` (no chip) when `comparisons[statKey]
      * .delta_label` is null. Only cards with a non-null delta_label
      * render a `<span>` chip.
      *
-     * Source-level assertion: the chip-slot element renders a Tailwind
-     * `h-6 min-h-[24px]` (or equivalent fixed-height) container so the
-     * reserved slot does not collapse.
+     * Source-level assertion: the chip-slot element reserves a Tailwind
+     * `min-h-6` (24px) container so the reserved slot does not collapse,
+     * and the chipped variant allows the row to wrap so a long
+     * period_label is never clipped by a fixed height.
      */
     public function test_dashboard_chip_slot_is_reserved_height(): void
     {
@@ -732,11 +735,19 @@ class DashboardAppShellTest extends TestCase
         $this->assertNotNull($src);
 
         // At least 5 cards must carry a chip slot class binding.
-        $chipSlotCount = preg_match_all('/h-6\s+min-h-\[24px\]/', $src);
+        $chipSlotCount = preg_match_all('/min-h-6\b/', $src);
         $this->assertGreaterThanOrEqual(
             5,
             (int) $chipSlotCount,
-            'DashboardPage.vue must reserve the chip slot for each of the 5 stat cards (h-6 min-h-[24px]).'
+            'DashboardPage.vue must reserve the chip slot for each of the 5 stat cards (min-h-6, 24px minimum).'
+        );
+
+        // The chipped variant must let the period_label wrap onto a second
+        // line instead of pinning a fixed height that would clip it.
+        $this->assertMatchesRegularExpression(
+            '/min-h-6 flex flex-wrap items-center/',
+            $src,
+            'DashboardPage.vue chip slots must wrap the period_label (min-h-6 + flex-wrap) instead of clipping it.'
         );
 
         // The chip span (when delta_label is non-null) is rendered
@@ -1018,17 +1029,17 @@ class DashboardAppShellTest extends TestCase
             // the closing </div> must clear the pill <span> plus the sibling
             // caption <span>, which together run to roughly 550 characters.
             $pattern = '/comparisons\??\.' . preg_quote($statKey, '/')
-                . '\??\.delta_label[\s\S]{0,80}?class="h-6 min-h-\[24px\] flex items-center gap-1\.5"[\s\S]{0,900}?<\/div>/';
+                . '\??\.delta_label[\s\S]{0,80}?class="min-h-6 flex flex-wrap items-center gap-x-1\.5 gap-y-1"[\s\S]{0,900}?<\/div>/';
             $this->assertMatchesRegularExpression(
                 $pattern,
                 $src,
-                "DashboardPage.vue chip slot for `{$statKey}` must be a flex row with gap (defect 2 fix)."
+                "DashboardPage.vue chip slot for `{$statKey}` must be a wrapping flex row with gap (defect 2 fix, chip overflow polish)."
             );
 
             // The chip slot must contain the pill <span> AND the
             // muted caption <span> as siblings, not nested. The
             // pill <span> carries `rounded-full`; the muted <span>
-            // carries `truncate` (no rounded-full).
+            // carries no pill styling.
             $pillWithNestedCaption = '/<span[^>]*rounded-full[\s\S]*?<span[^>]*\bperiod_label\b[\s\S]*?<\/span>\s*<\/span>/';
             $this->assertDoesNotMatchRegularExpression(
                 $pillWithNestedCaption,

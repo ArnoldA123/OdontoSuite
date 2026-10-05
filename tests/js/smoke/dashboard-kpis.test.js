@@ -127,6 +127,50 @@ describe('dashboard compact KPI strip (ops IA, T2b)', () => {
     wrapper.unmount()
   })
 
+  it('renders every comparison period_label in full with a wrapping chip row instead of truncation', async () => {
+    installPayload({
+      comparisons: {
+        appointments_today: { delta_label: '+4', period_label: 'vs lun 28 sep' },
+        total_patients: { delta_label: '-100', period_label: 'nuevos este mes' },
+        total_appointments_this_month: { delta_label: '+12', period_label: 'vs sep 5 (5 días)' }
+      }
+    })
+
+    const wrapper = await mountDashboard()
+
+    const chips = [
+      { card: 'appointments-today', label: 'vs lun 28 sep' },
+      { card: 'total-patients', label: 'nuevos este mes' },
+      { card: 'total-appointments-month', label: 'vs sep 5 (5 días)' }
+    ]
+
+    for (const { card: cardKey, label } of chips) {
+      const card = kpiStrip(wrapper).find(`[data-stat-card="${cardKey}"]`)
+      expect(card.exists()).toBe(true)
+
+      // The full backend label must render verbatim (no ellipsis cut).
+      const labelNode = Array.from(card.element.querySelectorAll('span')).find(
+        node => node.textContent.trim() === label
+      )
+      expect(labelNode).toBeTruthy()
+
+      // The label node must not carry any single-line truncation class.
+      for (const truncation of ['truncate', 'text-ellipsis', 'overflow-hidden']) {
+        expect(labelNode.classList.contains(truncation)).toBe(false)
+      }
+
+      // Structural contract: the chip row wraps the label onto a second
+      // line and reserves only a minimum height, so the wrapped line can
+      // never be clipped by a fixed-height slot.
+      const chipRow = labelNode.parentElement
+      expect(chipRow.classList.contains('flex-wrap')).toBe(true)
+      expect(chipRow.classList.contains('min-h-6')).toBe(true)
+      expect(chipRow.classList.contains('h-6')).toBe(false)
+    }
+
+    wrapper.unmount()
+  })
+
   it('renders every quick action tile through @heroicons/vue outline icons', async () => {
     const wrapper = await mountDashboard()
 
