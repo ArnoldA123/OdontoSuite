@@ -265,8 +265,15 @@
       </section>
 
       <!--
-        Stats Grid - five stat cards, fixed-slot anatomy (KPI card anatomy).
-        Each card allocates four reserved slots in a fixed row grid so the
+        Compact KPI strip (T2b). Five cards keep the same 5-column grid
+        placement but use smaller bodies and tighter padding
+        (padding="sm") so the strip reads as a dense daily-operations
+        summary. Surface tokens stay the same ones the Quick Actions
+        tiles consume: --color-hairline on the border and the elevation
+        ramp on the shadow. The eyebrow uses the token size class
+        text-xs instead of the previous arbitrary 11px utility.
+
+        Each card keeps four reserved slots in a fixed row grid so the
         baseline is uniform regardless of which cards carry a chip:
 
           [eyebrow]    h-4  (16 px)
@@ -279,13 +286,9 @@
         slot stays empty (no chip, no dash, no placeholder). The chip
         colour follows sign: positive → systemGreen, negative → systemRed.
 
-        Defect 2 fix: every card border consumes the PR1 hairline token
-        (alpha 0.12) instead of the previous opaque separator.
-        Defect 3 fix: every card shadow consumes the PR1 elevation-2
-        rung (iOS label/separator hue family) instead of the previous
-        pure-black shadow.
-        Defect 6 fix: every icon plate uses the same tint (systemGray-100
-        + systemGray-600 - the iOS Settings / List treatment).
+        The Profesionales card was removed in T2b: an admin-only count is
+        not daily-operations content. Professionals stay reachable through
+        the Profesionales quick action and the module route.
       -->
       <section aria-label="Resumen del día">
         <div ref="kpiSection" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -293,6 +296,7 @@
           <UiCard
             v-if="can.viewAppointment?.value"
             variant="glass"
+            padding="sm"
             hover
             clickable
             data-stat="appointments-today"
@@ -305,23 +309,19 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
-                  Eyebrow (defect 4 - Estado de Caja row-rhythm fix).
-                  text-[11px] + whitespace-nowrap + no tracking lets
-                  the longest label ("Estado de Caja") sit on a single
-                  line at the 5-up KPI card width. text-xs (12 px) with
-                  tracking-wide wrapped it; the smaller font and removed
-                  tracking keep all five cards aligned on one line.
+                  Eyebrow (T2b compact strip). Token size class text-xs,
+                  no tracking, whitespace-nowrap so the longest label
+                  ("Estado de Caja") stays on one line at the 5-up KPI
+                  card width.
                 -->
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
                     Citas Hoy
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                     aria-live="polite"
                   >
@@ -369,15 +369,12 @@
                 HOTFIX-DASH-002 - KPI icon-in-box removed.
                 design-taste-frontend §9.D "NO three-equal Material cards".
                 apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
-                apple-design §12 "translucent chrome for nav, opaque data
-                cards" - the icon-in-rounded-gray-box container is the
-                Material-leak signature on data surfaces. Replaced with
-                a small 4px accent dot in systemBlue-500 (the iOS
-                "primary key" accent) anchored top-right of the card.
+                Replaced by a small accent dot anchored top-right of the
+                card (accent token per the T2b design language).
               -->
               <span
                 class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
+                style="background-color: var(--color-accent-500)"
                 aria-hidden="true"
               />
             </div>
@@ -389,6 +386,7 @@
                registrations this month - a different quantity. -->
           <UiCard
             variant="glass"
+            padding="sm"
             hover
             clickable
             data-stat="total-patients"
@@ -400,15 +398,13 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
                     Pacientes
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
                     {{ stats.total_patients || 0 }}
@@ -439,9 +435,7 @@
                 </div>
                 <div v-else class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Total registrados
-</p>
+                  <p class="text-xs text-theme-secondary truncate">Total registrados</p>
                 </div>
               </div>
               <!--
@@ -450,65 +444,16 @@ Total registrados
               -->
               <span
                 class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
+                style="background-color: var(--color-accent-500)"
                 aria-hidden="true"
               />
             </div>
           </UiCard>
 
-          <!-- Profesionales (reference count; gated). No comparison key
-               ships from the controller (only three stats carry the
-               additive comparisons block); the chip slot stays empty. -->
-          <UiCard
-            v-if="can.manageUsers?.value"
-            variant="glass"
-            hover
-            clickable
-            data-stat="total-professionals"
-            data-stat-card="total-professionals"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToProfessionals"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
-                    Profesionales
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ stats.total_professionals || 0 }}
-                  </p>
-                </div>
-                <div class="h-6 min-h-[24px]" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Equipo médico
-</p>
-                </div>
-              </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
-            </div>
-          </UiCard>
-
-          <!-- Total Citas (reference count) -->
+          <!-- Citas del Mes (reference count; comparison chip) -->
           <UiCard
             variant="glass"
+            padding="sm"
             hover
             clickable
             data-stat="total-appointments-month"
@@ -520,15 +465,13 @@ Equipo médico
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
-                    Total Citas
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Citas del Mes
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
                     {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
@@ -556,9 +499,7 @@ Equipo médico
                 </div>
                 <div v-else class="h-6 min-h-[24px]" />
                 <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Este mes
-</p>
+                  <p class="text-xs text-theme-secondary truncate">Este mes</p>
                 </div>
               </div>
               <!--
@@ -567,7 +508,51 @@ Este mes
               -->
               <span
                 class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
+                style="background-color: var(--color-accent-500)"
+                aria-hidden="true"
+              />
+            </div>
+          </UiCard>
+
+          <!-- Ingresos (T2b: cumulative completed payments). The number
+               renders through formatPENLabel, so the page never
+               concatenates a literal `S/` prefix (FormatPENLabelTest).
+               No comparison key ships for total_income: the chip slot
+               stays reserved and empty. -->
+          <UiCard
+            variant="glass"
+            padding="sm"
+            hover
+            clickable
+            data-stat="total-income"
+            data-stat-card="total-income"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+            @click="goToBusinessIntelligence"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="h-4 flex items-center">
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Ingresos
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  >
+                    {{ formatPENLabel(stats.total_income) }}
+                  </p>
+                </div>
+                <div class="h-6 min-h-[24px]" />
+                <div class="h-4 flex items-center">
+                  <p class="text-xs text-theme-secondary truncate">Total histórico</p>
+                </div>
+              </div>
+              <span
+                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
+                style="background-color: var(--color-accent-500)"
                 aria-hidden="true"
               />
             </div>
@@ -580,6 +565,7 @@ Este mes
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
+            padding="sm"
             hover
             clickable
             data-stat="cash-status"
@@ -592,15 +578,12 @@ Este mes
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
-                  Eyebrow (defect 4). text-[11px] + whitespace-nowrap
-                  + no tracking lets "Estado de Caja" sit on a single
-                  line at the 5-up KPI card width. Same treatment as
-                  the four sibling eyebrows for row rhythm.
+                  Eyebrow (T2b compact strip). Token size class text-xs,
+                  no tracking, whitespace-nowrap so "Estado de Caja"
+                  stays on one line at the 5-up KPI card width.
                 -->
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
                     Estado de Caja
                   </p>
                 </div>
@@ -637,7 +620,7 @@ Este mes
               -->
               <span
                 class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
+                style="background-color: var(--color-accent-500)"
                 aria-hidden="true"
               />
             </div>
@@ -648,7 +631,7 @@ Este mes
       <!-- Quick Actions -->
       <section aria-label="Acciones rápidas">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-ink-800">Acciones Rápidas</h2>
+          <h2 class="text-base font-semibold text-label">Acciones Rápidas</h2>
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
             Ver calendario
             <template #icon-right>
@@ -689,8 +672,11 @@ Este mes
           affordance is now the hover-lift + the entire card being a
           clickable region (the existing UiCard clickable behaviour).
 
-          apple-design §16 - icon stroke 1.5 (NOT icon-in-box) - applied
-          via inline stroke-width="1.5" on each Quick Action SVG.
+          T2b - every tile icon is an @heroicons/vue 24-outline
+          component (UsersIcon, PlusIcon, UserGroupIcon,
+          BuildingOfficeIcon, ChartBarIcon) instead of an inline SVG.
+          The heroicons baseline stroke is 1.5, so the apple-design §16
+          rule (icon stroke 1.5, NOT icon-in-box) still holds.
         -->
         <div ref="quickActionsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <!-- Patients -->
@@ -704,20 +690,10 @@ Este mes
             @click="goToPatients"
           >
             <div class="flex items-start gap-3">
-              <svg
+              <UsersIcon
                 class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
                 aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                />
-              </svg>
+              />
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Pacientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
@@ -739,20 +715,10 @@ Este mes
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
-              <svg
+              <PlusIcon
                 class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
                 aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
+              />
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
@@ -774,20 +740,10 @@ Este mes
             @click="goToProfessionals"
           >
             <div class="flex items-start gap-3">
-              <svg
+              <UserGroupIcon
                 class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
                 aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
+              />
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Profesionales</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
@@ -807,20 +763,10 @@ Este mes
             @click="goToEnvironments"
           >
             <div class="flex items-start gap-3">
-              <svg
+              <BuildingOfficeIcon
                 class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
                 aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
+              />
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Ambientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
@@ -840,20 +786,10 @@ Este mes
             @click="goToBusinessIntelligence"
           >
             <div class="flex items-start gap-3">
-              <svg
+              <ChartBarIcon
                 class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
                 aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
+              />
               <div class="min-w-0 flex-1">
                 <p class="font-medium text-label leading-tight">Reportes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
@@ -874,6 +810,13 @@ Este mes
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import {
+  UsersIcon,
+  PlusIcon,
+  UserGroupIcon,
+  BuildingOfficeIcon,
+  ChartBarIcon
+} from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
