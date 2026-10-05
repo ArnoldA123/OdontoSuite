@@ -388,7 +388,7 @@ class DashboardAppShellTest extends TestCase
         $this->assertGreaterThanOrEqual(
             4,
             count($cards),
-            'DashboardPage.vue must contain at least 4 data-action cards (the 5 verified action labels).'
+            'DashboardPage.vue must contain at least 4 data-action cards (the 4 verified action labels).'
         );
         foreach ($cards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(
@@ -515,28 +515,146 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must contain all 5 verified quick-action labels.
+     * T3 — DashboardPage.vue must contain the four verified quick-action
+     * labels after the "Nueva Cita" tile was removed (single CTA per
+     * destination: the agenda header owns the primary appointment CTA).
      */
-    public function test_dashboard_contains_all_five_verified_quick_action_labels(): void
+    public function test_dashboard_contains_all_four_verified_quick_action_labels(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Pacientes', 'Nueva Cita', 'Profesionales', 'Ambientes', 'Reportes'];
-        $counts = array_map(
-            fn($label) => substr_count($src, $label),
-            $labels
-        );
-        // "Pacientes" appears in BOTH stat cards and quick actions; just make
-        // sure each label is present at least once.
-        foreach ($counts as $label => $count) {
+        $labels = ['Pacientes', 'Profesionales', 'Ambientes', 'Reportes'];
+        foreach ($labels as $label) {
+            // "Pacientes" appears in BOTH the stat card and the quick
+            // actions; each label must be present at least once.
             $this->assertGreaterThanOrEqual(
                 1,
-                $count,
+                substr_count($src, $label),
                 "DashboardPage.vue must render the quick-action label \"{$label}\" (verified content)."
             );
         }
+
+        // The removed tile used the title-case label; the agenda header
+        // keeps the sentence-case "Nueva cita" CTA. Match the rendered
+        // element text so a design-record comment naming the removed tile
+        // cannot fail the guard.
+        $this->assertDoesNotMatchRegularExpression(
+            '/>\s*Nueva Cita\s*</',
+            $src,
+            'DashboardPage.vue must not render the removed "Nueva Cita" quick-action tile (T3 single CTA per destination).'
+        );
+    }
+
+    /**
+     * T3 — "Ver calendario" must be rendered exactly once: on the Acciones
+     * rápidas header. The Agenda de hoy and Próximas citas headers no
+     * longer duplicate it, and every other calendar affordance is gone.
+     */
+    public function test_dashboard_renders_single_ver_calendario_cta(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            1,
+            substr_count($src, 'Ver calendario'),
+            'DashboardPage.vue must render exactly one "Ver calendario" CTA (T3 single CTA per destination).'
+        );
+        $this->assertSame(
+            1,
+            substr_count($src, '@click="goToCalendar"'),
+            'DashboardPage.vue must bind goToCalendar to the single remaining "Ver calendario" CTA only.'
+        );
+
+        $quickActions = $this->sectionRegion($src, 'Acciones rápidas');
+        $this->assertStringContainsString(
+            'Ver calendario',
+            $quickActions,
+            'DashboardPage.vue must keep the "Ver calendario" CTA in the Acciones rápidas header.'
+        );
+
+        foreach (['Agenda de hoy', 'Próximas citas'] as $label) {
+            $this->assertStringNotContainsString(
+                'Ver calendario',
+                $this->sectionRegion($src, $label),
+                "DashboardPage.vue section \"{$label}\" must not duplicate the \"Ver calendario\" CTA (T3)."
+            );
+        }
+    }
+
+    /**
+     * T3 — the five KPI cards are a static reference strip: none carries
+     * the UiCard clickable/hover props or an @click binding. The header
+     * "Ir a Caja" action remains the only cash destination CTA.
+     */
+    public function test_dashboard_stat_cards_have_no_click_affordance(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>/',
+            $src,
+            $matches
+        );
+        $openings = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($openings),
+            'DashboardPage.vue must render at least 5 stat cards for the static-strip check.'
+        );
+
+        foreach ($openings as $idx => $opening) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bclickable\b/',
+                $opening,
+                "KPI card #{$idx} must not carry the clickable prop (T3: the KPI strip is static)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bhover\b/',
+                $opening,
+                "KPI card #{$idx} must not carry the hover prop (T3: the KPI strip is static)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/@click\b/',
+                $opening,
+                "KPI card #{$idx} must not bind @click (T3: the KPI strip is static)."
+            );
+        }
+
+        $this->assertSame(
+            1,
+            substr_count($src, '@click="goToCashRegister"'),
+            'DashboardPage.vue must keep the header "Ir a Caja" action as the only cash destination CTA (T3).'
+        );
+    }
+
+    /**
+     * Region helper: the source slice between a section's opening tag and
+     * its closing tag.
+     */
+    private function sectionRegion(string $src, string $ariaLabel): string
+    {
+        $found = preg_match(
+            '/<section\b[^>]*aria-label="' . preg_quote($ariaLabel, '/') . '"/',
+            $src,
+            $matches,
+            PREG_OFFSET_CAPTURE
+        );
+        $this->assertSame(
+            1,
+            $found,
+            "DashboardPage.vue must contain a <section aria-label=\"{$ariaLabel}\">"
+        );
+        $start = $matches[0][1];
+        $end = strpos($src, '</section>', $start);
+        $this->assertNotFalse($end, "Section \"{$ariaLabel}\" must be closed");
+
+        return substr($src, $start, $end - $start);
     }
 
     /**
@@ -872,7 +990,7 @@ class DashboardAppShellTest extends TestCase
      * The source removed the letter-key shortcut badge on purpose
      * (design-taste §9.D "no Material keyboard-shortcut reference visual"):
      * affordance is hover-lift + the whole card being clickable. This test
-     * now pins the REMOVAL: ≥5 data-action cards, no chevron (PR3 contract
+     * now pins the REMOVAL: ≥4 data-action cards, no chevron (PR3 contract
      * stays), and no data-keyhint / <kbd> badge anywhere in the region.
      */
     public function test_quick_action_cards_carry_keyhint_chip_no_chevron(): void
@@ -890,9 +1008,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertGreaterThanOrEqual(
-            5,
+            4,
             count($cards),
-            'DashboardPage.vue must contain at least 5 data-action cards (5 verified action labels).'
+            'DashboardPage.vue must contain at least 4 data-action cards (T3: 4 verified action labels).'
         );
 
         foreach ($cards as $idx => $card) {
@@ -1268,10 +1386,11 @@ class DashboardAppShellTest extends TestCase
         }
 
         // T2b - quick-action icons moved to @heroicons/vue 24-outline
-        // components, so the five inline quick-action SVGs are gone. Pin
-        // the new shape: the heroicons import exists, no inline <svg>
-        // remains inside a data-action tile, and the HOTFIX-DASH-007
-        // empty-state line-art SVG (stroke-width 1.5) is still inline.
+        // components, so the inline quick-action SVGs are gone (T3 dropped
+        // the "Nueva Cita" tile). Pin the new shape: the heroicons import
+        // exists, no inline <svg> remains inside a data-action tile, and the
+        // HOTFIX-DASH-007 empty-state line-art SVG (stroke-width 1.5) is
+        // still inline.
         $this->assertStringContainsString(
             '@heroicons/vue/24/outline',
             $src,
@@ -1285,9 +1404,9 @@ class DashboardAppShellTest extends TestCase
         );
         $actionCards = $actionMatches[0] ?? [];
         $this->assertGreaterThanOrEqual(
-            5,
+            4,
             count($actionCards),
-            'DashboardPage.vue must render at least 5 data-action cards for the heroicons check.'
+            'DashboardPage.vue must render at least 4 data-action cards for the heroicons check.'
         );
         foreach ($actionCards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(

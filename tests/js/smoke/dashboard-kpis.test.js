@@ -178,7 +178,7 @@ describe('dashboard compact KPI strip (ops IA, T2b)', () => {
     const wrapper = await mountDashboard()
 
     const tiles = wrapper.findAll('[data-action]')
-    expect(tiles).toHaveLength(5)
+    expect(tiles).toHaveLength(4)
 
     const glyphs = new Set()
     for (const tile of tiles) {
@@ -190,7 +190,7 @@ describe('dashboard compact KPI strip (ops IA, T2b)', () => {
       expect(path.exists()).toBe(true)
       glyphs.add(path.attributes('d'))
     }
-    expect(glyphs.size).toBe(5)
+    expect(glyphs.size).toBe(4)
 
     wrapper.unmount()
   })
@@ -262,7 +262,7 @@ describe('dashboard cash KPI (T2)', () => {
 
     const number = card.find('p.tabular-nums')
     expect(number.exists()).toBe(true)
-    expect(number.text()).toBe('—')
+    expect(number.text()).toBe('N/D')
     expect(card.text()).toContain('Sin sesión abierta')
     expect(card.find('[data-cash-pill]').exists()).toBe(false)
     expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(1)

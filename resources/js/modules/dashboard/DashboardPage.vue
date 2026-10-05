@@ -207,25 +207,6 @@
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <UiButton variant="ghost" size="sm" @click="goToCalendar">
-              Ver calendario
-              <template #icon-right>
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </template>
-            </UiButton>
             <UiButton
               v-if="can.createAppointment?.value"
               variant="primary"
@@ -405,25 +386,6 @@
               {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
             </span>
           </div>
-          <UiButton variant="ghost" size="sm" @click="goToCalendar">
-            Ver calendario
-            <template #icon-right>
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </template>
-          </UiButton>
         </div>
 
         <!--
@@ -700,6 +662,11 @@
         The Profesionales card was removed in T2b: an admin-only count is
         not daily-operations content. Professionals stay reachable through
         the Profesionales quick action and the module route.
+
+        T3 - the strip is a static reference surface: none of the five
+        cards carries a click affordance (no clickable/hover props, no
+        @click). The single CTA per destination lives in the section
+        headers.
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
         <div
@@ -713,14 +680,11 @@
             v-if="can.viewAppointment?.value"
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="appointments-today"
             data-stat-card="appointments-today"
             data-priority="primary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -804,13 +768,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-patients"
             data-stat-card="total-patients"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToPatients"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -872,13 +833,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-appointments-month"
             data-stat-card="total-appointments-month"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -941,13 +899,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-income"
             data-stat-card="total-income"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToBusinessIntelligence"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -986,14 +941,11 @@
             v-if="can.viewCashRegister?.value"
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="cash-status"
             data-stat-card="cash-status"
             data-priority="secondary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCashRegister"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -1081,10 +1033,14 @@
           clickable region (the existing UiCard clickable behaviour).
 
           T2b - every tile icon is an @heroicons/vue 24-outline
-          component (UsersIcon, PlusIcon, UserGroupIcon,
-          BuildingOfficeIcon, ChartBarIcon) instead of an inline SVG.
-          The heroicons baseline stroke is 1.5, so the apple-design §16
-          rule (icon stroke 1.5, NOT icon-in-box) still holds.
+          component (UsersIcon, UserGroupIcon, BuildingOfficeIcon,
+          ChartBarIcon) instead of an inline SVG. The heroicons
+          baseline stroke is 1.5, so the apple-design §16 rule (icon
+          stroke 1.5, NOT icon-in-box) still holds.
+
+          T3 - single CTA per destination: the duplicate appointment
+          tile was removed and the agenda header owns the primary
+          appointment CTA, leaving four destination tiles.
         -->
         <div
           ref="quickActionsSection"
@@ -1111,31 +1067,6 @@
                 <p class="font-medium text-label leading-tight">Pacientes</p>
                 <p class="text-sm text-theme-secondary leading-snug mt-0.5">
                   Gestionar base de datos
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
-          <!-- New Appointment -->
-          <UiCard
-            v-if="can.createAppointment?.value"
-            variant="flat"
-            hover
-            clickable
-            data-action="new-appointment"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToNewAppointment"
-          >
-            <div class="flex items-start gap-3">
-              <PlusIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Programar cita médica
                 </p>
               </div>
             </div>
@@ -1226,7 +1157,6 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowPathIcon,
   UsersIcon,
-  PlusIcon,
   UserGroupIcon,
   BuildingOfficeIcon,
   ChartBarIcon,
@@ -1661,7 +1591,7 @@ const goToNewAppointment = () => {
 
 const handleAppointmentCreated = async () => {
   // Slice 08 / FF-015: refresh data after the user creates an appointment
-  // from anywhere (quick-action button or empty-state CTA). Single fetch
+  // from anywhere (agenda header CTA or empty-state CTA). Single fetch
   // rather than a fan-out - the WebSocket path will catch subsequent edits.
   await loadDashboardData()
 }
@@ -1718,14 +1648,14 @@ const cashStatusDotClass = computed(() => {
 // T2 - the cash KPI card's two data slots. `opened_at` is the stats
 // payload's open-session marker (the closed payload carries no opening
 // timestamp), so the card switches surfaces without re-declaring the raw
-// status key outside cashStatusPillState. The number stays "—" until the
+// status key outside cashStatusPillState. The number stays "N/D" until the
 // cash-register summary lands, so the card never paints a fabricated
 // S/ 0.00.
 const cashSessionOpenedAt = computed(() => stats.value.cash_session?.opened_at || null)
 const cashKpiBalance = computed(() =>
   cashSessionOpenedAt.value && realTimeTotals.value
     ? formatPENLabel(realTimeTotals.value.currentBalance)
-    : '—'
+    : 'N/D'
 )
 const cashKpiCaption = computed(() =>
   cashSessionOpenedAt.value

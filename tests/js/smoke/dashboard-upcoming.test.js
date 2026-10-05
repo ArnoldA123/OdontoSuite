@@ -111,7 +111,9 @@ describe('dashboard upcoming week strip (T5)', () => {
 
     const section = wrapper.find('section[aria-label="Próximas citas"]')
     expect(section.exists()).toBe(true)
-    expect(section.text()).toContain('Ver calendario')
+    // T3 — the week strip is not a calendar destination: the single
+    // "Ver calendario" CTA lives in the Acciones rápidas header.
+    expect(section.text()).not.toContain('Ver calendario')
 
     // Section order: agenda -> upcoming -> KPI grid (ops IA).
     const html = wrapper.html()
