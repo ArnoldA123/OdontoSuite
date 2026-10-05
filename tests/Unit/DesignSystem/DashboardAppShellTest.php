@@ -495,7 +495,7 @@ class DashboardAppShellTest extends TestCase
      * template level via `v-if`.
      *
      * Verified labels (T2b compact strip): "Citas Hoy", "Pacientes",
-     * "Citas del Mes", "Ingresos", "Estado de Caja". The Profesionales
+     * "Citas del Mes", "Ingresos", "Saldo de Caja". The Profesionales
      * card was removed in T2b (admin-only count, not daily-ops content).
      */
     public function test_dashboard_contains_all_five_verified_stat_card_labels(): void
@@ -504,7 +504,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
+        $labels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Saldo de Caja'];
         foreach ($labels as $label) {
             $this->assertStringContainsString(
                 $label,
@@ -1063,7 +1063,7 @@ class DashboardAppShellTest extends TestCase
         $this->assertNotNull($src);
 
         // All five labels must be present and rendered with text-xs.
-        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
+        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Saldo de Caja'];
         foreach ($expectedLabels as $label) {
             // The eyebrow pattern: <p class="text-xs ... uppercase ... whitespace-nowrap">{{ label }}</p>
             $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';

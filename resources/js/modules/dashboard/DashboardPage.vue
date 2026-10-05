@@ -132,9 +132,10 @@
             </template>
           </UiButton>
           <!--
-            Cash-session state + direct action. Same Spanish labels and
-            filled-pill tones as the KPI cash card, promoted into the header
-            so the state is readable before the KPI grid. Gated by the same
+            Cash-session state + direct action. T2 surface split: this pill
+            is the ONLY session-state surface (Spanish label + filled tone);
+            the KPI cash card shows the session balance instead. The tone is
+            owned by the UiBadge variant alone. Gated by the same
             viewCashRegister permission as the KPI cash card.
           -->
           <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
@@ -144,7 +145,6 @@
               size="md"
               role="status"
               :aria-label="`Estado de caja: ${cashStatusLabel}`"
-              :class="[cashStatusBadgeClass]"
               data-cash-pill
               :data-cash-pill-state="cashStatusPillState"
             >
@@ -727,7 +727,7 @@
                 <!--
                   Eyebrow (T2b compact strip). Token size class text-xs,
                   no tracking, whitespace-nowrap so the longest label
-                  ("Estado de Caja") stays on one line at the 5-up KPI
+                  ("Saldo de Caja") stays on one line at the 5-up KPI
                   card width.
                 -->
                 <div class="h-4 flex items-center">
@@ -977,10 +977,11 @@
             </div>
           </UiCard>
 
-          <!-- Estado de Caja (SECONDARY live stat; gated).
-               No comparison key ships for cash_session. The cash pill
-               renders its own Spanish label via a primitive that
-               supports custom labels. -->
+          <!-- Saldo de Caja (SECONDARY live stat; gated).
+               T2 surface split: the header pill owns the session state;
+               this card owns the live balance as its headline number and
+               the opening time as its caption. No comparison key ships
+               for cash_session. -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
@@ -998,38 +999,26 @@
               <div class="min-w-0 flex-1">
                 <!--
                   Eyebrow (T2b compact strip). Token size class text-xs,
-                  no tracking, whitespace-nowrap so "Estado de Caja"
+                  no tracking, whitespace-nowrap so "Saldo de Caja"
                   stays on one line at the 5-up KPI card width.
                 -->
                 <div class="h-4 flex items-center">
                   <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Estado de Caja
+                    Saldo de Caja
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
-                  <UiBadge
-                    :variant="cashStatusBadgeVariant"
-                    shape="pill"
-                    size="md"
-                    role="status"
-                    :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                    class="mt-1"
-                    :class="[cashStatusBadgeClass]"
-                    data-cash-pill
-                    :data-cash-pill-state="cashStatusPillState"
+                  <p
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    <span
-                      class="inline-block w-1.5 h-1.5 rounded-full"
-                      :class="cashStatusDotClass"
-                      aria-hidden="true"
-                    />
-                    {{ cashStatusLabel }}
-                  </UiBadge>
+                    {{ cashKpiBalance }}
+                  </p>
                 </div>
                 <div class="min-h-6" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
-                    {{ cashBalanceText }}
+                    {{ cashKpiCaption }}
                   </p>
                 </div>
               </div>
@@ -1693,9 +1682,9 @@ const goToCashRegister = () => {
 // attribute (data-cash-pill-state) for testability; the user-visible
 // label and aria-label are always Spanish. iOS filled pattern per
 // Decision 7:
-//   - open        → label "Abierta",     bg-systemGreen-100 text-systemGreen-600
-//   - closed      → label "Cerrada",     bg-systemRed-100 text-systemRed-600
-//   - no_session  → label "Sin sesión",  bg-systemGray-100 text-systemGray-600
+//   - open        → label "Abierta",     variant success (filled green)
+//   - closed      → label "Cerrada",     variant error   (filled red)
+//   - no_session  → label "Sin sesión",  variant neutral (surface tone)
 const cashStatusPillState = computed(() => {
   if (isOpen.value) return 'open'
   if (hasActiveSession.value) return 'closed'
@@ -1714,11 +1703,11 @@ const cashStatusBadgeVariant = computed(() => {
   return 'neutral'
 })
 
-const cashStatusBadgeClass = computed(() => {
-  if (isOpen.value) return 'bg-systemGreen-100 text-systemGreen-600'
-  if (hasActiveSession.value) return 'bg-systemRed-100 text-systemRed-600'
-  return 'bg-systemGray-100 text-systemGray-600'
-})
+// T2 - the header pill's tone is owned by the UiBadge `variant` alone
+// (success / error / neutral). The removed cashStatusBadgeClass layered
+// text-*-600 over the variant's text-*-700: a same-property conflict that
+// only stylesheet order resolved, so the rendered filled green/red tone
+// stays identical while one source owns the color.
 
 const cashStatusDotClass = computed(() => {
   if (isOpen.value) return 'bg-systemGreen-500'
@@ -1726,15 +1715,23 @@ const cashStatusDotClass = computed(() => {
   return 'bg-systemGray-500'
 })
 
-const cashBalanceText = computed(() => {
-  if (isOpen.value && realTimeTotals.value) {
-    return `Saldo: ${formatPENLabel(realTimeTotals.value.currentBalance)}`
-  }
-  if (hasActiveSession.value) {
-    return 'Sesión cerrada'
-  }
-  return 'No hay sesión activa'
-})
+// T2 - the cash KPI card's two data slots. `opened_at` is the stats
+// payload's open-session marker (the closed payload carries no opening
+// timestamp), so the card switches surfaces without re-declaring the raw
+// status key outside cashStatusPillState. The number stays "—" until the
+// cash-register summary lands, so the card never paints a fabricated
+// S/ 0.00.
+const cashSessionOpenedAt = computed(() => stats.value.cash_session?.opened_at || null)
+const cashKpiBalance = computed(() =>
+  cashSessionOpenedAt.value && realTimeTotals.value
+    ? formatPENLabel(realTimeTotals.value.currentBalance)
+    : '—'
+)
+const cashKpiCaption = computed(() =>
+  cashSessionOpenedAt.value
+    ? `Apertura ${formatTime(cashSessionOpenedAt.value)}`
+    : 'Sin sesión abierta'
+)
 
 const goToEnvironments = () => {
   router.push('/environments')
