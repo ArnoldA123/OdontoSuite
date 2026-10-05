@@ -1,8 +1,8 @@
 <template>
   <AppLayout>
     <PageHeader
-      title="Metodos de Pago"
-      subtitle="Gestiona los metodos de pago aceptados en la clinica"
+      title="Métodos de Pago"
+      subtitle="Gestiona los métodos de pago aceptados en la clinica"
       class="mb-6"
     >
       <template #actions>
@@ -116,8 +116,8 @@ viewBox="0 0 24 24">
     <UiCard v-else-if="!hasMethods" variant="glass" class="text-center py-12">
       <EmptyState
         :icon="CreditCardIcon"
-        title="No hay metodos de pago registrados"
-        description="Agrega metodos de pago para poder registrar cobros en caja."
+        title="No hay métodos de pago registrados"
+        description="Agrega métodos de pago para poder registrar cobros en caja."
         action-text="Nuevo Metodo"
         @action="openCreate"
       />

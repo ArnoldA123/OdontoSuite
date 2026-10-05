@@ -943,6 +943,10 @@
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
             Ver calendario
             <template #icon-right>
+              <!--
+                Chevron: stroke-width="1.5", the documented apple-design §16
+                baseline (T6). The 2.0 default is retired page-wide.
+              -->
               <svg
                 class="w-4 h-4"
                 fill="none"
@@ -953,7 +957,7 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2"
+                  stroke-width="1.5"
                   d="M9 5l7 7-7 7"
                 />
               </svg>
@@ -977,8 +981,10 @@
           HOTFIX-DASH-006 - Letter-key shortcut badge removed (no
           <kbd> with single uppercase letter). design-taste §9.D "no
           Material keyboard-shortcut reference visual". Each tile's
-          affordance is now the hover-lift + the entire card being a
-          clickable region (the existing UiCard clickable behaviour).
+          affordance is the hover-lift plus a full-bleed native button:
+          the card is the surface, the <button type="button"> inside it is
+          the control (T6), so the whole card stays the click region while
+          keyboard focus and activation work natively.
 
           T2b - every tile icon is an @heroicons/vue 24-outline
           component (UsersIcon, UserGroupIcon, BuildingOfficeIcon,
@@ -989,6 +995,10 @@
           T3 - single CTA per destination: the duplicate appointment
           tile was removed and the agenda header owns the primary
           appointment CTA, leaving four destination tiles.
+
+          T6 - the four tiles are real buttons (native semantics, no
+          clickable div) and the /business-intelligence tile is named
+          after the sidebar entry ("Business Intelligence").
         -->
         <div
           ref="quickActionsSection"
@@ -1000,24 +1010,35 @@
           <UiCard
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="patients"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToPatients"
           >
-            <div class="flex items-start gap-3">
-              <UsersIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Pacientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Gestionar base de datos
-                </p>
+            <!--
+              T6 - the card is the surface, the native button is the
+              control. w-full + the card's p-6 keep the whole card as the
+              click region; active:scale-[0.98] mirrors the press feedback
+              the card's retired clickable state provided.
+            -->
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToPatients"
+            >
+              <div class="flex items-start gap-3">
+                <UsersIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Pacientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Gestionar base de datos
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Professionals -->
@@ -1025,22 +1046,27 @@
             v-if="can.manageUsers?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="professionals"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToProfessionals"
           >
-            <div class="flex items-start gap-3">
-              <UserGroupIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Profesionales</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToProfessionals"
+            >
+              <div class="flex items-start gap-3">
+                <UserGroupIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Profesionales</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Environments -->
@@ -1048,47 +1074,59 @@
             v-if="can.manageConfig?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="environments"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToEnvironments"
           >
-            <div class="flex items-start gap-3">
-              <BuildingOfficeIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Ambientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToEnvironments"
+            >
+              <div class="flex items-start gap-3">
+                <BuildingOfficeIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Ambientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Configurar espacios
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
-          <!-- Reportes -->
+          <!-- Business Intelligence -->
           <UiCard
             v-if="can.viewReports?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="reports"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToBusinessIntelligence"
           >
-            <div class="flex items-start gap-3">
-              <ChartBarIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Reportes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Análisis y estadísticas
-                </p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToBusinessIntelligence"
+            >
+              <div class="flex items-start gap-3">
+                <ChartBarIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Business Intelligence</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Análisis y estadísticas
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
         </div>
       </section>

@@ -8,6 +8,13 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // reference surface (no click affordance, no navigation). The two allowed
 // appointment CTAs — the agenda header "Nueva cita" and the empty-state
 // "Crear nueva cita" — still open the appointment modal.
+//
+// T6 coverage (second describe block): one name per destination and real
+// button semantics. The sidebar names the payment-methods module "Métodos de
+// Pago", the /business-intelligence tile uses the sidebar name instead of
+// "Reportes", every tile is a native <button type="button"> (the card is a
+// presentation wrapper, not the control), and every dashboard stroke rides
+// the documented 1.5 baseline.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
@@ -52,6 +59,9 @@ import NewAppointmentModal from '../../../resources/js/components/appointments/N
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
   localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Ana Admin', role }))
+  // The sidebar renders its labels only when expanded; pin the state so a
+  // stored value from another mount cannot hide the nav copy.
+  localStorage.setItem('sidebar-collapsed', 'false')
 }
 
 const mountDashboard = async () => {
@@ -85,8 +95,15 @@ describe('dashboard single CTA per destination (T3)', () => {
 
     const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
     expect(quickActions.exists()).toBe(true)
-    expect(quickActions.findAll('button')).toHaveLength(1)
     expect(quickActions.text()).toContain('Ver calendario')
+
+    // T6: the section now holds the header CTA plus the four destination
+    // tiles (real buttons); the duplicate would be a second "Ver calendario"
+    // inside the tile grid.
+    const grid = quickActions.find('[data-reveal="quick-actions"]')
+    expect(grid.exists()).toBe(true)
+    expect(grid.text()).not.toContain('Ver calendario')
+    expect(grid.findAll('button')).toHaveLength(4)
 
     // The two section headers that used to duplicate it no longer carry it.
     for (const label of ['Agenda de hoy', 'Próximas citas']) {
@@ -115,7 +132,7 @@ describe('dashboard single CTA per destination (T3)', () => {
       'Pacientes',
       'Profesionales',
       'Ambientes',
-      'Reportes'
+      'Business Intelligence'
     ])
 
     wrapper.unmount()
@@ -183,6 +200,105 @@ describe('dashboard single CTA per destination (T3)', () => {
     await cashCtas[0].trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/cash-register')
+
+    wrapper.unmount()
+  })
+})
+
+describe('dashboard action naming and button semantics (T6)', () => {
+  beforeEach(() => {
+    signInAs('administrador')
+    getMock.mockReset()
+    installPayload()
+  })
+
+  it('renders the accented Métodos de Pago sidebar entry', async () => {
+    const { wrapper } = await mountDashboard()
+
+    const sidebar = wrapper.find('[data-app-chrome="sidebar"]')
+    expect(sidebar.exists()).toBe(true)
+    expect(sidebar.text()).toContain('Métodos de Pago')
+    expect(sidebar.text()).not.toContain('Metodos de Pago')
+
+    const link = sidebar.find('a[href="/settings/payment-methods"]')
+    expect(link.exists()).toBe(true)
+    expect(link.text()).toContain('Métodos de Pago')
+
+    wrapper.unmount()
+  })
+
+  it('names the /business-intelligence tile after the sidebar entry', async () => {
+    const { wrapper } = await mountDashboard()
+
+    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
+    const tile = quickActions.find('[data-action="reports"]')
+    expect(tile.exists()).toBe(true)
+    expect(tile.find('p').text()).toBe('Business Intelligence')
+    expect(tile.text()).not.toContain('Reportes')
+    // The subtitle is not part of the rename.
+    expect(tile.text()).toContain('Análisis y estadísticas')
+
+    const sidebarLink = wrapper.find('[data-app-chrome="sidebar"] a[href="/business-intelligence"]')
+    expect(sidebarLink.exists()).toBe(true)
+    expect(sidebarLink.text()).toContain('Business Intelligence')
+
+    wrapper.unmount()
+  })
+
+  it('renders every quick-action tile through a real type="button" control', async () => {
+    const { wrapper, router } = await mountDashboard()
+
+    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
+    const tiles = quickActions.findAll('[data-action]')
+    expect(tiles).toHaveLength(4)
+
+    const destinations = {
+      patients: '/patients',
+      professionals: '/professionals',
+      environments: '/environments',
+      reports: '/business-intelligence'
+    }
+
+    for (const tile of tiles) {
+      const action = tile.attributes('data-action')
+
+      // The card surface is presentation only: the interactive element is
+      // the native button inside it (no clickable div, no role="button").
+      expect(tile.attributes('data-clickable')).not.toBe('true')
+      expect(tile.find('[role="button"]').exists()).toBe(false)
+
+      const buttons = tile.findAll('button')
+      expect(buttons).toHaveLength(1)
+      expect(buttons[0].attributes('type')).toBe('button')
+      // The button stays a full-bleed target so the whole card remains the
+      // click region, and keeps a visible keyboard focus ring.
+      expect(buttons[0].classes()).toContain('w-full')
+      expect(buttons[0].classes().join(' ')).toContain('focus-visible:ring-2')
+
+      await buttons[0].trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe(destinations[action])
+
+      await router.push('/dashboard')
+      await flushPromises()
+    }
+
+    wrapper.unmount()
+  })
+
+  it('keeps every dashboard stroke on the documented 1.5 baseline', async () => {
+    const { wrapper } = await mountDashboard()
+
+    const content = wrapper.find('[data-dashboard-content]')
+    expect(content.exists()).toBe(true)
+    expect(content.findAll('svg').length).toBeGreaterThanOrEqual(5)
+
+    // The 2.0 default is retired: the empty-state line art and every
+    // chevron ride stroke-width="1.5" (apple-design §16 baseline).
+    expect(content.findAll('[stroke-width="2"]')).toHaveLength(0)
+
+    const calendarCta = buttonsWithText(wrapper, 'Ver calendario')[0]
+    expect(calendarCta.find('svg path').attributes('stroke-width')).toBe('1.5')
 
     wrapper.unmount()
   })

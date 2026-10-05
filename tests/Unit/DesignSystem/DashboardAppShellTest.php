@@ -518,6 +518,8 @@ class DashboardAppShellTest extends TestCase
      * T3 — DashboardPage.vue must contain the four verified quick-action
      * labels after the "Nueva Cita" tile was removed (single CTA per
      * destination: the agenda header owns the primary appointment CTA).
+     * T6 — the /business-intelligence tile is named after the sidebar entry
+     * ("Business Intelligence"), not the retired "Reportes" alias.
      */
     public function test_dashboard_contains_all_four_verified_quick_action_labels(): void
     {
@@ -525,7 +527,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Pacientes', 'Profesionales', 'Ambientes', 'Reportes'];
+        $labels = ['Pacientes', 'Profesionales', 'Ambientes', 'Business Intelligence'];
         foreach ($labels as $label) {
             // "Pacientes" appears in BOTH the stat card and the quick
             // actions; each label must be present at least once.
@@ -1819,12 +1821,118 @@ class DashboardAppShellTest extends TestCase
     public function testPr5NavLabelsRemainInFrozenOrder(): void
     {
         $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
-        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Metodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
+        // T6 — the payment-methods entry carries the accent every sibling
+        // label already had. Route path and permission keys stay ASCII.
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
         $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
         $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
         $sorted = $positions;
         sort($sorted);
         $this->assertSame($sorted, $positions);
+    }
+
+    /**
+     * T6 — one accented name for the payment-methods destination. The sidebar
+     * entry and the module heading both read "Métodos de Pago"; the ASCII
+     * spelling is retired from user-visible copy (identifiers, route paths
+     * and permission keys keep it by design).
+     */
+    public function test_t6_payment_methods_copy_carries_the_accent(): void
+    {
+        $layout = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $this->assertStringContainsString(
+            "name: 'Métodos de Pago'",
+            $layout,
+            'AppLayout.vue sidebar entry must read "Métodos de Pago" (T6 naming coherence with every sibling label).'
+        );
+        $this->assertStringNotContainsString(
+            "name: 'Metodos de Pago'",
+            $layout,
+            'AppLayout.vue must not keep the unaccented sidebar label (T6).'
+        );
+
+        $pagePath = self::projectRootPath()
+            . '/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
+        $this->assertFileExists($pagePath, 'PaymentMethodsPage.vue must exist (T6 naming boundary).');
+        $page = (string) self::readFile($pagePath);
+
+        $this->assertStringContainsString(
+            'title="Métodos de Pago"',
+            $page,
+            'PaymentMethodsPage.vue heading must read "Métodos de Pago" (T6).'
+        );
+
+        // Byte-safe pin: the accented form holds a 2-byte "é", so this ASCII
+        // pattern only matches the unaccented copy in any casing.
+        $unaccented = preg_match_all('/[Mm]etodos de [Pp]ago/u', $page);
+        $this->assertSame(
+            0,
+            (int) $unaccented,
+            'PaymentMethodsPage.vue must render zero unaccented "metodos de pago" strings (T6, user-visible copy only).'
+        );
+    }
+
+    /**
+     * T6 — the quick-action tiles are real controls. Each `data-action` tile
+     * keeps its UiCard surface as a presentation wrapper, but the interactive
+     * element inside is a native `<button type="button">`. The card opening
+     * tag must not carry the `clickable` prop or the click binding: a
+     * clickable div is neither focusable nor activatable from the keyboard.
+     */
+    public function test_t6_quick_action_tiles_render_through_native_buttons(): void
+    {
+        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard\b[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            4,
+            count($cards),
+            'DashboardPage.vue must contain at least 4 data-action tiles for the T6 button-semantics check.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $opening = substr($card, 0, (int) strpos($card, '>') + 1);
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bclickable\b/',
+                $opening,
+                "Quick-action tile #{$idx} must not carry the UiCard clickable prop (T6: real button semantics)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/@click/',
+                $opening,
+                "Quick-action tile #{$idx} must not bind the click on the card surface (T6: the native button owns it)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/<button\b[^>]*type="button"/',
+                $card,
+                "Quick-action tile #{$idx} must render a native <button type=\"button\"> inside the card (T6 keyboard + AT semantics)."
+            );
+        }
+    }
+
+    /**
+     * T6 — chevrons ride the documented 1.5 stroke baseline (apple-design
+     * §16), the same value the empty-state line art already uses. The arrow
+     * chevron in the "Ver calendario" CTA was the last stroke-width="2"
+     * holdout on the page.
+     */
+    public function test_t6_dashboard_strokes_use_the_1_5_baseline(): void
+    {
+        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            0,
+            substr_count($src, 'stroke-width="2"'),
+            'DashboardPage.vue must contain zero stroke-width="2" strokes (T6: every icon rides the 1.5 baseline).'
+        );
     }
 
 }
