@@ -73,13 +73,13 @@ class PageRestyleTest extends TestCase
 
     /**
      * Task 2.1.2 — Dashboard's cash-status badge resolves to the iOS
-     * filled pattern: `bg-systemGreen-100 text-systemGreen-600` for
-     * "Abierta", `bg-systemRed-100 text-systemRed-600` for "Cerrada",
-     * `bg-systemGray-100 text-systemGray-600` for "Sin sesión".
-     *
-     * The badge text is rendered through a Vue computed binding; the
-     * source file must contain all three color triples so the binding
-     * can resolve at runtime.
+     * filled pattern per state. Since T2 of dashboard-visual-coherence
+     * the tone is owned by the shared UiBadge variant system: the filled
+     * triples live in Badge.vue (bg-*-100 + text-*-700 + hairline) and
+     * the dashboard binds a state-driven variant ('success' = Abierta,
+     * 'error' = Cerrada, 'neutral' = Sin sesión). The old inline
+     * text-*-600 overrides were dead code (the variant's text-*-700 won
+     * the cascade) and were removed.
      *
      * @test
      */
@@ -88,16 +88,31 @@ class PageRestyleTest extends TestCase
         $src = self::read('resources/js/modules/dashboard/DashboardPage.vue');
         $this->assertNotSame('', $src, 'DashboardPage.vue must exist');
 
-        $mustContain = [
-            'bg-systemGreen-100 text-systemGreen-600' => 'Abierta badge (green)',
-            'bg-systemRed-100 text-systemRed-600' => 'Cerrada badge (red)',
-            'bg-systemGray-100 text-systemGray-600' => 'Sin sesión badge (gray)',
+        $this->assertGreaterThan(
+            0,
+            self::countCi($src, ':variant="cashStatusBadgeVariant"'),
+            'DashboardPage.vue must delegate the cash badge tone to the UiBadge variant binding'
+        );
+
+        $this->assertMatchesRegularExpression(
+            "/cashStatusBadgeVariant\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]{0,300}?'success'[\s\S]{0,120}?'error'[\s\S]{0,120}?'neutral'/",
+            $src,
+            "cashStatusBadgeVariant must map Abierta to 'success', Cerrada to 'error' and Sin sesión to 'neutral'"
+        );
+
+        $badge = self::read('resources/js/components/ui/Badge.vue');
+        $this->assertNotSame('', $badge, 'Badge.vue must exist');
+
+        $filledTriples = [
+            'bg-systemGreen-100 text-systemGreen-700' => 'Abierta badge (green)',
+            'bg-systemRed-100 text-systemRed-700' => 'Cerrada badge (red)',
+            'bg-theme-surface text-theme-secondary' => 'Sin sesión badge (gray)',
         ];
-        foreach ($mustContain as $needle => $label) {
+        foreach ($filledTriples as $needle => $label) {
             $this->assertGreaterThan(
                 0,
-                self::countCi($src, $needle),
-                "DashboardPage.vue must contain `{$needle}` for the {$label}"
+                self::countCi($badge, $needle),
+                "Badge.vue must provide the filled triple `{$needle}` for the {$label}"
             );
         }
     }
