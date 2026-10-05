@@ -113,12 +113,12 @@ Detalles del Pago
 
           <div>
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
-              Metodo de Pago *
+              Método de Pago *
             </label>
             <UiSelect
               v-model="formData.payment_method_id"
               :options="paymentMethodOptions"
-              placeholder="Seleccionar metodo"
+              placeholder="Seleccionar método"
               size="md"
               searchable
               :error="errors.payment_method_id"
@@ -128,7 +128,7 @@ Detalles del Pago
               v-if="!loadingMethods && paymentMethods.length === 0"
               class="mt-1 text-xs text-amber-600"
             >
-              No hay metodos de pago activos. Contacta al administrador.
+              No hay métodos de pago activos. Contacta al administrador.
             </p>
             <p v-if="errors.payment_method_id" class="mt-1 text-xs md:text-sm text-red-600">
               {{ errors.payment_method_id[0] }}
@@ -373,7 +373,7 @@ const switchToMercadoPago = async () => {
       pendingTransactionId.value = txId
       activeTab.value = 'mercadopago'
     } else {
-      toast.error('Error al crear la transaccion para Mercado Pago')
+      toast.error('Error al crear la transacción para Mercado Pago')
     }
   } catch (error) {
     if (error.response?.data?.errors) {
@@ -442,7 +442,7 @@ const paymentMethodOptions = computed(() =>
     value: m.id,
     label: m.name,
     description:
-      m.commission_percentage > 0 ? `Comision: ${m.commission_percentage}%` : m.description || ''
+      m.commission_percentage > 0 ? `Comisión: ${m.commission_percentage}%` : m.description || ''
   }))
 )
 

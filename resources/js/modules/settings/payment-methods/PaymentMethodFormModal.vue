@@ -1,7 +1,7 @@
 <template>
   <UiModal
     model-value
-    :title="isEdit ? 'Editar metodo de pago' : 'Nuevo metodo de pago'"
+    :title="isEdit ? 'Editar método de pago' : 'Nuevo método de pago'"
     size="lg"
     @close="emit('close')"
   >
@@ -10,21 +10,21 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-theme-primary mb-1">
-            Codigo
+            Código
             <span class="text-systemRed-500">*</span>
           </label>
           <UiInput
             v-model="form.code"
             :disabled="isEdit || isSystem"
-            placeholder="ej. cash, credito, yape"
+            placeholder="ej. cash, crédito, yape"
             :error="errors.code"
             class="w-full"
           />
           <p v-if="isEdit" class="text-xs text-theme-secondary mt-1">
-            El codigo no puede modificarse.
+            El código no puede modificarse.
           </p>
           <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
-            Metodo del sistema: no editable.
+            Método del sistema: no editable.
           </p>
         </div>
         <div>
@@ -35,7 +35,7 @@
           <UiInput
             v-model="form.name"
             :disabled="isSystem"
-            placeholder="ej. Tarjeta de credito"
+            placeholder="ej. Tarjeta de crédito"
             :error="errors.name"
             class="w-full"
           />
@@ -44,12 +44,12 @@
 
       <!-- Descripcion -->
       <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">Descripcion</label>
+        <label class="block text-sm font-medium text-theme-primary mb-1">Descripción</label>
         <UiTextarea
           v-model="form.description"
           :disabled="isSystem"
           :rows="2"
-          placeholder="Notas sobre este metodo de pago"
+          placeholder="Notas sobre este método de pago"
           class="w-full"
         />
       </div>
@@ -57,7 +57,7 @@
       <!-- Comision + Requiere autorizacion -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Comision (%)</label>
+          <label class="block text-sm font-medium text-theme-primary mb-1">Comisión (%)</label>
           <UiInput
             v-model.number="form.commission_percentage"
             :disabled="isSystem"
@@ -83,10 +83,10 @@
           >
           <div>
             <label for="requires_authorization" class="text-sm text-theme-primary font-medium">
-              Requiere autorizacion
+              Requiere autorización
             </label>
             <p class="text-xs text-theme-secondary">
-              Si se requiere voucher o codigo de operacion.
+              Si se requiere voucher o código de operación.
             </p>
           </div>
         </div>
@@ -96,8 +96,8 @@
       <div v-if="!isSystem || form.gateway_type" class="border-t border-hairline pt-4 mt-4">
         <h4 class="text-sm font-semibold text-theme-primary mb-3">Pasarela de pago (opcional)</h4>
         <p class="text-xs text-theme-secondary mb-3">
-          Configura Mercado Pago u otra pasarela para cobrar en linea. El cobro manual siempre
-          estara disponible sin pasarela.
+          Configura Mercado Pago u otra pasarela para cobrar en línea. El cobro manual siempre
+          estará disponible sin pasarela.
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -128,7 +128,7 @@
                 class="w-full"
               />
               <p v-if="hasStoredCredentials" class="text-xs text-theme-secondary mt-1">
-                Credenciales guardadas. Dejalo vacio para conservarlas.
+                Credenciales guardadas. Déjalo vacío para conservarlas.
               </p>
             </div>
             <div>
@@ -155,7 +155,7 @@
           <option :value="false">Inactivo</option>
         </select>
         <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
-          Los metodos del sistema no pueden desactivarse desde esta UI.
+          Los métodos del sistema no pueden desactivarse desde esta UI.
         </p>
       </div>
     </form>
@@ -169,7 +169,7 @@ Cancelar
           {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
         </UiButton>
         <UiButton v-else variant="secondary" disabled>
-Metodo del sistema
+Método del sistema
 </UiButton>
       </div>
     </template>
@@ -288,7 +288,7 @@ const onSubmit = async () => {
         Object.entries(err.response.data.errors).map(([k, v]) => [k, v[0]])
       )
     } else {
-      toast.error(err.response?.data?.message || 'Error al guardar el metodo de pago')
+      toast.error(err.response?.data?.message || 'Error al guardar el método de pago')
     }
   } finally {
     saving.value = false

@@ -43,7 +43,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       }
       return response.data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener metodos de pago'
+      error.value = err.response?.data?.message || 'Error al obtener métodos de pago'
       methods.value = []
       throw err
     } finally {
@@ -59,7 +59,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       currentMethod.value = response.data
       return response.data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener el metodo de pago'
+      error.value = err.response?.data?.message || 'Error al obtener el método de pago'
       throw err
     } finally {
       loading.value = false
@@ -75,7 +75,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       methods.value.unshift(created)
       return created
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al crear el metodo de pago'
+      error.value = err.response?.data?.message || 'Error al crear el método de pago'
       throw err
     } finally {
       loading.value = false
@@ -93,7 +93,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       if (currentMethod.value?.id === id) currentMethod.value = updated
       return updated
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al actualizar el metodo de pago'
+      error.value = err.response?.data?.message || 'Error al actualizar el método de pago'
       throw err
     } finally {
       loading.value = false
@@ -109,7 +109,7 @@ export function usePaymentMethods (endpoint = '/api/payment-methods') {
       if (index !== -1) methods.value.splice(index, 1)
       return true
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al eliminar el metodo de pago'
+      error.value = err.response?.data?.message || 'Error al eliminar el método de pago'
       throw err
     } finally {
       loading.value = false
