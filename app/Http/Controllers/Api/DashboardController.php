@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Patient;
+use App\Models\Quotation;
+use App\Models\TreatmentPlan;
 use App\Models\User;
 use App\Models\AppointmentType;
 use App\Models\DentalChair;
@@ -299,5 +301,114 @@ class DashboardController extends Controller
                 'cached' => true
             ]
         ]);
+    }
+
+    /**
+     * Pendientes del dashboard: quotations and treatment plans waiting on a decision.
+     *
+     * "Awaiting action" is anchored on the real status enums:
+     * - quotations: `sent` and `viewed` (issued to the patient, decision still pending).
+     *   `draft` awaits internal completion; `approved`/`rejected`/`expired` are resolved.
+     * - treatment plans: `proposed` (awaiting acceptance). `draft` awaits internal
+     *   completion; `approved`/`in_progress` are already accepted; the rest are terminal.
+     *
+     * Each subset only appears for roles allowed into its module in routes/api.php.
+     * Unauthorized subsets are omitted from `data` entirely.
+     */
+    public function pending(Request $request): JsonResponse
+    {
+        try {
+            $branchId = $request->input('branch_id');
+            $role = $request->user()?->role;
+            $cacheKey = 'dashboard_pending_' . Auth::id() . '_' . $role . '_' . ($branchId ?? 'all');
+
+            $pending = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($branchId, $role) {
+                $data = [];
+
+                // Mirrors `role:administrador,finanzas,odontologo,implantologo,recepcionista`
+                // on the quotations read group.
+                if (in_array($role, ['administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista'], true)) {
+                    $data['quotations'] = $this->pendingQuotations($branchId);
+                }
+
+                // Mirrors `role:administrador,odontologo,implantologo,tecnico_dental`
+                // on the treatment-plans group.
+                if (in_array($role, ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'], true)) {
+                    $data['treatment_plans'] = $this->pendingTreatmentPlans($branchId);
+                }
+
+                return $data;
+            });
+
+            return response()->json([
+                'data' => (object) $pending,
+                'meta' => [
+                    'message' => 'Pendientes del dashboard cargados exitosamente',
+                    'generated_at' => now()->toISOString(),
+                    'cached' => true
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en DashboardController@pending: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Error al obtener pendientes del dashboard',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @return array{count: int, items: array<int, array<string, mixed>>}
+     */
+    private function pendingQuotations($branchId): array
+    {
+        $query = Quotation::whereIn('status', ['sent', 'viewed'])
+            ->when($branchId, fn($q) => $q->whereHas('patient', fn($p) => $p->where('branch_id', $branchId)));
+
+        $count = (clone $query)->count();
+
+        $items = (clone $query)
+            ->with('patient')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn(Quotation $quotation) => [
+                'id' => $quotation->id,
+                'patient_name' => $quotation->patient?->full_name,
+                'total_amount' => (float) $quotation->total_amount,
+                'status' => $quotation->status,
+                'created_at' => $quotation->created_at?->toISOString(),
+            ])
+            ->all();
+
+        return ['count' => $count, 'items' => $items];
+    }
+
+    /**
+     * @return array{count: int, items: array<int, array<string, mixed>>}
+     */
+    private function pendingTreatmentPlans($branchId): array
+    {
+        $query = TreatmentPlan::where('status', 'proposed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $count = (clone $query)->count();
+
+        $items = (clone $query)
+            ->with('patient')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get()
+            ->map(fn(TreatmentPlan $plan) => [
+                'id' => $plan->id,
+                'patient_name' => $plan->patient?->full_name,
+                'title' => $plan->title,
+                'final_cost' => (float) $plan->final_cost,
+                'status' => $plan->status,
+                'created_at' => $plan->created_at?->toISOString(),
+            ])
+            ->all();
+
+        return ['count' => $count, 'items' => $items];
     }
 }
