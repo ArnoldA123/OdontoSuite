@@ -697,8 +697,9 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must use `EmptyState` for the today's-appointments
-     * empty case (the live state users see today due to the GET 404 bug).
+     * T5 — DashboardPage.vue renders the today-appointments empty case
+     * through the shared DashboardSectionEmpty component (extracted from the
+     * previous inline block; HOTFIX-DASH-007 icon + CTA ride its slots).
      */
     public function test_dashboard_uses_empty_state_for_today_appointments(): void
     {
@@ -706,12 +707,160 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The global registration in resources/js/plugins/ui-components.js
-        // exposes EmptyState.vue as `<EmptyState />` (no Ui prefix).
+        // The shared empty pattern lives in the dashboard module; the page
+        // consumes it for the today's-appointments empty case.
         $this->assertStringContainsString(
-            '<EmptyState',
+            '<DashboardSectionEmpty',
             $src,
-            "DashboardPage.vue must render <EmptyState /> for the today's-appointments empty case."
+            "DashboardPage.vue must render <DashboardSectionEmpty /> for the today's-appointments empty case (T5)."
+        );
+    }
+
+    /**
+     * T5 — the three per-section inline error blocks (agenda, próximas
+     * citas, pendientes) were near-duplicate copies of the same markup.
+     * They now all render the shared DashboardSectionError component, the
+     * page keeps no copy of the old inline block, and the page-level stats
+     * error keeps its own distinct role.
+     */
+    public function test_dashboard_uses_shared_section_error_component(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            0,
+            substr_count($src, 'rounded-ios p-5 bg-systemRed-50'),
+            'DashboardPage.vue must not keep the duplicated inline section-error markup (T5: DashboardSectionError owns it).'
+        );
+
+        $this->assertSame(
+            3,
+            preg_match_all('/<DashboardSectionError\b/', $src),
+            'DashboardPage.vue must render exactly three <DashboardSectionError /> blocks (agenda, próximas citas, pendientes).'
+        );
+
+        $hooks = [
+            'error-appointments' => 'data-retry-appointments',
+            'error-upcoming' => 'data-retry-upcoming',
+            'error-pending' => 'data-retry-pending',
+        ];
+        foreach ($hooks as $state => $retry) {
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*>/s',
+                $src,
+                "DashboardPage.vue must keep the `{$state}` hook on its shared section-error component (T5)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*' . $retry . '/s',
+                $src,
+                "DashboardPage.vue must keep the `{$retry}` retry hook on its shared section-error component (T5)."
+            );
+        }
+
+        // The page-level stats error is a different role (it replaces the
+        // whole page) and stays as its own block.
+        $this->assertSame(
+            1,
+            substr_count($src, 'data-state="error-stats"'),
+            'DashboardPage.vue must keep exactly one page-level stats error block (T5).'
+        );
+    }
+
+    /**
+     * T5 — the three empty states render through the shared
+     * DashboardSectionEmpty component: one padding token, per-section copy
+     * passed as props, and the pending empty copy keeps its per-column
+     * semantics inside each data-pending-group.
+     */
+    public function test_dashboard_uses_shared_section_empty_component(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $componentPath = self::projectRootPath() . '/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
+        $this->assertFileExists(
+            $componentPath,
+            'DashboardSectionEmpty.vue must exist (T5 shared empty-state pattern).'
+        );
+        $componentSrc = (string) self::readFile($componentPath);
+        $this->assertStringContainsString(
+            'data-section-empty',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must expose the data-section-empty hook (T5).'
+        );
+        $this->assertStringContainsString(
+            'p-10',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must own the single padding token used by every empty state (T5).'
+        );
+
+        foreach (['empty-appointments', 'empty-upcoming'] as $state) {
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionEmpty\b[^>]*data-state="' . $state . '"/s',
+                $src,
+                "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (T5)."
+            );
+        }
+
+        $pending = $this->sectionRegion($src, 'Pendientes');
+        $this->assertMatchesRegularExpression(
+            '/data-pending-group="quotations"[\s\S]*?<DashboardSectionEmpty\b/s',
+            $pending,
+            'Pending quotations empty column must render through DashboardSectionEmpty (T5).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-pending-group="treatment-plans"[\s\S]*?<DashboardSectionEmpty\b/s',
+            $pending,
+            'Pending treatment-plans empty column must render through DashboardSectionEmpty (T5).'
+        );
+        $this->assertStringContainsString(
+            'title="Sin presupuestos pendientes"',
+            $pending,
+            'Pending quotations empty copy must keep its per-column semantics through the component prop (T5).'
+        );
+        $this->assertStringContainsString(
+            'title="Sin planes por aceptar"',
+            $pending,
+            'Pending treatment-plans empty copy must keep its per-column semantics through the component prop (T5).'
+        );
+    }
+
+    /**
+     * T5 — pending plan rows render the backend final_cost with the same row
+     * anatomy as the quotation rows, with a muted "N/D" fallback that never
+     * paints an em dash.
+     */
+    public function test_dashboard_plan_rows_render_final_cost(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $pending = $this->sectionRegion($src, 'Pendientes');
+        $start = strpos($pending, 'data-pending-group="treatment-plans"');
+        $this->assertNotFalse(
+            $start,
+            'DashboardPage.vue must render the treatment-plans pending group.'
+        );
+        $planRegion = substr($pending, $start);
+
+        $this->assertStringContainsString(
+            'formatPENLabel(item.final_cost)',
+            $planRegion,
+            'DashboardPage.vue plan rows must render the backend final_cost through formatPENLabel (T5).'
+        );
+        $this->assertStringContainsString(
+            'N/D',
+            $planRegion,
+            'DashboardPage.vue plan rows must render a muted "N/D" fallback when final_cost is null (T5).'
+        );
+        $this->assertStringNotContainsString(
+            "\u{2014}",
+            $planRegion,
+            'DashboardPage.vue plan rows must never fall back to an em dash (T5 / HOTFIX-DASH-011).'
         );
     }
 
@@ -1077,15 +1226,14 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The empty state for today-appointments is an inline <div> carrying
-        // data-state="empty-appointments" (HOTFIX-DASH-007: inline line-art
-        // SVG, NOT a child <EmptyState> component, so the rule stays
-        // auditable in source). It MUST NOT carry an illustration attribute
-        // pointing to a third-party host.
+        // The empty state for today-appointments renders through the shared
+        // DashboardSectionEmpty component (T5) and keeps the
+        // data-state="empty-appointments" hook. It MUST NOT carry an
+        // illustration attribute pointing to a third-party host.
         $this->assertMatchesRegularExpression(
-            '/<div[^>]*data-state="empty-appointments"[^>]*>/',
+            '/<DashboardSectionEmpty\b[^>]*data-state="empty-appointments"/s',
             $src,
-            'DashboardPage.vue must render <div data-state="empty-appointments"> for the today-appointments empty case (HOTFIX-DASH-007 inline SVG, no <EmptyState> component).'
+            'DashboardPage.vue must render <DashboardSectionEmpty data-state="empty-appointments"> for the today-appointments empty case (T5, HOTFIX-DASH-007 icon through the icon slot).'
         );
         $this->assertDoesNotMatchRegularExpression(
             '/<EmptyState\b[^>]*\billustration="[^"]*picsum\.photos/i',

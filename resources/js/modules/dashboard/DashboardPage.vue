@@ -196,13 +196,14 @@
         so the daily operation is the first thing the user reads.
         Row anatomy: time (tabular) / patient / type / professional /
         status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
-        plus primary CTA (no remote illustration).
+        plus primary CTA (no remote illustration) through the shared
+        DashboardSectionEmpty pattern (T5).
       -->
       <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div class="flex items-baseline gap-3">
             <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
-            <span class="text-sm text-theme-secondary tabular-nums">
+            <span v-if="!todayError" class="text-sm text-theme-secondary tabular-nums">
               {{ todayAppointments.length }} {{ todayAppointments.length === 1 ? 'cita' : 'citas' }}
             </span>
           </div>
@@ -219,112 +220,85 @@
         </div>
 
         <!--
-          Agenda inline error (T3). Only the today resource failed: the
+          Agenda inline error (T5). Only the today resource failed: the
           section keeps its header and the rest of the page stays usable, so
           the retry affordance lives here and re-fetches ONLY
-          /api/dashboard/appointments-today.
+          /api/dashboard/appointments-today through the shared section-error
+          component.
         -->
-        <div
+        <DashboardSectionError
           v-if="todayError"
           data-state="error-appointments"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">
-                No pudimos cargar la agenda de hoy
-              </p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver las citas programadas para el día.
-              </p>
-            </div>
-          </div>
-          <UiButton
-            variant="primary"
-            size="sm"
-            data-retry-appointments
-            @click="retryTodayAppointments"
-          >
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar la agenda de hoy"
+          description="Reintenta para ver las citas programadas para el día."
+          :retry-attrs="{ 'data-retry-appointments': '' }"
+          @retry="retryTodayAppointments"
+        />
 
         <!--
-          Empty state for the today-appointments case.
-          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
+          Empty state for the today-appointments case, rendered through the
+          shared DashboardSectionEmpty pattern (T5).
 
-          T2a - the previous radial-gradient wash is replaced by a flat
-          accent tint (bg-accent-50) plus the hairline border: the ops
-          redesign is token-only and bans decorative gradients. The block
-          still reads as a depth surface, not a flat empty row.
+          HOTFIX-DASH-007 - line-art SVG + primary CTA. The calendar SVG
+          stays inline in this template, passed through the component's icon
+          slot, so the stroke-width="1.5" rule stays auditable in source
+          (apple-design §16 baseline, NOT the previous 2.0 default).
 
-          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
-          stroke-width="1.5" (Apple's outline-icon convention, NOT the
-          previous 2.0 default). The SVG is inline in this template
-          (NOT a child <EmptyState> component) so the rule is auditable
-          in source.
+          T2a - the flat accent tint (bg-accent-50) plus the hairline border
+          live in the shared component: the ops redesign is token-only and
+          bans decorative gradients.
 
           design-taste §9.F "NO div-based fake product UI" - the empty
           state is a real line-art SVG with a real primary CTA, not a
-          hand-built fake dashboard preview.
+          hand-built fake dashboard preview. The "Crear nueva cita" CTA is
+          the user-approved contextual exception to the single-CTA rule.
         -->
-        <div
+        <DashboardSectionEmpty
           v-else-if="todayAppointments.length === 0"
           ref="emptyStateSection"
           data-state="empty-appointments"
           data-reveal="empty-state"
-          class="relative rounded-ios p-10 text-center bg-accent-50"
-          style="border: 1px solid var(--color-hairline)"
+          title="Sin citas para hoy"
+          description="Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario."
           :style="revealStyle('--spring-dash-empty-o')"
         >
-          <!--
-            HOTFIX-DASH-007 - inline line-art calendar SVG.
-            stroke-width="1.5" (apple-design §16 baseline).
-            Color: var(--color-label-tertiary-label) - the iOS
-            tertiaryLabel token so the icon recedes.
-          -->
-          <svg
-            class="mx-auto h-12 w-12 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            style="color: var(--color-label-tertiary-label)"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <p class="text-base font-medium text-theme-primary">
-            Sin citas para hoy
-          </p>
-          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
-            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
-          </p>
-          <div class="mt-6">
+          <template #icon>
             <!--
-              Primary CTA per apple-design §12 "translucent chrome for
-              depth, primary CTA anchored to the action".
+              HOTFIX-DASH-007 - inline line-art calendar SVG.
+              stroke-width="1.5" (apple-design §16 baseline).
+              Color: var(--color-label-tertiary-label) - the iOS
+              tertiaryLabel token so the icon recedes.
             -->
-            <UiButton
-              variant="primary"
-              size="md"
-              data-cta="empty-create-appointment"
-              @click="goToNewAppointment"
+            <svg
+              class="mx-auto h-12 w-12 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              style="color: var(--color-label-tertiary-label)"
+              aria-hidden="true"
             >
-              Crear nueva cita
-            </UiButton>
-          </div>
-        </div>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </template>
+          <!--
+            Primary CTA per apple-design §12 "translucent chrome for
+            depth, primary CTA anchored to the action".
+          -->
+          <UiButton
+            variant="primary"
+            size="md"
+            data-cta="empty-create-appointment"
+            @click="goToNewAppointment"
+          >
+            Crear nueva cita
+          </UiButton>
+        </DashboardSectionEmpty>
 
         <div v-else class="grid gap-3">
           <UiCard
@@ -391,52 +365,29 @@
         <!--
           Upcoming inline error (T5). Only the upcoming resource failed:
           the header stays, the rest of the page stays usable, and the retry
-          affordance re-fetches ONLY /api/dashboard/upcoming.
+          affordance re-fetches ONLY /api/dashboard/upcoming through the
+          shared section-error component.
         -->
-        <div
+        <DashboardSectionError
           v-if="upcomingError"
           data-state="error-upcoming"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">
-                No pudimos cargar las próximas citas
-              </p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver lo que queda de la semana.
-              </p>
-            </div>
-          </div>
-          <UiButton
-            variant="primary"
-            size="sm"
-            data-retry-upcoming
-            @click="retryUpcomingAppointments"
-          >
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar las próximas citas"
+          description="Reintenta para ver lo que queda de la semana."
+          :retry-attrs="{ 'data-retry-upcoming': '' }"
+          @retry="retryUpcomingAppointments"
+        />
 
         <!--
-          Empty state for the upcoming-week case. Hand-built like the today
-          empty state but with its own marker (data-state="empty-upcoming");
-          the today marker belongs to the agenda and stays untouched.
+          Empty state for the upcoming-week case, rendered through the shared
+          DashboardSectionEmpty pattern with its own marker and copy (T5).
         -->
-        <div
+        <DashboardSectionEmpty
           v-else-if="upcomingAppointments.length === 0"
           data-state="empty-upcoming"
-          class="rounded-ios p-6 text-center bg-accent-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <p class="text-sm text-theme-secondary">Sin citas programadas para esta semana</p>
-        </div>
+          title="Sin citas programadas para esta semana"
+          description="No hay citas registradas de mañana en adelante."
+        />
 
         <div v-else class="space-y-4">
           <div
@@ -498,31 +449,17 @@
         <!--
           Pending inline error (T7b). Only this resource failed: the rest
           of the page stays usable, and the retry re-fetches ONLY
-          /api/dashboard/pending.
+          /api/dashboard/pending through the shared section-error component.
         -->
-        <div
+        <DashboardSectionError
           v-if="pendingError"
           data-state="error-pending"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">No pudimos cargar los pendientes</p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver presupuestos y planes en espera de respuesta.
-              </p>
-            </div>
-          </div>
-          <UiButton variant="primary" size="sm" data-retry-pending @click="retryPending">
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar los pendientes"
+          description="Reintenta para ver presupuestos y planes en espera de respuesta."
+          :retry-attrs="{ 'data-retry-pending': '' }"
+          @retry="retryPending"
+        />
 
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Presupuestos pendientes (gated by payload presence) -->
@@ -547,12 +484,16 @@
             </div>
             <!--
               Empty subset: the payload key is present but nothing waits
-              on a decision. Small Spanish copy keeps the group slot calm
-              and consistent with the module empty states.
+              on a decision. The Spanish copy is passed through the shared
+              DashboardSectionEmpty pattern so every empty state reads as
+              one family (T5).
             -->
-            <p v-if="pendingQuotations.count === 0" class="text-sm text-theme-secondary">
-              Sin presupuestos pendientes
-            </p>
+            <DashboardSectionEmpty
+              v-if="pendingQuotations.count === 0"
+              data-state="empty-pending"
+              title="Sin presupuestos pendientes"
+              description="Los presupuestos enviados aparecerán aquí cuando esperen respuesta."
+            />
             <div v-else class="grid gap-2">
               <UiCard
                 v-for="item in pendingQuotations.items"
@@ -603,9 +544,12 @@
                 Ver todos
               </UiButton>
             </div>
-            <p v-if="pendingTreatmentPlans.count === 0" class="text-sm text-theme-secondary">
-              Sin planes por aceptar
-            </p>
+            <DashboardSectionEmpty
+              v-if="pendingTreatmentPlans.count === 0"
+              data-state="empty-pending"
+              title="Sin planes por aceptar"
+              description="Los planes propuestos aparecerán aquí cuando esperen respuesta."
+            />
             <div v-else class="grid gap-2">
               <UiCard
                 v-for="item in pendingTreatmentPlans.items"
@@ -619,6 +563,13 @@
                   <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
                     {{ item.patient_name || 'Paciente' }}
                   </p>
+                  <span
+                    v-if="item.final_cost !== null && item.final_cost !== undefined"
+                    class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                  >
+                    {{ formatPENLabel(item.final_cost) }}
+                  </span>
+                  <span v-else class="flex-shrink-0 text-sm text-theme-secondary">N/D</span>
                   <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
                     {{ pendingStatusLabel(item.status) }}
                   </UiBadge>
@@ -1160,6 +1111,8 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
+import DashboardSectionError from './DashboardSectionError.vue'
+import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
@@ -1313,7 +1266,11 @@ const playEntrance = () => {
   if (greetingSection.value) greetingSpring.attach(greetingSection.value)
   if (kpiSection.value) kpiSpring.attach(kpiSection.value)
   if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
-  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
+  // The empty state renders through a child component, so the template ref
+  // yields the component instance; the spring binds to its root element.
+  if (emptyStateSection.value) {
+    emptyStateSpring.attach(emptyStateSection.value.$el || emptyStateSection.value)
+  }
 
   setTimeout(() => greetingSpring.set(1), 0)
   setTimeout(() => kpiSpring.set(1), 60)

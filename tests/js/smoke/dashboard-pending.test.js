@@ -163,6 +163,7 @@ describe('dashboard pending block (T7b)', () => {
     expect(planRows).toHaveLength(1)
     expect(planRows[0].text()).toContain('Marta Díaz')
     expect(planRows[0].text()).toContain('Propuesto')
+    expect(normalize(planRows[0].text())).toContain('S/ 249.50')
     expect(planRows[0].text()).toContain('2 oct')
 
     // Section order: agenda -> upcoming -> pendientes -> KPI grid.
