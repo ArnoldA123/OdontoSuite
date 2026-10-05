@@ -84,4 +84,62 @@ class HotfixDashboardStaggerTest extends TestCase
             'DashboardPage.vue MUST declare at least FOUR distinct cssVar tokens across useSpring calls — HOTFIX-DASH-009 (greeting + KPI grid + Quick Actions + Citas de Hoy each need their own cssVar).'
         );
     }
+
+    /**
+     * T4 - every entrance cssVar MUST be consumed by a template rule.
+     * Before T4 the four vars were written to the sections but no style
+     * rule read them, so the motion was vestigial. Pin the consumption so
+     * the entrance cannot silently become dead code again.
+     */
+    public function test_every_entrance_css_var_is_consumed_by_a_template_rule(): void
+    {
+        $source = (string) file_get_contents(self::dashboardPagePath());
+
+        $expectedVars = [
+            '--spring-dash-greeting-o',
+            '--spring-dash-kpi-o',
+            '--spring-dash-quick-o',
+            '--spring-dash-empty-o',
+        ];
+
+        foreach ($expectedVars as $cssVar) {
+            $this->assertMatchesRegularExpression(
+                "/revealStyle\(\s*'" . preg_quote($cssVar, '/') . "'\s*\)/",
+                $source,
+                "DashboardPage.vue MUST consume `{$cssVar}` through revealStyle() in a template style rule (T4 - the four entrance springs must not be vestigial)."
+            );
+        }
+
+        // The helper itself must build the var() read with the final-state
+        // fallback (1), which is what renders under reduced motion.
+        $this->assertMatchesRegularExpression(
+            '/var\(\s*\$\{cssVar\}\s*,\s*1\s*\)/',
+            $source,
+            'DashboardPage.vue revealStyle() MUST read var(cssVar, 1) so the un-attached final state is the fallback (T4 reduced-motion contract).'
+        );
+    }
+
+    /**
+     * T4 - the 0/60/120/180ms stagger is part of the contract. Pin each
+     * delay literally so a future edit cannot flatten the cascade.
+     */
+    public function test_dashboard_entrance_stagger_keeps_the_0_60_120_180_delays(): void
+    {
+        $source = (string) file_get_contents(self::dashboardPagePath());
+
+        $expectedDelays = [
+            'greetingSpring' => 0,
+            'kpiSpring' => 60,
+            'quickActionsSpring' => 120,
+            'emptyStateSpring' => 180,
+        ];
+
+        foreach ($expectedDelays as $spring => $delay) {
+            $this->assertMatchesRegularExpression(
+                '/' . preg_quote($spring, '/') . '\.set\(1\)\s*,\s*' . $delay . '\s*\)/',
+                $source,
+                "DashboardPage.vue MUST keep the {$delay}ms stagger delay for {$spring} (T4 - 0/60/120/180ms entrance cascade)."
+            );
+        }
+    }
 }

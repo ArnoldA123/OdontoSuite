@@ -66,7 +66,9 @@
       <header
         ref="greetingSection"
         data-dashboard-header
+        data-reveal="greeting"
         class="flex items-center justify-between flex-wrap gap-4"
+        :style="revealStyle('--spring-dash-greeting-o')"
       >
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
@@ -271,8 +273,10 @@
           v-else-if="todayAppointments.length === 0"
           ref="emptyStateSection"
           data-state="empty-appointments"
+          data-reveal="empty-state"
           class="relative rounded-ios p-10 text-center bg-accent-50"
           style="border: 1px solid var(--color-hairline)"
+          :style="revealStyle('--spring-dash-empty-o')"
         >
           <!--
             HOTFIX-DASH-007 - inline line-art calendar SVG.
@@ -322,8 +326,8 @@
             v-for="appointment in todayAppointments"
             :key="appointment.id"
             variant="flat"
+            hover
             data-appointment-row
-            class="hover:shadow-medium"
           >
             <div class="flex items-center gap-4">
               <!--
@@ -382,7 +386,12 @@
         the Profesionales quick action and the module route.
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
-        <div ref="kpiSection" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div
+          ref="kpiSection"
+          data-reveal="kpi"
+          class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"
+          :style="revealStyle('--spring-dash-kpi-o')"
+        >
           <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
           <UiCard
             v-if="can.viewAppointment?.value"
@@ -416,7 +425,7 @@
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                     aria-live="polite"
                   >
-                    {{ stats.today || 0 }}
+                    {{ todayKpi.display }}
                   </p>
                 </div>
                 <!--
@@ -498,7 +507,7 @@
                     class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    {{ stats.total_patients || 0 }}
+                    {{ patientsKpi.display }}
                   </p>
                 </div>
                 <!--
@@ -565,7 +574,7 @@
                     class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
+                    {{ monthKpi.display }}
                   </p>
                 </div>
                 <!--
@@ -633,7 +642,7 @@
                     class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    {{ formatPENLabel(stats.total_income) }}
+                    {{ incomeKpi.display }}
                   </p>
                 </div>
                 <div class="h-6 min-h-[24px]" />
@@ -769,7 +778,12 @@
           The heroicons baseline stroke is 1.5, so the apple-design §16
           rule (icon stroke 1.5, NOT icon-in-box) still holds.
         -->
-        <div ref="quickActionsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          ref="quickActionsSection"
+          data-reveal="quick-actions"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          :style="revealStyle('--spring-dash-quick-o')"
+        >
           <!-- Patients -->
           <UiCard
             variant="flat"
@@ -777,7 +791,7 @@
             clickable
             data-action="patients"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToPatients"
           >
             <div class="flex items-start gap-3">
@@ -802,7 +816,7 @@
             clickable
             data-action="new-appointment"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToNewAppointment"
           >
             <div class="flex items-start gap-3">
@@ -827,7 +841,7 @@
             clickable
             data-action="professionals"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToProfessionals"
           >
             <div class="flex items-start gap-3">
@@ -850,7 +864,7 @@
             clickable
             data-action="environments"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToEnvironments"
           >
             <div class="flex items-start gap-3">
@@ -873,7 +887,7 @@
             clickable
             data-action="reports"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
             @click="goToBusinessIntelligence"
           >
             <div class="flex items-start gap-3">
@@ -899,7 +913,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowPathIcon,
@@ -913,15 +927,17 @@ import {
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
-// HOTFIX-DASH-009 - per-section staggered springs.
+// HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
 // apple-design §4 "behavior over animation - use springs" + §8 "hint
 // in direction of gesture" (intermediate frames telegraph direction).
 // Each of the 4 visible sections gets its own useSpring with a distinct
 // cssVar so the four entrance animations cannot collide on the same CSS
-// custom property. Stagger: 0ms / 60ms / 120ms / 180ms post-mount.
-// Critically damped (damping 1.0) by default - no overshoot on a
-// non-momentum entrance.
+// custom property. Stagger: 0ms / 60ms / 120ms / 180ms on the first
+// successful content render. Critically damped (damping 1.0) by default -
+// no overshoot on a non-momentum entrance. The templates consume each var
+// through revealStyle(); before T4 the vars were written but unconsumed.
 import { useSpring } from '../../composables/useSpring'
+import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
@@ -994,14 +1010,7 @@ const chipToneClass = deltaLabel => {
   return 'bg-systemGray-100 text-systemGray-600'
 }
 
-// Spring hooks are not strictly required for the rebuild - we expose the
-// composables via the design contract (useSpring/useSpring2D live in PR2's
-// composables). Numbers are displayed via Vue's reactive interpolation; a
-// WebSocket burst lands in the same value, so the bindings naturally tween
-// visually (no DOM-level entrance replay). See apply-progress.md for the
-// decision trail.
-//
-// HOTFIX-DASH-009 - per-section staggered springs (4 sections,
+// HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
 // 60ms stagger). apple-design §4 (springs for entrance, critically
 // damped), §8 (intermediate frames telegraph direction via stagger).
 // Each spring targets a distinct CSS custom property on its bound
@@ -1034,6 +1043,94 @@ const greetingSection = ref(null)
 const kpiSection = ref(null)
 const quickActionsSection = ref(null)
 const emptyStateSection = ref(null)
+
+// T4 - section reveal rule. The spring writes a 0..1 progress into its
+// cssVar and this binding turns it into the entrance: opacity 0 -> 1 plus
+// an 8px translate-up. The `, 1` fallback renders every section in its
+// FINAL state whenever no spring is attached - reduced motion, or a
+// section that mounts after the one-shot entrance already ran.
+const revealStyle = cssVar => ({
+  opacity: `var(${cssVar}, 1)`,
+  transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
+})
+
+// One-shot entrance for the first successful content render. Reduced
+// motion never attaches: the fallback above already holds the final state
+// (same pattern as LoginPage.vue), so the stagger would only flash content
+// that is supposed to stay still.
+let entrancePlayed = false
+const playEntrance = () => {
+  if (entrancePlayed) return
+  entrancePlayed = true
+  if (prefersReducedMotion()) return
+
+  if (greetingSection.value) greetingSpring.attach(greetingSection.value)
+  if (kpiSection.value) kpiSpring.attach(kpiSection.value)
+  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
+  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
+
+  setTimeout(() => greetingSpring.set(1), 0)
+  setTimeout(() => kpiSpring.set(1), 60)
+  setTimeout(() => quickActionsSpring.set(1), 120)
+  setTimeout(() => emptyStateSpring.set(1), 180)
+}
+
+// T4 - KPI count-up springs. Each headline number counts 0 -> value on the
+// first stats payload, then hands the display back to the canonical stats
+// value, so refreshes update instantly instead of replaying the entrance.
+// useSpring re-checks prefers-reduced-motion on every set();
+// countUpAllowed() additionally requires an explicit
+// `(prefers-reduced-motion: no-preference)` match so environments that
+// never resolve the query (for example jsdom in the smoke suite) show the
+// final value straight away instead of freezing at 0.
+const countUpAllowed = () => {
+  if (prefersReducedMotion()) return false
+  try {
+    return window.matchMedia('(prefers-reduced-motion: no-preference)').matches === true
+  } catch (_e) {
+    return false
+  }
+}
+
+const createCountUp = (readTarget, format = value => Math.round(value)) => {
+  const active = ref(false)
+  const { value: springValue, set: setSpringTarget } = useSpring({
+    damping: 1.0,
+    response: 0.35,
+    onSettle: () => {
+      active.value = false
+    }
+  })
+  const display = computed(() =>
+    active.value ? format(springValue.value) : format(readTarget() || 0)
+  )
+  const start = () => {
+    active.value = true
+    setSpringTarget(readTarget() || 0)
+  }
+  return { display, start }
+}
+
+const todayKpi = createCountUp(() => stats.value.today)
+const patientsKpi = createCountUp(() => stats.value.total_patients)
+const monthKpi = createCountUp(
+  () => stats.value.total_appointments_this_month || stats.value.total_appointments
+)
+const incomeKpi = createCountUp(
+  () => stats.value.total_income,
+  value => formatPENLabel(value)
+)
+
+let countUpsPlayed = false
+const startKpiCountUps = () => {
+  if (countUpsPlayed) return
+  countUpsPlayed = true
+  if (!countUpAllowed()) return
+  todayKpi.start()
+  patientsKpi.start()
+  monthKpi.start()
+  incomeKpi.start()
+}
 
 // Utility functions
 const getGreeting = () => {
@@ -1311,6 +1408,7 @@ const loadDashboardData = async () => {
     } else if (statsResult.ok) {
       applyStats(statsResult.data)
       statsError.value = false
+      startKpiCountUps()
     } else {
       statsError.value = true
     }
@@ -1330,6 +1428,13 @@ const loadDashboardData = async () => {
     loading.value = false
     refreshing.value = false
     hasLoaded.value = true
+  }
+
+  // T4 - the section reveals play only on the first successful content
+  // render. A failed load keeps the entrance armed for the retry.
+  if (!entrancePlayed && !statsError.value) {
+    await nextTick()
+    playEntrance()
   }
 }
 
@@ -1461,21 +1566,6 @@ onMounted(async () => {
   } catch (error) {
     // Reverb unreacheable in dev is expected.
   }
-})
-
-// HOTFIX-DASH-009 - attach each entrance spring to its section and fire the
-// 0/60/120/180ms stagger once the DOM is mounted. The composable starts at 0
-// (default `from`), so each spring animates 0 -> 1 on `set(1)`.
-onMounted(() => {
-  if (greetingSection.value) greetingSpring.attach(greetingSection.value)
-  if (kpiSection.value) kpiSpring.attach(kpiSection.value)
-  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
-  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
-
-  setTimeout(() => greetingSpring.set(1), 0)
-  setTimeout(() => kpiSpring.set(1), 60)
-  setTimeout(() => quickActionsSpring.set(1), 120)
-  setTimeout(() => emptyStateSpring.set(1), 180)
 })
 
 onUnmounted(() => {
