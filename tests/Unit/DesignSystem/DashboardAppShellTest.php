@@ -330,9 +330,18 @@ class DashboardAppShellTest extends TestCase
         // the skeleton ("Cargando acciones rápidas") and the loaded grid
         // ("Acciones rápidas"). Scoping by prose markers instead swallowed the
         // stats grid, which legitimately uses 5 columns, and failed the wrong
-        // section.
+        // section. T3 adds a `v-if="!statsError"` binding to the loaded
+        // quick-actions section, so the anchor matches the aria-label anywhere
+        // inside the <section> opening tag instead of requiring the literal
+        // `<section aria-label=` prefix.
         foreach (['Cargando acciones rápidas', 'Acciones rápidas'] as $label) {
-            $start = strpos($src, '<section aria-label="' . $label . '"');
+            $found = preg_match(
+                '/<section\b[^>]*aria-label="' . preg_quote($label, '/') . '"/',
+                $src,
+                $matches,
+                PREG_OFFSET_CAPTURE
+            );
+            $start = $found === 1 ? $matches[0][1] : false;
             $this->assertNotFalse(
                 $start,
                 'DashboardPage.vue must contain a <section aria-label="' . $label . '">'
