@@ -279,13 +279,15 @@ class DashboardController extends Controller
     public function upcoming(Request $request): JsonResponse
     {
         $now = Carbon::now();
+        // Today belongs to the agenda; the upcoming strip starts tomorrow at 00:00.
+        $startsAt = $now->copy()->addDay()->startOfDay();
         $endOfWeek = $now->copy()->endOfWeek();
         $branchId = $request->input('branch_id');
         $cacheKey = 'dashboard_upcoming_' . Auth::id() . '_' . $now->format('Y-W') . '_' . ($branchId ?? 'all');
 
-        $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($now, $endOfWeek, $branchId) {
+        $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($startsAt, $endOfWeek, $branchId) {
             return Appointment::with(['patient', 'appointmentType', 'user'])
-                ->whereBetween('scheduled_at', [$now, $endOfWeek])
+                ->whereBetween('scheduled_at', [$startsAt, $endOfWeek])
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->orderBy('scheduled_at')
                 ->limit(10)
