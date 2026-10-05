@@ -653,11 +653,22 @@
           [caption]    h-4     (16 px)
 
         Cards that carry a comparison key render the chip from
-        `comparisons[statKey].delta_label`. When that field is null, the
-        slot stays empty (no chip, no dash, no placeholder). The chip
-        colour follows sign: positive → systemGreen, negative → systemRed.
+        `comparisons[statKey].delta_label` through the UiBadge primitive
+        (T4 - one pill system; the hand-rolled span pills are gone).
+        When that field is null, the slot stays empty (no chip, no dash,
+        no placeholder). The badge variant follows the sign: positive ->
+        success (filled green), negative -> error (filled red).
         The period_label never truncates: the chip row wraps it onto a
         second line, and the slot's minimum height lets the card grow.
+
+        Captions (T4) state the period or scope of the number, never the
+        eyebrow or the page date: Citas Hoy keeps the slot reserved and
+        empty (the header anchors the date), Citas del Mes names the
+        current month, Pacientes reads "Total registrados" and Ingresos
+        "Total histórico", Saldo de Caja keeps its opening-time caption.
+
+        The strip carries a visible h2 like every sibling section (T4),
+        and its cards carry no decorative status dot.
 
         The Profesionales card was removed in T2b: an admin-only count is
         not daily-operations content. Professionals stay reachable through
@@ -669,6 +680,10 @@
         headers.
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 class="text-base font-semibold text-label">Resumen del día</h2>
+        </div>
+
         <div
           ref="kpiSection"
           data-reveal="kpi"
@@ -709,55 +724,47 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix).
-                  The pill contains ONLY the delta value (e.g. "-4").
-                  The period_label (e.g. "vs mar 4 ago") is a separate
-                  muted caption beside the pill. The row wraps the label
-                  onto a second line when it does not fit, and the slot
-                  reserves only a minimum height, so the full label is
-                  always visible instead of clipped.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge contains ONLY the delta value (e.g. "-4")
+                  and its variant follows the sign. The period_label
+                  (e.g. "vs mar 4 ago") is a separate muted caption beside
+                  the pill. The row wraps the label onto a second line
+                  when it does not fit, and the slot reserves only a
+                  minimum height, so the full label is always visible
+                  instead of clipped.
                 -->
                 <div
                   v-if="stats.comparisons?.appointments_today?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.appointments_today.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.appointments_today.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.appointments_today.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.appointments_today.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
                 <!--
-                  Caption slot (defect 3 - date truncation fix).
-                  Use the short "11 de ago" format from
-                  getShortTodayDate() so the caption fits the slot
-                  without being clipped by truncate. The full
-                  "martes, 11 de agosto de 2026" format overflowed the
-                  KPI card's caption slot at 5-up width.
+                  Caption slot (T4). Reserved but intentionally empty:
+                  the page header already anchors today's date, so the
+                  previous short "11 de ago" caption repeated it. The
+                  reserved h-4 row keeps the five cards baseline-aligned.
                 -->
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-                    {{ getShortTodayDate() }}
-                  </p>
-                </div>
+                <div class="h-4 flex items-center" data-kpi-caption="appointments-today" />
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed.
                 design-taste-frontend §9.D "NO three-equal Material cards".
                 apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
-                Replaced by a small accent dot anchored top-right of the
-                card (accent token per the T2b design language).
+                T4 - the accent dot that replaced the plate was decoration
+                that read as a status indicator, so it was removed too.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -789,12 +796,12 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). The
-                  comparisons.total_patients.period_label is the
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The comparisons.total_patients.period_label is the
                   static string "nuevos este mes" and is intentionally
                   a different quantity from the headline (D15 - the
                   chip's "+N" is NEW REGISTRATIONS, the headline 105
-                  is cumulative active). The pill carries the absolute
+                  is cumulative active). The UiBadge carries the absolute
                   delta; the muted text carries the period_label and
                   wraps under the pill at the compact 5-up width.
                 -->
@@ -802,18 +809,25 @@
                   v-if="stats.comparisons?.total_patients?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.total_patients.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.total_patients.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_patients.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_patients.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <!--
+                  Caption slot (T4). Scope phrase in the "Total X"
+                  grammar; the number counts registered active patients,
+                  so the caption stays "Total registrados".
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-patients">
                   <p class="text-xs text-theme-secondary truncate">Total registrados</p>
                 </div>
               </div>
@@ -821,11 +835,6 @@
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -854,40 +863,42 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). Period_label
-                  outside the pill; the row wraps it when the label does
-                  not fit, so the slot never clips it.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge carries only the delta; the period_label
+                  stays a muted sibling span and the row wraps it when
+                  the label does not fit, so the slot never clips it.
                 -->
                 <div
                   v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="
-                      chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)
+                  <UiBadge
+                    :variant="
+                      chipVariant(stats.comparisons.total_appointments_this_month.delta_label)
                     "
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_appointments_this_month.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_appointments_this_month.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">Este mes</p>
+                <!--
+                  Caption slot (T4). Names the month the number belongs
+                  to; the previous "Este mes" only restated the eyebrow.
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-appointments-month">
+                  <p class="text-xs text-theme-secondary truncate">{{ currentMonthName }}</p>
                 </div>
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -920,15 +931,10 @@
                   </p>
                 </div>
                 <div class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <div class="h-4 flex items-center" data-kpi-caption="total-income">
                   <p class="text-xs text-theme-secondary truncate">Total histórico</p>
                 </div>
               </div>
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -968,21 +974,12 @@
                   </p>
                 </div>
                 <div class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <div class="h-4 flex items-center" data-kpi-caption="cash-status">
                   <p class="text-xs text-theme-secondary truncate">
                     {{ cashKpiCaption }}
                   </p>
                 </div>
               </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
         </div>
@@ -991,7 +988,7 @@
       <!-- Quick Actions -->
       <section v-if="!statsError" aria-label="Acciones rápidas">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-label">Acciones Rápidas</h2>
+          <h2 class="text-base font-semibold text-label">Acciones rápidas</h2>
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
             Ver calendario
             <template #icon-right>
@@ -1237,25 +1234,26 @@ const statsError = ref(false)
 const todayError = ref(false)
 
 /**
- * PR4 - chip tone class. The chip is a pre-formatted string from the
- * server (D13). Sign is derived from the leading character: "+" reads
- * as growth (systemGreen), "-" reads as decline (systemRed), and "0" or
- * any other neutral prefix reads as flat (systemGray). The wrapper
- * receives the class binding and applies it; the chip itself never
- * computes a percentage (that's the structural guarantee against
- * Infinity / NaN / 100%).
+ * PR4 - chip variant. T4 sharpened it from a hand-rolled class string to
+ * the UiBadge variant, so one primitive owns the pill. The chip is a
+ * pre-formatted string from the server (D13). Sign is derived from the
+ * leading character: "+" reads as growth (success, filled green), "-"
+ * reads as decline (error, filled red), and "0" or any other neutral
+ * prefix reads as flat (neutral, surface tone). The badge never computes
+ * a percentage (that's the structural guarantee against Infinity / NaN /
+ * 100%).
  */
-const chipToneClass = deltaLabel => {
+const chipVariant = deltaLabel => {
   if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
-    return 'bg-systemGray-100 text-systemGray-600'
+    return 'neutral'
   }
   if (deltaLabel.startsWith('+')) {
-    return 'bg-systemGreen-100 text-systemGreen-700'
+    return 'success'
   }
   if (deltaLabel.startsWith('-')) {
-    return 'bg-systemRed-100 text-systemRed-700'
+    return 'error'
   }
-  return 'bg-systemGray-100 text-systemGray-600'
+  return 'neutral'
 }
 
 // HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
@@ -1402,8 +1400,7 @@ const getTodayDate = () => {
   })
 }
 
-// Short Spanish month names, shared by the Citas Hoy caption and the
-// pending rows.
+// Short Spanish month names for the pending rows ("3 oct").
 const SPANISH_MONTHS_SHORT = [
   'ene',
   'feb',
@@ -1420,19 +1417,15 @@ const SPANISH_MONTHS_SHORT = [
 ]
 
 /**
- * PR4 correction round - short date for the Citas Hoy caption slot.
- * The full `martes, 11 de agosto de 2026` Spanish format overflows the
- * KPI card's caption slot at 5-up and `truncate` clips it mid-word.
- * The short form `11 de ago` (day + Spanish month abbreviation, same
- * tokens the chip's period_label uses) fits the slot on one line at
- * the audit-confirmed 1440x900 width.
+ * T4 - caption for the Citas del Mes card. The number belongs to the
+ * current month, so the caption names it ("Octubre") through the same
+ * es-ES locale call the header date uses. es-ES returns the month in
+ * lowercase, so the caption capitalizes the first letter.
  */
-const getShortTodayDate = () => {
-  const now = new Date()
-  const day = now.getDate()
-  const month = SPANISH_MONTHS_SHORT[now.getMonth()]
-  return `${day} de ${month}`
-}
+const currentMonthName = computed(() => {
+  const name = new Date().toLocaleDateString('es-ES', { month: 'long' })
+  return name.charAt(0).toUpperCase() + name.slice(1)
+})
 
 /**
  * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty

@@ -634,6 +634,26 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
+     * Region helper: the source slice of a single stat card (the UiCard
+     * carrying `data-stat-card` through its closing tag).
+     */
+    private function statCardRegion(string $src, string $statKey): string
+    {
+        preg_match(
+            '/<UiCard[^>]*\bdata-stat-card="' . preg_quote($statKey, '/') . '"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $region = $matches[0] ?? '';
+        $this->assertNotEmpty(
+            $region,
+            "DashboardPage.vue must contain a data-stat-card=\"{$statKey}\" card."
+        );
+
+        return $region;
+    }
+
+    /**
      * Region helper: the source slice between a section's opening tag and
      * its closing tag.
      */
@@ -1216,46 +1236,257 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * Defect 3 — date caption truncation. The Citas Hoy caption slot
-     * must use the short `11 de ago` format via `getShortTodayDate()`,
-     * NOT the full `martes, 11 de agosto de 2026` format via
-     * `getTodayDate()`. The full format overflowed the KPI card's
-     * caption slot at 5-up width and `truncate` clipped it mid-word.
+     * T4 — section headings. The KPI strip was the only section without a
+     * visible title (aria-label only). It now carries the same h2 anatomy
+     * as its siblings (`text-base font-semibold text-label`), placed at the
+     * top of the section, and the accessible name matches the visible text.
      */
-    public function test_dashboard_citas_hoy_caption_uses_short_date(): void
+    public function test_dashboard_kpi_section_has_a_visible_heading(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The Citas Hoy card's caption slot must bind to
-        // getShortTodayDate(), not getTodayDate().
+        $region = $this->sectionRegion($src, 'Resumen del día');
+
         $this->assertStringContainsString(
-            'getShortTodayDate',
-            $src,
-            'DashboardPage.vue must define and consume getShortTodayDate() for the Citas Hoy caption (defect 3).'
+            '<h2 class="text-base font-semibold text-label">Resumen del día</h2>',
+            $region,
+            'DashboardPage.vue KPI section must render the visible h2 "Resumen del día" with the sibling section-title anatomy (T4).'
         );
 
-        // The Citas Hoy card must NOT render the long getTodayDate()
-        // binding in its caption slot (it is reserved for the
-        // topbar page description under AppLayout).
-        $citasHoyCard = '';
-        if (preg_match(
-            '/<UiCard[^>]*\bdata-stat-card="appointments-today"[^>]*>[\s\S]*?<\/UiCard>/',
+        // The heading comes first; the card grid follows it.
+        $headingPos = strpos($region, '<h2');
+        $gridPos = strpos($region, 'data-reveal="kpi"');
+        $this->assertNotFalse($headingPos, 'KPI section must contain the h2 (T4).');
+        $this->assertNotFalse($gridPos, 'KPI section must contain the card grid (data-reveal="kpi").');
+        $this->assertLessThan(
+            $gridPos,
+            $headingPos,
+            'DashboardPage.vue KPI heading must sit at the top of the section, above the card grid (T4).'
+        );
+    }
+
+    /**
+     * T4 — one casing convention for section titles: sentence case. The
+     * "Acciones Rápidas" h2 becomes "Acciones rápidas" and agrees with its
+     * own aria-label, which already read "Acciones rápidas". The sibling
+     * titles keep their existing copy.
+     */
+    public function test_dashboard_quick_actions_heading_uses_sentence_case(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $region = $this->sectionRegion($src, 'Acciones rápidas');
+        $this->assertStringContainsString(
+            '<h2 class="text-base font-semibold text-label">Acciones rápidas</h2>',
+            $region,
+            'DashboardPage.vue must render the sentence-case h2 "Acciones rápidas" (T4 section-title convention).'
+        );
+
+        $this->assertStringNotContainsString(
+            'Acciones Rápidas',
             $src,
-            $m
-        )) {
-            $citasHoyCard = $m[0];
+            'DashboardPage.vue must not keep the title-case "Acciones Rápidas" heading (T4: h2 and aria-label agree).'
+        );
+
+        foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes', 'Resumen del día'] as $label) {
+            $this->assertStringContainsString(
+                '<h2 class="text-base font-semibold text-label">' . $label . '</h2>',
+                $src,
+                "DashboardPage.vue section \"{$label}\" must keep the shared section-title anatomy (T4)."
+            );
         }
-        $this->assertNotEmpty(
-            $citasHoyCard,
-            'DashboardPage.vue must contain a data-stat-card="appointments-today" card.'
+    }
+
+    /**
+     * T4 — one pill system. The comparison chips were hand-rolled `<span>`
+     * pills painted by `chipToneClass()`. They now render through the
+     * UiBadge primitive (`shape="pill"`, `size="sm"`, variant following the
+     * delta sign), so the page has a single pill implementation. The chip
+     * content anatomy is unchanged: the badge carries ONLY delta_label and
+     * the muted period_label stays a sibling span.
+     */
+    public function test_dashboard_comparison_chips_render_through_uibadge(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertStringNotContainsString(
+            'chipToneClass',
+            $src,
+            'DashboardPage.vue must not keep the ad-hoc chipToneClass() helper (T4: UiBadge owns the pill).'
+        );
+        $this->assertStringNotContainsString(
+            'text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap',
+            $src,
+            'DashboardPage.vue must not keep the hand-rolled pill span class signature (T4: one pill system).'
+        );
+
+        $chips = [
+            'appointments-today' => 'appointments_today',
+            'total-patients' => 'total_patients',
+            'total-appointments-month' => 'total_appointments_this_month',
+        ];
+
+        foreach ($chips as $statKey => $comparisonKey) {
+            $card = $this->statCardRegion($src, $statKey);
+
+            $this->assertStringContainsString(
+                '<UiBadge',
+                $card,
+                "DashboardPage.vue chip on card \"{$statKey}\" must render through UiBadge (T4)."
+            );
+            $this->assertStringContainsString('shape="pill"', $card, "Chip on \"{$statKey}\" must keep the pill shape (T4).");
+            $this->assertStringContainsString('size="sm"', $card, "Chip on \"{$statKey}\" must keep the small size (T4).");
+            $this->assertStringContainsString(
+                'chipVariant(stats.comparisons.' . $comparisonKey . '.delta_label)',
+                $card,
+                "Chip on \"{$statKey}\" must derive its UiBadge variant from the delta sign (T4)."
+            );
+            $this->assertStringNotContainsString(
+                'text-xs font-semibold',
+                $card,
+                "Chip on \"{$statKey}\" must not keep the ad-hoc pill classes (T4)."
+            );
+        }
+    }
+
+    /**
+     * T4 — decorative dots out. Each KPI card carried an aria-hidden
+     * accent dot top-right that read as a status indicator. The header
+     * cash-status dot is the only dot on the page with meaning.
+     */
+    public function test_dashboard_kpi_cards_carry_no_decorative_dot(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 stat cards for the decorative-dot check.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $this->assertStringNotContainsString(
+                '--color-accent-500',
+                $card,
+                "KPI card #{$idx} must not carry the decorative accent dot (T4: dots out)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/aria-hidden="true"/',
+                $card,
+                "KPI card #{$idx} must not carry any aria-hidden decoration (T4: dots out)."
+            );
+        }
+
+        // The header cash-status dot is the page's only remaining dot.
+        $this->assertSame(
+            1,
+            substr_count($src, 'inline-block w-1.5 h-1.5 rounded-full'),
+            'DashboardPage.vue must keep exactly one dot (the header cash-status indicator) after the T4 removal.'
+        );
+    }
+
+    /**
+     * T4 — caption grammar. The Citas Hoy caption slot stays reserved and
+     * EMPTY: the page header already anchors today's date, so the short
+     * "11 de ago" caption repeated it. Supersedes the PR4 defect-3 pin
+     * (`getShortTodayDate()`), whose format the slot no longer renders.
+     */
+    public function test_dashboard_citas_hoy_caption_slot_is_reserved_and_empty(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertStringNotContainsString(
+            'getShortTodayDate',
+            $src,
+            'DashboardPage.vue must not keep getShortTodayDate(): T4 emptied the Citas Hoy caption slot (the page header owns the date).'
+        );
+
+        $card = $this->statCardRegion($src, 'appointments-today');
+
+        // The slot is still there (reserved height) and self-closed: no text.
+        $this->assertStringContainsString(
+            'data-kpi-caption="appointments-today"',
+            $card,
+            'DashboardPage.vue Citas Hoy card must keep its reserved caption slot (T4).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-kpi-caption="appointments-today"[^>]*\/>/',
+            $card,
+            'DashboardPage.vue Citas Hoy caption slot must stay empty (T4: no date repeated from the page header).'
         );
         $this->assertDoesNotMatchRegularExpression(
             '/\{\{\s*getTodayDate\(\)\s*\}\}/',
-            $citasHoyCard,
-            'DashboardPage.vue Citas Hoy caption must not bind to getTodayDate() (full format overflows the slot at 5-up; defect 3).'
+            $card,
+            'DashboardPage.vue Citas Hoy caption must not bind to getTodayDate() (the page header owns the long date).'
         );
+    }
+
+    /**
+     * T4 — caption grammar. The Citas del Mes caption names the month the
+     * number belongs to (e.g. "Octubre") instead of restating the eyebrow
+     * with the vague "Este mes".
+     */
+    public function test_dashboard_month_caption_names_the_current_month(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $card = $this->statCardRegion($src, 'total-appointments-month');
+
+        // Pin the rendered caption, not the design record: the card's
+        // comment legitimately names the caption it replaced.
+        $this->assertDoesNotMatchRegularExpression(
+            '/<p[^>]*>\s*Este mes\s*<\/p>/',
+            $card,
+            'DashboardPage.vue must not caption the month card with "Este mes" (T4: name the month).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-kpi-caption="total-appointments-month"[\s\S]{0,200}?\{\{\s*currentMonthName\s*\}\}/',
+            $card,
+            'DashboardPage.vue month caption must render the current month name through currentMonthName (T4).'
+        );
+    }
+
+    /**
+     * T4 — caption grammar. Each caption states the scope of its number:
+     * Pacientes counts registered active patients ("Total registrados"),
+     * Ingresos sums the whole payment history ("Total histórico").
+     */
+    public function test_dashboard_scope_captions_state_number_scope(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $expectedCaptions = [
+            'total-patients' => 'Total registrados',
+            'total-income' => 'Total histórico',
+        ];
+        foreach ($expectedCaptions as $statKey => $captionText) {
+            $card = $this->statCardRegion($src, $statKey);
+            $this->assertMatchesRegularExpression(
+                '/data-kpi-caption="' . $statKey . '"[\s\S]{0,200}?' . preg_quote($captionText, '/') . '/',
+                $card,
+                "DashboardPage.vue caption on \"{$statKey}\" must state the scope of the number as \"{$captionText}\" (T4)."
+            );
+        }
     }
 
     /**
