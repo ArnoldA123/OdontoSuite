@@ -683,9 +683,8 @@ Este mes
       </section>
 
       <!-- Today's Appointments Preview: list OR empty state.
-           The empty state is the live state today (GET /api/dashboard/today
-           returns 404 due to the known bug). Build it properly, not as an
-           afterthought. -->
+           Rows come from the canonical GET /api/dashboard/appointments-today
+           endpoint; the empty state renders when it returns no appointments. -->
       <section v-if="can.viewAppointment?.value" aria-label="Citas de hoy">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-ink-800">Citas de Hoy</h2>
@@ -818,7 +817,7 @@ Este mes
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="font-medium text-ink-800 truncate">
-                    {{ appointment.patient?.name || 'Paciente' }}
+                    {{ getPatientName(appointment) }}
                   </p>
                   <p class="text-sm text-ink-500 truncate">
                     {{ formatTime(appointment.scheduled_at) }} ·
@@ -1018,6 +1017,20 @@ const formatTime = dateTime => {
   })
 }
 
+/**
+ * Patient display name for the today list. AppointmentResource emits
+ * `patient.full_name`; older/raw payloads may only carry the split
+ * first/last fields (or the legacy `name` accessor). Fall back in that
+ * order so the row never loses the patient identity.
+ */
+const getPatientName = appointment => {
+  const patient = appointment?.patient
+  if (!patient) return 'Paciente'
+  if (patient.full_name) return patient.full_name
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ').trim()
+  return composed || patient.name || 'Paciente'
+}
+
 const getStatusText = status => {
   const texts = {
     scheduled: 'Programada',
@@ -1142,10 +1155,10 @@ const loadDashboardData = async () => {
   try {
     const [statsResponse, appointmentsResponse] = await Promise.all([
       get('/api/dashboard/stats'),
-      get('/api/dashboard/today').catch(err => {
-        // GET /api/dashboard/today returns 404 in the running app; the
-        // empty-state path is the live UX. Treat any error as an empty list
-        // rather than throwing, so other stats still render.
+      get('/api/dashboard/appointments-today').catch(err => {
+        // Keep the dashboard renderable when the today list is unavailable:
+        // degrade to an empty list on 404/401 so the rest of the page still
+        // renders, and let the auth flow own the 401 redirect.
         if (err && (err.status === 404 || err.status === 401)) {
           return { data: [] }
         }
