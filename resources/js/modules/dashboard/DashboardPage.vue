@@ -26,6 +26,19 @@
             :aria-label="`Cargando próxima cita ${i}`"
           />
         </section>
+        <!-- Pending skeletons (T7b): same two-column shape as the loaded
+             block so the section does not jump when data lands. -->
+        <section aria-label="Cargando pendientes">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <UiSkeleton
+              v-for="i in 2"
+              :key="`pending-skel-${i}`"
+              variant="list"
+              animation="wave"
+              :aria-label="`Cargando pendientes ${i}`"
+            />
+          </div>
+        </section>
         <!-- Stats skeletons -->
         <section aria-label="Cargando resumen">
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -498,6 +511,161 @@
                   <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
                     {{ getStatusText(appointment.status) }}
                   </UiBadge>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        Pendientes (T7b) - quotations and treatment plans waiting on a
+        patient decision, fed by GET /api/dashboard/pending. Sits between
+        the week preview and the KPI grid: actionable work before
+        reference metrics. The backend omits the subsets the current role
+        cannot read, so a group renders only when its payload key is
+        present; when neither key is present the whole section stays
+        hidden. The fetch is tolerant: this resource alone can fail
+        without blocking the rest of the page.
+      -->
+      <section v-if="!statsError && (hasPendingGroups || pendingError)" aria-label="Pendientes">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 class="text-base font-semibold text-label">Pendientes</h2>
+        </div>
+
+        <!--
+          Pending inline error (T7b). Only this resource failed: the rest
+          of the page stays usable, and the retry re-fetches ONLY
+          /api/dashboard/pending.
+        -->
+        <div
+          v-if="pendingError"
+          data-state="error-pending"
+          role="alert"
+          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <ExclamationTriangleIcon
+              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">No pudimos cargar los pendientes</p>
+              <p class="text-sm text-theme-secondary">
+                Reintenta para ver presupuestos y planes en espera de respuesta.
+              </p>
+            </div>
+          </div>
+          <UiButton variant="primary" size="sm" data-retry-pending @click="retryPending">
+            Reintentar
+          </UiButton>
+        </div>
+
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Presupuestos pendientes (gated by payload presence) -->
+          <div v-if="pendingQuotations" data-pending-group="quotations" class="min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div class="flex items-baseline gap-2 min-w-0">
+                <h3 class="text-sm font-semibold text-label truncate min-w-0">
+                  Presupuestos pendientes
+                </h3>
+                <span class="text-sm text-theme-secondary tabular-nums">
+                  {{ pendingQuotations.count }}
+                </span>
+              </div>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Ver todos los presupuestos"
+                @click="goToQuotations"
+              >
+                Ver todos
+              </UiButton>
+            </div>
+            <!--
+              Empty subset: the payload key is present but nothing waits
+              on a decision. Small Spanish copy keeps the group slot calm
+              and consistent with the module empty states.
+            -->
+            <p v-if="pendingQuotations.count === 0" class="text-sm text-theme-secondary">
+              Sin presupuestos pendientes
+            </p>
+            <div v-else class="grid gap-2">
+              <UiCard
+                v-for="item in pendingQuotations.items"
+                :key="item.id"
+                variant="flat"
+                padding="sm"
+                hover
+                data-pending-row="quotations"
+              >
+                <div class="flex items-center gap-3">
+                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                    {{ item.patient_name || 'Paciente' }}
+                  </p>
+                  <span class="flex-shrink-0 text-sm font-semibold text-label tabular-nums">
+                    {{ formatPENLabel(item.total_amount) }}
+                  </span>
+                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
+                    {{ pendingStatusLabel(item.status) }}
+                  </UiBadge>
+                  <span
+                    v-if="item.created_at"
+                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+                  >
+                    {{ formatPendingDate(item.created_at) }}
+                  </span>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+
+          <!-- Planes por aceptar (gated by payload presence) -->
+          <div v-if="pendingTreatmentPlans" data-pending-group="treatment-plans" class="min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div class="flex items-baseline gap-2 min-w-0">
+                <h3 class="text-sm font-semibold text-label truncate min-w-0">
+                  Planes por aceptar
+                </h3>
+                <span class="text-sm text-theme-secondary tabular-nums">
+                  {{ pendingTreatmentPlans.count }}
+                </span>
+              </div>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Ver todos los planes"
+                @click="goToTreatmentPlans"
+              >
+                Ver todos
+              </UiButton>
+            </div>
+            <p v-if="pendingTreatmentPlans.count === 0" class="text-sm text-theme-secondary">
+              Sin planes por aceptar
+            </p>
+            <div v-else class="grid gap-2">
+              <UiCard
+                v-for="item in pendingTreatmentPlans.items"
+                :key="item.id"
+                variant="flat"
+                padding="sm"
+                hover
+                data-pending-row="treatment-plans"
+              >
+                <div class="flex items-center gap-3">
+                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                    {{ item.patient_name || 'Paciente' }}
+                  </p>
+                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
+                    {{ pendingStatusLabel(item.status) }}
+                  </UiBadge>
+                  <span
+                    v-if="item.created_at"
+                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+                  >
+                    {{ formatPendingDate(item.created_at) }}
+                  </span>
                 </div>
               </UiCard>
             </div>
@@ -1133,6 +1301,12 @@ const todayAppointments = ref([])
 // request never blocks the day's protagonists.
 const upcomingAppointments = ref([])
 const upcomingError = ref(false)
+// T7b pending-and-action block. `pending` stores the subsets the backend
+// returned for this role (an absent key means the role cannot read that
+// module). Kept separate from stats so a failing pending request never
+// blocks the rest of the page.
+const pending = ref({})
+const pendingError = ref(false)
 
 // T3 load-state flags. `hasLoaded` separates the first load (skeleton) from
 // later loads (silent in-flight refresh) so a manual refresh or a WebSocket
@@ -1309,6 +1483,23 @@ const getTodayDate = () => {
   })
 }
 
+// Short Spanish month names, shared by the Citas Hoy caption and the
+// pending rows.
+const SPANISH_MONTHS_SHORT = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic'
+]
+
 /**
  * PR4 correction round - short date for the Citas Hoy caption slot.
  * The full `martes, 11 de agosto de 2026` Spanish format overflows the
@@ -1318,24 +1509,20 @@ const getTodayDate = () => {
  * the audit-confirmed 1440x900 width.
  */
 const getShortTodayDate = () => {
-  const months = [
-    'ene',
-    'feb',
-    'mar',
-    'abr',
-    'may',
-    'jun',
-    'jul',
-    'ago',
-    'sep',
-    'oct',
-    'nov',
-    'dic'
-  ]
   const now = new Date()
   const day = now.getDate()
-  const month = months[now.getMonth()]
+  const month = SPANISH_MONTHS_SHORT[now.getMonth()]
   return `${day} de ${month}`
+}
+
+/**
+ * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty
+ * string for an unparseable value so the row simply omits the date.
+ */
+const formatPendingDate = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getDate()} ${SPANISH_MONTHS_SHORT[date.getMonth()]}`
 }
 
 const formatTime = dateTime => {
@@ -1430,9 +1617,47 @@ const upcomingGroups = computed(() => {
   return groups
 })
 
+/**
+ * T7b - pending subsets. The backend omits the keys the role cannot read,
+ * so the payload key itself is the visibility contract: an absent key
+ * hides the group, while `{ count: 0 }` renders it with its small Spanish
+ * empty copy.
+ */
+const pendingQuotations = computed(() => pending.value?.quotations || null)
+const pendingTreatmentPlans = computed(() => pending.value?.treatment_plans || null)
+const hasPendingGroups = computed(() =>
+  Boolean(pendingQuotations.value || pendingTreatmentPlans.value)
+)
+
+/**
+ * T7b - Spanish copy for the pending statuses, mirroring the module badges
+ * (QuotationStatusBadge / PlanStatusBadge). `viewed` has no badge copy in
+ * the quotations module yet, so it reads "Visto" here.
+ */
+const pendingStatusLabels = {
+  sent: 'Enviado',
+  viewed: 'Visto',
+  proposed: 'Propuesto'
+}
+const pendingStatusVariants = {
+  sent: 'info',
+  viewed: 'warning',
+  proposed: 'neutral'
+}
+const pendingStatusLabel = status => pendingStatusLabels[status] || status
+const pendingStatusVariant = status => pendingStatusVariants[status] || 'neutral'
+
 // Navigation functions
 const goToCalendar = () => {
   router.push('/calendar')
+}
+
+const goToQuotations = () => {
+  router.push('/quotations')
+}
+
+const goToTreatmentPlans = () => {
+  router.push('/treatment-plans')
 }
 
 const goToPatients = () => {
@@ -1573,6 +1798,24 @@ const fetchUpcomingAppointments = async () => {
   }
 }
 
+/**
+ * T7b - fetch the pending subsets without throwing. The backend omits the
+ * subsets the current role cannot read, so a non-object payload collapses
+ * to an empty map. A 401 surfaces `unauthorized` so the caller keeps the
+ * /login redirect; any other failure surfaces `ok: false` so the section
+ * renders its own inline error instead of silently rendering nothing.
+ */
+const fetchPending = async () => {
+  try {
+    const response = await get('/api/dashboard/pending')
+    const data = response?.data
+    const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+    return { ok: true, unauthorized: false, data: payload }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: {} }
+  }
+}
+
 /** Map the backend stats payload into the frontend shape. */
 const applyStats = backendStats => {
   stats.value = {
@@ -1618,10 +1861,11 @@ const loadDashboardData = async () => {
   }
 
   try {
-    const [statsResult, appointmentsResult, upcomingResult] = await Promise.all([
+    const [statsResult, appointmentsResult, upcomingResult, pendingResult] = await Promise.all([
       fetchStats(),
       fetchTodayAppointments(),
-      fetchUpcomingAppointments()
+      fetchUpcomingAppointments(),
+      fetchPending()
     ])
 
     if (statsResult.unauthorized) {
@@ -1651,6 +1895,18 @@ const loadDashboardData = async () => {
       upcomingError.value = false
     } else {
       upcomingError.value = true
+    }
+
+    // T7b - the pending block is tolerant: its failure shows the section's
+    // inline error and never blocks stats, agenda, upcoming, or the KPI
+    // grid. A 401 keeps the page's /login redirect behavior.
+    if (pendingResult.unauthorized) {
+      router.push('/login')
+    } else if (pendingResult.ok) {
+      pending.value = pendingResult.data
+      pendingError.value = false
+    } else {
+      pendingError.value = true
     }
 
     // Load cash session if not already loaded
@@ -1701,6 +1957,25 @@ const retryUpcomingAppointments = async () => {
     upcomingError.value = false
   } else {
     upcomingError.value = true
+  }
+}
+
+/**
+ * T7b - pending-only retry. Re-fetches just the pending resource so a
+ * failing block never forces a full page reload. 401 keeps the standard
+ * /login redirect.
+ */
+const retryPending = async () => {
+  const result = await fetchPending()
+  if (result.unauthorized) {
+    router.push('/login')
+    return
+  }
+  if (result.ok) {
+    pending.value = result.data
+    pendingError.value = false
+  } else {
+    pendingError.value = true
   }
 }
 
