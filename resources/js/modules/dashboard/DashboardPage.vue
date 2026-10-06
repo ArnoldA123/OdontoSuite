@@ -44,7 +44,7 @@
     </template>
 
     <!-- Main Content -->
-    <div v-else class="space-y-8">
+    <div v-else data-dashboard-content class="space-y-8" :aria-busy="refreshing">
       <!--
         Compact page header (ops IA).
         The AppLayout top bar already renders the page title h1; this row
@@ -81,33 +81,87 @@
             {{ getTodayDate() }}
           </p>
         </div>
-        <!--
-          Cash-session state + direct action. Same Spanish labels and
-          filled-pill tones as the KPI cash card, promoted into the header
-          so the state is readable before the KPI grid. Gated by the same
-          viewCashRegister permission as the KPI cash card.
-        -->
-        <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
-          <UiBadge
-            :variant="cashStatusBadgeVariant"
-            shape="pill"
-            size="md"
-            role="status"
-            :aria-label="`Estado de caja: ${cashStatusLabel}`"
-            :class="[cashStatusBadgeClass]"
-            data-cash-pill
-            :data-cash-pill-state="cashStatusPillState"
+        <div class="flex items-center gap-3">
+          <!--
+            T3 manual refresh. Ghost icon-button in the compact header so a
+            stale view can be re-fetched without a page reload. While the
+            request is in flight the icon spins (gated by reduced-motion) and
+            the page root reports aria-busy; the current content stays mounted
+            and is replaced only when the new payload lands.
+          -->
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Actualizar"
+            data-refresh-button
+            :disabled="refreshing"
+            @click="loadDashboardData"
           >
-            <span
-              class="inline-block w-1.5 h-1.5 rounded-full"
-              :class="cashStatusDotClass"
-              aria-hidden="true"
-            />
-            {{ cashStatusLabel }}
-          </UiBadge>
-          <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
+            <template #icon-left>
+              <ArrowPathIcon
+                class="w-4 h-4"
+                :class="{ 'animate-spin motion-reduce:animate-none': refreshing }"
+                aria-hidden="true"
+              />
+            </template>
+          </UiButton>
+          <!--
+            Cash-session state + direct action. Same Spanish labels and
+            filled-pill tones as the KPI cash card, promoted into the header
+            so the state is readable before the KPI grid. Gated by the same
+            viewCashRegister permission as the KPI cash card.
+          -->
+          <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
+            <UiBadge
+              :variant="cashStatusBadgeVariant"
+              shape="pill"
+              size="md"
+              role="status"
+              :aria-label="`Estado de caja: ${cashStatusLabel}`"
+              :class="[cashStatusBadgeClass]"
+              data-cash-pill
+              :data-cash-pill-state="cashStatusPillState"
+            >
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full"
+                :class="cashStatusDotClass"
+                aria-hidden="true"
+              />
+              {{ cashStatusLabel }}
+            </UiBadge>
+            <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
+          </div>
         </div>
       </header>
+
+      <!--
+        Stats error state (T3). A non-401 failure of dashboard/stats renders
+        this block INSTEAD of the data sections so the page never presents
+        empty/stale stats as real data. Reintentar re-runs the full load path;
+        the 401 case still redirects to /login inside loadDashboardData.
+      -->
+      <div
+        v-if="statsError"
+        data-state="error-stats"
+        role="alert"
+        class="rounded-ios p-10 text-center bg-systemRed-50"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <ExclamationTriangleIcon
+          class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <p class="text-base font-medium text-theme-primary">No pudimos cargar el resumen</p>
+        <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
+          Revisa tu conexión e inténtalo de nuevo. Si el problema continúa, vuelve a intentarlo en
+          unos minutos.
+        </p>
+        <div class="mt-6">
+          <UiButton variant="primary" size="md" data-retry-stats @click="loadDashboardData">
+            Reintentar
+          </UiButton>
+        </div>
+      </div>
 
       <!--
         Agenda de hoy - the page's protagonist (ops IA).
@@ -118,7 +172,7 @@
         status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
         plus primary CTA (no remote illustration).
       -->
-      <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
+      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div class="flex items-baseline gap-3">
             <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
@@ -158,6 +212,43 @@
         </div>
 
         <!--
+          Agenda inline error (T3). Only the today resource failed: the
+          section keeps its header and the rest of the page stays usable, so
+          the retry affordance lives here and re-fetches ONLY
+          /api/dashboard/appointments-today.
+        -->
+        <div
+          v-if="todayError"
+          data-state="error-appointments"
+          role="alert"
+          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <ExclamationTriangleIcon
+              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">
+                No pudimos cargar la agenda de hoy
+              </p>
+              <p class="text-sm text-theme-secondary">
+                Reintenta para ver las citas programadas para el día.
+              </p>
+            </div>
+          </div>
+          <UiButton
+            variant="primary"
+            size="sm"
+            data-retry-appointments
+            @click="retryTodayAppointments"
+          >
+            Reintentar
+          </UiButton>
+        </div>
+
+        <!--
           Empty state for the today-appointments case.
           HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
 
@@ -177,7 +268,7 @@
           hand-built fake dashboard preview.
         -->
         <div
-          v-if="todayAppointments.length === 0"
+          v-else-if="todayAppointments.length === 0"
           ref="emptyStateSection"
           data-state="empty-appointments"
           class="relative rounded-ios p-10 text-center bg-accent-50"
@@ -290,7 +381,7 @@
         not daily-operations content. Professionals stay reachable through
         the Profesionales quick action and the module route.
       -->
-      <section aria-label="Resumen del día">
+      <section v-if="!statsError" aria-label="Resumen del día">
         <div ref="kpiSection" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
           <UiCard
@@ -629,7 +720,7 @@
       </section>
 
       <!-- Quick Actions -->
-      <section aria-label="Acciones rápidas">
+      <section v-if="!statsError" aria-label="Acciones rápidas">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-label">Acciones Rápidas</h2>
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
@@ -811,11 +902,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
+  ArrowPathIcon,
   UsersIcon,
   PlusIcon,
   UserGroupIcon,
   BuildingOfficeIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import { useApi } from '../../composables/useApi'
@@ -869,6 +962,15 @@ const stats = ref({
   }
 })
 const todayAppointments = ref([])
+
+// T3 load-state flags. `hasLoaded` separates the first load (skeleton) from
+// later loads (silent in-flight refresh) so a manual refresh or a WebSocket
+// burst never blanks the page. The two error flags drive the page-level
+// stats error state and the agenda inline error state.
+const hasLoaded = ref(false)
+const refreshing = ref(false)
+const statsError = ref(false)
+const todayError = ref(false)
 
 /**
  * PR4 - chip tone class. The chip is a pre-formatted string from the
@@ -1120,69 +1222,128 @@ const goToBusinessIntelligence = () => {
 }
 
 // Data loading
+
+/**
+ * T3 - fetch the stats resource without throwing. A 401 is surfaced as
+ * `unauthorized` so the caller keeps the /login redirect; any other failure
+ * is surfaced as `ok: false` so the page can render its own error state
+ * instead of swallowing the failure and painting zeros as real data.
+ */
+const fetchStats = async () => {
+  try {
+    const response = await get('/api/dashboard/stats')
+    return { ok: true, unauthorized: false, data: response?.data || {} }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: null }
+  }
+}
+
+/**
+ * T3 - fetch today's agenda without throwing. 401/404 keep degrading to an
+ * empty agenda (T1 tolerance contract); any other failure surfaces
+ * `ok: false` so the agenda section can offer its own retry while the rest
+ * of the page stays usable.
+ */
+const fetchTodayAppointments = async () => {
+  try {
+    const response = await get('/api/dashboard/appointments-today')
+    return { ok: true, data: Array.isArray(response?.data) ? response.data : [] }
+  } catch (error) {
+    if (error?.status === 401 || error?.status === 404) {
+      return { ok: true, data: [] }
+    }
+    return { ok: false, data: [] }
+  }
+}
+
+/** Map the backend stats payload into the frontend shape. */
+const applyStats = backendStats => {
+  stats.value = {
+    today: backendStats.appointments_today || 0,
+    appointments_today: backendStats.appointments_today || 0,
+    completed_today: backendStats.completed_today || 0,
+    pending_confirmation: backendStats.pending_confirmation || 0,
+    this_week: backendStats.this_week || 0,
+    total_patients: backendStats.total_patients || 0,
+    total_appointments: backendStats.total_appointments || 0,
+    total_appointments_this_month:
+      backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
+    total_professionals: backendStats.total_professionals || 0,
+    total_appointment_types: backendStats.total_appointment_types || 0,
+    total_dental_chairs: backendStats.total_dental_chairs || 0,
+    total_income: backendStats.total_income || 0,
+    cash_session: backendStats.cash_session || null,
+    // PR3 / PR4 - additive comparisons block. Three keys carry
+    // data; the omitted keys (total_professionals, total_income,
+    // cash_session) keep their `null` default so the chip slots
+    // reserve their footprint but render no chip.
+    comparisons: backendStats.comparisons || {
+      appointments_today: null,
+      total_patients: null,
+      total_appointments_this_month: null
+    }
+  }
+}
+
 const loadDashboardData = async () => {
   if (!isAuthenticated.value) {
     router.push('/login')
     return
   }
 
-  loading.value = true
+  // T3 - only the first load owns the skeleton. Later loads (manual refresh,
+  // WebSocket bursts, post-create reload) keep the current content mounted
+  // and surface the lightweight in-flight indicator instead.
+  if (hasLoaded.value) {
+    refreshing.value = true
+  } else {
+    loading.value = true
+  }
+
   try {
-    const [statsResponse, appointmentsResponse] = await Promise.all([
-      get('/api/dashboard/stats'),
-      get('/api/dashboard/appointments-today').catch(err => {
-        // Keep the dashboard renderable when the today list is unavailable:
-        // degrade to an empty list on 404/401 so the rest of the page still
-        // renders, and let the auth flow own the 401 redirect.
-        if (err && (err.status === 404 || err.status === 401)) {
-          return { data: [] }
-        }
-        throw err
-      })
+    const [statsResult, appointmentsResult] = await Promise.all([
+      fetchStats(),
+      fetchTodayAppointments()
     ])
 
-    // Map backend stats into the frontend shape.
-    const backendStats = statsResponse.data || {}
-    stats.value = {
-      today: backendStats.appointments_today || 0,
-      appointments_today: backendStats.appointments_today || 0,
-      completed_today: backendStats.completed_today || 0,
-      pending_confirmation: backendStats.pending_confirmation || 0,
-      this_week: backendStats.this_week || 0,
-      total_patients: backendStats.total_patients || 0,
-      total_appointments: backendStats.total_appointments || 0,
-      total_appointments_this_month:
-        backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
-      total_professionals: backendStats.total_professionals || 0,
-      total_appointment_types: backendStats.total_appointment_types || 0,
-      total_dental_chairs: backendStats.total_dental_chairs || 0,
-      total_income: backendStats.total_income || 0,
-      cash_session: backendStats.cash_session || null,
-      // PR3 / PR4 - additive comparisons block. Three keys carry
-      // data; the omitted keys (total_professionals, total_income,
-      // cash_session) keep their `null` default so the chip slots
-      // reserve their footprint but render no chip.
-      comparisons: backendStats.comparisons || {
-        appointments_today: null,
-        total_patients: null,
-        total_appointments_this_month: null
-      }
+    if (statsResult.unauthorized) {
+      router.push('/login')
+    } else if (statsResult.ok) {
+      applyStats(statsResult.data)
+      statsError.value = false
+    } else {
+      statsError.value = true
     }
 
-    todayAppointments.value = Array.isArray(appointmentsResponse?.data)
-      ? appointmentsResponse.data
-      : []
+    if (appointmentsResult.ok) {
+      todayAppointments.value = appointmentsResult.data
+      todayError.value = false
+    } else {
+      todayError.value = true
+    }
 
     // Load cash session if not already loaded
     if (!currentSession.value && hasActiveSession.value === false) {
       await loadCurrentSession()
     }
-  } catch (error) {
-    if (error?.status === 401) {
-      router.push('/login')
-    }
   } finally {
     loading.value = false
+    refreshing.value = false
+    hasLoaded.value = true
+  }
+}
+
+/**
+ * T3 - agenda-only retry. Re-fetches just the today resource so a failing
+ * agenda never forces a full page reload.
+ */
+const retryTodayAppointments = async () => {
+  const result = await fetchTodayAppointments()
+  if (result.ok) {
+    todayAppointments.value = result.data
+    todayError.value = false
+  } else {
+    todayError.value = true
   }
 }
 
