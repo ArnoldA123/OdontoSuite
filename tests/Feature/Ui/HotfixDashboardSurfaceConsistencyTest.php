@@ -69,4 +69,41 @@ class HotfixDashboardSurfaceConsistencyTest extends TestCase
             'DashboardPage.vue Quick Action cards MUST reference the same surface tokens as KPI cards (--elevation-1+, --color-hairline, --color-surface-elevated, --radius-card-lg) — HOTFIX-DASH-005, design-taste §4.4 (Shape Consistency Lock: same radius system across cards).'
         );
     }
+
+    /**
+     * T4 elevation alignment (follow-up from T2b). The HOTFIX-DASH-005
+     * comment already declared --elevation-2 as the shared rung, but the
+     * Quick Action tiles were still rendering --elevation-1 while the KPI
+     * cards rendered --elevation-2. T4 aligns the tiles to the KPI rung.
+     * Pin the RULE per tile so the two surfaces cannot drift apart again.
+     */
+    public function test_quick_action_cards_share_the_kpi_elevation_rung(): void
+    {
+        $source = (string) file_get_contents(self::dashboardPagePath());
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $source,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 data-action cards for the elevation alignment rule.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $this->assertMatchesRegularExpression(
+                '/--elevation-2/',
+                $card,
+                "Quick Action card #{$idx} MUST consume var(--elevation-2), the same rung as the KPI cards (T4 elevation alignment, HOTFIX-DASH-005)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/--elevation-1/',
+                $card,
+                "Quick Action card #{$idx} MUST NOT keep the old var(--elevation-1) rung (T4 elevation alignment, HOTFIX-DASH-005)."
+            );
+        }
+    }
 }
