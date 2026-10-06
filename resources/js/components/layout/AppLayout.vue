@@ -856,7 +856,9 @@ const navigation = computed(() => {
     },
     {
       // Sprint 2 (B-CASH-3): modulo de metodos de pago (solo admin).
-      name: 'Metodos de Pago',
+      // T6: the user-visible label carries the accent every sibling entry
+      // has; the route path stays ASCII.
+      name: 'Métodos de Pago',
       to: '/settings/payment-methods',
       icon: CreditCardIcon,
       roles: ['administrador'],

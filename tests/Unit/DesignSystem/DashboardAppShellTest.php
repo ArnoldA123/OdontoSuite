@@ -388,7 +388,7 @@ class DashboardAppShellTest extends TestCase
         $this->assertGreaterThanOrEqual(
             4,
             count($cards),
-            'DashboardPage.vue must contain at least 4 data-action cards (the 5 verified action labels).'
+            'DashboardPage.vue must contain at least 4 data-action cards (the 4 verified action labels).'
         );
         foreach ($cards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(
@@ -495,7 +495,7 @@ class DashboardAppShellTest extends TestCase
      * template level via `v-if`.
      *
      * Verified labels (T2b compact strip): "Citas Hoy", "Pacientes",
-     * "Citas del Mes", "Ingresos", "Estado de Caja". The Profesionales
+     * "Citas del Mes", "Ingresos", "Saldo de Caja". The Profesionales
      * card was removed in T2b (admin-only count, not daily-ops content).
      */
     public function test_dashboard_contains_all_five_verified_stat_card_labels(): void
@@ -504,7 +504,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
+        $labels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Saldo de Caja'];
         foreach ($labels as $label) {
             $this->assertStringContainsString(
                 $label,
@@ -515,28 +515,168 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must contain all 5 verified quick-action labels.
+     * T3 — DashboardPage.vue must contain the four verified quick-action
+     * labels after the "Nueva Cita" tile was removed (single CTA per
+     * destination: the agenda header owns the primary appointment CTA).
+     * T6 — the /business-intelligence tile is named after the sidebar entry
+     * ("Business Intelligence"), not the retired "Reportes" alias.
      */
-    public function test_dashboard_contains_all_five_verified_quick_action_labels(): void
+    public function test_dashboard_contains_all_four_verified_quick_action_labels(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Pacientes', 'Nueva Cita', 'Profesionales', 'Ambientes', 'Reportes'];
-        $counts = array_map(
-            fn($label) => substr_count($src, $label),
-            $labels
-        );
-        // "Pacientes" appears in BOTH stat cards and quick actions; just make
-        // sure each label is present at least once.
-        foreach ($counts as $label => $count) {
+        $labels = ['Pacientes', 'Profesionales', 'Ambientes', 'Business Intelligence'];
+        foreach ($labels as $label) {
+            // "Pacientes" appears in BOTH the stat card and the quick
+            // actions; each label must be present at least once.
             $this->assertGreaterThanOrEqual(
                 1,
-                $count,
+                substr_count($src, $label),
                 "DashboardPage.vue must render the quick-action label \"{$label}\" (verified content)."
             );
         }
+
+        // The removed tile used the title-case label; the agenda header
+        // keeps the sentence-case "Nueva cita" CTA. Match the rendered
+        // element text so a design-record comment naming the removed tile
+        // cannot fail the guard.
+        $this->assertDoesNotMatchRegularExpression(
+            '/>\s*Nueva Cita\s*</',
+            $src,
+            'DashboardPage.vue must not render the removed "Nueva Cita" quick-action tile (T3 single CTA per destination).'
+        );
+    }
+
+    /**
+     * T3 — "Ver calendario" must be rendered exactly once: on the Acciones
+     * rápidas header. The Agenda de hoy and Próximas citas headers no
+     * longer duplicate it, and every other calendar affordance is gone.
+     */
+    public function test_dashboard_renders_single_ver_calendario_cta(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            1,
+            substr_count($src, 'Ver calendario'),
+            'DashboardPage.vue must render exactly one "Ver calendario" CTA (T3 single CTA per destination).'
+        );
+        $this->assertSame(
+            1,
+            substr_count($src, '@click="goToCalendar"'),
+            'DashboardPage.vue must bind goToCalendar to the single remaining "Ver calendario" CTA only.'
+        );
+
+        $quickActions = $this->sectionRegion($src, 'Acciones rápidas');
+        $this->assertStringContainsString(
+            'Ver calendario',
+            $quickActions,
+            'DashboardPage.vue must keep the "Ver calendario" CTA in the Acciones rápidas header.'
+        );
+
+        foreach (['Agenda de hoy', 'Próximas citas'] as $label) {
+            $this->assertStringNotContainsString(
+                'Ver calendario',
+                $this->sectionRegion($src, $label),
+                "DashboardPage.vue section \"{$label}\" must not duplicate the \"Ver calendario\" CTA (T3)."
+            );
+        }
+    }
+
+    /**
+     * T3 — the five KPI cards are a static reference strip: none carries
+     * the UiCard clickable/hover props or an @click binding. The header
+     * "Ir a Caja" action remains the only cash destination CTA.
+     */
+    public function test_dashboard_stat_cards_have_no_click_affordance(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>/',
+            $src,
+            $matches
+        );
+        $openings = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($openings),
+            'DashboardPage.vue must render at least 5 stat cards for the static-strip check.'
+        );
+
+        foreach ($openings as $idx => $opening) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bclickable\b/',
+                $opening,
+                "KPI card #{$idx} must not carry the clickable prop (T3: the KPI strip is static)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bhover\b/',
+                $opening,
+                "KPI card #{$idx} must not carry the hover prop (T3: the KPI strip is static)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/@click\b/',
+                $opening,
+                "KPI card #{$idx} must not bind @click (T3: the KPI strip is static)."
+            );
+        }
+
+        $this->assertSame(
+            1,
+            substr_count($src, '@click="goToCashRegister"'),
+            'DashboardPage.vue must keep the header "Ir a Caja" action as the only cash destination CTA (T3).'
+        );
+    }
+
+    /**
+     * Region helper: the source slice of a single stat card (the UiCard
+     * carrying `data-stat-card` through its closing tag).
+     */
+    private function statCardRegion(string $src, string $statKey): string
+    {
+        preg_match(
+            '/<UiCard[^>]*\bdata-stat-card="' . preg_quote($statKey, '/') . '"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $region = $matches[0] ?? '';
+        $this->assertNotEmpty(
+            $region,
+            "DashboardPage.vue must contain a data-stat-card=\"{$statKey}\" card."
+        );
+
+        return $region;
+    }
+
+    /**
+     * Region helper: the source slice between a section's opening tag and
+     * its closing tag.
+     */
+    private function sectionRegion(string $src, string $ariaLabel): string
+    {
+        $found = preg_match(
+            '/<section\b[^>]*aria-label="' . preg_quote($ariaLabel, '/') . '"/',
+            $src,
+            $matches,
+            PREG_OFFSET_CAPTURE
+        );
+        $this->assertSame(
+            1,
+            $found,
+            "DashboardPage.vue must contain a <section aria-label=\"{$ariaLabel}\">"
+        );
+        $start = $matches[0][1];
+        $end = strpos($src, '</section>', $start);
+        $this->assertNotFalse($end, "Section \"{$ariaLabel}\" must be closed");
+
+        return substr($src, $start, $end - $start);
     }
 
     /**
@@ -559,8 +699,9 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must use `EmptyState` for the today's-appointments
-     * empty case (the live state users see today due to the GET 404 bug).
+     * T5 — DashboardPage.vue renders the today-appointments empty case
+     * through the shared DashboardSectionEmpty component (extracted from the
+     * previous inline block; HOTFIX-DASH-007 icon + CTA ride its slots).
      */
     public function test_dashboard_uses_empty_state_for_today_appointments(): void
     {
@@ -568,12 +709,160 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The global registration in resources/js/plugins/ui-components.js
-        // exposes EmptyState.vue as `<EmptyState />` (no Ui prefix).
+        // The shared empty pattern lives in the dashboard module; the page
+        // consumes it for the today's-appointments empty case.
         $this->assertStringContainsString(
-            '<EmptyState',
+            '<DashboardSectionEmpty',
             $src,
-            "DashboardPage.vue must render <EmptyState /> for the today's-appointments empty case."
+            "DashboardPage.vue must render <DashboardSectionEmpty /> for the today's-appointments empty case (T5)."
+        );
+    }
+
+    /**
+     * T5 — the three per-section inline error blocks (agenda, próximas
+     * citas, pendientes) were near-duplicate copies of the same markup.
+     * They now all render the shared DashboardSectionError component, the
+     * page keeps no copy of the old inline block, and the page-level stats
+     * error keeps its own distinct role.
+     */
+    public function test_dashboard_uses_shared_section_error_component(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            0,
+            substr_count($src, 'rounded-ios p-5 bg-systemRed-50'),
+            'DashboardPage.vue must not keep the duplicated inline section-error markup (T5: DashboardSectionError owns it).'
+        );
+
+        $this->assertSame(
+            3,
+            preg_match_all('/<DashboardSectionError\b/', $src),
+            'DashboardPage.vue must render exactly three <DashboardSectionError /> blocks (agenda, próximas citas, pendientes).'
+        );
+
+        $hooks = [
+            'error-appointments' => 'data-retry-appointments',
+            'error-upcoming' => 'data-retry-upcoming',
+            'error-pending' => 'data-retry-pending',
+        ];
+        foreach ($hooks as $state => $retry) {
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*>/s',
+                $src,
+                "DashboardPage.vue must keep the `{$state}` hook on its shared section-error component (T5)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*' . $retry . '/s',
+                $src,
+                "DashboardPage.vue must keep the `{$retry}` retry hook on its shared section-error component (T5)."
+            );
+        }
+
+        // The page-level stats error is a different role (it replaces the
+        // whole page) and stays as its own block.
+        $this->assertSame(
+            1,
+            substr_count($src, 'data-state="error-stats"'),
+            'DashboardPage.vue must keep exactly one page-level stats error block (T5).'
+        );
+    }
+
+    /**
+     * T5 — the three empty states render through the shared
+     * DashboardSectionEmpty component: one padding token, per-section copy
+     * passed as props, and the pending empty copy keeps its per-column
+     * semantics inside each data-pending-group.
+     */
+    public function test_dashboard_uses_shared_section_empty_component(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $componentPath = self::projectRootPath() . '/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
+        $this->assertFileExists(
+            $componentPath,
+            'DashboardSectionEmpty.vue must exist (T5 shared empty-state pattern).'
+        );
+        $componentSrc = (string) self::readFile($componentPath);
+        $this->assertStringContainsString(
+            'data-section-empty',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must expose the data-section-empty hook (T5).'
+        );
+        $this->assertStringContainsString(
+            'p-10',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must own the single padding token used by every empty state (T5).'
+        );
+
+        foreach (['empty-appointments', 'empty-upcoming'] as $state) {
+            $this->assertMatchesRegularExpression(
+                '/<DashboardSectionEmpty\b[^>]*data-state="' . $state . '"/s',
+                $src,
+                "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (T5)."
+            );
+        }
+
+        $pending = $this->sectionRegion($src, 'Pendientes');
+        $this->assertMatchesRegularExpression(
+            '/data-pending-group="quotations"[\s\S]*?<DashboardSectionEmpty\b/s',
+            $pending,
+            'Pending quotations empty column must render through DashboardSectionEmpty (T5).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-pending-group="treatment-plans"[\s\S]*?<DashboardSectionEmpty\b/s',
+            $pending,
+            'Pending treatment-plans empty column must render through DashboardSectionEmpty (T5).'
+        );
+        $this->assertStringContainsString(
+            'title="Sin presupuestos pendientes"',
+            $pending,
+            'Pending quotations empty copy must keep its per-column semantics through the component prop (T5).'
+        );
+        $this->assertStringContainsString(
+            'title="Sin planes por aceptar"',
+            $pending,
+            'Pending treatment-plans empty copy must keep its per-column semantics through the component prop (T5).'
+        );
+    }
+
+    /**
+     * T5 — pending plan rows render the backend final_cost with the same row
+     * anatomy as the quotation rows, with a muted "N/D" fallback that never
+     * paints an em dash.
+     */
+    public function test_dashboard_plan_rows_render_final_cost(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $pending = $this->sectionRegion($src, 'Pendientes');
+        $start = strpos($pending, 'data-pending-group="treatment-plans"');
+        $this->assertNotFalse(
+            $start,
+            'DashboardPage.vue must render the treatment-plans pending group.'
+        );
+        $planRegion = substr($pending, $start);
+
+        $this->assertStringContainsString(
+            'formatPENLabel(item.final_cost)',
+            $planRegion,
+            'DashboardPage.vue plan rows must render the backend final_cost through formatPENLabel (T5).'
+        );
+        $this->assertStringContainsString(
+            'N/D',
+            $planRegion,
+            'DashboardPage.vue plan rows must render a muted "N/D" fallback when final_cost is null (T5).'
+        );
+        $this->assertStringNotContainsString(
+            "\u{2014}",
+            $planRegion,
+            'DashboardPage.vue plan rows must never fall back to an em dash (T5 / HOTFIX-DASH-011).'
         );
     }
 
@@ -872,7 +1161,7 @@ class DashboardAppShellTest extends TestCase
      * The source removed the letter-key shortcut badge on purpose
      * (design-taste §9.D "no Material keyboard-shortcut reference visual"):
      * affordance is hover-lift + the whole card being clickable. This test
-     * now pins the REMOVAL: ≥5 data-action cards, no chevron (PR3 contract
+     * now pins the REMOVAL: ≥4 data-action cards, no chevron (PR3 contract
      * stays), and no data-keyhint / <kbd> badge anywhere in the region.
      */
     public function test_quick_action_cards_carry_keyhint_chip_no_chevron(): void
@@ -890,9 +1179,9 @@ class DashboardAppShellTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertGreaterThanOrEqual(
-            5,
+            4,
             count($cards),
-            'DashboardPage.vue must contain at least 5 data-action cards (5 verified action labels).'
+            'DashboardPage.vue must contain at least 4 data-action cards (T3: 4 verified action labels).'
         );
 
         foreach ($cards as $idx => $card) {
@@ -939,15 +1228,14 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The empty state for today-appointments is an inline <div> carrying
-        // data-state="empty-appointments" (HOTFIX-DASH-007: inline line-art
-        // SVG, NOT a child <EmptyState> component, so the rule stays
-        // auditable in source). It MUST NOT carry an illustration attribute
-        // pointing to a third-party host.
+        // The empty state for today-appointments renders through the shared
+        // DashboardSectionEmpty component (T5) and keeps the
+        // data-state="empty-appointments" hook. It MUST NOT carry an
+        // illustration attribute pointing to a third-party host.
         $this->assertMatchesRegularExpression(
-            '/<div[^>]*data-state="empty-appointments"[^>]*>/',
+            '/<DashboardSectionEmpty\b[^>]*data-state="empty-appointments"/s',
             $src,
-            'DashboardPage.vue must render <div data-state="empty-appointments"> for the today-appointments empty case (HOTFIX-DASH-007 inline SVG, no <EmptyState> component).'
+            'DashboardPage.vue must render <DashboardSectionEmpty data-state="empty-appointments"> for the today-appointments empty case (T5, HOTFIX-DASH-007 icon through the icon slot).'
         );
         $this->assertDoesNotMatchRegularExpression(
             '/<EmptyState\b[^>]*\billustration="[^"]*picsum\.photos/i',
@@ -1063,7 +1351,7 @@ class DashboardAppShellTest extends TestCase
         $this->assertNotNull($src);
 
         // All five labels must be present and rendered with text-xs.
-        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
+        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Saldo de Caja'];
         foreach ($expectedLabels as $label) {
             // The eyebrow pattern: <p class="text-xs ... uppercase ... whitespace-nowrap">{{ label }}</p>
             $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';
@@ -1098,46 +1386,257 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * Defect 3 — date caption truncation. The Citas Hoy caption slot
-     * must use the short `11 de ago` format via `getShortTodayDate()`,
-     * NOT the full `martes, 11 de agosto de 2026` format via
-     * `getTodayDate()`. The full format overflowed the KPI card's
-     * caption slot at 5-up width and `truncate` clipped it mid-word.
+     * T4 — section headings. The KPI strip was the only section without a
+     * visible title (aria-label only). It now carries the same h2 anatomy
+     * as its siblings (`text-base font-semibold text-label`), placed at the
+     * top of the section, and the accessible name matches the visible text.
      */
-    public function test_dashboard_citas_hoy_caption_uses_short_date(): void
+    public function test_dashboard_kpi_section_has_a_visible_heading(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The Citas Hoy card's caption slot must bind to
-        // getShortTodayDate(), not getTodayDate().
+        $region = $this->sectionRegion($src, 'Resumen del día');
+
         $this->assertStringContainsString(
-            'getShortTodayDate',
-            $src,
-            'DashboardPage.vue must define and consume getShortTodayDate() for the Citas Hoy caption (defect 3).'
+            '<h2 class="text-base font-semibold text-label">Resumen del día</h2>',
+            $region,
+            'DashboardPage.vue KPI section must render the visible h2 "Resumen del día" with the sibling section-title anatomy (T4).'
         );
 
-        // The Citas Hoy card must NOT render the long getTodayDate()
-        // binding in its caption slot (it is reserved for the
-        // topbar page description under AppLayout).
-        $citasHoyCard = '';
-        if (preg_match(
-            '/<UiCard[^>]*\bdata-stat-card="appointments-today"[^>]*>[\s\S]*?<\/UiCard>/',
+        // The heading comes first; the card grid follows it.
+        $headingPos = strpos($region, '<h2');
+        $gridPos = strpos($region, 'data-reveal="kpi"');
+        $this->assertNotFalse($headingPos, 'KPI section must contain the h2 (T4).');
+        $this->assertNotFalse($gridPos, 'KPI section must contain the card grid (data-reveal="kpi").');
+        $this->assertLessThan(
+            $gridPos,
+            $headingPos,
+            'DashboardPage.vue KPI heading must sit at the top of the section, above the card grid (T4).'
+        );
+    }
+
+    /**
+     * T4 — one casing convention for section titles: sentence case. The
+     * "Acciones Rápidas" h2 becomes "Acciones rápidas" and agrees with its
+     * own aria-label, which already read "Acciones rápidas". The sibling
+     * titles keep their existing copy.
+     */
+    public function test_dashboard_quick_actions_heading_uses_sentence_case(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $region = $this->sectionRegion($src, 'Acciones rápidas');
+        $this->assertStringContainsString(
+            '<h2 class="text-base font-semibold text-label">Acciones rápidas</h2>',
+            $region,
+            'DashboardPage.vue must render the sentence-case h2 "Acciones rápidas" (T4 section-title convention).'
+        );
+
+        $this->assertStringNotContainsString(
+            'Acciones Rápidas',
             $src,
-            $m
-        )) {
-            $citasHoyCard = $m[0];
+            'DashboardPage.vue must not keep the title-case "Acciones Rápidas" heading (T4: h2 and aria-label agree).'
+        );
+
+        foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes', 'Resumen del día'] as $label) {
+            $this->assertStringContainsString(
+                '<h2 class="text-base font-semibold text-label">' . $label . '</h2>',
+                $src,
+                "DashboardPage.vue section \"{$label}\" must keep the shared section-title anatomy (T4)."
+            );
         }
-        $this->assertNotEmpty(
-            $citasHoyCard,
-            'DashboardPage.vue must contain a data-stat-card="appointments-today" card.'
+    }
+
+    /**
+     * T4 — one pill system. The comparison chips were hand-rolled `<span>`
+     * pills painted by `chipToneClass()`. They now render through the
+     * UiBadge primitive (`shape="pill"`, `size="sm"`, variant following the
+     * delta sign), so the page has a single pill implementation. The chip
+     * content anatomy is unchanged: the badge carries ONLY delta_label and
+     * the muted period_label stays a sibling span.
+     */
+    public function test_dashboard_comparison_chips_render_through_uibadge(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertStringNotContainsString(
+            'chipToneClass',
+            $src,
+            'DashboardPage.vue must not keep the ad-hoc chipToneClass() helper (T4: UiBadge owns the pill).'
+        );
+        $this->assertStringNotContainsString(
+            'text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap',
+            $src,
+            'DashboardPage.vue must not keep the hand-rolled pill span class signature (T4: one pill system).'
+        );
+
+        $chips = [
+            'appointments-today' => 'appointments_today',
+            'total-patients' => 'total_patients',
+            'total-appointments-month' => 'total_appointments_this_month',
+        ];
+
+        foreach ($chips as $statKey => $comparisonKey) {
+            $card = $this->statCardRegion($src, $statKey);
+
+            $this->assertStringContainsString(
+                '<UiBadge',
+                $card,
+                "DashboardPage.vue chip on card \"{$statKey}\" must render through UiBadge (T4)."
+            );
+            $this->assertStringContainsString('shape="pill"', $card, "Chip on \"{$statKey}\" must keep the pill shape (T4).");
+            $this->assertStringContainsString('size="sm"', $card, "Chip on \"{$statKey}\" must keep the small size (T4).");
+            $this->assertStringContainsString(
+                'chipVariant(stats.comparisons.' . $comparisonKey . '.delta_label)',
+                $card,
+                "Chip on \"{$statKey}\" must derive its UiBadge variant from the delta sign (T4)."
+            );
+            $this->assertStringNotContainsString(
+                'text-xs font-semibold',
+                $card,
+                "Chip on \"{$statKey}\" must not keep the ad-hoc pill classes (T4)."
+            );
+        }
+    }
+
+    /**
+     * T4 — decorative dots out. Each KPI card carried an aria-hidden
+     * accent dot top-right that read as a status indicator. The header
+     * cash-status dot is the only dot on the page with meaning.
+     */
+    public function test_dashboard_kpi_cards_carry_no_decorative_dot(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            5,
+            count($cards),
+            'DashboardPage.vue must render at least 5 stat cards for the decorative-dot check.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $this->assertStringNotContainsString(
+                '--color-accent-500',
+                $card,
+                "KPI card #{$idx} must not carry the decorative accent dot (T4: dots out)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/aria-hidden="true"/',
+                $card,
+                "KPI card #{$idx} must not carry any aria-hidden decoration (T4: dots out)."
+            );
+        }
+
+        // The header cash-status dot is the page's only remaining dot.
+        $this->assertSame(
+            1,
+            substr_count($src, 'inline-block w-1.5 h-1.5 rounded-full'),
+            'DashboardPage.vue must keep exactly one dot (the header cash-status indicator) after the T4 removal.'
+        );
+    }
+
+    /**
+     * T4 — caption grammar. The Citas Hoy caption slot stays reserved and
+     * EMPTY: the page header already anchors today's date, so the short
+     * "11 de ago" caption repeated it. Supersedes the PR4 defect-3 pin
+     * (`getShortTodayDate()`), whose format the slot no longer renders.
+     */
+    public function test_dashboard_citas_hoy_caption_slot_is_reserved_and_empty(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $this->assertStringNotContainsString(
+            'getShortTodayDate',
+            $src,
+            'DashboardPage.vue must not keep getShortTodayDate(): T4 emptied the Citas Hoy caption slot (the page header owns the date).'
+        );
+
+        $card = $this->statCardRegion($src, 'appointments-today');
+
+        // The slot is still there (reserved height) and self-closed: no text.
+        $this->assertStringContainsString(
+            'data-kpi-caption="appointments-today"',
+            $card,
+            'DashboardPage.vue Citas Hoy card must keep its reserved caption slot (T4).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-kpi-caption="appointments-today"[^>]*\/>/',
+            $card,
+            'DashboardPage.vue Citas Hoy caption slot must stay empty (T4: no date repeated from the page header).'
         );
         $this->assertDoesNotMatchRegularExpression(
             '/\{\{\s*getTodayDate\(\)\s*\}\}/',
-            $citasHoyCard,
-            'DashboardPage.vue Citas Hoy caption must not bind to getTodayDate() (full format overflows the slot at 5-up; defect 3).'
+            $card,
+            'DashboardPage.vue Citas Hoy caption must not bind to getTodayDate() (the page header owns the long date).'
         );
+    }
+
+    /**
+     * T4 — caption grammar. The Citas del Mes caption names the month the
+     * number belongs to (e.g. "Octubre") instead of restating the eyebrow
+     * with the vague "Este mes".
+     */
+    public function test_dashboard_month_caption_names_the_current_month(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $card = $this->statCardRegion($src, 'total-appointments-month');
+
+        // Pin the rendered caption, not the design record: the card's
+        // comment legitimately names the caption it replaced.
+        $this->assertDoesNotMatchRegularExpression(
+            '/<p[^>]*>\s*Este mes\s*<\/p>/',
+            $card,
+            'DashboardPage.vue must not caption the month card with "Este mes" (T4: name the month).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/data-kpi-caption="total-appointments-month"[\s\S]{0,200}?\{\{\s*currentMonthName\s*\}\}/',
+            $card,
+            'DashboardPage.vue month caption must render the current month name through currentMonthName (T4).'
+        );
+    }
+
+    /**
+     * T4 — caption grammar. Each caption states the scope of its number:
+     * Pacientes counts registered active patients ("Total registrados"),
+     * Ingresos sums the whole payment history ("Total histórico").
+     */
+    public function test_dashboard_scope_captions_state_number_scope(): void
+    {
+        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
+
+        $expectedCaptions = [
+            'total-patients' => 'Total registrados',
+            'total-income' => 'Total histórico',
+        ];
+        foreach ($expectedCaptions as $statKey => $captionText) {
+            $card = $this->statCardRegion($src, $statKey);
+            $this->assertMatchesRegularExpression(
+                '/data-kpi-caption="' . $statKey . '"[\s\S]{0,200}?' . preg_quote($captionText, '/') . '/',
+                $card,
+                "DashboardPage.vue caption on \"{$statKey}\" must state the scope of the number as \"{$captionText}\" (T4)."
+            );
+        }
     }
 
     /**
@@ -1268,10 +1767,11 @@ class DashboardAppShellTest extends TestCase
         }
 
         // T2b - quick-action icons moved to @heroicons/vue 24-outline
-        // components, so the five inline quick-action SVGs are gone. Pin
-        // the new shape: the heroicons import exists, no inline <svg>
-        // remains inside a data-action tile, and the HOTFIX-DASH-007
-        // empty-state line-art SVG (stroke-width 1.5) is still inline.
+        // components, so the inline quick-action SVGs are gone (T3 dropped
+        // the "Nueva Cita" tile). Pin the new shape: the heroicons import
+        // exists, no inline <svg> remains inside a data-action tile, and the
+        // HOTFIX-DASH-007 empty-state line-art SVG (stroke-width 1.5) is
+        // still inline.
         $this->assertStringContainsString(
             '@heroicons/vue/24/outline',
             $src,
@@ -1285,9 +1785,9 @@ class DashboardAppShellTest extends TestCase
         );
         $actionCards = $actionMatches[0] ?? [];
         $this->assertGreaterThanOrEqual(
-            5,
+            4,
             count($actionCards),
-            'DashboardPage.vue must render at least 5 data-action cards for the heroicons check.'
+            'DashboardPage.vue must render at least 4 data-action cards for the heroicons check.'
         );
         foreach ($actionCards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(
@@ -1321,12 +1821,118 @@ class DashboardAppShellTest extends TestCase
     public function testPr5NavLabelsRemainInFrozenOrder(): void
     {
         $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
-        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Metodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
+        // T6 — the payment-methods entry carries the accent every sibling
+        // label already had. Route path and permission keys stay ASCII.
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
         $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
         $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
         $sorted = $positions;
         sort($sorted);
         $this->assertSame($sorted, $positions);
+    }
+
+    /**
+     * T6 — one accented name for the payment-methods destination. The sidebar
+     * entry and the module heading both read "Métodos de Pago"; the ASCII
+     * spelling is retired from user-visible copy (identifiers, route paths
+     * and permission keys keep it by design).
+     */
+    public function test_t6_payment_methods_copy_carries_the_accent(): void
+    {
+        $layout = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $this->assertStringContainsString(
+            "name: 'Métodos de Pago'",
+            $layout,
+            'AppLayout.vue sidebar entry must read "Métodos de Pago" (T6 naming coherence with every sibling label).'
+        );
+        $this->assertStringNotContainsString(
+            "name: 'Metodos de Pago'",
+            $layout,
+            'AppLayout.vue must not keep the unaccented sidebar label (T6).'
+        );
+
+        $pagePath = self::projectRootPath()
+            . '/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
+        $this->assertFileExists($pagePath, 'PaymentMethodsPage.vue must exist (T6 naming boundary).');
+        $page = (string) self::readFile($pagePath);
+
+        $this->assertStringContainsString(
+            'title="Métodos de Pago"',
+            $page,
+            'PaymentMethodsPage.vue heading must read "Métodos de Pago" (T6).'
+        );
+
+        // Byte-safe pin: the accented form holds a 2-byte "é", so this ASCII
+        // pattern only matches the unaccented copy in any casing.
+        $unaccented = preg_match_all('/[Mm]etodos de [Pp]ago/u', $page);
+        $this->assertSame(
+            0,
+            (int) $unaccented,
+            'PaymentMethodsPage.vue must render zero unaccented "metodos de pago" strings (T6, user-visible copy only).'
+        );
+    }
+
+    /**
+     * T6 — the quick-action tiles are real controls. Each `data-action` tile
+     * keeps its UiCard surface as a presentation wrapper, but the interactive
+     * element inside is a native `<button type="button">`. The card opening
+     * tag must not carry the `clickable` prop or the click binding: a
+     * clickable div is neither focusable nor activatable from the keyboard.
+     */
+    public function test_t6_quick_action_tiles_render_through_native_buttons(): void
+    {
+        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $this->assertNotNull($src);
+
+        preg_match_all(
+            '/<UiCard\b[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $matches
+        );
+        $cards = $matches[0] ?? [];
+        $this->assertGreaterThanOrEqual(
+            4,
+            count($cards),
+            'DashboardPage.vue must contain at least 4 data-action tiles for the T6 button-semantics check.'
+        );
+
+        foreach ($cards as $idx => $card) {
+            $opening = substr($card, 0, (int) strpos($card, '>') + 1);
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/\bclickable\b/',
+                $opening,
+                "Quick-action tile #{$idx} must not carry the UiCard clickable prop (T6: real button semantics)."
+            );
+            $this->assertDoesNotMatchRegularExpression(
+                '/@click/',
+                $opening,
+                "Quick-action tile #{$idx} must not bind the click on the card surface (T6: the native button owns it)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/<button\b[^>]*type="button"/',
+                $card,
+                "Quick-action tile #{$idx} must render a native <button type=\"button\"> inside the card (T6 keyboard + AT semantics)."
+            );
+        }
+    }
+
+    /**
+     * T6 — chevrons ride the documented 1.5 stroke baseline (apple-design
+     * §16), the same value the empty-state line art already uses. The arrow
+     * chevron in the "Ver calendario" CTA was the last stroke-width="2"
+     * holdout on the page.
+     */
+    public function test_t6_dashboard_strokes_use_the_1_5_baseline(): void
+    {
+        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $this->assertNotNull($src);
+
+        $this->assertSame(
+            0,
+            substr_count($src, 'stroke-width="2"'),
+            'DashboardPage.vue must contain zero stroke-width="2" strokes (T6: every icon rides the 1.5 baseline).'
+        );
     }
 
 }

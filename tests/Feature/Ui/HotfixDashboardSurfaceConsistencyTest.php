@@ -88,9 +88,9 @@ class HotfixDashboardSurfaceConsistencyTest extends TestCase
         );
         $cards = $matches[0] ?? [];
         $this->assertGreaterThanOrEqual(
-            5,
+            4,
             count($cards),
-            'DashboardPage.vue must render at least 5 data-action cards for the elevation alignment rule.'
+            'DashboardPage.vue must render at least 4 data-action cards for the elevation alignment rule.'
         );
 
         foreach ($cards as $idx => $card) {

@@ -10,13 +10,16 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
-  const installPayload = (stats = {}, appointments = []) => {
+  const installPayload = (stats = {}, appointments = [], cashCurrent = null) => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         return { data: stats }
       }
       if (url === '/api/dashboard/appointments-today') {
         return { data: appointments }
+      }
+      if (url === '/api/cash-register/current') {
+        return { data: cashCurrent || {} }
       }
       return { data: [] }
     })
@@ -175,7 +178,7 @@ describe('dashboard compact KPI strip (ops IA, T2b)', () => {
     const wrapper = await mountDashboard()
 
     const tiles = wrapper.findAll('[data-action]')
-    expect(tiles).toHaveLength(5)
+    expect(tiles).toHaveLength(4)
 
     const glyphs = new Set()
     for (const tile of tiles) {
@@ -187,7 +190,94 @@ describe('dashboard compact KPI strip (ops IA, T2b)', () => {
       expect(path.exists()).toBe(true)
       glyphs.add(path.attributes('d'))
     }
-    expect(glyphs.size).toBe(5)
+    expect(glyphs.size).toBe(4)
+
+    wrapper.unmount()
+  })
+})
+
+// T2 acceptance surface: the cash KPI card owns the session balance as its
+// headline number and the opening time as its caption; the header pill is the
+// single session-state surface (no duplicated data-cash-pill hook).
+describe('dashboard cash KPI (T2)', () => {
+  const openStats = {
+    cash_session: { status: 'open', id: 7, opened_at: '2026-10-05T08:30:00' }
+  }
+  const openCurrent = {
+    session: { id: 7, status: 'open', opened_at: '2026-10-05T08:30:00' },
+    summary: { opening_amount: 100, total_income: 250, total_expenses: 50 }
+  }
+
+  beforeEach(() => {
+    signInAs('administrador')
+    getMock.mockReset()
+    installPayload()
+  })
+
+  it('renders the live session balance as the cash card number', async () => {
+    installPayload(openStats, [], openCurrent)
+
+    const wrapper = await mountDashboard()
+    const card = kpiStrip(wrapper).find('[data-stat-card="cash-status"]')
+
+    expect(card.exists()).toBe(true)
+    const number = card.find('p.tabular-nums')
+    expect(number.exists()).toBe(true)
+    expect(normalize(number.text())).toBe('S/ 300.00')
+
+    wrapper.unmount()
+  })
+
+  it('drops the pill from the KPI card so the header keeps the only data-cash-pill', async () => {
+    installPayload(openStats, [], openCurrent)
+
+    const wrapper = await mountDashboard()
+    const card = kpiStrip(wrapper).find('[data-stat="cash-status"]')
+
+    expect(card.find('[data-cash-pill]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(1)
+    expect(wrapper.find('[data-dashboard-header] [data-cash-pill]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('shows the Saldo de Caja eyebrow and the opening-time caption while the session is open', async () => {
+    installPayload(openStats, [], openCurrent)
+
+    const wrapper = await mountDashboard()
+    const card = kpiStrip(wrapper).find('[data-stat-card="cash-status"]')
+
+    expect(card.text()).toContain('Saldo de Caja')
+    expect(card.text()).not.toContain('Estado de Caja')
+    expect(card.text()).toContain('Apertura 08:30')
+
+    wrapper.unmount()
+  })
+
+  it('shows an em dash and the Sin sesión abierta caption when no session is open', async () => {
+    installPayload({ cash_session: { status: 'closed' } })
+
+    const wrapper = await mountDashboard()
+    const card = kpiStrip(wrapper).find('[data-stat-card="cash-status"]')
+
+    const number = card.find('p.tabular-nums')
+    expect(number.exists()).toBe(true)
+    expect(number.text()).toBe('N/D')
+    expect(card.text()).toContain('Sin sesión abierta')
+    expect(card.find('[data-cash-pill]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(1)
+
+    wrapper.unmount()
+  })
+
+  it('lets the UiBadge variant own the header pill text color', async () => {
+    installPayload(openStats, [], openCurrent)
+
+    const wrapper = await mountDashboard()
+    const pill = wrapper.find('[data-dashboard-header] [data-cash-pill]')
+
+    expect(pill.classes()).toContain('text-systemGreen-700')
+    expect(pill.classes()).not.toContain('text-systemGreen-600')
 
     wrapper.unmount()
   })

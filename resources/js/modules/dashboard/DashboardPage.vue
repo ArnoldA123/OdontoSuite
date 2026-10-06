@@ -132,9 +132,10 @@
             </template>
           </UiButton>
           <!--
-            Cash-session state + direct action. Same Spanish labels and
-            filled-pill tones as the KPI cash card, promoted into the header
-            so the state is readable before the KPI grid. Gated by the same
+            Cash-session state + direct action. T2 surface split: this pill
+            is the ONLY session-state surface (Spanish label + filled tone);
+            the KPI cash card shows the session balance instead. The tone is
+            owned by the UiBadge variant alone. Gated by the same
             viewCashRegister permission as the KPI cash card.
           -->
           <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
@@ -144,7 +145,6 @@
               size="md"
               role="status"
               :aria-label="`Estado de caja: ${cashStatusLabel}`"
-              :class="[cashStatusBadgeClass]"
               data-cash-pill
               :data-cash-pill-state="cashStatusPillState"
             >
@@ -196,36 +196,18 @@
         so the daily operation is the first thing the user reads.
         Row anatomy: time (tabular) / patient / type / professional /
         status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
-        plus primary CTA (no remote illustration).
+        plus primary CTA (no remote illustration) through the shared
+        DashboardSectionEmpty pattern (T5).
       -->
       <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
           <div class="flex items-baseline gap-3">
             <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
-            <span class="text-sm text-theme-secondary tabular-nums">
+            <span v-if="!todayError" class="text-sm text-theme-secondary tabular-nums">
               {{ todayAppointments.length }} {{ todayAppointments.length === 1 ? 'cita' : 'citas' }}
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <UiButton variant="ghost" size="sm" @click="goToCalendar">
-              Ver calendario
-              <template #icon-right>
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </template>
-            </UiButton>
             <UiButton
               v-if="can.createAppointment?.value"
               variant="primary"
@@ -238,112 +220,85 @@
         </div>
 
         <!--
-          Agenda inline error (T3). Only the today resource failed: the
+          Agenda inline error (T5). Only the today resource failed: the
           section keeps its header and the rest of the page stays usable, so
           the retry affordance lives here and re-fetches ONLY
-          /api/dashboard/appointments-today.
+          /api/dashboard/appointments-today through the shared section-error
+          component.
         -->
-        <div
+        <DashboardSectionError
           v-if="todayError"
           data-state="error-appointments"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">
-                No pudimos cargar la agenda de hoy
-              </p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver las citas programadas para el día.
-              </p>
-            </div>
-          </div>
-          <UiButton
-            variant="primary"
-            size="sm"
-            data-retry-appointments
-            @click="retryTodayAppointments"
-          >
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar la agenda de hoy"
+          description="Reintenta para ver las citas programadas para el día."
+          :retry-attrs="{ 'data-retry-appointments': '' }"
+          @retry="retryTodayAppointments"
+        />
 
         <!--
-          Empty state for the today-appointments case.
-          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
+          Empty state for the today-appointments case, rendered through the
+          shared DashboardSectionEmpty pattern (T5).
 
-          T2a - the previous radial-gradient wash is replaced by a flat
-          accent tint (bg-accent-50) plus the hairline border: the ops
-          redesign is token-only and bans decorative gradients. The block
-          still reads as a depth surface, not a flat empty row.
+          HOTFIX-DASH-007 - line-art SVG + primary CTA. The calendar SVG
+          stays inline in this template, passed through the component's icon
+          slot, so the stroke-width="1.5" rule stays auditable in source
+          (apple-design §16 baseline, NOT the previous 2.0 default).
 
-          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
-          stroke-width="1.5" (Apple's outline-icon convention, NOT the
-          previous 2.0 default). The SVG is inline in this template
-          (NOT a child <EmptyState> component) so the rule is auditable
-          in source.
+          T2a - the flat accent tint (bg-accent-50) plus the hairline border
+          live in the shared component: the ops redesign is token-only and
+          bans decorative gradients.
 
           design-taste §9.F "NO div-based fake product UI" - the empty
           state is a real line-art SVG with a real primary CTA, not a
-          hand-built fake dashboard preview.
+          hand-built fake dashboard preview. The "Crear nueva cita" CTA is
+          the user-approved contextual exception to the single-CTA rule.
         -->
-        <div
+        <DashboardSectionEmpty
           v-else-if="todayAppointments.length === 0"
           ref="emptyStateSection"
           data-state="empty-appointments"
           data-reveal="empty-state"
-          class="relative rounded-ios p-10 text-center bg-accent-50"
-          style="border: 1px solid var(--color-hairline)"
+          title="Sin citas para hoy"
+          description="Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario."
           :style="revealStyle('--spring-dash-empty-o')"
         >
-          <!--
-            HOTFIX-DASH-007 - inline line-art calendar SVG.
-            stroke-width="1.5" (apple-design §16 baseline).
-            Color: var(--color-label-tertiary-label) - the iOS
-            tertiaryLabel token so the icon recedes.
-          -->
-          <svg
-            class="mx-auto h-12 w-12 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            style="color: var(--color-label-tertiary-label)"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <p class="text-base font-medium text-theme-primary">
-            Sin citas para hoy
-          </p>
-          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
-            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
-          </p>
-          <div class="mt-6">
+          <template #icon>
             <!--
-              Primary CTA per apple-design §12 "translucent chrome for
-              depth, primary CTA anchored to the action".
+              HOTFIX-DASH-007 - inline line-art calendar SVG.
+              stroke-width="1.5" (apple-design §16 baseline).
+              Color: var(--color-label-tertiary-label) - the iOS
+              tertiaryLabel token so the icon recedes.
             -->
-            <UiButton
-              variant="primary"
-              size="md"
-              data-cta="empty-create-appointment"
-              @click="goToNewAppointment"
+            <svg
+              class="mx-auto h-12 w-12 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              style="color: var(--color-label-tertiary-label)"
+              aria-hidden="true"
             >
-              Crear nueva cita
-            </UiButton>
-          </div>
-        </div>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </template>
+          <!--
+            Primary CTA per apple-design §12 "translucent chrome for
+            depth, primary CTA anchored to the action".
+          -->
+          <UiButton
+            variant="primary"
+            size="md"
+            data-cta="empty-create-appointment"
+            @click="goToNewAppointment"
+          >
+            Crear nueva cita
+          </UiButton>
+        </DashboardSectionEmpty>
 
         <div v-else class="grid gap-3">
           <UiCard
@@ -405,76 +360,34 @@
               {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
             </span>
           </div>
-          <UiButton variant="ghost" size="sm" @click="goToCalendar">
-            Ver calendario
-            <template #icon-right>
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </template>
-          </UiButton>
         </div>
 
         <!--
           Upcoming inline error (T5). Only the upcoming resource failed:
           the header stays, the rest of the page stays usable, and the retry
-          affordance re-fetches ONLY /api/dashboard/upcoming.
+          affordance re-fetches ONLY /api/dashboard/upcoming through the
+          shared section-error component.
         -->
-        <div
+        <DashboardSectionError
           v-if="upcomingError"
           data-state="error-upcoming"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">
-                No pudimos cargar las próximas citas
-              </p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver lo que queda de la semana.
-              </p>
-            </div>
-          </div>
-          <UiButton
-            variant="primary"
-            size="sm"
-            data-retry-upcoming
-            @click="retryUpcomingAppointments"
-          >
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar las próximas citas"
+          description="Reintenta para ver lo que queda de la semana."
+          :retry-attrs="{ 'data-retry-upcoming': '' }"
+          @retry="retryUpcomingAppointments"
+        />
 
         <!--
-          Empty state for the upcoming-week case. Hand-built like the today
-          empty state but with its own marker (data-state="empty-upcoming");
-          the today marker belongs to the agenda and stays untouched.
+          Empty state for the upcoming-week case, rendered through the shared
+          DashboardSectionEmpty pattern with its own marker and copy (T5).
         -->
-        <div
+        <DashboardSectionEmpty
           v-else-if="upcomingAppointments.length === 0"
           data-state="empty-upcoming"
-          class="rounded-ios p-6 text-center bg-accent-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <p class="text-sm text-theme-secondary">Sin citas programadas para esta semana</p>
-        </div>
+          title="Sin citas programadas para esta semana"
+          description="No hay citas registradas de mañana en adelante."
+        />
 
         <div v-else class="space-y-4">
           <div
@@ -536,31 +449,17 @@
         <!--
           Pending inline error (T7b). Only this resource failed: the rest
           of the page stays usable, and the retry re-fetches ONLY
-          /api/dashboard/pending.
+          /api/dashboard/pending through the shared section-error component.
         -->
-        <div
+        <DashboardSectionError
           v-if="pendingError"
           data-state="error-pending"
           role="alert"
-          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
-          style="border: 1px solid var(--color-hairline)"
-        >
-          <div class="flex items-center gap-3 min-w-0">
-            <ExclamationTriangleIcon
-              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
-              aria-hidden="true"
-            />
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-theme-primary">No pudimos cargar los pendientes</p>
-              <p class="text-sm text-theme-secondary">
-                Reintenta para ver presupuestos y planes en espera de respuesta.
-              </p>
-            </div>
-          </div>
-          <UiButton variant="primary" size="sm" data-retry-pending @click="retryPending">
-            Reintentar
-          </UiButton>
-        </div>
+          title="No pudimos cargar los pendientes"
+          description="Reintenta para ver presupuestos y planes en espera de respuesta."
+          :retry-attrs="{ 'data-retry-pending': '' }"
+          @retry="retryPending"
+        />
 
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Presupuestos pendientes (gated by payload presence) -->
@@ -585,12 +484,16 @@
             </div>
             <!--
               Empty subset: the payload key is present but nothing waits
-              on a decision. Small Spanish copy keeps the group slot calm
-              and consistent with the module empty states.
+              on a decision. The Spanish copy is passed through the shared
+              DashboardSectionEmpty pattern so every empty state reads as
+              one family (T5).
             -->
-            <p v-if="pendingQuotations.count === 0" class="text-sm text-theme-secondary">
-              Sin presupuestos pendientes
-            </p>
+            <DashboardSectionEmpty
+              v-if="pendingQuotations.count === 0"
+              data-state="empty-pending"
+              title="Sin presupuestos pendientes"
+              description="Los presupuestos enviados aparecerán aquí cuando esperen respuesta."
+            />
             <div v-else class="grid gap-2">
               <UiCard
                 v-for="item in pendingQuotations.items"
@@ -641,9 +544,12 @@
                 Ver todos
               </UiButton>
             </div>
-            <p v-if="pendingTreatmentPlans.count === 0" class="text-sm text-theme-secondary">
-              Sin planes por aceptar
-            </p>
+            <DashboardSectionEmpty
+              v-if="pendingTreatmentPlans.count === 0"
+              data-state="empty-pending"
+              title="Sin planes por aceptar"
+              description="Los planes propuestos aparecerán aquí cuando esperen respuesta."
+            />
             <div v-else class="grid gap-2">
               <UiCard
                 v-for="item in pendingTreatmentPlans.items"
@@ -657,6 +563,13 @@
                   <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
                     {{ item.patient_name || 'Paciente' }}
                   </p>
+                  <span
+                    v-if="item.final_cost !== null && item.final_cost !== undefined"
+                    class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                  >
+                    {{ formatPENLabel(item.final_cost) }}
+                  </span>
+                  <span v-else class="flex-shrink-0 text-sm text-theme-secondary">N/D</span>
                   <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
                     {{ pendingStatusLabel(item.status) }}
                   </UiBadge>
@@ -691,17 +604,37 @@
           [caption]    h-4     (16 px)
 
         Cards that carry a comparison key render the chip from
-        `comparisons[statKey].delta_label`. When that field is null, the
-        slot stays empty (no chip, no dash, no placeholder). The chip
-        colour follows sign: positive → systemGreen, negative → systemRed.
+        `comparisons[statKey].delta_label` through the UiBadge primitive
+        (T4 - one pill system; the hand-rolled span pills are gone).
+        When that field is null, the slot stays empty (no chip, no dash,
+        no placeholder). The badge variant follows the sign: positive ->
+        success (filled green), negative -> error (filled red).
         The period_label never truncates: the chip row wraps it onto a
         second line, and the slot's minimum height lets the card grow.
+
+        Captions (T4) state the period or scope of the number, never the
+        eyebrow or the page date: Citas Hoy keeps the slot reserved and
+        empty (the header anchors the date), Citas del Mes names the
+        current month, Pacientes reads "Total registrados" and Ingresos
+        "Total histórico", Saldo de Caja keeps its opening-time caption.
+
+        The strip carries a visible h2 like every sibling section (T4),
+        and its cards carry no decorative status dot.
 
         The Profesionales card was removed in T2b: an admin-only count is
         not daily-operations content. Professionals stay reachable through
         the Profesionales quick action and the module route.
+
+        T3 - the strip is a static reference surface: none of the five
+        cards carries a click affordance (no clickable/hover props, no
+        @click). The single CTA per destination lives in the section
+        headers.
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 class="text-base font-semibold text-label">Resumen del día</h2>
+        </div>
+
         <div
           ref="kpiSection"
           data-reveal="kpi"
@@ -713,21 +646,18 @@
             v-if="can.viewAppointment?.value"
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="appointments-today"
             data-stat-card="appointments-today"
             data-priority="primary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
                   Eyebrow (T2b compact strip). Token size class text-xs,
                   no tracking, whitespace-nowrap so the longest label
-                  ("Estado de Caja") stays on one line at the 5-up KPI
+                  ("Saldo de Caja") stays on one line at the 5-up KPI
                   card width.
                 -->
                 <div class="h-4 flex items-center">
@@ -745,55 +675,47 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix).
-                  The pill contains ONLY the delta value (e.g. "-4").
-                  The period_label (e.g. "vs mar 4 ago") is a separate
-                  muted caption beside the pill. The row wraps the label
-                  onto a second line when it does not fit, and the slot
-                  reserves only a minimum height, so the full label is
-                  always visible instead of clipped.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge contains ONLY the delta value (e.g. "-4")
+                  and its variant follows the sign. The period_label
+                  (e.g. "vs mar 4 ago") is a separate muted caption beside
+                  the pill. The row wraps the label onto a second line
+                  when it does not fit, and the slot reserves only a
+                  minimum height, so the full label is always visible
+                  instead of clipped.
                 -->
                 <div
                   v-if="stats.comparisons?.appointments_today?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.appointments_today.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.appointments_today.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.appointments_today.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.appointments_today.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
                 <!--
-                  Caption slot (defect 3 - date truncation fix).
-                  Use the short "11 de ago" format from
-                  getShortTodayDate() so the caption fits the slot
-                  without being clipped by truncate. The full
-                  "martes, 11 de agosto de 2026" format overflowed the
-                  KPI card's caption slot at 5-up width.
+                  Caption slot (T4). Reserved but intentionally empty:
+                  the page header already anchors today's date, so the
+                  previous short "11 de ago" caption repeated it. The
+                  reserved h-4 row keeps the five cards baseline-aligned.
                 -->
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-                    {{ getShortTodayDate() }}
-                  </p>
-                </div>
+                <div class="h-4 flex items-center" data-kpi-caption="appointments-today" />
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed.
                 design-taste-frontend §9.D "NO three-equal Material cards".
                 apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
-                Replaced by a small accent dot anchored top-right of the
-                card (accent token per the T2b design language).
+                T4 - the accent dot that replaced the plate was decoration
+                that read as a status indicator, so it was removed too.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -804,13 +726,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-patients"
             data-stat-card="total-patients"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToPatients"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -828,12 +747,12 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). The
-                  comparisons.total_patients.period_label is the
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The comparisons.total_patients.period_label is the
                   static string "nuevos este mes" and is intentionally
                   a different quantity from the headline (D15 - the
                   chip's "+N" is NEW REGISTRATIONS, the headline 105
-                  is cumulative active). The pill carries the absolute
+                  is cumulative active). The UiBadge carries the absolute
                   delta; the muted text carries the period_label and
                   wraps under the pill at the compact 5-up width.
                 -->
@@ -841,18 +760,25 @@
                   v-if="stats.comparisons?.total_patients?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.total_patients.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.total_patients.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_patients.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_patients.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <!--
+                  Caption slot (T4). Scope phrase in the "Total X"
+                  grammar; the number counts registered active patients,
+                  so the caption stays "Total registrados".
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-patients">
                   <p class="text-xs text-theme-secondary truncate">Total registrados</p>
                 </div>
               </div>
@@ -860,11 +786,6 @@
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -872,13 +793,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-appointments-month"
             data-stat-card="total-appointments-month"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -896,40 +814,42 @@
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). Period_label
-                  outside the pill; the row wraps it when the label does
-                  not fit, so the slot never clips it.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge carries only the delta; the period_label
+                  stays a muted sibling span and the row wraps it when
+                  the label does not fit, so the slot never clips it.
                 -->
                 <div
                   v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
                   class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="
-                      chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)
+                  <UiBadge
+                    :variant="
+                      chipVariant(stats.comparisons.total_appointments_this_month.delta_label)
                     "
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_appointments_this_month.delta_label }}
-                  </span>
+                  </UiBadge>
                   <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_appointments_this_month.period_label }}
                   </span>
                 </div>
                 <div v-else class="min-h-6" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">Este mes</p>
+                <!--
+                  Caption slot (T4). Names the month the number belongs
+                  to; the previous "Este mes" only restated the eyebrow.
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-appointments-month">
+                  <p class="text-xs text-theme-secondary truncate">{{ currentMonthName }}</p>
                 </div>
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -941,13 +861,10 @@
           <UiCard
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="total-income"
             data-stat-card="total-income"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToBusinessIntelligence"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
@@ -965,83 +882,55 @@
                   </p>
                 </div>
                 <div class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <div class="h-4 flex items-center" data-kpi-caption="total-income">
                   <p class="text-xs text-theme-secondary truncate">Total histórico</p>
                 </div>
               </div>
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
-          <!-- Estado de Caja (SECONDARY live stat; gated).
-               No comparison key ships for cash_session. The cash pill
-               renders its own Spanish label via a primitive that
-               supports custom labels. -->
+          <!-- Saldo de Caja (SECONDARY live stat; gated).
+               T2 surface split: the header pill owns the session state;
+               this card owns the live balance as its headline number and
+               the opening time as its caption. No comparison key ships
+               for cash_session. -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
             padding="sm"
-            hover
-            clickable
             data-stat="cash-status"
             data-stat-card="cash-status"
             data-priority="secondary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCashRegister"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
                   Eyebrow (T2b compact strip). Token size class text-xs,
-                  no tracking, whitespace-nowrap so "Estado de Caja"
+                  no tracking, whitespace-nowrap so "Saldo de Caja"
                   stays on one line at the 5-up KPI card width.
                 -->
                 <div class="h-4 flex items-center">
                   <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Estado de Caja
+                    Saldo de Caja
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
-                  <UiBadge
-                    :variant="cashStatusBadgeVariant"
-                    shape="pill"
-                    size="md"
-                    role="status"
-                    :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                    class="mt-1"
-                    :class="[cashStatusBadgeClass]"
-                    data-cash-pill
-                    :data-cash-pill-state="cashStatusPillState"
+                  <p
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    <span
-                      class="inline-block w-1.5 h-1.5 rounded-full"
-                      :class="cashStatusDotClass"
-                      aria-hidden="true"
-                    />
-                    {{ cashStatusLabel }}
-                  </UiBadge>
+                    {{ cashKpiBalance }}
+                  </p>
                 </div>
                 <div class="min-h-6" />
-                <div class="h-4 flex items-center">
+                <div class="h-4 flex items-center" data-kpi-caption="cash-status">
                   <p class="text-xs text-theme-secondary truncate">
-                    {{ cashBalanceText }}
+                    {{ cashKpiCaption }}
                   </p>
                 </div>
               </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-accent-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
         </div>
@@ -1050,10 +939,14 @@
       <!-- Quick Actions -->
       <section v-if="!statsError" aria-label="Acciones rápidas">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-label">Acciones Rápidas</h2>
+          <h2 class="text-base font-semibold text-label">Acciones rápidas</h2>
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
             Ver calendario
             <template #icon-right>
+              <!--
+                Chevron: stroke-width="1.5", the documented apple-design §16
+                baseline (T6). The 2.0 default is retired page-wide.
+              -->
               <svg
                 class="w-4 h-4"
                 fill="none"
@@ -1064,7 +957,7 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2"
+                  stroke-width="1.5"
                   d="M9 5l7 7-7 7"
                 />
               </svg>
@@ -1088,14 +981,24 @@
           HOTFIX-DASH-006 - Letter-key shortcut badge removed (no
           <kbd> with single uppercase letter). design-taste §9.D "no
           Material keyboard-shortcut reference visual". Each tile's
-          affordance is now the hover-lift + the entire card being a
-          clickable region (the existing UiCard clickable behaviour).
+          affordance is the hover-lift plus a full-bleed native button:
+          the card is the surface, the <button type="button"> inside it is
+          the control (T6), so the whole card stays the click region while
+          keyboard focus and activation work natively.
 
           T2b - every tile icon is an @heroicons/vue 24-outline
-          component (UsersIcon, PlusIcon, UserGroupIcon,
-          BuildingOfficeIcon, ChartBarIcon) instead of an inline SVG.
-          The heroicons baseline stroke is 1.5, so the apple-design §16
-          rule (icon stroke 1.5, NOT icon-in-box) still holds.
+          component (UsersIcon, UserGroupIcon, BuildingOfficeIcon,
+          ChartBarIcon) instead of an inline SVG. The heroicons
+          baseline stroke is 1.5, so the apple-design §16 rule (icon
+          stroke 1.5, NOT icon-in-box) still holds.
+
+          T3 - single CTA per destination: the duplicate appointment
+          tile was removed and the agenda header owns the primary
+          appointment CTA, leaving four destination tiles.
+
+          T6 - the four tiles are real buttons (native semantics, no
+          clickable div) and the /business-intelligence tile is named
+          after the sidebar entry ("Business Intelligence").
         -->
         <div
           ref="quickActionsSection"
@@ -1107,49 +1010,35 @@
           <UiCard
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="patients"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToPatients"
           >
-            <div class="flex items-start gap-3">
-              <UsersIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Pacientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Gestionar base de datos
-                </p>
+            <!--
+              T6 - the card is the surface, the native button is the
+              control. w-full + the card's p-6 keep the whole card as the
+              click region; active:scale-[0.98] mirrors the press feedback
+              the card's retired clickable state provided.
+            -->
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToPatients"
+            >
+              <div class="flex items-start gap-3">
+                <UsersIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Pacientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Gestionar base de datos
+                  </p>
+                </div>
               </div>
-            </div>
-          </UiCard>
-
-          <!-- New Appointment -->
-          <UiCard
-            v-if="can.createAppointment?.value"
-            variant="flat"
-            hover
-            clickable
-            data-action="new-appointment"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToNewAppointment"
-          >
-            <div class="flex items-start gap-3">
-              <PlusIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Programar cita médica
-                </p>
-              </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Professionals -->
@@ -1157,22 +1046,27 @@
             v-if="can.manageUsers?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="professionals"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToProfessionals"
           >
-            <div class="flex items-start gap-3">
-              <UserGroupIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Profesionales</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToProfessionals"
+            >
+              <div class="flex items-start gap-3">
+                <UserGroupIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Profesionales</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Environments -->
@@ -1180,47 +1074,59 @@
             v-if="can.manageConfig?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="environments"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToEnvironments"
           >
-            <div class="flex items-start gap-3">
-              <BuildingOfficeIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Ambientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToEnvironments"
+            >
+              <div class="flex items-start gap-3">
+                <BuildingOfficeIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Ambientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Configurar espacios
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
-          <!-- Reportes -->
+          <!-- Business Intelligence -->
           <UiCard
             v-if="can.viewReports?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="reports"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToBusinessIntelligence"
           >
-            <div class="flex items-start gap-3">
-              <ChartBarIcon
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                aria-hidden="true"
-              />
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Reportes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Análisis y estadísticas
-                </p>
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToBusinessIntelligence"
+            >
+              <div class="flex items-start gap-3">
+                <ChartBarIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Business Intelligence</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Análisis y estadísticas
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
         </div>
       </section>
@@ -1237,13 +1143,14 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowPathIcon,
   UsersIcon,
-  PlusIcon,
   UserGroupIcon,
   BuildingOfficeIcon,
   ChartBarIcon,
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
+import DashboardSectionError from './DashboardSectionError.vue'
+import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
@@ -1318,25 +1225,26 @@ const statsError = ref(false)
 const todayError = ref(false)
 
 /**
- * PR4 - chip tone class. The chip is a pre-formatted string from the
- * server (D13). Sign is derived from the leading character: "+" reads
- * as growth (systemGreen), "-" reads as decline (systemRed), and "0" or
- * any other neutral prefix reads as flat (systemGray). The wrapper
- * receives the class binding and applies it; the chip itself never
- * computes a percentage (that's the structural guarantee against
- * Infinity / NaN / 100%).
+ * PR4 - chip variant. T4 sharpened it from a hand-rolled class string to
+ * the UiBadge variant, so one primitive owns the pill. The chip is a
+ * pre-formatted string from the server (D13). Sign is derived from the
+ * leading character: "+" reads as growth (success, filled green), "-"
+ * reads as decline (error, filled red), and "0" or any other neutral
+ * prefix reads as flat (neutral, surface tone). The badge never computes
+ * a percentage (that's the structural guarantee against Infinity / NaN /
+ * 100%).
  */
-const chipToneClass = deltaLabel => {
+const chipVariant = deltaLabel => {
   if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
-    return 'bg-systemGray-100 text-systemGray-600'
+    return 'neutral'
   }
   if (deltaLabel.startsWith('+')) {
-    return 'bg-systemGreen-100 text-systemGreen-700'
+    return 'success'
   }
   if (deltaLabel.startsWith('-')) {
-    return 'bg-systemRed-100 text-systemRed-700'
+    return 'error'
   }
-  return 'bg-systemGray-100 text-systemGray-600'
+  return 'neutral'
 }
 
 // HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
@@ -1396,7 +1304,11 @@ const playEntrance = () => {
   if (greetingSection.value) greetingSpring.attach(greetingSection.value)
   if (kpiSection.value) kpiSpring.attach(kpiSection.value)
   if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
-  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
+  // The empty state renders through a child component, so the template ref
+  // yields the component instance; the spring binds to its root element.
+  if (emptyStateSection.value) {
+    emptyStateSpring.attach(emptyStateSection.value.$el || emptyStateSection.value)
+  }
 
   setTimeout(() => greetingSpring.set(1), 0)
   setTimeout(() => kpiSpring.set(1), 60)
@@ -1483,8 +1395,7 @@ const getTodayDate = () => {
   })
 }
 
-// Short Spanish month names, shared by the Citas Hoy caption and the
-// pending rows.
+// Short Spanish month names for the pending rows ("3 oct").
 const SPANISH_MONTHS_SHORT = [
   'ene',
   'feb',
@@ -1501,19 +1412,15 @@ const SPANISH_MONTHS_SHORT = [
 ]
 
 /**
- * PR4 correction round - short date for the Citas Hoy caption slot.
- * The full `martes, 11 de agosto de 2026` Spanish format overflows the
- * KPI card's caption slot at 5-up and `truncate` clips it mid-word.
- * The short form `11 de ago` (day + Spanish month abbreviation, same
- * tokens the chip's period_label uses) fits the slot on one line at
- * the audit-confirmed 1440x900 width.
+ * T4 - caption for the Citas del Mes card. The number belongs to the
+ * current month, so the caption names it ("Octubre") through the same
+ * es-ES locale call the header date uses. es-ES returns the month in
+ * lowercase, so the caption capitalizes the first letter.
  */
-const getShortTodayDate = () => {
-  const now = new Date()
-  const day = now.getDate()
-  const month = SPANISH_MONTHS_SHORT[now.getMonth()]
-  return `${day} de ${month}`
-}
+const currentMonthName = computed(() => {
+  const name = new Date().toLocaleDateString('es-ES', { month: 'long' })
+  return name.charAt(0).toUpperCase() + name.slice(1)
+})
 
 /**
  * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty
@@ -1672,7 +1579,7 @@ const goToNewAppointment = () => {
 
 const handleAppointmentCreated = async () => {
   // Slice 08 / FF-015: refresh data after the user creates an appointment
-  // from anywhere (quick-action button or empty-state CTA). Single fetch
+  // from anywhere (agenda header CTA or empty-state CTA). Single fetch
   // rather than a fan-out - the WebSocket path will catch subsequent edits.
   await loadDashboardData()
 }
@@ -1693,9 +1600,9 @@ const goToCashRegister = () => {
 // attribute (data-cash-pill-state) for testability; the user-visible
 // label and aria-label are always Spanish. iOS filled pattern per
 // Decision 7:
-//   - open        → label "Abierta",     bg-systemGreen-100 text-systemGreen-600
-//   - closed      → label "Cerrada",     bg-systemRed-100 text-systemRed-600
-//   - no_session  → label "Sin sesión",  bg-systemGray-100 text-systemGray-600
+//   - open        → label "Abierta",     variant success (filled green)
+//   - closed      → label "Cerrada",     variant error   (filled red)
+//   - no_session  → label "Sin sesión",  variant neutral (surface tone)
 const cashStatusPillState = computed(() => {
   if (isOpen.value) return 'open'
   if (hasActiveSession.value) return 'closed'
@@ -1714,11 +1621,11 @@ const cashStatusBadgeVariant = computed(() => {
   return 'neutral'
 })
 
-const cashStatusBadgeClass = computed(() => {
-  if (isOpen.value) return 'bg-systemGreen-100 text-systemGreen-600'
-  if (hasActiveSession.value) return 'bg-systemRed-100 text-systemRed-600'
-  return 'bg-systemGray-100 text-systemGray-600'
-})
+// T2 - the header pill's tone is owned by the UiBadge `variant` alone
+// (success / error / neutral). The removed cashStatusBadgeClass layered
+// text-*-600 over the variant's text-*-700: a same-property conflict that
+// only stylesheet order resolved, so the rendered filled green/red tone
+// stays identical while one source owns the color.
 
 const cashStatusDotClass = computed(() => {
   if (isOpen.value) return 'bg-systemGreen-500'
@@ -1726,15 +1633,23 @@ const cashStatusDotClass = computed(() => {
   return 'bg-systemGray-500'
 })
 
-const cashBalanceText = computed(() => {
-  if (isOpen.value && realTimeTotals.value) {
-    return `Saldo: ${formatPENLabel(realTimeTotals.value.currentBalance)}`
-  }
-  if (hasActiveSession.value) {
-    return 'Sesión cerrada'
-  }
-  return 'No hay sesión activa'
-})
+// T2 - the cash KPI card's two data slots. `opened_at` is the stats
+// payload's open-session marker (the closed payload carries no opening
+// timestamp), so the card switches surfaces without re-declaring the raw
+// status key outside cashStatusPillState. The number stays "N/D" until the
+// cash-register summary lands, so the card never paints a fabricated
+// S/ 0.00.
+const cashSessionOpenedAt = computed(() => stats.value.cash_session?.opened_at || null)
+const cashKpiBalance = computed(() =>
+  cashSessionOpenedAt.value && realTimeTotals.value
+    ? formatPENLabel(realTimeTotals.value.currentBalance)
+    : 'N/D'
+)
+const cashKpiCaption = computed(() =>
+  cashSessionOpenedAt.value
+    ? `Apertura ${formatTime(cashSessionOpenedAt.value)}`
+    : 'Sin sesión abierta'
+)
 
 const goToEnvironments = () => {
   router.push('/environments')

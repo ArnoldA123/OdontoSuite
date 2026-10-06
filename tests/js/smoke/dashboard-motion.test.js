@@ -240,7 +240,7 @@ describe('dashboard motion (T4)', () => {
     wrapper.unmount()
   })
 
-  it('shares the KPI elevation rung and hover contract across surfaces', async () => {
+  it('shares the KPI elevation rung while the KPI strip stays static (T3)', async () => {
     mockMedia()
     installPayload({}, [makeAppointment(1)])
 
@@ -250,8 +250,11 @@ describe('dashboard motion (T4)', () => {
     expect(tile.attributes('style')).toContain('var(--elevation-2)')
     expect(tile.attributes('style')).not.toContain('var(--elevation-1)')
 
+    // T3 — the KPI cards keep their elevation but are a static reference
+    // surface: no hover lift, no click affordance.
     const kpi = wrapper.find('[data-stat-card="appointments-today"]')
-    expect(kpi.attributes('data-hover')).toBe('true')
+    expect(kpi.attributes('data-hover')).toBeUndefined()
+    expect(kpi.attributes('style')).toContain('var(--elevation-2)')
 
     const row = wrapper.find('[data-appointment-row]')
     expect(row.exists()).toBe(true)

@@ -73,4 +73,37 @@ class HotfixDashboardEmDashAuditTest extends TestCase
             'DashboardPage.vue <template> block MUST contain zero U+2014 em-dash characters — HOTFIX-DASH-011, design-taste §9.G (binary ban, zero exceptions).'
         );
     }
+
+    /**
+     * T5 — the shared section-state components extracted from the page follow
+     * the same file-wide em-dash ban as DashboardPage.vue.
+     */
+    public function test_dashboard_section_state_components_have_zero_em_dashes(): void
+    {
+        $user = User::factory()->make();
+        $response = $this->actingAs($user)->get('/dashboard');
+        $response->assertStatus(200);
+
+        $files = [
+            'DashboardSectionError.vue',
+            'DashboardSectionEmpty.vue',
+        ];
+
+        foreach ($files as $file) {
+            $path = dirname(__DIR__, 3) . '/resources/js/modules/dashboard/' . $file;
+            $this->assertFileExists(
+                $path,
+                "{$file} must exist (T5 shared section-state pattern, HOTFIX-DASH-011 boundary)."
+            );
+
+            $source = (string) file_get_contents($path);
+            $emDashCount = preg_match_all('/\x{2014}/u', $source);
+
+            $this->assertSame(
+                0,
+                (int) $emDashCount,
+                "{$file} MUST contain zero U+2014 (em-dash) characters anywhere in the file — HOTFIX-DASH-011, design-taste §9.G (binary ban, zero exceptions)."
+            );
+        }
+    }
 }
