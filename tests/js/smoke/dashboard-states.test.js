@@ -70,6 +70,7 @@ const mountDashboard = async () => {
 const statsCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/dashboard/stats')
 const todayCalls = () =>
   getMock.mock.calls.filter(([url]) => url === '/api/dashboard/appointments-today')
+const pendingCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/dashboard/pending')
 
 describe('dashboard load states (T3)', () => {
   beforeEach(() => {
@@ -123,6 +124,7 @@ describe('dashboard load states (T3)', () => {
 
     expect(statsCalls()).toHaveLength(2)
     expect(todayCalls()).toHaveLength(2)
+    expect(pendingCalls()).toHaveLength(2)
     expect(wrapper.find('[data-state="error-stats"]').exists()).toBe(false)
     expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('6')
 
@@ -159,6 +161,7 @@ describe('dashboard load states (T3)', () => {
 
     expect(attempt).toBe(2)
     expect(statsCalls()).toHaveLength(1)
+    expect(pendingCalls()).toHaveLength(1)
     expect(wrapper.find('[data-state="error-appointments"]').exists()).toBe(false)
     expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
 
@@ -205,6 +208,8 @@ describe('dashboard load states (T3)', () => {
     expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('7')
     expect(wrapper.find('[data-dashboard-content]').attributes('aria-busy')).toBe('false')
     expect(wrapper.find('[aria-label="Cargando resumen"]').exists()).toBe(false)
+    // T7b: the manual refresh re-issues the fourth dashboard resource too.
+    expect(pendingCalls()).toHaveLength(2)
 
     wrapper.unmount()
   })
