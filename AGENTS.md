@@ -116,7 +116,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 194 rutas API (medido con php artisan route:list --json: uris api/…; 207 totales con web)
+  api.php                  # 195 rutas API (medido con php artisan route:list --json: uris api/…; 208 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -295,6 +295,8 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-05 (dashboard-ops-redesign T7a)** — §4 sincronizado con valores medidos: 195 rutas API (añadida `GET dashboard/pending`), 208 totales con web. Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-09-18 (Fix #21)** — Deriva de docs corregida con valores medidos: §4 (32 controllers API, 50 modelos, 111 migraciones, 194 rutas API, 10 listener classes), §6 (0 eventos `@deprecated` huérfanos; reminders con CRUD real; `WaitingListController` eliminado en slice 04), §11 sincronizado. Nuevo guard `scripts/audit/doc-drift.mjs` (falla con el diff ante cualquier deriva). Corrige el apunte de slice 11: eran 14 seeders activos, no 13. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida 5 invariantes en CI.
 - **2026-08-05 (Slice 11)** — Actualizado tras aplicar slice 11 de `bugfix-2026-08`. Datos: §4 lista ahora 14 seeders activos (antes 11 — añadidos `BranchSeeder` + `PaymentMethodSeeder` más `DentalPieceSeeder`), §4 listeners corregido a "10 listener classes, 13 cableos" (antes "7 listeners"), §6 añade workaround SQLite (`docker compose up -d mysql` + `--group=mysql`), §12 changelog sincronizado. Tests: `tests/Unit/Documentation/AgentsDocsSyncTest.php` valida los 5 invariantes en CI.
