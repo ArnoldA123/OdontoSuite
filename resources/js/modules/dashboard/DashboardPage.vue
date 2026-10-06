@@ -514,18 +514,20 @@
         ramp on the shadow. The eyebrow uses the token size class
         text-xs instead of the previous arbitrary 11px utility.
 
-        Each card keeps four reserved slots in a fixed row grid so the
+        Each card keeps four reserved slots in a row grid so the
         baseline is uniform regardless of which cards carry a chip:
 
-          [eyebrow]    h-4  (16 px)
-          [number]     h-12 (48 px)
-          [chip slot]  h-6  (24 px - reserved even when empty)
-          [caption]    h-4  (16 px)
+          [eyebrow]    h-4     (16 px)
+          [number]     h-12    (48 px)
+          [chip slot]  min-h-6 (24 px minimum - grows when the label wraps)
+          [caption]    h-4     (16 px)
 
         Cards that carry a comparison key render the chip from
         `comparisons[statKey].delta_label`. When that field is null, the
         slot stays empty (no chip, no dash, no placeholder). The chip
         colour follows sign: positive → systemGreen, negative → systemRed.
+        The period_label never truncates: the chip row wraps it onto a
+        second line, and the slot's minimum height lets the card grow.
 
         The Profesionales card was removed in T2b: an admin-only count is
         not daily-operations content. Professionals stay reachable through
@@ -578,13 +580,14 @@
                   Chip slot (defect 2 - chip layout fix).
                   The pill contains ONLY the delta value (e.g. "-4").
                   The period_label (e.g. "vs mar 4 ago") is a separate
-                  muted caption beside the pill, on one line with
-                  truncate. Putting both inside the pill overflowed the
-                  reserved h-6 slot and overlapped the caption row.
+                  muted caption beside the pill. The row wraps the label
+                  onto a second line when it does not fit, and the slot
+                  reserves only a minimum height, so the full label is
+                  always visible instead of clipped.
                 -->
                 <div
                   v-if="stats.comparisons?.appointments_today?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
                   <span
                     :class="chipToneClass(stats.comparisons.appointments_today.delta_label)"
@@ -592,11 +595,11 @@
                   >
                     {{ stats.comparisons.appointments_today.delta_label }}
                   </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.appointments_today.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
+                <div v-else class="min-h-6" />
                 <!--
                   Caption slot (defect 3 - date truncation fix).
                   Use the short "11 de ago" format from
@@ -663,11 +666,12 @@
                   a different quantity from the headline (D15 - the
                   chip's "+N" is NEW REGISTRATIONS, the headline 105
                   is cumulative active). The pill carries the absolute
-                  delta; the muted text carries the period_label.
+                  delta; the muted text carries the period_label and
+                  wraps under the pill at the compact 5-up width.
                 -->
                 <div
                   v-if="stats.comparisons?.total_patients?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
                   <span
                     :class="chipToneClass(stats.comparisons.total_patients.delta_label)"
@@ -675,11 +679,11 @@
                   >
                     {{ stats.comparisons.total_patients.delta_label }}
                   </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_patients.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
+                <div v-else class="min-h-6" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">Total registrados</p>
                 </div>
@@ -725,11 +729,12 @@
                 </div>
                 <!--
                   Chip slot (defect 2 - chip layout fix). Period_label
-                  outside the pill, single line with truncate.
+                  outside the pill; the row wraps it when the label does
+                  not fit, so the slot never clips it.
                 -->
                 <div
                   v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
                   <span
                     :class="
@@ -739,11 +744,11 @@
                   >
                     {{ stats.comparisons.total_appointments_this_month.delta_label }}
                   </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_appointments_this_month.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
+                <div v-else class="min-h-6" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">Este mes</p>
                 </div>
@@ -791,7 +796,7 @@
                     {{ incomeKpi.display }}
                   </p>
                 </div>
-                <div class="h-6 min-h-[24px]" />
+                <div class="min-h-6" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">Total histórico</p>
                 </div>
@@ -853,7 +858,7 @@
                     {{ cashStatusLabel }}
                   </UiBadge>
                 </div>
-                <div class="h-6 min-h-[24px]" />
+                <div class="min-h-6" />
                 <div class="h-4 flex items-center">
                   <p class="text-xs text-theme-secondary truncate">
                     {{ cashBalanceText }}
