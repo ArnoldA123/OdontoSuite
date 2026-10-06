@@ -15,6 +15,17 @@
             :aria-label="`Cargando cita ${i}`"
           />
         </section>
+        <!-- Upcoming-week skeletons: same list shape as the strip rows so
+             the section does not jump when data lands. -->
+        <section aria-label="Cargando próximas citas">
+          <UiSkeleton
+            v-for="i in 2"
+            :key="`upcoming-skel-${i}`"
+            variant="list"
+            animation="wave"
+            :aria-label="`Cargando próxima cita ${i}`"
+          />
+        </section>
         <!-- Stats skeletons -->
         <section aria-label="Cargando resumen">
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -356,6 +367,141 @@
               </UiBadge>
             </div>
           </UiCard>
+        </div>
+      </section>
+
+      <!--
+        Próximas citas (T5) - compact week preview fed by
+        GET /api/dashboard/upcoming (now -> end of week, limit 10). It sits
+        between the day's agenda and the KPI grid: the day stays the
+        protagonist and this strip shows what comes next. Rows are grouped
+        by LOCAL calendar day (the same timezone formatTime renders in)
+        with a short Spanish day header. The fetch is tolerant: if this
+        resource alone fails, the section carries its own inline error plus
+        a scoped retry and the rest of the page stays usable.
+      -->
+      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Próximas citas">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div class="flex items-baseline gap-3">
+            <h2 class="text-base font-semibold text-label">Próximas citas</h2>
+            <span
+              v-if="!upcomingError && upcomingAppointments.length > 0"
+              class="text-sm text-theme-secondary tabular-nums"
+            >
+              {{ upcomingAppointments.length }}
+              {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
+            </span>
+          </div>
+          <UiButton variant="ghost" size="sm" @click="goToCalendar">
+            Ver calendario
+            <template #icon-right>
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </template>
+          </UiButton>
+        </div>
+
+        <!--
+          Upcoming inline error (T5). Only the upcoming resource failed:
+          the header stays, the rest of the page stays usable, and the retry
+          affordance re-fetches ONLY /api/dashboard/upcoming.
+        -->
+        <div
+          v-if="upcomingError"
+          data-state="error-upcoming"
+          role="alert"
+          class="flex items-center justify-between flex-wrap gap-4 rounded-ios p-5 bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <ExclamationTriangleIcon
+              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">
+                No pudimos cargar las próximas citas
+              </p>
+              <p class="text-sm text-theme-secondary">
+                Reintenta para ver lo que queda de la semana.
+              </p>
+            </div>
+          </div>
+          <UiButton
+            variant="primary"
+            size="sm"
+            data-retry-upcoming
+            @click="retryUpcomingAppointments"
+          >
+            Reintentar
+          </UiButton>
+        </div>
+
+        <!--
+          Empty state for the upcoming-week case. Hand-built like the today
+          empty state but with its own marker (data-state="empty-upcoming");
+          the today marker belongs to the agenda and stays untouched.
+        -->
+        <div
+          v-else-if="upcomingAppointments.length === 0"
+          data-state="empty-upcoming"
+          class="rounded-ios p-6 text-center bg-accent-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <p class="text-sm text-theme-secondary">Sin citas programadas para esta semana</p>
+        </div>
+
+        <div v-else class="space-y-4">
+          <div
+            v-for="group in upcomingGroups"
+            :key="group.key"
+            data-upcoming-group
+            class="space-y-2"
+          >
+            <p data-upcoming-day class="text-xs font-medium text-theme-secondary tabular-nums">
+              {{ group.label }}
+            </p>
+            <div class="grid gap-3">
+              <UiCard
+                v-for="appointment in group.appointments"
+                :key="appointment.id"
+                variant="flat"
+                hover
+                data-upcoming-row
+              >
+                <div class="flex items-center gap-4">
+                  <div class="flex-shrink-0 w-14">
+                    <p data-upcoming-time class="text-sm font-semibold text-label tabular-nums">
+                      {{ formatTime(appointment.scheduled_at) }}
+                    </p>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-medium text-label truncate">
+                      {{ getPatientName(appointment) }}
+                    </p>
+                    <p class="text-sm text-theme-secondary truncate">
+                      {{ appointment.appointment_type?.name || 'Consulta' }}
+                    </p>
+                  </div>
+                  <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                    {{ getStatusText(appointment.status) }}
+                  </UiBadge>
+                </div>
+              </UiCard>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -978,6 +1124,10 @@ const stats = ref({
   }
 })
 const todayAppointments = ref([])
+// T5 week preview. Kept separate from the agenda so a failing upcoming
+// request never blocks the day's protagonists.
+const upcomingAppointments = ref([])
+const upcomingError = ref(false)
 
 // T3 load-state flags. `hasLoaded` separates the first load (skeleton) from
 // later loads (silent in-flight refresh) so a manual refresh or a WebSocket
@@ -1229,6 +1379,52 @@ const getStatusVariant = status => {
   return variants[status] || 'secondary'
 }
 
+/**
+ * T5 - local calendar-day key for the week preview. Uses the same local
+ * timezone formatTime() renders in, so a late-evening appointment never
+ * lands in the wrong day header.
+ */
+const upcomingDayKey = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return 'sin-fecha'
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`
+}
+
+/** Short Spanish day header, e.g. "Lun 6". */
+const upcomingDayLabel = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return ''
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  return `${dayNames[date.getDay()]} ${date.getDate()}`
+}
+
+/**
+ * T5 - group the week preview by local day. The endpoint returns rows
+ * ordered by scheduled_at, so insertion order is already chronological and
+ * no client-side sort is applied.
+ */
+const upcomingGroups = computed(() => {
+  const groups = []
+  const byKey = new Map()
+  for (const appointment of upcomingAppointments.value) {
+    const key = upcomingDayKey(appointment?.scheduled_at)
+    let group = byKey.get(key)
+    if (!group) {
+      group = {
+        key,
+        label: upcomingDayLabel(appointment?.scheduled_at),
+        appointments: []
+      }
+      byKey.set(key, group)
+      groups.push(group)
+    }
+    group.appointments.push(appointment)
+  }
+  return groups
+})
+
 // Navigation functions
 const goToCalendar = () => {
   router.push('/calendar')
@@ -1353,6 +1549,25 @@ const fetchTodayAppointments = async () => {
   }
 }
 
+/**
+ * T5 - fetch the upcoming-week preview without throwing. A 401 surfaces
+ * `unauthorized` so the caller keeps the /login redirect; any other
+ * failure surfaces `ok: false` so the strip renders its own inline error
+ * instead of the page swallowing the failure.
+ */
+const fetchUpcomingAppointments = async () => {
+  try {
+    const response = await get('/api/dashboard/upcoming')
+    return {
+      ok: true,
+      unauthorized: false,
+      data: Array.isArray(response?.data) ? response.data : []
+    }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: [] }
+  }
+}
+
 /** Map the backend stats payload into the frontend shape. */
 const applyStats = backendStats => {
   stats.value = {
@@ -1398,9 +1613,10 @@ const loadDashboardData = async () => {
   }
 
   try {
-    const [statsResult, appointmentsResult] = await Promise.all([
+    const [statsResult, appointmentsResult, upcomingResult] = await Promise.all([
       fetchStats(),
-      fetchTodayAppointments()
+      fetchTodayAppointments(),
+      fetchUpcomingAppointments()
     ])
 
     if (statsResult.unauthorized) {
@@ -1418,6 +1634,18 @@ const loadDashboardData = async () => {
       todayError.value = false
     } else {
       todayError.value = true
+    }
+
+    // T5 - the week preview is tolerant: its failure shows the section's
+    // inline error and never blocks stats, agenda, or the KPI grid. A 401
+    // keeps the page's /login redirect behavior.
+    if (upcomingResult.unauthorized) {
+      router.push('/login')
+    } else if (upcomingResult.ok) {
+      upcomingAppointments.value = upcomingResult.data
+      upcomingError.value = false
+    } else {
+      upcomingError.value = true
     }
 
     // Load cash session if not already loaded
@@ -1449,6 +1677,25 @@ const retryTodayAppointments = async () => {
     todayError.value = false
   } else {
     todayError.value = true
+  }
+}
+
+/**
+ * T5 - week-preview-only retry. Re-fetches just the upcoming resource so a
+ * failing strip never forces a full page reload. 401 keeps the standard
+ * /login redirect.
+ */
+const retryUpcomingAppointments = async () => {
+  const result = await fetchUpcomingAppointments()
+  if (result.unauthorized) {
+    router.push('/login')
+    return
+  }
+  if (result.ok) {
+    upcomingAppointments.value = result.data
+    upcomingError.value = false
+  } else {
+    upcomingError.value = true
   }
 }
 
