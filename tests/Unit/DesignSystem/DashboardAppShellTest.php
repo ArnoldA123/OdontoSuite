@@ -568,19 +568,26 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD — DashboardPage.vue must cap today's appointments at 3 to keep
-     * the visible region deliberate.
+     * T2a (ops IA) - the agenda is the page's protagonist, so the today
+     * list renders EVERY appointment the endpoint returns. The previous
+     * slice(0, 3) cap was removed by the ops-redesign IA pass; this guard
+     * pins the removal and the uncapped v-for over todayAppointments.
      */
-    public function test_dashboard_caps_today_appointments_at_three(): void
+    public function test_dashboard_renders_every_today_appointment_without_cap(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE . '';
         $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
         $this->assertNotNull($src);
 
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'slice(0, 3)',
             $src,
-            "DashboardPage.vue must cap today's appointments at 3 via slice(0, 3)."
+            "DashboardPage.vue must not cap today's appointments; the agenda renders every appointment returned."
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/v-for="appointment in todayAppointments"/',
+            $src,
+            'DashboardPage.vue agenda must iterate the full todayAppointments list (no slice cap).'
         );
     }
 

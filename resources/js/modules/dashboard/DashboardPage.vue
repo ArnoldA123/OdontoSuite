@@ -4,6 +4,17 @@
          shape so the page does not jump when data lands. -->
     <template v-if="loading">
       <div class="space-y-8" aria-busy="true" aria-live="polite">
+        <!-- Agenda skeletons: the agenda is the first section in the new
+             IA, so the loading shape leads with it. -->
+        <section aria-label="Cargando agenda de hoy">
+          <UiSkeleton
+            v-for="i in 3"
+            :key="`apt-skel-${i}`"
+            variant="list"
+            animation="wave"
+            :aria-label="`Cargando cita ${i}`"
+          />
+        </section>
         <!-- Stats skeletons -->
         <section aria-label="Cargando resumen">
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -29,29 +40,16 @@
             />
           </div>
         </section>
-        <!-- Today's appointments skeletons -->
-        <section aria-label="Cargando citas de hoy">
-          <UiSkeleton
-            v-for="i in 3"
-            :key="`apt-skel-${i}`"
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando cita ${i}`"
-          />
-        </section>
       </div>
     </template>
 
     <!-- Main Content -->
     <div v-else class="space-y-8">
       <!--
-        Page greeting (defect 7 - two competing headings fix).
-        The AppLayout top bar already renders the page title h1; this
-        greeting is a calm welcome line, not a heading. The previous
-        h1-equivalent size competed with the topbar h1 and read as
-        h1 + h2. PR4 reduces it to text-lg font-medium text-theme-secondary:
-        a quiet welcome line that lets the topbar h1 own the heading
-        hierarchy.
+        Compact page header (ops IA).
+        The AppLayout top bar already renders the page title h1; this row
+        is the quiet welcome line plus the cash-session state and its
+        direct action. The topbar keeps owning the heading hierarchy.
       -->
       <!--
         HOTFIX-DASH-008 - Greeting date uses tabular-nums.
@@ -65,7 +63,11 @@
         in HotfixDashboardDateTabularTest anchors on getTodayDate()
         followed within 400 chars by the declaration.
       -->
-      <header ref="greetingSection" class="flex items-end justify-between flex-wrap gap-4">
+      <header
+        ref="greetingSection"
+        data-dashboard-header
+        class="flex items-center justify-between flex-wrap gap-4"
+      >
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
             {{ getGreeting() }},
@@ -79,7 +81,188 @@
             {{ getTodayDate() }}
           </p>
         </div>
+        <!--
+          Cash-session state + direct action. Same Spanish labels and
+          filled-pill tones as the KPI cash card, promoted into the header
+          so the state is readable before the KPI grid. Gated by the same
+          viewCashRegister permission as the KPI cash card.
+        -->
+        <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
+          <UiBadge
+            :variant="cashStatusBadgeVariant"
+            shape="pill"
+            size="md"
+            role="status"
+            :aria-label="`Estado de caja: ${cashStatusLabel}`"
+            :class="[cashStatusBadgeClass]"
+            data-cash-pill
+            :data-cash-pill-state="cashStatusPillState"
+          >
+            <span
+              class="inline-block w-1.5 h-1.5 rounded-full"
+              :class="cashStatusDotClass"
+              aria-hidden="true"
+            />
+            {{ cashStatusLabel }}
+          </UiBadge>
+          <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
+        </div>
       </header>
+
+      <!--
+        Agenda de hoy - the page's protagonist (ops IA).
+        Rows render EVERY appointment returned by the canonical
+        GET /api/dashboard/appointments-today endpoint (no slice cap)
+        so the daily operation is the first thing the user reads.
+        Row anatomy: time (tabular) / patient / type / professional /
+        status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
+        plus primary CTA (no remote illustration).
+      -->
+      <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div class="flex items-baseline gap-3">
+            <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
+            <span class="text-sm text-theme-secondary tabular-nums">
+              {{ todayAppointments.length }} {{ todayAppointments.length === 1 ? 'cita' : 'citas' }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UiButton variant="ghost" size="sm" @click="goToCalendar">
+              Ver calendario
+              <template #icon-right>
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </template>
+            </UiButton>
+            <UiButton
+              v-if="can.createAppointment?.value"
+              variant="primary"
+              size="sm"
+              @click="goToNewAppointment"
+            >
+              Nueva cita
+            </UiButton>
+          </div>
+        </div>
+
+        <!--
+          Empty state for the today-appointments case.
+          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
+
+          T2a - the previous radial-gradient wash is replaced by a flat
+          accent tint (bg-accent-50) plus the hairline border: the ops
+          redesign is token-only and bans decorative gradients. The block
+          still reads as a depth surface, not a flat empty row.
+
+          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
+          stroke-width="1.5" (Apple's outline-icon convention, NOT the
+          previous 2.0 default). The SVG is inline in this template
+          (NOT a child <EmptyState> component) so the rule is auditable
+          in source.
+
+          design-taste §9.F "NO div-based fake product UI" - the empty
+          state is a real line-art SVG with a real primary CTA, not a
+          hand-built fake dashboard preview.
+        -->
+        <div
+          v-if="todayAppointments.length === 0"
+          ref="emptyStateSection"
+          data-state="empty-appointments"
+          class="relative rounded-ios p-10 text-center bg-accent-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <!--
+            HOTFIX-DASH-007 - inline line-art calendar SVG.
+            stroke-width="1.5" (apple-design §16 baseline).
+            Color: var(--color-label-tertiary-label) - the iOS
+            tertiaryLabel token so the icon recedes.
+          -->
+          <svg
+            class="mx-auto h-12 w-12 mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            style="color: var(--color-label-tertiary-label)"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p class="text-base font-medium text-theme-primary">
+            Sin citas para hoy
+          </p>
+          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
+            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
+          </p>
+          <div class="mt-6">
+            <!--
+              Primary CTA per apple-design §12 "translucent chrome for
+              depth, primary CTA anchored to the action".
+            -->
+            <UiButton
+              variant="primary"
+              size="md"
+              data-cta="empty-create-appointment"
+              @click="goToNewAppointment"
+            >
+              Crear nueva cita
+            </UiButton>
+          </div>
+        </div>
+
+        <div v-else class="grid gap-3">
+          <UiCard
+            v-for="appointment in todayAppointments"
+            :key="appointment.id"
+            variant="flat"
+            data-appointment-row
+            class="hover:shadow-medium"
+          >
+            <div class="flex items-center gap-4">
+              <!--
+                Time column: tabular numerals so the minute column stays
+                aligned down the agenda (apple-design §15).
+              -->
+              <div class="flex-shrink-0 w-14">
+                <p
+                  class="text-sm font-semibold text-label tabular-nums"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                >
+                  {{ formatTime(appointment.scheduled_at) }}
+                </p>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-label truncate">
+                  {{ getPatientName(appointment) }}
+                </p>
+                <p class="text-sm text-theme-secondary truncate">
+                  {{ appointment.appointment_type?.name || 'Consulta' }}
+                  <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
+                </p>
+              </div>
+              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                {{ getStatusText(appointment.status) }}
+              </UiBadge>
+            </div>
+          </UiCard>
+        </div>
+      </section>
 
       <!--
         Stats Grid - five stat cards, fixed-slot anatomy (KPI card anatomy).
@@ -677,157 +860,6 @@ Este mes
                   Análisis y estadísticas
                 </p>
               </div>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
-      <!-- Today's Appointments Preview: list OR empty state.
-           Rows come from the canonical GET /api/dashboard/appointments-today
-           endpoint; the empty state renders when it returns no appointments. -->
-      <section v-if="can.viewAppointment?.value" aria-label="Citas de hoy">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-ink-800">Citas de Hoy</h2>
-          <UiButton
-            v-if="todayAppointments.length > 0"
-            variant="ghost"
-            size="sm"
-            @click="goToCalendar"
-          >
-            Ver todas
-            <template #icon-right>
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </template>
-          </UiButton>
-        </div>
-
-        <!--
-          Empty state for the today-appointments case.
-          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
-
-          apple-design §12 "translucent chrome for depth - radial
-          gradient as subtle depth" - the wrapper carries a soft
-          radial-gradient backdrop (systemBlue-50 fading to transparent)
-          so the empty state reads as a depth surface, not as a flat
-          empty row.
-
-          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
-          stroke-width="1.5" (Apple's outline-icon convention, NOT the
-          previous 2.0 default). The SVG is inline in this template
-          (NOT a child <EmptyState> component) so the rule is auditable
-          in source.
-
-          design-taste §9.F "NO div-based fake product UI" - the empty
-          state is a real line-art SVG with a real primary CTA, not a
-          hand-built fake dashboard preview.
-        -->
-        <div
-          v-if="todayAppointments.length === 0"
-          ref="emptyStateSection"
-          data-state="empty-appointments"
-          class="relative rounded-ios p-10 text-center"
-          style="
-            background: radial-gradient(circle at center, var(--color-system-blue-50) 0%, transparent 70%);
-            border: 1px solid var(--color-hairline);
-          "
-        >
-          <!--
-            HOTFIX-DASH-007 - inline line-art calendar SVG.
-            stroke-width="1.5" (apple-design §16 baseline).
-            Color: var(--color-label-tertiary-label) - the iOS
-            tertiaryLabel token so the icon recedes.
-          -->
-          <svg
-            class="mx-auto h-12 w-12 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            style="color: var(--color-label-tertiary-label)"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <p class="text-base font-medium text-theme-primary">
-            Sin citas para hoy
-          </p>
-          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
-            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
-          </p>
-          <div class="mt-6">
-            <!--
-              Primary CTA per apple-design §12 "translucent chrome for
-              depth, primary CTA anchored to the action".
-            -->
-            <UiButton
-              variant="primary"
-              size="md"
-              data-cta="empty-create-appointment"
-              @click="goToNewAppointment"
-            >
-              Crear nueva cita
-            </UiButton>
-          </div>
-        </div>
-
-        <div v-else class="grid gap-3">
-          <UiCard
-            v-for="appointment in todayAppointments.slice(0, 3)"
-            :key="appointment.id"
-            variant="flat"
-            data-appointment-row
-            class="hover:shadow-medium"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-4 min-w-0">
-                <div
-                  class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200"
-                >
-                  <svg
-                    class="w-5 h-5 text-systemBlue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-ink-800 truncate">
-                    {{ getPatientName(appointment) }}
-                  </p>
-                  <p class="text-sm text-ink-500 truncate">
-                    {{ formatTime(appointment.scheduled_at) }} ·
-                    {{ appointment.appointment_type?.name || 'Consulta' }}
-                  </p>
-                </div>
-              </div>
-              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                {{ getStatusText(appointment.status) }}
-              </UiBadge>
             </div>
           </UiCard>
         </div>
