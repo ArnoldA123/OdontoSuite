@@ -485,8 +485,9 @@ class DashboardAppShellTest extends TestCase
      * some, the source still emits them — the gating happens at the
      * template level via `v-if`.
      *
-     * Verified labels: "Citas Hoy", "Pacientes", "Profesionales",
-     * "Total Citas", "Estado de Caja".
+     * Verified labels (T2b compact strip): "Citas Hoy", "Pacientes",
+     * "Citas del Mes", "Ingresos", "Estado de Caja". The Profesionales
+     * card was removed in T2b (admin-only count, not daily-ops content).
      */
     public function test_dashboard_contains_all_five_verified_stat_card_labels(): void
     {
@@ -494,7 +495,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Citas Hoy', 'Pacientes', 'Profesionales', 'Total Citas', 'Estado de Caja'];
+        $labels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
         foreach ($labels as $label) {
             $this->assertStringContainsString(
                 $label,
@@ -742,8 +743,9 @@ class DashboardAppShellTest extends TestCase
     /**
      * 4.1.5 — Each of the 5 stat cards carries a `data-stat-card` attribute
      * whose value equals the stat key (`appointments-today`, `total-patients`,
-     * `total-professionals`, `total-appointments-month`, `cash-status`).
-     * This is the test handle the Playwright run uses to assert row baseline.
+     * `total-appointments-month`, `total-income`, `cash-status`). T2b swapped
+     * the Profesionales card for the Ingresos card. This is the test handle
+     * the Playwright run uses to assert row baseline.
      */
     public function test_dashboard_five_stat_cards_carry_data_stat_card_attribute(): void
     {
@@ -754,8 +756,8 @@ class DashboardAppShellTest extends TestCase
         $expectedKeys = [
             'appointments-today',
             'total-patients',
-            'total-professionals',
             'total-appointments-month',
+            'total-income',
             'cash-status',
         ];
         foreach ($expectedKeys as $key) {
@@ -1028,13 +1030,11 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * Defect 4 — eyebrow row rhythm. Every one of the five KPI
-     * eyebrows must use the SAME text size so the row baseline is
-     * uniform. The previous `text-xs ... tracking-wide` wrapped the
-     * longest label ("Estado de Caja") onto two lines while the
-     * shorter labels sat on one, breaking the rhythm. PR4 reduces
-     * every eyebrow to `text-[11px]` with no tracking and adds
-     * `whitespace-nowrap` so all five labels fit on a single line.
+     * Eyebrow row rhythm (T2b compact strip). Every one of the five KPI
+     * eyebrows must use the SAME token size so the row baseline is
+     * uniform. T2b replaced the arbitrary `text-[11px]` size with the
+     * token class `text-xs`, kept no tracking, and kept `whitespace-nowrap`
+     * so all five labels fit on a single line at the compact 5-up width.
      */
     public function test_dashboard_five_eyebrows_use_uniform_text_size(): void
     {
@@ -1042,21 +1042,21 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // All five labels must be present and rendered with text-[11px].
-        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Profesionales', 'Total Citas', 'Estado de Caja'];
+        // All five labels must be present and rendered with text-xs.
+        $expectedLabels = ['Citas Hoy', 'Pacientes', 'Citas del Mes', 'Ingresos', 'Estado de Caja'];
         foreach ($expectedLabels as $label) {
-            // The eyebrow pattern: <p class="text-[11px] ... uppercase ... {{ label }} </p>
-            $pattern = '/<p[^>]*\btext-\[11px\][^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';
+            // The eyebrow pattern: <p class="text-xs ... uppercase ... whitespace-nowrap">{{ label }}</p>
+            $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';
             $this->assertMatchesRegularExpression(
                 $pattern,
                 $src,
-                "DashboardPage.vue eyebrow for \"{$label}\" must use text-[11px] + uppercase + whitespace-nowrap (defect 4 row-rhythm fix)."
+                "DashboardPage.vue eyebrow for \"{$label}\" must use text-xs + uppercase + whitespace-nowrap (T2b token size)."
             );
         }
 
-        // No eyebrow may use the previous text-xs (12 px) class.
+        // No eyebrow may keep the previous arbitrary text-[11px] size.
         // Scope to the data-stat-card blocks so the assertion does
-        // not catch unrelated text-xs utility uses elsewhere.
+        // not catch unrelated utility uses elsewhere.
         preg_match_all(
             '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
             $src,
@@ -1070,9 +1070,9 @@ class DashboardAppShellTest extends TestCase
         );
         foreach ($cards as $idx => $card) {
             $this->assertDoesNotMatchRegularExpression(
-                '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\btracking-wide\b[^>]*>/',
+                '/text-\[11px\]/',
                 $card,
-                "KPI card #{$idx} eyebrow must NOT use the previous text-xs + tracking-wide (would wrap \"Estado de Caja\")."
+                "KPI card #{$idx} eyebrow must not keep the arbitrary text-[11px] size (T2b uses the token class text-xs)."
             );
         }
     }
@@ -1206,8 +1206,9 @@ class DashboardAppShellTest extends TestCase
      * HOTFIX-DASH-002 wins over the PR5-era one-tint icon-plate contract below.
      * The source removed the icon plates from the 5 stat cards on purpose
      * (pinned by IconInBoxAuditTest). This test now pins the REMOVAL: ≥5
-     * data-stat-card elements, no plate tint classes in any card, and ≥5
-     * inline 1.5 stroke-width SVGs file-wide.
+     * data-stat-card elements, no plate tint classes in any card, and the
+     * T2b quick-action shape where @heroicons/vue components replaced the
+     * previous inline 1.5 stroke-width SVGs.
      */
     public function test_dashboard_kpi_icon_plates_share_one_tint(): void
     {
@@ -1246,11 +1247,41 @@ class DashboardAppShellTest extends TestCase
             }
         }
 
-        $inlineIcons = preg_match_all('/<svg\b[^>]*stroke-width="1\.5"/', $src);
+        // T2b - quick-action icons moved to @heroicons/vue 24-outline
+        // components, so the five inline quick-action SVGs are gone. Pin
+        // the new shape: the heroicons import exists, no inline <svg>
+        // remains inside a data-action tile, and the HOTFIX-DASH-007
+        // empty-state line-art SVG (stroke-width 1.5) is still inline.
+        $this->assertStringContainsString(
+            '@heroicons/vue/24/outline',
+            $src,
+            'DashboardPage.vue must import its quick-action icons from @heroicons/vue/24/outline (T2b).'
+        );
+
+        preg_match_all(
+            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            $src,
+            $actionMatches
+        );
+        $actionCards = $actionMatches[0] ?? [];
         $this->assertGreaterThanOrEqual(
             5,
+            count($actionCards),
+            'DashboardPage.vue must render at least 5 data-action cards for the heroicons check.'
+        );
+        foreach ($actionCards as $idx => $card) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/<svg\b/i',
+                $card,
+                "Quick-action card #{$idx} must render its icon through @heroicons/vue, not an inline <svg> (T2b)."
+            );
+        }
+
+        $inlineIcons = preg_match_all('/<svg\b[^>]*stroke-width="1\.5"/', $src);
+        $this->assertGreaterThanOrEqual(
+            1,
             (int) $inlineIcons,
-            'DashboardPage.vue must render at least 5 inline SVGs with stroke-width="1.5" (HOTFIX-DASH-002 inline icons, no plates).'
+            'DashboardPage.vue must keep at least 1 inline SVG with stroke-width="1.5" (the HOTFIX-DASH-007 empty-state line-art icon).'
         );
     }
     /**
