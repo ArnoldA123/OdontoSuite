@@ -54,4 +54,21 @@ private static function routesFile(): string { return dirname(__DIR__, 3) . '/ro
             'dashboard/upcoming route must remain untouched'
         );
     }
+
+    /**
+     * dashboard-ops-redesign / T7a: the Pendientes summary endpoint must stay
+     * registered inside the authenticated group, next to the other dashboard
+     * routes, and be served by DashboardController@pending.
+     */
+    public function test_dashboard_pending_route_is_registered(): void
+    {
+        $source = file_get_contents(self::routesFile());
+        $this->assertNotFalse($source);
+
+        $this->assertStringContainsString(
+            "Route::get('dashboard/pending', [DashboardController::class, 'pending'])",
+            $source,
+            'dashboard/pending must be registered and served by DashboardController@pending'
+        );
+    }
 }

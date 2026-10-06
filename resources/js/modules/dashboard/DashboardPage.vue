@@ -4,6 +4,41 @@
          shape so the page does not jump when data lands. -->
     <template v-if="loading">
       <div class="space-y-8" aria-busy="true" aria-live="polite">
+        <!-- Agenda skeletons: the agenda is the first section in the new
+             IA, so the loading shape leads with it. -->
+        <section aria-label="Cargando agenda de hoy">
+          <UiSkeleton
+            v-for="i in 3"
+            :key="`apt-skel-${i}`"
+            variant="list"
+            animation="wave"
+            :aria-label="`Cargando cita ${i}`"
+          />
+        </section>
+        <!-- Upcoming-week skeletons: same list shape as the strip rows so
+             the section does not jump when data lands. -->
+        <section aria-label="Cargando próximas citas">
+          <UiSkeleton
+            v-for="i in 2"
+            :key="`upcoming-skel-${i}`"
+            variant="list"
+            animation="wave"
+            :aria-label="`Cargando próxima cita ${i}`"
+          />
+        </section>
+        <!-- Pending skeletons (T7b): same two-column shape as the loaded
+             block so the section does not jump when data lands. -->
+        <section aria-label="Cargando pendientes">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <UiSkeleton
+              v-for="i in 2"
+              :key="`pending-skel-${i}`"
+              variant="list"
+              animation="wave"
+              :aria-label="`Cargando pendientes ${i}`"
+            />
+          </div>
+        </section>
         <!-- Stats skeletons -->
         <section aria-label="Cargando resumen">
           <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -29,29 +64,16 @@
             />
           </div>
         </section>
-        <!-- Today's appointments skeletons -->
-        <section aria-label="Cargando citas de hoy">
-          <UiSkeleton
-            v-for="i in 3"
-            :key="`apt-skel-${i}`"
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando cita ${i}`"
-          />
-        </section>
       </div>
     </template>
 
     <!-- Main Content -->
-    <div v-else class="space-y-8">
+    <div v-else data-dashboard-content class="space-y-8" :aria-busy="refreshing">
       <!--
-        Page greeting (defect 7 - two competing headings fix).
-        The AppLayout top bar already renders the page title h1; this
-        greeting is a calm welcome line, not a heading. The previous
-        h1-equivalent size competed with the topbar h1 and read as
-        h1 + h2. PR4 reduces it to text-lg font-medium text-theme-secondary:
-        a quiet welcome line that lets the topbar h1 own the heading
-        hierarchy.
+        Compact page header (ops IA).
+        The AppLayout top bar already renders the page title h1; this row
+        is the quiet welcome line plus the cash-session state and its
+        direct action. The topbar keeps owning the heading hierarchy.
       -->
       <!--
         HOTFIX-DASH-008 - Greeting date uses tabular-nums.
@@ -65,7 +87,13 @@
         in HotfixDashboardDateTabularTest anchors on getTodayDate()
         followed within 400 chars by the declaration.
       -->
-      <header ref="greetingSection" class="flex items-end justify-between flex-wrap gap-4">
+      <header
+        ref="greetingSection"
+        data-dashboard-header
+        data-reveal="greeting"
+        class="flex items-center justify-between flex-wrap gap-4"
+        :style="revealStyle('--spring-dash-greeting-o')"
+      >
         <div>
           <p class="text-lg font-medium text-theme-secondary leading-tight">
             {{ getGreeting() }},
@@ -79,124 +107,615 @@
             {{ getTodayDate() }}
           </p>
         </div>
+        <div class="flex items-center gap-3">
+          <!--
+            T3 manual refresh. Ghost icon-button in the compact header so a
+            stale view can be re-fetched without a page reload. While the
+            request is in flight the icon spins (gated by reduced-motion) and
+            the page root reports aria-busy; the current content stays mounted
+            and is replaced only when the new payload lands.
+          -->
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Actualizar"
+            data-refresh-button
+            :disabled="refreshing"
+            @click="loadDashboardData"
+          >
+            <template #icon-left>
+              <ArrowPathIcon
+                class="w-4 h-4"
+                :class="{ 'animate-spin motion-reduce:animate-none': refreshing }"
+                aria-hidden="true"
+              />
+            </template>
+          </UiButton>
+          <!--
+            Cash-session state + direct action. T2 surface split: this pill
+            is the ONLY session-state surface (Spanish label + filled tone);
+            the KPI cash card shows the session balance instead. The tone is
+            owned by the UiBadge variant alone. Gated by the same
+            viewCashRegister permission as the KPI cash card.
+          -->
+          <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
+            <UiBadge
+              :variant="cashStatusBadgeVariant"
+              shape="pill"
+              size="md"
+              role="status"
+              :aria-label="`Estado de caja: ${cashStatusLabel}`"
+              data-cash-pill
+              :data-cash-pill-state="cashStatusPillState"
+            >
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full"
+                :class="cashStatusDotClass"
+                aria-hidden="true"
+              />
+              {{ cashStatusLabel }}
+            </UiBadge>
+            <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
+          </div>
+        </div>
       </header>
 
       <!--
-        Stats Grid - five stat cards, fixed-slot anatomy (KPI card anatomy).
-        Each card allocates four reserved slots in a fixed row grid so the
+        Stats error state (T3). A non-401 failure of dashboard/stats renders
+        this block INSTEAD of the data sections so the page never presents
+        empty/stale stats as real data. Reintentar re-runs the full load path;
+        the 401 case still redirects to /login inside loadDashboardData.
+      -->
+      <div
+        v-if="statsError"
+        data-state="error-stats"
+        role="alert"
+        class="rounded-ios p-10 text-center bg-systemRed-50"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <ExclamationTriangleIcon
+          class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <p class="text-base font-medium text-theme-primary">No pudimos cargar el resumen</p>
+        <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
+          Revisa tu conexión e inténtalo de nuevo. Si el problema continúa, vuelve a intentarlo en
+          unos minutos.
+        </p>
+        <div class="mt-6">
+          <UiButton variant="primary" size="md" data-retry-stats @click="loadDashboardData">
+            Reintentar
+          </UiButton>
+        </div>
+      </div>
+
+      <!--
+        Agenda de hoy - the page's protagonist (ops IA).
+        Rows render EVERY appointment returned by the canonical
+        GET /api/dashboard/appointments-today endpoint (no slice cap)
+        so the daily operation is the first thing the user reads.
+        Row anatomy: time (tabular) / patient / type / professional /
+        status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
+        plus primary CTA (no remote illustration) through the shared
+        DashboardSectionEmpty pattern (T5).
+      -->
+      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div class="flex items-baseline gap-3">
+            <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
+            <span v-if="!todayError" class="text-sm text-theme-secondary tabular-nums">
+              {{ todayAppointments.length }} {{ todayAppointments.length === 1 ? 'cita' : 'citas' }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <UiButton
+              v-if="can.createAppointment?.value"
+              variant="primary"
+              size="sm"
+              @click="goToNewAppointment"
+            >
+              Nueva cita
+            </UiButton>
+          </div>
+        </div>
+
+        <!--
+          Agenda inline error (T5). Only the today resource failed: the
+          section keeps its header and the rest of the page stays usable, so
+          the retry affordance lives here and re-fetches ONLY
+          /api/dashboard/appointments-today through the shared section-error
+          component.
+        -->
+        <DashboardSectionError
+          v-if="todayError"
+          data-state="error-appointments"
+          role="alert"
+          title="No pudimos cargar la agenda de hoy"
+          description="Reintenta para ver las citas programadas para el día."
+          :retry-attrs="{ 'data-retry-appointments': '' }"
+          @retry="retryTodayAppointments"
+        />
+
+        <!--
+          Empty state for the today-appointments case, rendered through the
+          shared DashboardSectionEmpty pattern (T5).
+
+          HOTFIX-DASH-007 - line-art SVG + primary CTA. The calendar SVG
+          stays inline in this template, passed through the component's icon
+          slot, so the stroke-width="1.5" rule stays auditable in source
+          (apple-design §16 baseline, NOT the previous 2.0 default).
+
+          T2a - the flat accent tint (bg-accent-50) plus the hairline border
+          live in the shared component: the ops redesign is token-only and
+          bans decorative gradients.
+
+          design-taste §9.F "NO div-based fake product UI" - the empty
+          state is a real line-art SVG with a real primary CTA, not a
+          hand-built fake dashboard preview. The "Crear nueva cita" CTA is
+          the user-approved contextual exception to the single-CTA rule.
+        -->
+        <DashboardSectionEmpty
+          v-else-if="todayAppointments.length === 0"
+          ref="emptyStateSection"
+          data-state="empty-appointments"
+          data-reveal="empty-state"
+          title="Sin citas para hoy"
+          description="Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario."
+          :style="revealStyle('--spring-dash-empty-o')"
+        >
+          <template #icon>
+            <!--
+              HOTFIX-DASH-007 - inline line-art calendar SVG.
+              stroke-width="1.5" (apple-design §16 baseline).
+              Color: var(--color-label-tertiary-label) - the iOS
+              tertiaryLabel token so the icon recedes.
+            -->
+            <svg
+              class="mx-auto h-12 w-12 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              style="color: var(--color-label-tertiary-label)"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </template>
+          <!--
+            Primary CTA per apple-design §12 "translucent chrome for
+            depth, primary CTA anchored to the action".
+          -->
+          <UiButton
+            variant="primary"
+            size="md"
+            data-cta="empty-create-appointment"
+            @click="goToNewAppointment"
+          >
+            Crear nueva cita
+          </UiButton>
+        </DashboardSectionEmpty>
+
+        <div v-else class="grid gap-3">
+          <UiCard
+            v-for="appointment in todayAppointments"
+            :key="appointment.id"
+            variant="flat"
+            hover
+            data-appointment-row
+          >
+            <div class="flex items-center gap-4">
+              <!--
+                Time column: tabular numerals so the minute column stays
+                aligned down the agenda (apple-design §15).
+              -->
+              <div class="flex-shrink-0 w-14">
+                <p
+                  class="text-sm font-semibold text-label tabular-nums"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                >
+                  {{ formatTime(appointment.scheduled_at) }}
+                </p>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-label truncate">
+                  {{ getPatientName(appointment) }}
+                </p>
+                <p class="text-sm text-theme-secondary truncate">
+                  {{ appointment.appointment_type?.name || 'Consulta' }}
+                  <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
+                </p>
+              </div>
+              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                {{ getStatusText(appointment.status) }}
+              </UiBadge>
+            </div>
+          </UiCard>
+        </div>
+      </section>
+
+      <!--
+        Próximas citas (T5) - compact week preview fed by
+        GET /api/dashboard/upcoming (now -> end of week, limit 10). It sits
+        between the day's agenda and the KPI grid: the day stays the
+        protagonist and this strip shows what comes next. Rows are grouped
+        by LOCAL calendar day (the same timezone formatTime renders in)
+        with a short Spanish day header. The fetch is tolerant: if this
+        resource alone fails, the section carries its own inline error plus
+        a scoped retry and the rest of the page stays usable.
+      -->
+      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Próximas citas">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <div class="flex items-baseline gap-3">
+            <h2 class="text-base font-semibold text-label">Próximas citas</h2>
+            <span
+              v-if="!upcomingError && upcomingAppointments.length > 0"
+              class="text-sm text-theme-secondary tabular-nums"
+            >
+              {{ upcomingAppointments.length }}
+              {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
+            </span>
+          </div>
+        </div>
+
+        <!--
+          Upcoming inline error (T5). Only the upcoming resource failed:
+          the header stays, the rest of the page stays usable, and the retry
+          affordance re-fetches ONLY /api/dashboard/upcoming through the
+          shared section-error component.
+        -->
+        <DashboardSectionError
+          v-if="upcomingError"
+          data-state="error-upcoming"
+          role="alert"
+          title="No pudimos cargar las próximas citas"
+          description="Reintenta para ver lo que queda de la semana."
+          :retry-attrs="{ 'data-retry-upcoming': '' }"
+          @retry="retryUpcomingAppointments"
+        />
+
+        <!--
+          Empty state for the upcoming-week case, rendered through the shared
+          DashboardSectionEmpty pattern with its own marker and copy (T5).
+        -->
+        <DashboardSectionEmpty
+          v-else-if="upcomingAppointments.length === 0"
+          data-state="empty-upcoming"
+          title="Sin citas programadas para esta semana"
+          description="No hay citas registradas de mañana en adelante."
+        />
+
+        <div v-else class="space-y-4">
+          <div
+            v-for="group in upcomingGroups"
+            :key="group.key"
+            data-upcoming-group
+            class="space-y-2"
+          >
+            <p data-upcoming-day class="text-xs font-medium text-theme-secondary tabular-nums">
+              {{ group.label }}
+            </p>
+            <div class="grid gap-3">
+              <UiCard
+                v-for="appointment in group.appointments"
+                :key="appointment.id"
+                variant="flat"
+                hover
+                data-upcoming-row
+              >
+                <div class="flex items-center gap-4">
+                  <div class="flex-shrink-0 w-14">
+                    <p data-upcoming-time class="text-sm font-semibold text-label tabular-nums">
+                      {{ formatTime(appointment.scheduled_at) }}
+                    </p>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-medium text-label truncate">
+                      {{ getPatientName(appointment) }}
+                    </p>
+                    <p class="text-sm text-theme-secondary truncate">
+                      {{ appointment.appointment_type?.name || 'Consulta' }}
+                    </p>
+                  </div>
+                  <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                    {{ getStatusText(appointment.status) }}
+                  </UiBadge>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        Pendientes (T7b) - quotations and treatment plans waiting on a
+        patient decision, fed by GET /api/dashboard/pending. Sits between
+        the week preview and the KPI grid: actionable work before
+        reference metrics. The backend omits the subsets the current role
+        cannot read, so a group renders only when its payload key is
+        present; when neither key is present the whole section stays
+        hidden. The fetch is tolerant: this resource alone can fail
+        without blocking the rest of the page.
+      -->
+      <section v-if="!statsError && (hasPendingGroups || pendingError)" aria-label="Pendientes">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 class="text-base font-semibold text-label">Pendientes</h2>
+        </div>
+
+        <!--
+          Pending inline error (T7b). Only this resource failed: the rest
+          of the page stays usable, and the retry re-fetches ONLY
+          /api/dashboard/pending through the shared section-error component.
+        -->
+        <DashboardSectionError
+          v-if="pendingError"
+          data-state="error-pending"
+          role="alert"
+          title="No pudimos cargar los pendientes"
+          description="Reintenta para ver presupuestos y planes en espera de respuesta."
+          :retry-attrs="{ 'data-retry-pending': '' }"
+          @retry="retryPending"
+        />
+
+        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <!-- Presupuestos pendientes (gated by payload presence) -->
+          <div v-if="pendingQuotations" data-pending-group="quotations" class="min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div class="flex items-baseline gap-2 min-w-0">
+                <h3 class="text-sm font-semibold text-label truncate min-w-0">
+                  Presupuestos pendientes
+                </h3>
+                <span class="text-sm text-theme-secondary tabular-nums">
+                  {{ pendingQuotations.count }}
+                </span>
+              </div>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Ver todos los presupuestos"
+                @click="goToQuotations"
+              >
+                Ver todos
+              </UiButton>
+            </div>
+            <!--
+              Empty subset: the payload key is present but nothing waits
+              on a decision. The Spanish copy is passed through the shared
+              DashboardSectionEmpty pattern so every empty state reads as
+              one family (T5).
+            -->
+            <DashboardSectionEmpty
+              v-if="pendingQuotations.count === 0"
+              data-state="empty-pending"
+              title="Sin presupuestos pendientes"
+              description="Los presupuestos enviados aparecerán aquí cuando esperen respuesta."
+            />
+            <div v-else class="grid gap-2">
+              <UiCard
+                v-for="item in pendingQuotations.items"
+                :key="item.id"
+                variant="flat"
+                padding="sm"
+                hover
+                data-pending-row="quotations"
+              >
+                <div class="flex items-center gap-3">
+                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                    {{ item.patient_name || 'Paciente' }}
+                  </p>
+                  <span class="flex-shrink-0 text-sm font-semibold text-label tabular-nums">
+                    {{ formatPENLabel(item.total_amount) }}
+                  </span>
+                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
+                    {{ pendingStatusLabel(item.status) }}
+                  </UiBadge>
+                  <span
+                    v-if="item.created_at"
+                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+                  >
+                    {{ formatPendingDate(item.created_at) }}
+                  </span>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+
+          <!-- Planes por aceptar (gated by payload presence) -->
+          <div v-if="pendingTreatmentPlans" data-pending-group="treatment-plans" class="min-w-0">
+            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+              <div class="flex items-baseline gap-2 min-w-0">
+                <h3 class="text-sm font-semibold text-label truncate min-w-0">
+                  Planes por aceptar
+                </h3>
+                <span class="text-sm text-theme-secondary tabular-nums">
+                  {{ pendingTreatmentPlans.count }}
+                </span>
+              </div>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                aria-label="Ver todos los planes"
+                @click="goToTreatmentPlans"
+              >
+                Ver todos
+              </UiButton>
+            </div>
+            <DashboardSectionEmpty
+              v-if="pendingTreatmentPlans.count === 0"
+              data-state="empty-pending"
+              title="Sin planes por aceptar"
+              description="Los planes propuestos aparecerán aquí cuando esperen respuesta."
+            />
+            <div v-else class="grid gap-2">
+              <UiCard
+                v-for="item in pendingTreatmentPlans.items"
+                :key="item.id"
+                variant="flat"
+                padding="sm"
+                hover
+                data-pending-row="treatment-plans"
+              >
+                <div class="flex items-center gap-3">
+                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                    {{ item.patient_name || 'Paciente' }}
+                  </p>
+                  <span
+                    v-if="item.final_cost !== null && item.final_cost !== undefined"
+                    class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                  >
+                    {{ formatPENLabel(item.final_cost) }}
+                  </span>
+                  <span v-else class="flex-shrink-0 text-sm text-theme-secondary">N/D</span>
+                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
+                    {{ pendingStatusLabel(item.status) }}
+                  </UiBadge>
+                  <span
+                    v-if="item.created_at"
+                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+                  >
+                    {{ formatPendingDate(item.created_at) }}
+                  </span>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        Compact KPI strip (T2b). Five cards keep the same 5-column grid
+        placement but use smaller bodies and tighter padding
+        (padding="sm") so the strip reads as a dense daily-operations
+        summary. Surface tokens stay the same ones the Quick Actions
+        tiles consume: --color-hairline on the border and the elevation
+        ramp on the shadow. The eyebrow uses the token size class
+        text-xs instead of the previous arbitrary 11px utility.
+
+        Each card keeps four reserved slots in a row grid so the
         baseline is uniform regardless of which cards carry a chip:
 
-          [eyebrow]    h-4  (16 px)
-          [number]     h-12 (48 px)
-          [chip slot]  h-6  (24 px - reserved even when empty)
-          [caption]    h-4  (16 px)
+          [eyebrow]    h-4     (16 px)
+          [number]     h-12    (48 px)
+          [chip slot]  min-h-6 (24 px minimum - grows when the label wraps)
+          [caption]    h-4     (16 px)
 
         Cards that carry a comparison key render the chip from
-        `comparisons[statKey].delta_label`. When that field is null, the
-        slot stays empty (no chip, no dash, no placeholder). The chip
-        colour follows sign: positive → systemGreen, negative → systemRed.
+        `comparisons[statKey].delta_label` through the UiBadge primitive
+        (T4 - one pill system; the hand-rolled span pills are gone).
+        When that field is null, the slot stays empty (no chip, no dash,
+        no placeholder). The badge variant follows the sign: positive ->
+        success (filled green), negative -> error (filled red).
+        The period_label never truncates: the chip row wraps it onto a
+        second line, and the slot's minimum height lets the card grow.
 
-        Defect 2 fix: every card border consumes the PR1 hairline token
-        (alpha 0.12) instead of the previous opaque separator.
-        Defect 3 fix: every card shadow consumes the PR1 elevation-2
-        rung (iOS label/separator hue family) instead of the previous
-        pure-black shadow.
-        Defect 6 fix: every icon plate uses the same tint (systemGray-100
-        + systemGray-600 - the iOS Settings / List treatment).
+        Captions (T4) state the period or scope of the number, never the
+        eyebrow or the page date: Citas Hoy keeps the slot reserved and
+        empty (the header anchors the date), Citas del Mes names the
+        current month, Pacientes reads "Total registrados" and Ingresos
+        "Total histórico", Saldo de Caja keeps its opening-time caption.
+
+        The strip carries a visible h2 like every sibling section (T4),
+        and its cards carry no decorative status dot.
+
+        The Profesionales card was removed in T2b: an admin-only count is
+        not daily-operations content. Professionals stay reachable through
+        the Profesionales quick action and the module route.
+
+        T3 - the strip is a static reference surface: none of the five
+        cards carries a click affordance (no clickable/hover props, no
+        @click). The single CTA per destination lives in the section
+        headers.
       -->
-      <section aria-label="Resumen del día">
-        <div ref="kpiSection" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <section v-if="!statsError" aria-label="Resumen del día">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 class="text-base font-semibold text-label">Resumen del día</h2>
+        </div>
+
+        <div
+          ref="kpiSection"
+          data-reveal="kpi"
+          class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"
+          :style="revealStyle('--spring-dash-kpi-o')"
+        >
           <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
           <UiCard
             v-if="can.viewAppointment?.value"
             variant="glass"
-            hover
-            clickable
+            padding="sm"
             data-stat="appointments-today"
             data-stat-card="appointments-today"
             data-priority="primary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
-                  Eyebrow (defect 4 - Estado de Caja row-rhythm fix).
-                  text-[11px] + whitespace-nowrap + no tracking lets
-                  the longest label ("Estado de Caja") sit on a single
-                  line at the 5-up KPI card width. text-xs (12 px) with
-                  tracking-wide wrapped it; the smaller font and removed
-                  tracking keep all five cards aligned on one line.
+                  Eyebrow (T2b compact strip). Token size class text-xs,
+                  no tracking, whitespace-nowrap so the longest label
+                  ("Saldo de Caja") stays on one line at the 5-up KPI
+                  card width.
                 -->
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
                     Citas Hoy
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                     aria-live="polite"
                   >
-                    {{ stats.today || 0 }}
+                    {{ todayKpi.display }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix).
-                  The pill contains ONLY the delta value (e.g. "-4").
-                  The period_label (e.g. "vs mar 4 ago") is a separate
-                  muted caption beside the pill, on one line with
-                  truncate. Putting both inside the pill overflowed the
-                  reserved h-6 slot and overlapped the caption row.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge contains ONLY the delta value (e.g. "-4")
+                  and its variant follows the sign. The period_label
+                  (e.g. "vs mar 4 ago") is a separate muted caption beside
+                  the pill. The row wraps the label onto a second line
+                  when it does not fit, and the slot reserves only a
+                  minimum height, so the full label is always visible
+                  instead of clipped.
                 -->
                 <div
                   v-if="stats.comparisons?.appointments_today?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.appointments_today.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.appointments_today.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.appointments_today.delta_label }}
-                  </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  </UiBadge>
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.appointments_today.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
+                <div v-else class="min-h-6" />
                 <!--
-                  Caption slot (defect 3 - date truncation fix).
-                  Use the short "11 de ago" format from
-                  getShortTodayDate() so the caption fits the slot
-                  without being clipped by truncate. The full
-                  "martes, 11 de agosto de 2026" format overflowed the
-                  KPI card's caption slot at 5-up width.
+                  Caption slot (T4). Reserved but intentionally empty:
+                  the page header already anchors today's date, so the
+                  previous short "11 de ago" caption repeated it. The
+                  reserved h-4 row keeps the five cards baseline-aligned.
                 -->
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-                    {{ getShortTodayDate() }}
-                  </p>
-                </div>
+                <div class="h-4 flex items-center" data-kpi-caption="appointments-today" />
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed.
                 design-taste-frontend §9.D "NO three-equal Material cards".
                 apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
-                apple-design §12 "translucent chrome for nav, opaque data
-                cards" - the icon-in-rounded-gray-box container is the
-                Material-leak signature on data surfaces. Replaced with
-                a small 4px accent dot in systemBlue-500 (the iOS
-                "primary key" accent) anchored top-right of the card.
+                T4 - the accent dot that replaced the plate was decoration
+                that read as a status indicator, so it was removed too.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
@@ -206,269 +725,228 @@
                registrations this month - a different quantity. -->
           <UiCard
             variant="glass"
-            hover
-            clickable
+            padding="sm"
             data-stat="total-patients"
             data-stat-card="total-patients"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToPatients"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
                     Pacientes
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    {{ stats.total_patients || 0 }}
+                    {{ patientsKpi.display }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). The
-                  comparisons.total_patients.period_label is the
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The comparisons.total_patients.period_label is the
                   static string "nuevos este mes" and is intentionally
                   a different quantity from the headline (D15 - the
                   chip's "+N" is NEW REGISTRATIONS, the headline 105
-                  is cumulative active). The pill carries the absolute
-                  delta; the muted text carries the period_label.
+                  is cumulative active). The UiBadge carries the absolute
+                  delta; the muted text carries the period_label and
+                  wraps under the pill at the compact 5-up width.
                 -->
                 <div
                   v-if="stats.comparisons?.total_patients?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="chipToneClass(stats.comparisons.total_patients.delta_label)"
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                  <UiBadge
+                    :variant="chipVariant(stats.comparisons.total_patients.delta_label)"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_patients.delta_label }}
-                  </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  </UiBadge>
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_patients.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Total registrados
-</p>
+                <div v-else class="min-h-6" />
+                <!--
+                  Caption slot (T4). Scope phrase in the "Total X"
+                  grammar; the number counts registered active patients,
+                  so the caption stays "Total registrados".
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-patients">
+                  <p class="text-xs text-theme-secondary truncate">Total registrados</p>
                 </div>
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
-          <!-- Profesionales (reference count; gated). No comparison key
-               ships from the controller (only three stats carry the
-               additive comparisons block); the chip slot stays empty. -->
-          <UiCard
-            v-if="can.manageUsers?.value"
-            variant="glass"
-            hover
-            clickable
-            data-stat="total-professionals"
-            data-stat-card="total-professionals"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToProfessionals"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
-                    Profesionales
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ stats.total_professionals || 0 }}
-                  </p>
-                </div>
-                <div class="h-6 min-h-[24px]" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Equipo médico
-</p>
-                </div>
-              </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
-            </div>
-          </UiCard>
-
-          <!-- Total Citas (reference count) -->
+          <!-- Citas del Mes (reference count; comparison chip) -->
           <UiCard
             variant="glass"
-            hover
-            clickable
+            padding="sm"
             data-stat="total-appointments-month"
             data-stat-card="total-appointments-month"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCalendar"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
-                    Total Citas
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Citas del Mes
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
                   <p
-                    class="text-5xl font-bold text-label tabular-nums leading-none"
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
                     style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    {{ stats.total_appointments_this_month || stats.total_appointments || 0 }}
+                    {{ monthKpi.display }}
                   </p>
                 </div>
                 <!--
-                  Chip slot (defect 2 - chip layout fix). Period_label
-                  outside the pill, single line with truncate.
+                  Chip slot (defect 2 - chip layout fix; T4 pill system).
+                  The UiBadge carries only the delta; the period_label
+                  stays a muted sibling span and the row wraps it when
+                  the label does not fit, so the slot never clips it.
                 -->
                 <div
                   v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
-                  class="h-6 min-h-[24px] flex items-center gap-1.5"
+                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
                 >
-                  <span
-                    :class="
-                      chipToneClass(stats.comparisons.total_appointments_this_month.delta_label)
+                  <UiBadge
+                    :variant="
+                      chipVariant(stats.comparisons.total_appointments_this_month.delta_label)
                     "
-                    class="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                    shape="pill"
+                    size="sm"
+                    class="whitespace-nowrap"
                   >
                     {{ stats.comparisons.total_appointments_this_month.delta_label }}
-                  </span>
-                  <span class="text-xs text-theme-secondary truncate">
+                  </UiBadge>
+                  <span class="text-xs text-theme-secondary">
                     {{ stats.comparisons.total_appointments_this_month.period_label }}
                   </span>
                 </div>
-                <div v-else class="h-6 min-h-[24px]" />
-                <div class="h-4 flex items-center">
-                  <p class="text-xs text-theme-secondary truncate">
-Este mes
-</p>
+                <div v-else class="min-h-6" />
+                <!--
+                  Caption slot (T4). Names the month the number belongs
+                  to; the previous "Este mes" only restated the eyebrow.
+                -->
+                <div class="h-4 flex items-center" data-kpi-caption="total-appointments-month">
+                  <p class="text-xs text-theme-secondary truncate">{{ currentMonthName }}</p>
                 </div>
               </div>
               <!--
                 HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
                 comment block above for the design-taste §9.D rule.
               -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
 
-          <!-- Estado de Caja (SECONDARY live stat; gated).
-               No comparison key ships for cash_session. The cash pill
-               renders its own Spanish label via a primitive that
-               supports custom labels. -->
+          <!-- Ingresos (T2b: cumulative completed payments). The number
+               renders through formatPENLabel, so the page never
+               concatenates a literal `S/` prefix (FormatPENLabelTest).
+               No comparison key ships for total_income: the chip slot
+               stays reserved and empty. -->
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-stat="total-income"
+            data-stat-card="total-income"
+            class="relative"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="h-4 flex items-center">
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Ingresos
+                  </p>
+                </div>
+                <div class="h-12 flex items-center">
+                  <p
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  >
+                    {{ incomeKpi.display }}
+                  </p>
+                </div>
+                <div class="min-h-6" />
+                <div class="h-4 flex items-center" data-kpi-caption="total-income">
+                  <p class="text-xs text-theme-secondary truncate">Total histórico</p>
+                </div>
+              </div>
+            </div>
+          </UiCard>
+
+          <!-- Saldo de Caja (SECONDARY live stat; gated).
+               T2 surface split: the header pill owns the session state;
+               this card owns the live balance as its headline number and
+               the opening time as its caption. No comparison key ships
+               for cash_session. -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
-            hover
-            clickable
+            padding="sm"
             data-stat="cash-status"
             data-stat-card="cash-status"
             data-priority="secondary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-            @click="goToCashRegister"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <!--
-                  Eyebrow (defect 4). text-[11px] + whitespace-nowrap
-                  + no tracking lets "Estado de Caja" sit on a single
-                  line at the 5-up KPI card width. Same treatment as
-                  the four sibling eyebrows for row rhythm.
+                  Eyebrow (T2b compact strip). Token size class text-xs,
+                  no tracking, whitespace-nowrap so "Saldo de Caja"
+                  stays on one line at the 5-up KPI card width.
                 -->
                 <div class="h-4 flex items-center">
-                  <p
-                    class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap"
-                  >
-                    Estado de Caja
+                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                    Saldo de Caja
                   </p>
                 </div>
                 <div class="h-12 flex items-center">
-                  <UiBadge
-                    :variant="cashStatusBadgeVariant"
-                    shape="pill"
-                    size="md"
-                    role="status"
-                    :aria-label="`Estado de caja: ${cashStatusLabel}`"
-                    class="mt-1"
-                    :class="[cashStatusBadgeClass]"
-                    data-cash-pill
-                    :data-cash-pill-state="cashStatusPillState"
+                  <p
+                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
+                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   >
-                    <span
-                      class="inline-block w-1.5 h-1.5 rounded-full"
-                      :class="cashStatusDotClass"
-                      aria-hidden="true"
-                    />
-                    {{ cashStatusLabel }}
-                  </UiBadge>
+                    {{ cashKpiBalance }}
+                  </p>
                 </div>
-                <div class="h-6 min-h-[24px]" />
-                <div class="h-4 flex items-center">
+                <div class="min-h-6" />
+                <div class="h-4 flex items-center" data-kpi-caption="cash-status">
                   <p class="text-xs text-theme-secondary truncate">
-                    {{ cashBalanceText }}
+                    {{ cashKpiCaption }}
                   </p>
                 </div>
               </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-              <span
-                class="flex-shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full"
-                style="background-color: var(--color-system-blue-500)"
-                aria-hidden="true"
-              />
             </div>
           </UiCard>
         </div>
       </section>
 
       <!-- Quick Actions -->
-      <section aria-label="Acciones rápidas">
+      <section v-if="!statsError" aria-label="Acciones rápidas">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-ink-800">Acciones Rápidas</h2>
+          <h2 class="text-base font-semibold text-label">Acciones rápidas</h2>
           <UiButton variant="ghost" size="sm" @click="goToCalendar">
             Ver calendario
             <template #icon-right>
+              <!--
+                Chevron: stroke-width="1.5", the documented apple-design §16
+                baseline (T6). The 2.0 default is retired page-wide.
+              -->
               <svg
                 class="w-4 h-4"
                 fill="none"
@@ -479,7 +957,7 @@ Este mes
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  stroke-width="2"
+                  stroke-width="1.5"
                   d="M9 5l7 7-7 7"
                 />
               </svg>
@@ -503,80 +981,64 @@ Este mes
           HOTFIX-DASH-006 - Letter-key shortcut badge removed (no
           <kbd> with single uppercase letter). design-taste §9.D "no
           Material keyboard-shortcut reference visual". Each tile's
-          affordance is now the hover-lift + the entire card being a
-          clickable region (the existing UiCard clickable behaviour).
+          affordance is the hover-lift plus a full-bleed native button:
+          the card is the surface, the <button type="button"> inside it is
+          the control (T6), so the whole card stays the click region while
+          keyboard focus and activation work natively.
 
-          apple-design §16 - icon stroke 1.5 (NOT icon-in-box) - applied
-          via inline stroke-width="1.5" on each Quick Action SVG.
+          T2b - every tile icon is an @heroicons/vue 24-outline
+          component (UsersIcon, UserGroupIcon, BuildingOfficeIcon,
+          ChartBarIcon) instead of an inline SVG. The heroicons
+          baseline stroke is 1.5, so the apple-design §16 rule (icon
+          stroke 1.5, NOT icon-in-box) still holds.
+
+          T3 - single CTA per destination: the duplicate appointment
+          tile was removed and the agenda header owns the primary
+          appointment CTA, leaving four destination tiles.
+
+          T6 - the four tiles are real buttons (native semantics, no
+          clickable div) and the /business-intelligence tile is named
+          after the sidebar entry ("Business Intelligence").
         -->
-        <div ref="quickActionsSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          ref="quickActionsSection"
+          data-reveal="quick-actions"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          :style="revealStyle('--spring-dash-quick-o')"
+        >
           <!-- Patients -->
           <UiCard
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="patients"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToPatients"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
           >
-            <div class="flex items-start gap-3">
-              <svg
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+            <!--
+              T6 - the card is the surface, the native button is the
+              control. w-full + the card's p-6 keep the whole card as the
+              click region; active:scale-[0.98] mirrors the press feedback
+              the card's retired clickable state provided.
+            -->
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToPatients"
+            >
+              <div class="flex items-start gap-3">
+                <UsersIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
                 />
-              </svg>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Pacientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Gestionar base de datos
-                </p>
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Pacientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Gestionar base de datos
+                  </p>
+                </div>
               </div>
-            </div>
-          </UiCard>
-
-          <!-- New Appointment -->
-          <UiCard
-            v-if="can.createAppointment?.value"
-            variant="flat"
-            hover
-            clickable
-            data-action="new-appointment"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToNewAppointment"
-          >
-            <div class="flex items-start gap-3">
-              <svg
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight whitespace-nowrap">Nueva Cita</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Programar cita médica
-                </p>
-              </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Professionals -->
@@ -584,32 +1046,27 @@ Este mes
             v-if="can.manageUsers?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="professionals"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToProfessionals"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
           >
-            <div class="flex items-start gap-3">
-              <svg
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToProfessionals"
+            >
+              <div class="flex items-start gap-3">
+                <UserGroupIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
                 />
-              </svg>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Profesionales</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Profesionales</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
           <!-- Environments -->
@@ -617,219 +1074,59 @@ Este mes
             v-if="can.manageConfig?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="environments"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToEnvironments"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
           >
-            <div class="flex items-start gap-3">
-              <svg
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToEnvironments"
+            >
+              <div class="flex items-start gap-3">
+                <BuildingOfficeIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
                 />
-              </svg>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Ambientes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">Configurar espacios</p>
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label leading-tight">Ambientes</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Configurar espacios
+                  </p>
+                </div>
               </div>
-            </div>
+            </button>
           </UiCard>
 
-          <!-- Reportes -->
+          <!-- Business Intelligence -->
           <UiCard
             v-if="can.viewReports?.value"
             variant="flat"
             hover
-            clickable
+            padding="none"
             data-action="reports"
             class="relative"
-            :style="{ boxShadow: 'var(--elevation-1)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-            @click="goToBusinessIntelligence"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
           >
-            <div class="flex items-start gap-3">
-              <svg
-                class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                />
-              </svg>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label leading-tight">Reportes</p>
-                <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                  Análisis y estadísticas
-                </p>
-              </div>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
-      <!-- Today's Appointments Preview: list OR empty state.
-           The empty state is the live state today (GET /api/dashboard/today
-           returns 404 due to the known bug). Build it properly, not as an
-           afterthought. -->
-      <section v-if="can.viewAppointment?.value" aria-label="Citas de hoy">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-ink-800">Citas de Hoy</h2>
-          <UiButton
-            v-if="todayAppointments.length > 0"
-            variant="ghost"
-            size="sm"
-            @click="goToCalendar"
-          >
-            Ver todas
-            <template #icon-right>
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </template>
-          </UiButton>
-        </div>
-
-        <!--
-          Empty state for the today-appointments case.
-          HOTFIX-DASH-007 - Inline SVG line-art + primary CTA.
-
-          apple-design §12 "translucent chrome for depth - radial
-          gradient as subtle depth" - the wrapper carries a soft
-          radial-gradient backdrop (systemBlue-50 fading to transparent)
-          so the empty state reads as a depth surface, not as a flat
-          empty row.
-
-          apple-design §16 "icon stroke 1.5" - the calendar SVG uses
-          stroke-width="1.5" (Apple's outline-icon convention, NOT the
-          previous 2.0 default). The SVG is inline in this template
-          (NOT a child <EmptyState> component) so the rule is auditable
-          in source.
-
-          design-taste §9.F "NO div-based fake product UI" - the empty
-          state is a real line-art SVG with a real primary CTA, not a
-          hand-built fake dashboard preview.
-        -->
-        <div
-          v-if="todayAppointments.length === 0"
-          ref="emptyStateSection"
-          data-state="empty-appointments"
-          class="relative rounded-ios p-10 text-center"
-          style="
-            background: radial-gradient(circle at center, var(--color-system-blue-50) 0%, transparent 70%);
-            border: 1px solid var(--color-hairline);
-          "
-        >
-          <!--
-            HOTFIX-DASH-007 - inline line-art calendar SVG.
-            stroke-width="1.5" (apple-design §16 baseline).
-            Color: var(--color-label-tertiary-label) - the iOS
-            tertiaryLabel token so the icon recedes.
-          -->
-          <svg
-            class="mx-auto h-12 w-12 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="1.5"
-            style="color: var(--color-label-tertiary-label)"
-            aria-hidden="true"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <p class="text-base font-medium text-theme-primary">
-            Sin citas para hoy
-          </p>
-          <p class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
-            Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario.
-          </p>
-          <div class="mt-6">
-            <!--
-              Primary CTA per apple-design §12 "translucent chrome for
-              depth, primary CTA anchored to the action".
-            -->
-            <UiButton
-              variant="primary"
-              size="md"
-              data-cta="empty-create-appointment"
-              @click="goToNewAppointment"
+            <button
+              type="button"
+              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
+              @click="goToBusinessIntelligence"
             >
-              Crear nueva cita
-            </UiButton>
-          </div>
-        </div>
-
-        <div v-else class="grid gap-3">
-          <UiCard
-            v-for="appointment in todayAppointments.slice(0, 3)"
-            :key="appointment.id"
-            variant="flat"
-            data-appointment-row
-            class="hover:shadow-medium"
-          >
-            <div class="flex items-center justify-between gap-4">
-              <div class="flex items-center gap-4 min-w-0">
-                <div
-                  class="flex-shrink-0 w-10 h-10 bg-systemBlue-100 rounded-ios flex items-center justify-center border border-systemBlue-200"
-                >
-                  <svg
-                    class="w-5 h-5 text-systemBlue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
+              <div class="flex items-start gap-3">
+                <ChartBarIcon
+                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
+                  aria-hidden="true"
+                />
                 <div class="min-w-0 flex-1">
-                  <p class="font-medium text-ink-800 truncate">
-                    {{ appointment.patient?.name || 'Paciente' }}
-                  </p>
-                  <p class="text-sm text-ink-500 truncate">
-                    {{ formatTime(appointment.scheduled_at) }} ·
-                    {{ appointment.appointment_type?.name || 'Consulta' }}
+                  <p class="font-medium text-label leading-tight">Business Intelligence</p>
+                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
+                    Análisis y estadísticas
                   </p>
                 </div>
               </div>
-              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                {{ getStatusText(appointment.status) }}
-              </UiBadge>
-            </div>
+            </button>
           </UiCard>
         </div>
       </section>
@@ -841,20 +1138,32 @@ Este mes
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import {
+  ArrowPathIcon,
+  UsersIcon,
+  UserGroupIcon,
+  BuildingOfficeIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
+import DashboardSectionError from './DashboardSectionError.vue'
+import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
-// HOTFIX-DASH-009 - per-section staggered springs.
+// HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
 // apple-design §4 "behavior over animation - use springs" + §8 "hint
 // in direction of gesture" (intermediate frames telegraph direction).
 // Each of the 4 visible sections gets its own useSpring with a distinct
 // cssVar so the four entrance animations cannot collide on the same CSS
-// custom property. Stagger: 0ms / 60ms / 120ms / 180ms post-mount.
-// Critically damped (damping 1.0) by default - no overshoot on a
-// non-momentum entrance.
+// custom property. Stagger: 0ms / 60ms / 120ms / 180ms on the first
+// successful content render. Critically damped (damping 1.0) by default -
+// no overshoot on a non-momentum entrance. The templates consume each var
+// through revealStyle(); before T4 the vars were written but unconsumed.
 import { useSpring } from '../../composables/useSpring'
+import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { usePermissions } from '../../composables/usePermissions'
 import { useCashRegister } from '../../composables/useCashRegister'
 import { useEcho } from '../../composables/useEcho'
@@ -895,37 +1204,50 @@ const stats = ref({
   }
 })
 const todayAppointments = ref([])
+// T5 week preview. Kept separate from the agenda so a failing upcoming
+// request never blocks the day's protagonists.
+const upcomingAppointments = ref([])
+const upcomingError = ref(false)
+// T7b pending-and-action block. `pending` stores the subsets the backend
+// returned for this role (an absent key means the role cannot read that
+// module). Kept separate from stats so a failing pending request never
+// blocks the rest of the page.
+const pending = ref({})
+const pendingError = ref(false)
+
+// T3 load-state flags. `hasLoaded` separates the first load (skeleton) from
+// later loads (silent in-flight refresh) so a manual refresh or a WebSocket
+// burst never blanks the page. The two error flags drive the page-level
+// stats error state and the agenda inline error state.
+const hasLoaded = ref(false)
+const refreshing = ref(false)
+const statsError = ref(false)
+const todayError = ref(false)
 
 /**
- * PR4 - chip tone class. The chip is a pre-formatted string from the
- * server (D13). Sign is derived from the leading character: "+" reads
- * as growth (systemGreen), "-" reads as decline (systemRed), and "0" or
- * any other neutral prefix reads as flat (systemGray). The wrapper
- * receives the class binding and applies it; the chip itself never
- * computes a percentage (that's the structural guarantee against
- * Infinity / NaN / 100%).
+ * PR4 - chip variant. T4 sharpened it from a hand-rolled class string to
+ * the UiBadge variant, so one primitive owns the pill. The chip is a
+ * pre-formatted string from the server (D13). Sign is derived from the
+ * leading character: "+" reads as growth (success, filled green), "-"
+ * reads as decline (error, filled red), and "0" or any other neutral
+ * prefix reads as flat (neutral, surface tone). The badge never computes
+ * a percentage (that's the structural guarantee against Infinity / NaN /
+ * 100%).
  */
-const chipToneClass = deltaLabel => {
+const chipVariant = deltaLabel => {
   if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
-    return 'bg-systemGray-100 text-systemGray-600'
+    return 'neutral'
   }
   if (deltaLabel.startsWith('+')) {
-    return 'bg-systemGreen-100 text-systemGreen-700'
+    return 'success'
   }
   if (deltaLabel.startsWith('-')) {
-    return 'bg-systemRed-100 text-systemRed-700'
+    return 'error'
   }
-  return 'bg-systemGray-100 text-systemGray-600'
+  return 'neutral'
 }
 
-// Spring hooks are not strictly required for the rebuild - we expose the
-// composables via the design contract (useSpring/useSpring2D live in PR2's
-// composables). Numbers are displayed via Vue's reactive interpolation; a
-// WebSocket burst lands in the same value, so the bindings naturally tween
-// visually (no DOM-level entrance replay). See apply-progress.md for the
-// decision trail.
-//
-// HOTFIX-DASH-009 - per-section staggered springs (4 sections,
+// HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
 // 60ms stagger). apple-design §4 (springs for entrance, critically
 // damped), §8 (intermediate frames telegraph direction via stagger).
 // Each spring targets a distinct CSS custom property on its bound
@@ -959,6 +1281,98 @@ const kpiSection = ref(null)
 const quickActionsSection = ref(null)
 const emptyStateSection = ref(null)
 
+// T4 - section reveal rule. The spring writes a 0..1 progress into its
+// cssVar and this binding turns it into the entrance: opacity 0 -> 1 plus
+// an 8px translate-up. The `, 1` fallback renders every section in its
+// FINAL state whenever no spring is attached - reduced motion, or a
+// section that mounts after the one-shot entrance already ran.
+const revealStyle = cssVar => ({
+  opacity: `var(${cssVar}, 1)`,
+  transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
+})
+
+// One-shot entrance for the first successful content render. Reduced
+// motion never attaches: the fallback above already holds the final state
+// (same pattern as LoginPage.vue), so the stagger would only flash content
+// that is supposed to stay still.
+let entrancePlayed = false
+const playEntrance = () => {
+  if (entrancePlayed) return
+  entrancePlayed = true
+  if (prefersReducedMotion()) return
+
+  if (greetingSection.value) greetingSpring.attach(greetingSection.value)
+  if (kpiSection.value) kpiSpring.attach(kpiSection.value)
+  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
+  // The empty state renders through a child component, so the template ref
+  // yields the component instance; the spring binds to its root element.
+  if (emptyStateSection.value) {
+    emptyStateSpring.attach(emptyStateSection.value.$el || emptyStateSection.value)
+  }
+
+  setTimeout(() => greetingSpring.set(1), 0)
+  setTimeout(() => kpiSpring.set(1), 60)
+  setTimeout(() => quickActionsSpring.set(1), 120)
+  setTimeout(() => emptyStateSpring.set(1), 180)
+}
+
+// T4 - KPI count-up springs. Each headline number counts 0 -> value on the
+// first stats payload, then hands the display back to the canonical stats
+// value, so refreshes update instantly instead of replaying the entrance.
+// useSpring re-checks prefers-reduced-motion on every set();
+// countUpAllowed() additionally requires an explicit
+// `(prefers-reduced-motion: no-preference)` match so environments that
+// never resolve the query (for example jsdom in the smoke suite) show the
+// final value straight away instead of freezing at 0.
+const countUpAllowed = () => {
+  if (prefersReducedMotion()) return false
+  try {
+    return window.matchMedia('(prefers-reduced-motion: no-preference)').matches === true
+  } catch (_e) {
+    return false
+  }
+}
+
+const createCountUp = (readTarget, format = value => Math.round(value)) => {
+  const active = ref(false)
+  const { value: springValue, set: setSpringTarget } = useSpring({
+    damping: 1.0,
+    response: 0.35,
+    onSettle: () => {
+      active.value = false
+    }
+  })
+  const display = computed(() =>
+    active.value ? format(springValue.value) : format(readTarget() || 0)
+  )
+  const start = () => {
+    active.value = true
+    setSpringTarget(readTarget() || 0)
+  }
+  return { display, start }
+}
+
+const todayKpi = createCountUp(() => stats.value.today)
+const patientsKpi = createCountUp(() => stats.value.total_patients)
+const monthKpi = createCountUp(
+  () => stats.value.total_appointments_this_month || stats.value.total_appointments
+)
+const incomeKpi = createCountUp(
+  () => stats.value.total_income,
+  value => formatPENLabel(value)
+)
+
+let countUpsPlayed = false
+const startKpiCountUps = () => {
+  if (countUpsPlayed) return
+  countUpsPlayed = true
+  if (!countUpAllowed()) return
+  todayKpi.start()
+  patientsKpi.start()
+  monthKpi.start()
+  incomeKpi.start()
+}
+
 // Utility functions
 const getGreeting = () => {
   const hour = new Date().getHours()
@@ -981,33 +1395,41 @@ const getTodayDate = () => {
   })
 }
 
+// Short Spanish month names for the pending rows ("3 oct").
+const SPANISH_MONTHS_SHORT = [
+  'ene',
+  'feb',
+  'mar',
+  'abr',
+  'may',
+  'jun',
+  'jul',
+  'ago',
+  'sep',
+  'oct',
+  'nov',
+  'dic'
+]
+
 /**
- * PR4 correction round - short date for the Citas Hoy caption slot.
- * The full `martes, 11 de agosto de 2026` Spanish format overflows the
- * KPI card's caption slot at 5-up and `truncate` clips it mid-word.
- * The short form `11 de ago` (day + Spanish month abbreviation, same
- * tokens the chip's period_label uses) fits the slot on one line at
- * the audit-confirmed 1440x900 width.
+ * T4 - caption for the Citas del Mes card. The number belongs to the
+ * current month, so the caption names it ("Octubre") through the same
+ * es-ES locale call the header date uses. es-ES returns the month in
+ * lowercase, so the caption capitalizes the first letter.
  */
-const getShortTodayDate = () => {
-  const months = [
-    'ene',
-    'feb',
-    'mar',
-    'abr',
-    'may',
-    'jun',
-    'jul',
-    'ago',
-    'sep',
-    'oct',
-    'nov',
-    'dic'
-  ]
-  const now = new Date()
-  const day = now.getDate()
-  const month = months[now.getMonth()]
-  return `${day} de ${month}`
+const currentMonthName = computed(() => {
+  const name = new Date().toLocaleDateString('es-ES', { month: 'long' })
+  return name.charAt(0).toUpperCase() + name.slice(1)
+})
+
+/**
+ * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty
+ * string for an unparseable value so the row simply omits the date.
+ */
+const formatPendingDate = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${date.getDate()} ${SPANISH_MONTHS_SHORT[date.getMonth()]}`
 }
 
 const formatTime = dateTime => {
@@ -1016,6 +1438,20 @@ const formatTime = dateTime => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+/**
+ * Patient display name for the today list. AppointmentResource emits
+ * `patient.full_name`; older/raw payloads may only carry the split
+ * first/last fields (or the legacy `name` accessor). Fall back in that
+ * order so the row never loses the patient identity.
+ */
+const getPatientName = appointment => {
+  const patient = appointment?.patient
+  if (!patient) return 'Paciente'
+  if (patient.full_name) return patient.full_name
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ').trim()
+  return composed || patient.name || 'Paciente'
 }
 
 const getStatusText = status => {
@@ -1042,9 +1478,93 @@ const getStatusVariant = status => {
   return variants[status] || 'secondary'
 }
 
+/**
+ * T5 - local calendar-day key for the week preview. Uses the same local
+ * timezone formatTime() renders in, so a late-evening appointment never
+ * lands in the wrong day header.
+ */
+const upcomingDayKey = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return 'sin-fecha'
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`
+}
+
+/** Short Spanish day header, e.g. "Lun 6". */
+const upcomingDayLabel = dateTime => {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return ''
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+  return `${dayNames[date.getDay()]} ${date.getDate()}`
+}
+
+/**
+ * T5 - group the week preview by local day. The endpoint returns rows
+ * ordered by scheduled_at, so insertion order is already chronological and
+ * no client-side sort is applied.
+ */
+const upcomingGroups = computed(() => {
+  const groups = []
+  const byKey = new Map()
+  for (const appointment of upcomingAppointments.value) {
+    const key = upcomingDayKey(appointment?.scheduled_at)
+    let group = byKey.get(key)
+    if (!group) {
+      group = {
+        key,
+        label: upcomingDayLabel(appointment?.scheduled_at),
+        appointments: []
+      }
+      byKey.set(key, group)
+      groups.push(group)
+    }
+    group.appointments.push(appointment)
+  }
+  return groups
+})
+
+/**
+ * T7b - pending subsets. The backend omits the keys the role cannot read,
+ * so the payload key itself is the visibility contract: an absent key
+ * hides the group, while `{ count: 0 }` renders it with its small Spanish
+ * empty copy.
+ */
+const pendingQuotations = computed(() => pending.value?.quotations || null)
+const pendingTreatmentPlans = computed(() => pending.value?.treatment_plans || null)
+const hasPendingGroups = computed(() =>
+  Boolean(pendingQuotations.value || pendingTreatmentPlans.value)
+)
+
+/**
+ * T7b - Spanish copy for the pending statuses, mirroring the module badges
+ * (QuotationStatusBadge / PlanStatusBadge). `viewed` has no badge copy in
+ * the quotations module yet, so it reads "Visto" here.
+ */
+const pendingStatusLabels = {
+  sent: 'Enviado',
+  viewed: 'Visto',
+  proposed: 'Propuesto'
+}
+const pendingStatusVariants = {
+  sent: 'info',
+  viewed: 'warning',
+  proposed: 'neutral'
+}
+const pendingStatusLabel = status => pendingStatusLabels[status] || status
+const pendingStatusVariant = status => pendingStatusVariants[status] || 'neutral'
+
 // Navigation functions
 const goToCalendar = () => {
   router.push('/calendar')
+}
+
+const goToQuotations = () => {
+  router.push('/quotations')
+}
+
+const goToTreatmentPlans = () => {
+  router.push('/treatment-plans')
 }
 
 const goToPatients = () => {
@@ -1059,7 +1579,7 @@ const goToNewAppointment = () => {
 
 const handleAppointmentCreated = async () => {
   // Slice 08 / FF-015: refresh data after the user creates an appointment
-  // from anywhere (quick-action button or empty-state CTA). Single fetch
+  // from anywhere (agenda header CTA or empty-state CTA). Single fetch
   // rather than a fan-out - the WebSocket path will catch subsequent edits.
   await loadDashboardData()
 }
@@ -1080,9 +1600,9 @@ const goToCashRegister = () => {
 // attribute (data-cash-pill-state) for testability; the user-visible
 // label and aria-label are always Spanish. iOS filled pattern per
 // Decision 7:
-//   - open        → label "Abierta",     bg-systemGreen-100 text-systemGreen-600
-//   - closed      → label "Cerrada",     bg-systemRed-100 text-systemRed-600
-//   - no_session  → label "Sin sesión",  bg-systemGray-100 text-systemGray-600
+//   - open        → label "Abierta",     variant success (filled green)
+//   - closed      → label "Cerrada",     variant error   (filled red)
+//   - no_session  → label "Sin sesión",  variant neutral (surface tone)
 const cashStatusPillState = computed(() => {
   if (isOpen.value) return 'open'
   if (hasActiveSession.value) return 'closed'
@@ -1101,11 +1621,11 @@ const cashStatusBadgeVariant = computed(() => {
   return 'neutral'
 })
 
-const cashStatusBadgeClass = computed(() => {
-  if (isOpen.value) return 'bg-systemGreen-100 text-systemGreen-600'
-  if (hasActiveSession.value) return 'bg-systemRed-100 text-systemRed-600'
-  return 'bg-systemGray-100 text-systemGray-600'
-})
+// T2 - the header pill's tone is owned by the UiBadge `variant` alone
+// (success / error / neutral). The removed cashStatusBadgeClass layered
+// text-*-600 over the variant's text-*-700: a same-property conflict that
+// only stylesheet order resolved, so the rendered filled green/red tone
+// stays identical while one source owns the color.
 
 const cashStatusDotClass = computed(() => {
   if (isOpen.value) return 'bg-systemGreen-500'
@@ -1113,15 +1633,23 @@ const cashStatusDotClass = computed(() => {
   return 'bg-systemGray-500'
 })
 
-const cashBalanceText = computed(() => {
-  if (isOpen.value && realTimeTotals.value) {
-    return `Saldo: ${formatPENLabel(realTimeTotals.value.currentBalance)}`
-  }
-  if (hasActiveSession.value) {
-    return 'Sesión cerrada'
-  }
-  return 'No hay sesión activa'
-})
+// T2 - the cash KPI card's two data slots. `opened_at` is the stats
+// payload's open-session marker (the closed payload carries no opening
+// timestamp), so the card switches surfaces without re-declaring the raw
+// status key outside cashStatusPillState. The number stays "N/D" until the
+// cash-register summary lands, so the card never paints a fabricated
+// S/ 0.00.
+const cashSessionOpenedAt = computed(() => stats.value.cash_session?.opened_at || null)
+const cashKpiBalance = computed(() =>
+  cashSessionOpenedAt.value && realTimeTotals.value
+    ? formatPENLabel(realTimeTotals.value.currentBalance)
+    : 'N/D'
+)
+const cashKpiCaption = computed(() =>
+  cashSessionOpenedAt.value
+    ? `Apertura ${formatTime(cashSessionOpenedAt.value)}`
+    : 'Sin sesión abierta'
+)
 
 const goToEnvironments = () => {
   router.push('/environments')
@@ -1132,69 +1660,237 @@ const goToBusinessIntelligence = () => {
 }
 
 // Data loading
+
+/**
+ * T3 - fetch the stats resource without throwing. A 401 is surfaced as
+ * `unauthorized` so the caller keeps the /login redirect; any other failure
+ * is surfaced as `ok: false` so the page can render its own error state
+ * instead of swallowing the failure and painting zeros as real data.
+ */
+const fetchStats = async () => {
+  try {
+    const response = await get('/api/dashboard/stats')
+    return { ok: true, unauthorized: false, data: response?.data || {} }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: null }
+  }
+}
+
+/**
+ * T3 - fetch today's agenda without throwing. 401/404 keep degrading to an
+ * empty agenda (T1 tolerance contract); any other failure surfaces
+ * `ok: false` so the agenda section can offer its own retry while the rest
+ * of the page stays usable.
+ */
+const fetchTodayAppointments = async () => {
+  try {
+    const response = await get('/api/dashboard/appointments-today')
+    return { ok: true, data: Array.isArray(response?.data) ? response.data : [] }
+  } catch (error) {
+    if (error?.status === 401 || error?.status === 404) {
+      return { ok: true, data: [] }
+    }
+    return { ok: false, data: [] }
+  }
+}
+
+/**
+ * T5 - fetch the upcoming-week preview without throwing. A 401 surfaces
+ * `unauthorized` so the caller keeps the /login redirect; any other
+ * failure surfaces `ok: false` so the strip renders its own inline error
+ * instead of the page swallowing the failure.
+ */
+const fetchUpcomingAppointments = async () => {
+  try {
+    const response = await get('/api/dashboard/upcoming')
+    return {
+      ok: true,
+      unauthorized: false,
+      data: Array.isArray(response?.data) ? response.data : []
+    }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: [] }
+  }
+}
+
+/**
+ * T7b - fetch the pending subsets without throwing. The backend omits the
+ * subsets the current role cannot read, so a non-object payload collapses
+ * to an empty map. A 401 surfaces `unauthorized` so the caller keeps the
+ * /login redirect; any other failure surfaces `ok: false` so the section
+ * renders its own inline error instead of silently rendering nothing.
+ */
+const fetchPending = async () => {
+  try {
+    const response = await get('/api/dashboard/pending')
+    const data = response?.data
+    const payload = data && typeof data === 'object' && !Array.isArray(data) ? data : {}
+    return { ok: true, unauthorized: false, data: payload }
+  } catch (error) {
+    return { ok: false, unauthorized: error?.status === 401, data: {} }
+  }
+}
+
+/** Map the backend stats payload into the frontend shape. */
+const applyStats = backendStats => {
+  stats.value = {
+    today: backendStats.appointments_today || 0,
+    appointments_today: backendStats.appointments_today || 0,
+    completed_today: backendStats.completed_today || 0,
+    pending_confirmation: backendStats.pending_confirmation || 0,
+    this_week: backendStats.this_week || 0,
+    total_patients: backendStats.total_patients || 0,
+    total_appointments: backendStats.total_appointments || 0,
+    total_appointments_this_month:
+      backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
+    total_professionals: backendStats.total_professionals || 0,
+    total_appointment_types: backendStats.total_appointment_types || 0,
+    total_dental_chairs: backendStats.total_dental_chairs || 0,
+    total_income: backendStats.total_income || 0,
+    cash_session: backendStats.cash_session || null,
+    // PR3 / PR4 - additive comparisons block. Three keys carry
+    // data; the omitted keys (total_professionals, total_income,
+    // cash_session) keep their `null` default so the chip slots
+    // reserve their footprint but render no chip.
+    comparisons: backendStats.comparisons || {
+      appointments_today: null,
+      total_patients: null,
+      total_appointments_this_month: null
+    }
+  }
+}
+
 const loadDashboardData = async () => {
   if (!isAuthenticated.value) {
     router.push('/login')
     return
   }
 
-  loading.value = true
+  // T3 - only the first load owns the skeleton. Later loads (manual refresh,
+  // WebSocket bursts, post-create reload) keep the current content mounted
+  // and surface the lightweight in-flight indicator instead.
+  if (hasLoaded.value) {
+    refreshing.value = true
+  } else {
+    loading.value = true
+  }
+
   try {
-    const [statsResponse, appointmentsResponse] = await Promise.all([
-      get('/api/dashboard/stats'),
-      get('/api/dashboard/today').catch(err => {
-        // GET /api/dashboard/today returns 404 in the running app; the
-        // empty-state path is the live UX. Treat any error as an empty list
-        // rather than throwing, so other stats still render.
-        if (err && (err.status === 404 || err.status === 401)) {
-          return { data: [] }
-        }
-        throw err
-      })
+    const [statsResult, appointmentsResult, upcomingResult, pendingResult] = await Promise.all([
+      fetchStats(),
+      fetchTodayAppointments(),
+      fetchUpcomingAppointments(),
+      fetchPending()
     ])
 
-    // Map backend stats into the frontend shape.
-    const backendStats = statsResponse.data || {}
-    stats.value = {
-      today: backendStats.appointments_today || 0,
-      appointments_today: backendStats.appointments_today || 0,
-      completed_today: backendStats.completed_today || 0,
-      pending_confirmation: backendStats.pending_confirmation || 0,
-      this_week: backendStats.this_week || 0,
-      total_patients: backendStats.total_patients || 0,
-      total_appointments: backendStats.total_appointments || 0,
-      total_appointments_this_month:
-        backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
-      total_professionals: backendStats.total_professionals || 0,
-      total_appointment_types: backendStats.total_appointment_types || 0,
-      total_dental_chairs: backendStats.total_dental_chairs || 0,
-      total_income: backendStats.total_income || 0,
-      cash_session: backendStats.cash_session || null,
-      // PR3 / PR4 - additive comparisons block. Three keys carry
-      // data; the omitted keys (total_professionals, total_income,
-      // cash_session) keep their `null` default so the chip slots
-      // reserve their footprint but render no chip.
-      comparisons: backendStats.comparisons || {
-        appointments_today: null,
-        total_patients: null,
-        total_appointments_this_month: null
-      }
+    if (statsResult.unauthorized) {
+      router.push('/login')
+    } else if (statsResult.ok) {
+      applyStats(statsResult.data)
+      statsError.value = false
+      startKpiCountUps()
+    } else {
+      statsError.value = true
     }
 
-    todayAppointments.value = Array.isArray(appointmentsResponse?.data)
-      ? appointmentsResponse.data
-      : []
+    if (appointmentsResult.ok) {
+      todayAppointments.value = appointmentsResult.data
+      todayError.value = false
+    } else {
+      todayError.value = true
+    }
+
+    // T5 - the week preview is tolerant: its failure shows the section's
+    // inline error and never blocks stats, agenda, or the KPI grid. A 401
+    // keeps the page's /login redirect behavior.
+    if (upcomingResult.unauthorized) {
+      router.push('/login')
+    } else if (upcomingResult.ok) {
+      upcomingAppointments.value = upcomingResult.data
+      upcomingError.value = false
+    } else {
+      upcomingError.value = true
+    }
+
+    // T7b - the pending block is tolerant: its failure shows the section's
+    // inline error and never blocks stats, agenda, upcoming, or the KPI
+    // grid. A 401 keeps the page's /login redirect behavior.
+    if (pendingResult.unauthorized) {
+      router.push('/login')
+    } else if (pendingResult.ok) {
+      pending.value = pendingResult.data
+      pendingError.value = false
+    } else {
+      pendingError.value = true
+    }
 
     // Load cash session if not already loaded
     if (!currentSession.value && hasActiveSession.value === false) {
       await loadCurrentSession()
     }
-  } catch (error) {
-    if (error?.status === 401) {
-      router.push('/login')
-    }
   } finally {
     loading.value = false
+    refreshing.value = false
+    hasLoaded.value = true
+  }
+
+  // T4 - the section reveals play only on the first successful content
+  // render. A failed load keeps the entrance armed for the retry.
+  if (!entrancePlayed && !statsError.value) {
+    await nextTick()
+    playEntrance()
+  }
+}
+
+/**
+ * T3 - agenda-only retry. Re-fetches just the today resource so a failing
+ * agenda never forces a full page reload.
+ */
+const retryTodayAppointments = async () => {
+  const result = await fetchTodayAppointments()
+  if (result.ok) {
+    todayAppointments.value = result.data
+    todayError.value = false
+  } else {
+    todayError.value = true
+  }
+}
+
+/**
+ * T5 - week-preview-only retry. Re-fetches just the upcoming resource so a
+ * failing strip never forces a full page reload. 401 keeps the standard
+ * /login redirect.
+ */
+const retryUpcomingAppointments = async () => {
+  const result = await fetchUpcomingAppointments()
+  if (result.unauthorized) {
+    router.push('/login')
+    return
+  }
+  if (result.ok) {
+    upcomingAppointments.value = result.data
+    upcomingError.value = false
+  } else {
+    upcomingError.value = true
+  }
+}
+
+/**
+ * T7b - pending-only retry. Re-fetches just the pending resource so a
+ * failing block never forces a full page reload. 401 keeps the standard
+ * /login redirect.
+ */
+const retryPending = async () => {
+  const result = await fetchPending()
+  if (result.unauthorized) {
+    router.push('/login')
+    return
+  }
+  if (result.ok) {
+    pending.value = result.data
+    pendingError.value = false
+  } else {
+    pendingError.value = true
   }
 }
 
@@ -1312,21 +2008,6 @@ onMounted(async () => {
   } catch (error) {
     // Reverb unreacheable in dev is expected.
   }
-})
-
-// HOTFIX-DASH-009 - attach each entrance spring to its section and fire the
-// 0/60/120/180ms stagger once the DOM is mounted. The composable starts at 0
-// (default `from`), so each spring animates 0 -> 1 on `set(1)`.
-onMounted(() => {
-  if (greetingSection.value) greetingSpring.attach(greetingSection.value)
-  if (kpiSection.value) kpiSpring.attach(kpiSection.value)
-  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
-  if (emptyStateSection.value) emptyStateSpring.attach(emptyStateSection.value)
-
-  setTimeout(() => greetingSpring.set(1), 0)
-  setTimeout(() => kpiSpring.set(1), 60)
-  setTimeout(() => quickActionsSpring.set(1), 120)
-  setTimeout(() => emptyStateSpring.set(1), 180)
 })
 
 onUnmounted(() => {

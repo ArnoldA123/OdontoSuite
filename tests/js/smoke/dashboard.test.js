@@ -33,7 +33,7 @@ describe('dashboard smoke', () => {
   it('mounts DashboardPage.vue and renders content', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Acciones Rápidas')
+    expect(wrapper.text()).toContain('Acciones rápidas')
     wrapper.unmount()
   })
 })

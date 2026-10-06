@@ -118,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // already uses the canonical `dashboard/appointments-today` endpoint.
     Route::get('dashboard/appointments-today', [DashboardController::class, 'today']);
     Route::get('dashboard/upcoming', [DashboardController::class, 'upcoming']);
+    Route::get('dashboard/pending', [DashboardController::class, 'pending']);
 
     // Usuarios (solo administrador)
     Route::middleware('role:administrador')->group(function () {

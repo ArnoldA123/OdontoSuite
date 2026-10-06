@@ -1,8 +1,8 @@
 <template>
   <AppLayout>
     <PageHeader
-      title="Metodos de Pago"
-      subtitle="Gestiona los metodos de pago aceptados en la clinica"
+      title="Métodos de Pago"
+      subtitle="Gestiona los métodos de pago aceptados en la clínica"
       class="mb-6"
     >
       <template #actions>
@@ -32,7 +32,7 @@ viewBox="0 0 24 24">
               />
             </svg>
           </template>
-          Nuevo Metodo
+          Nuevo Método
         </UiButton>
       </template>
     </PageHeader>
@@ -72,7 +72,7 @@ viewBox="0 0 24 24">
         <div class="flex-1">
           <UiInput
             v-model="searchQuery"
-            placeholder="Buscar por nombre, codigo o descripcion..."
+            placeholder="Buscar por nombre, código o descripción..."
             class="w-full"
             @input="onSearch"
           >
@@ -116,9 +116,9 @@ viewBox="0 0 24 24">
     <UiCard v-else-if="!hasMethods" variant="glass" class="text-center py-12">
       <EmptyState
         :icon="CreditCardIcon"
-        title="No hay metodos de pago registrados"
-        description="Agrega metodos de pago para poder registrar cobros en caja."
-        action-text="Nuevo Metodo"
+        title="No hay métodos de pago registrados"
+        description="Agrega métodos de pago para poder registrar cobros en caja."
+        action-text="Nuevo Método"
         @action="openCreate"
       />
     </UiCard>
@@ -133,7 +133,7 @@ viewBox="0 0 24 24">
                 scope="col"
                 class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
               >
-                Codigo
+                Código
               </th>
               <th
                 scope="col"
@@ -151,7 +151,7 @@ viewBox="0 0 24 24">
                 scope="col"
                 class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
               >
-                Comision
+                Comisión
               </th>
               <th
                 scope="col"
@@ -277,11 +277,11 @@ viewBox="0 0 24 24">
     />
 
     <!-- Confirm deactivate -->
-    <UiModal v-model="showDeactivateConfirm" title="Desactivar metodo" size="sm">
+    <UiModal v-model="showDeactivateConfirm" title="Desactivar método" size="sm">
       <p class="text-theme-primary">
-        ¿Desactivar el metodo
+        ¿Desactivar el método
         <strong>{{ methodToToggle?.name }}</strong>
-        ? No aparecera en los dropdowns de cobro.
+        ? No aparecerá en los dropdowns de cobro.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -294,11 +294,11 @@ viewBox="0 0 24 24">
     </UiModal>
 
     <!-- Confirm activate -->
-    <UiModal v-model="showActivateConfirm" title="Activar metodo" size="sm">
+    <UiModal v-model="showActivateConfirm" title="Activar método" size="sm">
       <p class="text-theme-primary">
-        ¿Activar el metodo
+        ¿Activar el método
         <strong>{{ methodToToggle?.name }}</strong>
-        ? Volvera a estar disponible en los dropdowns de cobro.
+        ? Volverá a estar disponible en los dropdowns de cobro.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -309,11 +309,11 @@ viewBox="0 0 24 24">
     </UiModal>
 
     <!-- Confirm delete -->
-    <UiModal v-model="showDeleteConfirm" title="Eliminar metodo" size="sm">
+    <UiModal v-model="showDeleteConfirm" title="Eliminar método" size="sm">
       <p class="text-theme-primary">
-        ¿Eliminar permanentemente el metodo
+        ¿Eliminar permanentemente el método
         <strong>{{ methodToDelete?.name }}</strong>
-        ? Esta accion no se puede deshacer.
+        ? Esta acción no se puede deshacer.
       </p>
       <template #footer>
         <div class="flex justify-end gap-3">
@@ -402,7 +402,7 @@ const closeForm = () => {
 const onSaved = method => {
   closeForm()
   toast.success(
-    editingMethod.value ? `Metodo "${method.name}" actualizado` : `Metodo "${method.name}" creado`
+    editingMethod.value ? `Método "${method.name}" actualizado` : `Método "${method.name}" creado`
   )
   load()
 }
@@ -427,7 +427,7 @@ const doDeactivate = async () => {
   toggling.value = true
   try {
     await toggleActive(methodToToggle.value)
-    toast.success(`Metodo "${methodToToggle.value.name}" desactivado`)
+    toast.success(`Método "${methodToToggle.value.name}" desactivado`)
     showDeactivateConfirm.value = false
     methodToToggle.value = null
   } catch (err) {
@@ -442,7 +442,7 @@ const doActivate = async () => {
   toggling.value = true
   try {
     await toggleActive(methodToToggle.value)
-    toast.success(`Metodo "${methodToToggle.value.name}" activado`)
+    toast.success(`Método "${methodToToggle.value.name}" activado`)
     showActivateConfirm.value = false
     methodToToggle.value = null
   } catch (err) {
@@ -457,11 +457,11 @@ const doDelete = async () => {
   deleting.value = true
   try {
     await deleteMethod(methodToDelete.value.id)
-    toast.success(`Metodo "${methodToDelete.value.name}" eliminado`)
+    toast.success(`Método "${methodToDelete.value.name}" eliminado`)
     showDeleteConfirm.value = false
     methodToDelete.value = null
   } catch (err) {
-    toast.error(err.response?.data?.message || 'No se pudo eliminar el metodo')
+    toast.error(err.response?.data?.message || 'No se pudo eliminar el método')
   } finally {
     deleting.value = false
   }
