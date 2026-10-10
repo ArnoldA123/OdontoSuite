@@ -111,9 +111,9 @@ describe('dashboard upcoming week strip (T5)', () => {
 
     const section = wrapper.find('section[aria-label="Próximas citas"]')
     expect(section.exists()).toBe(true)
-    // T3 — the week strip is not a calendar destination: the single
-    // "Ver calendario" CTA lives in the Acciones rápidas header.
-    expect(section.text()).not.toContain('Ver calendario')
+    // D5 — the dashboard keeps no "Ver calendario" navigation CTA at all;
+    // the calendar lives in the sidebar.
+    expect(wrapper.text()).not.toContain('Ver calendario')
 
     // Section order: agenda -> upcoming -> KPI grid (ops IA).
     const html = wrapper.html()
@@ -146,13 +146,18 @@ describe('dashboard upcoming week strip (T5)', () => {
     wrapper.unmount()
   })
 
-  it('renders the in-section Spanish empty state when the week is clear', async () => {
+  it('renders the compact Spanish empty state with one title and one sentence (D9)', async () => {
     const { wrapper } = await mountDashboard()
 
     const section = wrapper.find('section[aria-label="Próximas citas"]')
     const empty = section.find('[data-state="empty-upcoming"]')
     expect(empty.exists()).toBe(true)
-    expect(empty.text()).toContain('Sin citas programadas para esta semana')
+
+    // The two-sentence redundant copy collapsed to one precise sentence
+    // under a short title.
+    expect(empty.text()).not.toContain('Sin citas programadas para esta semana')
+    expect(empty.text()).toContain('No hay citas registradas de mañana en adelante.')
+    expect(empty.findAll('p')).toHaveLength(2)
 
     // The strip owns its own marker; today's empty-state marker stays on
     // the agenda and is never reused here.

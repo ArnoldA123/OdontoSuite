@@ -26,12 +26,12 @@
             :aria-label="`Cargando próxima cita ${i}`"
           />
         </section>
-        <!-- Pending skeletons (T7b): same two-column shape as the loaded
-             block so the section does not jump when data lands. -->
+        <!-- Pending skeletons (WU3): same single-list shape as the merged
+             pending rows so the section does not jump when data lands. -->
         <section aria-label="Cargando pendientes">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="grid gap-2">
             <UiSkeleton
-              v-for="i in 2"
+              v-for="i in 3"
               :key="`pending-skel-${i}`"
               variant="list"
               animation="wave"
@@ -48,19 +48,6 @@
               variant="card"
               animation="wave"
               :aria-label="`Cargando tarjeta ${i}`"
-            />
-          </div>
-        </section>
-        <!-- Quick actions skeletons: same 3-col shape as the loaded
-             quick-actions row so the page doesn't jump when data lands. -->
-        <section aria-label="Cargando acciones rápidas">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <UiSkeleton
-              v-for="i in 5"
-              :key="`qa-skel-${i}`"
-              variant="list"
-              animation="wave"
-              :aria-label="`Cargando acción ${i}`"
             />
           </div>
         </section>
@@ -207,21 +194,17 @@
 
         <!--
           Empty state for the today-appointments case, rendered through the
-          shared DashboardSectionEmpty pattern (T5).
+          shared compact DashboardSectionEmpty pattern (T5, WU3 / D9).
 
-          HOTFIX-DASH-007 - line-art SVG + primary CTA. The calendar SVG
+          HOTFIX-DASH-007 - line-art calendar SVG. The calendar SVG
           stays inline in this template, passed through the component's icon
           slot, so the stroke-width="1.5" rule stays auditable in source
           (apple-design §16 baseline, NOT the previous 2.0 default).
 
-          T2a - the flat accent tint (bg-accent-50) plus the hairline border
-          live in the shared component: the ops redesign is token-only and
-          bans decorative gradients.
-
-          design-taste §9.F "NO div-based fake product UI" - the empty
-          state is a real line-art SVG with a real primary CTA, not a
-          hand-built fake dashboard preview. The "Crear nueva cita" CTA is
-          the user-approved contextual exception to the single-CTA rule.
+          WU3 / R4 - single CTA per destination: the empty state carries NO
+          button. The header owns the only "Nueva cita" CTA and it opens the
+          appointment modal, so the copy stays informational and never points
+          users at the calendar section.
         -->
         <DashboardSectionEmpty
           v-else-if="todayAppointments.length === 0"
@@ -229,7 +212,7 @@
           data-state="empty-appointments"
           data-reveal="empty-state"
           title="Sin citas para hoy"
-          description="Aún no hay citas registradas para el día de hoy. Crea una nueva cita desde la sección de calendario."
+          description="Cuando registres citas, aparecerán aquí."
           :style="revealStyle('--spring-dash-empty-o')"
         >
           <template #icon>
@@ -240,7 +223,7 @@
               tertiaryLabel token so the icon recedes.
             -->
             <svg
-              class="mx-auto h-12 w-12 mb-4"
+              class="mx-auto h-8 w-8 mb-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -255,18 +238,6 @@
               />
             </svg>
           </template>
-          <!--
-            Primary CTA per apple-design §12 "translucent chrome for
-            depth, primary CTA anchored to the action".
-          -->
-          <UiButton
-            variant="primary"
-            size="md"
-            data-cta="empty-create-appointment"
-            @click="goToNewAppointment"
-          >
-            Crear nueva cita
-          </UiButton>
         </DashboardSectionEmpty>
 
         <div v-else class="grid gap-3">
@@ -348,13 +319,14 @@
         />
 
         <!--
-          Empty state for the upcoming-week case, rendered through the shared
-          DashboardSectionEmpty pattern with its own marker and copy (T5).
+          Compact empty state for the upcoming-week case (WU3 / D9): one
+          short title plus one precise sentence instead of the previous
+          redundant two-sentence pair.
         -->
         <DashboardSectionEmpty
           v-else-if="upcomingAppointments.length === 0"
           data-state="empty-upcoming"
-          title="Sin citas programadas para esta semana"
+          title="Sin citas esta semana"
           description="No hay citas registradas de mañana en adelante."
         />
 
@@ -401,14 +373,14 @@
       </section>
 
       <!--
-        Pendientes (T7b) - quotations and treatment plans waiting on a
-        patient decision, fed by GET /api/dashboard/pending. Sits between
-        the week preview and the KPI grid: actionable work before
-        reference metrics. The backend omits the subsets the current role
-        cannot read, so a group renders only when its payload key is
-        present; when neither key is present the whole section stays
-        hidden. The fetch is tolerant: this resource alone can fail
-        without blocking the rest of the page.
+        Pendientes (WU3 / D6) - quotations and treatment plans waiting on a
+        patient decision, fed by GET /api/dashboard/pending, rendered as ONE
+        merged list. Sits between the week preview and the KPI grid:
+        actionable work before reference metrics. The backend omits the
+        subsets the current role cannot read, so rows render only for
+        payload keys that are present; when neither key is present the whole
+        section stays hidden. The fetch is tolerant: this resource alone can
+        fail without blocking the rest of the page.
       -->
       <section v-if="!statsError && (hasPendingGroups || pendingError)" aria-label="Pendientes">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
@@ -430,128 +402,60 @@
           @retry="retryPending"
         />
 
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <!-- Presupuestos pendientes (gated by payload presence) -->
-          <div v-if="pendingQuotations" data-pending-group="quotations" class="min-w-0">
-            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
-              <div class="flex items-baseline gap-2 min-w-0">
-                <h3 class="text-sm font-semibold text-label truncate min-w-0">
-                  Presupuestos pendientes
-                </h3>
-                <span class="text-sm text-theme-secondary tabular-nums">
-                  {{ pendingQuotations.count }}
-                </span>
-              </div>
+        <DashboardSectionEmpty
+          v-else-if="pendingRows.length === 0"
+          data-state="empty-pending"
+          title="Sin pendientes"
+          description="Los presupuestos y planes que esperen respuesta aparecerán aquí."
+        />
+        <!--
+          WU3 / D6 - ONE merged list: quotations and treatment plans are
+          rows of a single dataset (patient, amount, type badge, status
+          badge, date) sorted by their pending date ascending. Each row
+          carries the single action into its module list; no section-level
+          link duplicates those destinations.
+        -->
+        <div v-else class="grid gap-2">
+          <UiCard
+            v-for="row in pendingRows"
+            :key="row.key"
+            variant="flat"
+            padding="sm"
+            hover
+            :data-pending-row="row.rowHook"
+          >
+            <div class="flex items-center gap-3">
+              <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                {{ row.patientName }}
+              </p>
+              <span
+                class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                :data-pending-amount="row.rowHook"
+              >
+                {{ row.amountLabel }}
+              </span>
+              <UiBadge variant="neutral" size="sm" data-pending-type>
+                {{ row.typeLabel }}
+              </UiBadge>
+              <UiBadge :variant="pendingStatusVariant(row.status)" size="sm">
+                {{ pendingStatusLabel(row.status) }}
+              </UiBadge>
+              <span
+                v-if="row.dateLabel"
+                class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+              >
+                {{ row.dateLabel }}
+              </span>
               <UiButton
                 variant="ghost"
                 size="sm"
-                aria-label="Ver todos los presupuestos"
-                @click="goToQuotations"
+                :aria-label="row.actionAria"
+                @click="goToPendingEntity(row.entityType)"
               >
-                Ver todos
+                Ver
               </UiButton>
             </div>
-            <!--
-              Empty subset: the payload key is present but nothing waits
-              on a decision. The Spanish copy is passed through the shared
-              DashboardSectionEmpty pattern so every empty state reads as
-              one family (T5).
-            -->
-            <DashboardSectionEmpty
-              v-if="pendingQuotations.count === 0"
-              data-state="empty-pending"
-              title="Sin presupuestos pendientes"
-              description="Los presupuestos enviados aparecerán aquí cuando esperen respuesta."
-            />
-            <div v-else class="grid gap-2">
-              <UiCard
-                v-for="item in pendingQuotations.items"
-                :key="item.id"
-                variant="flat"
-                padding="sm"
-                hover
-                data-pending-row="quotations"
-              >
-                <div class="flex items-center gap-3">
-                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
-                    {{ item.patient_name || 'Paciente' }}
-                  </p>
-                  <span class="flex-shrink-0 text-sm font-semibold text-label tabular-nums">
-                    {{ formatPENLabel(item.total_amount) }}
-                  </span>
-                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
-                    {{ pendingStatusLabel(item.status) }}
-                  </UiBadge>
-                  <span
-                    v-if="item.created_at"
-                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
-                  >
-                    {{ formatPendingDate(item.created_at) }}
-                  </span>
-                </div>
-              </UiCard>
-            </div>
-          </div>
-
-          <!-- Planes por aceptar (gated by payload presence) -->
-          <div v-if="pendingTreatmentPlans" data-pending-group="treatment-plans" class="min-w-0">
-            <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
-              <div class="flex items-baseline gap-2 min-w-0">
-                <h3 class="text-sm font-semibold text-label truncate min-w-0">
-                  Planes por aceptar
-                </h3>
-                <span class="text-sm text-theme-secondary tabular-nums">
-                  {{ pendingTreatmentPlans.count }}
-                </span>
-              </div>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                aria-label="Ver todos los planes"
-                @click="goToTreatmentPlans"
-              >
-                Ver todos
-              </UiButton>
-            </div>
-            <DashboardSectionEmpty
-              v-if="pendingTreatmentPlans.count === 0"
-              data-state="empty-pending"
-              title="Sin planes por aceptar"
-              description="Los planes propuestos aparecerán aquí cuando esperen respuesta."
-            />
-            <div v-else class="grid gap-2">
-              <UiCard
-                v-for="item in pendingTreatmentPlans.items"
-                :key="item.id"
-                variant="flat"
-                padding="sm"
-                hover
-                data-pending-row="treatment-plans"
-              >
-                <div class="flex items-center gap-3">
-                  <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
-                    {{ item.patient_name || 'Paciente' }}
-                  </p>
-                  <span
-                    v-if="item.final_cost !== null && item.final_cost !== undefined"
-                    class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
-                  >
-                    {{ formatPENLabel(item.final_cost) }}
-                  </span>
-                  <span v-else class="flex-shrink-0 text-sm text-theme-secondary">N/D</span>
-                  <UiBadge :variant="pendingStatusVariant(item.status)" size="sm">
-                    {{ pendingStatusLabel(item.status) }}
-                  </UiBadge>
-                  <span
-                    v-if="item.created_at"
-                    class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
-                  >
-                    {{ formatPendingDate(item.created_at) }}
-                  </span>
-                </div>
-              </UiCard>
-            </div>
-          </div>
+          </UiCard>
         </div>
       </section>
 
@@ -732,202 +636,6 @@
           </UiCard>
         </div>
       </section>
-
-
-      <!-- Quick Actions -->
-      <section v-if="!statsError" aria-label="Acciones rápidas">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-label">Acciones rápidas</h2>
-          <UiButton variant="ghost" size="sm" @click="goToCalendar">
-            Ver calendario
-            <template #icon-right>
-              <!--
-                Chevron: stroke-width="1.5", the documented apple-design §16
-                baseline (T6). The 2.0 default is retired page-wide.
-              -->
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </template>
-          </UiButton>
-        </div>
-
-        <!--
-          Quick Actions - 3 cols at lg+ (see layout note above for why
-          not 5).
-
-          HOTFIX-DASH-002 - icon-in-box removed (no more
-          `bg-systemGray-100 rounded-lg flex items-center justify-center`
-          container; design-taste §9.D "NO three-equal Material cards").
-
-          HOTFIX-DASH-005 - Surface Consistency Lock (design-taste §4.4):
-          every Quick Action card references the same surface tokens as
-          KPI cards (--color-hairline + --elevation-2) so the shape
-          system stays uniform across the page.
-
-          HOTFIX-DASH-006 - Letter-key shortcut badge removed (no
-          <kbd> with single uppercase letter). design-taste §9.D "no
-          Material keyboard-shortcut reference visual". Each tile's
-          affordance is the hover-lift plus a full-bleed native button:
-          the card is the surface, the <button type="button"> inside it is
-          the control (T6), so the whole card stays the click region while
-          keyboard focus and activation work natively.
-
-          T2b - every tile icon is an @heroicons/vue 24-outline
-          component (UsersIcon, UserGroupIcon, BuildingOfficeIcon,
-          ChartBarIcon) instead of an inline SVG. The heroicons
-          baseline stroke is 1.5, so the apple-design §16 rule (icon
-          stroke 1.5, NOT icon-in-box) still holds.
-
-          T3 - single CTA per destination: the duplicate appointment
-          tile was removed and the agenda header owns the primary
-          appointment CTA, leaving four destination tiles.
-
-          T6 - the four tiles are real buttons (native semantics, no
-          clickable div) and the /business-intelligence tile is named
-          after the sidebar entry ("Business Intelligence").
-        -->
-        <div
-          ref="quickActionsSection"
-          data-reveal="quick-actions"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-          :style="revealStyle('--spring-dash-quick-o')"
-        >
-          <!-- Patients -->
-          <UiCard
-            variant="flat"
-            hover
-            padding="none"
-            data-action="patients"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-          >
-            <!--
-              T6 - the card is the surface, the native button is the
-              control. w-full + the card's p-6 keep the whole card as the
-              click region; active:scale-[0.98] mirrors the press feedback
-              the card's retired clickable state provided.
-            -->
-            <button
-              type="button"
-              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
-              @click="goToPatients"
-            >
-              <div class="flex items-start gap-3">
-                <UsersIcon
-                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-label leading-tight">Pacientes</p>
-                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                    Gestionar base de datos
-                  </p>
-                </div>
-              </div>
-            </button>
-          </UiCard>
-
-          <!-- Professionals -->
-          <UiCard
-            v-if="can.manageUsers?.value"
-            variant="flat"
-            hover
-            padding="none"
-            data-action="professionals"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-          >
-            <button
-              type="button"
-              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
-              @click="goToProfessionals"
-            >
-              <div class="flex items-start gap-3">
-                <UserGroupIcon
-                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-label leading-tight">Profesionales</p>
-                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">Gestionar equipo</p>
-                </div>
-              </div>
-            </button>
-          </UiCard>
-
-          <!-- Environments -->
-          <UiCard
-            v-if="can.manageConfig?.value"
-            variant="flat"
-            hover
-            padding="none"
-            data-action="environments"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-          >
-            <button
-              type="button"
-              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
-              @click="goToEnvironments"
-            >
-              <div class="flex items-start gap-3">
-                <BuildingOfficeIcon
-                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-label leading-tight">Ambientes</p>
-                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                    Configurar espacios
-                  </p>
-                </div>
-              </div>
-            </button>
-          </UiCard>
-
-          <!-- Business Intelligence -->
-          <UiCard
-            v-if="can.viewReports?.value"
-            variant="flat"
-            hover
-            padding="none"
-            data-action="reports"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)', borderRadius: 'var(--radius-card-lg)' }"
-          >
-            <button
-              type="button"
-              class="block w-full p-6 text-left active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-systemBlue-500"
-              @click="goToBusinessIntelligence"
-            >
-              <div class="flex items-start gap-3">
-                <ChartBarIcon
-                  class="flex-shrink-0 w-5 h-5 mt-0.5 text-systemGray-600"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0 flex-1">
-                  <p class="font-medium text-label leading-tight">Business Intelligence</p>
-                  <p class="text-sm text-theme-secondary leading-snug mt-0.5">
-                    Análisis y estadísticas
-                  </p>
-                </div>
-              </div>
-            </button>
-          </UiCard>
-        </div>
-      </section>
     </div>
 
     <!-- New Appointment Modal -->
@@ -940,10 +648,6 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowPathIcon,
-  UsersIcon,
-  UserGroupIcon,
-  BuildingOfficeIcon,
-  ChartBarIcon,
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
@@ -954,9 +658,9 @@ import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
 // apple-design §4 "behavior over animation - use springs" + §8 "hint
 // in direction of gesture" (intermediate frames telegraph direction).
-// Each of the 4 visible sections gets its own useSpring with a distinct
-// cssVar so the four entrance animations cannot collide on the same CSS
-// custom property. Stagger: 0ms / 60ms / 120ms / 180ms on the first
+// Each of the 3 visible sections gets its own useSpring with a distinct
+// cssVar so the entrance animations cannot collide on the same CSS
+// custom property. Stagger: 0ms / 60ms / 120ms on the first
 // successful content render. Critically damped (damping 1.0) by default -
 // no overshoot on a non-momentum entrance. The templates consume each var
 // through revealStyle(); before T4 the vars were written but unconsumed.
@@ -999,11 +703,11 @@ const refreshing = ref(false)
 const statsError = ref(false)
 const todayError = ref(false)
 
-// HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
+// HOTFIX-DASH-009 / T4 - per-section staggered springs (3 sections,
 // 60ms stagger). apple-design §4 (springs for entrance, critically
 // damped), §8 (intermediate frames telegraph direction via stagger).
 // Each spring targets a distinct CSS custom property on its bound
-// element so the four animations never collide. useSpring() honors
+// element so the entrance animations never collide. useSpring() honors
 // prefers-reduced-motion internally - the springs collapse to instant
 // settle when the OS preference is on (see composables/useSpring.js
 // contract, item 6).
@@ -1017,11 +721,6 @@ const kpiSpring = useSpring({
   response: 0.35,
   cssVar: '--spring-dash-kpi-o'
 })
-const quickActionsSpring = useSpring({
-  damping: 1.0,
-  response: 0.35,
-  cssVar: '--spring-dash-quick-o'
-})
 const emptyStateSpring = useSpring({
   damping: 1.0,
   response: 0.35,
@@ -1030,7 +729,6 @@ const emptyStateSpring = useSpring({
 
 const greetingSection = ref(null)
 const kpiSection = ref(null)
-const quickActionsSection = ref(null)
 const emptyStateSection = ref(null)
 
 // T4 - section reveal rule. The spring writes a 0..1 progress into its
@@ -1055,7 +753,6 @@ const playEntrance = () => {
 
   if (greetingSection.value) greetingSpring.attach(greetingSection.value)
   if (kpiSection.value) kpiSpring.attach(kpiSection.value)
-  if (quickActionsSection.value) quickActionsSpring.attach(quickActionsSection.value)
   // The empty state renders through a child component, so the template ref
   // yields the component instance; the spring binds to its root element.
   if (emptyStateSection.value) {
@@ -1064,8 +761,7 @@ const playEntrance = () => {
 
   setTimeout(() => greetingSpring.set(1), 0)
   setTimeout(() => kpiSpring.set(1), 60)
-  setTimeout(() => quickActionsSpring.set(1), 120)
-  setTimeout(() => emptyStateSpring.set(1), 180)
+  setTimeout(() => emptyStateSpring.set(1), 120)
 }
 
 // T4 - KPI count-up springs. Each headline number counts 0 -> value on the
@@ -1292,16 +988,73 @@ const upcomingGroups = computed(() => {
 })
 
 /**
- * T7b - pending subsets. The backend omits the keys the role cannot read,
- * so the payload key itself is the visibility contract: an absent key
- * hides the group, while `{ count: 0 }` renders it with its small Spanish
- * empty copy.
+ * WU3 / D6 - pending subsets. The backend omits the keys the role cannot
+ * read, so the payload key itself is the visibility contract: an absent
+ * key hides that type's rows, and no key at all hides the whole section.
  */
 const pendingQuotations = computed(() => pending.value?.quotations || null)
 const pendingTreatmentPlans = computed(() => pending.value?.treatment_plans || null)
 const hasPendingGroups = computed(() =>
   Boolean(pendingQuotations.value || pendingTreatmentPlans.value)
 )
+
+/**
+ * WU3 / D6 - ONE merged dataset for the Pendientes list. The per-type
+ * payload gating above stays intact; only the presentation merges. Each
+ * row keeps the per-type amount field (quotations: total_amount, plans:
+ * final_cost with a muted "N/D" fallback) and its own module destination,
+ * and the merged rows sort by their pending date ascending.
+ */
+const PENDING_TYPE_META = {
+  quotations: {
+    typeLabel: 'Presupuesto',
+    rowHook: 'quotations',
+    route: '/quotations',
+    actionLabel: 'Ver presupuesto',
+    readAmount: item => item?.total_amount
+  },
+  treatment_plans: {
+    typeLabel: 'Plan de tratamiento',
+    rowHook: 'treatment-plans',
+    route: '/treatment-plans',
+    actionLabel: 'Ver plan de tratamiento',
+    readAmount: item => item?.final_cost
+  }
+}
+
+// Unparseable or missing dates sort last instead of poisoning the merge.
+const pendingSortTime = dateTime => {
+  const time = new Date(dateTime).getTime()
+  return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time
+}
+
+const pendingRows = computed(() => {
+  const rows = []
+  const collect = (entityType, group) => {
+    if (!group) return
+    const meta = PENDING_TYPE_META[entityType]
+    for (const item of group.items || []) {
+      const amount = meta.readAmount(item)
+      const patientName = item.patient_name || 'Paciente'
+      rows.push({
+        key: `${entityType}-${item.id}`,
+        entityType,
+        rowHook: meta.rowHook,
+        typeLabel: meta.typeLabel,
+        patientName,
+        amountLabel: amount === null || amount === undefined ? 'N/D' : formatPENLabel(amount),
+        status: item.status,
+        dateLabel: formatPendingDate(item.created_at),
+        actionAria: `${meta.actionLabel}: ${patientName}`,
+        sortTime: pendingSortTime(item.created_at)
+      })
+    }
+  }
+  collect('quotations', pendingQuotations.value)
+  collect('treatment_plans', pendingTreatmentPlans.value)
+  rows.sort((a, b) => a.sortTime - b.sortTime)
+  return rows
+})
 
 /**
  * T7b - Spanish copy for the pending statuses, mirroring the module badges
@@ -1322,20 +1075,9 @@ const pendingStatusLabel = status => pendingStatusLabels[status] || status
 const pendingStatusVariant = status => pendingStatusVariants[status] || 'neutral'
 
 // Navigation functions
-const goToCalendar = () => {
-  router.push('/calendar')
-}
-
-const goToQuotations = () => {
-  router.push('/quotations')
-}
-
-const goToTreatmentPlans = () => {
-  router.push('/treatment-plans')
-}
-
-const goToPatients = () => {
-  router.push('/patients')
+const goToPendingEntity = entityType => {
+  const destination = PENDING_TYPE_META[entityType]?.route
+  if (destination) router.push(destination)
 }
 
 const showNewAppointmentModal = ref(false)
@@ -1346,13 +1088,9 @@ const goToNewAppointment = () => {
 
 const handleAppointmentCreated = async () => {
   // Slice 08 / FF-015: refresh data after the user creates an appointment
-  // from anywhere (agenda header CTA or empty-state CTA). Single fetch
-  // rather than a fan-out - the WebSocket path will catch subsequent edits.
+  // from the agenda header CTA. Single fetch rather than a fan-out - the
+  // WebSocket path will catch subsequent edits.
   await loadDashboardData()
-}
-
-const goToProfessionals = () => {
-  router.push('/professionals')
 }
 
 const goToCashRegister = () => {
@@ -1396,14 +1134,6 @@ const cashKpiCaption = computed(() => {
   const openedAt = currentSession.value?.opened_at
   return isOpen.value && openedAt ? `Apertura ${formatTime(openedAt)}` : 'N/D'
 })
-
-const goToEnvironments = () => {
-  router.push('/environments')
-}
-
-const goToBusinessIntelligence = () => {
-  router.push('/business-intelligence')
-}
 
 // Data loading
 

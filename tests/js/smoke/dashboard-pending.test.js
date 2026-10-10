@@ -2,13 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T7b regression coverage: the dashboard renders the "Pendientes" block
-// (quotations and treatment plans awaiting a decision) between the week
-// preview and the KPI grid. Visibility follows the backend contract: a
-// subset key present in the payload renders its group, an absent key hides
-// it, and no keys at all hide the whole section. A failing pending request
-// shows an inline error whose retry re-issues ONLY that resource, and the
-// manual refresh includes it in the full load path without blanking rows.
+// WU3 / D6 regression coverage: the dashboard renders ONE unified
+// "Pendientes" list where quotations and treatment plans appear as rows of
+// a single dataset. Each row: patient name, amount, type badge
+// (Presupuesto / Plan de tratamiento), status badge, date, and ONE
+// row-level action that routes to the entity's module list. Merged rows
+// sort by their pending date ascending. Visibility keeps the backend
+// payload-key contract: a subset key present renders its rows, an absent
+// key hides them, and no keys at all hide the whole section. A failing
+// pending request shows an inline error whose retry re-issues ONLY that
+// resource.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
@@ -111,26 +114,26 @@ const upcomingCalls = () => getMock.mock.calls.filter(([url]) => url === '/api/d
 // Intl rendering uses U+00A0 between the currency glyph and the amount.
 const normalize = value => value.replace(/\u00a0/g, ' ')
 
-describe('dashboard pending block (T7b)', () => {
+describe('dashboard unified pending list (WU3 / D6)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('renders both groups with counts, rows, Spanish status labels and the PEN total', async () => {
+  it('merges quotations and plans into ONE list with type badges sorted by pending date ascending', async () => {
     installPayload({
       pending: {
         quotations: {
           count: 2,
           items: [
-            quotationItem(11, 'Ana Torres Quispe', 'viewed', 149.9),
-            quotationItem(12, 'Luis Rojas', 'sent', 89)
+            quotationItem(11, 'Ana Torres Quispe', 'viewed', 149.9, localIso(2026, 9, 3)),
+            quotationItem(12, 'Luis Rojas', 'sent', 89, localIso(2026, 9, 1))
           ]
         },
         treatment_plans: {
           count: 1,
-          items: [planItem(21, 'Marta Díaz', 'proposed')]
+          items: [planItem(21, 'Marta Díaz', 'proposed', localIso(2026, 9, 2))]
         }
       }
     })
@@ -139,49 +142,79 @@ describe('dashboard pending block (T7b)', () => {
 
     const section = wrapper.find('section[aria-label="Pendientes"]')
     expect(section.exists()).toBe(true)
-    expect(section.text()).toContain('Pendientes')
-    expect(section.text()).toContain('Presupuestos pendientes')
-    expect(section.text()).toContain('Planes por aceptar')
 
-    const quotationGroup = section.find('[data-pending-group="quotations"]')
-    expect(quotationGroup.exists()).toBe(true)
-    expect(quotationGroup.text()).toContain('2')
+    // ONE list: no per-type columns, headers or counts.
+    expect(wrapper.findAll('[data-pending-group]')).toHaveLength(0)
+    expect(section.text()).not.toContain('Presupuestos pendientes')
+    expect(section.text()).not.toContain('Planes por aceptar')
 
-    const quotationRows = quotationGroup.findAll('[data-pending-row]')
-    expect(quotationRows).toHaveLength(2)
-    expect(quotationRows[0].text()).toContain('Ana Torres Quispe')
-    expect(quotationRows[0].text()).toContain('Visto')
-    expect(normalize(quotationRows[0].text())).toContain('S/ 149.90')
-    expect(quotationRows[0].text()).toContain('3 oct')
-    expect(quotationRows[1].text()).toContain('Enviado')
+    const rows = section.findAll('[data-pending-row]')
+    expect(rows).toHaveLength(3)
 
-    const planGroup = section.find('[data-pending-group="treatment-plans"]')
-    expect(planGroup.exists()).toBe(true)
-    expect(planGroup.text()).toContain('1')
+    // Sorted by pending date ascending: 1 oct, 2 oct, 3 oct.
+    expect(rows[0].text()).toContain('Luis Rojas')
+    expect(rows[0].text()).toContain('1 oct')
+    expect(rows[1].text()).toContain('Marta Díaz')
+    expect(rows[1].text()).toContain('2 oct')
+    expect(rows[2].text()).toContain('Ana Torres Quispe')
+    expect(rows[2].text()).toContain('3 oct')
 
-    const planRows = planGroup.findAll('[data-pending-row]')
-    expect(planRows).toHaveLength(1)
-    expect(planRows[0].text()).toContain('Marta Díaz')
-    expect(planRows[0].text()).toContain('Propuesto')
-    expect(normalize(planRows[0].text())).toContain('S/ 249.50')
-    expect(planRows[0].text()).toContain('2 oct')
+    // Row anatomy: patient name, amount, type badge, status badge, date.
+    const quotationRow = rows[2]
+    expect(normalize(quotationRow.text())).toContain('S/ 149.90')
+    expect(quotationRow.text()).toContain('Presupuesto')
+    expect(quotationRow.text()).toContain('Visto')
+    expect(quotationRow.text()).toContain('3 oct')
 
-    // Section order: agenda -> upcoming -> pendientes -> KPI grid.
-    const html = wrapper.html()
-    const agendaIdx = html.indexOf('aria-label="Agenda de hoy"')
-    const upcomingIdx = html.indexOf('aria-label="Próximas citas"')
-    const pendingIdx = html.indexOf('aria-label="Pendientes"')
-    const kpiIdx = html.indexOf('aria-label="Resumen del día"')
-    expect(upcomingIdx).toBeGreaterThan(agendaIdx)
-    expect(pendingIdx).toBeGreaterThan(upcomingIdx)
-    expect(kpiIdx).toBeGreaterThan(pendingIdx)
+    const planRow = rows[1]
+    expect(normalize(planRow.text())).toContain('S/ 249.50')
+    expect(planRow.text()).toContain('Plan de tratamiento')
+    expect(planRow.text()).toContain('Propuesto')
 
     expect(pendingCalls()).toHaveLength(1)
 
     wrapper.unmount()
   })
 
-  it('renders only the plans group when the payload omits quotations', async () => {
+  it('gives every row exactly one action that routes to the entity module list', async () => {
+    installPayload({
+      pending: {
+        quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] },
+        treatment_plans: { count: 1, items: [planItem(21, 'Marta Díaz')] }
+      }
+    })
+
+    const { wrapper, router } = await mountDashboard()
+
+    const rows = wrapper.findAll('[data-pending-row]')
+    expect(rows).toHaveLength(2)
+
+    for (const row of rows) {
+      const actions = row.findAll('button')
+      expect(actions).toHaveLength(1)
+    }
+
+    // No section-level overflow link: the row action IS the way in.
+    const section = wrapper.find('section[aria-label="Pendientes"]')
+    expect(section.text()).not.toContain('Ver todos')
+
+    const quotationRow = wrapper.find('[data-pending-row="quotations"]')
+    await quotationRow.find('button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/quotations')
+
+    await router.push('/dashboard')
+    await flushPromises()
+
+    const planRow = wrapper.find('[data-pending-row="treatment-plans"]')
+    await planRow.find('button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/treatment-plans')
+
+    wrapper.unmount()
+  })
+
+  it('renders only the treatment-plan rows when the payload omits quotations', async () => {
     installPayload({
       pending: {
         treatment_plans: { count: 1, items: [planItem(21, 'Marta Díaz')] }
@@ -192,9 +225,9 @@ describe('dashboard pending block (T7b)', () => {
 
     const section = wrapper.find('section[aria-label="Pendientes"]')
     expect(section.exists()).toBe(true)
-    expect(section.find('[data-pending-group="quotations"]').exists()).toBe(false)
-    expect(section.text()).not.toContain('Presupuestos pendientes')
-    expect(section.find('[data-pending-group="treatment-plans"]').exists()).toBe(true)
+    expect(section.findAll('[data-pending-row]')).toHaveLength(1)
+    expect(section.find('[data-pending-row="quotations"]').exists()).toBe(false)
+    expect(section.find('[data-pending-row="treatment-plans"]').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -205,13 +238,13 @@ describe('dashboard pending block (T7b)', () => {
     const { wrapper } = await mountDashboard()
 
     expect(wrapper.find('section[aria-label="Pendientes"]').exists()).toBe(false)
-    expect(wrapper.find('[data-pending-group]').exists()).toBe(false)
+    expect(wrapper.findAll('[data-pending-row]')).toHaveLength(0)
     expect(pendingCalls()).toHaveLength(1)
 
     wrapper.unmount()
   })
 
-  it('renders the small Spanish empty copy per group when a subset has no pending items', async () => {
+  it('renders ONE unified empty state when every visible subset has no items', async () => {
     installPayload({
       pending: {
         quotations: { count: 0, items: [] },
@@ -223,8 +256,10 @@ describe('dashboard pending block (T7b)', () => {
 
     const section = wrapper.find('section[aria-label="Pendientes"]')
     expect(section.exists()).toBe(true)
-    expect(section.text()).toContain('Sin presupuestos pendientes')
-    expect(section.text()).toContain('Sin planes por aceptar')
+
+    const empties = section.findAll('[data-state="empty-pending"]')
+    expect(empties).toHaveLength(1)
+    expect(empties[0].text()).toContain('Sin pendientes')
     expect(wrapper.findAll('[data-pending-row]')).toHaveLength(0)
 
     wrapper.unmount()
@@ -337,37 +372,6 @@ describe('dashboard pending block (T7b)', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/login')
-
-    wrapper.unmount()
-  })
-
-  it('links each group to its module with a ghost Ver todos action', async () => {
-    installPayload({
-      pending: {
-        quotations: { count: 1, items: [quotationItem(11, 'Ana Torres Quispe')] },
-        treatment_plans: { count: 1, items: [planItem(21, 'Marta Díaz')] }
-      }
-    })
-
-    const { wrapper, router } = await mountDashboard()
-
-    const quotationGroup = wrapper.find('[data-pending-group="quotations"]')
-    const planGroup = wrapper.find('[data-pending-group="treatment-plans"]')
-
-    const quotationLink = quotationGroup
-      .findAll('button')
-      .find(button => button.text().includes('Ver todos'))
-    const planLink = planGroup.findAll('button').find(button => button.text().includes('Ver todos'))
-    expect(quotationLink).toBeTruthy()
-    expect(planLink).toBeTruthy()
-
-    await quotationLink.trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/quotations')
-
-    await planLink.trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/treatment-plans')
 
     wrapper.unmount()
   })

@@ -117,23 +117,23 @@ describe('dashboard KPI section headings (T4)', () => {
     wrapper.unmount()
   })
 
-  it('keeps every sibling h2 and drops the title-case Acciones Rápidas', async () => {
+  it('renders no quick-actions section (D5) and keeps the sibling h2 anatomy', async () => {
     const wrapper = await mountDashboard()
 
-    const quickHeading = wrapper.find('section[aria-label="Acciones rápidas"]').find('h2')
-    expect(quickHeading.text()).toBe('Acciones rápidas')
-    expect(quickHeading.classes()).toEqual(
-      expect.arrayContaining(['text-base', 'font-semibold', 'text-label'])
-    )
+    // D5 — the dashboard must not re-list sidebar navigation.
+    expect(wrapper.find('section[aria-label="Acciones rápidas"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Acciones rápidas')
     expect(wrapper.text()).not.toContain('Acciones Rápidas')
 
     // The siblings that render for this payload keep the same anatomy and
-    // their existing copy (the source-level presence of all four section
-    // headings is pinned by DashboardAppShellTest).
+    // their existing copy.
     for (const label of ['Agenda de hoy', 'Próximas citas']) {
       const section = wrapper.find(`section[aria-label="${label}"]`)
       expect(section.exists()).toBe(true)
       expect(section.find('h2').text()).toBe(label)
+      expect(section.find('h2').classes()).toEqual(
+        expect.arrayContaining(['text-base', 'font-semibold', 'text-label'])
+      )
     }
 
     wrapper.unmount()

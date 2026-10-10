@@ -155,7 +155,7 @@ describe('dashboard load states (T3)', () => {
     // The rest of the page stays usable, and the day KPI never paints a
     // fabricated counter while its single source is down.
     expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('N/D')
-    expect(wrapper.find('[data-action="patients"]').exists()).toBe(true)
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(true)
 
     await wrapper.find('[data-retry-appointments]').trigger('click')
     await flushPromises()

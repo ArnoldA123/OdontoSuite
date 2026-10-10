@@ -58,7 +58,6 @@ import pageSource from '../../../resources/js/modules/dashboard/DashboardPage.vu
 const revealBindings = [
   ['[data-reveal="greeting"]', '--spring-dash-greeting-o'],
   ['[data-reveal="kpi"]', '--spring-dash-kpi-o'],
-  ['[data-reveal="quick-actions"]', '--spring-dash-quick-o'],
   ['[data-reveal="empty-state"]', '--spring-dash-empty-o']
 ]
 
@@ -240,10 +239,6 @@ describe('dashboard motion (T4)', () => {
     installPayload({}, [makeAppointment(1)])
 
     const wrapper = await mountDashboard()
-
-    const tile = wrapper.find('[data-action="patients"]')
-    expect(tile.attributes('style')).toContain('var(--elevation-2)')
-    expect(tile.attributes('style')).not.toContain('var(--elevation-1)')
 
     // T3 — the KPI cards keep their elevation but are a static reference
     // surface: no hover lift, no click affordance.

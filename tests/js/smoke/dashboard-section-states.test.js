@@ -35,7 +35,6 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
 import pageSource from '../../../resources/js/modules/dashboard/DashboardPage.vue?raw'
-import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -167,7 +166,7 @@ describe('dashboard unified section states (T5)', () => {
     wrapper.unmount()
   })
 
-  it('renders the shared empty component with per-section copy and one padding token', async () => {
+  it('renders the compact shared empty pattern with per-section copy and no redundant CTA (D9)', async () => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') return { data: [] }
@@ -185,44 +184,38 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
+    // At most three usages after unification: agenda, upcoming, pending.
     const empties = wrapper.findAll('[data-section-empty]')
-    expect(empties).toHaveLength(4)
+    expect(empties).toHaveLength(3)
     for (const empty of empties) {
-      expect(empty.classes()).toContain('p-10')
+      // Compact pattern: reduced padding, one title + one sentence.
+      expect(empty.classes()).toContain('p-6')
+      expect(empty.findAll('p')).toHaveLength(2)
     }
 
     const agendaEmpty = wrapper.find('[data-state="empty-appointments"]')
     expect(agendaEmpty.element.hasAttribute('data-section-empty')).toBe(true)
     expect(agendaEmpty.find('svg').exists()).toBe(true)
     expect(agendaEmpty.text()).toContain('Sin citas para hoy')
-
-    const cta = agendaEmpty.find('[data-cta="empty-create-appointment"]')
-    expect(cta.exists()).toBe(true)
-    expect(cta.text()).toContain('Crear nueva cita')
-    await cta.trigger('click')
-    await flushPromises()
-    expect(wrapper.findComponent(NewAppointmentModal).props('modelValue')).toBe(true)
+    expect(agendaEmpty.text()).toContain('Cuando registres citas, aparecerán aquí.')
+    expect(agendaEmpty.text()).not.toContain('sección de calendario')
+    expect(agendaEmpty.find('button').exists()).toBe(false)
 
     const upcomingEmpty = wrapper.find('[data-state="empty-upcoming"]')
     expect(upcomingEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(upcomingEmpty.text()).toContain('Sin citas programadas para esta semana')
+    expect(upcomingEmpty.text()).toContain('No hay citas registradas de mañana en adelante.')
+    expect(upcomingEmpty.text()).not.toContain('Sin citas programadas para esta semana')
 
-    const quotationEmpty = wrapper.find(
-      '[data-pending-group="quotations"] [data-state="empty-pending"]'
-    )
-    expect(quotationEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(quotationEmpty.text()).toContain('Sin presupuestos pendientes')
-
-    const planEmpty = wrapper.find(
-      '[data-pending-group="treatment-plans"] [data-state="empty-pending"]'
-    )
-    expect(planEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(planEmpty.text()).toContain('Sin planes por aceptar')
+    // Unified pending: ONE empty state for the merged list.
+    const pendingEmpties = wrapper.findAll('[data-state="empty-pending"]')
+    expect(pendingEmpties).toHaveLength(1)
+    expect(pendingEmpties[0].element.hasAttribute('data-section-empty')).toBe(true)
+    expect(pendingEmpties[0].text()).toContain('Sin pendientes')
 
     wrapper.unmount()
   })
 
-  it('renders plan final_cost with the quotation row anatomy and a muted null fallback', async () => {
+  it('renders merged pending rows with one uniform anatomy and a muted null-cost fallback', async () => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') return { data: [] }
@@ -271,23 +264,29 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const quotationRow = wrapper.find('[data-pending-row="quotations"]')
-    const planRow = wrapper.find('[data-pending-row="treatment-plans"]')
+    const rows = wrapper.findAll('[data-pending-row]')
+    expect(rows).toHaveLength(3)
+
+    // Sorted by pending date ascending: Pedro (1 oct), Marta (2 oct), Ana (3 oct).
+    const nullCostRow = rows[0]
+    const planRow = rows[1]
+    const quotationRow = rows[2]
 
     expect(normalize(quotationRow.text())).toContain('S/ 149.90')
     expect(normalize(planRow.text())).toContain('S/ 249.50')
     expect(planRow.text()).toContain('Propuesto')
 
-    // Same cell anatomy as the quotation rows: patient / amount / status /
-    // date, all rendered through the same UiBadge pill primitive.
+    // One row template for both types: patient / amount / type badge /
+    // status badge / date / action, all rendered through the same
+    // UiBadge pill primitive.
     const cells = row =>
       Array.from(row.element.querySelector('.card-content > div').children).map(el =>
         el.tagName.toLowerCase()
       )
-    expect(cells(planRow)).toEqual(cells(quotationRow))
-    expect(planRow.find('[data-variant]').exists()).toBe(true)
+    expect(cells(rows[0])).toEqual(cells(rows[1]))
+    expect(cells(rows[1])).toEqual(cells(rows[2]))
+    expect(planRow.findAll('[data-variant]').length).toBeGreaterThanOrEqual(2)
 
-    const nullCostRow = wrapper.findAll('[data-pending-row="treatment-plans"]')[1]
     expect(nullCostRow.text()).toContain('N/D')
     expect(normalize(nullCostRow.text())).not.toContain('S/')
     expect(nullCostRow.text()).not.toContain('\u2014')
@@ -300,6 +299,8 @@ describe('dashboard section-state extraction (T5 source)', () => {
   it('leaves no duplicated inline error or empty markup in the page', () => {
     expect(pageSource).not.toContain('rounded-ios p-5 bg-systemRed-50')
     expect(pageSource.match(/<DashboardSectionError\b/g) || []).toHaveLength(3)
-    expect((pageSource.match(/<DashboardSectionEmpty\b/g) || []).length).toBeGreaterThanOrEqual(4)
+    // After the pending unification only three usages remain: agenda,
+    // upcoming and the single unified pending empty state.
+    expect(pageSource.match(/<DashboardSectionEmpty\b/g) || []).toHaveLength(3)
   })
 })

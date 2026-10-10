@@ -311,137 +311,134 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * DoD #2 — Quick actions must NOT be rendered in a 5-column grid at
-     * any breakpoint. A 5-up grid at 1440 px gave each card only ~70 px
-     * of text space, which clipped every subtitle. Quick actions are
-     * actions, not a stat row, so they don't need to match the stats
-     * grid. The contract: cap at 3 columns at lg+, never 5.
-     *
-     * The stats grid (5-col at lg+) legitimately uses a 5-up layout — this
-     * assertion scopes its check to the region BETWEEN the
-     * "Cargando acciones rápidas" / "Acciones Rápidas" heading and the
-     * "Citas de Hoy" heading (the quick-actions + its loading skeleton),
-     * not the whole file.
+     * WU3 / D5 — the "Acciones rápidas" block re-listed sidebar navigation
+     * (/patients, /professionals, /environments, /business-intelligence)
+     * and is removed whole: no loaded section, no loading skeleton, no
+     * destination tiles, and no now-dead navigation handlers. The sidebar
+     * owns those destinations.
      */
-    public function test_quick_actions_grid_capped_at_three_columns(): void
+    public function test_dashboard_renders_no_quick_actions_block(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // Whole file: the quick-actions grid class must include
-        // lg:grid-cols-3.
-        $this->assertStringContainsString(
-            'lg:grid-cols-3',
-            $src,
-            'DashboardPage.vue quick-actions must use lg:grid-cols-3 (3 cols at lg+), not 5.'
-        );
-
-        // Scope to the two quick-action regions by their <section> aria-labels:
-        // the skeleton ("Cargando acciones rápidas") and the loaded grid
-        // ("Acciones rápidas"). Scoping by prose markers instead swallowed the
-        // stats grid, which legitimately uses 5 columns, and failed the wrong
-        // section. T3 adds a `v-if="!statsError"` binding to the loaded
-        // quick-actions section, so the anchor matches the aria-label anywhere
-        // inside the <section> opening tag instead of requiring the literal
-        // `<section aria-label=` prefix.
         foreach (['Cargando acciones rápidas', 'Acciones rápidas'] as $label) {
-            $found = preg_match(
+            $this->assertDoesNotMatchRegularExpression(
                 '/<section\b[^>]*aria-label="' . preg_quote($label, '/') . '"/',
                 $src,
-                $matches,
-                PREG_OFFSET_CAPTURE
+                'DashboardPage.vue must not render the quick-actions section "' . $label . '" (WU3 / D5: the dashboard never re-lists sidebar navigation).'
             );
-            $start = $found === 1 ? $matches[0][1] : false;
-            $this->assertNotFalse(
-                $start,
-                'DashboardPage.vue must contain a <section aria-label="' . $label . '">'
-            );
+        }
 
-            $end = strpos($src, '</section>', $start);
-            $this->assertNotFalse($end, 'Section "' . $label . '" must be closed');
-            $region = substr($src, $start, $end - $start);
+        $this->assertSame(
+            0,
+            preg_match_all('/\bdata-action\s*=\s*[\'\"][^\'\"]+[\'\"]/', $src),
+            'DashboardPage.vue must render zero data-action destination tiles (WU3 / D5).'
+        );
 
-            $this->assertDoesNotMatchRegularExpression(
-                '/grid-cols-(4|5|6)\b/',
-                $region,
-                'Quick-actions section "' . $label . '" must not use a 4/5/6-column grid — '
-                    . 'the Spanish labels are clipped at that width.'
+        foreach (
+            [
+                'goToCalendar',
+                'goToPatients',
+                'goToProfessionals',
+                'goToEnvironments',
+                'goToBusinessIntelligence',
+            ]
+            as $handler
+        ) {
+            $this->assertStringNotContainsString(
+                $handler,
+                $src,
+                "DashboardPage.vue must drop the now-dead {$handler} handler with the quick-actions block (WU3 / D5)."
             );
         }
     }
 
 
     /**
-     * DoD #2 — The chevron SVG inside each quick action card consumes
-     * horizontal space the label needs. Cards are whole-card clickable,
-     * so the chevron is decorative and must not be present on the
-     * quick-action card. The previous 5-col layout had a 16 px chevron
-     * per card; on a ~70 px card that ate ~20% of the text budget.
-     *
-     * Scope: only the elements marked `data-action="..."` (the actual
-     * quick-action cards). The "Ver calendario" / "Ver todas" CTAs in the
-     * section headers legitimately use chevrons and are not in scope.
+     * WU3 / D6 — "Pendientes" is ONE merged list: quotations and treatment
+     * plans are rows of a single dataset. The twin columns (per-type
+     * header, count and empty box) are removed; only the presentation
+     * merges, the per-type payload gating stays in the script.
      */
-    public function test_quick_action_cards_have_no_chevron_svg(): void
+    public function test_dashboard_pending_block_is_one_merged_list(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
 
-        // Match every `<UiCard ... data-action="..." ...> ... </UiCard>` block
-        // and assert none of them contain the right-chevron path.
-        preg_match_all(
-            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
-            $src,
-            $matches
+        $pending = $this->sectionRegion($src, 'Pendientes');
+        $this->assertStringNotContainsString(
+            'data-pending-group',
+            $pending,
+            'DashboardPage.vue Pendientes must render no per-type columns (WU3 / D6: one merged list).'
         );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($cards),
-            'DashboardPage.vue must contain at least 4 data-action cards (the 4 verified action labels).'
-        );
-        foreach ($cards as $idx => $card) {
-            $this->assertDoesNotMatchRegularExpression(
-                '/M9 5l7 7-7 7/',
-                $card,
-                "Quick-action card #{$idx} must not contain a chevron SVG (it consumed space the label needed)."
+        foreach (['Presupuestos pendientes', 'Planes por aceptar'] as $retiredHeader) {
+            $this->assertStringNotContainsString(
+                $retiredHeader,
+                $pending,
+                "DashboardPage.vue Pendientes must drop the duplicated \"{$retiredHeader}\" column header (WU3 / D6)."
             );
         }
+
+        $this->assertSame(
+            1,
+            preg_match_all('/v-for="row in pendingRows"/', $src),
+            'DashboardPage.vue must iterate ONE merged pendingRows dataset (WU3 / D6).'
+        );
+        $this->assertSame(
+            1,
+            preg_match_all('/data-state="empty-pending"/', $src),
+            'DashboardPage.vue must render exactly ONE unified pending empty state (WU3 / D6 / D9).'
+        );
     }
 
     /**
-     * DoD #2 — Quick-action subtitles (the descriptive `<p>` after the
-     * title, e.g. "Gestionar base de datos") must NOT have `truncate`
-     * (overflow: hidden + ellipsis) because Spanish copy runs ~25%
-     * longer than English. The truncated state was the clip that the
-     * user reported.
-     *
-     * Scope: the `<p>` paragraphs inside each `data-action` card.
+     * WU3 / D6 — the merged row contract: patient name, amount (per-type
+     * field), type badge (Presupuesto / Plan de tratamiento), status badge,
+     * date and ONE row-level action routing to the entity's module list.
+     * Rows sort by their pending date ascending.
      */
-    public function test_quick_action_subtitles_do_not_truncate(): void
+    public function test_dashboard_pending_rows_carry_type_badges_and_one_action(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
+        $this->assertNotNull($src);
 
-        preg_match_all(
-            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
-            $src,
-            $matches
-        );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($cards),
-            'DashboardPage.vue must contain at least 4 data-action cards.'
-        );
-        foreach ($cards as $idx => $card) {
-            $this->assertDoesNotMatchRegularExpression(
-                '/<p[^>]*\btruncate\b[^>]*>/i',
-                $card,
-                "Quick-action card #{$idx} must not use `truncate` on its subtitle <p>."
+        foreach (['Presupuesto', 'Plan de tratamiento'] as $typeLabel) {
+            $this->assertStringContainsString(
+                "typeLabel: '{$typeLabel}'",
+                $src,
+                "DashboardPage.vue merged pending rows must carry the type badge copy \"{$typeLabel}\" (WU3 / D6)."
             );
         }
+
+        $this->assertStringContainsString(
+            "route: '/quotations'",
+            $src,
+            'Quotation rows must route to the /quotations module list (no detail route exists).'
+        );
+        $this->assertStringContainsString(
+            "route: '/treatment-plans'",
+            $src,
+            'Treatment-plan rows must route to the /treatment-plans module list (no detail route exists).'
+        );
+        $this->assertStringContainsString(
+            '@click="goToPendingEntity(row.entityType)"',
+            $src,
+            'Every merged pending row must render its single action through goToPendingEntity (WU3 / D6).'
+        );
+        $this->assertStringContainsString(
+            'rows.sort(',
+            $src,
+            'Merged pending rows must sort by their pending date ascending (WU3 / D6).'
+        );
+        $this->assertStringNotContainsString(
+            'Ver todos',
+            $src,
+            'DashboardPage.vue must keep no section-level overflow link on Pendientes (the row action owns the destination).'
+        );
     }
 
     /**
@@ -541,26 +538,29 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T3 — DashboardPage.vue must contain the four verified quick-action
-     * labels after the "Nueva Cita" tile was removed (single CTA per
-     * destination: the agenda header owns the primary appointment CTA).
-     * T6 — the /business-intelligence tile is named after the sidebar entry
-     * ("Business Intelligence"), not the retired "Reportes" alias.
+     * WU3 / D5 — the quick-action tile copy left with the block: the
+     * destination titles and their subtitles are gone as rendered element
+     * text. The sidebar owns those destinations and their names.
      */
-    public function test_dashboard_contains_all_four_verified_quick_action_labels(): void
+    public function test_dashboard_quick_action_tile_copy_is_removed(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $labels = ['Pacientes', 'Profesionales', 'Ambientes', 'Business Intelligence'];
-        foreach ($labels as $label) {
-            // "Pacientes" appears in BOTH the stat card and the quick
-            // actions; each label must be present at least once.
-            $this->assertGreaterThanOrEqual(
-                1,
-                substr_count($src, $label),
-                "DashboardPage.vue must render the quick-action label \"{$label}\" (verified content)."
+        foreach (
+            [
+                'Gestionar base de datos',
+                'Gestionar equipo',
+                'Configurar espacios',
+                'Análisis y estadísticas',
+            ]
+            as $subtitle
+        ) {
+            $this->assertStringNotContainsString(
+                $subtitle,
+                $src,
+                "DashboardPage.vue must drop the quick-action tile subtitle \"{$subtitle}\" (WU3 / D5)."
             );
         }
 
@@ -571,44 +571,39 @@ class DashboardAppShellTest extends TestCase
         $this->assertDoesNotMatchRegularExpression(
             '/>\s*Nueva Cita\s*</',
             $src,
-            'DashboardPage.vue must not render the removed "Nueva Cita" quick-action tile (T3 single CTA per destination).'
+            'DashboardPage.vue must not render the removed "Nueva Cita" quick-action tile (single CTA per destination).'
         );
     }
 
     /**
-     * T3 — "Ver calendario" must be rendered exactly once: on the Acciones
-     * rápidas header. The Agenda de hoy and Próximas citas headers no
-     * longer duplicate it, and every other calendar affordance is gone.
+     * WU3 / D5 — no calendar CTA survives on the dashboard: "Ver calendario"
+     * re-listed the sidebar destination and is removed with the quick-actions
+     * header. The pending block keeps no "Ver todos" overflow links either
+     * (the merged rows own their destinations).
      */
-    public function test_dashboard_renders_single_ver_calendario_cta(): void
+    public function test_dashboard_renders_no_ver_calendario_or_ver_todos_ctas(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
         $this->assertSame(
-            1,
+            0,
             substr_count($src, 'Ver calendario'),
-            'DashboardPage.vue must render exactly one "Ver calendario" CTA (T3 single CTA per destination).'
+            'DashboardPage.vue must render zero "Ver calendario" CTAs (WU3 / D5: the calendar lives in the sidebar).'
         );
         $this->assertSame(
-            1,
-            substr_count($src, '@click="goToCalendar"'),
-            'DashboardPage.vue must bind goToCalendar to the single remaining "Ver calendario" CTA only.'
+            0,
+            substr_count($src, 'Ver todos'),
+            'DashboardPage.vue must render zero "Ver todos" overflow links (WU3 / D6: one row-level action per entity).'
         );
 
-        $quickActions = $this->sectionRegion($src, 'Acciones rápidas');
-        $this->assertStringContainsString(
-            'Ver calendario',
-            $quickActions,
-            'DashboardPage.vue must keep the "Ver calendario" CTA in the Acciones rápidas header.'
-        );
-
-        foreach (['Agenda de hoy', 'Próximas citas'] as $label) {
+        foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes'] as $label) {
+            $region = $this->sectionRegion($src, $label);
             $this->assertStringNotContainsString(
-                'Ver calendario',
-                $this->sectionRegion($src, $label),
-                "DashboardPage.vue section \"{$label}\" must not duplicate the \"Ver calendario\" CTA (T3)."
+                'goToCalendar',
+                $region,
+                "DashboardPage.vue section \"{$label}\" must not bind a calendar navigation handler (WU3 / D5)."
             );
         }
     }
@@ -802,10 +797,11 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T5 — the three empty states render through the shared
-     * DashboardSectionEmpty component: one padding token, per-section copy
-     * passed as props, and the pending empty copy keeps its per-column
-     * semantics inside each data-pending-group.
+     * WU3 / D9 — the empty states render through the SHARED compact
+     * DashboardSectionEmpty pattern: one reduced padding token, one icon
+     * size, one title + one sentence, and at most three usages (agenda,
+     * upcoming, unified pending). The pending empty copy is the single
+     * unified sentence, not the retired per-column pair.
      */
     public function test_dashboard_uses_shared_section_empty_component(): void
     {
@@ -816,7 +812,7 @@ class DashboardAppShellTest extends TestCase
         $componentPath = self::projectRootPath() . '/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
         $this->assertFileExists(
             $componentPath,
-            'DashboardSectionEmpty.vue must exist (T5 shared empty-state pattern).'
+            'DashboardSectionEmpty.vue must exist (shared empty-state pattern).'
         );
         $componentSrc = (string) self::readFile($componentPath);
         $this->assertStringContainsString(
@@ -825,46 +821,57 @@ class DashboardAppShellTest extends TestCase
             'DashboardSectionEmpty.vue must expose the data-section-empty hook (T5).'
         );
         $this->assertStringContainsString(
+            'p-6',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must own the compact padding token used by every empty state (WU3 / D9).'
+        );
+        $this->assertStringNotContainsString(
             'p-10',
             $componentSrc,
-            'DashboardSectionEmpty.vue must own the single padding token used by every empty state (T5).'
+            'DashboardSectionEmpty.vue must drop the retired generous p-10 padding (WU3 / D9: compact pattern).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/h-8 w-8/',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must render the smaller h-8 w-8 icon (WU3 / D9).'
         );
 
-        foreach (['empty-appointments', 'empty-upcoming'] as $state) {
+        $this->assertSame(
+            3,
+            preg_match_all('/<DashboardSectionEmpty\b/', $src),
+            'DashboardPage.vue must render at most three empty states (agenda, upcoming, unified pending) (WU3 / D9).'
+        );
+
+        foreach (['empty-appointments', 'empty-upcoming', 'empty-pending'] as $state) {
             $this->assertMatchesRegularExpression(
                 '/<DashboardSectionEmpty\b[^>]*data-state="' . $state . '"/s',
                 $src,
-                "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (T5)."
+                "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (WU3 / D9)."
             );
         }
 
         $pending = $this->sectionRegion($src, 'Pendientes');
-        $this->assertMatchesRegularExpression(
-            '/data-pending-group="quotations"[\s\S]*?<DashboardSectionEmpty\b/s',
-            $pending,
-            'Pending quotations empty column must render through DashboardSectionEmpty (T5).'
-        );
-        $this->assertMatchesRegularExpression(
-            '/data-pending-group="treatment-plans"[\s\S]*?<DashboardSectionEmpty\b/s',
-            $pending,
-            'Pending treatment-plans empty column must render through DashboardSectionEmpty (T5).'
-        );
         $this->assertStringContainsString(
+            'title="Sin pendientes"',
+            $pending,
+            'Unified pending empty copy must read "Sin pendientes" (WU3 / D6 / D9).'
+        );
+        $this->assertStringNotContainsString(
             'title="Sin presupuestos pendientes"',
             $pending,
-            'Pending quotations empty copy must keep its per-column semantics through the component prop (T5).'
+            'Pending must drop the per-column quotations empty copy (WU3 / D6).'
         );
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'title="Sin planes por aceptar"',
             $pending,
-            'Pending treatment-plans empty copy must keep its per-column semantics through the component prop (T5).'
+            'Pending must drop the per-column treatment-plans empty copy (WU3 / D6).'
         );
     }
 
     /**
-     * T5 — pending plan rows render the backend final_cost with the same row
-     * anatomy as the quotation rows, with a muted "N/D" fallback that never
-     * paints an em dash.
+     * WU3 / D6 — the merged pending rows keep the per-type amount fields
+     * (quotations: total_amount, plans: final_cost) through formatPENLabel,
+     * with a muted "N/D" fallback that never paints an em dash.
      */
     public function test_dashboard_plan_rows_render_final_cost(): void
     {
@@ -873,27 +880,36 @@ class DashboardAppShellTest extends TestCase
         $this->assertNotNull($src);
 
         $pending = $this->sectionRegion($src, 'Pendientes');
-        $start = strpos($pending, 'data-pending-group="treatment-plans"');
-        $this->assertNotFalse(
-            $start,
-            'DashboardPage.vue must render the treatment-plans pending group.'
-        );
-        $planRegion = substr($pending, $start);
 
         $this->assertStringContainsString(
-            'formatPENLabel(item.final_cost)',
-            $planRegion,
-            'DashboardPage.vue plan rows must render the backend final_cost through formatPENLabel (T5).'
+            '{{ row.amountLabel }}',
+            $pending,
+            'Merged pending rows must render their amount through the row model (WU3 / D6).'
         );
         $this->assertStringContainsString(
-            'N/D',
-            $planRegion,
-            'DashboardPage.vue plan rows must render a muted "N/D" fallback when final_cost is null (T5).'
+            'readAmount: item => item?.total_amount',
+            $src,
+            'Quotation amounts must keep reading the per-type total_amount field (merged presentation).'
+        );
+        $this->assertStringContainsString(
+            'readAmount: item => item?.final_cost',
+            $src,
+            'Plan rows must keep reading the backend final_cost field (WU3 / D6).'
+        );
+        $this->assertStringContainsString(
+            'formatPENLabel(amount)',
+            $src,
+            'Pending amounts must render through formatPENLabel (WU3 / D6).'
+        );
+        $this->assertStringContainsString(
+            "'N/D'",
+            $src,
+            'Plan rows must render a muted "N/D" fallback when final_cost is null (WU3 / D6).'
         );
         $this->assertStringNotContainsString(
             "\u{2014}",
-            $planRegion,
-            'DashboardPage.vue plan rows must never fall back to an em dash (T5 / HOTFIX-DASH-011).'
+            $pending,
+            'Pending rows must never fall back to an em dash (HOTFIX-DASH-011).'
         );
     }
 
@@ -1165,54 +1181,27 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * HOTFIX-DASH-006 wins over the PR5-era G4 keyhint-chip contract below.
-     * The source removed the letter-key shortcut badge on purpose
-     * (design-taste §9.D "no Material keyboard-shortcut reference visual"):
-     * affordance is hover-lift + the whole card being clickable. This test
-     * now pins the REMOVAL: ≥4 data-action cards, no chevron (PR3 contract
-     * stays), and no data-keyhint / <kbd> badge anywhere in the region.
+     * HOTFIX-DASH-006 — no keyboard-shortcut badge on any dashboard
+     * surface. The rule stood on the quick-action cards while they
+     * existed; with the tiles removed (WU3 / D5) it is pinned page-wide:
+     * zero data-keyhint hooks and zero <kbd> chips.
      */
-    public function test_quick_action_cards_carry_keyhint_chip_no_chevron(): void
+    public function test_dashboard_renders_no_kbd_shortcut_badges(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // Reuse the existing chevron path ban — extend its scope to the
-        // whole quick-action region (it already covers data-action cards).
-        preg_match_all(
-            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+        $this->assertDoesNotMatchRegularExpression(
+            '/data-keyhint="[A-Z]"/',
             $src,
-            $matches
+            'DashboardPage.vue must not carry data-keyhint badges (HOTFIX-DASH-006).'
         );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($cards),
-            'DashboardPage.vue must contain at least 4 data-action cards (T3: 4 verified action labels).'
+        $this->assertDoesNotMatchRegularExpression(
+            '/<kbd\b/',
+            $src,
+            'DashboardPage.vue must not render <kbd> keyhint chips (HOTFIX-DASH-006, design-taste §9.D).'
         );
-
-        foreach ($cards as $idx => $card) {
-            // The banned chevron path must remain absent (PR3 contract).
-            $this->assertDoesNotMatchRegularExpression(
-                '/M9 5l7 7-7 7/',
-                $card,
-                "Quick-action card #{$idx} must not contain the banned chevron path (G4 — replace with keyhint)."
-            );
-
-            // HOTFIX-DASH-006: no keyboard-shortcut badge. The data-keyhint
-            // attribute and the <kbd> chip must be absent from every card.
-            $this->assertDoesNotMatchRegularExpression(
-                '/data-keyhint="[A-Z]"/',
-                $card,
-                "Quick-action card #{$idx} must not carry data-keyhint (HOTFIX-DASH-006 removed the badge)."
-            );
-            $this->assertDoesNotMatchRegularExpression(
-                '/<kbd\b/',
-                $card,
-                "Quick-action card #{$idx} must not render a <kbd> keyhint chip (HOTFIX-DASH-006 removed the badge)."
-            );
-        }
     }
 
     /**
@@ -1409,28 +1398,26 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T4 — one casing convention for section titles: sentence case. The
-     * "Acciones Rápidas" h2 becomes "Acciones rápidas" and agrees with its
-     * own aria-label, which already read "Acciones rápidas". The sibling
-     * titles keep their existing copy.
+     * T4 — one casing convention for section titles: sentence case, and
+     * WU3 / D5 removed the "Acciones rápidas" heading whole. The four
+     * remaining sections keep the shared h2 anatomy and their existing
+     * copy.
      */
-    public function test_dashboard_quick_actions_heading_uses_sentence_case(): void
+    public function test_dashboard_section_headings_use_sentence_case(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $region = $this->sectionRegion($src, 'Acciones rápidas');
-        $this->assertStringContainsString(
-            '<h2 class="text-base font-semibold text-label">Acciones rápidas</h2>',
-            $region,
-            'DashboardPage.vue must render the sentence-case h2 "Acciones rápidas" (T4 section-title convention).'
+        $this->assertStringNotContainsString(
+            'Acciones rápidas',
+            $src,
+            'DashboardPage.vue must drop the "Acciones rápidas" heading with its section (WU3 / D5).'
         );
-
         $this->assertStringNotContainsString(
             'Acciones Rápidas',
             $src,
-            'DashboardPage.vue must not keep the title-case "Acciones Rápidas" heading (T4: h2 and aria-label agree).'
+            'DashboardPage.vue must not keep the title-case "Acciones Rápidas" heading (T4).'
         );
 
         foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes', 'Resumen del día'] as $label) {
@@ -1742,36 +1729,21 @@ class DashboardAppShellTest extends TestCase
             }
         }
 
-        // T2b - quick-action icons moved to @heroicons/vue 24-outline
-        // components, so the inline quick-action SVGs are gone (T3 dropped
-        // the "Nueva Cita" tile). Pin the new shape: the heroicons import
-        // exists, no inline <svg> remains inside a data-action tile, and the
-        // HOTFIX-DASH-007 empty-state line-art SVG (stroke-width 1.5) is
-        // still inline.
+        // T2b / WU3 - the page keeps its heroicons baseline (refresh,
+        // error glyph) and the HOTFIX-DASH-007 empty-state line-art SVG
+        // (stroke-width 1.5) stays inline; the quick-action tiles that
+        // carried @heroicons/vue icons are removed (D5).
         $this->assertStringContainsString(
             '@heroicons/vue/24/outline',
             $src,
-            'DashboardPage.vue must import its quick-action icons from @heroicons/vue/24/outline (T2b).'
+            'DashboardPage.vue must import its chrome icons from @heroicons/vue/24/outline (T2b).'
         );
 
-        preg_match_all(
-            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
-            $src,
-            $actionMatches
+        $this->assertSame(
+            0,
+            preg_match_all('/\bdata-action\s*=\s*[\'\"][^\'\"]+[\'\"]/', $src),
+            'DashboardPage.vue must render zero data-action tiles (WU3 / D5 removed the heroicons tile surface).'
         );
-        $actionCards = $actionMatches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($actionCards),
-            'DashboardPage.vue must render at least 4 data-action cards for the heroicons check.'
-        );
-        foreach ($actionCards as $idx => $card) {
-            $this->assertDoesNotMatchRegularExpression(
-                '/<svg\b/i',
-                $card,
-                "Quick-action card #{$idx} must render its icon through @heroicons/vue, not an inline <svg> (T2b)."
-            );
-        }
 
         $inlineIcons = preg_match_all('/<svg\b[^>]*stroke-width="1\.5"/', $src);
         $this->assertGreaterThanOrEqual(
@@ -1849,48 +1821,31 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T6 — the quick-action tiles are real controls. Each `data-action` tile
-     * keeps its UiCard surface as a presentation wrapper, but the interactive
-     * element inside is a native `<button type="button">`. The card opening
-     * tag must not carry the `clickable` prop or the click binding: a
-     * clickable div is neither focusable nor activatable from the keyboard.
+     * T6 — every dashboard action is a real control. The quick-action tiles
+     * are gone (WU3 / D5), and the remaining actions (header CTA, refresh,
+     * cash CTA, merged pending row action) render through real buttons:
+     * no clickable card surfaces and no role="button" divs.
      */
-    public function test_t6_quick_action_tiles_render_through_native_buttons(): void
+    public function test_t6_dashboard_actions_stay_real_buttons(): void
     {
         $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
         $this->assertNotNull($src);
 
-        preg_match_all(
-            '/<UiCard\b[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+        $this->assertDoesNotMatchRegularExpression(
+            '/\brole="button"/',
             $src,
-            $matches
+            'DashboardPage.vue must not use role="button" divs (T6: real button semantics).'
         );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($cards),
-            'DashboardPage.vue must contain at least 4 data-action tiles for the T6 button-semantics check.'
+        $this->assertDoesNotMatchRegularExpression(
+            '/<UiCard[^>]*\bclickable\b/',
+            $src,
+            'DashboardPage.vue must not bind the UiCard clickable prop (T6: the button owns the action).'
         );
-
-        foreach ($cards as $idx => $card) {
-            $opening = substr($card, 0, (int) strpos($card, '>') + 1);
-
-            $this->assertDoesNotMatchRegularExpression(
-                '/\bclickable\b/',
-                $opening,
-                "Quick-action tile #{$idx} must not carry the UiCard clickable prop (T6: real button semantics)."
-            );
-            $this->assertDoesNotMatchRegularExpression(
-                '/@click/',
-                $opening,
-                "Quick-action tile #{$idx} must not bind the click on the card surface (T6: the native button owns it)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/<button\b[^>]*type="button"/',
-                $card,
-                "Quick-action tile #{$idx} must render a native <button type=\"button\"> inside the card (T6 keyboard + AT semantics)."
-            );
-        }
+        $this->assertStringContainsString(
+            '@click="goToPendingEntity(row.entityType)"',
+            $src,
+            'The merged pending row action must render as a real button binding (WU3 / D6 / T6).'
+        );
     }
 
     /**

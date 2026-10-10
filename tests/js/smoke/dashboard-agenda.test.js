@@ -175,12 +175,19 @@ describe('dashboard agenda (ops IA)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the agenda empty state with the Crear nueva cita CTA', async () => {
+  it('renders the agenda empty state without a CTA and with informational copy (D5/R4)', async () => {
     const wrapper = await mountDashboard()
 
     const empty = wrapper.find('[data-state="empty-appointments"]')
     expect(empty.exists()).toBe(true)
-    expect(empty.text()).toContain('Crear nueva cita')
+    // The header owns the only "Nueva cita" CTA: the empty state must not
+    // re-issue it, and its copy must not send users to "la sección de
+    // calendario" (the CTA elsewhere opens the modal).
+    expect(empty.find('button').exists()).toBe(false)
+    expect(empty.find('[data-cta]').exists()).toBe(false)
+    expect(empty.text()).not.toContain('Crear nueva cita')
+    expect(empty.text()).not.toContain('sección de calendario')
+    expect(empty.text()).toContain('Cuando registres citas, aparecerán aquí.')
 
     wrapper.unmount()
   })

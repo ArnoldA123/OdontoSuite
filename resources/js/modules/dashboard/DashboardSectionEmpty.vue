@@ -1,12 +1,12 @@
 <template>
   <div
     data-section-empty
-    class="rounded-ios p-10 text-center bg-accent-50"
+    class="rounded-ios p-6 text-center bg-accent-50"
     style="border: 1px solid var(--color-hairline)"
   >
     <slot name="icon">
       <svg
-        class="mx-auto h-12 w-12 mb-4"
+        class="mx-auto h-8 w-8 mb-3"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -21,17 +21,20 @@
         />
       </svg>
     </slot>
-    <p v-if="title" class="text-base font-medium text-theme-primary">{{ title }}</p>
-    <p v-if="description" class="text-sm text-theme-secondary mt-1 max-w-md mx-auto">
+    <p v-if="title" class="text-sm font-medium text-theme-primary">{{ title }}</p>
+    <p v-if="description" class="text-xs text-theme-secondary mt-1 max-w-md mx-auto">
       {{ description }}
     </p>
-    <div v-if="$slots.default" class="mt-6">
+    <div v-if="$slots.default" class="mt-4">
       <slot />
     </div>
   </div>
 </template>
 
 <script setup>
+// WU3 / D9 - compact empty state: one short title + one precise sentence
+// and, only where no other CTA for that destination exists on screen, a
+// single contextual action in the default slot.
 defineProps({
   title: { type: String, default: '' },
   description: { type: String, default: '' }

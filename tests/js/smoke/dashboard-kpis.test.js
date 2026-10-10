@@ -68,6 +68,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
+import pageSource from '../../../resources/js/modules/dashboard/DashboardPage.vue?raw'
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -260,23 +261,27 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
     wrapper.unmount()
   })
 
-  it('renders every quick action tile through @heroicons/vue outline icons', async () => {
+  it('renders no quick-action tiles and keeps their dead handlers and icons out of the source (D5)', async () => {
     const wrapper = await mountDashboard()
 
-    const tiles = wrapper.findAll('[data-action]')
-    expect(tiles).toHaveLength(4)
+    // The block that re-listed sidebar navigation is gone at the DOM level.
+    expect(wrapper.findAll('[data-action]')).toHaveLength(0)
+    expect(wrapper.find('section[aria-label="Acciones rápidas"]').exists()).toBe(false)
 
-    const glyphs = new Set()
-    for (const tile of tiles) {
-      const svg = tile.find('svg')
-      expect(svg.exists()).toBe(true)
-      expect(svg.attributes('data-slot')).toBe('icon')
-      expect(svg.attributes('xmlns')).toBe('http://www.w3.org/2000/svg')
-      const path = svg.find('path')
-      expect(path.exists()).toBe(true)
-      glyphs.add(path.attributes('d'))
+    // Dead code removed with it: navigation handlers and icon imports.
+    for (const deadCode of [
+      'goToPatients',
+      'goToProfessionals',
+      'goToEnvironments',
+      'goToBusinessIntelligence',
+      'goToCalendar',
+      'UsersIcon',
+      'UserGroupIcon',
+      'BuildingOfficeIcon',
+      'ChartBarIcon'
+    ]) {
+      expect(pageSource).not.toContain(deadCode)
     }
-    expect(glyphs.size).toBe(4)
 
     wrapper.unmount()
   })

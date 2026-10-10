@@ -6,17 +6,15 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * HOTFIX-DASH-005 — Quick Actions card surface matches KPI cards.
+ * HOTFIX-DASH-005 / WU3 — Quick Actions surface consistency, retired with
+ * the tiles.
  *
- * Quick Actions cards MUST use the same surface treatment as KPI cards
- * (var(--color-surface-elevated) + var(--elevation-1) + hairline +
- * var(--radius-card-lg)). Pin the RULE: Quick Action cards and KPI cards
- * share border-radius, box-shadow token reference, and surface color.
- *
- * The Shape Consistency Lock (design-taste §4.4) — mixed shape systems
- * are banned unless there is a documented rule. KPI cards and Quick
- * Action cards currently use different UiCard variants (`glass` vs.
- * `flat`) which violates the lock.
+ * The rule compared Quick Action card surfaces against KPI cards
+ * (design-taste §4.4 Shape Consistency Lock). WU3 / D5 removed the whole
+ * quick-actions block, so the rule is pinned as a REMOVAL: the dashboard
+ * renders zero data-action navigation cards, and no card surface anywhere
+ * on the page drifts to the retired --elevation-1 rung while the KPI
+ * strip consumes --elevation-2.
  */
 class HotfixDashboardSurfaceConsistencyTest extends TestCase
 {
@@ -28,7 +26,7 @@ class HotfixDashboardSurfaceConsistencyTest extends TestCase
         return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
     }
 
-    public function test_quick_action_cards_use_same_surface_tokens_as_kpi_cards(): void
+    public function test_quick_action_cards_are_removed_with_the_block(): void
     {
         $user = User::factory()->make();
         $response = $this->actingAs($user)->get('/dashboard');
@@ -41,69 +39,37 @@ class HotfixDashboardSurfaceConsistencyTest extends TestCase
 
         $source = (string) file_get_contents(self::dashboardPagePath());
 
-        // Count Quick Action cards (data-action attribute).
         $quickActionCount = preg_match_all(
             '/\bdata-action\s*=\s*[\'"][^\'"]+[\'"]/i',
             $source
         );
-        $this->assertGreaterThanOrEqual(
-            2,
-            (int) $quickActionCount,
-            'DashboardPage.vue must render at least 2 Quick Action cards (data-action attribute) for this rule to be meaningful.'
-        );
 
-        // Pin the RULE: every Quick Action card block MUST reference at
-        // least one of the surface tokens used by KPI cards (--elevation-*,
-        // --color-hairline, --color-surface-elevated, --radius-card-lg).
-        // A block is "from a data-action attribute through the next
-        // </UiCard>" or to end-of-source. KPI cards reference elevation
-        // and hairline tokens in inline style; Quick Actions must too.
-        $blocksWithTokens = preg_match_all(
-            '/data-action\s*=\s*[\'"][^\'"]+[\'"][\s\S]*?(?:elevation-[12]|--color-hairline|--color-surface-elevated|--radius-card-lg)/i',
-            $source
-        );
-
-        $this->assertGreaterThanOrEqual(
+        $this->assertSame(
+            0,
             (int) $quickActionCount,
-            (int) $blocksWithTokens,
-            'DashboardPage.vue Quick Action cards MUST reference the same surface tokens as KPI cards (--elevation-1+, --color-hairline, --color-surface-elevated, --radius-card-lg) — HOTFIX-DASH-005, design-taste §4.4 (Shape Consistency Lock: same radius system across cards).'
+            'DashboardPage.vue must render zero Quick Action cards (data-action attribute) — WU3 / D5 (the tiles re-listed sidebar navigation).'
         );
     }
 
     /**
      * T4 elevation alignment (follow-up from T2b). The HOTFIX-DASH-005
-     * comment already declared --elevation-2 as the shared rung, but the
-     * Quick Action tiles were still rendering --elevation-1 while the KPI
-     * cards rendered --elevation-2. T4 aligns the tiles to the KPI rung.
-     * Pin the RULE per tile so the two surfaces cannot drift apart again.
+     * comment already declared --elevation-2 as the shared rung. Pin the
+     * rung on the surfaces that remain so no card can drift back to
+     * --elevation-1.
      */
-    public function test_quick_action_cards_share_the_kpi_elevation_rung(): void
+    public function test_remaining_cards_share_the_kpi_elevation_rung(): void
     {
         $source = (string) file_get_contents(self::dashboardPagePath());
 
-        preg_match_all(
-            '/<UiCard[^>]*\bdata-action="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+        $this->assertDoesNotMatchRegularExpression(
+            '/--elevation-1/',
             $source,
-            $matches
+            'DashboardPage.vue MUST NOT keep the old var(--elevation-1) rung on any card surface (T4 elevation alignment, HOTFIX-DASH-005).'
         );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($cards),
-            'DashboardPage.vue must render at least 4 data-action cards for the elevation alignment rule.'
+        $this->assertMatchesRegularExpression(
+            '/--elevation-2/',
+            $source,
+            'DashboardPage.vue MUST keep var(--elevation-2) as the shared card rung (T4 elevation alignment, HOTFIX-DASH-005).'
         );
-
-        foreach ($cards as $idx => $card) {
-            $this->assertMatchesRegularExpression(
-                '/--elevation-2/',
-                $card,
-                "Quick Action card #{$idx} MUST consume var(--elevation-2), the same rung as the KPI cards (T4 elevation alignment, HOTFIX-DASH-005)."
-            );
-            $this->assertDoesNotMatchRegularExpression(
-                '/--elevation-1/',
-                $card,
-                "Quick Action card #{$idx} MUST NOT keep the old var(--elevation-1) rung (T4 elevation alignment, HOTFIX-DASH-005)."
-            );
-        }
     }
 }
