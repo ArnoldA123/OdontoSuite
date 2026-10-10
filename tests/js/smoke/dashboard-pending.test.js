@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
 // WU3 / D6 regression coverage: the dashboard renders ONE unified
-// "Pendientes" list where quotations and treatment plans appear as rows of
+// "Requiere tu atención" block where quotations and treatment plans appear as rows of
 // a single dataset. Each row: patient name, amount, type badge
 // (Presupuesto / Plan de tratamiento), status badge, date, and ONE
 // row-level action that routes to the entity's module list. Merged rows
@@ -140,7 +140,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Pendientes"]')
+    const section = wrapper.find('section[aria-label="Requiere tu atención"]')
     expect(section.exists()).toBe(true)
 
     // ONE list: no per-type columns, headers or counts.
@@ -195,7 +195,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
     }
 
     // No section-level overflow link: the row action IS the way in.
-    const section = wrapper.find('section[aria-label="Pendientes"]')
+    const section = wrapper.find('section[aria-label="Requiere tu atención"]')
     expect(section.text()).not.toContain('Ver todos')
 
     const quotationRow = wrapper.find('[data-pending-row="quotations"]')
@@ -223,7 +223,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Pendientes"]')
+    const section = wrapper.find('section[aria-label="Requiere tu atención"]')
     expect(section.exists()).toBe(true)
     expect(section.findAll('[data-pending-row]')).toHaveLength(1)
     expect(section.find('[data-pending-row="quotations"]').exists()).toBe(false)
@@ -237,7 +237,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    expect(wrapper.find('section[aria-label="Pendientes"]').exists()).toBe(false)
+    expect(wrapper.find('section[aria-label="Requiere tu atención"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-pending-row]')).toHaveLength(0)
     expect(pendingCalls()).toHaveLength(1)
 
@@ -254,7 +254,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Pendientes"]')
+    const section = wrapper.find('section[aria-label="Requiere tu atención"]')
     expect(section.exists()).toBe(true)
 
     const empties = section.findAll('[data-state="empty-pending"]')
@@ -285,7 +285,7 @@ describe('dashboard unified pending list (WU3 / D6)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Pendientes"]')
+    const section = wrapper.find('section[aria-label="Requiere tu atención"]')
     const error = section.find('[data-state="error-pending"]')
     expect(error.exists()).toBe(true)
     expect(error.attributes('role')).toBe('alert')

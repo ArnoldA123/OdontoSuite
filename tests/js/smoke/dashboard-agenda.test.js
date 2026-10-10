@@ -86,7 +86,7 @@ const mountDashboard = async () => {
   return wrapper
 }
 
-const kpiStrip = wrapper => wrapper.find('[aria-label="Resumen del día"]')
+const kpiStrip = wrapper => wrapper.find('[data-reveal="kpi"]')
 
 describe('dashboard agenda (ops IA)', () => {
   beforeEach(() => {
@@ -165,7 +165,7 @@ describe('dashboard agenda (ops IA)', () => {
     const wrapper = await mountDashboard()
 
     const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
-    expect(agenda.find('h2').text()).toBe('Agenda de hoy')
+    expect(agenda.find('h3').text()).toBe('Agenda de hoy')
     expect(wrapper.text()).toContain('Nueva cita')
 
     // D8 / R1: the daily count lives ONLY in the KPI.

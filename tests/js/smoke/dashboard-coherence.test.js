@@ -72,7 +72,7 @@ const mountDashboard = async () => {
   return wrapper
 }
 
-const kpiSection = wrapper => wrapper.find('section[aria-label="Resumen del día"]')
+const kpiSection = wrapper => wrapper.find('[data-reveal="kpi"]')
 
 const comparisonPayload = {
   comparisons: {
@@ -84,40 +84,48 @@ const comparisonPayload = {
 
 const chipSelector = '[data-variant="success"], [data-variant="error"], [data-variant="neutral"]'
 
-describe('dashboard KPI section headings (T4)', () => {
+describe('dashboard block headings (T4 / WU4)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('renders the KPI strip h2 with the sibling title anatomy and a coherent accessible name', async () => {
+  it('groups the KPI strip under the block h2 "Hoy", agenda as its subsection', async () => {
     const wrapper = await mountDashboard()
-    const section = kpiSection(wrapper)
+    const block = wrapper.find('[data-dashboard-block="hoy"]')
+    expect(block.exists()).toBe(true)
 
-    expect(section.exists()).toBe(true)
-
-    const heading = section.find('h2')
+    const heading = block.find('h2')
     expect(heading.exists()).toBe(true)
-    expect(heading.text()).toBe('Resumen del día')
+    expect(heading.text()).toBe('Hoy')
     expect(heading.classes()).toEqual(
-      expect.arrayContaining(['text-base', 'font-semibold', 'text-label'])
+      expect.arrayContaining(['text-2xl', 'font-semibold', 'text-label'])
     )
 
-    // The visible title is the section's accessible name.
-    expect(section.attributes('aria-label')).toBe(heading.text())
-
-    // The heading sits at the top of the section, above the card grid.
-    const grid = section.element.querySelector('[data-reveal="kpi"]')
-    expect(grid).toBeTruthy()
+    // The heading sits at the top of the block, above the card grid.
+    const grid = block.find('[data-reveal="kpi"]')
+    expect(grid.exists()).toBe(true)
     expect(
-      heading.element.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING
+      heading.element.compareDocumentPosition(grid.element) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
+
+    // The agenda is the block's subsection (h3), never a second h2 and
+    // never before the strip (D7).
+    const agenda = block.find('section[aria-label="Agenda de hoy"]')
+    expect(agenda.find('h3').text()).toBe('Agenda de hoy')
+    expect(agenda.find('h2').exists()).toBe(false)
+    expect(
+      grid.element.compareDocumentPosition(agenda.element) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    // The retired footer section is gone (D7 / IA1).
+    expect(wrapper.text()).not.toContain('Resumen del día')
 
     wrapper.unmount()
   })
 
-  it('renders no quick-actions section (D5) and keeps the sibling h2 anatomy', async () => {
+  it('renders no quick-actions section (D5) and keeps sane section headings', async () => {
     const wrapper = await mountDashboard()
 
     // D5 — the dashboard must not re-list sidebar navigation.
@@ -125,16 +133,13 @@ describe('dashboard KPI section headings (T4)', () => {
     expect(wrapper.text()).not.toContain('Acciones rápidas')
     expect(wrapper.text()).not.toContain('Acciones Rápidas')
 
-    // The siblings that render for this payload keep the same anatomy and
-    // their existing copy.
-    for (const label of ['Agenda de hoy', 'Próximas citas']) {
-      const section = wrapper.find(`section[aria-label="${label}"]`)
-      expect(section.exists()).toBe(true)
-      expect(section.find('h2').text()).toBe(label)
-      expect(section.find('h2').classes()).toEqual(
-        expect.arrayContaining(['text-base', 'font-semibold', 'text-label'])
-      )
-    }
+    // The secondary block keeps its quiet heading and existing copy.
+    const upcoming = wrapper.find('[data-dashboard-block="upcoming"]')
+    expect(upcoming.exists()).toBe(true)
+    expect(upcoming.find('h2').text()).toBe('Próximos días')
+    expect(upcoming.find('h2').classes()).toEqual(
+      expect.arrayContaining(['text-base', 'font-medium', 'text-theme-secondary'])
+    )
 
     wrapper.unmount()
   })

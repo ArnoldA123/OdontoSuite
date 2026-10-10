@@ -1015,7 +1015,7 @@ const getPageTitle = () => {
 
 const getPageDescription = () => {
   const descriptions = {
-    '/dashboard': 'Resumen general del sistema',
+    '/dashboard': 'Operación del día',
     '/calendar': 'Gestión de citas y horarios',
     '/patients': 'Base de datos de pacientes',
     '/professionals': 'Gestión de profesionales',

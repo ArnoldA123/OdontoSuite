@@ -91,7 +91,7 @@ const mountDashboard = async () => {
 // Intl rendering uses U+00A0 between the currency glyph and the amount.
 const normalize = value => value.replace(/\u00a0/g, ' ')
 
-const kpiStrip = wrapper => wrapper.find('[aria-label="Resumen del día"]')
+const kpiStrip = wrapper => wrapper.find('[data-reveal="kpi"]')
 
 const DAY_STAT_KEYS = ['appointments-today', 'completed-today', 'pending-today']
 const ALL_STAT_KEYS = [...DAY_STAT_KEYS, 'cash-balance']

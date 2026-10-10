@@ -3,9 +3,20 @@
     <!-- Loading State: Skeleton placeholders that match the final layout's
          shape so the page does not jump when data lands. -->
     <template v-if="loading">
-      <div class="space-y-8" aria-busy="true" aria-live="polite">
-        <!-- Agenda skeletons: the agenda is the first section in the new
-             IA, so the loading shape leads with it. -->
+      <div class="space-y-12" aria-busy="true" aria-live="polite">
+        <!-- Day-operations skeletons: the loading shape mirrors the block
+             order (KPI strip -> agenda) so the page does not jump. -->
+        <section aria-label="Cargando resumen">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <UiSkeleton
+              v-for="i in 4"
+              :key="`stat-skel-${i}`"
+              variant="card"
+              animation="wave"
+              :aria-label="`Cargando tarjeta ${i}`"
+            />
+          </div>
+        </section>
         <section aria-label="Cargando agenda de hoy">
           <UiSkeleton
             v-for="i in 3"
@@ -13,17 +24,6 @@
             variant="list"
             animation="wave"
             :aria-label="`Cargando cita ${i}`"
-          />
-        </section>
-        <!-- Upcoming-week skeletons: same list shape as the strip rows so
-             the section does not jump when data lands. -->
-        <section aria-label="Cargando próximas citas">
-          <UiSkeleton
-            v-for="i in 2"
-            :key="`upcoming-skel-${i}`"
-            variant="list"
-            animation="wave"
-            :aria-label="`Cargando próxima cita ${i}`"
           />
         </section>
         <!-- Pending skeletons (WU3): same single-list shape as the merged
@@ -39,28 +39,31 @@
             />
           </div>
         </section>
-        <!-- Stats skeletons -->
-        <section aria-label="Cargando resumen">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <UiSkeleton
-              v-for="i in 4"
-              :key="`stat-skel-${i}`"
-              variant="card"
-              animation="wave"
-              :aria-label="`Cargando tarjeta ${i}`"
-            />
-          </div>
+        <!-- Upcoming-week skeletons: same list shape as the strip rows so
+             the section does not jump when data lands. -->
+        <section aria-label="Cargando próximas citas">
+          <UiSkeleton
+            v-for="i in 2"
+            :key="`upcoming-skel-${i}`"
+            variant="list"
+            animation="wave"
+            :aria-label="`Cargando próxima cita ${i}`"
+          />
         </section>
       </div>
     </template>
 
     <!-- Main Content -->
-    <div v-else data-dashboard-content class="space-y-8" :aria-busy="refreshing">
+    <div v-else data-dashboard-content class="space-y-12" :aria-busy="refreshing">
       <!--
-        Compact page header (ops IA).
-        The AppLayout top bar already renders the page title h1; this row
-        is the quiet welcome line plus the cash-session state and its
-        direct action. The topbar keeps owning the heading hierarchy.
+        Hero band (WU4 / D6) - the login's visual language reaches the
+        dashboard. Surface vocabulary traced to the login card (hairline +
+        --radius-panel + elevation rung) and to its calm mint backdrop tint
+        (--color-accent-50); the greeting rides the login display step
+        (text-4xl = 36/40/-0.022em from the shared type scale). The brand
+        lockup (tooth glyph + wordmark on accent-500) is the login's own
+        header anatomy, reused verbatim as the sparingly used green accent.
+        The topbar keeps owning the single h1; this band stays typographic.
       -->
       <!--
         HOTFIX-DASH-008 - Greeting date uses tabular-nums.
@@ -77,19 +80,45 @@
       <header
         ref="greetingSection"
         data-dashboard-header
+        data-dashboard-hero
         data-reveal="greeting"
-        class="flex items-center justify-between flex-wrap gap-4"
+        class="flex items-center justify-between flex-wrap gap-6 p-6 md:p-8"
+        style="
+          background: var(--color-accent-50);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
         :style="revealStyle('--spring-dash-greeting-o')"
       >
         <div>
-          <p class="text-lg font-medium text-theme-secondary leading-tight">
-            {{ getGreeting() }},
-            <span class="text-label">{{ firstName }}</span>
+          <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
+          <p class="inline-flex items-center gap-2">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="color: var(--color-accent-500)"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
+            </svg>
+            <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
+          </p>
+          <p class="mt-3 text-4xl font-semibold text-label">
+            {{ getGreeting() }}, {{ firstName }}
           </p>
           <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
           <p
             style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-            class="text-xs text-theme-secondary mt-1"
+            class="mt-2 text-base leading-relaxed text-theme-secondary"
           >
             {{ getTodayDate() }}
           </p>
@@ -151,341 +180,39 @@
       </div>
 
       <!--
-        Agenda de hoy - the page's protagonist (ops IA).
-        Rows render EVERY appointment returned by the canonical
-        GET /api/dashboard/appointments-today endpoint (no slice cap)
-        so the daily operation is the first thing the user reads.
-        Row anatomy: time (tabular) / patient / type / professional /
-        status. The empty state keeps the HOTFIX-DASH-007 line-art SVG
-        plus primary CTA (no remote illustration) through the shared
-        DashboardSectionEmpty pattern (T5).
+        Block "Hoy" (WU4 / D7) - the day's protagonists under ONE strong
+        heading: the KPI strip leads (its numbers summarize the very list
+        the agenda renders) and the agenda follows it. The retired
+        "Resumen del día" footer section is gone: its content lives here.
       -->
-      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
-          <div class="flex items-center gap-2">
-            <UiButton
-              v-if="can.createAppointment?.value"
-              variant="primary"
-              size="sm"
-              @click="goToNewAppointment"
-            >
-              Nueva cita
-            </UiButton>
-          </div>
+      <section v-if="!statsError" aria-label="Hoy" data-dashboard-block="hoy" class="space-y-6">
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Hoy</h2>
+          <p class="text-sm text-theme-secondary">Lo que ocurre hoy en la clínica</p>
         </div>
 
         <!--
-          Agenda inline error (T5). Only the today resource failed: the
-          section keeps its header and the rest of the page stays usable, so
-          the retry affordance lives here and re-fetches ONLY
-          /api/dashboard/appointments-today through the shared section-error
-          component.
+          Daily-operations KPI strip (WU1). Four cards (D1): Citas Hoy,
+          Atendidas Hoy, Por Atender, Saldo de Caja. Card anatomy: small
+          uppercase eyebrow, big tabular number, ONE scope caption (D3).
+
+          Single source (R1): the three day counts derive from the SAME
+          appointment list the agenda renders, bucketed through the shared
+          status map the rows label with, so rows and KPIs can never
+          disagree. While that source is down the three cards render "N/D"
+          instead of a fabricated zero.
+
+          No comparison chips and no reserved blank slots (D3): the backend
+          comparison labels are broken ("-100" for patients), so each card
+          is exactly eyebrow + number + caption. The cash card (WU2 / D4) is
+          the single cash surface: state line + session balance + caption +
+          its contextual CTA, all fed by useCashRegister.
+
+          T3 - the strip is a static reference surface: no card carries a
+          click affordance (no clickable/hover props, no @click). The cash
+          card's "Ir a Caja" button is its contextual action, not a
+          card-level affordance.
         -->
-        <DashboardSectionError
-          v-if="todayError"
-          data-state="error-appointments"
-          role="alert"
-          title="No pudimos cargar la agenda de hoy"
-          description="Reintenta para ver las citas programadas para el día."
-          :retry-attrs="{ 'data-retry-appointments': '' }"
-          @retry="retryTodayAppointments"
-        />
-
-        <!--
-          Empty state for the today-appointments case, rendered through the
-          shared compact DashboardSectionEmpty pattern (T5, WU3 / D9).
-
-          HOTFIX-DASH-007 - line-art calendar SVG. The calendar SVG
-          stays inline in this template, passed through the component's icon
-          slot, so the stroke-width="1.5" rule stays auditable in source
-          (apple-design §16 baseline, NOT the previous 2.0 default).
-
-          WU3 / R4 - single CTA per destination: the empty state carries NO
-          button. The header owns the only "Nueva cita" CTA and it opens the
-          appointment modal, so the copy stays informational and never points
-          users at the calendar section.
-        -->
-        <DashboardSectionEmpty
-          v-else-if="todayAppointments.length === 0"
-          ref="emptyStateSection"
-          data-state="empty-appointments"
-          data-reveal="empty-state"
-          title="Sin citas para hoy"
-          description="Cuando registres citas, aparecerán aquí."
-          :style="revealStyle('--spring-dash-empty-o')"
-        >
-          <template #icon>
-            <!--
-              HOTFIX-DASH-007 - inline line-art calendar SVG.
-              stroke-width="1.5" (apple-design §16 baseline).
-              Color: var(--color-label-tertiary-label) - the iOS
-              tertiaryLabel token so the icon recedes.
-            -->
-            <svg
-              class="mx-auto h-8 w-8 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              style="color: var(--color-label-tertiary-label)"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </template>
-        </DashboardSectionEmpty>
-
-        <div v-else class="grid gap-3">
-          <UiCard
-            v-for="appointment in todayAppointments"
-            :key="appointment.id"
-            variant="flat"
-            hover
-            data-appointment-row
-          >
-            <div class="flex items-center gap-4">
-              <!--
-                Time column: tabular numerals so the minute column stays
-                aligned down the agenda (apple-design §15).
-              -->
-              <div class="flex-shrink-0 w-14">
-                <p
-                  class="text-sm font-semibold text-label tabular-nums"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                >
-                  {{ formatTime(appointment.scheduled_at) }}
-                </p>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label truncate">
-                  {{ getPatientName(appointment) }}
-                </p>
-                <p class="text-sm text-theme-secondary truncate">
-                  {{ appointment.appointment_type?.name || 'Consulta' }}
-                  <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
-                </p>
-              </div>
-              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                {{ getStatusText(appointment.status) }}
-              </UiBadge>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
-      <!--
-        Próximas citas (T5) - compact week preview fed by
-        GET /api/dashboard/upcoming (now -> end of week, limit 10). It sits
-        between the day's agenda and the KPI grid: the day stays the
-        protagonist and this strip shows what comes next. Rows are grouped
-        by LOCAL calendar day (the same timezone formatTime renders in)
-        with a short Spanish day header. The fetch is tolerant: if this
-        resource alone fails, the section carries its own inline error plus
-        a scoped retry and the rest of the page stays usable.
-      -->
-      <section v-if="!statsError && can.viewAppointment?.value" aria-label="Próximas citas">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div class="flex items-baseline gap-3">
-            <h2 class="text-base font-semibold text-label">Próximas citas</h2>
-            <span
-              v-if="!upcomingError && upcomingAppointments.length > 0"
-              class="text-sm text-theme-secondary tabular-nums"
-            >
-              {{ upcomingAppointments.length }}
-              {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
-            </span>
-          </div>
-        </div>
-
-        <!--
-          Upcoming inline error (T5). Only the upcoming resource failed:
-          the header stays, the rest of the page stays usable, and the retry
-          affordance re-fetches ONLY /api/dashboard/upcoming through the
-          shared section-error component.
-        -->
-        <DashboardSectionError
-          v-if="upcomingError"
-          data-state="error-upcoming"
-          role="alert"
-          title="No pudimos cargar las próximas citas"
-          description="Reintenta para ver lo que queda de la semana."
-          :retry-attrs="{ 'data-retry-upcoming': '' }"
-          @retry="retryUpcomingAppointments"
-        />
-
-        <!--
-          Compact empty state for the upcoming-week case (WU3 / D9): one
-          short title plus one precise sentence instead of the previous
-          redundant two-sentence pair.
-        -->
-        <DashboardSectionEmpty
-          v-else-if="upcomingAppointments.length === 0"
-          data-state="empty-upcoming"
-          title="Sin citas esta semana"
-          description="No hay citas registradas de mañana en adelante."
-        />
-
-        <div v-else class="space-y-4">
-          <div
-            v-for="group in upcomingGroups"
-            :key="group.key"
-            data-upcoming-group
-            class="space-y-2"
-          >
-            <p data-upcoming-day class="text-xs font-medium text-theme-secondary tabular-nums">
-              {{ group.label }}
-            </p>
-            <div class="grid gap-3">
-              <UiCard
-                v-for="appointment in group.appointments"
-                :key="appointment.id"
-                variant="flat"
-                hover
-                data-upcoming-row
-              >
-                <div class="flex items-center gap-4">
-                  <div class="flex-shrink-0 w-14">
-                    <p data-upcoming-time class="text-sm font-semibold text-label tabular-nums">
-                      {{ formatTime(appointment.scheduled_at) }}
-                    </p>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="font-medium text-label truncate">
-                      {{ getPatientName(appointment) }}
-                    </p>
-                    <p class="text-sm text-theme-secondary truncate">
-                      {{ appointment.appointment_type?.name || 'Consulta' }}
-                    </p>
-                  </div>
-                  <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                    {{ getStatusText(appointment.status) }}
-                  </UiBadge>
-                </div>
-              </UiCard>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!--
-        Pendientes (WU3 / D6) - quotations and treatment plans waiting on a
-        patient decision, fed by GET /api/dashboard/pending, rendered as ONE
-        merged list. Sits between the week preview and the KPI grid:
-        actionable work before reference metrics. The backend omits the
-        subsets the current role cannot read, so rows render only for
-        payload keys that are present; when neither key is present the whole
-        section stays hidden. The fetch is tolerant: this resource alone can
-        fail without blocking the rest of the page.
-      -->
-      <section v-if="!statsError && (hasPendingGroups || pendingError)" aria-label="Pendientes">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h2 class="text-base font-semibold text-label">Pendientes</h2>
-        </div>
-
-        <!--
-          Pending inline error (T7b). Only this resource failed: the rest
-          of the page stays usable, and the retry re-fetches ONLY
-          /api/dashboard/pending through the shared section-error component.
-        -->
-        <DashboardSectionError
-          v-if="pendingError"
-          data-state="error-pending"
-          role="alert"
-          title="No pudimos cargar los pendientes"
-          description="Reintenta para ver presupuestos y planes en espera de respuesta."
-          :retry-attrs="{ 'data-retry-pending': '' }"
-          @retry="retryPending"
-        />
-
-        <DashboardSectionEmpty
-          v-else-if="pendingRows.length === 0"
-          data-state="empty-pending"
-          title="Sin pendientes"
-          description="Los presupuestos y planes que esperen respuesta aparecerán aquí."
-        />
-        <!--
-          WU3 / D6 - ONE merged list: quotations and treatment plans are
-          rows of a single dataset (patient, amount, type badge, status
-          badge, date) sorted by their pending date ascending. Each row
-          carries the single action into its module list; no section-level
-          link duplicates those destinations.
-        -->
-        <div v-else class="grid gap-2">
-          <UiCard
-            v-for="row in pendingRows"
-            :key="row.key"
-            variant="flat"
-            padding="sm"
-            hover
-            :data-pending-row="row.rowHook"
-          >
-            <div class="flex items-center gap-3">
-              <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
-                {{ row.patientName }}
-              </p>
-              <span
-                class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
-                :data-pending-amount="row.rowHook"
-              >
-                {{ row.amountLabel }}
-              </span>
-              <UiBadge variant="neutral" size="sm" data-pending-type>
-                {{ row.typeLabel }}
-              </UiBadge>
-              <UiBadge :variant="pendingStatusVariant(row.status)" size="sm">
-                {{ pendingStatusLabel(row.status) }}
-              </UiBadge>
-              <span
-                v-if="row.dateLabel"
-                class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
-              >
-                {{ row.dateLabel }}
-              </span>
-              <UiButton
-                variant="ghost"
-                size="sm"
-                :aria-label="row.actionAria"
-                @click="goToPendingEntity(row.entityType)"
-              >
-                Ver
-              </UiButton>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
-      <!--
-        Daily-operations KPI strip (WU1). Four cards (D1): Citas Hoy,
-        Atendidas Hoy, Por Atender, Saldo de Caja. Card anatomy: small
-        uppercase eyebrow, big tabular number, ONE scope caption (D3).
-
-        Single source (R1): the three day counts derive from the SAME
-        appointment list the agenda renders, bucketed through the shared
-        status map the rows label with, so rows and KPIs can never
-        disagree. While that source is down the three cards render "N/D"
-        instead of a fabricated zero.
-
-        No comparison chips and no reserved blank slots (D3): the backend
-        comparison labels are broken ("-100" for patients), so each card
-        is exactly eyebrow + number + caption. The cash card (WU2 / D4) is
-        the single cash surface: state line + session balance + caption +
-        its contextual CTA, all fed by useCashRegister.
-
-        T3 - the strip is a static reference surface: no card carries a
-        click affordance (no clickable/hover props, no @click). The cash
-        card's "Ir a Caja" button is its contextual action, not a
-        card-level affordance.
-      -->
-      <section v-if="!statsError" aria-label="Resumen del día">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h2 class="text-base font-semibold text-label">Resumen del día</h2>
-        </div>
-
         <div
           ref="kpiSection"
           data-reveal="kpi"
@@ -635,7 +362,331 @@
             </div>
           </UiCard>
         </div>
+
+        <!--
+          Agenda de hoy - the day's detail list (WU4 / D7: under the block
+          heading, after the KPI strip). Rows render EVERY appointment
+          returned by the canonical GET /api/dashboard/appointments-today
+          endpoint (no slice cap). Row anatomy: time (tabular) / patient /
+          type / professional / status. The empty state keeps the
+          HOTFIX-DASH-007 line-art SVG through the shared
+          DashboardSectionEmpty pattern (T5).
+        -->
+      <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h3 class="text-base font-semibold text-label">Agenda de hoy</h3>
+          <div class="flex items-center gap-2">
+            <UiButton
+              v-if="can.createAppointment?.value"
+              variant="primary"
+              size="sm"
+              @click="goToNewAppointment"
+            >
+              Nueva cita
+            </UiButton>
+          </div>
+        </div>
+
+        <!--
+          Agenda inline error (T5). Only the today resource failed: the
+          section keeps its header and the rest of the page stays usable, so
+          the retry affordance lives here and re-fetches ONLY
+          /api/dashboard/appointments-today through the shared section-error
+          component.
+        -->
+        <DashboardSectionError
+          v-if="todayError"
+          data-state="error-appointments"
+          role="alert"
+          title="No pudimos cargar la agenda de hoy"
+          description="Reintenta para ver las citas programadas para el día."
+          :retry-attrs="{ 'data-retry-appointments': '' }"
+          @retry="retryTodayAppointments"
+        />
+
+        <!--
+          Empty state for the today-appointments case, rendered through the
+          shared compact DashboardSectionEmpty pattern (T5, WU3 / D9).
+
+          HOTFIX-DASH-007 - line-art calendar SVG. The calendar SVG
+          stays inline in this template, passed through the component's icon
+          slot, so the stroke-width="1.5" rule stays auditable in source
+          (apple-design §16 baseline, NOT the previous 2.0 default).
+
+          WU3 / R4 - single CTA per destination: the empty state carries NO
+          button. The header owns the only "Nueva cita" CTA and it opens the
+          appointment modal, so the copy stays informational and never points
+          users at the calendar section.
+        -->
+        <DashboardSectionEmpty
+          v-else-if="todayAppointments.length === 0"
+          ref="emptyStateSection"
+          data-state="empty-appointments"
+          data-reveal="empty-state"
+          title="Sin citas para hoy"
+          description="Cuando registres citas, aparecerán aquí."
+          :style="revealStyle('--spring-dash-empty-o')"
+        >
+          <template #icon>
+            <!--
+              HOTFIX-DASH-007 - inline line-art calendar SVG.
+              stroke-width="1.5" (apple-design §16 baseline).
+              Color: var(--color-label-tertiary-label) - the iOS
+              tertiaryLabel token so the icon recedes.
+            -->
+            <svg
+              class="mx-auto h-8 w-8 mb-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              style="color: var(--color-label-tertiary-label)"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </template>
+        </DashboardSectionEmpty>
+
+        <div v-else class="grid gap-3">
+          <UiCard
+            v-for="appointment in todayAppointments"
+            :key="appointment.id"
+            variant="flat"
+            hover
+            data-appointment-row
+          >
+            <div class="flex items-center gap-4">
+              <!--
+                Time column: tabular numerals so the minute column stays
+                aligned down the agenda (apple-design §15).
+              -->
+              <div class="flex-shrink-0 w-14">
+                <p
+                  class="text-sm font-semibold text-label tabular-nums"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                >
+                  {{ formatTime(appointment.scheduled_at) }}
+                </p>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-label truncate">
+                  {{ getPatientName(appointment) }}
+                </p>
+                <p class="text-sm text-theme-secondary truncate">
+                  {{ appointment.appointment_type?.name || 'Consulta' }}
+                  <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
+                </p>
+              </div>
+              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                {{ getStatusText(appointment.status) }}
+              </UiBadge>
+            </div>
+          </UiCard>
+        </div>
       </section>
+      </section>
+
+      <!--
+        Block "Requiere tu atención" (WU4 / D7) - quotations and treatment
+        plans waiting on a patient decision, fed by GET /api/dashboard/pending,
+        rendered as ONE merged list (WU3 / D6): actionable work before the
+        reference preview. The backend omits the subsets the current role
+        cannot read, so rows render only for payload keys that are present;
+        when neither key is present the whole block stays hidden. The fetch
+        is tolerant: this resource alone can fail without blocking the rest
+        of the page.
+      -->
+      <section
+        v-if="!statsError && (hasPendingGroups || pendingError)"
+        aria-label="Requiere tu atención"
+        data-dashboard-block="attention"
+        class="space-y-4"
+      >
+        <h2 class="text-xl font-semibold text-label">Requiere tu atención</h2>
+
+        <!--
+          Pending inline error (T7b). Only this resource failed: the rest
+          of the page stays usable, and the retry re-fetches ONLY
+          /api/dashboard/pending through the shared section-error component.
+        -->
+        <DashboardSectionError
+          v-if="pendingError"
+          data-state="error-pending"
+          role="alert"
+          title="No pudimos cargar los pendientes"
+          description="Reintenta para ver presupuestos y planes en espera de respuesta."
+          :retry-attrs="{ 'data-retry-pending': '' }"
+          @retry="retryPending"
+        />
+
+        <DashboardSectionEmpty
+          v-else-if="pendingRows.length === 0"
+          data-state="empty-pending"
+          title="Sin pendientes"
+          description="Los presupuestos y planes que esperen respuesta aparecerán aquí."
+        />
+        <!--
+          WU3 / D6 - ONE merged list: quotations and treatment plans are
+          rows of a single dataset (patient, amount, type badge, status
+          badge, date) sorted by their pending date ascending. Each row
+          carries the single action into its module list; no section-level
+          link duplicates those destinations.
+        -->
+        <div v-else class="grid gap-2">
+          <UiCard
+            v-for="row in pendingRows"
+            :key="row.key"
+            variant="flat"
+            padding="sm"
+            hover
+            :data-pending-row="row.rowHook"
+          >
+            <div class="flex items-center gap-3">
+              <p class="min-w-0 flex-1 text-sm font-medium text-label truncate">
+                {{ row.patientName }}
+              </p>
+              <span
+                class="flex-shrink-0 text-sm font-semibold text-label tabular-nums"
+                :data-pending-amount="row.rowHook"
+              >
+                {{ row.amountLabel }}
+              </span>
+              <UiBadge variant="neutral" size="sm" data-pending-type>
+                {{ row.typeLabel }}
+              </UiBadge>
+              <UiBadge :variant="pendingStatusVariant(row.status)" size="sm">
+                {{ pendingStatusLabel(row.status) }}
+              </UiBadge>
+              <span
+                v-if="row.dateLabel"
+                class="flex-shrink-0 text-xs text-theme-secondary tabular-nums"
+              >
+                {{ row.dateLabel }}
+              </span>
+              <UiButton
+                variant="ghost"
+                size="sm"
+                :aria-label="row.actionAria"
+                @click="goToPendingEntity(row.entityType)"
+              >
+                Ver
+              </UiButton>
+            </div>
+          </UiCard>
+        </div>
+      </section>
+
+      <!--
+        Block "Próximos días" (WU4 / D7) - the week preview, kept visually
+        secondary: quiet heading plus a recessed tray around the rows.
+        Compact feed from GET /api/dashboard/upcoming (now -> end of week,
+        limit 10), grouped by LOCAL calendar day (the same timezone
+        formatTime renders in) with a short Spanish day header. The fetch
+        is tolerant: if this resource alone fails, the block carries its
+        own inline error plus a scoped retry and the rest of the page
+        stays usable.
+      -->
+      <section
+        v-if="!statsError && can.viewAppointment?.value"
+        aria-label="Próximos días"
+        data-dashboard-block="upcoming"
+        class="space-y-4"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-base font-medium text-theme-secondary">Próximos días</h2>
+          <span
+            v-if="!upcomingError && upcomingAppointments.length > 0"
+            class="text-sm text-theme-secondary tabular-nums"
+          >
+            {{ upcomingAppointments.length }}
+            {{ upcomingAppointments.length === 1 ? 'cita' : 'citas' }}
+          </span>
+        </div>
+
+        <!--
+          Upcoming inline error (T5). Only the upcoming resource failed:
+          the header stays, the rest of the page stays usable, and the retry
+          affordance re-fetches ONLY /api/dashboard/upcoming through the
+          shared section-error component.
+        -->
+        <DashboardSectionError
+          v-if="upcomingError"
+          data-state="error-upcoming"
+          role="alert"
+          title="No pudimos cargar las próximas citas"
+          description="Reintenta para ver lo que queda de la semana."
+          :retry-attrs="{ 'data-retry-upcoming': '' }"
+          @retry="retryUpcomingAppointments"
+        />
+
+        <!--
+          Compact empty state for the upcoming-week case (WU3 / D9): one
+          short title plus one precise sentence instead of the previous
+          redundant two-sentence pair.
+        -->
+        <DashboardSectionEmpty
+          v-else-if="upcomingAppointments.length === 0"
+          data-state="empty-upcoming"
+          title="Sin citas esta semana"
+          description="No hay citas registradas de mañana en adelante."
+        />
+
+        <div
+          v-else
+          data-upcoming-surface
+          class="space-y-4 p-4"
+          style="
+            background: var(--color-system-gray-100);
+            border: 1px solid var(--color-hairline);
+            border-radius: var(--radius-panel);
+          "
+        >
+          <div
+            v-for="group in upcomingGroups"
+            :key="group.key"
+            data-upcoming-group
+            class="space-y-2"
+          >
+            <p data-upcoming-day class="text-xs font-medium text-theme-secondary tabular-nums">
+              {{ group.label }}
+            </p>
+            <div class="grid gap-3">
+              <UiCard
+                v-for="appointment in group.appointments"
+                :key="appointment.id"
+                variant="flat"
+                hover
+                data-upcoming-row
+              >
+                <div class="flex items-center gap-4">
+                  <div class="flex-shrink-0 w-14">
+                    <p data-upcoming-time class="text-sm font-semibold text-label tabular-nums">
+                      {{ formatTime(appointment.scheduled_at) }}
+                    </p>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="font-medium text-label truncate">
+                      {{ getPatientName(appointment) }}
+                    </p>
+                    <p class="text-sm text-theme-secondary truncate">
+                      {{ appointment.appointment_type?.name || 'Consulta' }}
+                    </p>
+                  </div>
+                  <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                    {{ getStatusText(appointment.status) }}
+                  </UiBadge>
+                </div>
+              </UiCard>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
 
     <!-- New Appointment Modal -->

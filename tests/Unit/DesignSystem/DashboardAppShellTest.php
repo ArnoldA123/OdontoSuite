@@ -368,7 +368,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $pending = $this->sectionRegion($src, 'Pendientes');
+        $pending = $this->sectionRegion($src, 'Requiere tu atención');
         $this->assertStringNotContainsString(
             'data-pending-group',
             $pending,
@@ -598,7 +598,7 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must render zero "Ver todos" overflow links (WU3 / D6: one row-level action per entity).'
         );
 
-        foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes'] as $label) {
+        foreach (['Agenda de hoy', 'Próximos días', 'Requiere tu atención'] as $label) {
             $region = $this->sectionRegion($src, $label);
             $this->assertStringNotContainsString(
                 'goToCalendar',
@@ -850,7 +850,7 @@ class DashboardAppShellTest extends TestCase
             );
         }
 
-        $pending = $this->sectionRegion($src, 'Pendientes');
+        $pending = $this->sectionRegion($src, 'Requiere tu atención');
         $this->assertStringContainsString(
             'title="Sin pendientes"',
             $pending,
@@ -879,7 +879,7 @@ class DashboardAppShellTest extends TestCase
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $pending = $this->sectionRegion($src, 'Pendientes');
+        $pending = $this->sectionRegion($src, 'Requiere tu atención');
 
         $this->assertStringContainsString(
             '{{ row.amountLabel }}',
@@ -1103,30 +1103,32 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * 4.2.1 — The greeting "Buenos días, Admin" must NOT be rendered as an
-     * `<h1>` or `<h2>` (it competes with the topbar's `<h1>`), and its
-     * size must be `text-lg font-medium` (NOT the previous `text-2xl font-semibold`).
+     * 4.2.1 / WU4 — The greeting "Buenos días, Admin" must NOT be rendered
+     * as an `<h1>` or `<h2>` (it competes with the topbar's `<h1>`), and it
+     * rides the login's display step (text-4xl font-semibold) as the hero
+     * band's headline (WU4 / D6). The topbar keeps owning the heading
+     * hierarchy; the hero band stays typographic.
      */
-    public function test_dashboard_greeting_not_h2_or_h1_uses_text_lg_font_medium(): void
+    public function test_dashboard_greeting_not_h2_or_h1_uses_display_typography(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The greeting must be a <p> with text-lg font-medium text-theme-secondary.
+        // The greeting must be a <p> carrying the login display anatomy.
         // We assert on the class binding the template emits.
         $this->assertMatchesRegularExpression(
-            '/<p[^>]*class="[^"]*text-lg[^"]*font-medium[^"]*text-theme-secondary[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
+            '/<p[^>]*class="[^"]*text-4xl[^"]*font-semibold[^"]*text-label[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
             $src,
-            'DashboardPage.vue greeting must be a <p class="text-lg font-medium text-theme-secondary">{{ getGreeting() }}, ...'
+            'DashboardPage.vue greeting must be a <p class="text-4xl font-semibold text-label">{{ getGreeting() }}, ... (WU4 hero band, login display step).'
         );
 
-        // The previous text-2xl font-semibold greeting size is forbidden
-        // (defect 7 — two competing headings).
+        // The retired compact greeting size is forbidden (defect 7 — two
+        // competing headings; WU4 re-anchors it to the hero display step).
         $this->assertDoesNotMatchRegularExpression(
-            '/text-2xl[^"]*font-semibold[^"]*text-ink-800/',
+            '/text-lg[^"]*font-medium[^"]*text-theme-secondary[^"]*"[^>]*>\s*\{\{\s*getGreeting\(\)\s*\}\}/',
             $src,
-            'DashboardPage.vue greeting must not use the previous text-2xl font-semibold text-ink-800 (would compete with topbar h1).'
+            'DashboardPage.vue greeting must not keep the retired text-lg font-medium compact sizing (WU4 hero band).'
         );
 
         // Only one h1 in the dashboard page source — the dashboard route's
@@ -1310,7 +1312,7 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue agenda header must not render the singular/plural count suffix (D8).'
         );
 
-        $kpi = $this->sectionRegion($src, 'Resumen del día');
+        $kpi = $this->statCardRegion($src, 'appointments-today');
         $this->assertStringContainsString(
             'data-stat="appointments-today"',
             $kpi,
@@ -1366,42 +1368,49 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * T4 — section headings. The KPI strip was the only section without a
-     * visible title (aria-label only). It now carries the same h2 anatomy
-     * as its siblings (`text-base font-semibold text-label`), placed at the
-     * top of the section, and the accessible name matches the visible text.
+     * T4 / WU4 — block heading. The KPI strip lives inside block "Hoy"
+     * under its h2 (the retired "Resumen del día" footer heading is gone):
+     * the block heading sits at the top, above the card grid, and the
+     * agenda follows the strip as the block's h3 subsection (D7).
      */
-    public function test_dashboard_kpi_section_has_a_visible_heading(): void
+    public function test_dashboard_hoy_block_heading_sits_above_the_kpi_strip(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $region = $this->sectionRegion($src, 'Resumen del día');
+        $region = $this->sectionRegion($src, 'Hoy');
 
         $this->assertStringContainsString(
-            '<h2 class="text-base font-semibold text-label">Resumen del día</h2>',
+            '<h2 class="text-2xl font-semibold text-label">Hoy</h2>',
             $region,
-            'DashboardPage.vue KPI section must render the visible h2 "Resumen del día" with the sibling section-title anatomy (T4).'
+            'DashboardPage.vue block "Hoy" must render its h2 with the strongest tier anatomy (WU4 / D7).'
         );
 
         // The heading comes first; the card grid follows it.
         $headingPos = strpos($region, '<h2');
         $gridPos = strpos($region, 'data-reveal="kpi"');
-        $this->assertNotFalse($headingPos, 'KPI section must contain the h2 (T4).');
-        $this->assertNotFalse($gridPos, 'KPI section must contain the card grid (data-reveal="kpi").');
+        $this->assertNotFalse($headingPos, 'Block "Hoy" must contain the h2 (T4).');
+        $this->assertNotFalse($gridPos, 'Block "Hoy" must contain the card grid (data-reveal="kpi").');
         $this->assertLessThan(
             $gridPos,
             $headingPos,
-            'DashboardPage.vue KPI heading must sit at the top of the section, above the card grid (T4).'
+            'DashboardPage.vue block heading must sit at the top of the block, above the card grid (T4).'
+        );
+
+        // The strip leads the agenda inside the same block (D7).
+        $this->assertLessThan(
+            strpos($src, 'aria-label="Agenda de hoy"'),
+            strpos($src, 'data-reveal="kpi"'),
+            'The KPI strip must render before the agenda inside block "Hoy" (WU4 / D7).'
         );
     }
 
     /**
-     * T4 — one casing convention for section titles: sentence case, and
-     * WU3 / D5 removed the "Acciones rápidas" heading whole. The four
-     * remaining sections keep the shared h2 anatomy and their existing
-     * copy.
+     * T4 / WU4 — one heading ladder: block headings are h2 tiered
+     * strongest -> quietest (D7) and the agenda is the h3 subsection of
+     * block "Hoy". Sentence case everywhere, and the retired
+     * "Resumen del día" heading is gone with its section.
      */
     public function test_dashboard_section_headings_use_sentence_case(): void
     {
@@ -1420,13 +1429,25 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must not keep the title-case "Acciones Rápidas" heading (T4).'
         );
 
-        foreach (['Agenda de hoy', 'Próximas citas', 'Pendientes', 'Resumen del día'] as $label) {
+        $ladder = [
+            '<h2 class="text-2xl font-semibold text-label">Hoy</h2>',
+            '<h2 class="text-xl font-semibold text-label">Requiere tu atención</h2>',
+            '<h2 class="text-base font-medium text-theme-secondary">Próximos días</h2>',
+            '<h3 class="text-base font-semibold text-label">Agenda de hoy</h3>',
+        ];
+        foreach ($ladder as $anatomy) {
             $this->assertStringContainsString(
-                '<h2 class="text-base font-semibold text-label">' . $label . '</h2>',
+                $anatomy,
                 $src,
-                "DashboardPage.vue section \"{$label}\" must keep the shared section-title anatomy (T4)."
+                "DashboardPage.vue heading ladder must render {$anatomy} (WU4 / D7)."
             );
         }
+
+        $this->assertStringNotContainsString(
+            '>Resumen del día<',
+            $src,
+            'DashboardPage.vue must keep no "Resumen del día" heading (WU4 / D7: its content lives in block "Hoy").'
+        );
     }
 
     /**

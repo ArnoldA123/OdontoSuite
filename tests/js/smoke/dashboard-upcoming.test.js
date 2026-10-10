@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
 // T5 regression coverage: the dashboard renders the upcoming-week strip
-// from GET /api/dashboard/upcoming between the agenda and the KPI grid,
+// from GET /api/dashboard/upcoming as the quiet secondary block (D7),
 // grouped by day with short Spanish day headers. A failing upcoming
 // request renders an inline error whose retry re-issues ONLY that
 // resource, and the section never blanks an already-loaded payload on a
@@ -96,7 +96,7 @@ describe('dashboard upcoming week strip (T5)', () => {
     installPayload()
   })
 
-  it('renders /api/dashboard/upcoming grouped by day between the agenda and the KPI grid', async () => {
+  it('renders /api/dashboard/upcoming grouped by day as the closing secondary block (D7)', async () => {
     installPayload({
       upcoming: [
         makeAppointment(1, '2026-10-05T09:00:00-05:00', 'Ana Torres Quispe', 'Limpieza dental'),
@@ -109,20 +109,21 @@ describe('dashboard upcoming week strip (T5)', () => {
 
     expect(upcomingCalls()).toHaveLength(1)
 
-    const section = wrapper.find('section[aria-label="Próximas citas"]')
+    const section = wrapper.find('section[aria-label="Próximos días"]')
     expect(section.exists()).toBe(true)
     // D5 — the dashboard keeps no "Ver calendario" navigation CTA at all;
     // the calendar lives in the sidebar.
     expect(wrapper.text()).not.toContain('Ver calendario')
 
-    // Section order: agenda -> upcoming -> KPI grid (ops IA).
+    // Block order (D7): the KPI strip leads block "Hoy" before the agenda,
+    // and "Próximos días" closes the page.
     const html = wrapper.html()
+    const kpiIdx = html.indexOf('data-reveal="kpi"')
     const agendaIdx = html.indexOf('aria-label="Agenda de hoy"')
-    const upcomingIdx = html.indexOf('aria-label="Próximas citas"')
-    const kpiIdx = html.indexOf('aria-label="Resumen del día"')
-    expect(agendaIdx).toBeGreaterThan(-1)
+    const upcomingIdx = html.indexOf('aria-label="Próximos días"')
+    expect(kpiIdx).toBeGreaterThan(-1)
+    expect(agendaIdx).toBeGreaterThan(kpiIdx)
     expect(upcomingIdx).toBeGreaterThan(agendaIdx)
-    expect(kpiIdx).toBeGreaterThan(upcomingIdx)
 
     // Grouped by day: two local days, first with two rows.
     const groups = section.findAll('[data-upcoming-group]')
@@ -149,7 +150,7 @@ describe('dashboard upcoming week strip (T5)', () => {
   it('renders the compact Spanish empty state with one title and one sentence (D9)', async () => {
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Próximas citas"]')
+    const section = wrapper.find('section[aria-label="Próximos días"]')
     const empty = section.find('[data-state="empty-upcoming"]')
     expect(empty.exists()).toBe(true)
 
@@ -187,7 +188,7 @@ describe('dashboard upcoming week strip (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const section = wrapper.find('section[aria-label="Próximas citas"]')
+    const section = wrapper.find('section[aria-label="Próximos días"]')
     const error = section.find('[data-state="error-upcoming"]')
     expect(error.exists()).toBe(true)
     expect(error.attributes('role')).toBe('alert')
