@@ -34,10 +34,20 @@ class AppointmentTypeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $types = AppointmentType::where('is_active', true)->get();
+            $status = $request->query('status', 'active');
+
+            $query = AppointmentType::query();
+
+            if ($status === 'inactive') {
+                $query->where('is_active', false);
+            } elseif ($status !== 'all') {
+                $query->where('is_active', true);
+            }
+
+            $types = $query->get();
 
             return response()->json([
                 'data' => $types,
