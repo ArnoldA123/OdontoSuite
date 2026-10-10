@@ -282,15 +282,18 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
   })
 })
 
-// T2 acceptance surface: the cash KPI card owns the session balance as its
-// headline number and the opening time as its caption; the header pill is the
-// single session-state surface (no duplicated data-cash-pill hook).
-describe('dashboard cash KPI (T2)', () => {
-  const openStats = {
-    cash_session: { status: 'open', id: 7, opened_at: '2026-10-05T08:30:00' }
-  }
+// WU2 acceptance surface (D4 / R2): cash state lives on exactly ONE
+// surface. The header pill is gone; the "Saldo de Caja" card renders the
+// state line (data-cash-state), the session balance (data-stat="cash-balance")
+// and the single "Ir a Caja" CTA. State AND balance derive from the
+// useCashRegister composable; stats.cash_session never paints visible state.
+describe('dashboard single cash surface (WU2)', () => {
   const openCurrent = {
     session: { id: 7, status: 'open', opened_at: '2026-10-05T08:30:00' },
+    summary: { opening_amount: 100, total_income: 250, total_expenses: 50 }
+  }
+  const closedCurrent = {
+    session: { id: 6, status: 'closed', opened_at: '2026-10-04T09:15:00' },
     summary: { opening_amount: 100, total_income: 250, total_expenses: 50 }
   }
 
@@ -300,70 +303,93 @@ describe('dashboard cash KPI (T2)', () => {
     installPayload()
   })
 
-  it('renders the live session balance as the cash card number', async () => {
-    installPayload(openStats, [], openCurrent)
+  it('removes the header pill entirely: no data-cash-pill-state anywhere', async () => {
+    installPayload({}, [], openCurrent)
+
+    const wrapper = await mountDashboard()
+
+    expect(wrapper.html()).not.toContain('data-cash-pill-state')
+    expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(0)
+    expect(wrapper.find('[data-dashboard-header] [data-cash-state]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('renders the state line on the cash card through the data-cash-state hook', async () => {
+    installPayload({}, [], openCurrent)
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
 
-    expect(card.exists()).toBe(true)
-    const number = card.find('p.tabular-nums')
-    expect(number.exists()).toBe(true)
-    expect(normalize(number.text())).toBe('S/ 300.00')
+    const state = card.find('[data-cash-state]')
+    expect(state.exists()).toBe(true)
+    expect(state.attributes('data-cash-state')).toBe('open')
+    expect(state.text()).toBe('Abierta')
 
     wrapper.unmount()
   })
 
-  it('drops the pill from the KPI card so the header keeps the only data-cash-pill', async () => {
-    installPayload(openStats, [], openCurrent)
+  it('sources state and balance from useCashRegister and ignores stats.cash_session (R2)', async () => {
+    installPayload(
+      {
+        cash_session: { status: 'open', opened_at: '2026-10-05T09:15:00' },
+        total_income: 999
+      },
+      [],
+      closedCurrent
+    )
 
     const wrapper = await mountDashboard()
-    const card = kpiStrip(wrapper).find('[data-stat="cash-balance"]')
+    const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
 
-    expect(card.find('[data-cash-pill]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(1)
-    expect(wrapper.find('[data-dashboard-header] [data-cash-pill]').exists()).toBe(true)
+    const state = card.find('[data-cash-state]')
+    expect(state.attributes('data-cash-state')).toBe('closed')
+    expect(state.text()).toBe('Cerrada')
+    expect(card.text()).not.toContain('Abierta')
+    expect(card.text()).not.toContain('Apertura 09:15')
+    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 300.00')
 
     wrapper.unmount()
   })
 
-  it('shows the Saldo de Caja eyebrow and the opening-time caption while the session is open', async () => {
-    installPayload(openStats, [], openCurrent)
+  it('renders Abierta, the opening caption and the live balance while a session is open', async () => {
+    installPayload({}, [], openCurrent)
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
 
     expect(card.text()).toContain('Saldo de Caja')
-    expect(card.text()).not.toContain('Estado de Caja')
-    expect(card.text()).toContain('Apertura 08:30')
+    expect(card.find('[data-cash-state]').attributes('data-cash-state')).toBe('open')
+    expect(card.find('[data-kpi-caption="cash-balance"]').text()).toBe('Apertura 08:30')
+    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 300.00')
 
     wrapper.unmount()
   })
 
-  it('shows N/D and the Sin sesión abierta caption when no session is open', async () => {
-    installPayload({ cash_session: { status: 'closed' } })
+  it('renders Sin sesión and N/D values when the composable has no session', async () => {
+    installPayload({}, [], {})
 
     const wrapper = await mountDashboard()
     const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
 
-    const number = card.find('p.tabular-nums')
-    expect(number.exists()).toBe(true)
-    expect(number.text()).toBe('N/D')
-    expect(card.text()).toContain('Sin sesión abierta')
-    expect(card.find('[data-cash-pill]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-cash-pill]')).toHaveLength(1)
+    expect(card.find('[data-cash-state]').attributes('data-cash-state')).toBe('no_session')
+    expect(card.find('[data-cash-state]').text()).toBe('Sin sesión')
+    expect(card.find('[data-stat="cash-balance"]').text()).toBe('N/D')
+    expect(card.find('[data-kpi-caption="cash-balance"]').text()).toBe('N/D')
 
     wrapper.unmount()
   })
 
-  it('lets the UiBadge variant own the header pill text color', async () => {
-    installPayload(openStats, [], openCurrent)
+  it('renders Ir a Caja exactly once and only inside the cash card', async () => {
+    installPayload({}, [], openCurrent)
 
     const wrapper = await mountDashboard()
-    const pill = wrapper.find('[data-dashboard-header] [data-cash-pill]')
+    const card = kpiStrip(wrapper).find('[data-stat-card="cash-balance"]')
 
-    expect(pill.classes()).toContain('text-systemGreen-700')
-    expect(pill.classes()).not.toContain('text-systemGreen-600')
+    const cashCtas = wrapper.findAll('button').filter(button => button.text().includes('Ir a Caja'))
+    expect(cashCtas).toHaveLength(1)
+    expect(card.find('button').text()).toContain('Ir a Caja')
+    expect(wrapper.find('[data-dashboard-header]').text()).not.toContain('Ir a Caja')
 
     wrapper.unmount()
   })

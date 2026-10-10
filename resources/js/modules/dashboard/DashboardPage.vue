@@ -131,32 +131,6 @@
               />
             </template>
           </UiButton>
-          <!--
-            Cash-session state + direct action. T2 surface split: this pill
-            is the ONLY session-state surface (Spanish label + filled tone);
-            the KPI cash card shows the session balance instead. The tone is
-            owned by the UiBadge variant alone. Gated by the same
-            viewCashRegister permission as the KPI cash card.
-          -->
-          <div v-if="can.viewCashRegister?.value" class="flex items-center gap-3">
-            <UiBadge
-              :variant="cashStatusBadgeVariant"
-              shape="pill"
-              size="md"
-              role="status"
-              :aria-label="`Estado de caja: ${cashStatusLabel}`"
-              data-cash-pill
-              :data-cash-pill-state="cashStatusPillState"
-            >
-              <span
-                class="inline-block w-1.5 h-1.5 rounded-full"
-                :class="cashStatusDotClass"
-                aria-hidden="true"
-              />
-              {{ cashStatusLabel }}
-            </UiBadge>
-            <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
-          </div>
         </div>
       </header>
 
@@ -594,11 +568,14 @@
 
         No comparison chips and no reserved blank slots (D3): the backend
         comparison labels are broken ("-100" for patients), so each card
-        is exactly eyebrow + number + caption. The cash card keeps its
-        existing session-balance behaviour; WU2 reworks its source.
+        is exactly eyebrow + number + caption. The cash card (WU2 / D4) is
+        the single cash surface: state line + session balance + caption +
+        its contextual CTA, all fed by useCashRegister.
 
         T3 - the strip is a static reference surface: no card carries a
-        click affordance (no clickable/hover props, no @click).
+        click affordance (no clickable/hover props, no @click). The cash
+        card's "Ir a Caja" button is its contextual action, not a
+        card-level affordance.
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
@@ -710,7 +687,12 @@
             </div>
           </UiCard>
 
-          <!-- Saldo de Caja (T2 behaviour kept; WU2 reworks its source). -->
+          <!--
+            Saldo de Caja: the single cash surface (WU2 / D4). State line,
+            session balance and the one cash CTA live here; the header keeps
+            only greeting, date and refresh. Everything cash-visible reads
+            the useCashRegister state.
+          -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
@@ -726,6 +708,13 @@
                   Saldo de Caja
                 </p>
                 <p
+                  class="mt-1 text-xs font-medium"
+                  :class="cashStateToneClass"
+                  :data-cash-state="cashStateKey"
+                >
+                  {{ cashStateLabel }}
+                </p>
+                <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
                   style="font-feature-settings: 'tnum' 1, 'lnum' 1"
                   data-stat="cash-balance"
@@ -735,6 +724,9 @@
                 <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="cash-balance">
                   {{ cashKpiCaption }}
                 </p>
+                <div class="mt-3">
+                  <UiButton variant="ghost" size="sm" @click="goToCashRegister">Ir a Caja</UiButton>
+                </div>
               </div>
             </div>
           </UiCard>
@@ -986,13 +978,6 @@ const { channel, echo } = useEcho()
 
 // State
 const loading = ref(false)
-// WU1 - the stats payload keeps only what the page still consumes: the
-// cash-session marker behind the Saldo de caja card. Every displayed metric
-// derives from its own single source (the day counts come from the agenda
-// list), so no counter stored here can duplicate them.
-const stats = ref({
-  cash_session: null
-})
 const todayAppointments = ref([])
 // T5 week preview. Kept separate from the agenda so a failing upcoming
 // request never blocks the day's protagonists.
@@ -1374,64 +1359,43 @@ const goToCashRegister = () => {
   router.push('/cash-register')
 }
 
-// Cash status: render the Spanish label directly via a primitive that
-// supports custom labels. Replaces a previous attempt that passed English
-// keys ('open' / 'closed' / 'no_session') to UiStatusPill - that primitive
-// only maps appointment / plan statuses and fell through to render the raw
-// English key on the page. The state is now used purely as a data
-// attribute (data-cash-pill-state) for testability; the user-visible
-// label and aria-label are always Spanish. iOS filled pattern per
-// Decision 7:
-//   - open        → label "Abierta",     variant success (filled green)
-//   - closed      → label "Cerrada",     variant error   (filled red)
-//   - no_session  → label "Sin sesión",  variant neutral (surface tone)
-const cashStatusPillState = computed(() => {
+// WU2 / D4 - the cash card is the single cash surface. The state key rides
+// only as the data-cash-state hook value; the visible line and its tone are
+// always Spanish (a raw key wired to a primitive's status map would print
+// English on the page):
+//   - open        -> label "Abierta",     green token
+//   - closed      -> label "Cerrada",     red token
+//   - no_session  -> label "Sin sesión",  neutral theme token
+const cashStateKey = computed(() => {
   if (isOpen.value) return 'open'
   if (hasActiveSession.value) return 'closed'
   return 'no_session'
 })
 
-const cashStatusLabel = computed(() => {
+const cashStateLabel = computed(() => {
   if (isOpen.value) return 'Abierta'
   if (hasActiveSession.value) return 'Cerrada'
   return 'Sin sesión'
 })
 
-const cashStatusBadgeVariant = computed(() => {
-  if (isOpen.value) return 'success'
-  if (hasActiveSession.value) return 'error'
-  return 'neutral'
+const cashStateToneClass = computed(() => {
+  if (isOpen.value) return 'text-systemGreen-600'
+  if (hasActiveSession.value) return 'text-systemRed-600'
+  return 'text-theme-secondary'
 })
 
-// T2 - the header pill's tone is owned by the UiBadge `variant` alone
-// (success / error / neutral). The removed cashStatusBadgeClass layered
-// text-*-600 over the variant's text-*-700: a same-property conflict that
-// only stylesheet order resolved, so the rendered filled green/red tone
-// stays identical while one source owns the color.
-
-const cashStatusDotClass = computed(() => {
-  if (isOpen.value) return 'bg-systemGreen-500'
-  if (hasActiveSession.value) return 'bg-systemRed-500'
-  return 'bg-systemGray-500'
-})
-
-// T2 - the cash KPI card's two data slots. `opened_at` is the stats
-// payload's open-session marker (the closed payload carries no opening
-// timestamp), so the card switches surfaces without re-declaring the raw
-// status key outside cashStatusPillState. The number stays "N/D" until the
-// cash-register summary lands, so the card never paints a fabricated
-// S/ 0.00.
-const cashSessionOpenedAt = computed(() => stats.value.cash_session?.opened_at || null)
+// WU2 - the balance and the caption read the SAME useCashRegister state as
+// the state line (single source, R2). The number is the session's real-time
+// balance; the caption names the opening time while the session is open.
+// No session summary means "N/D", never a fabricated S/ 0.00.
 const cashKpiBalance = computed(() =>
-  cashSessionOpenedAt.value && realTimeTotals.value
-    ? formatPENLabel(realTimeTotals.value.currentBalance)
-    : 'N/D'
+  realTimeTotals.value ? formatPENLabel(realTimeTotals.value.currentBalance) : 'N/D'
 )
-const cashKpiCaption = computed(() =>
-  cashSessionOpenedAt.value
-    ? `Apertura ${formatTime(cashSessionOpenedAt.value)}`
-    : 'Sin sesión abierta'
-)
+
+const cashKpiCaption = computed(() => {
+  const openedAt = currentSession.value?.opened_at
+  return isOpen.value && openedAt ? `Apertura ${formatTime(openedAt)}` : 'N/D'
+})
 
 const goToEnvironments = () => {
   router.push('/environments')
@@ -1444,10 +1408,13 @@ const goToBusinessIntelligence = () => {
 // Data loading
 
 /**
- * T3 - fetch the stats resource without throwing. A 401 is surfaced as
- * `unauthorized` so the caller keeps the /login redirect; any other failure
- * is surfaced as `ok: false` so the page can render its own error state
- * instead of swallowing the failure and painting zeros as real data.
+ * T3 - fetch the stats resource without throwing. WU2: nothing visible
+ * reads the payload anymore (cash state comes from useCashRegister), but
+ * the call stays as a load-flow gate: it owns the page-level stats error
+ * state and the KPI count-up timing. A 401 is surfaced as `unauthorized`
+ * so the caller keeps the /login redirect; any other failure is surfaced
+ * as `ok: false` so the page can render its own error state instead of
+ * swallowing the failure and painting zeros as real data.
  */
 const fetchStats = async () => {
   try {
@@ -1513,18 +1480,6 @@ const fetchPending = async () => {
   }
 }
 
-/**
- * WU1 - the stats payload keeps only what the page still consumes: the
- * cash-session marker behind the Saldo de caja card. Every displayed metric
- * derives from its own single source (the day counts come from the agenda
- * list), so no counter mapped here can duplicate them.
- */
-const applyStats = backendStats => {
-  stats.value = {
-    cash_session: backendStats.cash_session || null
-  }
-}
-
 const loadDashboardData = async () => {
   if (!isAuthenticated.value) {
     router.push('/login')
@@ -1551,7 +1506,6 @@ const loadDashboardData = async () => {
     if (statsResult.unauthorized) {
       router.push('/login')
     } else if (statsResult.ok) {
-      applyStats(statsResult.data)
       statsError.value = false
     } else {
       statsError.value = true

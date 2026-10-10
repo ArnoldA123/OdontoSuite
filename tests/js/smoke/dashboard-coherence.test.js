@@ -191,9 +191,10 @@ describe('dashboard KPI card decoration (T4)', () => {
       expect(card.html()).not.toContain('--color-accent-500')
     }
 
-    // The header cash-status dot is the only dot left with meaning.
-    expect(wrapper.findAll('span.w-1\\.5')).toHaveLength(1)
-    expect(wrapper.find('[data-dashboard-header] span.w-1\\.5').exists()).toBe(true)
+    // WU2: the header pill's status dot left with the pill; the page keeps
+    // zero status dots.
+    expect(wrapper.findAll('span.w-1\\.5')).toHaveLength(0)
+    expect(wrapper.find('[data-dashboard-header] span.w-1\\.5').exists()).toBe(false)
 
     wrapper.unmount()
   })

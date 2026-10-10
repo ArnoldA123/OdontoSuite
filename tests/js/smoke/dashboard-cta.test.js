@@ -191,11 +191,16 @@ describe('dashboard single CTA per destination (T3)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the header Ir a Caja as the only cash destination CTA', async () => {
+  it('keeps the cash card Ir a Caja as the only cash destination CTA (D4)', async () => {
     const { wrapper, router } = await mountDashboard()
 
     const cashCtas = buttonsWithText(wrapper, 'Ir a Caja')
     expect(cashCtas).toHaveLength(1)
+
+    const card = wrapper.find('[data-stat-card="cash-balance"]')
+    expect(card.exists()).toBe(true)
+    expect(card.find('button').text()).toContain('Ir a Caja')
+    expect(wrapper.find('[data-dashboard-header]').text()).not.toContain('Ir a Caja')
 
     await cashCtas[0].trigger('click')
     await flushPromises()

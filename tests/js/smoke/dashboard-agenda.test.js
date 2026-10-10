@@ -4,8 +4,8 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 
 // T2a regression coverage: the operational dashboard renders today's agenda
 // as the page protagonist (every appointment returned, each row carrying the
-// professional and appointment type) and surfaces the cash-session state plus
-// the "Ir a Caja" action in the compact header.
+// professional and appointment type). WU2 / D4: the header carries no cash
+// surface; the state and the "Ir a Caja" action live only on the cash card.
 const { getMock, makeAppointment, installTodayPayload } = vi.hoisted(() => {
   const makeAppointment = (id, fullName, extra = {}) => {
     const parts = fullName.split(' ')
@@ -125,19 +125,27 @@ describe('dashboard agenda (ops IA)', () => {
     wrapper.unmount()
   })
 
-  it('shows the cash status pill and the Ir a Caja action in the header when the role can view cash', async () => {
+  it('renders no cash state or cash CTA in the header (D4: the pill is gone)', async () => {
     const wrapper = await mountDashboard()
 
     const header = wrapper.find('[data-dashboard-header]')
     expect(header.exists()).toBe(true)
-    expect(header.find('[data-cash-pill]').exists()).toBe(true)
-    expect(header.text()).toContain('Sin sesión')
-    expect(header.text()).toContain('Ir a Caja')
+    expect(header.find('[data-cash-pill]').exists()).toBe(false)
+    expect(header.find('[data-cash-state]').exists()).toBe(false)
+    expect(header.text()).not.toContain('Ir a Caja')
+    expect(header.text()).not.toContain('Abierta')
+    expect(header.text()).not.toContain('Sin sesión')
+
+    // The single cash surface is the Saldo de Caja card.
+    const card = wrapper.find('[data-stat-card="cash-balance"]')
+    expect(card.exists()).toBe(true)
+    expect(card.find('[data-cash-state]').exists()).toBe(true)
+    expect(card.text()).toContain('Ir a Caja')
 
     wrapper.unmount()
   })
 
-  it('hides the cash status pill and Ir a Caja for a role without cash permission', async () => {
+  it('hides the whole cash surface for a role without cash permission', async () => {
     signInAs('odontologo')
 
     const wrapper = await mountDashboard()
@@ -145,7 +153,8 @@ describe('dashboard agenda (ops IA)', () => {
     const header = wrapper.find('[data-dashboard-header]')
     expect(header.exists()).toBe(true)
     expect(header.find('[data-cash-pill]').exists()).toBe(false)
-    expect(header.text()).not.toContain('Ir a Caja')
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Ir a Caja')
 
     wrapper.unmount()
   })

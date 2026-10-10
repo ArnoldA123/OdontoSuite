@@ -109,35 +109,46 @@ class DashboardAppShellTest extends TestCase
     }
 
     /**
-     * PR3 dashboard content guard — DashboardPage.vue must render cash
-     * status through a primitive that supports custom Spanish labels, and
-     * must NOT pass an English status key ('open' / 'closed' /
-     * 'no_session') to a primitive whose status map only knows
-     * appointment / plan keys. The fix replaces the previous <UiStatusPill
-     * :status="cashStatusPillStatus"> (which leaked raw 'open' to the
-     * DOM) with a <UiBadge variant="..."> + Spanish label in the slot.
+     * WU2 / D4 single-surface guard. Cash state lives on exactly ONE
+     * surface: the "Saldo de Caja" card. The header pill and its state hook
+     * are gone; the state line renders through data-cash-state (Spanish
+     * label in the slot, raw English keys only as the hook value).
      */
-    public function test_dashboard_collapses_cash_status_into_status_pill(): void
+    public function test_dashboard_cash_state_lives_on_the_single_cash_card(): void
     {
         $path = self::projectRootPath() . self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        // The cash pill renders through <UiBadge ... data-cash-pill>, never
-        // <UiStatusPill> (StatusPill's STATUS_MAP doesn't know 'open'/
-        // 'closed' / 'no_session' and would fall through to the raw key).
-        $badgePillCount = preg_match_all('/<UiBadge\b[^>]*data-cash-pill\b/i', $src);
-        $this->assertGreaterThanOrEqual(
-            1,
-            (int) $badgePillCount,
-            'DashboardPage.vue must render cash status via a <UiBadge data-cash-pill> primitive that supports custom labels.'
+        // The retired pill and its hooks must not survive anywhere.
+        $this->assertStringNotContainsString(
+            'data-cash-pill',
+            $src,
+            'DashboardPage.vue must not keep the retired cash pill hooks (D4: one cash surface).'
+        );
+        $this->assertStringNotContainsString(
+            'cashStatusPillState',
+            $src,
+            'DashboardPage.vue must not keep the pill state computed (D4: the state key feeds data-cash-state on the card).'
+        );
+
+        // The state line renders on the cash card through the hook binding.
+        $this->assertStringContainsString(
+            ':data-cash-state="cashStateKey"',
+            $src,
+            'DashboardPage.vue must render the cash state line through the data-cash-state hook binding.'
+        );
+        $this->assertStringContainsString(
+            'data-cash-state',
+            $this->statCardRegion($src, 'cash-balance'),
+            'The data-cash-state state line must live inside the cash-balance card (the single cash surface).'
         );
 
         $oldStatusPill = preg_match_all('/<UiStatusPill\b[^>]*\bcashStatusPillStatus\b/i', $src);
         $this->assertSame(
             0,
             (int) $oldStatusPill,
-            'DashboardPage.vue must not bind cash status to <UiStatusPill> — that primitive has no entry for the cash states and would print the raw key.'
+            'DashboardPage.vue must not bind cash status to <UiStatusPill> - that primitive has no entry for the cash states and would print the raw key.'
         );
 
         // Legacy computed quartet must be gone.
@@ -173,14 +184,14 @@ class DashboardAppShellTest extends TestCase
     /**
      * Belt-and-braces: the raw English cash keys ('open' / 'closed' /
      * 'no_session') MUST NOT appear as string literals anywhere in the
-     * SCRIPT section outside the cashStatusPillState computed, and MUST
-     * NOT appear anywhere in the TEMPLATE section at all. Any
-     * DOM-bound expression that returns one of those keys would print
-     * English in a Spanish UI (the bug the user reported).
+     * TEMPLATE section at all, and in the SCRIPT section only inside the
+     * cashStateKey computed. Any DOM-bound expression that returns one of
+     * those keys would print English in a Spanish UI (the bug the user
+     * reported).
      *
-     * The cashStatusPillState computed block (the legitimate home for
-     * those keys — they ride as the data-cash-pill-state attribute only)
-     * is stripped from the script body before the check runs.
+     * The cashStateKey computed block (the legitimate home for those keys
+     * - they ride as the data-cash-state attribute only) is stripped from
+     * the script body before the check runs.
      *
      * The test is intentionally strict: a future contributor who reaches
      * for one of these strings and wires it to a primitive's prop binding
@@ -207,19 +218,19 @@ class DashboardAppShellTest extends TestCase
         }
 
         // SCRIPT check: locate the <script setup> block, strip the
-        // cashStatusPillState computed (the only legitimate home), then
+        // cashStateKey computed (the only legitimate home), then
         // assert no other code references the raw keys.
         $script = '';
         if (preg_match('/<script\s+setup>([\s\S]*?)<\/script>/', $src, $m)) {
             $script = $m[1];
         }
 
-        // Strip the cashStatusPillState computed (the only allowed home for
+        // Strip the cashStateKey computed (the only allowed home for
         // these keys). The trailing semicolon is optional — this codebase omits
         // it, and requiring it made the strip silently match nothing, so the
         // test failed on the very block it was meant to exempt.
         $scriptStripped = preg_replace(
-            '/const\s+cashStatusPillState\s*=\s*computed\(\s*\(\)\s*=>\s*\{[\s\S]*?\}\s*\)\s*;?/m',
+            '/const\s+cashStateKey\s*=\s*computed\(\s*\(\)\s*=>\s*\{[\s\S]*?\}\s*\)\s*;?/m',
             '',
             $script
         );
@@ -236,7 +247,7 @@ class DashboardAppShellTest extends TestCase
             $this->assertStringNotContainsString(
                 $needle,
                 $scriptStripped,
-                "DashboardPage.vue script section must not contain the raw English cash key {$needle} outside the cashStatusPillState computed (would leak English to the DOM if wired to a primitive)."
+                "DashboardPage.vue script section must not contain the raw English cash key {$needle} outside the cashStateKey computed (would leak English to the DOM if wired to a primitive)."
             );
         }
     }
@@ -604,8 +615,8 @@ class DashboardAppShellTest extends TestCase
 
     /**
      * T3 — the four KPI cards are a static reference strip: none carries
-     * the UiCard clickable/hover props or an @click binding. The header
-     * "Ir a Caja" action remains the only cash destination CTA.
+     * the UiCard clickable/hover props or an @click binding. The cash card
+     * "Ir a Caja" action (WU2 / D4) remains the only cash destination CTA.
      */
     public function test_dashboard_stat_cards_have_no_click_affordance(): void
     {
@@ -646,7 +657,12 @@ class DashboardAppShellTest extends TestCase
         $this->assertSame(
             1,
             substr_count($src, '@click="goToCashRegister"'),
-            'DashboardPage.vue must keep the header "Ir a Caja" action as the only cash destination CTA (T3).'
+            'DashboardPage.vue must keep the cash card "Ir a Caja" action as the only cash destination CTA (D4).'
+        );
+        $this->assertStringContainsString(
+            'goToCashRegister',
+            $this->statCardRegion($src, 'cash-balance'),
+            'The single "Ir a Caja" CTA must live inside the cash-balance card (D4: contextual action on the single cash surface).'
         );
     }
 
@@ -1466,8 +1482,8 @@ class DashboardAppShellTest extends TestCase
 
     /**
      * T4 — decorative dots out. Each KPI card carried an aria-hidden
-     * accent dot top-right that read as a status indicator. The header
-     * cash-status dot is the only dot on the page with meaning.
+     * accent dot top-right that read as a status indicator. WU2 removed
+     * the header pill that owned the last status dot, so no dot survives.
      */
     public function test_dashboard_kpi_cards_carry_no_decorative_dot(): void
     {
@@ -1500,11 +1516,12 @@ class DashboardAppShellTest extends TestCase
             );
         }
 
-        // The header cash-status dot is the page's only remaining dot.
+        // WU2: the header pill took the last status dot with it; no dot
+        // carries meaning anymore.
         $this->assertSame(
-            1,
+            0,
             substr_count($src, 'inline-block w-1.5 h-1.5 rounded-full'),
-            'DashboardPage.vue must keep exactly one dot (the header cash-status indicator) after the T4 removal.'
+            'DashboardPage.vue must keep zero status dots after the WU2 pill removal (T4: dots out).'
         );
     }
 
