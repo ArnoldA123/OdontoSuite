@@ -324,6 +324,11 @@ describe('dashboard unified section states (T5)', () => {
     expect(actions.exists()).toBe(true)
     expect(actions.find('[data-refresh-button]').exists()).toBe(true)
 
+    // WU5b: the login parallax scene also lives on the hero band.
+    const heroMotif = hero.find('[data-hero-motif]')
+    expect(heroMotif.exists()).toBe(true)
+    expect(heroMotif.findAll('img').length).toBeGreaterThanOrEqual(5)
+
     const cards = wrapper.findAll('[data-stat-card]')
     expect(cards).toHaveLength(4)
     for (const card of cards) {

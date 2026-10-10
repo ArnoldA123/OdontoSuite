@@ -82,7 +82,7 @@
         data-dashboard-header
         data-dashboard-hero
         data-reveal="greeting"
-        class="p-6 md:p-8"
+        class="relative overflow-hidden p-6 md:p-8"
         style="
           background: var(--color-accent-50);
           border: 1px solid var(--color-hairline);
@@ -91,7 +91,8 @@
         "
         :style="revealStyle('--spring-dash-greeting-o')"
       >
-        <div class="flex items-center justify-between gap-3">
+        <DentalMotifLayer variant="hero" data-hero-motif />
+        <div class="relative flex items-center justify-between gap-3">
           <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
           <p class="inline-flex items-center gap-2">
             <svg
@@ -138,13 +139,13 @@
           </UiButton>
           </div>
         </div>
-        <p class="mt-3 text-4xl font-semibold text-label">
+        <p class="relative mt-3 text-4xl font-semibold text-label">
           {{ getGreeting() }}, {{ firstName }}
         </p>
         <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
         <p
           style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-          class="mt-2 text-base leading-relaxed text-theme-secondary"
+          class="relative mt-2 text-base leading-relaxed text-theme-secondary"
         >
           {{ getTodayDate() }}
         </p>
@@ -704,6 +705,7 @@ import {
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import DashboardSectionError from './DashboardSectionError.vue'
 import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
+import DentalMotifLayer from './DentalMotifLayer.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.
