@@ -2,19 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T3 regression coverage: single CTA per destination. "Ver calendario" lives
-// only on the Acciones rápidas header, the quick-action grid drops the
-// "Nueva Cita" tile (four destinations remain), and the KPI strip is a static
-// reference surface (no click affordance, no navigation). The two allowed
-// appointment CTAs — the agenda header "Nueva cita" and the empty-state
-// "Crear nueva cita" — still open the appointment modal.
-//
-// T6 coverage (second describe block): one name per destination and real
-// button semantics. The sidebar names the payment-methods module "Métodos de
-// Pago", the /business-intelligence tile uses the sidebar name instead of
-// "Reportes", every tile is a native <button type="button"> (the card is a
-// presentation wrapper, not the control), and every dashboard stroke rides
-// the documented 1.5 baseline.
+// D5 / R4 regression coverage: single CTA per destination. The
+// "Acciones rápidas" block that re-listed sidebar navigation is gone, the
+// agenda empty state carries NO appointment CTA (the header owns the only
+// "Nueva cita"), and the KPI strip stays a static reference surface. The
+// only navigational dashboard affordances left are contextual (cash card
+// "Ir a Caja", pending row actions), never sidebar duplicates.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
@@ -80,60 +73,35 @@ const mountDashboard = async () => {
 const buttonsWithText = (wrapper, text) =>
   wrapper.findAll('button').filter(button => button.text().includes(text))
 
-describe('dashboard single CTA per destination (T3)', () => {
+describe('dashboard single CTA per destination (D5/R4)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('renders exactly one Ver calendario CTA and keeps it in the Acciones rápidas header', async () => {
-    const { wrapper, router } = await mountDashboard()
-
-    const calendarCtas = buttonsWithText(wrapper, 'Ver calendario')
-    expect(calendarCtas).toHaveLength(1)
-
-    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
-    expect(quickActions.exists()).toBe(true)
-    expect(quickActions.text()).toContain('Ver calendario')
-
-    // T6: the section now holds the header CTA plus the four destination
-    // tiles (real buttons); the duplicate would be a second "Ver calendario"
-    // inside the tile grid.
-    const grid = quickActions.find('[data-reveal="quick-actions"]')
-    expect(grid.exists()).toBe(true)
-    expect(grid.text()).not.toContain('Ver calendario')
-    expect(grid.findAll('button')).toHaveLength(4)
-
-    // The two section headers that used to duplicate it no longer carry it.
-    for (const label of ['Agenda de hoy', 'Próximas citas']) {
-      const section = wrapper.find(`section[aria-label="${label}"]`)
-      expect(section.exists()).toBe(true)
-      expect(section.text()).not.toContain('Ver calendario')
-    }
-
-    await calendarCtas[0].trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/calendar')
-
-    wrapper.unmount()
-  })
-
-  it('drops the Nueva Cita quick-action tile and keeps the four destination tiles', async () => {
+  it('renders no quick-actions block and no sidebar-duplicating navigation', async () => {
     const { wrapper } = await mountDashboard()
 
-    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
-    const tiles = quickActions.findAll('[data-action]')
+    expect(wrapper.find('section[aria-label="Acciones rápidas"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Acciones rápidas')
+    expect(wrapper.findAll('[data-action]')).toHaveLength(0)
 
-    expect(tiles).toHaveLength(4)
-    expect(quickActions.find('[data-action="new-appointment"]').exists()).toBe(false)
-    expect(quickActions.text()).not.toContain('Nueva Cita')
-    expect(tiles.map(tile => tile.find('p').text())).toEqual([
-      'Pacientes',
-      'Profesionales',
-      'Ambientes',
-      'Business Intelligence'
-    ])
+    // No calendar CTA anywhere on the page: the calendar lives in the sidebar.
+    expect(buttonsWithText(wrapper, 'Ver calendario')).toHaveLength(0)
+
+    // The dashboard content renders no link to a sidebar destination.
+    const content = wrapper.find('[data-dashboard-content]')
+    expect(content.exists()).toBe(true)
+    for (const href of [
+      '/patients',
+      '/professionals',
+      '/environments',
+      '/business-intelligence',
+      '/calendar'
+    ]) {
+      expect(content.find(`a[href="${href}"]`).exists()).toBe(false)
+    }
 
     wrapper.unmount()
   })
@@ -145,6 +113,7 @@ describe('dashboard single CTA per destination (T3)', () => {
       .findAll('button')
       .find(button => button.text().trim() === 'Nueva cita')
     expect(headerCta).toBeTruthy()
+    expect(buttonsWithText(wrapper, 'Nueva cita')).toHaveLength(1)
 
     await headerCta.trigger('click')
     await flushPromises()
@@ -154,26 +123,23 @@ describe('dashboard single CTA per destination (T3)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the empty-state Crear nueva cita CTA and opens the appointment modal', async () => {
+  it('renders the agenda empty state without a second appointment CTA (R4)', async () => {
     const { wrapper } = await mountDashboard()
 
-    const emptyCta = wrapper.find('[data-cta="empty-create-appointment"]')
-    expect(emptyCta.exists()).toBe(true)
-    expect(emptyCta.text()).toContain('Crear nueva cita')
-
-    await emptyCta.trigger('click')
-    await flushPromises()
-
-    expect(wrapper.findComponent(NewAppointmentModal).props('modelValue')).toBe(true)
+    const empty = wrapper.find('[data-state="empty-appointments"]')
+    expect(empty.exists()).toBe(true)
+    expect(empty.find('[data-cta="empty-create-appointment"]').exists()).toBe(false)
+    expect(empty.find('button').exists()).toBe(false)
+    expect(buttonsWithText(wrapper, 'Crear nueva cita')).toHaveLength(0)
 
     wrapper.unmount()
   })
 
-  it('renders all five KPI cards without a click affordance', async () => {
+  it('renders all four KPI cards without a click affordance', async () => {
     const { wrapper, router } = await mountDashboard()
 
     const cards = wrapper.findAll('[data-stat-card]')
-    expect(cards).toHaveLength(5)
+    expect(cards).toHaveLength(4)
 
     for (const card of cards) {
       expect(card.attributes('data-clickable')).not.toBe('true')
@@ -191,11 +157,16 @@ describe('dashboard single CTA per destination (T3)', () => {
     wrapper.unmount()
   })
 
-  it('keeps the header Ir a Caja as the only cash destination CTA', async () => {
+  it('keeps the cash card Ir a Caja as the only cash destination CTA (D4)', async () => {
     const { wrapper, router } = await mountDashboard()
 
     const cashCtas = buttonsWithText(wrapper, 'Ir a Caja')
     expect(cashCtas).toHaveLength(1)
+
+    const card = wrapper.find('[data-stat-card="cash-balance"]')
+    expect(card.exists()).toBe(true)
+    expect(card.find('button').text()).toContain('Ir a Caja')
+    expect(wrapper.find('[data-dashboard-header]').text()).not.toContain('Ir a Caja')
 
     await cashCtas[0].trigger('click')
     await flushPromises()
@@ -227,16 +198,13 @@ describe('dashboard action naming and button semantics (T6)', () => {
     wrapper.unmount()
   })
 
-  it('names the /business-intelligence tile after the sidebar entry', async () => {
+  it('names the Business Intelligence destination only in the sidebar', async () => {
     const { wrapper } = await mountDashboard()
 
-    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
-    const tile = quickActions.find('[data-action="reports"]')
-    expect(tile.exists()).toBe(true)
-    expect(tile.find('p').text()).toBe('Business Intelligence')
-    expect(tile.text()).not.toContain('Reportes')
-    // The subtitle is not part of the rename.
-    expect(tile.text()).toContain('Análisis y estadísticas')
+    // The dashboard renders no BI tile anymore; the sidebar owns the name.
+    const content = wrapper.find('[data-dashboard-content]')
+    expect(content.text()).not.toContain('Business Intelligence')
+    expect(wrapper.text()).not.toContain('Reportes')
 
     const sidebarLink = wrapper.find('[data-app-chrome="sidebar"] a[href="/business-intelligence"]')
     expect(sidebarLink.exists()).toBe(true)
@@ -245,43 +213,22 @@ describe('dashboard action naming and button semantics (T6)', () => {
     wrapper.unmount()
   })
 
-  it('renders every quick-action tile through a real type="button" control', async () => {
+  it('renders every remaining dashboard action as a real button control', async () => {
     const { wrapper, router } = await mountDashboard()
 
-    const quickActions = wrapper.find('section[aria-label="Acciones rápidas"]')
-    const tiles = quickActions.findAll('[data-action]')
-    expect(tiles).toHaveLength(4)
+    const content = wrapper.find('[data-dashboard-content]')
+    const buttons = content.findAll('button')
+    expect(buttons.length).toBeGreaterThanOrEqual(2)
 
-    const destinations = {
-      patients: '/patients',
-      professionals: '/professionals',
-      environments: '/environments',
-      reports: '/business-intelligence'
+    for (const button of buttons) {
+      // Real controls only: no clickable div masquerading as a button.
+      expect(button.element.tagName.toLowerCase()).toBe('button')
+      expect(button.attributes('role')).not.toBe('button')
     }
 
-    for (const tile of tiles) {
-      const action = tile.attributes('data-action')
-
-      // The card surface is presentation only: the interactive element is
-      // the native button inside it (no clickable div, no role="button").
-      expect(tile.attributes('data-clickable')).not.toBe('true')
-      expect(tile.find('[role="button"]').exists()).toBe(false)
-
-      const buttons = tile.findAll('button')
-      expect(buttons).toHaveLength(1)
-      expect(buttons[0].attributes('type')).toBe('button')
-      // The button stays a full-bleed target so the whole card remains the
-      // click region, and keeps a visible keyboard focus ring.
-      expect(buttons[0].classes()).toContain('w-full')
-      expect(buttons[0].classes().join(' ')).toContain('focus-visible:ring-2')
-
-      await buttons[0].trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.path).toBe(destinations[action])
-
-      await router.push('/dashboard')
-      await flushPromises()
-    }
+    // None of them is a sidebar-navigation duplicate.
+    expect(content.find('[data-action]').exists()).toBe(false)
+    expect(router.currentRoute.value.path).toBe('/dashboard')
 
     wrapper.unmount()
   })
@@ -290,15 +237,11 @@ describe('dashboard action naming and button semantics (T6)', () => {
     const { wrapper } = await mountDashboard()
 
     const content = wrapper.find('[data-dashboard-content]')
-    expect(content.exists()).toBe(true)
-    expect(content.findAll('svg').length).toBeGreaterThanOrEqual(5)
+    expect(content.findAll('svg').length).toBeGreaterThanOrEqual(2)
 
-    // The 2.0 default is retired: the empty-state line art and every
-    // chevron ride stroke-width="1.5" (apple-design §16 baseline).
+    // The 2.0 default is retired: the empty-state line art rides
+    // stroke-width="1.5" (apple-design §16 baseline).
     expect(content.findAll('[stroke-width="2"]')).toHaveLength(0)
-
-    const calendarCta = buttonsWithText(wrapper, 'Ver calendario')[0]
-    expect(calendarCta.find('svg path').attributes('stroke-width')).toBe('1.5')
 
     wrapper.unmount()
   })

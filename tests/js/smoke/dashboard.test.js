@@ -30,10 +30,11 @@ const router = createRouter({
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
 })
 describe('dashboard smoke', () => {
-  it('mounts DashboardPage.vue and renders content', async () => {
+  it('mounts DashboardPage.vue and renders content without the quick-actions block (D5)', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Acciones rápidas')
+    expect(wrapper.text()).toContain('Agenda de hoy')
+    expect(wrapper.text()).not.toContain('Acciones rápidas')
     wrapper.unmount()
   })
 })

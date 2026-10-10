@@ -105,13 +105,14 @@ describe('dashboard load states (T3)', () => {
 
   it('re-issues the full load path when Reintentar is clicked and clears the error', async () => {
     let attempt = 0
+    const sixAppointments = Array.from({ length: 6 }, (_, idx) => makeAppointment(idx + 1))
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') {
         attempt += 1
         if (attempt === 1) throw { status: 500 }
-        return { data: { appointments_today: 6 } }
+        return { data: {} }
       }
-      if (url === '/api/dashboard/appointments-today') return { data: [] }
+      if (url === '/api/dashboard/appointments-today') return { data: sixAppointments }
       return { data: [] }
     })
 
@@ -126,7 +127,7 @@ describe('dashboard load states (T3)', () => {
     expect(todayCalls()).toHaveLength(2)
     expect(pendingCalls()).toHaveLength(2)
     expect(wrapper.find('[data-state="error-stats"]').exists()).toBe(false)
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('6')
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('6')
 
     wrapper.unmount()
   })
@@ -134,7 +135,7 @@ describe('dashboard load states (T3)', () => {
   it('shows the agenda error inline and retries only the today resource', async () => {
     let attempt = 0
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: { appointments_today: 4 } }
+      if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') {
         attempt += 1
         if (attempt === 1) throw { status: 500 }
@@ -151,9 +152,10 @@ describe('dashboard load states (T3)', () => {
     expect(inlineError.attributes('role')).toBe('alert')
     expect(inlineError.text()).toContain('Reintentar')
 
-    // The rest of the page stays usable.
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('4')
-    expect(wrapper.find('[data-action="patients"]').exists()).toBe(true)
+    // The rest of the page stays usable, and the day KPI never paints a
+    // fabricated counter while its single source is down.
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('N/D')
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(true)
 
     await wrapper.find('[data-retry-appointments]').trigger('click')
     await flushPromises()
@@ -164,14 +166,17 @@ describe('dashboard load states (T3)', () => {
     expect(pendingCalls()).toHaveLength(1)
     expect(wrapper.find('[data-state="error-appointments"]').exists()).toBe(false)
     expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('1')
 
     wrapper.unmount()
   })
 
   it('refresh control reloads without unmounting the current content', async () => {
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: { appointments_today: 2 } }
-      if (url === '/api/dashboard/appointments-today') return { data: [] }
+      if (url === '/api/dashboard/stats') return { data: {} }
+      if (url === '/api/dashboard/appointments-today') {
+        return { data: [makeAppointment(1), makeAppointment(2)] }
+      }
       return { data: [] }
     })
 
@@ -180,7 +185,7 @@ describe('dashboard load states (T3)', () => {
     const refresh = wrapper.find('[data-refresh-button]')
     expect(refresh.exists()).toBe(true)
     expect(refresh.attributes('aria-label')).toBe('Actualizar')
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('2')
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('2')
 
     let resolveStats
     getMock.mockImplementation(async url => {
@@ -189,7 +194,9 @@ describe('dashboard load states (T3)', () => {
           resolveStats = resolve
         })
       }
-      if (url === '/api/dashboard/appointments-today') return { data: [] }
+      if (url === '/api/dashboard/appointments-today') {
+        return { data: Array.from({ length: 7 }, (_, idx) => makeAppointment(idx + 1)) }
+      }
       return { data: [] }
     })
 
@@ -201,11 +208,11 @@ describe('dashboard load states (T3)', () => {
     expect(wrapper.find('[data-stat-card="appointments-today"]').exists()).toBe(true)
     expect(wrapper.find('[data-dashboard-content]').attributes('aria-busy')).toBe('true')
 
-    resolveStats({ data: { appointments_today: 7 } })
+    resolveStats({ data: {} })
     await flushPromises()
     await flushPromises()
 
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('7')
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('7')
     expect(wrapper.find('[data-dashboard-content]').attributes('aria-busy')).toBe('false')
     expect(wrapper.find('[aria-label="Cargando resumen"]').exists()).toBe(false)
     // T7b: the manual refresh re-issues the fourth dashboard resource too.

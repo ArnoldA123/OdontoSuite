@@ -4,8 +4,8 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 
 // T2a regression coverage: the operational dashboard renders today's agenda
 // as the page protagonist (every appointment returned, each row carrying the
-// professional and appointment type) and surfaces the cash-session state plus
-// the "Ir a Caja" action in the compact header.
+// professional and appointment type). WU2 / D4: the header carries no cash
+// surface; the state and the "Ir a Caja" action live only on the cash card.
 const { getMock, makeAppointment, installTodayPayload } = vi.hoisted(() => {
   const makeAppointment = (id, fullName, extra = {}) => {
     const parts = fullName.split(' ')
@@ -86,6 +86,8 @@ const mountDashboard = async () => {
   return wrapper
 }
 
+const kpiStrip = wrapper => wrapper.find('[data-reveal="kpi"]')
+
 describe('dashboard agenda (ops IA)', () => {
   beforeEach(() => {
     signInAs('administrador')
@@ -123,19 +125,27 @@ describe('dashboard agenda (ops IA)', () => {
     wrapper.unmount()
   })
 
-  it('shows the cash status pill and the Ir a Caja action in the header when the role can view cash', async () => {
+  it('renders no cash state or cash CTA in the header (D4: the pill is gone)', async () => {
     const wrapper = await mountDashboard()
 
     const header = wrapper.find('[data-dashboard-header]')
     expect(header.exists()).toBe(true)
-    expect(header.find('[data-cash-pill]').exists()).toBe(true)
-    expect(header.text()).toContain('Sin sesión')
-    expect(header.text()).toContain('Ir a Caja')
+    expect(header.find('[data-cash-pill]').exists()).toBe(false)
+    expect(header.find('[data-cash-state]').exists()).toBe(false)
+    expect(header.text()).not.toContain('Ir a Caja')
+    expect(header.text()).not.toContain('Abierta')
+    expect(header.text()).not.toContain('Sin sesión')
+
+    // The single cash surface is the Saldo de Caja card.
+    const card = wrapper.find('[data-stat-card="cash-balance"]')
+    expect(card.exists()).toBe(true)
+    expect(card.find('[data-cash-state]').exists()).toBe(true)
+    expect(card.text()).toContain('Ir a Caja')
 
     wrapper.unmount()
   })
 
-  it('hides the cash status pill and Ir a Caja for a role without cash permission', async () => {
+  it('hides the whole cash surface for a role without cash permission', async () => {
     signInAs('odontologo')
 
     const wrapper = await mountDashboard()
@@ -143,29 +153,41 @@ describe('dashboard agenda (ops IA)', () => {
     const header = wrapper.find('[data-dashboard-header]')
     expect(header.exists()).toBe(true)
     expect(header.find('[data-cash-pill]').exists()).toBe(false)
-    expect(header.text()).not.toContain('Ir a Caja')
+    expect(wrapper.find('[data-stat-card="cash-balance"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Ir a Caja')
 
     wrapper.unmount()
   })
 
-  it('renders the agenda heading with its count and the Nueva cita action', async () => {
+  it('renders the agenda heading without the appointment count (D8) and the Nueva cita action', async () => {
     installTodayPayload([makeAppointment(1, 'Ana Torres Quispe'), makeAppointment(2, 'Luis Rojas')])
 
     const wrapper = await mountDashboard()
 
-    expect(wrapper.text()).toContain('Agenda de hoy')
-    expect(wrapper.text()).toContain('2 citas')
+    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
+    expect(agenda.find('h3').text()).toBe('Agenda de hoy')
     expect(wrapper.text()).toContain('Nueva cita')
+
+    // D8 / R1: the daily count lives ONLY in the KPI.
+    expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    expect(kpiStrip(wrapper).find('[data-stat="appointments-today"]').text()).toBe('2')
 
     wrapper.unmount()
   })
 
-  it('keeps the agenda empty state with the Crear nueva cita CTA', async () => {
+  it('renders the agenda empty state without a CTA and with informational copy (D5/R4)', async () => {
     const wrapper = await mountDashboard()
 
     const empty = wrapper.find('[data-state="empty-appointments"]')
     expect(empty.exists()).toBe(true)
-    expect(empty.text()).toContain('Crear nueva cita')
+    // The header owns the only "Nueva cita" CTA: the empty state must not
+    // re-issue it, and its copy must not send users to "la sección de
+    // calendario" (the CTA elsewhere opens the modal).
+    expect(empty.find('button').exists()).toBe(false)
+    expect(empty.find('[data-cta]').exists()).toBe(false)
+    expect(empty.text()).not.toContain('Crear nueva cita')
+    expect(empty.text()).not.toContain('sección de calendario')
+    expect(empty.text()).toContain('Cuando registres citas, aparecerán aquí.')
 
     wrapper.unmount()
   })

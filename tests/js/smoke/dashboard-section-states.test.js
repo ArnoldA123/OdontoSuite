@@ -35,7 +35,6 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
 import pageSource from '../../../resources/js/modules/dashboard/DashboardPage.vue?raw'
-import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
 
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
@@ -134,10 +133,10 @@ describe('dashboard unified section states (T5)', () => {
     wrapper.unmount()
   })
 
-  it('hides the agenda count while its own error state is visible', async () => {
+  it('never renders the appointment count in the agenda header (D8); the day KPI goes N/D on failure', async () => {
     let todayAttempt = 0
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: { appointments_today: 2 } }
+      if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') {
         todayAttempt += 1
         if (todayAttempt === 1) {
@@ -150,20 +149,24 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    expect(wrapper.find('section[aria-label="Agenda de hoy"]').text()).toContain('2 citas')
+    // The count lives only in the KPI, never in the agenda header.
+    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
+    expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('2')
 
     await wrapper.find('[data-refresh-button]').trigger('click')
     await flushPromises()
     await flushPromises()
 
-    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
     expect(agenda.find('[data-state="error-appointments"]').exists()).toBe(true)
     expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    // Single source: the KPI reports N/D instead of a stale or fake count.
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('N/D')
 
     wrapper.unmount()
   })
 
-  it('renders the shared empty component with per-section copy and one padding token', async () => {
+  it('renders the compact shared empty pattern with per-section copy and no redundant CTA (D9)', async () => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') return { data: [] }
@@ -181,44 +184,47 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
+    // At most three usages after unification: agenda, upcoming, pending.
     const empties = wrapper.findAll('[data-section-empty]')
-    expect(empties).toHaveLength(4)
+    expect(empties).toHaveLength(3)
     for (const empty of empties) {
-      expect(empty.classes()).toContain('p-10')
+      // Compact pattern: reduced padding, one title + one sentence.
+      expect(empty.classes()).toContain('p-6')
+      expect(empty.findAll('p')).toHaveLength(2)
+      // WU5b: the login's dental motif, scaled down, decorates empty states.
+      const motif = empty.find('[data-empty-motif]')
+      expect(motif.exists()).toBe(true)
+      expect(motif.attributes('aria-hidden')).toBe('true')
+      const marks = motif.findAll('img')
+      expect(marks.length).toBeGreaterThanOrEqual(6)
+      for (const mark of marks) {
+        expect(mark.attributes('src')).toMatch(/^\/images\/login\//)
+      }
     }
 
     const agendaEmpty = wrapper.find('[data-state="empty-appointments"]')
     expect(agendaEmpty.element.hasAttribute('data-section-empty')).toBe(true)
     expect(agendaEmpty.find('svg').exists()).toBe(true)
     expect(agendaEmpty.text()).toContain('Sin citas para hoy')
-
-    const cta = agendaEmpty.find('[data-cta="empty-create-appointment"]')
-    expect(cta.exists()).toBe(true)
-    expect(cta.text()).toContain('Crear nueva cita')
-    await cta.trigger('click')
-    await flushPromises()
-    expect(wrapper.findComponent(NewAppointmentModal).props('modelValue')).toBe(true)
+    expect(agendaEmpty.text()).toContain('Cuando registres citas, aparecerán aquí.')
+    expect(agendaEmpty.text()).not.toContain('sección de calendario')
+    expect(agendaEmpty.find('button').exists()).toBe(false)
 
     const upcomingEmpty = wrapper.find('[data-state="empty-upcoming"]')
     expect(upcomingEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(upcomingEmpty.text()).toContain('Sin citas programadas para esta semana')
+    expect(upcomingEmpty.text()).toContain('No hay citas registradas de mañana en adelante.')
+    expect(upcomingEmpty.text()).not.toContain('Sin citas programadas para esta semana')
 
-    const quotationEmpty = wrapper.find(
-      '[data-pending-group="quotations"] [data-state="empty-pending"]'
-    )
-    expect(quotationEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(quotationEmpty.text()).toContain('Sin presupuestos pendientes')
-
-    const planEmpty = wrapper.find(
-      '[data-pending-group="treatment-plans"] [data-state="empty-pending"]'
-    )
-    expect(planEmpty.element.hasAttribute('data-section-empty')).toBe(true)
-    expect(planEmpty.text()).toContain('Sin planes por aceptar')
+    // Unified pending: ONE empty state for the merged list.
+    const pendingEmpties = wrapper.findAll('[data-state="empty-pending"]')
+    expect(pendingEmpties).toHaveLength(1)
+    expect(pendingEmpties[0].element.hasAttribute('data-section-empty')).toBe(true)
+    expect(pendingEmpties[0].text()).toContain('Sin pendientes')
 
     wrapper.unmount()
   })
 
-  it('renders plan final_cost with the quotation row anatomy and a muted null fallback', async () => {
+  it('renders merged pending rows with one uniform anatomy and a muted null-cost fallback', async () => {
     getMock.mockImplementation(async url => {
       if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') return { data: [] }
@@ -267,26 +273,68 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    const quotationRow = wrapper.find('[data-pending-row="quotations"]')
-    const planRow = wrapper.find('[data-pending-row="treatment-plans"]')
+    // WU5b: motif is empty-state only; rows render on a clean surface.
+    const motifs = wrapper.findAll('[data-empty-motif]')
+    const empties = wrapper.findAll('[data-section-empty]')
+    expect(empties.length).toBeGreaterThan(0)
+    expect(motifs).toHaveLength(empties.length)
+    expect(wrapper.find('[data-state="empty-pending"]').exists()).toBe(false)
+    for (const motif of motifs) {
+      expect(motif.element.closest('[data-section-empty]')).not.toBeNull()
+    }
+    const rows = wrapper.findAll('[data-pending-row]')
+    expect(rows).toHaveLength(3)
+
+    // Sorted by pending date ascending: Pedro (1 oct), Marta (2 oct), Ana (3 oct).
+    const nullCostRow = rows[0]
+    const planRow = rows[1]
+    const quotationRow = rows[2]
 
     expect(normalize(quotationRow.text())).toContain('S/ 149.90')
     expect(normalize(planRow.text())).toContain('S/ 249.50')
     expect(planRow.text()).toContain('Propuesto')
 
-    // Same cell anatomy as the quotation rows: patient / amount / status /
-    // date, all rendered through the same UiBadge pill primitive.
+    // One row template for both types: patient / amount / type badge /
+    // status badge / date / action, all rendered through the same
+    // UiBadge pill primitive.
     const cells = row =>
       Array.from(row.element.querySelector('.card-content > div').children).map(el =>
         el.tagName.toLowerCase()
       )
-    expect(cells(planRow)).toEqual(cells(quotationRow))
-    expect(planRow.find('[data-variant]').exists()).toBe(true)
+    expect(cells(rows[0])).toEqual(cells(rows[1]))
+    expect(cells(rows[1])).toEqual(cells(rows[2]))
+    expect(planRow.findAll('[data-variant]').length).toBeGreaterThanOrEqual(2)
 
-    const nullCostRow = wrapper.findAll('[data-pending-row="treatment-plans"]')[1]
     expect(nullCostRow.text()).toContain('N/D')
     expect(normalize(nullCostRow.text())).not.toContain('S/')
     expect(nullCostRow.text()).not.toContain('\u2014')
+
+    wrapper.unmount()
+  })
+
+  it('keeps hero actions in one top cluster and KPI cards equal-height', async () => {
+    getMock.mockImplementation(async () => ({ data: [] }))
+
+    const { wrapper } = await mountDashboard()
+
+    // WU5b: refresh lives in a controlled hero actions cluster (no orphan
+    // wrap at 390px) and every KPI card shares the equal-height anatomy.
+    const hero = wrapper.find('[data-dashboard-hero]')
+    const actions = hero.find('[data-hero-actions]')
+    expect(actions.exists()).toBe(true)
+    expect(actions.find('[data-refresh-button]').exists()).toBe(true)
+
+    // WU5b: the login parallax scene also lives on the hero band.
+    const heroMotif = hero.find('[data-hero-motif]')
+    expect(heroMotif.exists()).toBe(true)
+    expect(heroMotif.findAll('img').length).toBeGreaterThanOrEqual(5)
+
+    const cards = wrapper.findAll('[data-stat-card]')
+    expect(cards).toHaveLength(4)
+    for (const card of cards) {
+      expect(card.classes()).toContain('h-full')
+      expect(card.classes()).toContain('flex-col')
+    }
 
     wrapper.unmount()
   })
@@ -296,6 +344,8 @@ describe('dashboard section-state extraction (T5 source)', () => {
   it('leaves no duplicated inline error or empty markup in the page', () => {
     expect(pageSource).not.toContain('rounded-ios p-5 bg-systemRed-50')
     expect(pageSource.match(/<DashboardSectionError\b/g) || []).toHaveLength(3)
-    expect((pageSource.match(/<DashboardSectionEmpty\b/g) || []).length).toBeGreaterThanOrEqual(4)
+    // After the pending unification only three usages remain: agenda,
+    // upcoming and the single unified pending empty state.
+    expect(pageSource.match(/<DashboardSectionEmpty\b/g) || []).toHaveLength(3)
   })
 })

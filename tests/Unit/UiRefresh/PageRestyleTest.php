@@ -72,49 +72,29 @@ class PageRestyleTest extends TestCase
     }
 
     /**
-     * Task 2.1.2 — Dashboard's cash-status badge resolves to the iOS
-     * filled pattern per state. Since T2 of dashboard-visual-coherence
-     * the tone is owned by the shared UiBadge variant system: the filled
-     * triples live in Badge.vue (bg-*-100 + text-*-700 + hairline) and
-     * the dashboard binds a state-driven variant ('success' = Abierta,
-     * 'error' = Cerrada, 'neutral' = Sin sesión). The old inline
-     * text-*-600 overrides were dead code (the variant's text-*-700 won
-     * the cascade) and were removed.
+     * Task 2.1.2 / WU2 — the cash state tone rides the single cash card
+     * state line, not a badge. The header cash pill is gone (D4) and the
+     * state line maps Abierta to the green token, Cerrada to the red token
+     * and Sin sesión to the neutral theme token.
      *
      * @test
      */
-    public function dashboard_cash_badge_color_matches_state(): void
+    public function dashboard_cash_state_tone_matches_state(): void
     {
         $src = self::read('resources/js/modules/dashboard/DashboardPage.vue');
         $this->assertNotSame('', $src, 'DashboardPage.vue must exist');
 
-        $this->assertGreaterThan(
+        $this->assertSame(
             0,
-            self::countCi($src, ':variant="cashStatusBadgeVariant"'),
-            'DashboardPage.vue must delegate the cash badge tone to the UiBadge variant binding'
+            self::countCi($src, 'data-cash-pill'),
+            'DashboardPage.vue must not render the retired cash pill (D4: one cash surface)'
         );
 
         $this->assertMatchesRegularExpression(
-            "/cashStatusBadgeVariant\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]{0,300}?'success'[\s\S]{0,120}?'error'[\s\S]{0,120}?'neutral'/",
+            "/cashStateToneClass\s*=\s*computed\(\(\)\s*=>\s*\{[\s\S]{0,300}?'text-systemGreen-600'[\s\S]{0,120}?'text-systemRed-600'[\s\S]{0,120}?'text-theme-secondary'/",
             $src,
-            "cashStatusBadgeVariant must map Abierta to 'success', Cerrada to 'error' and Sin sesión to 'neutral'"
+            'cashStateToneClass must map Abierta to the green token, Cerrada to the red token and Sin sesión to the neutral token'
         );
-
-        $badge = self::read('resources/js/components/ui/Badge.vue');
-        $this->assertNotSame('', $badge, 'Badge.vue must exist');
-
-        $filledTriples = [
-            'bg-systemGreen-100 text-systemGreen-700' => 'Abierta badge (green)',
-            'bg-systemRed-100 text-systemRed-700' => 'Cerrada badge (red)',
-            'bg-theme-surface text-theme-secondary' => 'Sin sesión badge (gray)',
-        ];
-        foreach ($filledTriples as $needle => $label) {
-            $this->assertGreaterThan(
-                0,
-                self::countCi($badge, $needle),
-                "Badge.vue must provide the filled triple `{$needle}` for the {$label}"
-            );
-        }
     }
 
     /**

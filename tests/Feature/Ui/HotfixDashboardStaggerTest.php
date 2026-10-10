@@ -6,15 +6,17 @@ use App\Models\User;
 use Tests\TestCase;
 
 /**
- * HOTFIX-DASH-009 — Per-section staggered springs (4 sections, 60ms stagger).
+ * HOTFIX-DASH-009 / WU3 — Per-section staggered springs (3 sections,
+ * 60ms stagger).
  *
  * Dashboard MUST attach useSpring({ damping: 1.0, response: 0.35 }) to each
- * of: greeting block, KPI grid, Quick Actions, Citas de Hoy empty state.
- * Sections MUST enter with stagger delays of 0ms, 60ms, 120ms, 180ms (via
- * setTimeout post-mount). Pin the RULE: 4 distinct useSpring instances on
- * Dashboard page sections. (apple-design §4 springs for entrance — default
- * to damping 1.0 critically damped; apple-design §8 intermediate frames
- * telegraph direction — stagger tells the eye where the eye should land.)
+ * of: greeting block, KPI grid, the agenda empty state. Sections MUST enter
+ * with stagger delays of 0ms, 60ms, 120ms (via setTimeout post-mount).
+ * Pin the RULE: 3 distinct useSpring instances on Dashboard page sections.
+ * (apple-design §4 springs for entrance — default to damping 1.0 critically
+ * damped; apple-design §8 intermediate frames telegraph direction — stagger
+ * tells the eye where the eye should land.) The quick-actions spring left
+ * with its section (WU3 / D5).
  */
 class HotfixDashboardStaggerTest extends TestCase
 {
@@ -49,7 +51,7 @@ class HotfixDashboardStaggerTest extends TestCase
         return $opts;
     }
 
-    public function test_dashboard_attaches_at_least_four_distinct_use_spring_instances(): void
+    public function test_dashboard_attaches_three_distinct_use_spring_instances(): void
     {
         $user = User::factory()->make();
         $response = $this->actingAs($user)->get('/dashboard');
@@ -63,33 +65,43 @@ class HotfixDashboardStaggerTest extends TestCase
         $source = (string) file_get_contents(self::dashboardPagePath());
         $opts = self::extractUseSpringOptions($source);
 
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($opts),
-            'DashboardPage.vue MUST attach at least FOUR distinct useSpring instances (greeting, KPI grid, Quick Actions, Citas de Hoy empty state) — HOTFIX-DASH-009, apple-design §4 (springs for entrance), §8 (intermediate frames telegraph direction).'
-        );
-
-        // Each spring MUST declare a distinct cssVar so the four entrance
-        // animations cannot collide on the same CSS custom property.
+        // Entrance springs are the useSpring calls carrying a cssVar; the
+        // KPI count-up springs are runtime helpers without one.
+        $entranceOpts = [];
         $cssVars = [];
         foreach ($opts as $body) {
             if (preg_match('/cssVar\s*:\s*[\'"]([^\'"]+)[\'"]/i', $body, $vm)) {
+                $entranceOpts[] = $body;
                 $cssVars[] = $vm[1];
             }
         }
+
+        $this->assertCount(
+            3,
+            $entranceOpts,
+            'DashboardPage.vue MUST attach exactly THREE section entrance useSpring instances (greeting, KPI grid, agenda empty state) — WU3 / D5 removed the quick-actions spring.'
+        );
+
+        // Each spring MUST declare a distinct cssVar so the entrance
+        // animations cannot collide on the same CSS custom property.
         $uniqueCssVars = array_values(array_unique($cssVars));
-        $this->assertGreaterThanOrEqual(
-            4,
-            count($uniqueCssVars),
-            'DashboardPage.vue MUST declare at least FOUR distinct cssVar tokens across useSpring calls — HOTFIX-DASH-009 (greeting + KPI grid + Quick Actions + Citas de Hoy each need their own cssVar).'
+        $this->assertCount(
+            3,
+            $uniqueCssVars,
+            'DashboardPage.vue MUST declare exactly THREE distinct cssVar tokens across the entrance useSpring calls.'
+        );
+        $this->assertNotContains(
+            '--spring-dash-quick-o',
+            $uniqueCssVars,
+            'The quick-actions entrance cssVar left with its section (WU3 / D5).'
         );
     }
 
     /**
      * T4 - every entrance cssVar MUST be consumed by a template rule.
-     * Before T4 the four vars were written to the sections but no style
-     * rule read them, so the motion was vestigial. Pin the consumption so
-     * the entrance cannot silently become dead code again.
+     * Before T4 the vars were written to the sections but no style rule read
+     * them, so the motion was vestigial. Pin the consumption so the entrance
+     * cannot silently become dead code again.
      */
     public function test_every_entrance_css_var_is_consumed_by_a_template_rule(): void
     {
@@ -98,7 +110,6 @@ class HotfixDashboardStaggerTest extends TestCase
         $expectedVars = [
             '--spring-dash-greeting-o',
             '--spring-dash-kpi-o',
-            '--spring-dash-quick-o',
             '--spring-dash-empty-o',
         ];
 
@@ -106,9 +117,15 @@ class HotfixDashboardStaggerTest extends TestCase
             $this->assertMatchesRegularExpression(
                 "/revealStyle\(\s*'" . preg_quote($cssVar, '/') . "'\s*\)/",
                 $source,
-                "DashboardPage.vue MUST consume `{$cssVar}` through revealStyle() in a template style rule (T4 - the four entrance springs must not be vestigial)."
+                "DashboardPage.vue MUST consume `{$cssVar}` through revealStyle() in a template style rule (T4 - the entrance springs must not be vestigial)."
             );
         }
+
+        $this->assertStringNotContainsString(
+            '--spring-dash-quick-o',
+            $source,
+            'DashboardPage.vue must drop the retired quick-actions entrance cssVar (WU3 / D5).'
+        );
 
         // The helper itself must build the var() read with the final-state
         // fallback (1), which is what renders under reduced motion.
@@ -120,25 +137,24 @@ class HotfixDashboardStaggerTest extends TestCase
     }
 
     /**
-     * T4 - the 0/60/120/180ms stagger is part of the contract. Pin each
-     * delay literally so a future edit cannot flatten the cascade.
+     * T4 - the entrance stagger is part of the contract. Pin each delay
+     * literally so a future edit cannot flatten the cascade.
      */
-    public function test_dashboard_entrance_stagger_keeps_the_0_60_120_180_delays(): void
+    public function test_dashboard_entrance_stagger_keeps_the_0_60_120_delays(): void
     {
         $source = (string) file_get_contents(self::dashboardPagePath());
 
         $expectedDelays = [
             'greetingSpring' => 0,
             'kpiSpring' => 60,
-            'quickActionsSpring' => 120,
-            'emptyStateSpring' => 180,
+            'emptyStateSpring' => 120,
         ];
 
         foreach ($expectedDelays as $spring => $delay) {
             $this->assertMatchesRegularExpression(
                 '/' . preg_quote($spring, '/') . '\.set\(1\)\s*,\s*' . $delay . '\s*\)/',
                 $source,
-                "DashboardPage.vue MUST keep the {$delay}ms stagger delay for {$spring} (T4 - 0/60/120/180ms entrance cascade)."
+                "DashboardPage.vue MUST keep the {$delay}ms stagger delay for {$spring} (T4 - 0/60/120ms entrance cascade, WU3)."
             );
         }
     }
