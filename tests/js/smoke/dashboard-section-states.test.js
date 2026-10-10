@@ -191,6 +191,15 @@ describe('dashboard unified section states (T5)', () => {
       // Compact pattern: reduced padding, one title + one sentence.
       expect(empty.classes()).toContain('p-6')
       expect(empty.findAll('p')).toHaveLength(2)
+      // WU5b: the login's dental motif, scaled down, decorates empty states.
+      const motif = empty.find('[data-empty-motif]')
+      expect(motif.exists()).toBe(true)
+      expect(motif.attributes('aria-hidden')).toBe('true')
+      const marks = motif.findAll('img')
+      expect(marks.length).toBeGreaterThanOrEqual(2)
+      for (const mark of marks) {
+        expect(mark.attributes('src')).toMatch(/^\/images\/login\//)
+      }
     }
 
     const agendaEmpty = wrapper.find('[data-state="empty-appointments"]')
@@ -264,6 +273,15 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
+    // WU5b: motif is empty-state only; rows render on a clean surface.
+    const motifs = wrapper.findAll('[data-empty-motif]')
+    const empties = wrapper.findAll('[data-section-empty]')
+    expect(empties.length).toBeGreaterThan(0)
+    expect(motifs).toHaveLength(empties.length)
+    expect(wrapper.find('[data-state="empty-pending"]').exists()).toBe(false)
+    for (const motif of motifs) {
+      expect(motif.element.closest('[data-section-empty]')).not.toBeNull()
+    }
     const rows = wrapper.findAll('[data-pending-row]')
     expect(rows).toHaveLength(3)
 
@@ -290,6 +308,28 @@ describe('dashboard unified section states (T5)', () => {
     expect(nullCostRow.text()).toContain('N/D')
     expect(normalize(nullCostRow.text())).not.toContain('S/')
     expect(nullCostRow.text()).not.toContain('\u2014')
+
+    wrapper.unmount()
+  })
+
+  it('keeps hero actions in one top cluster and KPI cards equal-height', async () => {
+    getMock.mockImplementation(async () => ({ data: [] }))
+
+    const { wrapper } = await mountDashboard()
+
+    // WU5b: refresh lives in a controlled hero actions cluster (no orphan
+    // wrap at 390px) and every KPI card shares the equal-height anatomy.
+    const hero = wrapper.find('[data-dashboard-hero]')
+    const actions = hero.find('[data-hero-actions]')
+    expect(actions.exists()).toBe(true)
+    expect(actions.find('[data-refresh-button]').exists()).toBe(true)
+
+    const cards = wrapper.findAll('[data-stat-card]')
+    expect(cards).toHaveLength(4)
+    for (const card of cards) {
+      expect(card.classes()).toContain('h-full')
+      expect(card.classes()).toContain('flex-col')
+    }
 
     wrapper.unmount()
   })

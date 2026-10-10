@@ -82,7 +82,7 @@
         data-dashboard-header
         data-dashboard-hero
         data-reveal="greeting"
-        class="flex items-center justify-between flex-wrap gap-6 p-6 md:p-8"
+        class="p-6 md:p-8"
         style="
           background: var(--color-accent-50);
           border: 1px solid var(--color-hairline);
@@ -91,7 +91,7 @@
         "
         :style="revealStyle('--spring-dash-greeting-o')"
       >
-        <div>
+        <div class="flex items-center justify-between gap-3">
           <!-- Brand lockup: tooth glyph + wordmark, no chip chrome. -->
           <p class="inline-flex items-center gap-2">
             <svg
@@ -112,18 +112,7 @@
             </svg>
             <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
           </p>
-          <p class="mt-3 text-4xl font-semibold text-label">
-            {{ getGreeting() }}, {{ firstName }}
-          </p>
-          <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
-          <p
-            style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-            class="mt-2 text-base leading-relaxed text-theme-secondary"
-          >
-            {{ getTodayDate() }}
-          </p>
-        </div>
-        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-3" data-hero-actions>
           <!--
             T3 manual refresh. Ghost icon-button in the compact header so a
             stale view can be re-fetched without a page reload. While the
@@ -147,7 +136,18 @@
               />
             </template>
           </UiButton>
+          </div>
         </div>
+        <p class="mt-3 text-4xl font-semibold text-label">
+          {{ getGreeting() }}, {{ firstName }}
+        </p>
+        <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
+        <p
+          style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+          class="mt-2 text-base leading-relaxed text-theme-secondary"
+        >
+          {{ getTodayDate() }}
+        </p>
       </header>
 
       <!--
@@ -226,7 +226,7 @@
             padding="sm"
             data-stat-card="appointments-today"
             data-priority="primary"
-            class="relative"
+            class="relative h-full flex flex-col"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
@@ -258,7 +258,7 @@
             variant="glass"
             padding="sm"
             data-stat-card="completed-today"
-            class="relative"
+            class="relative h-full flex flex-col"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
@@ -293,7 +293,7 @@
             variant="glass"
             padding="sm"
             data-stat-card="pending-today"
-            class="relative"
+            class="relative h-full flex flex-col"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
@@ -330,7 +330,7 @@
             padding="sm"
             data-stat-card="cash-balance"
             data-priority="secondary"
-            class="relative"
+            class="relative h-full flex flex-col"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
@@ -883,7 +883,7 @@ const todayCounts = computed(() => {
   const counts = { total: 0, completed: 0, pending: 0 }
   for (const appointment of todayAppointments.value) {
     counts.total += 1
-    const outcome = appointmentStatusMeta(appointment?.status).outcome
+    const { outcome } = appointmentStatusMeta(appointment?.status)
     if (outcome === 'completed') {
       counts.completed += 1
     } else if (outcome !== 'cancelled') {

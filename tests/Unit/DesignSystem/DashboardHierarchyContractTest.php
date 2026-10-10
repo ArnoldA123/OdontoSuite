@@ -122,7 +122,7 @@ class DashboardHierarchyContractTest extends TestCase
             'The hero band must ride the panel radius (WU4 / D6).'
         );
         $this->assertMatchesRegularExpression(
-            '/data-dashboard-hero[\s\S]{0,2000}?text-4xl font-semibold/',
+            '/text-4xl font-semibold[^>]*>\s*\{\{ getGreeting\(\) \}\}/',
             $src,
             'The hero greeting must use the login display step (WU4 / D6).'
         );
