@@ -58,8 +58,9 @@
       <!--
         Hero band (WU4 / D6) - the login's visual language reaches the
         dashboard. Surface vocabulary traced to the login card (hairline +
-        --radius-panel + elevation rung) and to its calm mint backdrop tint
-        (--color-accent-50); the greeting rides the login display step
+        --radius-panel + elevation rung) over the login scene's neutral
+        backdrop base (--color-canvas; user direction: no mint tint); the
+        greeting rides the login display step
         (text-4xl = 36/40/-0.022em from the shared type scale). The brand
         lockup (tooth glyph + wordmark on accent-500) is the login's own
         header anatomy, reused verbatim as the sparingly used green accent.
@@ -84,7 +85,7 @@
         data-reveal="greeting"
         class="relative overflow-hidden p-6 md:p-8"
         style="
-          background: var(--color-accent-50);
+          background: var(--color-canvas);
           border: 1px solid var(--color-hairline);
           border-radius: var(--radius-panel);
           box-shadow: var(--elevation-2);

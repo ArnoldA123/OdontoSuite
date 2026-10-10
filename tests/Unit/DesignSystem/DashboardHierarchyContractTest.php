@@ -107,9 +107,9 @@ class DashboardHierarchyContractTest extends TestCase
             'DashboardPage.vue must render the hero band hook (WU4 / D6).'
         );
         $this->assertStringContainsString(
-            'background: var(--color-accent-50)',
+            'background: var(--color-canvas)',
             $src,
-            'The hero band must paint the login mint tint (WU4 / D6).'
+            'The hero band must paint the login backdrop base (WU4 / D6; user direction: no mint tint).'
         );
         $this->assertStringContainsString(
             'border: 1px solid var(--color-hairline)',

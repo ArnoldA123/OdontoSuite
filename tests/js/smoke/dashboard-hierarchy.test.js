@@ -291,7 +291,7 @@ describe('dashboard hero band (D6 login language)', () => {
     const wrapper = await mountDashboard()
 
     const style = wrapper.find('[data-dashboard-hero]').attributes('style') || ''
-    expect(style).toContain('var(--color-accent-50)')
+    expect(style).toContain('var(--color-canvas)')
     expect(style).toContain('var(--color-hairline)')
     expect(style).toContain('var(--radius-panel)')
 

@@ -1,8 +1,8 @@
 <template>
   <div
     data-section-empty
-    class="relative overflow-hidden rounded-ios p-6 text-center bg-accent-50"
-    style="border: 1px solid var(--color-hairline)"
+    class="relative overflow-hidden rounded-ios p-6 text-center"
+    style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
   >
     <!--
       WU5b / user request - the login's dental parallax scene, scaled down

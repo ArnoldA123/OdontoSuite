@@ -1,6 +1,5 @@
 <template>
   <div
-    ref="scene"
     class="motif-scene pointer-events-none absolute inset-0 overflow-hidden"
     :class="{ 'has-drift': driftOn }"
     aria-hidden="true"
@@ -25,12 +24,12 @@
 <script setup>
 // WU5b / user request - the login's dental parallax scene, scaled down for
 // dashboard surfaces. Same recipe as DentalParallaxBackground (three depth
-// tiers with per-tier brightness/opacity, ambient drift loops, pointer
-// parallax through --parallax-x/--parallax-y) but marks sized in px instead
-// of vw so a small box never swallows them, and amplitudes reduced to fit.
+// tiers with per-tier brightness/opacity and ambient drift loops) but marks
+// sized in px instead of vw so a small box never swallows them, and with
+// AUTOMATIC drift only (user direction: no pointer-following parallax).
 // Decorative only: pointer-events-none, aria-hidden, and fully static under
 // prefers-reduced-motion.
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const props = defineProps({
   variant: { type: String, default: 'box' }
@@ -77,32 +76,11 @@ const markStyle = mark => ({
   '--mark-r': `${mark.r}deg`
 })
 
-const scene = ref(null)
 const driftOn = ref(true)
-let host = null
-
-const onMove = event => {
-  if (!host || !scene.value) return
-  const rect = host.getBoundingClientRect()
-  if (!rect.width || !rect.height) return
-  const x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-  const y = ((event.clientY - rect.top) / rect.height) * 2 - 1
-  scene.value.style.setProperty('--parallax-x', Math.max(-1, Math.min(1, x)).toFixed(3))
-  scene.value.style.setProperty('--parallax-y', Math.max(-1, Math.min(1, y)).toFixed(3))
-}
 
 onMounted(() => {
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
-  if (reduced) {
-    driftOn.value = false
-    return
-  }
-  host = scene.value?.parentElement ?? null
-  host?.addEventListener('mousemove', onMove, { passive: true })
-})
-
-onBeforeUnmount(() => {
-  host?.removeEventListener('mousemove', onMove)
+  if (reduced) driftOn.value = false
 })
 </script>
 
@@ -110,11 +88,6 @@ onBeforeUnmount(() => {
 .motif-layer {
   position: absolute;
   inset: -32px;
-  transform: translate3d(
-    calc(var(--parallax-x, 0) * var(--parallax-amplitude, 0px)),
-    calc(var(--parallax-y, 0) * var(--parallax-amplitude, 0px)),
-    0
-  );
 }
 
 .motif-drift {
@@ -139,7 +112,6 @@ onBeforeUnmount(() => {
 }
 
 .motif-far {
-  --parallax-amplitude: 6px;
   --mark-brightness: 0.86;
   --motif-drift-duration: 58s;
   --motif-drift-delay: 0s;
@@ -147,7 +119,6 @@ onBeforeUnmount(() => {
 }
 
 .motif-mid {
-  --parallax-amplitude: 12px;
   --mark-brightness: 0.78;
   --motif-drift-duration: 46s;
   --motif-drift-delay: 2.5s;
@@ -155,7 +126,6 @@ onBeforeUnmount(() => {
 }
 
 .motif-near {
-  --parallax-amplitude: 20px;
   --mark-brightness: 0.68;
   --motif-drift-duration: 34s;
   --motif-drift-delay: 5s;
@@ -230,10 +200,6 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .has-drift .motif-drift {
     animation: none;
-  }
-
-  .motif-layer {
-    transform: none;
   }
 }
 </style>
