@@ -257,8 +257,9 @@ describe('dashboard pending block (T7b)', () => {
     expect(error.text()).toContain('No pudimos cargar los pendientes')
     expect(error.text()).toContain('Reintentar')
 
-    // The rest of the page stays usable.
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('4')
+    // The rest of the page stays usable; the day KPI renders from its
+    // single source (the empty today list).
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('0')
 
     await wrapper.find('[data-retry-pending]').trigger('click')
     await flushPromises()

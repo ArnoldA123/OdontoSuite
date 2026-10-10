@@ -134,10 +134,10 @@ describe('dashboard unified section states (T5)', () => {
     wrapper.unmount()
   })
 
-  it('hides the agenda count while its own error state is visible', async () => {
+  it('never renders the appointment count in the agenda header (D8); the day KPI goes N/D on failure', async () => {
     let todayAttempt = 0
     getMock.mockImplementation(async url => {
-      if (url === '/api/dashboard/stats') return { data: { appointments_today: 2 } }
+      if (url === '/api/dashboard/stats') return { data: {} }
       if (url === '/api/dashboard/appointments-today') {
         todayAttempt += 1
         if (todayAttempt === 1) {
@@ -150,15 +150,19 @@ describe('dashboard unified section states (T5)', () => {
 
     const { wrapper } = await mountDashboard()
 
-    expect(wrapper.find('section[aria-label="Agenda de hoy"]').text()).toContain('2 citas')
+    // The count lives only in the KPI, never in the agenda header.
+    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
+    expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('2')
 
     await wrapper.find('[data-refresh-button]').trigger('click')
     await flushPromises()
     await flushPromises()
 
-    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
     expect(agenda.find('[data-state="error-appointments"]').exists()).toBe(true)
     expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    // Single source: the KPI reports N/D instead of a stale or fake count.
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('N/D')
 
     wrapper.unmount()
   })

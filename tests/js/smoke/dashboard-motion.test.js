@@ -187,29 +187,24 @@ describe('dashboard motion (T4)', () => {
   it('counts KPI numbers up from 0 on first load only', async () => {
     mockMedia({ noPreference: true })
     installManualFrames()
-    installPayload({
-      appointments_today: 42,
-      total_patients: 7,
-      total_appointments_this_month: 9,
-      total_income: 1234.5
-    })
+    installPayload({}, [makeAppointment(1), makeAppointment(2), makeAppointment(3)])
 
     const wrapper = await mountDashboard()
 
     expect(kpiNumber(wrapper, 'appointments-today')).toBe('0')
-    expect(kpiNumber(wrapper, 'total-patients')).toBe('0')
+    expect(kpiNumber(wrapper, 'pending-today')).toBe('0')
 
     await pumpFrames()
 
-    expect(kpiNumber(wrapper, 'appointments-today')).toBe('42')
-    expect(kpiNumber(wrapper, 'total-patients')).toBe('7')
+    expect(kpiNumber(wrapper, 'appointments-today')).toBe('3')
+    expect(kpiNumber(wrapper, 'pending-today')).toBe('3')
 
     // A refresh updates the number instantly; the count-up never replays.
-    installPayload({ appointments_today: 9, total_patients: 7 })
+    installPayload({}, [makeAppointment(9)])
     await wrapper.find('[data-refresh-button]').trigger('click')
     await flushPromises()
     await flushPromises()
-    expect(kpiNumber(wrapper, 'appointments-today')).toBe('9')
+    expect(kpiNumber(wrapper, 'appointments-today')).toBe('1')
 
     wrapper.unmount()
   })
@@ -217,11 +212,11 @@ describe('dashboard motion (T4)', () => {
   it('renders final values with no spring attached under reduced motion', async () => {
     mockMedia({ reducedMotion: true })
     installManualFrames()
-    installPayload({ appointments_today: 42 })
+    installPayload({}, [makeAppointment(1), makeAppointment(2)])
 
     const wrapper = await mountDashboard()
 
-    expect(kpiNumber(wrapper, 'appointments-today')).toBe('42')
+    expect(kpiNumber(wrapper, 'appointments-today')).toBe('2')
 
     const header = wrapper.find('[data-reveal="greeting"]')
     expect(header.attributes('style')).toContain('var(--spring-dash-greeting-o, 1)')

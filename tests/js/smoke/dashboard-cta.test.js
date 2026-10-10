@@ -169,11 +169,11 @@ describe('dashboard single CTA per destination (T3)', () => {
     wrapper.unmount()
   })
 
-  it('renders all five KPI cards without a click affordance', async () => {
+  it('renders all four KPI cards without a click affordance', async () => {
     const { wrapper, router } = await mountDashboard()
 
     const cards = wrapper.findAll('[data-stat-card]')
-    expect(cards).toHaveLength(5)
+    expect(cards).toHaveLength(4)
 
     for (const card of cards) {
       expect(card.attributes('data-clickable')).not.toBe('true')

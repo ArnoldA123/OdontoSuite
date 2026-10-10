@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
-// T4 coherence coverage. The KPI strip is a titled section like its siblings,
-// its comparison chips render through the single pill primitive (UiBadge),
-// the five cards carry no decorative status-like dot, and every caption
-// states the period or scope of its number instead of repeating the eyebrow
-// or the page date.
+// WU1 coherence coverage. The KPI strip is a titled section like its
+// siblings, it renders NO comparison chip and NO reserved blank slot (the
+// backend delta_label is broken, D3), the four cards carry no decorative
+// status-like dot, and every caption states the scope of its number instead
+// of repeating the eyebrow or the page date.
 const { getMock, installPayload } = vi.hoisted(() => {
   const getMock = vi.fn()
 
@@ -82,30 +82,6 @@ const comparisonPayload = {
   }
 }
 
-const chipCases = [
-  {
-    card: 'appointments-today',
-    variant: 'success',
-    tone: 'bg-systemGreen-100',
-    delta: '+4',
-    label: 'vs lun 28 sep'
-  },
-  {
-    card: 'total-patients',
-    variant: 'error',
-    tone: 'bg-systemRed-100',
-    delta: '-100',
-    label: 'nuevos este mes'
-  },
-  {
-    card: 'total-appointments-month',
-    variant: 'success',
-    tone: 'bg-systemGreen-100',
-    delta: '+12',
-    label: 'vs sep 5 (5 días)'
-  }
-]
-
 const chipSelector = '[data-variant="success"], [data-variant="error"], [data-variant="neutral"]'
 
 describe('dashboard KPI section headings (T4)', () => {
@@ -164,68 +140,35 @@ describe('dashboard KPI section headings (T4)', () => {
   })
 })
 
-describe('dashboard KPI comparison chips (T4)', () => {
+describe('dashboard KPI comparison chips are gone (D3)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('renders each delta through UiBadge with the sign-matching filled pill', async () => {
+  it('renders no chip and no reserved slot even when comparisons are present', async () => {
     installPayload(comparisonPayload)
 
     const wrapper = await mountDashboard()
     const section = kpiSection(wrapper)
 
-    for (const { card: cardKey, variant, tone, delta, label } of chipCases) {
-      const card = section.find(`[data-stat-card="${cardKey}"]`)
-      expect(card.exists()).toBe(true)
-
-      const badge = card.find(`[data-variant="${variant}"]`)
-      expect(badge.exists()).toBe(true)
-      expect(badge.classes()).toContain('rounded-full')
-      expect(badge.classes()).toContain(tone)
-      expect(badge.text().trim()).toBe(delta)
-
-      // The muted period_label stays a plain sibling span outside the badge.
-      const labelNode = Array.from(card.element.querySelectorAll('span')).find(
-        node => node.textContent.trim() === label
-      )
-      expect(labelNode).toBeTruthy()
-      expect(labelNode.closest(chipSelector)).toBeNull()
-    }
-
-    wrapper.unmount()
-  })
-
-  it('leaves exactly three UiBadge chips and no ad-hoc pill span in the strip', async () => {
-    installPayload(comparisonPayload)
-
-    const wrapper = await mountDashboard()
-    const section = kpiSection(wrapper)
-
-    // UiCard renders data-variant="glass", so the success/error variants are
-    // the comparison chips only.
-    expect(section.findAll(chipSelector)).toHaveLength(3)
-
-    // One pill per chip, all of them the primitive's pill shape.
-    const pillSpans = section
-      .findAll('span')
-      .filter(node => node.classes().includes('rounded-full'))
-    expect(pillSpans).toHaveLength(3)
-
-    // The hand-rolled chip signature is gone.
+    // UiCard renders data-variant="glass", so any success/error/neutral
+    // variant inside the strip would be a comparison pill.
+    expect(section.findAll(chipSelector)).toHaveLength(0)
+    expect(section.findAll('.min-h-6')).toHaveLength(0)
+    expect(section.html()).not.toContain('delta_label')
     expect(section.html()).not.toContain('text-xs font-semibold')
 
     wrapper.unmount()
   })
 
-  it('renders no chip and keeps the reserved slot when comparisons are absent', async () => {
+  it('renders no chip and no reserved slot when comparisons are absent', async () => {
     const wrapper = await mountDashboard()
     const section = kpiSection(wrapper)
 
     expect(section.findAll(chipSelector)).toHaveLength(0)
-    expect(section.findAll('.min-h-6')).toHaveLength(5)
+    expect(section.findAll('.min-h-6')).toHaveLength(0)
 
     wrapper.unmount()
   })
@@ -238,11 +181,11 @@ describe('dashboard KPI card decoration (T4)', () => {
     installPayload()
   })
 
-  it('renders zero decorative dots inside the five KPI cards', async () => {
+  it('renders zero decorative dots inside the four KPI cards', async () => {
     const wrapper = await mountDashboard()
     const cards = kpiSection(wrapper).findAll('[data-stat-card]')
 
-    expect(cards).toHaveLength(5)
+    expect(cards).toHaveLength(4)
     for (const card of cards) {
       expect(card.findAll('span[aria-hidden="true"]')).toHaveLength(0)
       expect(card.html()).not.toContain('--color-accent-500')
@@ -256,51 +199,47 @@ describe('dashboard KPI card decoration (T4)', () => {
   })
 })
 
-describe('dashboard KPI captions (T4)', () => {
+describe('dashboard KPI captions (WU1)', () => {
   beforeEach(() => {
     signInAs('administrador')
     getMock.mockReset()
     installPayload()
   })
 
-  it('reserves the Citas Hoy caption slot and leaves it empty', async () => {
+  it('states the scope of each number in exactly one caption line', async () => {
     const wrapper = await mountDashboard()
-    const card = kpiSection(wrapper).find('[data-stat-card="appointments-today"]')
-    const caption = card.find('[data-kpi-caption="appointments-today"]')
+    const section = kpiSection(wrapper)
 
-    expect(caption.exists()).toBe(true)
-    expect(caption.text()).toBe('')
-    expect(caption.classes()).toContain('h-4')
-
-    // No short "5 de oct" date restates the page header's date anchor.
-    expect(card.text()).not.toMatch(/\d{1,2} de [a-z]{3}/)
-
-    wrapper.unmount()
-  })
-
-  it('shows the current month name as the Citas del Mes caption', async () => {
-    const wrapper = await mountDashboard()
-    const caption = kpiSection(wrapper).find('[data-kpi-caption="total-appointments-month"]')
-
-    expect(caption.exists()).toBe(true)
-
-    const monthName = new Date().toLocaleDateString('es-ES', { month: 'long' })
-    expect(caption.text()).toBe(monthName.charAt(0).toUpperCase() + monthName.slice(1))
-    expect(caption.text()).toMatch(/^[A-ZÁÉÍÓÚ][a-záéíóúñ]+$/)
-    expect(caption.text()).not.toBe('Este mes')
-
-    wrapper.unmount()
-  })
-
-  it('keeps the scope captions on Pacientes and Ingresos', async () => {
-    const wrapper = await mountDashboard()
-
-    const expected = { 'total-patients': 'Total registrados', 'total-income': 'Total histórico' }
-    for (const [cardKey, text] of Object.entries(expected)) {
-      const caption = kpiSection(wrapper).find(`[data-kpi-caption="${cardKey}"]`)
-      expect(caption.exists()).toBe(true)
-      expect(caption.text()).toBe(text)
+    const expected = {
+      'appointments-today': 'Agenda del día',
+      'completed-today': 'Completadas',
+      'pending-today': 'Sin completar ni cancelar'
     }
+    for (const [cardKey, text] of Object.entries(expected)) {
+      const card = section.find(`[data-stat-card="${cardKey}"]`)
+      const captions = card.findAll('[data-kpi-caption]')
+      expect(captions).toHaveLength(1)
+      expect(captions[0].text()).toBe(text)
+    }
+
+    // No caption restates the page header's date anchor.
+    expect(section.text()).not.toMatch(/\d{1,2} de [a-z]{3}/)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the retired historical captions out of the strip', async () => {
+    const wrapper = await mountDashboard()
+    const section = kpiSection(wrapper)
+
+    for (const gone of [
+      'data-kpi-caption="total-patients"',
+      'data-kpi-caption="total-appointments-month"',
+      'data-kpi-caption="total-income"'
+    ]) {
+      expect(section.html()).not.toContain(gone)
+    }
+    expect(section.find('[data-kpi-caption="cash-balance"]').exists()).toBe(true)
 
     wrapper.unmount()
   })

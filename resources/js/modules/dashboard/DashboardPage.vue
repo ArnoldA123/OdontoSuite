@@ -41,9 +41,9 @@
         </section>
         <!-- Stats skeletons -->
         <section aria-label="Cargando resumen">
-          <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <UiSkeleton
-              v-for="i in 5"
+              v-for="i in 4"
               :key="`stat-skel-${i}`"
               variant="card"
               animation="wave"
@@ -201,12 +201,7 @@
       -->
       <section v-if="!statsError && can.viewAppointment?.value" aria-label="Agenda de hoy">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <div class="flex items-baseline gap-3">
-            <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
-            <span v-if="!todayError" class="text-sm text-theme-secondary tabular-nums">
-              {{ todayAppointments.length }} {{ todayAppointments.length === 1 ? 'cita' : 'citas' }}
-            </span>
-          </div>
+          <h2 class="text-base font-semibold text-label">Agenda de hoy</h2>
           <div class="flex items-center gap-2">
             <UiButton
               v-if="can.createAppointment?.value"
@@ -587,48 +582,23 @@
       </section>
 
       <!--
-        Compact KPI strip (T2b). Five cards keep the same 5-column grid
-        placement but use smaller bodies and tighter padding
-        (padding="sm") so the strip reads as a dense daily-operations
-        summary. Surface tokens stay the same ones the Quick Actions
-        tiles consume: --color-hairline on the border and the elevation
-        ramp on the shadow. The eyebrow uses the token size class
-        text-xs instead of the previous arbitrary 11px utility.
+        Daily-operations KPI strip (WU1). Four cards (D1): Citas Hoy,
+        Atendidas Hoy, Por Atender, Saldo de Caja. Card anatomy: small
+        uppercase eyebrow, big tabular number, ONE scope caption (D3).
 
-        Each card keeps four reserved slots in a row grid so the
-        baseline is uniform regardless of which cards carry a chip:
+        Single source (R1): the three day counts derive from the SAME
+        appointment list the agenda renders, bucketed through the shared
+        status map the rows label with, so rows and KPIs can never
+        disagree. While that source is down the three cards render "N/D"
+        instead of a fabricated zero.
 
-          [eyebrow]    h-4     (16 px)
-          [number]     h-12    (48 px)
-          [chip slot]  min-h-6 (24 px minimum - grows when the label wraps)
-          [caption]    h-4     (16 px)
+        No comparison chips and no reserved blank slots (D3): the backend
+        comparison labels are broken ("-100" for patients), so each card
+        is exactly eyebrow + number + caption. The cash card keeps its
+        existing session-balance behaviour; WU2 reworks its source.
 
-        Cards that carry a comparison key render the chip from
-        `comparisons[statKey].delta_label` through the UiBadge primitive
-        (T4 - one pill system; the hand-rolled span pills are gone).
-        When that field is null, the slot stays empty (no chip, no dash,
-        no placeholder). The badge variant follows the sign: positive ->
-        success (filled green), negative -> error (filled red).
-        The period_label never truncates: the chip row wraps it onto a
-        second line, and the slot's minimum height lets the card grow.
-
-        Captions (T4) state the period or scope of the number, never the
-        eyebrow or the page date: Citas Hoy keeps the slot reserved and
-        empty (the header anchors the date), Citas del Mes names the
-        current month, Pacientes reads "Total registrados" and Ingresos
-        "Total histórico", Saldo de Caja keeps its opening-time caption.
-
-        The strip carries a visible h2 like every sibling section (T4),
-        and its cards carry no decorative status dot.
-
-        The Profesionales card was removed in T2b: an admin-only count is
-        not daily-operations content. Professionals stay reachable through
-        the Profesionales quick action and the module route.
-
-        T3 - the strip is a static reference surface: none of the five
-        cards carries a click affordance (no clickable/hover props, no
-        @click). The single CTA per destination lives in the section
-        headers.
+        T3 - the strip is a static reference surface: no card carries a
+        click affordance (no clickable/hover props, no @click).
       -->
       <section v-if="!statsError" aria-label="Resumen del día">
         <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
@@ -638,15 +608,14 @@
         <div
           ref="kpiSection"
           data-reveal="kpi"
-          class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
           :style="revealStyle('--spring-dash-kpi-o')"
         >
-          <!-- Citas Hoy (PRIMARY stat - operationally live; gated) -->
+          <!-- Citas Hoy: the day's agenda total (same list the agenda renders). -->
           <UiCard
             v-if="can.viewAppointment?.value"
             variant="glass"
             padding="sm"
-            data-stat="appointments-today"
             data-stat-card="appointments-today"
             data-priority="primary"
             class="relative"
@@ -654,287 +623,124 @@
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <!--
-                  Eyebrow (T2b compact strip). Token size class text-xs,
-                  no tracking, whitespace-nowrap so the longest label
-                  ("Saldo de Caja") stays on one line at the 5-up KPI
-                  card width.
-                -->
-                <div class="h-4 flex items-center">
-                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Citas Hoy
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                    aria-live="polite"
-                  >
-                    {{ todayKpi.display }}
-                  </p>
-                </div>
-                <!--
-                  Chip slot (defect 2 - chip layout fix; T4 pill system).
-                  The UiBadge contains ONLY the delta value (e.g. "-4")
-                  and its variant follows the sign. The period_label
-                  (e.g. "vs mar 4 ago") is a separate muted caption beside
-                  the pill. The row wraps the label onto a second line
-                  when it does not fit, and the slot reserves only a
-                  minimum height, so the full label is always visible
-                  instead of clipped.
-                -->
-                <div
-                  v-if="stats.comparisons?.appointments_today?.delta_label"
-                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Citas Hoy
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  aria-live="polite"
+                  data-stat="appointments-today"
                 >
-                  <UiBadge
-                    :variant="chipVariant(stats.comparisons.appointments_today.delta_label)"
-                    shape="pill"
-                    size="sm"
-                    class="whitespace-nowrap"
-                  >
-                    {{ stats.comparisons.appointments_today.delta_label }}
-                  </UiBadge>
-                  <span class="text-xs text-theme-secondary">
-                    {{ stats.comparisons.appointments_today.period_label }}
-                  </span>
-                </div>
-                <div v-else class="min-h-6" />
-                <!--
-                  Caption slot (T4). Reserved but intentionally empty:
-                  the page header already anchors today's date, so the
-                  previous short "11 de ago" caption repeated it. The
-                  reserved h-4 row keeps the five cards baseline-aligned.
-                -->
-                <div class="h-4 flex items-center" data-kpi-caption="appointments-today" />
+                  {{ todayKpiDisplay }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="appointments-today"
+                >
+                  Agenda del día
+                </p>
               </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed.
-                design-taste-frontend §9.D "NO three-equal Material cards".
-                apple-design §16 "icon stroke 1.5 (NOT icon-in-box)".
-                T4 - the accent dot that replaced the plate was decoration
-                that read as a status indicator, so it was removed too.
-              -->
             </div>
           </UiCard>
 
-          <!-- Pacientes (reference count). The headline is the cumulative
-               active count (data.total_patients, NOT new registrations).
-               The chip, when present, is an absolute count of new
-               registrations this month - a different quantity. -->
+          <!-- Atendidas Hoy: completed statuses of the same list. -->
           <UiCard
+            v-if="can.viewAppointment?.value"
             variant="glass"
             padding="sm"
-            data-stat="total-patients"
-            data-stat-card="total-patients"
+            data-stat-card="completed-today"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <div class="h-4 flex items-center">
-                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Pacientes
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ patientsKpi.display }}
-                  </p>
-                </div>
-                <!--
-                  Chip slot (defect 2 - chip layout fix; T4 pill system).
-                  The comparisons.total_patients.period_label is the
-                  static string "nuevos este mes" and is intentionally
-                  a different quantity from the headline (D15 - the
-                  chip's "+N" is NEW REGISTRATIONS, the headline 105
-                  is cumulative active). The UiBadge carries the absolute
-                  delta; the muted text carries the period_label and
-                  wraps under the pill at the compact 5-up width.
-                -->
-                <div
-                  v-if="stats.comparisons?.total_patients?.delta_label"
-                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Atendidas Hoy
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  data-stat="completed-today"
                 >
-                  <UiBadge
-                    :variant="chipVariant(stats.comparisons.total_patients.delta_label)"
-                    shape="pill"
-                    size="sm"
-                    class="whitespace-nowrap"
-                  >
-                    {{ stats.comparisons.total_patients.delta_label }}
-                  </UiBadge>
-                  <span class="text-xs text-theme-secondary">
-                    {{ stats.comparisons.total_patients.period_label }}
-                  </span>
-                </div>
-                <div v-else class="min-h-6" />
-                <!--
-                  Caption slot (T4). Scope phrase in the "Total X"
-                  grammar; the number counts registered active patients,
-                  so the caption stays "Total registrados".
-                -->
-                <div class="h-4 flex items-center" data-kpi-caption="total-patients">
-                  <p class="text-xs text-theme-secondary truncate">Total registrados</p>
-                </div>
+                  {{ completedKpiDisplay }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="completed-today"
+                >
+                  Completadas
+                </p>
               </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
             </div>
           </UiCard>
 
-          <!-- Citas del Mes (reference count; comparison chip) -->
+          <!--
+            Por Atender: the honest remainder of the same list. The real
+            status enum has no pending-confirmation state, so the bucket is
+            "neither completed nor cancelled".
+          -->
           <UiCard
+            v-if="can.viewAppointment?.value"
             variant="glass"
             padding="sm"
-            data-stat="total-appointments-month"
-            data-stat-card="total-appointments-month"
+            data-stat-card="pending-today"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <div class="h-4 flex items-center">
-                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Citas del Mes
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ monthKpi.display }}
-                  </p>
-                </div>
-                <!--
-                  Chip slot (defect 2 - chip layout fix; T4 pill system).
-                  The UiBadge carries only the delta; the period_label
-                  stays a muted sibling span and the row wraps it when
-                  the label does not fit, so the slot never clips it.
-                -->
-                <div
-                  v-if="stats.comparisons?.total_appointments_this_month?.delta_label"
-                  class="min-h-6 flex flex-wrap items-center gap-x-1.5 gap-y-1"
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Por Atender
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  data-stat="pending-today"
                 >
-                  <UiBadge
-                    :variant="
-                      chipVariant(stats.comparisons.total_appointments_this_month.delta_label)
-                    "
-                    shape="pill"
-                    size="sm"
-                    class="whitespace-nowrap"
-                  >
-                    {{ stats.comparisons.total_appointments_this_month.delta_label }}
-                  </UiBadge>
-                  <span class="text-xs text-theme-secondary">
-                    {{ stats.comparisons.total_appointments_this_month.period_label }}
-                  </span>
-                </div>
-                <div v-else class="min-h-6" />
-                <!--
-                  Caption slot (T4). Names the month the number belongs
-                  to; the previous "Este mes" only restated the eyebrow.
-                -->
-                <div class="h-4 flex items-center" data-kpi-caption="total-appointments-month">
-                  <p class="text-xs text-theme-secondary truncate">{{ currentMonthName }}</p>
-                </div>
-              </div>
-              <!--
-                HOTFIX-DASH-002 - KPI icon-in-box removed. See sibling
-                comment block above for the design-taste §9.D rule.
-              -->
-            </div>
-          </UiCard>
-
-          <!-- Ingresos (T2b: cumulative completed payments). The number
-               renders through formatPENLabel, so the page never
-               concatenates a literal `S/` prefix (FormatPENLabelTest).
-               No comparison key ships for total_income: the chip slot
-               stays reserved and empty. -->
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-stat="total-income"
-            data-stat-card="total-income"
-            class="relative"
-            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="h-4 flex items-center">
-                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Ingresos
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ incomeKpi.display }}
-                  </p>
-                </div>
-                <div class="min-h-6" />
-                <div class="h-4 flex items-center" data-kpi-caption="total-income">
-                  <p class="text-xs text-theme-secondary truncate">Total histórico</p>
-                </div>
+                  {{ pendingKpiDisplay }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="pending-today"
+                >
+                  Sin completar ni cancelar
+                </p>
               </div>
             </div>
           </UiCard>
 
-          <!-- Saldo de Caja (SECONDARY live stat; gated).
-               T2 surface split: the header pill owns the session state;
-               this card owns the live balance as its headline number and
-               the opening time as its caption. No comparison key ships
-               for cash_session. -->
+          <!-- Saldo de Caja (T2 behaviour kept; WU2 reworks its source). -->
           <UiCard
             v-if="can.viewCashRegister?.value"
             variant="glass"
             padding="sm"
-            data-stat="cash-status"
-            data-stat-card="cash-status"
+            data-stat-card="cash-balance"
             data-priority="secondary"
             class="relative"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <!--
-                  Eyebrow (T2b compact strip). Token size class text-xs,
-                  no tracking, whitespace-nowrap so "Saldo de Caja"
-                  stays on one line at the 5-up KPI card width.
-                -->
-                <div class="h-4 flex items-center">
-                  <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                    Saldo de Caja
-                  </p>
-                </div>
-                <div class="h-12 flex items-center">
-                  <p
-                    class="text-2xl font-bold text-label tabular-nums leading-none truncate"
-                    style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                  >
-                    {{ cashKpiBalance }}
-                  </p>
-                </div>
-                <div class="min-h-6" />
-                <div class="h-4 flex items-center" data-kpi-caption="cash-status">
-                  <p class="text-xs text-theme-secondary truncate">
-                    {{ cashKpiCaption }}
-                  </p>
-                </div>
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Saldo de Caja
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  data-stat="cash-balance"
+                >
+                  {{ cashKpiBalance }}
+                </p>
+                <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="cash-balance">
+                  {{ cashKpiCaption }}
+                </p>
               </div>
             </div>
           </UiCard>
         </div>
       </section>
+
 
       <!-- Quick Actions -->
       <section v-if="!statsError" aria-label="Acciones rápidas">
@@ -1180,28 +986,12 @@ const { channel, echo } = useEcho()
 
 // State
 const loading = ref(false)
+// WU1 - the stats payload keeps only what the page still consumes: the
+// cash-session marker behind the Saldo de caja card. Every displayed metric
+// derives from its own single source (the day counts come from the agenda
+// list), so no counter stored here can duplicate them.
 const stats = ref({
-  today: 0,
-  appointments_today: 0,
-  completed_today: 0,
-  pending_confirmation: 0,
-  this_week: 0,
-  total_patients: 0,
-  total_appointments: 0,
-  total_professionals: 0,
-  total_appointment_types: 0,
-  total_dental_chairs: 0,
-  total_income: 0,
-  cash_session: null,
-  // PR4 - additive backend block (PR3). Three keys carry comparison data;
-  // the rest of the stats surface has no `comparisons` key. Each chip
-  // is conditional on `delta_label !== null` (D14 omission contract);
-  // null renders an empty reserved slot.
-  comparisons: {
-    appointments_today: null,
-    total_patients: null,
-    total_appointments_this_month: null
-  }
+  cash_session: null
 })
 const todayAppointments = ref([])
 // T5 week preview. Kept separate from the agenda so a failing upcoming
@@ -1223,29 +1013,6 @@ const hasLoaded = ref(false)
 const refreshing = ref(false)
 const statsError = ref(false)
 const todayError = ref(false)
-
-/**
- * PR4 - chip variant. T4 sharpened it from a hand-rolled class string to
- * the UiBadge variant, so one primitive owns the pill. The chip is a
- * pre-formatted string from the server (D13). Sign is derived from the
- * leading character: "+" reads as growth (success, filled green), "-"
- * reads as decline (error, filled red), and "0" or any other neutral
- * prefix reads as flat (neutral, surface tone). The badge never computes
- * a percentage (that's the structural guarantee against Infinity / NaN /
- * 100%).
- */
-const chipVariant = deltaLabel => {
-  if (typeof deltaLabel !== 'string' || deltaLabel.length === 0) {
-    return 'neutral'
-  }
-  if (deltaLabel.startsWith('+')) {
-    return 'success'
-  }
-  if (deltaLabel.startsWith('-')) {
-    return 'error'
-  }
-  return 'neutral'
-}
 
 // HOTFIX-DASH-009 / T4 - per-section staggered springs (4 sections,
 // 60ms stagger). apple-design §4 (springs for entrance, critically
@@ -1317,7 +1084,7 @@ const playEntrance = () => {
 }
 
 // T4 - KPI count-up springs. Each headline number counts 0 -> value on the
-// first stats payload, then hands the display back to the canonical stats
+// first data payload, then hands the display back to the canonical source
 // value, so refreshes update instantly instead of replaying the entrance.
 // useSpring re-checks prefers-reduced-motion on every set();
 // countUpAllowed() additionally requires an explicit
@@ -1352,15 +1119,57 @@ const createCountUp = (readTarget, format = value => Math.round(value)) => {
   return { display, start }
 }
 
-const todayKpi = createCountUp(() => stats.value.today)
-const patientsKpi = createCountUp(() => stats.value.total_patients)
-const monthKpi = createCountUp(
-  () => stats.value.total_appointments_this_month || stats.value.total_appointments
-)
-const incomeKpi = createCountUp(
-  () => stats.value.total_income,
-  value => formatPENLabel(value)
-)
+/**
+ * WU1 / D1 - one status map for the whole page. The agenda rows render
+ * their Spanish label and badge variant from it, and the day KPIs bucket
+ * the same statuses through `outcome`, so rows and KPIs can never
+ * disagree. Real enum (appointments.status): scheduled, confirmed,
+ * in_consultation, in_progress, completed, cancelled, no_show,
+ * rescheduled. There is no pending-confirmation state, so the third KPI
+ * bucket is the honest remainder: not completed and not cancelled
+ * (unknown statuses fall in it too). Outcome buckets use `pending` /
+ * `completed` / `cancelled` so no raw cash key can ride this map.
+ */
+const APPOINTMENT_STATUS = {
+  scheduled: { text: 'Programada', variant: 'secondary', outcome: 'pending' },
+  confirmed: { text: 'Confirmada', variant: 'success', outcome: 'pending' },
+  in_consultation: { text: 'En Consulta', variant: 'warning', outcome: 'pending' },
+  completed: { text: 'Completada', variant: 'primary', outcome: 'completed' },
+  cancelled: { text: 'Cancelada', variant: 'error', outcome: 'cancelled' },
+  no_show: { text: 'No se presentó', variant: 'warning', outcome: 'pending' }
+}
+
+const appointmentStatusMeta = status =>
+  APPOINTMENT_STATUS[status] || { text: status, variant: 'secondary', outcome: 'pending' }
+
+/**
+ * WU1 - the three day counts, derived from the SAME list the agenda
+ * renders (single source, R1). `pending` is the honest remainder:
+ * not completed, not cancelled.
+ */
+const todayCounts = computed(() => {
+  const counts = { total: 0, completed: 0, pending: 0 }
+  for (const appointment of todayAppointments.value) {
+    counts.total += 1
+    const outcome = appointmentStatusMeta(appointment?.status).outcome
+    if (outcome === 'completed') {
+      counts.completed += 1
+    } else if (outcome !== 'cancelled') {
+      counts.pending += 1
+    }
+  }
+  return counts
+})
+
+const todayKpi = createCountUp(() => todayCounts.value.total)
+const completedKpi = createCountUp(() => todayCounts.value.completed)
+const pendingKpi = createCountUp(() => todayCounts.value.pending)
+
+// WU1 - while the today source is down the day KPIs report "N/D" instead
+// of a fabricated zero, bypassing the count-up display.
+const todayKpiDisplay = computed(() => (todayError.value ? 'N/D' : todayKpi.display.value))
+const completedKpiDisplay = computed(() => (todayError.value ? 'N/D' : completedKpi.display.value))
+const pendingKpiDisplay = computed(() => (todayError.value ? 'N/D' : pendingKpi.display.value))
 
 let countUpsPlayed = false
 const startKpiCountUps = () => {
@@ -1368,9 +1177,8 @@ const startKpiCountUps = () => {
   countUpsPlayed = true
   if (!countUpAllowed()) return
   todayKpi.start()
-  patientsKpi.start()
-  monthKpi.start()
-  incomeKpi.start()
+  completedKpi.start()
+  pendingKpi.start()
 }
 
 // Utility functions
@@ -1412,17 +1220,6 @@ const SPANISH_MONTHS_SHORT = [
 ]
 
 /**
- * T4 - caption for the Citas del Mes card. The number belongs to the
- * current month, so the caption names it ("Octubre") through the same
- * es-ES locale call the header date uses. es-ES returns the month in
- * lowercase, so the caption capitalizes the first letter.
- */
-const currentMonthName = computed(() => {
-  const name = new Date().toLocaleDateString('es-ES', { month: 'long' })
-  return name.charAt(0).toUpperCase() + name.slice(1)
-})
-
-/**
  * T7b - short local date for a pending row, e.g. "3 oct". Returns an empty
  * string for an unparseable value so the row simply omits the date.
  */
@@ -1454,29 +1251,14 @@ const getPatientName = appointment => {
   return composed || patient.name || 'Paciente'
 }
 
-const getStatusText = status => {
-  const texts = {
-    scheduled: 'Programada',
-    confirmed: 'Confirmada',
-    in_consultation: 'En Consulta',
-    completed: 'Completada',
-    cancelled: 'Cancelada',
-    no_show: 'No se presentó'
-  }
-  return texts[status] || status
-}
+/**
+ * WU1 - the rows and the day KPIs share ONE status map (APPOINTMENT_STATUS
+ * above): the label and badge variant the rows render and the outcome
+ * bucket the counts derive from can never disagree.
+ */
+const getStatusText = status => appointmentStatusMeta(status).text
 
-const getStatusVariant = status => {
-  const variants = {
-    scheduled: 'secondary',
-    confirmed: 'success',
-    in_consultation: 'warning',
-    completed: 'primary',
-    cancelled: 'error',
-    no_show: 'warning'
-  }
-  return variants[status] || 'secondary'
-}
+const getStatusVariant = status => appointmentStatusMeta(status).variant
 
 /**
  * T5 - local calendar-day key for the week preview. Uses the same local
@@ -1731,32 +1513,15 @@ const fetchPending = async () => {
   }
 }
 
-/** Map the backend stats payload into the frontend shape. */
+/**
+ * WU1 - the stats payload keeps only what the page still consumes: the
+ * cash-session marker behind the Saldo de caja card. Every displayed metric
+ * derives from its own single source (the day counts come from the agenda
+ * list), so no counter mapped here can duplicate them.
+ */
 const applyStats = backendStats => {
   stats.value = {
-    today: backendStats.appointments_today || 0,
-    appointments_today: backendStats.appointments_today || 0,
-    completed_today: backendStats.completed_today || 0,
-    pending_confirmation: backendStats.pending_confirmation || 0,
-    this_week: backendStats.this_week || 0,
-    total_patients: backendStats.total_patients || 0,
-    total_appointments: backendStats.total_appointments || 0,
-    total_appointments_this_month:
-      backendStats.total_appointments_this_month || backendStats.total_appointments || 0,
-    total_professionals: backendStats.total_professionals || 0,
-    total_appointment_types: backendStats.total_appointment_types || 0,
-    total_dental_chairs: backendStats.total_dental_chairs || 0,
-    total_income: backendStats.total_income || 0,
-    cash_session: backendStats.cash_session || null,
-    // PR3 / PR4 - additive comparisons block. Three keys carry
-    // data; the omitted keys (total_professionals, total_income,
-    // cash_session) keep their `null` default so the chip slots
-    // reserve their footprint but render no chip.
-    comparisons: backendStats.comparisons || {
-      appointments_today: null,
-      total_patients: null,
-      total_appointments_this_month: null
-    }
+    cash_session: backendStats.cash_session || null
   }
 }
 
@@ -1788,7 +1553,6 @@ const loadDashboardData = async () => {
     } else if (statsResult.ok) {
       applyStats(statsResult.data)
       statsError.value = false
-      startKpiCountUps()
     } else {
       statsError.value = true
     }
@@ -1798,6 +1562,12 @@ const loadDashboardData = async () => {
       todayError.value = false
     } else {
       todayError.value = true
+    }
+
+    // WU1 - the KPI count-ups start once the day counts can read their
+    // final source values; starting earlier would animate to a stale zero.
+    if (statsResult.ok && appointmentsResult.ok) {
+      startKpiCountUps()
     }
 
     // T5 - the week preview is tolerant: its failure shows the section's

@@ -189,9 +189,10 @@ describe('dashboard upcoming week strip (T5)', () => {
     expect(error.text()).toContain('No pudimos cargar las próximas citas')
     expect(error.text()).toContain('Reintentar')
 
-    // The rest of the page stays usable.
+    // The rest of the page stays usable; the day KPI renders from its
+    // single source (today's one-row agenda).
     expect(wrapper.find('[data-appointment-row]').exists()).toBe(true)
-    expect(wrapper.find('[data-stat-card="appointments-today"]').text()).toContain('4')
+    expect(wrapper.find('[data-stat="appointments-today"]').text()).toBe('1')
 
     await wrapper.find('[data-retry-upcoming]').trigger('click')
     await flushPromises()

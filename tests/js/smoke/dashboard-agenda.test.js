@@ -86,6 +86,8 @@ const mountDashboard = async () => {
   return wrapper
 }
 
+const kpiStrip = wrapper => wrapper.find('[aria-label="Resumen del día"]')
+
 describe('dashboard agenda (ops IA)', () => {
   beforeEach(() => {
     signInAs('administrador')
@@ -148,14 +150,18 @@ describe('dashboard agenda (ops IA)', () => {
     wrapper.unmount()
   })
 
-  it('renders the agenda heading with its count and the Nueva cita action', async () => {
+  it('renders the agenda heading without the appointment count (D8) and the Nueva cita action', async () => {
     installTodayPayload([makeAppointment(1, 'Ana Torres Quispe'), makeAppointment(2, 'Luis Rojas')])
 
     const wrapper = await mountDashboard()
 
-    expect(wrapper.text()).toContain('Agenda de hoy')
-    expect(wrapper.text()).toContain('2 citas')
+    const agenda = wrapper.find('section[aria-label="Agenda de hoy"]')
+    expect(agenda.find('h2').text()).toBe('Agenda de hoy')
     expect(wrapper.text()).toContain('Nueva cita')
+
+    // D8 / R1: the daily count lives ONLY in the KPI.
+    expect(agenda.text()).not.toMatch(/\d+\s+citas?\b/)
+    expect(kpiStrip(wrapper).find('[data-stat="appointments-today"]').text()).toBe('2')
 
     wrapper.unmount()
   })
