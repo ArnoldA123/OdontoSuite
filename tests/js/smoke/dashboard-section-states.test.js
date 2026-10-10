@@ -196,7 +196,7 @@ describe('dashboard unified section states (T5)', () => {
       expect(motif.exists()).toBe(true)
       expect(motif.attributes('aria-hidden')).toBe('true')
       const marks = motif.findAll('img')
-      expect(marks.length).toBeGreaterThanOrEqual(2)
+      expect(marks.length).toBeGreaterThanOrEqual(6)
       for (const mark of marks) {
         expect(mark.attributes('src')).toMatch(/^\/images\/login\//)
       }
