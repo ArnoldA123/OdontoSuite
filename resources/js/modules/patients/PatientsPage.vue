@@ -600,6 +600,7 @@ import { useRouter } from 'vue-router'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
@@ -627,6 +628,7 @@ export default {
     const { get, post, put, delete: del } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
+    const { confirm } = useConfirm()
     const { channel, echo } = useEcho()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
