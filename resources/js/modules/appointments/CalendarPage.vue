@@ -1,8 +1,19 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6 bg-canvas">
-      <template #actions>
+    <!-- Hero band: dashboard hero grammar (canvas + hairline + radius-panel + elevation-2) -->
+    <header
+      data-calendar-shell="hero"
+      class="relative overflow-hidden p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <DentalMotifLayer variant="hero" data-calendar-motif />
+      <div class="relative flex items-start justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">Agenda</p>
         <span
           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-systemGreen-50 text-systemGreen-700 text-xs font-medium"
           aria-label="Actualizaciones en tiempo real activas"
@@ -14,119 +25,119 @@
           />
           En vivo
         </span>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton v-if="can.createAppointment?.value" @click="openNewAppointmentModal">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </template>
-          Nueva Cita
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- View Controls -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center gap-2">
+      </div>
+      <p class="relative mt-3 text-4xl font-semibold text-label">
+        {{ currentPeriodTitle }}
+      </p>
+      <p
+        class="relative mt-2 text-base leading-relaxed text-theme-secondary"
+        style="
+          font-feature-settings:
+            'tnum' 1,
+            'lnum' 1;
+        "
+      >
+        {{ loadedAppointmentsCaption }}
+      </p>
+      <div class="relative mt-6 flex flex-wrap items-center gap-3">
+        <div
+          class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
+          role="group"
+          aria-label="Vista del calendario"
+          data-calendar-view-switcher
+        >
           <UiButton
-            :variant="currentView === 'day' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'day' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'day'"
+            data-calendar-view="day"
             @click="changeView('day')"
           >
             Día
           </UiButton>
           <UiButton
-            :variant="currentView === 'week' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'week' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'week'"
+            data-calendar-view="week"
             @click="changeView('week')"
           >
             Semana
           </UiButton>
           <UiButton
-            :variant="currentView === 'month' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'month' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'month'"
+            data-calendar-view="month"
             @click="changeView('month')"
           >
             Mes
           </UiButton>
         </div>
-        <div class="flex items-center gap-3">
-          <UiButton variant="ghost" size="sm" class="p-2" @click="previousPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+        <div class="inline-flex items-center gap-1">
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo anterior"
+            data-calendar-nav="prev"
+            @click="previousPeriod"
+          >
+            <template #icon-left>
+              <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+          <UiButton variant="ghost" size="sm" data-calendar-nav="today" @click="goToToday">
+            Hoy
           </UiButton>
           <UiButton
-variant="ghost"
-size="sm" class="px-4" @click="goToToday">Hoy</UiButton>
-          <UiButton variant="ghost" size="sm" class="p-2" @click="nextPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo siguiente"
+            data-calendar-nav="next"
+            @click="nextPeriod"
+          >
+            <template #icon-left>
+              <ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+        </div>
+        <div class="flex items-center gap-3 sm:ml-auto">
+          <UiButton variant="secondary" size="sm" data-calendar-action="back" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton
+            v-if="can.createAppointment?.value"
+            data-calendar-action="new-appointment"
+            @click="openNewAppointmentModal"
+          >
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nueva cita
           </UiButton>
         </div>
       </div>
-    </UiCard>
-
-    <!-- Calendar Header -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-theme-primary mb-2">
-          {{ currentPeriodTitle }}
-        </h2>
-        <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
-          <UiStatusBadge variant="info" label="Programada" show-dot
-data-status="scheduled" />
-          <UiStatusBadge variant="success" label="Confirmada" show-dot
-data-status="confirmed" />
-          <UiStatusBadge variant="warning" label="En Consulta" show-dot
-data-status="in_progress" />
-          <UiStatusBadge variant="neutral" label="Completada" show-dot
-data-status="completed" />
-          <UiStatusBadge variant="error" label="Cancelada" show-dot
-data-status="cancelled" />
-          <UiStatusBadge variant="neutral" label="No se presentó" show-dot
-data-status="no_show" />
-          <UiStatusBadge variant="warning" label="Reprogramada" data-status="rescheduled" />
-        </div>
-      </div>
-    </UiCard>
+    </header>
 
     <!-- Calendar Content -->
     <UiCard variant="glass" class="overflow-hidden">
+      <!-- Legend: registry-driven status pills as the card's header strip -->
+      <template #header>
+        <div class="flex flex-wrap items-center gap-2" data-calendar-legend>
+          <UiBadge
+            v-for="status in legendStatuses"
+            :key="status"
+            size="sm"
+            :variant="statusBadgeVariant(status)"
+            :data-status="status"
+          >
+            {{ statusLabel(status) }}
+          </UiBadge>
+        </div>
+      </template>
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center">
         <LoadingSpinner size="lg" text="Cargando agenda..." />
@@ -506,15 +517,25 @@ import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import {
+  ArrowLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useConfirm } from '../../composables/useConfirm'
 import {
   APPOINTMENT_CHIP_BASE_CLASSES,
+  APPOINTMENT_STATUS_KEYS,
   statusLabel,
   statusBadgeProps,
+  statusBadgeVariant,
   statusChipClasses,
   statusToneClasses
 } from './appointmentStatus'
@@ -535,7 +556,13 @@ export default {
     AppLayout,
     UiCard,
     UiButton,
+    UiBadge,
     UiStatusBadge,
+    DentalMotifLayer,
+    ArrowLeftIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    PlusIcon,
     NewAppointmentModal,
     ConsultationWizard
   },
@@ -622,6 +649,18 @@ export default {
 
     const currentPeriodTitle = computed(() => {
       return periodTitle(currentDate.value, currentView.value)
+    })
+
+    // `in_progress` es el alias legacy en BD de `in_consultation` (misma
+    // entrada en el registro): la leyenda muestra una píldora por estado.
+    const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
+
+    const loadedAppointmentsCaption = computed(() => {
+      const count = appointments.value.length
+      if (count === 0) return 'Sin citas cargadas en el rango actual'
+      return count === 1
+        ? '1 cita cargada en el rango actual'
+        : `${count} citas cargadas en el rango actual`
     })
 
     const weekDays = computed(() => {
@@ -911,6 +950,10 @@ export default {
       weekHours,
       weekDayNames,
       currentPeriodTitle,
+      legendStatuses,
+      loadedAppointmentsCaption,
+      statusLabel,
+      statusBadgeVariant,
       weekDays,
       monthDays,
       loadAppointments,
