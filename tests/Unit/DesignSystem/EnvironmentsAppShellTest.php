@@ -97,31 +97,52 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-003 — the environments table dividers (lines 104 + 134) MUST
-     * consume the `var(--color-hairline)` token instead of the legacy
-     * `divide-theme` literal.
+     * AMB-01-003 (re-anchored by T2/D1) — the page no longer renders
+     * `<thead>/<tbody>` markup: the list table is consumed through the shared
+     * primitive `components/ui/DataTable.vue`, which owns the table + divider
+     * chrome. The page-level contract is therefore: delegate to the primitive
+     * and keep the hairline token on the list panel chrome; the legacy
+     * `divide-theme` literal stays forbidden at page level.
      *
-     * POSITIVE rule: `divide-[color:var(--color-hairline)]` reference present.
+     * POSITIVE rule: ≥1 `<UiDataTable` reference (the shared primitive renders
+     * the table body/dividers).
      *
-     * NEGATIVE rule: zero `divide-theme` literal matches anywhere in the file.
+     * POSITIVE rule: `var(--color-hairline)` reference present (the list panel
+     * chrome keeps the hairline token rung).
+     *
+     * NEGATIVE rule: zero `divide-theme` literal matches anywhere in the file
+     * (unchanged from the original AMB-01-003).
      */
-    public function test_table_dividers_use_hairline(): void
+    public function test_list_table_consumes_data_table_primitive(): void
     {
         $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: at least one `divide-[color:var(--color-hairline)]` reference
-        // (apply phase replaces both `divide-theme` instances on the <thead>
-        // and <tbody> wrappers).
+        // POSITIVE: at least one `<UiDataTable` reference (D1: the shared
+        // primitive owns the table rendering + divider chrome).
+        $uiDataTableCount = preg_match_all('#<UiDataTable\b#', $src);
+        $this->assertGreaterThanOrEqual(
+            1,
+            $uiDataTableCount,
+            sprintf(
+                '%s MUST consume `<UiDataTable>` for the list table (AMB-01-003 / T2-D1). '
+                . 'Found %d <UiDataTable> reference(s); expected at least 1.',
+                $path,
+                $uiDataTableCount
+            )
+        );
+
+        // POSITIVE: at least one `var(--color-hairline)` reference (the list
+        // panel chrome keeps the hairline token rung).
         $this->assertTrue(
             (bool) preg_match(
-                '#divide-\[color:var\(--color-hairline\)\]#',
+                '#var\(--color-hairline\)#',
                 $src
             ),
             sprintf(
-                '%s MUST consume `divide-[color:var(--color-hairline)]` on the table dividers '
-                . '(AMB-01-003). Replace `divide-theme` on lines 104 + 134.',
+                '%s MUST consume `var(--color-hairline)` on the list panel chrome '
+                . '(AMB-01-003).',
                 $path
             )
         );
@@ -305,40 +326,56 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-006 — the hand-rolled spinner (line 82) carrying
-     * `inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent`
-     * MUST migrate to `<UiLoadingSpinner size="md" />`. The `border-accent`
-     * legacy alias MUST be removed.
+     * AMB-01-006 (re-anchored by T2/D6) — the list loading state MUST render
+     * the skeleton primitive (`components/ui/Skeleton.vue`, consumed as
+     * `<UiSkeleton>`), not the loading spinner. T2/D6 changed the loading
+     * contract: skeleton rows match the table shape so the panel does not
+     * jump when data lands (the dashboard precedent).
      *
-     * POSITIVE rule: ≥1 `<UiLoadingSpinner` reference in the file.
+     * POSITIVE rule: ≥1 `<UiSkeleton` reference (or the Skeleton.vue import).
+     *
+     * NEGATIVE rule: zero `<UiLoadingSpinner` references (loading is the
+     * skeleton now).
      *
      * NEGATIVE rule: zero `border-accent` legacy alias matches anywhere in
-     * the file.
+     * the file (unchanged from the original AMB-01-006).
      */
-    public function test_loading_spinner_uses_ui_component(): void
+    public function test_loading_state_uses_skeleton_primitive(): void
     {
         $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥1 `<UiLoadingSpinner` reference (the list loading
-        // state on line 82 must consume the canonical primitive).
+        // POSITIVE: ≥1 `<UiSkeleton` reference (the list loading state must
+        // consume the canonical skeleton primitive).
         $this->assertTrue(
-            (bool) preg_match('#<UiLoadingSpinner\b#', $src)
+            (bool) preg_match('#<UiSkeleton\b#', $src)
                 || (bool) preg_match(
-                    '#import\s+UiLoadingSpinner\s+from\s+[\'"][^\'"]*components/ui/LoadingSpinner\.vue[\'"]#',
+                    '#import\s+UiSkeleton\s+from\s+[\'"][^\'"]*components/ui/Skeleton\.vue[\'"]#',
                     $src
                 ),
             sprintf(
-                '%s MUST consume `<UiLoadingSpinner />` for the list loading state '
-                . '(AMB-01-006). Replace the hand-rolled spinner on line 82.',
+                '%s MUST consume `<UiSkeleton />` for the list loading state '
+                . '(AMB-01-006 / T2-D6). Replace the loading spinner with the skeleton primitive.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `<UiLoadingSpinner` references (T2/D6 re-anchors the
+        // loading contract to the skeleton primitive).
+        $this->assertSame(
+            0,
+            preg_match('#<UiLoadingSpinner\b#', $src),
+            sprintf(
+                '%s MUST NOT keep `<UiLoadingSpinner>` for the list loading state '
+                . '(AMB-01-006 / T2-D6). Loading renders `<UiSkeleton>`.',
                 $path
             )
         );
 
         // NEGATIVE: zero `border-accent` legacy alias matches anywhere in
         // the file. The hand-rolled spinner carried `border-b-2 border-accent`;
-        // the canonical primitive does not use any `border-accent` class.
+        // the canonical primitives do not use any `border-accent` class.
         $borderAccentCount = preg_match_all('#(?<![\w-])border-accent(?![\w-])#', $src);
         $this->assertSame(
             0,

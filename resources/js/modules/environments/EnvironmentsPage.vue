@@ -11,29 +11,13 @@
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
+            <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
           </template>
           Volver
         </UiButton>
         <UiButton @click="showNewEnvironmentModal = true">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
+            <PlusIcon class="w-4 h-4" aria-hidden="true" />
           </template>
           Nuevo Ambiente
         </UiButton>
@@ -41,7 +25,7 @@ viewBox="0 0 24 24">
     </PageHeader>
 
     <!-- Search and Filters -->
-    <UiCard variant="glass" class="mb-6">
+    <UiCard variant="glass" padding="sm" class="mb-6" :style="panelStyle">
       <div class="flex flex-col lg:flex-row gap-4">
         <div class="flex-1">
           <UiInput
@@ -51,19 +35,7 @@ viewBox="0 0 24 24">
             @input="searchEnvironments"
           >
             <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
             </template>
           </UiInput>
         </div>
@@ -72,6 +44,7 @@ viewBox="0 0 24 24">
             v-model="statusFilter"
             :options="statusOptions"
             class="w-48"
+            data-status-filter
             @change="filterEnvironments"
           />
         </div>
@@ -79,120 +52,102 @@ viewBox="0 0 24 24">
     </UiCard>
 
     <!-- Environments List -->
-    <UiCard variant="glass" class="overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <UiLoadingSpinner size="md" text="Cargando ambientes..." />
+    <UiCard variant="glass" padding="sm" class="overflow-hidden" :style="panelStyle">
+      <div v-if="loading" data-environments-loading>
+        <UiSkeleton variant="table" animation="wave" aria-label="Cargando ambientes..." />
       </div>
 
-      <div v-else-if="environments.length === 0">
+      <div
+        v-else-if="loadError"
+        data-environments-error
+        class="flex items-center justify-between flex-wrap gap-4 rounded-[var(--radius-panel)] p-5 bg-systemRed-50"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <ExclamationTriangleIcon
+            class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-theme-primary">No pudimos cargar los ambientes</p>
+            <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+          </div>
+        </div>
+        <UiButton variant="primary" size="sm" @click="retryLoad">Reintentar</UiButton>
+      </div>
+
+      <div v-else-if="environments.length === 0" data-environments-empty class="py-4">
         <UiEmptyState
-          title="No se encontraron ambientes"
-          description="Intenta ajustar los filtros o crear un nuevo ambiente."
-        />
+          :title="emptyTitle"
+          :description="emptyDescription"
+          :icon="BuildingOffice2Icon"
+        >
+          <template #action>
+            <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
+              Limpiar filtros
+            </UiButton>
+            <UiButton v-else @click="showNewEnvironmentModal = true">Nuevo Ambiente</UiButton>
+          </template>
+        </UiEmptyState>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Ambiente
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Descripción
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Equipamiento
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
-            <tr
-              v-for="environment in environments"
-              :key="environment.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div
-                      class="h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center"
-                    >
-                      <span class="text-sm font-medium text-systemBlue-700">
-                        {{ environment.name.charAt(0) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-theme-primary">
-                      {{ environment.name }}
-                    </div>
-                    <div class="text-sm text-theme-secondary">ID: {{ environment.id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm text-theme-primary">
-                  {{ environment.description || 'Sin descripción' }}
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm text-theme-primary">
-                  {{ environment.equipment || 'Sin equipamiento' }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="getStatusVariant(environment.status)"
-                  :label="getStatusText(environment.status)"
-                />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <UiButton
-                    variant="link"
-                    size="sm"
-                    @click="viewDetail(environment)"
-                  >
-                    Ver Detalle
-                  </UiButton>
-                  <UiButton
-                    variant="link"
-                    size="sm"
-                    @click="editEnvironment(environment)"
-                  >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-systemRed-700"
-                    @click="deleteEnvironment(environment)"
-                  >
-                    Eliminar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <UiDataTable
+        v-else
+        :data="environments"
+        :columns="columns"
+        :searchable="false"
+        :show-header="false"
+        data-environments-table
+      >
+        <template #cell-name="{ row }">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-10 w-10">
+              <div class="h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center">
+                <span class="text-sm font-medium text-systemBlue-700">
+                  {{ row.name.charAt(0) }}
+                </span>
+              </div>
+            </div>
+            <div class="ml-4">
+              <div class="text-sm font-medium text-theme-primary">{{ row.name }}</div>
+            </div>
+          </div>
+        </template>
+        <template #cell-equipment="{ row }">
+          <span class="text-theme-secondary">{{ row.equipment || 'Sin equipamiento' }}</span>
+        </template>
+        <template #cell-status="{ row }">
+          <UiStatusBadge
+            :variant="getStatusVariant(row.status)"
+            :label="getStatusText(row.status)"
+          />
+        </template>
+        <template #actions="{ row }">
+          <UiButton variant="link" size="sm" @click="viewDetail(row)">
+            <template #icon-left>
+              <EyeIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Ver Detalle
+          </UiButton>
+          <UiButton variant="link" size="sm" @click="editEnvironment(row)">
+            <template #icon-left>
+              <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Editar
+          </UiButton>
+          <UiButton
+            variant="ghost"
+            size="sm"
+            class="text-systemRed-700"
+            @click="deleteEnvironment(row)"
+          >
+            <template #icon-left>
+              <TrashIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Eliminar
+          </UiButton>
+        </template>
+      </UiDataTable>
     </UiCard>
   </AppLayout>
 
@@ -308,246 +263,240 @@ viewBox="0 0 24 24">
   </UiModal>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue'
+<script setup>
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  BuildingOffice2Icon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
-import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
+import { useToast } from '../../composables/useToast'
+import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiInput from '../../components/ui/Input.vue'
-import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
-import UiModal from '../../components/ui/Modal.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
-import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import UiSelect from '../../components/ui/Select.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiTextarea from '../../components/ui/UiTextarea.vue'
 
-export default {
-  name: 'EnvironmentsPage',
-  components: {
-    AppLayout,
-    UiButton,
-    UiInput,
-    UiSelect,
-    UiCard,
-    UiModal,
-    UiEmptyState,
-    UiLoadingSpinner,
-    UiStatusBadge,
-    UiTextarea
-  },
-  setup() {
-    const router = useRouter()
-    const { get, post, put, delete: remove } = useApi()
-    const toast = useToast()
-    const { handleError } = useErrorHandler()
+const router = useRouter()
+const { get, post, put, delete: remove } = useApi()
+const { confirm } = useConfirm()
+const toast = useToast()
+const { handleError } = useErrorHandler()
 
-    const loading = ref(false)
-    const creating = ref(false)
-    const updating = ref(false)
-    const environments = ref([])
-    const searchQuery = ref('')
-    const statusFilter = ref('')
-    const showNewEnvironmentModal = ref(false)
-    const showEditEnvironmentModal = ref(false)
-    const showViewEnvironmentModal = ref(false)
-    const editingEnvironment = ref(null)
-    const viewingEnvironment = ref(null)
+const loading = ref(false)
+const creating = ref(false)
+const updating = ref(false)
+const loadError = ref(false)
+const sourceRows = ref([])
+const searchQuery = ref('')
+const statusFilter = ref('')
+const showNewEnvironmentModal = ref(false)
+const showEditEnvironmentModal = ref(false)
+const showViewEnvironmentModal = ref(false)
+const editingEnvironment = ref(null)
+const viewingEnvironment = ref(null)
 
-    const newEnvironment = ref({
+const newEnvironment = ref({
+  name: '',
+  description: '',
+  equipment: '',
+  status: 'active'
+})
+
+// PR-ambientes-01 (AMB-01-002) — status filter options consumed by
+// `<UiSelect :options="statusOptions" v-model="statusFilter" />`.
+// Values match the legacy `<option value="...">` attributes byte-for-byte.
+const statusOptions = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'active', label: 'Activos' },
+  { value: 'inactive', label: 'Inactivos' },
+  { value: 'maintenance', label: 'Mantenimiento' }
+]
+
+const columns = [
+  { key: 'code', label: 'Código' },
+  { key: 'name', label: 'Nombre' },
+  { key: 'equipment', label: 'Equipamiento' },
+  { key: 'status', label: 'Estado' }
+]
+
+// Panel chrome rung shared by the filter bar + list panel (hairline edge,
+// --radius-panel shape, --elevation-2 shadow).
+const panelStyle = {
+  borderColor: 'var(--color-hairline)',
+  borderRadius: 'var(--radius-panel)',
+  boxShadow: 'var(--elevation-2)'
+}
+
+// Search results come from /api/dental-chairs/search without a server-side
+// status filter, so the status select is applied client-side on every fetch.
+const environments = computed(() =>
+  statusFilter.value
+    ? sourceRows.value.filter(environment => environment.status === statusFilter.value)
+    : sourceRows.value
+)
+
+const hasActiveFilters = computed(
+  () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
+)
+
+const emptyTitle = computed(() =>
+  hasActiveFilters.value ? 'No se encontraron ambientes' : 'Aún no hay ambientes registrados'
+)
+
+const emptyDescription = computed(() =>
+  hasActiveFilters.value
+    ? 'Prueba con otros términos de búsqueda o quita los filtros aplicados.'
+    : 'Crea el primer ambiente para empezar a gestionar tus espacios clínicos.'
+)
+
+const loadEnvironments = async () => {
+  loading.value = true
+  loadError.value = false
+  try {
+    const query = statusFilter.value ? `?status=${statusFilter.value}` : ''
+    const response = await get(`/api/dental-chairs${query}`)
+    sourceRows.value = response?.data || []
+  } catch {
+    sourceRows.value = []
+    loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const searchEnvironments = async () => {
+  if (searchQuery.value.trim().length < 2) {
+    loadEnvironments()
+    return
+  }
+
+  loading.value = true
+  loadError.value = false
+  try {
+    const response = await get(
+      `/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`
+    )
+    sourceRows.value = response?.data || []
+  } catch {
+    sourceRows.value = []
+    loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const filterEnvironments = () => {
+  if (searchQuery.value.trim().length >= 2) return
+  loadEnvironments()
+}
+
+const retryLoad = () => {
+  if (searchQuery.value.trim().length >= 2) {
+    searchEnvironments()
+  } else {
+    loadEnvironments()
+  }
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  statusFilter.value = ''
+  loadEnvironments()
+}
+
+const createEnvironment = async () => {
+  if (creating.value) return
+  creating.value = true
+  try {
+    await post('/api/dental-chairs', newEnvironment.value)
+    showNewEnvironmentModal.value = false
+    newEnvironment.value = {
       name: '',
       description: '',
       equipment: '',
       status: 'active'
-    })
-
-    // PR-ambientes-01 (AMB-01-002) — status filter options consumed by
-    // `<UiSelect :options="statusOptions" v-model="statusFilter" />`.
-    // Values match the legacy `<option value="...">` attributes byte-for-byte.
-    const statusOptions = [
-      { value: '', label: 'Todos los estados' },
-      { value: 'active', label: 'Activos' },
-      { value: 'inactive', label: 'Inactivos' },
-      { value: 'maintenance', label: 'Mantenimiento' }
-    ]
-
-    const loadEnvironments = async () => {
-      loading.value = true
-      try {
-        const response = await get('/api/dental-chairs')
-        environments.value = response?.data || []
-
-        if (environments.value.length === 0) {
-          toast.info('Aún no hay ambientes registrados')
-        }
-      } catch (error) {
-        handleError(error, 'Error al cargar los ambientes. Por favor, recarga la página.')
-        environments.value = []
-      } finally {
-        loading.value = false
-      }
     }
+    toast.success('Ambiente creado exitosamente')
+    loadEnvironments()
+  } catch (error) {
+    handleError(error, 'Error al crear el ambiente')
+  } finally {
+    creating.value = false
+  }
+}
 
-    const searchEnvironments = async () => {
-      if (searchQuery.value.length < 2) {
-        loadEnvironments()
-        return
-      }
+const editEnvironment = environment => {
+  editingEnvironment.value = { ...environment }
+  showEditEnvironmentModal.value = true
+}
 
-      loading.value = true
-      try {
-        const response = await get(
-          `/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`
-        )
-        environments.value = response.data
-      } catch (error) {
-        handleError(error, 'Error al buscar ambientes')
-      } finally {
-        loading.value = false
-      }
-    }
+// Kept unreachable on purpose: T3 removes the View modal template and this handler together.
+// eslint-disable-next-line no-unused-vars
+const viewEnvironment = environment => {
+  viewingEnvironment.value = environment
+  showViewEnvironmentModal.value = true
+}
 
-    const filterEnvironments = () => {
-      // Implement client-side filtering or API call
+const viewDetail = environment => {
+  router.push(`/environments/${environment.id}`)
+}
+
+const updateEnvironment = async () => {
+  if (updating.value) return
+  updating.value = true
+  try {
+    await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
+    showEditEnvironmentModal.value = false
+    editingEnvironment.value = null
+    loadEnvironments()
+    toast.success('Ambiente actualizado exitosamente')
+  } catch (error) {
+    handleError(error, 'Error al actualizar el ambiente')
+  } finally {
+    updating.value = false
+  }
+}
+
+const deleteEnvironment = async environment => {
+  const ok = await confirm({
+    title: 'Eliminar ambiente',
+    message: `¿Estás seguro de que quieres eliminar el ambiente ${environment.name}?`,
+    confirmText: 'Eliminar',
+    variant: 'danger'
+  })
+  if (ok) {
+    try {
+      await remove(`/api/dental-chairs/${environment.id}`)
       loadEnvironments()
-    }
-
-    const createEnvironment = async () => {
-      if (creating.value) return
-      creating.value = true
-      try {
-        await post('/api/dental-chairs', newEnvironment.value)
-        showNewEnvironmentModal.value = false
-        newEnvironment.value = {
-          name: '',
-          description: '',
-          equipment: '',
-          status: 'active'
-        }
-        toast.success('Ambiente creado exitosamente')
-        loadEnvironments()
-      } catch (error) {
-        handleError(error, 'Error al crear el ambiente')
-      } finally {
-        creating.value = false
-      }
-    }
-
-    const editEnvironment = environment => {
-      editingEnvironment.value = { ...environment }
-      showEditEnvironmentModal.value = true
-    }
-
-    const viewEnvironment = environment => {
-      viewingEnvironment.value = environment
-      showViewEnvironmentModal.value = true
-    }
-
-    const viewDetail = environment => {
-      router.push(`/environments/${environment.id}`)
-    }
-
-    const updateEnvironment = async () => {
-      if (updating.value) return
-      updating.value = true
-      try {
-        await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
-        showEditEnvironmentModal.value = false
-        editingEnvironment.value = null
-        loadEnvironments()
-        toast.success('Ambiente actualizado exitosamente')
-      } catch (error) {
-        handleError(error, 'Error al actualizar el ambiente')
-      } finally {
-        updating.value = false
-      }
-    }
-
-    const deleteEnvironment = async environment => {
-      const ok = await confirm({
-        title: 'Eliminar ambiente',
-        message: `¿Estás seguro de que quieres eliminar el ambiente ${environment.name}?`,
-        confirmText: 'Eliminar',
-        variant: 'danger'
-      })
-      if (ok) {
-        try {
-          await remove(`/api/dental-chairs/${environment.id}`)
-          loadEnvironments()
-          toast.success('Ambiente eliminado exitosamente')
-        } catch (error) {
-          handleError(error, 'Error al eliminar el ambiente')
-        }
-      }
-    }
-
-    // PR-ambientes-01 (AMB-01-008 / DLR-AMB-005 EXCEPTION #1): renamed the
-    // legacy colour-class helper to `getStatusVariant` and changed its
-    // return type from legacy Tailwind ramp strings (success / warning
-    // ramps under the theme namespace) to variant tokens (the canonical
-    // `success | neutral | warning` enum consumed by `<UiStatusBadge
-    // :variant="...">`). The function name is now honest about what it
-    // returns. This is a documented DLR-AMB-005 exception to the global
-    // `<script>`-never-touched rule. The remaining `<script>` block
-    // (`useApi` / `useToast` / `useConfirm` / `useErrorHandler` reactivity,
-    // the data-flow methods, the `onMounted` hook, the `return` entries
-    // other than this renamed helper) stays byte-for-byte verbatim.
-    const getStatusVariant = status => {
-      const variants = {
-        active: 'success',
-        inactive: 'neutral',
-        maintenance: 'warning'
-      }
-      return variants[status] || 'neutral'
-    }
-
-    const getStatusText = status => {
-      const texts = {
-        active: 'Activo',
-        inactive: 'Inactivo',
-        maintenance: 'Mantenimiento'
-      }
-      return texts[status] || status
-    }
-
-    const goBack = () => {
-      router.back()
-    }
-
-    onMounted(() => {
-      loadEnvironments()
-    })
-
-    return {
-      loading,
-      creating,
-      updating,
-      environments,
-      searchQuery,
-      statusFilter,
-      showNewEnvironmentModal,
-      showEditEnvironmentModal,
-      showViewEnvironmentModal,
-      newEnvironment,
-      editingEnvironment,
-      viewingEnvironment,
-      loadEnvironments,
-      searchEnvironments,
-      filterEnvironments,
-      createEnvironment,
-      editEnvironment,
-      viewEnvironment,
-      viewDetail,
-      updateEnvironment,
-      deleteEnvironment,
-      getStatusVariant,
-      getStatusText,
-      goBack,
-      statusOptions
+      toast.success('Ambiente eliminado exitosamente')
+    } catch (error) {
+      handleError(error, 'Error al eliminar el ambiente')
     }
   }
 }
+
+const goBack = () => {
+  router.back()
+}
+
+onMounted(() => {
+  loadEnvironments()
+})
 </script>
