@@ -193,4 +193,114 @@ class ProfessionalsAppShellTest extends TestCase
             );
         }
     }
+
+    /**
+     * T3 (D4) — hero band: data-professionals-hero hook, neutral canvas
+     * surface, no mint/green wash anywhere in the page.
+     */
+    public function test_hero_band_hook_uses_canvas_surface_without_mint(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+
+        self::assertStringContainsString(
+            'data-professionals-hero',
+            $src,
+            'ProfessionalsPage.vue must expose the data-professionals-hero hook (D4 hero band).'
+        );
+        self::assertStringContainsString(
+            'var(--color-canvas)',
+            $src,
+            'ProfessionalsPage.vue hero must sit on var(--color-canvas) (D4: neutral surface, user direction: no mint tint).'
+        );
+        self::assertStringNotContainsString(
+            'bg-accent-50',
+            $src,
+            'ProfessionalsPage.vue must not use bg-accent-50 (D4: neutral canvas, no mint surfaces).'
+        );
+        self::assertStringNotContainsString(
+            'mint',
+            $src,
+            'ProfessionalsPage.vue must not introduce mint surfaces (D4: neutral canvas only).'
+        );
+    }
+
+    /**
+     * T3 (D4) — no gradients anywhere in the page.
+     */
+    public function test_page_bans_gradient_surfaces(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+
+        foreach (['bg-gradient', 'linear-gradient'] as $gradient) {
+            self::assertStringNotContainsString(
+                $gradient,
+                $src,
+                "ProfessionalsPage.vue must not use '{$gradient}' (D4: flat token surfaces only)."
+            );
+        }
+    }
+
+    /**
+     * T3 (D3) — team KPI strip: exactly four data-stat-card occurrences with
+     * the four team data-stat values, on the wrapping data-team-kpis block.
+     */
+    public function test_team_kpi_strip_has_exactly_four_stat_cards(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+
+        self::assertStringContainsString(
+            'data-team-kpis',
+            $src,
+            'ProfessionalsPage.vue must expose the data-team-kpis wrapping block (D3 KPI strip).'
+        );
+
+        self::assertSame(
+            4,
+            substr_count($src, 'data-stat-card'),
+            'ProfessionalsPage.vue must contain exactly four data-stat-card occurrences (D3: four team KPIs).'
+        );
+
+        foreach (['team-total', 'team-active', 'team-inactive', 'team-specialties'] as $stat) {
+            self::assertStringContainsString(
+                "data-stat-card=\"{$stat}\"",
+                $src,
+                "ProfessionalsPage.vue must anchor a data-stat-card with the value '{$stat}' (D3)."
+            );
+            self::assertStringContainsString(
+                "data-stat=\"{$stat}\"",
+                $src,
+                "ProfessionalsPage.vue must anchor the KPI number with data-stat='{$stat}' (D3)."
+            );
+        }
+    }
+
+    /**
+     * T3 (D2/D11) — single data source: the broken /api/users/search call is
+     * gone and the role query is derived from CLINICAL_ROLES, never hardcoded.
+     */
+    public function test_search_endpoint_gone_and_role_query_derived_from_clinical_roles(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+
+        self::assertStringNotContainsString(
+            '/api/users/search',
+            $src,
+            'ProfessionalsPage.vue must not call the dead /api/users/search endpoint (D2: client-side filter over the loaded collection).'
+        );
+        self::assertStringNotContainsString(
+            'role=odontologo',
+            $src,
+            'ProfessionalsPage.vue must not hardcode a role=odontologo query string (D2: the team query lists every clinical role).'
+        );
+        self::assertMatchesRegularExpression(
+            "/import\s*\{[^}]*CLINICAL_ROLES[^}]*\}\s*from\s*['\"]\.\/professionals\.constants['\"]/",
+            $src,
+            'ProfessionalsPage.vue must import CLINICAL_ROLES from ./professionals.constants (D1/D2).'
+        );
+        self::assertMatchesRegularExpression(
+            '/users\?role=\$\{/',
+            $src,
+            'ProfessionalsPage.vue must build the role query by interpolation (D2: one collection load for the whole clinical team).'
+        );
+    }
 }
