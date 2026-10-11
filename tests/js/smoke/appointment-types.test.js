@@ -91,6 +91,18 @@ const mountPage = async (catalog = []) => {
 
 const rows = wrapper => wrapper.findAll('[data-type-row]')
 
+// The duration input of the OPEN modal, resolved through its floating label
+// so the assertion targets the field itself, not any numeric-looking input.
+const editDurationInput = () => {
+  const label = [...document.body.querySelectorAll('label')].find(
+    l => l.textContent.trim() === 'Duración (minutos)'
+  )
+  expect(label).toBeTruthy()
+  const input = document.getElementById(label.getAttribute('for'))
+  expect(input).toBeTruthy()
+  return input
+}
+
 const pickStatusFilter = wrapper =>
   wrapper.findAllComponents(Select).find(c => c.attributes('data-status-filter') !== undefined)
 
@@ -252,6 +264,28 @@ describe('appointment-types smoke', () => {
     )
     expect(nameInput).toBeTruthy()
     expect(router.currentRoute.value.query.edit).toBeUndefined()
+    wrapper.unmount()
+    await router.push('/appointment-types')
+  })
+
+  it('pre-fills the edit duration input from default_duration_minutes (row action)', async () => {
+    const wrapper = await mountPage(CATALOG)
+    const editRow = rows(wrapper).find(r => r.text().includes('Blanqueamiento'))
+    await editRow.find('[data-row-action="edit"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(editDurationInput().value).toBe('45')
+    wrapper.unmount()
+  })
+
+  it('pre-fills the edit duration input from default_duration_minutes (?edit deep link)', async () => {
+    await router.push({ path: '/appointment-types', query: { edit: '2' } })
+    await router.isReady()
+    const wrapper = await mountPage(CATALOG)
+
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    expect(editDurationInput().value).toBe('60')
     wrapper.unmount()
     await router.push('/appointment-types')
   })

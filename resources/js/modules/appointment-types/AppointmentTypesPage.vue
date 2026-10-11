@@ -614,7 +614,14 @@ export default {
     }
 
     const editType = type => {
-      editingType.value = { ...type }
+      // The API read field is `default_duration_minutes`, but the write
+      // payload (storeRules) takes `editingType.duration_minutes`: initialize
+      // it from the record so the edit form is pre-filled and a save without
+      // retyping keeps the duration.
+      editingType.value = {
+        ...type,
+        duration_minutes: type.default_duration_minutes
+      }
       showEditTypeModal.value = true
     }
 
