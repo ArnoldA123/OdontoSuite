@@ -240,4 +240,30 @@ describe('appointment-types smoke', () => {
     bodyColorPair()
     wrapper.unmount()
   })
+
+  it('opens the shared edit modal from the ?edit=<id> deep link and clears the query', async () => {
+    await router.push({ path: '/appointment-types', query: { edit: '2' } })
+    await router.isReady()
+    const wrapper = await mountPage(CATALOG)
+
+    expect(document.body.textContent).toContain('Editar Tipo de Cita')
+    const nameInput = [...document.body.querySelectorAll('input')].find(
+      i => i.value === 'Ortodoncia'
+    )
+    expect(nameInput).toBeTruthy()
+    expect(router.currentRoute.value.query.edit).toBeUndefined()
+    wrapper.unmount()
+    await router.push('/appointment-types')
+  })
+
+  it('ignores an unknown ?edit id without opening the modal', async () => {
+    await router.push({ path: '/appointment-types', query: { edit: '999' } })
+    await router.isReady()
+    const wrapper = await mountPage(CATALOG)
+
+    expect(document.body.textContent).not.toContain('Editar Tipo de Cita')
+    expect(router.currentRoute.value.query.edit).toBeUndefined()
+    wrapper.unmount()
+    await router.push('/appointment-types')
+  })
 })

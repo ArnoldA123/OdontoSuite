@@ -411,7 +411,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
   ExclamationTriangleIcon,
@@ -456,6 +456,7 @@ export default {
     UiStatusBadge
   },
   setup() {
+    const route = useRoute()
     const router = useRouter()
     const { get, post, put, delete: remove } = useApi()
     const toast = useToast()
@@ -557,6 +558,17 @@ export default {
       return 'Crea el primer tipo de cita para empezar.'
     })
 
+    // Deep link from the detail hero (`?edit=<id>`): open the shared edit
+    // modal for that type once the catalog is loaded, then clear the
+    // parameter so a re-render does not reopen it.
+    const openEditFromQuery = () => {
+      const editId = route.query.edit
+      if (!editId) return
+      const match = types.value.find(type => String(type.id) === String(editId))
+      if (match) editType(match)
+      router.replace({ query: { ...route.query, edit: undefined } })
+    }
+
     const loadTypes = async () => {
       loading.value = true
       try {
@@ -567,6 +579,8 @@ export default {
         if (types.value.length === 0) {
           toast.info('Aún no hay tipos de cita registrados')
         }
+
+        openEditFromQuery()
       } catch (error) {
         loadError.value = true
         types.value = []
