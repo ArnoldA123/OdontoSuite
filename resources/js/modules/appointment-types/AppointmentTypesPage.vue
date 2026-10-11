@@ -1,229 +1,319 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <!-- bg-canvas pinned on the page header (DLR-R-001); AppLayout also
-         paints canvas for this route (canvasRoutes list). -->
-    <PageHeader
-      title="Tipos de Cita"
-      subtitle="Gestiona los tipos de citas disponibles"
-      class="bg-canvas mb-6"
+    <!-- Hero band (D1): the dashboard's surface recipe (hairline + radius-panel
+         + elevation rung over the canvas base) with eyebrow, display headline,
+         caption and the primary action right-aligned in the band. -->
+    <header
+      data-appointment-types-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
     >
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton @click="showNewTypeModal = true">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </template>
-          Nuevo Tipo
-        </UiButton>
-      </template>
-    </PageHeader>
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p
+            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            data-hero-eyebrow
+          >
+            Catálogo
+          </p>
+          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Tipos de Cita</h1>
+          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+            Gestiona los tipos de citas disponibles
+          </p>
+        </div>
+        <div class="flex flex-shrink-0 items-center gap-3">
+          <UiButton variant="secondary" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton data-hero-action @click="showNewTypeModal = true">
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nuevo tipo
+          </UiButton>
+        </div>
+      </div>
+    </header>
 
-    <!-- Search and Filters -->
+    <!-- KPI strip (D2): four cards over the SAME full catalog the table
+         renders, so the numbers cannot drift from the list. While the load
+         fails they read "N/D" instead of a fabricated zero. -->
+    <section
+      aria-label="Resumen del catálogo"
+      class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+    >
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="total"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Tipos de cita</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="total"
+        >
+          {{ kpiTotalDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="total">En el catálogo</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="active"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Activos</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="active"
+        >
+          {{ kpiActiveDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="active">En el catálogo</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="inactive"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Inactivos</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="inactive"
+        >
+          {{ kpiInactiveDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="inactive">En el catálogo</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="avg-duration"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Duración media</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="avg-duration"
+        >
+          {{ kpiAvgDurationDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="avg-duration">
+          Promedio del catálogo
+        </p>
+      </UiCard>
+    </section>
+
+    <!-- Filters (D6): one `status=all` load, instant client-side filtering. -->
     <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <div class="w-full flex-1">
           <UiInput
             v-model="searchQuery"
+            data-type-search
             placeholder="Buscar tipos de cita por nombre o descripción..."
             class="w-full"
-            @input="searchTypes"
           >
             <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
             </template>
           </UiInput>
         </div>
-        <div class="flex gap-3">
+        <div class="flex items-center gap-3">
           <UiSelect
             v-model="statusFilter"
             :options="statusFilterOptions"
             placeholder="Todos los estados"
             class="w-48"
-            @change="filterTypes"
+            data-status-filter
           />
+          <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
+            {{ filterCountText }}
+          </p>
         </div>
       </div>
     </UiCard>
 
-    <!-- Types List -->
-    <UiCard variant="glass" class="overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <LoadingSpinner class="inline-block" text="Cargando tipos de cita..." />
+    <!-- List block (D3 section grammar + D4 table + D7 states). -->
+    <section aria-label="Tipos de cita" class="space-y-4">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-2xl font-semibold text-label">Tipos de cita</h2>
+        <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada tipo del catálogo</p>
       </div>
 
-      <UiEmptyState
-        v-else-if="types.length === 0"
-        title="No se encontraron tipos de cita"
-        description="Crea el primer tipo de cita para empezar."
-      />
+      <UiCard variant="glass" class="overflow-hidden">
+        <div v-if="loading" class="p-8 text-center">
+          <LoadingSpinner class="inline-block" text="Cargando tipos de cita..." />
+        </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Tipo de Cita
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Duración
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Precio
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Color
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr v-for="type in types" :key="type.id" class="hover:bg-theme-surface">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div
-                      class="h-10 w-10 rounded-full flex items-center justify-center"
-                      :style="{ backgroundColor: type.color }"
-                    >
-                      <span class="text-sm font-medium text-white">
-                        {{ type.name.charAt(0) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-theme-primary">
-                      {{ type.name }}
-                    </div>
-                    <div class="text-sm text-theme-secondary">
-                      {{ type.description || 'Sin descripción' }}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-theme-primary">{{ type.duration_minutes }} min</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div
-                  class="text-sm text-theme-primary tabular-nums"
-                  :aria-label="`Precio ${formatCurrency(type.price)}`"
+        <div
+          v-else-if="loadError"
+          data-types-error
+          role="alert"
+          class="rounded-ios bg-systemRed-50 p-10 text-center"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <ExclamationTriangleIcon
+            class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <p class="text-base font-medium text-theme-primary">
+            No pudimos cargar los tipos de cita
+          </p>
+          <p class="mt-1 max-w-md mx-auto text-sm text-theme-secondary">
+            Revisa tu conexión e inténtalo de nuevo. Si el problema continúa, vuelve a intentarlo en
+            unos minutos.
+          </p>
+          <div class="mt-6">
+            <UiButton variant="primary" size="md" data-retry-types @click="loadTypes">
+              Reintentar
+            </UiButton>
+          </div>
+        </div>
+
+        <UiEmptyState
+          v-else-if="filteredTypes.length === 0"
+          :title="emptyStateTitle"
+          :description="emptyStateDescription"
+        />
+
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-hairline">
+            <thead class="bg-theme-surface">
+              <tr>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
                 >
-                  {{ formatCurrency(type.price) }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="w-4 h-4 rounded-full mr-2" :style="{ backgroundColor: type.color }" />
-                  <span class="text-sm text-theme-secondary">{{ type.color }}</span>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="type.is_active ? 'success' : 'neutral'"
-                  :label="type.is_active ? 'Activo' : 'Inactivo'"
-                  size="sm"
-                />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
-                    @click="viewDetail(type)"
+                  Nombre
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Descripción
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Duración
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Precio
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Estado
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
+              <tr
+                v-for="type in filteredTypes"
+                :key="type.id"
+                data-type-row
+                class="hover:bg-theme-surface"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                      data-type-swatch
+                      :style="{ backgroundColor: type.color }"
+                      aria-hidden="true"
+                    />
+                    <span class="text-sm font-medium text-theme-primary">{{ type.name }}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div
+                    class="max-w-xs truncate text-sm text-theme-secondary"
+                    :title="type.description || 'Sin descripción'"
                   >
-                    Ver Detalle
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
-                    @click="editType(type)"
+                    {{ type.description || 'Sin descripción' }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
+                  {{ type.default_duration_minutes }} min
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div
+                    class="text-sm tabular-nums text-theme-primary"
+                    :aria-label="`Precio ${formatCurrency(type.price)}`"
                   >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
+                    {{ formatCurrency(type.price) }}
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <UiStatusBadge
+                    :variant="type.is_active ? 'success' : 'neutral'"
+                    :label="type.is_active ? 'Activo' : 'Inactivo'"
                     size="sm"
-                    class="text-systemRed-600 hover:text-systemRed-700"
-                    @click="deleteType(type)"
-                  >
-                    Eliminar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </UiCard>
+                  />
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex space-x-2">
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemBlue-600 hover:text-systemBlue-700"
+                      data-row-action="detail"
+                      @click="viewDetail(type)"
+                    >
+                      Ver Detalle
+                    </UiButton>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemBlue-600 hover:text-systemBlue-700"
+                      data-row-action="edit"
+                      @click="editType(type)"
+                    >
+                      Editar
+                    </UiButton>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemRed-600 hover:text-systemRed-700"
+                      data-row-action="delete"
+                      @click="deleteType(type)"
+                    >
+                      Eliminar
+                    </UiButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </UiCard>
+    </section>
   </AppLayout>
 
   <!-- New Type Modal -->
   <UiModal v-model="showNewTypeModal" title="Nuevo Tipo de Cita" size="md">
     <form id="form-new-type" class="space-y-4" @submit.prevent="createType">
-      <UiInput
-        v-model="newType.name"
-        label="Nombre del Tipo"
-        type="text"
-        required
-      />
-      <UiTextarea
-        v-model="newType.description"
-        label="Descripción"
-        :rows="3"
-      />
+      <UiInput v-model="newType.name" label="Nombre del Tipo" type="text" required />
+      <UiTextarea v-model="newType.description" label="Descripción" :rows="3" />
       <UiInput
         v-model="newType.duration_minutes"
         label="Duración (minutos)"
@@ -233,21 +323,16 @@ viewBox="0 0 24 24">
         step="15"
         required
       />
-      <UiInput
-        v-model="newType.price"
-        label="Precio (S/)"
-        type="number"
-        min="0"
-        step="0.01"
-      />
+      <UiInput v-model="newType.price" label="Precio (S/)" type="number" min="0" step="0.01" />
       <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
-        <div class="flex items-center space-x-2">
+        <div class="mt-1 flex items-center gap-2">
           <input
             v-model="newType.color"
             type="color"
-            class="w-12 h-8 border border-hairline rounded"
-          >
+            aria-label="Color del tipo de cita"
+            class="h-8 w-12 rounded border border-hairline"
+          />
           <UiInput
             v-model="newType.color"
             label="Código hex"
@@ -269,17 +354,8 @@ viewBox="0 0 24 24">
   <!-- Edit Type Modal -->
   <UiModal v-model="showEditTypeModal" title="Editar Tipo de Cita" size="md">
     <form v-if="editingType" id="form-edit-type" class="space-y-4" @submit.prevent="updateType">
-      <UiInput
-        v-model="editingType.name"
-        label="Nombre"
-        type="text"
-        required
-      />
-      <UiTextarea
-        v-model="editingType.description"
-        label="Descripción"
-        :rows="3"
-      />
+      <UiInput v-model="editingType.name" label="Nombre" type="text" required />
+      <UiTextarea v-model="editingType.description" label="Descripción" :rows="3" />
       <UiInput
         v-model="editingType.duration_minutes"
         label="Duración (minutos)"
@@ -299,12 +375,21 @@ viewBox="0 0 24 24">
       />
       <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
-        <input
-          v-model="editingType.color"
-          type="color"
-          required
-          class="mt-1 block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary"
-        />
+        <div class="mt-1 flex items-center gap-2">
+          <input
+            v-model="editingType.color"
+            type="color"
+            aria-label="Color del tipo de cita"
+            class="h-8 w-12 rounded border border-hairline"
+          />
+          <UiInput
+            v-model="editingType.color"
+            label="Código hex"
+            type="text"
+            :placeholder="DEFAULT_TYPE_COLOR"
+            class="flex-1"
+          />
+        </div>
       </div>
       <div>
         <label class="block text-sm font-medium text-theme-primary">Estado</label>
@@ -322,64 +407,20 @@ viewBox="0 0 24 24">
       <UiButton type="submit" :loading="updating" @click="updateType">Actualizar</UiButton>
     </template>
   </UiModal>
-
-  <!-- View Type Modal -->
-  <UiModal v-model="showViewTypeModal" title="Ver Tipo de Cita" size="md">
-    <div v-if="viewingType" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          {{ viewingType.name }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          {{ viewingType.description || 'Sin descripción' }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Duración</label>
-        <p class="mt-1 text-sm text-theme-primary">{{ viewingType.duration_minutes }} minutos</p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Precio</label>
-        <p class="mt-1 text-sm text-theme-primary tabular-nums">
-          {{ formatCurrency(viewingType.price) }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Color</label>
-        <div class="mt-1 flex items-center">
-          <div
-            class="w-6 h-6 rounded border border-hairline mr-2"
-            :style="{ backgroundColor: viewingType.color }"
-          />
-          <span class="text-sm text-theme-primary">{{ viewingType.color }}</span>
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Estado</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          <UiStatusBadge
-            :variant="viewingType.is_active ? 'success' : 'neutral'"
-            :label="viewingType.is_active ? 'Activo' : 'Inactivo'"
-            size="sm"
-          />
-        </p>
-      </div>
-    </div>
-    <template #footer>
-      <UiButton variant="secondary" @click="showViewTypeModal = false">Cerrar</UiButton>
-    </template>
-  </UiModal>
 </template>
 
 <script>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
+import { useConfirm } from '../../composables/useConfirm'
 import { useErrorHandler } from '../../composables/useErrorHandler'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -389,9 +430,7 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
-// A new appointment type starts on the brand accent. It used to default to
-// `#0066CC` — the retired iCloud blue, a colour this app no longer contains, so
-// the first type a clinic created was born off-palette. Read from the token so
+// A new appointment type starts on the brand accent, read from the token so
 // the next palette move carries it along.
 import { colors } from '../../design-system/tokens.js'
 
@@ -403,6 +442,10 @@ export default {
   name: 'AppointmentTypesPage',
   components: {
     AppLayout,
+    ArrowLeftIcon,
+    ExclamationTriangleIcon,
+    MagnifyingGlassIcon,
+    PlusIcon,
     UiButton,
     UiInput,
     UiSelect,
@@ -416,19 +459,19 @@ export default {
     const router = useRouter()
     const { get, post, put, delete: remove } = useApi()
     const toast = useToast()
+    const { confirm } = useConfirm()
     const { handleError } = useErrorHandler()
 
     const loading = ref(false)
     const creating = ref(false)
     const updating = ref(false)
+    const loadError = ref(false)
     const types = ref([])
     const searchQuery = ref('')
-    const statusFilter = ref('')
+    const statusFilter = ref('all')
     const showNewTypeModal = ref(false)
     const showEditTypeModal = ref(false)
-    const showViewTypeModal = ref(false)
     const editingType = ref(null)
-    const viewingType = ref(null)
 
     const newType = ref({
       name: '',
@@ -439,8 +482,8 @@ export default {
       is_active: true
     })
 
-    // PR-citas-04 — <UiSelect> options for the filter bar + edit modal state toggle.
     const statusFilterOptions = computed(() => [
+      { value: 'all', label: 'Todos' },
       { value: 'active', label: 'Activos' },
       { value: 'inactive', label: 'Inactivos' }
     ])
@@ -460,45 +503,77 @@ export default {
       }
     })
 
+    // D6: one `status=all` load; search + status filter the same array
+    // client-side so the list and its KPIs share a single source of truth.
+    const filteredTypes = computed(() => {
+      const query = searchQuery.value.trim().toLowerCase()
+      return types.value.filter(type => {
+        if (statusFilter.value === 'active' && !type.is_active) return false
+        if (statusFilter.value === 'inactive' && type.is_active) return false
+        if (query) {
+          const haystack = `${type.name || ''} ${type.description || ''}`.toLowerCase()
+          if (!haystack.includes(query)) return false
+        }
+        return true
+      })
+    })
+
+    const filterCountText = computed(
+      () => `Mostrando ${filteredTypes.value.length} de ${types.value.length}`
+    )
+
+    const kpiTotalDisplay = computed(() => (loadError.value ? 'N/D' : String(types.value.length)))
+
+    const kpiActiveDisplay = computed(() =>
+      loadError.value ? 'N/D' : String(types.value.filter(type => type.is_active).length)
+    )
+
+    const kpiInactiveDisplay = computed(() =>
+      loadError.value ? 'N/D' : String(types.value.filter(type => !type.is_active).length)
+    )
+
+    const kpiAvgDurationDisplay = computed(() => {
+      if (loadError.value || types.value.length === 0) return 'N/D'
+      const total = types.value.reduce(
+        (sum, type) => sum + (Number(type.default_duration_minutes) || 0),
+        0
+      )
+      return `${Math.round(total / types.value.length)} min`
+    })
+
+    const emptyStateTitle = computed(() => {
+      if (searchQuery.value.trim()) return 'Sin resultados'
+      if (statusFilter.value === 'active') return 'No hay tipos de cita activos'
+      if (statusFilter.value === 'inactive') return 'No hay tipos de cita inactivos'
+      return 'No se encontraron tipos de cita'
+    })
+
+    const emptyStateDescription = computed(() => {
+      const query = searchQuery.value.trim()
+      if (query)
+        return `Ningún tipo de cita coincide con ${query}. Prueba con otro término de búsqueda.`
+      if (statusFilter.value === 'active') return 'Todos los tipos del catálogo están inactivos.'
+      if (statusFilter.value === 'inactive') return 'Todos los tipos del catálogo están activos.'
+      return 'Crea el primer tipo de cita para empezar.'
+    })
+
     const loadTypes = async () => {
       loading.value = true
       try {
-        const response = await get('/api/appointment-types')
+        const response = await get('/api/appointment-types?status=all')
         types.value = response?.data || []
+        loadError.value = false
 
         if (types.value.length === 0) {
           toast.info('Aún no hay tipos de cita registrados')
         }
       } catch (error) {
-        handleError(error, 'Error al cargar los tipos de cita. Por favor, recarga la página.')
+        loadError.value = true
         types.value = []
+        handleError(error, 'Error al cargar los tipos de cita. Por favor, recarga la página.')
       } finally {
         loading.value = false
       }
-    }
-
-    const searchTypes = async () => {
-      if (searchQuery.value.length < 2) {
-        loadTypes()
-        return
-      }
-
-      loading.value = true
-      try {
-        const response = await get(
-          `/api/appointment-types/search?q=${encodeURIComponent(searchQuery.value)}`
-        )
-        types.value = response.data
-      } catch (error) {
-        handleError(error, 'Error al buscar tipos de cita')
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const filterTypes = () => {
-      // Implement client-side filtering or API call
-      loadTypes()
     }
 
     const createType = async () => {
@@ -527,11 +602,6 @@ export default {
     const editType = type => {
       editingType.value = { ...type }
       showEditTypeModal.value = true
-    }
-
-    const viewType = type => {
-      viewingType.value = type
-      showViewTypeModal.value = true
     }
 
     const viewDetail = type => {
@@ -584,24 +654,29 @@ export default {
       loading,
       creating,
       updating,
+      loadError,
       types,
       searchQuery,
       statusFilter,
       statusFilterOptions,
       isActiveOptions,
       editingTypeIsActive,
+      filteredTypes,
+      filterCountText,
+      kpiTotalDisplay,
+      kpiActiveDisplay,
+      kpiInactiveDisplay,
+      kpiAvgDurationDisplay,
+      emptyStateTitle,
+      emptyStateDescription,
       showNewTypeModal,
       showEditTypeModal,
-      showViewTypeModal,
       newType,
       editingType,
-      viewingType,
+      DEFAULT_TYPE_COLOR,
       loadTypes,
-      searchTypes,
-      filterTypes,
       createType,
       editType,
-      viewType,
       viewDetail,
       updateType,
       deleteType,
