@@ -37,7 +37,7 @@ viewBox="0 0 24 24">
           </span>
         </div>
         <div class="flex-1">
-          <h3 class="text-lg font-semibold text-theme-primary">
+          <h3 class="text-lg font-semibold text-[color:var(--color-text-primary)]">
             {{ professional?.name }}
           </h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
@@ -65,7 +65,7 @@ viewBox="0 0 24 24">
 
     <!-- Tabs Navigation -->
     <div class="mb-6">
-      <nav class="flex space-x-8 border-b border-theme">
+      <nav class="flex space-x-8 border-b border-[color:var(--color-border)]">
         <button
           v-for="tab in tabs"
           :key="tab.id"
@@ -73,7 +73,7 @@ viewBox="0 0 24 24">
           :class="[
             activeTab === tab.id
               ? 'border-accent text-accent'
-              : 'border-transparent text-theme-secondary hover:text-theme-primary hover:border-theme'
+              : 'border-transparent text-theme-secondary hover:text-[color:var(--color-text-primary)] hover:border-[color:var(--color-border)]'
           ]"
           @click="activeTab = tab.id"
         >
@@ -88,43 +88,55 @@ viewBox="0 0 24 24">
       <!-- Datos del Profesional -->
       <div v-if="activeTab === 'data'" class="space-y-6">
         <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Información Personal</h3>
+          <h3 class="text-lg font-semibold text-[color:var(--color-text-primary)] mb-4">
+            Información Personal
+          </h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
                 Nombre Completo
               </label>
-              <p class="text-theme-primary">
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ professional?.name }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Usuario</label>
-              <p class="text-theme-primary">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
+                Usuario
+              </label>
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ professional?.username }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
-              <p class="text-theme-primary">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
+                Email
+              </label>
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ professional?.email }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Teléfono</label>
-              <p class="text-theme-primary">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
+                Teléfono
+              </label>
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ professional?.phone || 'No especificado' }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Especialidad</label>
-              <p class="text-theme-primary">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
+                Especialidad
+              </label>
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ getSpecialtyText(professional?.specialty) }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Rol</label>
-              <p class="text-theme-primary">
+              <label class="block text-sm font-medium text-[color:var(--color-text-primary)] mb-1">
+                Rol
+              </label>
+              <p class="text-[color:var(--color-text-primary)]">
                 {{ getRoleText(professional?.role) }}
               </p>
             </div>
@@ -135,7 +147,9 @@ viewBox="0 0 24 24">
       <!-- Historial de Auditoría -->
       <div v-if="activeTab === 'audit'" class="space-y-6">
         <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
+          <h3 class="text-lg font-semibold text-[color:var(--color-text-primary)] mb-4">
+            Historial de Auditoría
+          </h3>
           <div v-if="auditLogsLoading" class="p-8 text-center">
             <div
               class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
@@ -160,7 +174,7 @@ viewBox="0 0 24 24">
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
+            <h3 class="text-lg font-semibold text-[color:var(--color-text-primary)] mb-2">
               No hay historial de auditoría
             </h3>
             <p class="text-theme-secondary">Este profesional no tiene registros de auditoría.</p>
@@ -169,7 +183,7 @@ viewBox="0 0 24 24">
             <div
               v-for="log in auditLogs"
               :key="log.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+              class="border border-[color:var(--color-border)] rounded-lg p-4 hover:bg-theme-surface transition-colors"
             >
               <div class="flex justify-between items-start">
                 <div class="flex-1">
@@ -185,7 +199,9 @@ viewBox="0 0 24 24">
                     {{ formatDate(log.created_at) }}
                   </p>
                   <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
-                    <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
+                    <p class="font-medium text-[color:var(--color-text-primary)] mb-1">
+                      Cambios realizados:
+                    </p>
                     <div
                       v-if="
                         getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
@@ -195,9 +211,11 @@ viewBox="0 0 24 24">
                       <div
                         v-for="(change, field) in getChangesSummary(log)"
                         :key="field"
-                        class="pl-2 border-l-2 border-theme"
+                        class="pl-2 border-l-2 border-[color:var(--color-border)]"
                       >
-                        <p class="font-medium text-theme-primary">{{ change.field }}:</p>
+                        <p class="font-medium text-[color:var(--color-text-primary)]">
+                          {{ change.field }}:
+                        </p>
                         <p class="text-xs">
                           De:
                           <span class="text-red-500">{{ change.old }}</span>
@@ -244,6 +262,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
+import { SPECIALTY_LABELS } from './professionals.constants'
 
 export default {
   name: 'ProfessionalDetailPage',
@@ -321,17 +340,7 @@ export default {
     }
 
     const getSpecialtyText = specialty => {
-      const specialties = {
-        general: 'Odontología General',
-        orthodontics: 'Ortodoncia',
-        endodontics: 'Endodoncia',
-        periodontics: 'Periodoncia',
-        oral_surgery: 'Cirugía Oral',
-        pediatric: 'Odontopediatría',
-        prosthodontics: 'Prótesis Dental',
-        cosmetic: 'Odontología Estética'
-      }
-      return specialties[specialty] || specialty || 'No especificada'
+      return SPECIALTY_LABELS[specialty] || specialty || 'No especificada'
     }
 
     const getRoleText = role => {
