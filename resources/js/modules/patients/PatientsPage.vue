@@ -49,12 +49,35 @@
             </template>
           </UiInput>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
+          <UiSelect
+            v-if="branchOptions.length > 0"
+            v-model="branchFilter"
+            :options="branchOptions"
+            placeholder="Todas las sucursales"
+            size="sm"
+            class="min-w-[160px]"
+            @update:model-value="loadPatients(1)"
+          />
           <UiSelect
             v-model="statusFilter"
             :options="statusFilterOptions"
             size="sm"
             class="min-w-[140px]"
+            @update:model-value="loadPatients(1)"
+          />
+          <UiSelect
+            v-model="sortFilter"
+            :options="sortFilterOptions"
+            size="sm"
+            class="min-w-[170px]"
+            @update:model-value="loadPatients(1)"
+          />
+          <UiSelect
+            v-model="perPageFilter"
+            :options="perPageOptions"
+            size="sm"
+            class="min-w-[120px]"
             @update:model-value="loadPatients(1)"
           />
           <UiButton
@@ -646,6 +669,26 @@ export default {
     })
     const searchQuery = ref('')
     const statusFilter = ref('')
+    const statusFilterOptions = [
+      { value: '', label: 'Todos' },
+      { value: 'active', label: 'Activos' },
+      { value: 'inactive', label: 'Inactivos' }
+    ]
+    const branchFilter = ref('')
+    const branchOptions = ref([])
+    const sortFilter = ref('last_name-asc')
+    const sortFilterOptions = [
+      { value: 'last_name-asc', label: 'Apellidos A-Z' },
+      { value: 'last_name-desc', label: 'Apellidos Z-A' },
+      { value: 'first_name-asc', label: 'Nombre A-Z' },
+      { value: 'created_at-desc', label: 'Más recientes' }
+    ]
+    const perPageFilter = ref(15)
+    const perPageOptions = [
+      { value: 15, label: '15 por página' },
+      { value: 30, label: '30 por página' },
+      { value: 50, label: '50 por página' }
+    ]
     const showNewPatientModal = ref(false)
     const showEditPatientModal = ref(false)
     const editingPatientId = ref(null)
@@ -745,6 +788,16 @@ export default {
           params.append('search', searchQuery.value)
         }
 
+        params.append('per_page', perPageFilter.value.toString())
+
+        if (branchFilter.value) {
+          params.append('branch_id', branchFilter.value)
+        }
+
+        const [sort, direction] = sortFilter.value.split('-')
+        params.append('sort', sort)
+        params.append('direction', direction)
+
         const response = await get(`/api/patients?${params.toString()}`)
         patients.value = response?.data || []
         filteredPatients.value = response?.data || []
@@ -785,9 +838,16 @@ export default {
       }
     }
 
+    let searchDebounceTimer = null
+
     const searchPatients = () => {
-      // Recargar desde el servidor con los nuevos filtros
-      loadPatients(1)
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer)
+      }
+      searchDebounceTimer = setTimeout(() => {
+        searchDebounceTimer = null
+        loadPatients(1)
+      }, 300)
     }
 
     const filterPatients = () => {
@@ -799,12 +859,27 @@ export default {
     const resetFilters = () => {
       searchQuery.value = ''
       statusFilter.value = ''
+      branchFilter.value = ''
+      perPageFilter.value = 15
+      sortFilter.value = 'last_name-asc'
       // Recargar desde el servidor sin filtros
       loadPatients(1)
     }
 
     const handlePageChange = (page) => {
       loadPatients(page)
+    }
+
+    const loadBranches = async () => {
+      try {
+        const response = await get('/api/branches/active')
+        branchOptions.value = (response?.data || []).map(branch => ({
+          value: String(branch.id),
+          label: branch.name
+        }))
+      } catch (error) {
+        branchOptions.value = []
+      }
     }
 
     const createPatient = async () => {
@@ -1052,6 +1127,7 @@ export default {
 
     onMounted(() => {
       loadPatients()
+      loadBranches()
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real
       try {
@@ -1137,6 +1213,10 @@ export default {
     })
 
     onUnmounted(() => {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer)
+      }
+
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
@@ -1156,6 +1236,13 @@ export default {
       filteredPatients,
       searchQuery,
       statusFilter,
+      statusFilterOptions,
+      branchFilter,
+      branchOptions,
+      sortFilter,
+      sortFilterOptions,
+      perPageFilter,
+      perPageOptions,
       showNewPatientModal,
       showEditPatientModal,
       newPatient,
