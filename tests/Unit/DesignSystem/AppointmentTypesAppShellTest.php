@@ -21,14 +21,30 @@ namespace Tests\Unit\DesignSystem;
  * plus 3 PR-tipos-02 rule assertions (UiTabs + no gradient [CRITICAL] +
  * system ramps for audit diff).
  *
- * Per CITAS-CON-001, the `<script>` blocks of both files are preserved
- * byte-for-byte except for the additive `formatCurrency` import (mandated
- * by PR-pagos-05 / CITAS-AT-001) and the `tabs` array literal `name` →
- * `label` rename (mandated by PR-tipos-02 / `Tabs.vue:78` validator).
- * The reactivity (`useApi` ownership of the 401 redirect path,
- * `useToast`, `useConfirm`, `useAuditLogs`, the `loadTypes` /
- * `loadAppointmentType` / `createType` / `updateType` / `deleteType`
- * flows, the `useRouter` `goBack` handler) stays untouched.
+ * Script-block history: per CITAS-CON-001 the `<script>` blocks were
+ * originally preserved byte-for-byte except for the additive
+ * `formatCurrency` import (PR-pagos-05 / CITAS-AT-001) and the `tabs`
+ * array literal `name` → `label` rename (PR-tipos-02 / `Tabs.vue:78`
+ * validator). That byte-for-byte claim is superseded: the 2026-10-10
+ * interface redesign (commits bacec66 / 6ed3e4f) deliberately rewrote
+ * the scripts — the list page dropped the `viewType` / `viewingType`
+ * view modal and its flows (Ver Detalle navigates to the detail page),
+ * added client-side `filteredTypes` filtering, the `openEditFromQuery`
+ * `?edit=<id>` deep-link handler and the inline `loadError` / retry
+ * surface, and routed `deleteType` through `useConfirm`; the detail page
+ * added the `loading` / `loadError` refs with skeleton + retry and the
+ * `goEdit` deep link into the shared edit modal.
+ *
+ * Script edits dated after 2026-10-10 are deliberate redesign decisions,
+ * covered by the vitest smoke contract
+ * (`tests/js/smoke/appointment-types.test.js` +
+ * `tests/js/smoke/appointment-types-detail.test.js`). What this file
+ * still pins is the behavior contract by literal: `useApi` ownership of
+ * the 401 redirect path, `useToast` / `useConfirm`, `useFormatters` /
+ * `formatCurrency` for money, the `createType` / `updateType` /
+ * `deleteType` flows, the `loadTypes` / `loadAppointmentType` loaders,
+ * the `useRouter` `goBack` handler, and the `tabs` array literal `label`
+ * shape.
  *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
@@ -376,8 +392,9 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
 
     /**
      * CITAS-CON-001 — the list page's `useApi` import (the 401 redirect
-     * owner per UXF-021) MUST be preserved. The migration is template-only
-     * for the script block; the `useApi` binding stays byte-for-byte.
+     * owner per UXF-021) MUST be preserved. The 2026-10-10 redesign
+     * rewrote the script on purpose, but the `useApi` binding survives
+     * every edit: the page MUST NOT bypass it.
      */
     public function test_list_page_use_api_ownership_preserved(): void
     {

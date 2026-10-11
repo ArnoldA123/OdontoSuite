@@ -34,12 +34,25 @@ namespace Tests\Unit\DesignSystem;
  *                   `<UiEmptyState>` import at line 427 was unused before
  *                   this PR; it MUST now be consumed.
  *
- * Constraint: the `<script>` block MUST remain byte-for-byte unchanged
- * (no `useApi` / `useToast` / `useConfirm` / `useErrorHandler` /
- * `useFormatters` import edits, no reactivity edits). The `<script>` block
- * is not asserted here directly because the inherited
- * `AppointmentTypesAppShellTest::test_list_page_use_api_ownership_preserved`
- * already pins the script boundary.
+ * Constraint (superseded): PR-tipos-01 required the `<script>` block to
+ * remain byte-for-byte unchanged. That claim ended with the 2026-10-10
+ * interface redesign (commits bacec66 / 6ed3e4f), which deliberately
+ * rewrote the list page's script: the `viewType` / `viewingType` view
+ * modal and its flows were removed (Ver Detalle navigates to the detail
+ * page), client-side `filteredTypes` filtering replaced the per-filter
+ * loads, `openEditFromQuery` handles the `?edit=<id>` deep link, an
+ * inline `loadError` / retry surface replaced the silent failure path,
+ * and `deleteType` now routes through `useConfirm`. Script edits dated
+ * after 2026-10-10 are deliberate redesign decisions covered by the
+ * vitest smoke contract (`tests/js/smoke/appointment-types.test.js`).
+ *
+ * The behavior contracts that survive every script edit and remain
+ * pinned by literal elsewhere: `useApi` ownership of the 401 redirect
+ * path, `useToast` / `useConfirm`, `useFormatters` / `formatCurrency`,
+ * the `createType` / `updateType` / `deleteType` flows, `loadTypes`, and
+ * the `useRouter` `goBack` handler
+ * (`AppointmentTypesAppShellTest::test_list_page_use_api_ownership_preserved`
+ * pins the script boundary).
  *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the
  * file path contains forward slashes; using `/` as delimiter would force
