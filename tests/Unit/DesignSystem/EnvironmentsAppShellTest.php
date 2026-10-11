@@ -223,17 +223,28 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-005 — the three action buttons (Ver Detalle / Editar / Eliminar)
-     * MUST consume `<UiButton variant="link">` (Ver / Editar) and
-     * `<UiButton variant="ghost">` (Eliminar) instead of `<UiButton
-     * variant="ghost">` with legacy `text-accent hover:text-accent-hover` /
-     * `text-accent hover:text-primary-800` / `text-red-600 hover:text-red-900`
-     * raw Tailwind classes.
+     * AMB-01-005 (re-anchored by T3/D-modal-link) — the three row action
+     * buttons (Ver detalle / Editar / Eliminar) MUST consume the shared
+     * `<UiButton>` text-button rung, with the legacy raw Tailwind classes
+     * absent.
      *
-     * POSITIVE rule: at least 2 `variant="link"` references + at least 1
-     * `variant="ghost"` reference + at least 1 `text-systemRed-700` reference.
+     * D-modal-link rationale: the original contract pinned
+     * `<UiButton variant="link">` for Ver Detalle + Editar, but
+     * `components/ui/Button.vue` has no `link` variant in its prop validator
+     * (legal variants: primary, secondary, ghost, danger, success, warning,
+     * icon). Passing `variant="link"` fires a Vue prop warning and silently
+     * falls back to `primary`, so the row actions rendered as solid primary
+     * buttons instead of text buttons. `ghost` is the real text-button rung
+     * of the shared primitive (transparent background, no border), so the
+     * rule is re-anchored to `variant="ghost"` for all three actions and
+     * `variant="link"` becomes forbidden outright. `components/ui/*` is out
+     * of T3 scope, so the call site adapts to the primitive's real contract.
      *
-     * NEGATIVE rule: zero `text-accent` + zero `hover:text-accent-hover` +
+     * POSITIVE rule: at least 3 `variant="ghost"` references (Ver detalle +
+     * Editar + Eliminar) + at least 1 `text-systemRed-700` reference.
+     *
+     * NEGATIVE rule: zero `variant="link"` references (illegal variant) +
+     * zero `text-accent` + zero `hover:text-accent-hover` +
      * zero `text-red-600` + zero `hover:text-red-900` matches.
      */
     public function test_action_buttons_use_ui_button_variants(): void
@@ -242,29 +253,35 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥2 `variant="link"` references (Ver Detalle + Editar).
-        $linkCount = preg_match_all('#variant=["\']link["\']#', $src);
+        // POSITIVE: ≥3 `variant="ghost"` references (Ver detalle + Editar +
+        // Eliminar): `ghost` is the text-button rung of `components/ui/Button.vue`.
+        $ghostCount = preg_match_all('#variant=["\']ghost["\']#', $src);
         $this->assertGreaterThanOrEqual(
-            2,
-            $linkCount,
+            3,
+            $ghostCount,
             sprintf(
-                '%s MUST consume `<UiButton variant="link">` for Ver Detalle + Editar '
-                . '(AMB-01-005). Found %d `variant="link"` reference(s); expected at least 2.',
+                '%s MUST consume `<UiButton variant="ghost">` for Ver detalle + Editar + Eliminar '
+                . '(AMB-01-005 / D-modal-link). Found %d `variant="ghost"` reference(s); '
+                . 'expected at least 3.',
                 $path,
-                $linkCount
+                $ghostCount
             )
         );
 
-        // POSITIVE: ≥1 `variant="ghost"` reference on Eliminar.
-        $ghostCount = preg_match_all('#variant=["\']ghost["\']#', $src);
-        $this->assertGreaterThanOrEqual(
-            1,
-            $ghostCount,
+        // NEGATIVE: zero `variant="link"` references (D-modal-link). The
+        // shared primitive has no `link` variant: the prop warns and falls
+        // back to `primary`, so the row actions must never use it again.
+        $linkCount = preg_match_all('#variant=["\']link["\']#', $src);
+        $this->assertSame(
+            0,
+            $linkCount,
             sprintf(
-                '%s MUST consume `<UiButton variant="ghost">` for Eliminar '
-                . '(AMB-01-005). Found %d `variant="ghost"` reference(s); expected at least 1.',
+                '%s MUST NOT consume `<UiButton variant="link">` (AMB-01-005 / D-modal-link). '
+                . '`components/ui/Button.vue` has no `link` variant; the prop falls back to '
+                . '`primary`. Use `variant="ghost"` (the text-button rung). '
+                . 'Found %d `variant="link"` reference(s).',
                 $path,
-                $ghostCount
+                $linkCount
             )
         );
 

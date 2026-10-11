@@ -19,7 +19,7 @@
           <template #icon-left>
             <PlusIcon class="w-4 h-4" aria-hidden="true" />
           </template>
-          Nuevo Ambiente
+          Nuevo ambiente
         </UiButton>
       </template>
     </PageHeader>
@@ -86,7 +86,7 @@
             <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
               Limpiar filtros
             </UiButton>
-            <UiButton v-else @click="showNewEnvironmentModal = true">Nuevo Ambiente</UiButton>
+            <UiButton v-else @click="showNewEnvironmentModal = true">Nuevo ambiente</UiButton>
           </template>
         </UiEmptyState>
       </div>
@@ -123,13 +123,13 @@
           />
         </template>
         <template #actions="{ row }">
-          <UiButton variant="link" size="sm" @click="viewDetail(row)">
+          <UiButton variant="ghost" size="sm" @click="viewDetail(row)">
             <template #icon-left>
               <EyeIcon class="w-4 h-4" aria-hidden="true" />
             </template>
-            Ver Detalle
+            Ver detalle
           </UiButton>
-          <UiButton variant="link" size="sm" @click="editEnvironment(row)">
+          <UiButton variant="ghost" size="sm" @click="editEnvironment(row)">
             <template #icon-left>
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </template>
@@ -151,114 +151,177 @@
     </UiCard>
   </AppLayout>
 
-  <!-- New Environment Modal (PR-ambientes-02 / AMB-02-007) — 4 raw form fields
-       migrated to <UiInput> / <UiTextarea> / <UiSelect> primitives. `v-model=`
-       bindings + `required` attributes preserved byte-for-byte. -->
-  <UiModal v-model="showNewEnvironmentModal" title="Nuevo Ambiente" size="md">
-    <form id="form-new-env" class="space-y-4" @submit.prevent="createEnvironment">
-      <UiInput
-        v-model="newEnvironment.name"
-        label="Nombre del Ambiente"
-        required
-      />
-      <UiTextarea
-        v-model="newEnvironment.description"
-        label="Descripción"
-        :rows="3"
-      />
-      <UiTextarea
-        v-model="newEnvironment.equipment"
-        label="Equipamiento"
-        :rows="2"
-      />
-      <UiSelect
-        v-model="newEnvironment.status"
-        :options="statusOptions"
-        label="Estado"
-        required
-      />
-    </form>
-    <template #footer>
-      <UiButton variant="secondary" :disabled="creating" @click="showNewEnvironmentModal = false">
-        Cancelar
-      </UiButton>
-      <UiButton type="submit" :loading="creating" @click="createEnvironment">Crear</UiButton>
-    </template>
-  </UiModal>
-
-  <!-- Edit Environment Modal (PR-ambientes-02 / AMB-02-007) — 4 raw form fields
-       migrated to <UiInput> / <UiTextarea> / <UiSelect> primitives. `v-model=`
-       bindings + `required` attributes preserved byte-for-byte. -->
-  <UiModal v-model="showEditEnvironmentModal" title="Editar Ambiente" size="md">
-    <form
-      v-if="editingEnvironment"
-      id="form-edit-env"
-      class="space-y-4"
-      @submit.prevent="updateEnvironment"
-    >
-      <UiInput
-        v-model="editingEnvironment.name"
-        label="Nombre"
-        required
-      />
-      <UiInput
-        v-model="editingEnvironment.code"
-        label="Código"
-        required
-      />
-      <UiTextarea
-        v-model="editingEnvironment.description"
-        label="Descripción"
-        :rows="3"
-      />
-      <UiSelect
-        v-model="editingEnvironment.status"
-        :options="statusOptions"
-        label="Estado"
-        required
-      />
-    </form>
-    <template #footer>
-      <UiButton variant="secondary" :disabled="updating" @click="showEditEnvironmentModal = false">
-        Cancelar
-      </UiButton>
-      <UiButton type="submit" :loading="updating" @click="updateEnvironment">Actualizar</UiButton>
-    </template>
-  </UiModal>
-
-  <!-- View Environment Modal -->
-  <UiModal v-model="showViewEnvironmentModal" title="Ver Ambiente" size="md">
-    <div v-if="viewingEnvironment" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Nombre</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          {{ viewingEnvironment.name }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Código</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          {{ viewingEnvironment.code }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Descripción</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          {{ viewingEnvironment.description || 'Sin descripción' }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-theme-primary">Estado</label>
-        <p class="mt-1 text-sm text-theme-primary">
-          <UiStatusBadge
-            :variant="getStatusVariant(viewingEnvironment.status)"
-            :label="getStatusText(viewingEnvironment.status)"
+  <!-- New environment modal (T3): grouped form (identification / description /
+       equipment / status) with the saving state exposed on the primary action
+       and the form locked while the request runs. The container is a <div>,
+       not a <form>: UiSelect's internal buttons lack `type="button"` and would
+       trigger implicit submission on every option click. The v-model bindings
+       and required semantics pinned by EnvironmentsModalChromeTest (AMB-02-007)
+       are preserved verbatim. -->
+  <UiModal v-model="showNewEnvironmentModal" title="Nuevo ambiente" size="md">
+    <div class="space-y-6" data-environment-form="create">
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Identificación
+        </legend>
+        <div data-field="name">
+          <UiInput
+            v-model="newEnvironment.name"
+            label="Nombre del ambiente"
+            class="w-full"
+            required
+            :disabled="creating"
           />
-        </p>
-      </div>
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Descripción
+        </legend>
+        <div data-field="description">
+          <UiTextarea
+            v-model="newEnvironment.description"
+            :rows="3"
+            aria-label="Descripción"
+            :disabled="creating"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Equipamiento
+        </legend>
+        <div data-field="equipment">
+          <UiTextarea
+            v-model="newEnvironment.equipment"
+            :rows="2"
+            aria-label="Equipamiento"
+            :disabled="creating"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Estado
+        </legend>
+        <div class="flex items-center gap-3" data-field="status">
+          <UiSelect
+            v-model="newEnvironment.status"
+            :options="statusFieldOptions"
+            label="Estado"
+            class="flex-1"
+            required
+            :disabled="creating"
+          />
+          <UiStatusBadge
+            :variant="getStatusVariant(newEnvironment.status)"
+            :label="getStatusText(newEnvironment.status)"
+          />
+        </div>
+      </fieldset>
     </div>
     <template #footer>
-      <UiButton variant="secondary" @click="showViewEnvironmentModal = false">Cerrar</UiButton>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="creating"
+        data-modal-cancel="create"
+        @click="showNewEnvironmentModal = false"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton
+        type="button"
+        :loading="creating"
+        data-modal-submit="create"
+        @click="createEnvironment"
+      >
+        Crear ambiente
+      </UiButton>
+    </template>
+  </UiModal>
+
+  <!-- Edit environment modal (T3): identification (name + code), description,
+       status. The prefill bindings are the ones pinned by
+       EnvironmentsModalChromeTest (AMB-02-007). -->
+  <UiModal v-model="showEditEnvironmentModal" title="Editar ambiente" size="md">
+    <div v-if="editingEnvironment" class="space-y-6" data-environment-form="edit">
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Identificación
+        </legend>
+        <div class="space-y-4">
+          <div data-field="name">
+            <UiInput
+              v-model="editingEnvironment.name"
+              label="Nombre del ambiente"
+              class="w-full"
+              required
+              :disabled="updating"
+            />
+          </div>
+          <div data-field="code">
+            <UiInput
+              v-model="editingEnvironment.code"
+              label="Código"
+              class="w-full"
+              required
+              :disabled="updating"
+            />
+          </div>
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Descripción
+        </legend>
+        <div data-field="description">
+          <UiTextarea
+            v-model="editingEnvironment.description"
+            :rows="3"
+            aria-label="Descripción"
+            :disabled="updating"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Estado
+        </legend>
+        <div class="flex items-center gap-3" data-field="status">
+          <UiSelect
+            v-model="editingEnvironment.status"
+            :options="statusFieldOptions"
+            label="Estado"
+            class="flex-1"
+            required
+            :disabled="updating"
+          />
+          <UiStatusBadge
+            :variant="getStatusVariant(editingEnvironment.status)"
+            :label="getStatusText(editingEnvironment.status)"
+          />
+        </div>
+      </fieldset>
+    </div>
+    <template #footer>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="updating"
+        data-modal-cancel="edit"
+        @click="showEditEnvironmentModal = false"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton
+        type="button"
+        :loading="updating"
+        data-modal-submit="edit"
+        @click="updateEnvironment"
+      >
+        Actualizar ambiente
+      </UiButton>
     </template>
   </UiModal>
 </template>
@@ -308,9 +371,7 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const showNewEnvironmentModal = ref(false)
 const showEditEnvironmentModal = ref(false)
-const showViewEnvironmentModal = ref(false)
 const editingEnvironment = ref(null)
-const viewingEnvironment = ref(null)
 
 const newEnvironment = ref({
   name: '',
@@ -319,7 +380,7 @@ const newEnvironment = ref({
   status: 'active'
 })
 
-// PR-ambientes-01 (AMB-01-002) — status filter options consumed by
+// PR-ambientes-01 (AMB-01-002) status filter options consumed by
 // `<UiSelect :options="statusOptions" v-model="statusFilter" />`.
 // Values match the legacy `<option value="...">` attributes byte-for-byte.
 const statusOptions = [
@@ -328,6 +389,14 @@ const statusOptions = [
   { value: 'inactive', label: 'Inactivos' },
   { value: 'maintenance', label: 'Mantenimiento' }
 ]
+
+// Form-state options for the create/edit modals: only the operational
+// statuses (the filter's "Todos los estados" entry is not a valid form value).
+// Labels come from the shared vocabulary (T3, read-only consumption).
+const statusFieldOptions = ['active', 'inactive', 'maintenance'].map(value => ({
+  value,
+  label: getStatusText(value)
+}))
 
 const columns = [
   { key: 'code', label: 'Código' },
@@ -445,13 +514,6 @@ const createEnvironment = async () => {
 const editEnvironment = environment => {
   editingEnvironment.value = { ...environment }
   showEditEnvironmentModal.value = true
-}
-
-// Kept unreachable on purpose: T3 removes the View modal template and this handler together.
-// eslint-disable-next-line no-unused-vars
-const viewEnvironment = environment => {
-  viewingEnvironment.value = environment
-  showViewEnvironmentModal.value = true
 }
 
 const viewDetail = environment => {
