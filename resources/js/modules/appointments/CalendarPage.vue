@@ -510,6 +510,24 @@ import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
+import { useConfirm } from '../../composables/useConfirm'
+import {
+  APPOINTMENT_CHIP_BASE_CLASSES,
+  statusLabel,
+  statusBadgeProps,
+  statusChipClasses,
+  statusToneClasses
+} from './appointmentStatus'
+import {
+  WEEK_DAY_NAMES,
+  buildHours,
+  toLocalDateString,
+  weekDays as buildWeekDays,
+  monthDays as buildMonthDays,
+  periodTitle,
+  dateRangeForView,
+  addPeriod
+} from './calendarDateMath'
 
 export default {
   name: 'CalendarPage',
@@ -527,6 +545,7 @@ export default {
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
+    const { confirm } = useConfirm()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
@@ -564,14 +583,6 @@ export default {
     }
     const editingAppointment = ref(null)
 
-    const toLocalDateString = date => {
-      const d = date instanceof Date ? date : new Date(date)
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
     const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
       const d = new Date(appointment.scheduled_at)
@@ -603,89 +614,27 @@ export default {
       await loadAppointments()
     }
 
-    const dayHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const dayHours = buildHours()
 
-    const weekHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const weekHours = buildHours()
 
-    const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const weekDayNames = WEEK_DAY_NAMES
 
     const currentPeriodTitle = computed(() => {
-      const date = currentDate.value
-      switch (currentView.value) {
-        case 'day':
-          return date.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        case 'week': {
-          const startOfWeek = new Date(date)
-          startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-          const endOfWeek = new Date(startOfWeek)
-          endOfWeek.setDate(startOfWeek.getDate() + 6)
-          return `${startOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
-        }
-        case 'month':
-          return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
-        default:
-          return ''
-      }
+      return periodTitle(currentDate.value, currentView.value)
     })
 
     const weekDays = computed(() => {
-      const date = currentDate.value
-      const startOfWeek = new Date(date)
-      startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-
-      const days = []
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(startOfWeek)
-        day.setDate(startOfWeek.getDate() + i)
-        days.push({
-          date: toLocalDateString(day),
-          name: weekDayNames[i],
-          number: day.getDate()
-        })
-      }
-      return days
+      return buildWeekDays(currentDate.value)
     })
 
     const monthDays = computed(() => {
-      const date = currentDate.value
-      const year = date.getFullYear()
-      const month = date.getMonth()
-
-      const firstDay = new Date(year, month, 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-
-      const days = []
       const now = new Date()
-      const currentDateStr = toLocalDateString(now)
-
-      for (let i = 0; i < 42; i++) {
-        const day = new Date(startDate)
-        day.setDate(startDate.getDate() + i)
-        const dayStr = toLocalDateString(day)
-        const isToday = dayStr === currentDateStr
-
+      return buildMonthDays(currentDate.value, now).map(cell => {
         const allDayAppointments = appointments.value.filter(apt => {
           const aptInfo = getAppointmentLocalDate(apt)
           if (!aptInfo) return false
-          return aptInfo.dateStr === dayStr
+          return aptInfo.dateStr === cell.date
         })
 
         const sortedDayAppointments = allDayAppointments.sort((a, b) => {
@@ -696,48 +645,17 @@ export default {
           }
         })
 
-        days.push({
-          date: dayStr,
-          number: day.getDate(),
-          isCurrentMonth: day.getMonth() === month,
-          isToday,
+        return {
+          ...cell,
           appointments: sortedDayAppointments.slice(0, 3),
           appointmentCount: allDayAppointments.length,
           hasMore: allDayAppointments.length > 3
-        })
-      }
-      return days
+        }
+      })
     })
 
     const getDateRangeForCurrentView = () => {
-      const date = currentDate.value
-      if (currentView.value === 'day') {
-        const start = new Date(date)
-        const end = new Date(date)
-        return {
-          start_date: toLocalDateString(start),
-          end_date: toLocalDateString(end)
-        }
-      }
-      if (currentView.value === 'week') {
-        const startOfWeek = new Date(date)
-        startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-        const endOfWeek = new Date(startOfWeek)
-        endOfWeek.setDate(startOfWeek.getDate() + 6)
-        return {
-          start_date: toLocalDateString(startOfWeek),
-          end_date: toLocalDateString(endOfWeek)
-        }
-      }
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-      const lastDay = new Date(startDate)
-      lastDay.setDate(startDate.getDate() + 41)
-      return {
-        start_date: toLocalDateString(startDate),
-        end_date: toLocalDateString(lastDay)
-      }
+      return dateRangeForView(currentDate.value, currentView.value)
     }
 
     const loadAppointments = async () => {
@@ -788,36 +706,12 @@ export default {
     }
 
     const previousPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() - 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() - 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() - 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, -1)
       loadAppointments()
     }
 
     const nextPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() + 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() + 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() + 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, 1)
       loadAppointments()
     }
 
@@ -861,56 +755,19 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      const baseClasses = 'bg-theme-surface-elevated border border-hairline'
-      const statusClasses = {
-        scheduled: 'border-systemBlue-200 bg-systemBlue-50',
-        confirmed: 'border-systemGreen-200 bg-systemGreen-50',
-        in_consultation: 'border-systemYellow-200 bg-systemYellow-50',
-        completed: 'border-hairline bg-theme-surface',
-        cancelled: 'border-systemRed-200 bg-systemRed-50',
-        no_show: 'border-systemYellow-200 bg-systemYellow-50',
-        rescheduled: 'border-systemBlue-200 bg-systemBlue-50'
-      }
-      return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)}`
     }
 
     const getStatusClasses = status => {
-      const classes = {
-        scheduled: 'bg-systemBlue-50 text-systemBlue-700',
-        confirmed: 'bg-systemGreen-50 text-systemGreen-700',
-        in_consultation: 'bg-systemYellow-50 text-systemYellow-700',
-        completed: 'bg-systemGray-100 text-systemGray-700',
-        cancelled: 'bg-systemRed-50 text-systemRed-700',
-        no_show: 'bg-systemYellow-50 text-systemYellow-700',
-        rescheduled: 'bg-systemBlue-50 text-systemBlue-700'
-      }
-      return classes[status] || classes.scheduled
+      return statusToneClasses(status)
     }
 
     const getStatusText = status => {
-      const texts = {
-        scheduled: 'Programada',
-        confirmed: 'Confirmada',
-        in_consultation: 'En Consulta',
-        completed: 'Completada',
-        cancelled: 'Cancelada',
-        no_show: 'No se presentó',
-        rescheduled: 'Reprogramada'
-      }
-      return texts[status] || status
+      return statusLabel(status)
     }
 
     const getStatusBadgeProps = status => {
-      const props = {
-        scheduled: { variant: 'info', showDot: true },
-        confirmed: { variant: 'success', showDot: true },
-        in_consultation: { variant: 'warning', showDot: true },
-        completed: { variant: 'neutral', showDot: true },
-        cancelled: { variant: 'error', showDot: true },
-        no_show: { variant: 'neutral', showDot: true },
-        rescheduled: { variant: 'warning', showDot: false }
-      }
-      return props[status] || props.scheduled
+      return statusBadgeProps(status)
     }
 
     const selectAppointment = appointment => {
