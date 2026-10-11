@@ -493,8 +493,10 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      * `border-accent text-accent` / `border-transparent text-theme-secondary
      * hover:text-theme-primary hover:border-theme` active/inactive styles)
      * MUST migrate to `<UiTabs v-model="activeTab" :tabs="tabs">`. The
-     * 2 tab labels (`Datos` / `Historial de auditoría`) MUST keep their
-     * labels byte-for-byte.
+     * tab labels ride the `tabs` bindings and follow the T4/D7 contract:
+     * `Información` / `Auditoría` (T4 re-labelled them from the legacy
+     * `Datos` / `Historial`; the assertions pin the primitive + the legacy
+     * indicator absence, never the display strings).
      *
      * POSITIVE rule: ≥1 `<UiTabs` reference present in the detail page.
      *
@@ -587,6 +589,53 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
+     * AMB-02-004 (companion, added by T4) — the summary/avatar icon MUST sit
+     * on the tint's foreground (`text-systemBlue-700`), NOT `text-white`.
+     *
+     * Re-anchor justification: AMB-02-004 pinned the avatar tint
+     * (`bg-systemBlue-50`) but left the icon foreground unpinned, and the
+     * page shipped `text-white` on the light tint: an invisible icon
+     * (contrast defect found by the T4 audit). The fixed contract re-anchors
+     * the foreground to the T2 list-tile pairing (`bg-systemBlue-50` +
+     * `text-systemBlue-700`). No assertion is loosened: this is an additive
+     * pin on the previously unguarded foreground.
+     *
+     * POSITIVE rule: `text-systemBlue-700` reference present in the detail page.
+     *
+     * NEGATIVE rule: zero `text-white` matches anywhere in the file.
+     */
+    public function test_summary_avatar_icon_uses_tint_foreground(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: `text-systemBlue-700` present (icon/initial foreground on
+        // the `bg-systemBlue-50` tint).
+        $this->assertTrue(
+            (bool) preg_match('#(?<![\w-])text-systemBlue-700(?![\w-])#', $src),
+            sprintf(
+                '%s MUST consume `text-systemBlue-700` as the foreground on the '
+                . '`bg-systemBlue-50` avatar tint (AMB-02-004 companion / T4). '
+                . 'Replace `text-white`.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `text-white` matches (white on a -50 tint renders an
+        // invisible icon).
+        $this->assertSame(
+            0,
+            preg_match('#(?<![\w-])text-white(?![\w-])#', $src),
+            sprintf(
+                '%s MUST NOT keep `text-white` on light avatar tints (AMB-02-004 '
+                . 'companion / T4). Found a match.',
+                $path
+            )
+        );
+    }
+
+    /**
      * AMB-02-005 — the hand-rolled audit-log empty state (lines 145-167 with
      * `bg-gradient-to-br from-theme-surface to-theme-surface-elevated`
      * icon + custom `<h3>` + `<p>` paragraphs) MUST migrate to
@@ -634,9 +683,17 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-02-006 — the audit log item wrapper on line 172
-     * (`border border-theme rounded-lg p-4 hover:bg-theme-surface
-     * transition-colors`) MUST migrate to `<UiCard variant="glass">`.
+     * AMB-02-006 — the audit log panel MUST consume the canonical
+     * `<UiCard variant="glass">` wrapper (line 172 in the original carried
+     * the hand-rolled `border border-theme rounded-lg p-4 hover:bg-theme-surface
+     * transition-colors` item chrome).
+     *
+     * T4 re-anchor (assertion unchanged): the primitive now wraps the audit
+     * PANEL and the entries inside it are flat rows separated by hairline
+     * dividers (T4 spec: "hairline dividers, flat avatar"), which removes the
+     * panel-in-panel double chrome flagged as a T2 advisory. The positive rule
+     * keeps requiring a `<UiCard variant="glass">` reference in the file and
+     * the negative rule keeps forbidding the legacy wrapper class string.
      *
      * POSITIVE rule: ≥1 `<UiCard\b[^>]*\bvariant=["\']glass["\']` reference.
      *
