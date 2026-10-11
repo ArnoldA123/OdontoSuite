@@ -1,8 +1,10 @@
 // Design decision D3: pure date math for the calendar views, extracted 1:1
-// from CalendarPage.vue. No Vue, no mutation of caller inputs. Week/month
-// grids keep the original convention exactly: a grid or week starts on the
-// Monday given by `date - getDay() + 1`, which for a Sunday reference rolls
-// to the FOLLOWING Monday.
+// from CalendarPage.vue. No Vue, no mutation of caller inputs. Weeks are
+// Monday-first and always CONTAIN the reference date: a Sunday reference ends
+// its own week (D11 fix — it used to roll to the following week and the month
+// grid lost the 1st when it fell on a Sunday). Every helper below shares this
+// single start-of-week computation, so weekDays/monthDays/periodTitle/
+// dateRangeForView stay consistent through their shared source.
 
 export const WEEK_DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
@@ -30,7 +32,7 @@ const addDays = (date, amount) => {
 
 const startOfWeek = date => {
   const start = new Date(date)
-  start.setDate(date.getDate() - date.getDay() + 1)
+  start.setDate(date.getDate() - ((date.getDay() + 6) % 7))
   return start
 }
 

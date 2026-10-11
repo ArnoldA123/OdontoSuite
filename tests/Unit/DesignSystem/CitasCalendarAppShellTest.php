@@ -31,6 +31,15 @@ namespace Tests\Unit\DesignSystem;
  * row were repointed at the new registry contract + `data-calendar-*`
  * hooks (see the per-test docblocks); no rule was dropped.
  *
+ * Contract-change note (T4): the Day/Week view bodies were rebuilt in the
+ * quiet shell grammar. New pinned contracts below: one shared slot-lookup
+ * helper (`appointmentsForSlot`), click-to-create slots as gated
+ * `<button>` hit areas with `data-calendar-slot` hooks + modal prefill,
+ * and `data-calendar-appointment` chips driven only by the registry. The
+ * shared content chrome dropped `UiCard variant="glass"` for the quiet
+ * canvas + hairline + --radius-panel + --elevation-2 surface
+ * (`data-calendar-shell="grid"`).
+ *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
  * every `/` in the path to be escaped `\/`, which is brittle and error-prone.
@@ -498,6 +507,198 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             sprintf(
                 '%s MUST keep `echo.leave(\'appointments\')` in the `onUnmounted` hook (CITAS-RT-001). '
                 . 'Without the leave call, switching routes leaks an Echo subscription.',
+                $path
+            )
+        );
+    }
+
+    /**
+     * T4 grid contract — the Day and Week bodies MUST share ONE slot-lookup
+     * helper. The duplicated `getAppointmentsForHour` /
+     * `getAppointmentsForDayAndHour` pair (identical except for the date
+     * input) is gone by design: both grids call
+     * `appointmentsForSlot(dateStr, hour)`.
+     */
+    public function test_day_week_grids_share_one_slot_lookup_helper(): void
+    {
+        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $this->assertSame(
+            0,
+            preg_match('#getAppointmentsForHour|getAppointmentsForDayAndHour#', $src),
+            sprintf(
+                '%s MUST NOT keep the duplicated `getAppointmentsForHour` / `getAppointmentsForDayAndHour` pair (T4). '
+                . 'Both grids share the single `appointmentsForSlot(dateStr, hour)` helper.',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            1,
+            preg_match_all('#const appointmentsForSlot = #', $src),
+            sprintf('%s MUST define exactly one `appointmentsForSlot` helper (T4).', $path)
+        );
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            preg_match_all('#appointmentsForSlot\(#', $src),
+            sprintf(
+                '%s MUST call `appointmentsForSlot(...)` from both the Day and the Week grid (T4).',
+                $path
+            )
+        );
+    }
+
+    /**
+     * T4 click-to-create contract — every slot hit area is a real `<button>`
+     * (keyboard: Enter/Space) gated by the same `can.createAppointment`
+     * permission as the "Nueva cita" CTA, carrying the
+     * `data-calendar-slot="<date>-<hour>"` hook (plus the
+     * `data-calendar-slot-day` column hook in the Week grid) and wiring
+     * `openSlotCreate`. The prefill reaches `NewAppointmentModal` through the
+     * existing `initialDate` prop (`:initial-date="newAppointmentPrefill"`).
+     */
+    public function test_click_to_create_slot_contract(): void
+    {
+        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // The gate sits ON the button tag that carries the slot hook: when
+        // the user cannot create appointments the hit area does not render.
+        $this->assertSame(
+            2,
+            preg_match_all(
+                '#<button\b[^>]*v-if\s*=\s*"can\.createAppointment\?\.value"[^>]*:data-calendar-slot\s*=#s',
+                $src
+            ),
+            sprintf(
+                '%s Day and Week slot hit areas MUST be real `<button>` elements gated by `can.createAppointment?.value` '
+                . '(T4 click-to-create; Enter/Space come from native button semantics).',
+                $path
+            )
+        );
+
+        // Hook format contract: data-calendar-slot="<date>-<hour>".
+        $this->assertSame(
+            2,
+            preg_match_all('#:data-calendar-slot\s*=\s*"`\$\{[\w.]+\}-\$\{hour\}`"#', $src),
+            sprintf(
+                '%s MUST bind `:data-calendar-slot="`${date}-${hour}`"` in both the Day and the Week grid (T4).',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            1,
+            preg_match_all('#:data-calendar-slot-day\s*=\s*"day\.date"#', $src),
+            sprintf(
+                '%s Week grid MUST expose the `data-calendar-slot-day` day-column hook (T4).',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            2,
+            preg_match_all('#@click\s*=\s*"openSlotCreate\(#', $src),
+            sprintf(
+                '%s slot hit areas MUST open the create flow via `openSlotCreate` in both grids (T4).',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            1,
+            preg_match('#:initial-date\s*=\s*"newAppointmentPrefill"#', $src),
+            sprintf(
+                '%s MUST pass the slot prefill to `NewAppointmentModal` via `:initial-date` (T4; '
+                . 'the modal already owns the `initialDate` prop).',
+                $path
+            )
+        );
+    }
+
+    /**
+     * T4 chip contract — appointment chips carry `data-calendar-appointment`,
+     * open the existing details modal via `selectAppointment`, and derive
+     * their status styling ONLY from the appointmentStatus registry
+     * (`getAppointmentClasses` → `APPOINTMENT_CHIP_BASE_CLASSES` +
+     * `statusChipClasses`). No hardcoded system-color class map on the chips.
+     */
+    public function test_appointment_chips_hooked_and_registry_driven(): void
+    {
+        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $this->assertSame(
+            2,
+            preg_match_all('#:data-calendar-appointment\s*=\s*"appointment\.id"#', $src),
+            sprintf(
+                '%s Day and Week chips MUST carry `:data-calendar-appointment="appointment.id"` (T4).',
+                $path
+            )
+        );
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            preg_match_all('#@click\s*=\s*"selectAppointment\(appointment\)"#', $src),
+            sprintf(
+                '%s chips MUST keep the `selectAppointment(appointment)` wiring to the details modal (T4).',
+                $path
+            )
+        );
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            preg_match_all('#:class\s*=\s*"getAppointmentClasses\(appointment\)"#', $src),
+            sprintf(
+                '%s chips MUST bind `:class="getAppointmentClasses(appointment)"` — status styling comes '
+                . 'from the appointmentStatus registry, never from a template class map (T4).',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            1,
+            preg_match('#statusChipClasses\(appointment\.status\)#', $src),
+            sprintf(
+                '%s `getAppointmentClasses` MUST delegate to `statusChipClasses(appointment.status)` (T4).',
+                $path
+            )
+        );
+    }
+
+    /**
+     * T4 quiet-chrome contract — the shared content surface drops the legacy
+     * `UiCard variant="glass"` chrome (D1: old language) and keeps the quiet
+     * shell grammar pinned by the `data-calendar-shell="grid"` hook (the
+     * canvas / hairline / --radius-panel / --elevation-2 tokens are asserted
+     * file-wide by `test_calendar_shell_hero_landmarks`).
+     */
+    public function test_calendar_content_surface_drops_glass_chrome(): void
+    {
+        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $this->assertSame(
+            0,
+            preg_match('#variant\s*=\s*["\']glass["\']#', $src),
+            sprintf(
+                '%s MUST NOT keep `UiCard variant="glass"` chrome over the calendar grids (T4 / D1). '
+                . 'The content surface uses the quiet canvas + hairline + --radius-panel grammar.',
+                $path
+            )
+        );
+
+        $this->assertSame(
+            1,
+            preg_match('#data-calendar-shell\s*=\s*"grid"#', $src),
+            sprintf(
+                '%s MUST expose `data-calendar-shell="grid"` on the quiet content surface (T4).',
                 $path
             )
         );

@@ -122,22 +122,31 @@
       </div>
     </header>
 
-    <!-- Calendar Content -->
-    <UiCard variant="glass" class="overflow-hidden">
-      <!-- Legend: registry-driven status pills as the card's header strip -->
-      <template #header>
-        <div class="flex flex-wrap items-center gap-2" data-calendar-legend>
-          <UiBadge
-            v-for="status in legendStatuses"
-            :key="status"
-            size="sm"
-            :variant="statusBadgeVariant(status)"
-            :data-status="status"
-          >
-            {{ statusLabel(status) }}
-          </UiBadge>
-        </div>
-      </template>
+    <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
+    <section
+      data-calendar-shell="grid"
+      class="overflow-hidden bg-canvas"
+      style="
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <!-- Legend: registry-driven status pills as the surface's header strip -->
+      <div
+        class="flex flex-wrap items-center gap-2 border-b border-hairline bg-theme-surface px-6 py-4"
+        data-calendar-legend
+      >
+        <UiBadge
+          v-for="status in legendStatuses"
+          :key="status"
+          size="sm"
+          :variant="statusBadgeVariant(status)"
+          :data-status="status"
+        >
+          {{ statusLabel(status) }}
+        </UiBadge>
+      </div>
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center">
         <LoadingSpinner size="lg" text="Cargando agenda..." />
@@ -146,24 +155,59 @@
 
       <!-- Day View -->
       <div v-else-if="currentView === 'day'" class="p-6">
-        <div class="space-y-4">
-          <div v-for="hour in dayHours" :key="hour" class="flex items-start gap-4">
-            <div class="w-16 text-sm text-theme-secondary font-medium pt-2">
+        <div
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <div
+            v-for="hour in dayHours"
+            :key="hour"
+            class="flex items-stretch border-b border-hairline last:border-b-0"
+          >
+            <div
+              class="w-16 shrink-0 border-r border-hairline bg-theme-surface px-3 py-2 text-right text-xs text-theme-secondary"
+              style="font-feature-settings: 'tnum' 1"
+            >
               {{ formatHour(hour) }}
             </div>
-            <div class="flex-1 min-h-[60px] border-l-2 border-hairline pl-4">
-              <div
-                v-for="appointment in getAppointmentsForHour(hour)"
-                :key="appointment.id"
-                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm transition-all duration-200 cursor-pointer"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <div class="font-semibold text-base">
-                      {{ appointment.appointment_type?.name || 'Cita' }}
-                    </div>
+            <div class="relative min-h-[64px] flex-1 px-3 py-2">
+              <button
+                v-if="can.createAppointment?.value"
+                type="button"
+                class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                :data-calendar-slot="`${dayDateString}-${hour}`"
+                :aria-label="`Crear cita el ${dayDateString} a las ${formatHour(hour)}`"
+                @click="openSlotCreate(dayDateString, hour)"
+              ></button>
+              <div class="pointer-events-none relative space-y-2">
+                <button
+                  v-for="appointment in appointmentsForSlot(dayDateString, hour)"
+                  :key="appointment.id"
+                  type="button"
+                  class="pointer-events-auto block w-full px-3 py-2 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :data-calendar-appointment="appointment.id"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span class="flex items-start justify-between gap-3">
+                    <span class="min-w-0">
+                      <span
+                        class="block truncate text-xs text-theme-primary"
+                        style="font-feature-settings: 'tnum' 1"
+                      >
+                        {{ appointmentTimeRange(appointment) }}
+                      </span>
+                      <span class="block truncate text-sm font-semibold text-theme-primary">
+                        {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                      </span>
+                      <span
+                        v-if="appointmentMetaLine(appointment)"
+                        class="block truncate text-xs text-theme-secondary"
+                      >
+                        {{ appointmentMetaLine(appointment) }}
+                      </span>
+                    </span>
                     <UiStatusBadge
                       size="sm"
                       :variant="getStatusBadgeProps(appointment.status).variant"
@@ -171,35 +215,8 @@
                       :show-dot="getStatusBadgeProps(appointment.status).showDot"
                       :data-status="appointment.status"
                     />
-                  </div>
-                  <div class="text-sm text-theme-primary">
-                    <span class="font-medium">{{ formatTime(appointment.scheduled_at) }}</span>
-                    <span v-if="appointment.ends_at" class="text-theme-secondary">
-                      - {{ formatTime(appointment.ends_at) }}
-                    </span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-xs text-theme-secondary">
-                    <div>
-                      <span class="font-medium">Paciente:</span>
-                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                    </div>
-                    <div>
-                      <span class="font-medium">Profesional:</span>
-                      {{ appointment.user?.name }}
-                    </div>
-                    <div v-if="appointment.dental_chair">
-                      <span class="font-medium">Sillón:</span>
-                      {{ appointment.dental_chair?.name }}
-                    </div>
-                    <div v-if="appointment.duration_minutes">
-                      <span class="font-medium">Duración:</span>
-                      {{ appointment.duration_minutes }} min
-                    </div>
-                  </div>
-                  <div v-if="appointment.notes" class="text-xs text-theme-secondary italic">
-                    {{ appointment.notes }}
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -209,65 +226,78 @@
       <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
         <div
-          class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums"
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
         >
-          <!-- Time column header -->
-          <div class="p-2 border-b border-hairline bg-theme-surface" />
-
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="p-2 border-b border-hairline bg-theme-surface text-center"
-          >
-            <div class="text-sm font-medium text-theme-primary">
-              {{ day.name }}
-            </div>
-            <div class="text-xs text-theme-secondary">
-              {{ day.number }}
-            </div>
-          </div>
-
-          <!-- Time column -->
-          <div class="border-r border-hairline">
+          <div class="grid grid-cols-8">
+            <!-- Header row -->
+            <div class="border-b border-r border-hairline bg-theme-surface" />
             <div
-              v-for="hour in weekHours"
-              :key="hour"
-              class="h-16 border-b border-theme-light flex items-start justify-end pr-2 pt-1"
+              v-for="day in weekDays"
+              :key="day.date"
+              class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
             >
-              <span class="text-xs text-theme-secondary font-medium">{{ formatHour(hour) }}</span>
-            </div>
-          </div>
-
-          <!-- Day columns -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="border-r border-hairline last:border-r-0"
-          >
-            <div
-              v-for="hour in weekHours"
-              :key="`${day.date}-${hour}`"
-              class="h-16 border-b border-theme-light relative"
-            >
+              <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
+                {{ day.name }}
+              </div>
               <div
-                v-for="appointment in getAppointmentsForDayAndHour(day.date, hour)"
-                :key="appointment.id"
-                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer transition-all duration-200 z-10"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
+                class="text-sm font-medium text-theme-primary"
+                style="font-feature-settings: 'tnum' 1"
               >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
+                {{ day.number }}
               </div>
             </div>
+
+            <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
+            <template v-for="hour in weekHours" :key="hour">
+              <div
+                class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
+                style="font-feature-settings: 'tnum' 1"
+              >
+                {{ formatHour(hour) }}
+              </div>
+              <div
+                v-for="day in weekDays"
+                :key="`${day.date}-${hour}`"
+                class="relative h-16 border-b border-r border-hairline"
+                :data-calendar-slot-day="day.date"
+              >
+                <button
+                  v-if="can.createAppointment?.value"
+                  type="button"
+                  class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-slot="`${day.date}-${hour}`"
+                  :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                  @click="openSlotCreate(day.date, hour)"
+                ></button>
+                <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
+                  <button
+                    v-for="appointment in appointmentsForSlot(day.date, hour)"
+                    :key="appointment.id"
+                    type="button"
+                    class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                    :class="getAppointmentClasses(appointment)"
+                    style="border-radius: var(--radius-panel)"
+                    :data-calendar-appointment="appointment.id"
+                    @click="selectAppointment(appointment)"
+                  >
+                    <span
+                      class="block truncate text-xs font-semibold text-theme-primary"
+                      style="font-feature-settings: 'tnum' 1"
+                    >
+                      {{ appointmentTimeRange(appointment) }} ·
+                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                    </span>
+                    <span
+                      v-if="appointmentMetaLine(appointment)"
+                      class="block truncate text-xs text-theme-secondary"
+                    >
+                      {{ appointmentMetaLine(appointment) }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -348,7 +378,7 @@
           </div>
         </div>
       </div>
-    </UiCard>
+    </section>
 
     <!-- Appointment Details Modal -->
     <div
@@ -495,6 +525,7 @@ viewBox="0 0 24 24">
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
+      :initial-date="newAppointmentPrefill"
       @created="handleAppointmentSaved"
       @updated="handleAppointmentSaved"
     />
@@ -515,7 +546,6 @@ import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
@@ -554,7 +584,6 @@ export default {
   name: 'CalendarPage',
   components: {
     AppLayout,
-    UiCard,
     UiButton,
     UiBadge,
     UiStatusBadge,
@@ -609,6 +638,7 @@ export default {
       await loadAppointments()
     }
     const editingAppointment = ref(null)
+    const newAppointmentPrefill = ref(null)
 
     const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
@@ -621,11 +651,14 @@ export default {
       }
     }
 
-    const getInitialDateForModal = () => {
+    const getInitialDateForModal = (dateStr = null, hour = null) => {
+      const pad = n => String(n).padStart(2, '0')
+      if (dateStr && Number.isInteger(hour)) {
+        return `${dateStr}T${pad(hour)}:00`
+      }
       if (currentView.value === 'day') {
         const date = new Date(currentDate.value)
         date.setHours(9, 0, 0, 0)
-        const pad = n => String(n).padStart(2, '0')
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
       }
       return null
@@ -633,6 +666,13 @@ export default {
 
     const openNewAppointmentModal = () => {
       editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal()
+      showNewAppointmentModal.value = true
+    }
+
+    const openSlotCreate = (dateStr, hour) => {
+      editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal(dateStr, hour)
       showNewAppointmentModal.value = true
     }
 
@@ -662,6 +702,8 @@ export default {
         ? '1 cita cargada en el rango actual'
         : `${count} citas cargadas en el rango actual`
     })
+
+    const dayDateString = computed(() => toLocalDateString(currentDate.value))
 
     const weekDays = computed(() => {
       return buildWeekDays(currentDate.value)
@@ -733,10 +775,23 @@ export default {
       return `${startStr}-${endStr}`
     }
 
+    const appointmentTimeRange = appointment => {
+      return formatTimeRange(
+        appointment.scheduled_at,
+        appointment.ends_at || appointment.scheduled_at
+      )
+    }
+
+    const appointmentMetaLine = appointment => {
+      const parts = []
+      if (appointment?.user?.name) parts.push(appointment.user.name)
+      if (appointment?.dental_chair?.name) parts.push(`Sillón ${appointment.dental_chair.name}`)
+      return parts.join(' · ')
+    }
+
     const getAppointmentLabel = apt => {
       const type = apt?.appointment_type?.name || 'Cita'
-      const range = formatTimeRange(apt.scheduled_at, apt.ends_at || apt.scheduled_at)
-      return `${type} ${range}`
+      return `${type} ${appointmentTimeRange(apt)}`
     }
 
     const changeView = view => {
@@ -759,25 +814,7 @@ export default {
       loadAppointments()
     }
 
-    const getAppointmentsForHour = hour => {
-      const dateStr = toLocalDateString(currentDate.value)
-      const filtered = appointments.value
-        .filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === dateStr && aptInfo.hour === hour
-        })
-        .sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
-      return filtered
-    }
-
-    const getAppointmentsForDayAndHour = (dateStr, hour) => {
+    const appointmentsForSlot = (dateStr, hour) => {
       return appointments.value
         .filter(apt => {
           const aptInfo = getAppointmentLocalDate(apt)
@@ -815,6 +852,7 @@ export default {
 
     const editAppointment = appointment => {
       editingAppointment.value = appointment
+      newAppointmentPrefill.value = null
       showNewAppointmentModal.value = true
       selectedAppointment.value = null
     }
@@ -961,8 +999,12 @@ export default {
       previousPeriod,
       nextPeriod,
       goToToday,
-      getAppointmentsForHour,
-      getAppointmentsForDayAndHour,
+      appointmentsForSlot,
+      dayDateString,
+      appointmentTimeRange,
+      appointmentMetaLine,
+      openSlotCreate,
+      newAppointmentPrefill,
       getAppointmentClasses,
       getStatusClasses,
       getStatusText,

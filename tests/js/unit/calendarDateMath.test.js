@@ -68,10 +68,33 @@ describe('weekDays', () => {
     expect(days[6].date).toBe('2026-03-15')
   })
 
-  it('keeps the current Sunday convention: the computed week is the following one', () => {
+  it('yields the week CONTAINING a Sunday reference (Mon..Sun ending on it)', () => {
     const days = weekDays(d(2026, 3, 8))
-    expect(days[0].date).toBe('2026-03-09')
-    expect(days[6].date).toBe('2026-03-15')
+    expect(days[0].date).toBe('2026-03-02')
+    expect(days[6].date).toBe('2026-03-08')
+    expect(days.map(day => day.date)).toEqual([
+      '2026-03-02',
+      '2026-03-03',
+      '2026-03-04',
+      '2026-03-05',
+      '2026-03-06',
+      '2026-03-07',
+      '2026-03-08'
+    ])
+  })
+
+  it('yields the containing week for every Sunday reference (D11 regression guard)', () => {
+    const sunday = new Date(2026, 0, 4) // 2026-01-04 is a Sunday
+    while (sunday.getFullYear() === 2026) {
+      const reference = new Date(sunday)
+      const days = weekDays(reference)
+      const expectedMonday = new Date(sunday)
+      expectedMonday.setDate(sunday.getDate() - 6)
+      expect(days).toHaveLength(7)
+      expect(days[0].date, toLocalDateString(reference)).toBe(toLocalDateString(expectedMonday))
+      expect(days[6].date, toLocalDateString(reference)).toBe(toLocalDateString(sunday))
+      sunday.setDate(sunday.getDate() + 7)
+    }
   })
 
   it('spans year boundaries correctly', () => {
@@ -122,22 +145,38 @@ describe('monthDays', () => {
     expect(cells.filter(cell => cell.isCurrentMonth)).toHaveLength(30)
   })
 
-  it('keeps the current convention when the 1st is a Sunday (2026-02-01): grid starts on the 2nd', () => {
+  it('never drops the 1st when it falls on a Sunday (2026-02-01)', () => {
     const cells = monthDays(d(2026, 2, 1), d(2026, 2, 1))
     expect(cells).toHaveLength(42)
-    expect(cells[0].date).toBe('2026-02-02')
-    expect(cells[0].number).toBe(2)
-    expect(cells[41].date).toBe('2026-03-15')
-    expect(cells.filter(cell => cell.isCurrentMonth)).toHaveLength(27)
-    expect(cells.every(cell => cell.date !== '2026-02-01')).toBe(true)
+    expect(cells[0].date).toBe('2026-01-26')
+    expect(cells[41].date).toBe('2026-03-08')
+    expect(cells.filter(cell => cell.isCurrentMonth)).toHaveLength(28)
+    expect(cells.some(cell => cell.date === '2026-02-01')).toBe(true)
   })
 
-  it('keeps the current convention for 2026-11-01 (also a Sunday)', () => {
+  it('never drops the 1st when it falls on a Sunday (2026-11-01)', () => {
     const cells = monthDays(d(2026, 11, 1), d(2026, 11, 1))
     expect(cells).toHaveLength(42)
-    expect(cells[0].date).toBe('2026-11-02')
-    expect(cells[41].date).toBe('2026-12-13')
-    expect(cells.filter(cell => cell.isCurrentMonth)).toHaveLength(29)
+    expect(cells[0].date).toBe('2026-10-26')
+    expect(cells[41].date).toBe('2026-12-06')
+    expect(cells.filter(cell => cell.isCurrentMonth)).toHaveLength(30)
+    expect(cells.some(cell => cell.date === '2026-11-01')).toBe(true)
+  })
+
+  it('always contains every day of the month (D11 regression guard)', () => {
+    for (let year = 2024; year <= 2028; year++) {
+      for (let month = 1; month <= 12; month++) {
+        const anchor = new Date(year, month - 1, 15)
+        const cells = monthDays(anchor, anchor)
+        const dates = new Set(cells.map(cell => cell.date))
+        const daysInMonth = new Date(year, month, 0).getDate()
+        expect(cells).toHaveLength(42)
+        for (let day = 1; day <= daysInMonth; day++) {
+          const key = toLocalDateString(new Date(year, month - 1, day))
+          expect(dates.has(key), `${year}-${month}-${day}`).toBe(true)
+        }
+      }
+    }
   })
 
   it('marks exactly one cell as today against the provided anchor', () => {
@@ -147,9 +186,16 @@ describe('monthDays', () => {
     expect(todayCells[0].date).toBe('2026-06-15')
   })
 
-  it('marks no cell as today when the anchor is outside the padded grid (2026-02-01)', () => {
-    const cells = monthDays(d(2026, 2, 1), d(2026, 2, 1))
+  it('marks no cell as today when the anchor is outside the padded grid (2026-08-15 viewing July)', () => {
+    const cells = monthDays(d(2026, 7, 15), d(2026, 8, 15))
     expect(cells.filter(cell => cell.isToday)).toHaveLength(0)
+  })
+
+  it('marks the Sunday 1st as today instead of dropping it (2026-02-01)', () => {
+    const cells = monthDays(d(2026, 2, 1), d(2026, 2, 1))
+    const todayCells = cells.filter(cell => cell.isToday)
+    expect(todayCells).toHaveLength(1)
+    expect(todayCells[0].date).toBe('2026-02-01')
   })
 
   it('marks padding cells as today when the anchor falls in them (2026-06-29 viewing July)', () => {
@@ -184,8 +230,8 @@ describe('periodTitle', () => {
   it('produces the exact week titles the component shows today', () => {
     expect(periodTitle(d(2026, 3, 11), 'week')).toBe('9 mar - 15 mar 2026')
     expect(periodTitle(d(2026, 3, 9), 'week')).toBe('9 mar - 15 mar 2026')
-    // Sunday reference rolls to the following week (current convention).
-    expect(periodTitle(d(2026, 2, 1), 'week')).toBe('2 feb - 8 feb 2026')
+    // D11 fix: a Sunday reference titles the week that CONTAINS it.
+    expect(periodTitle(d(2026, 2, 1), 'week')).toBe('26 ene - 1 feb 2026')
     // Cross-year week.
     expect(periodTitle(d(2026, 1, 1), 'week')).toBe('29 dic - 4 ene 2026')
   })
@@ -261,7 +307,7 @@ describe('dateRangeForView', () => {
       start_date: '2026-02-01',
       end_date: '2026-02-01'
     })
-    // Day view is not affected by the Sunday week convention.
+    // Day view is not affected by the week-start computation.
     expect(dateRangeForView(d(2026, 3, 8), 'day')).toEqual({
       start_date: '2026-03-08',
       end_date: '2026-03-08'
@@ -273,9 +319,10 @@ describe('dateRangeForView', () => {
       start_date: '2026-03-09',
       end_date: '2026-03-15'
     })
+    // D11 fix: a Sunday reference belongs to the week ending on it.
     expect(dateRangeForView(d(2026, 3, 8), 'week')).toEqual({
-      start_date: '2026-03-09',
-      end_date: '2026-03-15'
+      start_date: '2026-03-02',
+      end_date: '2026-03-08'
     })
     expect(dateRangeForView(d(2026, 1, 1), 'week')).toEqual({
       start_date: '2025-12-29',
@@ -284,17 +331,19 @@ describe('dateRangeForView', () => {
   })
 
   it('returns the 42-day padded grid range for the month view', () => {
+    // D11 fix: the padded range always covers the whole month, even when
+    // the 1st is a Sunday.
     expect(dateRangeForView(d(2026, 2, 1), 'month')).toEqual({
-      start_date: '2026-02-02',
-      end_date: '2026-03-15'
+      start_date: '2026-01-26',
+      end_date: '2026-03-08'
     })
     expect(dateRangeForView(d(2026, 7, 15), 'month')).toEqual({
       start_date: '2026-06-29',
       end_date: '2026-08-09'
     })
     expect(dateRangeForView(d(2026, 11, 1), 'month')).toEqual({
-      start_date: '2026-11-02',
-      end_date: '2026-12-13'
+      start_date: '2026-10-26',
+      end_date: '2026-12-06'
     })
   })
 
