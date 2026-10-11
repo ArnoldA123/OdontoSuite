@@ -1,364 +1,383 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <PageHeader
-      title="Pacientes"
-      subtitle="Gestiona la información de tus pacientes"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton
-          variant="secondary"
-          @click="goBack"
-        >
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <div class="space-y-6">
+      <!-- Hero band: the login surface vocabulary + the page's single primary CTA. -->
+      <header
+        ref="heroSection"
+        data-patients-hero
+        data-reveal="hero"
+        class="relative overflow-hidden p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
+        :style="revealStyle('--spring-patients-hero-o')"
+      >
+        <DentalMotifLayer variant="hero" data-hero-motif />
+        <div class="relative flex items-center justify-between gap-3">
+          <!-- Brand lockup: tooth glyph + wordmark on accent-500. -->
+          <p class="inline-flex items-center gap-2">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="color: var(--color-accent-500)"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 3.5C5.5 3.5 4 5.5 4 8c0 2.5 1.5 4 2 5.5s.5 4.5 1.5 6 1.5 1 2 0 1-3.5 1.5-3.5 1 2.5 1.5 3.5 1 1 2 0 .5-4.5 1.5-6 2-3 2-5.5c0-2.5-1.5-4.5-4-4.5-1.5 0-2 1-3 1s-1.5-1-3-1z"
+              />
             </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton
-          v-if="can.createPatient?.value"
-          @click="showNewPatientModal = true"
-        >
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          </template>
-          Nuevo Paciente
-        </UiButton>
-      </template>
-    </PageHeader>
+            <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
+          </p>
+          <div class="flex items-center gap-3" data-hero-actions>
+            <UiButton variant="ghost" size="sm" data-back-button @click="goBack">
+              <template #icon-left>
+                <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Volver
+            </UiButton>
+            <UiButton
+              v-if="can.createPatient?.value"
+              variant="primary"
+              size="sm"
+              data-new-patient-button
+              @click="showNewPatientModal = true"
+            >
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Nuevo paciente
+            </UiButton>
+          </div>
+        </div>
+        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</h1>
+        <p class="relative mt-2 text-base leading-relaxed text-theme-secondary">
+          Gestiona la información de tus pacientes
+        </p>
+      </header>
 
-    <!-- Search and Filters -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
-          <UiInput
-            v-model="searchQuery"
-            @input="searchPatients"
-            placeholder="Buscar por nombre, DNI, teléfono o email..."
-            class="w-full"
+      <!-- Summary block: dashboard KPI anatomy (non-interactive). -->
+      <section
+        ref="summarySection"
+        data-patients-block="summary"
+        data-reveal="summary"
+        class="space-y-4"
+        :style="revealStyle('--spring-patients-summary-o')"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-xl font-semibold text-label">Resumen de pacientes</h2>
+          <p class="text-sm text-theme-secondary">Los totales de la ficha de pacientes</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-stat-card="total-patients"
+            class="relative h-full flex flex-col"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
-            <template #prefix>
-              <svg class="w-5 h-5 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </template>
-          </UiInput>
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <UiSelect
-            v-if="branchOptions.length > 0"
-            v-model="branchFilter"
-            :options="branchOptions"
-            placeholder="Todas las sucursales"
-            size="sm"
-            class="min-w-[160px]"
-            @update:model-value="loadPatients(1)"
-          />
-          <UiSelect
-            v-model="statusFilter"
-            :options="statusFilterOptions"
-            size="sm"
-            class="min-w-[140px]"
-            @update:model-value="loadPatients(1)"
-          />
-          <UiSelect
-            v-model="sortFilter"
-            :options="sortFilterOptions"
-            size="sm"
-            class="min-w-[170px]"
-            @update:model-value="loadPatients(1)"
-          />
-          <UiSelect
-            v-model="perPageFilter"
-            :options="perPageOptions"
-            size="sm"
-            class="min-w-[120px]"
-            @update:model-value="loadPatients(1)"
-          />
-          <UiButton
-            variant="secondary"
-            @click="resetFilters"
-            class="px-3"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </UiButton>
-        </div>
-      </div>
-    </UiCard>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <UiCard variant="glass" clickable>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-          </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ totalPatients }}</div>
-          <div class="text-sm text-theme-secondary">Total Pacientes</div>
-        </div>
-      </UiCard>
-
-      <UiCard variant="glass" clickable>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ activePatients }}</div>
-          <div class="text-sm text-theme-secondary">Activos</div>
-        </div>
-      </UiCard>
-
-      <UiCard variant="glass" clickable>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ inactivePatients }}</div>
-          <div class="text-sm text-theme-secondary">Inactivos</div>
-        </div>
-      </UiCard>
-
-      <UiCard variant="glass" clickable>
-        <div class="text-center">
-          <div class="w-12 h-12 bg-gradient-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <div class="text-2xl font-bold text-theme-primary mb-1" style="font-feature-settings: var(--font-features-tabular-nums)">{{ filteredPatients.length }}</div>
-          <div class="text-sm text-theme-secondary">Filtrados</div>
-        </div>
-      </UiCard>
-    </div>
-
-    <!-- Patients List -->
-    <UiCard variant="glass" class="overflow-hidden">
-      <!-- Loading State -->
-      <LoadingSpinner v-if="loading" class="p-12" size="lg" text="Cargando pacientes..." />
-
-      <!-- Empty State -->
-      <EmptyState
-        v-else-if="filteredPatients.length === 0"
-        class="p-12"
-        title="No se encontraron pacientes"
-        description="Intenta ajustar los filtros de búsqueda"
-        action-label="Limpiar filtros"
-        @action="resetFilters"
-      />
-
-      <!-- Desktop Table View -->
-      <div v-else class="hidden lg:block overflow-x-auto">
-        <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Paciente
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Contacto
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Fecha de Nacimiento
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Edad
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Estado
-              </th>
-              <th class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
-            <tr v-for="patient in filteredPatients" :key="patient.id" class="hover:bg-theme-surface transition-colors">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-12 w-12">
-                    <div class="h-12 w-12 rounded-xl bg-gradient-accent flex items-center justify-center">
-                      <span class="text-sm font-semibold text-white">
-                        {{ patient.first_name.charAt(0) }}{{ patient.last_name.charAt(0) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-semibold text-theme-primary">
-                      {{ patient.first_name }} {{ patient.last_name }}
-                    </div>
-                    <div class="text-sm text-theme-secondary" style="font-feature-settings: var(--font-features-tabular-nums)">
-                      ID: {{ patient.id }}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-theme-primary">{{ patient.phone }}</div>
-                <div class="text-sm text-theme-secondary">{{ patient.email }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ formatDate(patient.birth_date) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary" style="font-feature-settings: var(--font-features-tabular-nums)">
-                {{ patient.age != null ? `${patient.age} años` : '—' }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  :class="patient.is_active ? 'bg-systemGreen-50 text-systemGreen-700' : 'bg-systemRed-50 text-systemRed-700'"
-                  class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Total Pacientes
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  aria-live="polite"
+                  data-stat="total-patients"
                 >
-                  {{ patient.is_active ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    @click="viewPatient(patient)"
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
-                  >
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    v-if="can.editPatient?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="editPatient(patient)"
-                    class="text-systemGreen-700 hover:opacity-80"
-                  >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    v-if="can.deletePatient?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="deletePatient(patient)"
-                    class="text-systemRed-700 hover:opacity-80"
-                  >
-                    Eliminar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile Card View -->
-      <div v-if="!loading && filteredPatients.length > 0" class="lg:hidden space-y-4 p-4">
-        <div
-          v-for="patient in filteredPatients"
-          :key="patient.id"
-          class="bg-theme-surface-elevated rounded-2xl border border-hairline p-4 hover:shadow-lg transition-all duration-200"
-        >
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center">
-              <div class="h-12 w-12 rounded-xl bg-gradient-accent flex items-center justify-center mr-3">
-                <span class="text-sm font-semibold text-white">
-                  {{ patient.first_name.charAt(0) }}{{ patient.last_name.charAt(0) }}
-                </span>
-              </div>
-              <div>
-                <div class="text-lg font-semibold text-theme-primary">
-                  {{ patient.first_name }} {{ patient.last_name }}
-                </div>
-                <div class="text-sm text-theme-secondary" style="font-feature-settings: var(--font-features-tabular-nums)">
-                  ID: {{ patient.id }}
-                </div>
+                  {{ totalPatients }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="total-patients"
+                >
+                  Activos e inactivos
+                </p>
               </div>
             </div>
-            <span
-              :class="patient.is_active ? 'bg-systemGreen-50 text-systemGreen-700' : 'bg-systemRed-50 text-systemRed-700'"
-              class="px-3 py-1 text-xs font-semibold rounded-full"
-            >
-              {{ patient.is_active ? 'Activo' : 'Inactivo' }}
-            </span>
-          </div>
+          </UiCard>
 
-          <div class="space-y-2 mb-4">
-            <div class="flex items-center text-sm text-theme-secondary">
-              <svg class="w-4 h-4 mr-2 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              {{ patient.phone }}
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-stat-card="active-patients"
+            class="relative h-full flex flex-col"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Activos
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  aria-live="polite"
+                  data-stat="active-patients"
+                >
+                  {{ activePatients }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="active-patients"
+                >
+                  Disponibles para atender
+                </p>
+              </div>
             </div>
-            <div class="flex items-center text-sm text-theme-secondary">
-              <svg class="w-4 h-4 mr-2 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              {{ patient.email }}
-            </div>
-            <div class="flex items-center text-sm text-theme-secondary">
-              <svg class="w-4 h-4 mr-2 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {{ formatDate(patient.birth_date) }}
-            </div>
-            <div class="flex items-center text-sm text-theme-secondary">
-              <svg class="w-4 h-4 mr-2 text-theme-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span class="font-medium text-theme-primary mr-1">Edad:</span>
-              <span style="font-feature-settings: var(--font-features-tabular-nums)">{{ patient.age != null ? `${patient.age} años` : '—' }}</span>
-            </div>
-          </div>
+          </UiCard>
 
-          <div class="flex gap-2">
-            <UiButton
-              variant="ghost"
-              size="sm"
-              @click="viewPatient(patient)"
-              class="flex-1 text-systemBlue-600 hover:text-systemBlue-700"
-            >
-              Ver
-            </UiButton>
-            <UiButton
-              v-if="can.editPatient?.value"
-              variant="ghost"
-              size="sm"
-              @click="editPatient(patient)"
-              class="flex-1 text-systemGreen-700 hover:opacity-80"
-            >
-              Editar
-            </UiButton>
-            <UiButton
-              v-if="can.deletePatient?.value"
-              variant="ghost"
-              size="sm"
-              @click="deletePatient(patient)"
-              class="flex-1 text-systemRed-700 hover:opacity-80"
-            >
-              Eliminar
-            </UiButton>
-          </div>
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-stat-card="inactive-patients"
+            class="relative h-full flex flex-col"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Inactivos
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  aria-live="polite"
+                  data-stat="inactive-patients"
+                >
+                  {{ inactivePatients }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="inactive-patients"
+                >
+                  No disponibles para atender
+                </p>
+              </div>
+            </div>
+          </UiCard>
+
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-stat-card="filtered-patients"
+            class="relative h-full flex flex-col"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
+                  Filtrados
+                </p>
+                <p
+                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
+                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  aria-live="polite"
+                  data-stat="filtered-patients"
+                >
+                  {{ filteredPatients.length }}
+                </p>
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="filtered-patients"
+                >
+                  Resultados en esta página
+                </p>
+              </div>
+            </div>
+          </UiCard>
         </div>
-      </div>
+      </section>
 
-      <!-- Pagination Controls -->
-      <div v-if="!loading && paginationMeta.last_page > 1" class="p-4 border-t border-hairline">
-        <Pagination
-          :current-page="paginationMeta.current_page"
-          :total-pages="paginationMeta.last_page"
-          :total="paginationMeta.total"
-          :per-page="paginationMeta.per_page"
-          @page-change="handlePageChange"
-        />
-      </div>
-    </UiCard>
+      <!-- Directory block: the list protagonists and their controls. -->
+      <section
+        ref="directorySection"
+        data-patients-block="directory"
+        data-reveal="directory"
+        class="space-y-4"
+        :style="revealStyle('--spring-patients-directory-o')"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Directorio de pacientes</h2>
+          <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada ficha</p>
+        </div>
+
+        <!-- Search and Filters -->
+        <UiCard variant="glass">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <div class="flex-1">
+              <UiInput
+                v-model="searchQuery"
+                placeholder="Buscar por nombre, DNI, teléfono o email..."
+                class="w-full"
+                @input="searchPatients"
+              >
+                <template #prefix>
+                  <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
+                </template>
+              </UiInput>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <UiSelect
+                v-if="branchOptions.length > 0"
+                v-model="branchFilter"
+                :options="branchOptions"
+                placeholder="Todas las sucursales"
+                size="sm"
+                class="min-w-[160px]"
+                @update:model-value="loadPatients(1)"
+              />
+              <UiSelect
+                v-model="statusFilter"
+                :options="statusFilterOptions"
+                size="sm"
+                class="min-w-[140px]"
+                @update:model-value="loadPatients(1)"
+              />
+              <UiSelect
+                v-model="sortFilter"
+                :options="sortFilterOptions"
+                size="sm"
+                class="min-w-[170px]"
+                @update:model-value="loadPatients(1)"
+              />
+              <UiSelect
+                v-model="perPageFilter"
+                :options="perPageOptions"
+                size="sm"
+                class="min-w-[120px]"
+                @update:model-value="loadPatients(1)"
+              />
+              <UiButton variant="secondary" class="px-3" @click="resetFilters">
+                <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+              </UiButton>
+            </div>
+          </div>
+        </UiCard>
+
+        <!-- Patients List -->
+        <UiCard variant="glass" class="overflow-hidden">
+          <!-- Unified states: loading, inline error (retry), empty (the hero owns the CTA). -->
+          <LoadingSpinner v-if="loading" class="p-12" size="lg" text="Cargando pacientes..." />
+
+          <!-- Error State -->
+          <UiSectionEmpty
+            v-else-if="loadError"
+            data-state="error-patients"
+            title="No pudimos cargar los pacientes"
+            description="Revisa tu conexión e inténtalo de nuevo."
+          >
+            <UiButton variant="secondary" size="sm" data-retry-patients @click="loadPatients(1)">
+              Reintentar
+            </UiButton>
+          </UiSectionEmpty>
+
+          <!-- Empty State -->
+          <UiSectionEmpty
+            v-else-if="filteredPatients.length === 0"
+            data-state="empty-patients"
+            title="No se encontraron pacientes"
+            description="Intenta ajustar los filtros de búsqueda"
+          />
+
+          <!-- Desktop Table View -->
+          <div v-else data-patient-surface="table" class="hidden lg:block overflow-x-auto">
+            <table class="min-w-full divide-y divide-[color:var(--color-hairline)]">
+              <thead class="bg-theme-surface">
+                <tr>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Paciente
+                  </th>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Contacto
+                  </th>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Fecha de Nacimiento
+                  </th>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Edad
+                  </th>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Estado
+                  </th>
+                  <th
+                    class="px-6 py-4 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  >
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
+                <PatientListRow
+                  v-for="patient in filteredPatients"
+                  :key="patient.id"
+                  variant="table"
+                  :patient="patient"
+                  :can-edit="can.editPatient?.value"
+                  :can-delete="can.deletePatient?.value"
+                  @view="viewPatient"
+                  @edit="editPatient"
+                  @delete="deletePatient"
+                />
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mobile Card View -->
+          <div
+            v-if="!loading && !loadError && filteredPatients.length > 0"
+            data-patient-surface="cards"
+            class="lg:hidden space-y-4 p-4"
+          >
+            <PatientListRow
+              v-for="patient in filteredPatients"
+              :key="patient.id"
+              variant="card"
+              :patient="patient"
+              :can-edit="can.editPatient?.value"
+              :can-delete="can.deletePatient?.value"
+              @view="viewPatient"
+              @edit="editPatient"
+              @delete="deletePatient"
+            />
+          </div>
+
+          <!-- Pagination Controls -->
+          <div
+            v-if="!loading && !loadError && paginationMeta.last_page > 1"
+            class="p-4 border-t border-hairline"
+          >
+            <Pagination
+              :current-page="paginationMeta.current_page"
+              :total-pages="paginationMeta.last_page"
+              :total="paginationMeta.total"
+              :per-page="paginationMeta.per_page"
+              @page-change="handlePageChange"
+            />
+          </div>
+        </UiCard>
+      </section>
+    </div>
 
     <!-- New Patient Modal -->
     <UiModal
@@ -618,33 +637,51 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  MagnifyingGlassIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
 import { useEcho } from '../../composables/useEcho'
+import { useSpring } from '../../composables/useSpring'
+import { prefersReducedMotion } from '../../composables/useSpringMath'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import UiTextarea from '../../components/ui/UiTextarea.vue'
+import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import Pagination from '../../components/ui/Pagination.vue'
+import PatientListRow from './PatientListRow.vue'
 
 export default {
   name: 'PatientsPage',
   components: {
     AppLayout,
+    ArrowLeftIcon,
+    ArrowPathIcon,
+    MagnifyingGlassIcon,
+    PlusIcon,
+    DentalMotifLayer,
     UiCard,
     UiButton,
     UiInput,
     UiSelect,
     UiModal,
     UiTextarea,
-    Pagination
+    UiSectionEmpty,
+    Pagination,
+    PatientListRow
   },
   setup() {
     const router = useRouter()
@@ -657,6 +694,7 @@ export default {
     // can ya es un objeto con propiedades computed, usarlo directamente
 
     const loading = ref(false)
+    const loadError = ref(false)
     const creating = ref(false)
     const updating = ref(false)
     const patients = ref([])
@@ -770,6 +808,7 @@ export default {
 
     const loadPatients = async (page = 1) => {
       loading.value = true
+      loadError.value = false
       try {
         // Construir parámetros de query
         const params = new URLSearchParams()
@@ -824,6 +863,7 @@ export default {
           toast.warning('No se encontraron pacientes')
         }
       } catch (error) {
+        loadError.value = true
         toast.error('Error al cargar los pacientes. Por favor, recarga la página.')
         patients.value = []
         filteredPatients.value = []
@@ -835,6 +875,13 @@ export default {
         }
       } finally {
         loading.value = false
+      }
+
+      // One-shot section entrance on the first successful content render;
+      // a failed load keeps it armed for the retry.
+      if (!entrancePlayed && !loadError.value) {
+        await nextTick()
+        playEntrance()
       }
     }
 
@@ -1122,6 +1169,49 @@ export default {
       router.back()
     }
 
+    // One-shot staggered entrance (60ms) per section, mirroring the
+    // dashboard pattern. revealStyle() renders the FINAL state whenever no
+    // spring is attached (reduced motion, or a section mounting later).
+    const heroSpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patients-hero-o'
+    })
+    const summarySpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patients-summary-o'
+    })
+    const directorySpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patients-directory-o'
+    })
+
+    const heroSection = ref(null)
+    const summarySection = ref(null)
+    const directorySection = ref(null)
+
+    const revealStyle = cssVar => ({
+      opacity: `var(${cssVar}, 1)`,
+      transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
+    })
+
+    let entrancePlayed = false
+    const playEntrance = () => {
+      if (entrancePlayed) return
+      entrancePlayed = true
+      if (prefersReducedMotion()) return
+
+      if (heroSection.value) heroSpring.attach(heroSection.value)
+      if (summarySection.value) summarySpring.attach(summarySection.value)
+      if (directorySection.value) directorySpring.attach(directorySection.value)
+
+      setTimeout(() => heroSpring.set(1), 0)
+      setTimeout(() => summarySpring.set(1), 60)
+      setTimeout(() => directorySpring.set(1), 120)
+    }
+
     // WebSocket subscriptions
     let patientsChannel = null
 
@@ -1230,6 +1320,7 @@ export default {
     return {
       can,
       loading,
+      loadError,
       creating,
       updating,
       patients,
@@ -1251,6 +1342,10 @@ export default {
       activePatients,
       inactivePatients,
       paginationMeta,
+      heroSection,
+      summarySection,
+      directorySection,
+      revealStyle,
       loadPatients,
       handlePageChange,
       searchPatients,
