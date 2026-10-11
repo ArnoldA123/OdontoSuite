@@ -706,7 +706,7 @@ import {
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import DashboardSectionError from './DashboardSectionError.vue'
 import DashboardSectionEmpty from './DashboardSectionEmpty.vue'
-import DentalMotifLayer from './DentalMotifLayer.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import { useApi } from '../../composables/useApi'
 import { useAuth } from '@/composables/useAuth'
 // HOTFIX-DASH-009 / T4 - per-section staggered springs, consumed.

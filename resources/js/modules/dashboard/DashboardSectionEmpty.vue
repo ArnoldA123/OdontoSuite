@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import DentalMotifLayer from './DentalMotifLayer.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 
 // WU3 / D9 - compact empty state: one short title + one precise sentence
 // and, only where no other CTA for that destination exists on screen, a
