@@ -415,6 +415,164 @@ class ProfessionalsAppShellTest extends TestCase
     }
 
     /**
+     * T5 (D10) — detail page visual parity: flat token surfaces only, no
+     * gradients anywhere in the page.
+     */
+    public function test_detail_page_bans_gradient_surfaces(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        foreach (['bg-gradient', 'linear-gradient'] as $gradient) {
+            self::assertStringNotContainsString(
+                $gradient,
+                $src,
+                "ProfessionalDetailPage.vue must not use '{$gradient}' (D10: flat token surfaces only, the accent-gradient avatar must go)."
+            );
+        }
+    }
+
+    /**
+     * T5 (product decision 2) — commission_rate is finance-sensitive and must
+     * never be rendered on the detail page.
+     */
+    public function test_detail_page_never_renders_commission_rate(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        self::assertStringNotContainsString(
+            'commission_rate',
+            $src,
+            'ProfessionalDetailPage.vue must not render commission_rate (product decision 2: the commission figure stays out of the UI, the guard pins it).'
+        );
+    }
+
+    /**
+     * T5 (D6/RELIABILITY-004) — rol, especialidad and estado pills come from
+     * <UiBadge>; no hand-built fills in plain or token/var form.
+     */
+    public function test_detail_page_bans_hand_built_badge_fills(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        foreach (self::BANNED_HAND_BUILT_BADGES as $badgeClass) {
+            self::assertStringNotContainsString(
+                $badgeClass,
+                $src,
+                "ProfessionalDetailPage.vue must not build pills by hand with '{$badgeClass}' (D6: <UiBadge> is the single pill system)."
+            );
+        }
+
+        self::assertDoesNotMatchRegularExpression(
+            '/bg-\[color:var\(--color-\w+-100\)\]/',
+            $src,
+            'ProfessionalDetailPage.vue must not build pill fills with bg-[color:var(--color-*-100)] (D6: <UiBadge>, RELIABILITY-004).'
+        );
+    }
+
+    /**
+     * T5 (D7/D10) — the audit empty state uses the shared DashboardSectionEmpty
+     * pattern; the hand-built gradient-box empty state is gone.
+     */
+    public function test_detail_page_uses_dashboard_section_empty(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        self::assertStringContainsString(
+            "from '../dashboard/DashboardSectionEmpty.vue'",
+            $src,
+            'ProfessionalDetailPage.vue must import DashboardSectionEmpty (D7/D10: one empty-state pattern, reuse by import only).'
+        );
+        self::assertStringContainsString(
+            '<DashboardSectionEmpty',
+            $src,
+            'ProfessionalDetailPage.vue must render DashboardSectionEmpty for the empty audit history (D10).'
+        );
+    }
+
+    /**
+     * T5 (D1) — the shared vocabulary feeds the facts block: ROLE_LABELS and
+     * SPECIALTY_LABELS imported from ./professionals.constants, no hardcoded
+     * label maps left behind.
+     */
+    public function test_detail_page_imports_shared_professionals_constants(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        foreach (['ROLE_LABELS', 'SPECIALTY_LABELS'] as $export) {
+            self::assertMatchesRegularExpression(
+                "/import\\s*\\{[^}]*{$export}[^}]*\\}\\s*from\\s*['\"]\\.\\/professionals\\.constants['\"]/",
+                $src,
+                "ProfessionalDetailPage.vue must import {$export} from ./professionals.constants (D1: one shared vocabulary)."
+            );
+        }
+
+        foreach (["odontologo: 'Odontólogo'", "general: 'Odontología General'"] as $hardcoded) {
+            self::assertStringNotContainsString(
+                $hardcoded,
+                $src,
+                "ProfessionalDetailPage.vue must not hardcode {$hardcoded} (D1: the label maps live in professionals.constants)."
+            );
+        }
+    }
+
+    /**
+     * T5 (D10) — the facts block data hook anchors the professional data rows.
+     */
+    public function test_detail_page_exposes_facts_block_hook(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        self::assertStringContainsString(
+            'data-professional-facts',
+            $src,
+            'ProfessionalDetailPage.vue must expose the data-professional-facts hook (D10 facts block).'
+        );
+    }
+
+    /**
+     * T5 (D10) — hero parity with the list page: canvas surface tokens and the
+     * Breadcrumbs primitive own list > detail wayfinding; the redundant back
+     * button is gone.
+     */
+    public function test_detail_page_hero_matches_list_surface_and_drops_back_button(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        self::assertStringContainsString(
+            "from '../../components/ui/Breadcrumbs.vue'",
+            $src,
+            'ProfessionalDetailPage.vue must import the Breadcrumbs primitive (D10: list > detail wayfinding).'
+        );
+        foreach (['var(--color-canvas)', 'var(--color-hairline)', 'var(--radius-panel)', 'var(--elevation-2)'] as $token) {
+            self::assertStringContainsString(
+                $token,
+                $src,
+                "ProfessionalDetailPage.vue hero must use the {$token} surface token (D10: same hero surface as the list page)."
+            );
+        }
+        foreach (['Volver', 'goBack'] as $backRemnant) {
+            self::assertStringNotContainsString(
+                $backRemnant,
+                $src,
+                "ProfessionalDetailPage.vue must not keep the redundant '{$backRemnant}' back action (D10: the breadcrumb owns the return to the list)."
+            );
+        }
+    }
+
+    /**
+     * T5 (D10 style restrictions) — no U+2014 in the redesigned detail page.
+     */
+    public function test_detail_page_bans_em_dash_character(): void
+    {
+        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+
+        self::assertFalse(
+            strpos($src, "\u{2014}") !== false,
+            'ProfessionalDetailPage.vue must not contain the U+2014 em-dash character (use "N/D" or plain text).'
+        );
+    }
+
+    /**
      * T4 (RELIABILITY-005) — required fields are enforced in the submit path
      * (forwarded `required` lands on the wrapper div and native validation is
      * silently dropped) and surface inline validation messages.
