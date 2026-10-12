@@ -82,7 +82,7 @@
           >
             {{ teamKpis.total }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="team-total">
+          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-total">
             Equipo clínico completo
           </p>
         </div>
@@ -105,7 +105,7 @@
           >
             {{ teamKpis.active }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="team-active">
+          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-active">
             Con cuenta habilitada
           </p>
         </div>
@@ -128,7 +128,7 @@
           >
             {{ teamKpis.inactive }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="team-inactive">
+          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-inactive">
             Sin cuenta habilitada
           </p>
         </div>
@@ -151,7 +151,7 @@
           >
             {{ teamKpis.specialties }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="team-specialties">
+          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-specialties">
             Distintas con al menos un clínico
           </p>
         </div>
@@ -246,37 +246,37 @@
             <thead class="bg-theme-surface">
               <tr>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Profesional
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Especialidad
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Rol
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Matrícula
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Sucursal
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Estado
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                  class="px-3 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
                   Acciones
                 </th>
@@ -289,7 +289,7 @@
                 data-team-row
                 class="hover:bg-theme-surface"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
                       <div
@@ -301,37 +301,39 @@
                         </span>
                       </div>
                     </div>
-                    <div class="ml-4">
-                      <div class="text-sm font-medium text-[color:var(--color-text-primary)]">
+                    <div class="ml-4 min-w-0">
+                      <div
+                        class="text-sm font-medium text-[color:var(--color-text-primary)] truncate"
+                      >
                         {{ professional.name }}
                       </div>
-                      <div class="text-sm text-theme-secondary">
+                      <div class="text-sm text-theme-secondary truncate">
                         {{ secondaryLine(professional) }}
                       </div>
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <UiBadge variant="primary" size="sm" shape="pill">
                     {{ getSpecialtyText(professional.specialty) }}
                   </UiBadge>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <UiBadge variant="neutral" size="sm" shape="pill">
                     {{ roleLabel(professional.role) }}
                   </UiBadge>
                 </td>
                 <td
-                  class="px-6 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
+                  class="px-3 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
                 >
                   {{ professionalLicense(professional) }}
                 </td>
                 <td
-                  class="px-6 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
+                  class="px-3 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
                 >
                   {{ branchName(professional) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <UiBadge
                     :variant="professional.is_active ? 'success' : 'error'"
                     size="sm"
@@ -340,8 +342,8 @@
                     {{ professional.is_active ? 'Activo' : 'Inactivo' }}
                   </UiBadge>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex space-x-2">
+                <td class="px-3 py-4 text-sm font-medium">
+                  <div class="flex flex-wrap gap-1.5">
                     <UiButton
                       variant="ghost"
                       size="sm"
