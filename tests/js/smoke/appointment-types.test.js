@@ -6,8 +6,10 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // the SAME full catalog the table renders, client-side status + search
 // filtering over a single `status=all` load, the `default_duration_minutes`
 // duration fix, the removed View modal (Ver Detalle navigates instead), the
-// inline error surface with retry, and a coherent color pair in both modals.
-const { getMock, makeType } = vi.hoisted(() => {
+// inline error surface with retry, the delete confirmation gate (composable
+// dialog: cancel aborts without calling the API, confirm deletes), and a
+// coherent color pair in both modals.
+const { getMock, deleteMock, makeType } = vi.hoisted(() => {
   const makeType = (id, overrides = {}) => ({
     id,
     name: `Tipo ${id}`,
@@ -20,8 +22,9 @@ const { getMock, makeType } = vi.hoisted(() => {
   })
 
   const getMock = vi.fn(async () => ({ data: [] }))
+  const deleteMock = vi.fn(async () => ({ data: {} }))
 
-  return { getMock, makeType }
+  return { getMock, deleteMock, makeType }
 })
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
@@ -30,7 +33,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
     post: async () => ({ data: {} }),
     put: async () => ({ data: {} }),
     patch: async () => ({ data: {} }),
-    delete: async () => ({ data: {} }),
+    delete: deleteMock,
     setToken: () => {},
     normalizeError: () => ''
   })
@@ -120,6 +123,8 @@ describe('appointment-types smoke', () => {
   beforeEach(() => {
     getMock.mockReset()
     getMock.mockImplementation(async () => ({ data: [] }))
+    deleteMock.mockReset()
+    deleteMock.mockImplementation(async () => ({ data: {} }))
   })
 
   it('mounts AppointmentTypesPage.vue and renders content', async () => {
@@ -299,5 +304,42 @@ describe('appointment-types smoke', () => {
     expect(router.currentRoute.value.query.edit).toBeUndefined()
     wrapper.unmount()
     await router.push('/appointment-types')
+  })
+
+  it('gates deletion on the confirm dialog and aborts when cancelled', async () => {
+    const wrapper = await mountPage(CATALOG)
+    const row = rows(wrapper).find(r => r.text().includes('Limpieza dental'))
+    await row.find('[data-row-action="delete"]').trigger('click')
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Eliminar tipo de cita')
+    const cancel = [...document.body.querySelectorAll('button')].find(
+      b => b.textContent.trim() === 'Cancelar'
+    )
+    expect(cancel).toBeTruthy()
+    cancel.click()
+    await flushPromises()
+
+    expect(deleteMock).not.toHaveBeenCalled()
+    expect(rows(wrapper).some(r => r.text().includes('Limpieza dental'))).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('deletes the type when the confirm dialog is accepted', async () => {
+    const wrapper = await mountPage(CATALOG)
+    const row = rows(wrapper).find(r => r.text().includes('Limpieza dental'))
+    await row.find('[data-row-action="delete"]').trigger('click')
+    await flushPromises()
+
+    const confirmBtn = [...document.body.querySelectorAll('button')].find(
+      b => b.textContent.trim() === 'Eliminar'
+    )
+    expect(confirmBtn).toBeTruthy()
+    confirmBtn.click()
+    await flushPromises()
+
+    expect(deleteMock).toHaveBeenCalledTimes(1)
+    expect(String(deleteMock.mock.calls[0][0])).toContain('/api/appointment-types/1')
+    wrapper.unmount()
   })
 })

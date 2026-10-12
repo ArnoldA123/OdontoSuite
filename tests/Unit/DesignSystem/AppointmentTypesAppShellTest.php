@@ -31,7 +31,10 @@ namespace Tests\Unit\DesignSystem;
  * view modal and its flows (Ver Detalle navigates to the detail page),
  * added client-side `filteredTypes` filtering, the `openEditFromQuery`
  * `?edit=<id>` deep-link handler and the inline `loadError` / retry
- * surface, and routed `deleteType` through `useConfirm`; the detail page
+ * surface, and bound `useConfirm` so the pre-existing `await confirm(...)`
+ * gate inside `deleteType` resolves through the composable dialog (the gate
+ * body itself predates this candidate; the delete flow is covered by
+ * `tests/js/smoke/appointment-types.test.js`); the detail page
  * added the `loading` / `loadError` refs with skeleton + retry and the
  * `goEdit` deep link into the shared edit modal.
  *

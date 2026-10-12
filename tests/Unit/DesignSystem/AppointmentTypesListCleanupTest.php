@@ -42,7 +42,9 @@ namespace Tests\Unit\DesignSystem;
  * page), client-side `filteredTypes` filtering replaced the per-filter
  * loads, `openEditFromQuery` handles the `?edit=<id>` deep link, an
  * inline `loadError` / retry surface replaced the silent failure path,
- * and `deleteType` now routes through `useConfirm`. Script edits dated
+ * and the `useConfirm` binding now feeds `deleteType`'s pre-existing
+ * `await confirm(...)` gate (the gate body predates this candidate).
+ * Script edits dated
  * after 2026-10-10 are deliberate redesign decisions covered by the
  * vitest smoke contract (`tests/js/smoke/appointment-types.test.js`).
  *
