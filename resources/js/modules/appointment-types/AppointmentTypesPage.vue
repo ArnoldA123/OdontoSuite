@@ -23,7 +23,7 @@
           </p>
           <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Tipos de Cita</h1>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
-            Gestiona los tipos de citas disponibles
+            Configura duración, precio y color de cada tipo de cita
           </p>
         </div>
         <div class="flex flex-shrink-0 items-center gap-3">
@@ -150,7 +150,7 @@
     <!-- List block (D3 section grammar + D4 table + D7 states). -->
     <section aria-label="Tipos de cita" class="space-y-4">
       <div class="flex items-baseline gap-3">
-        <h2 class="text-2xl font-semibold text-label">Tipos de cita</h2>
+        <h2 class="text-2xl font-semibold text-label">Todos los tipos</h2>
         <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada tipo del catálogo</p>
       </div>
 
@@ -191,36 +191,36 @@
         />
 
         <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-hairline">
+          <table class="w-full min-w-[720px] table-fixed divide-y divide-hairline">
             <thead class="bg-theme-surface">
               <tr>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="w-[24%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[22%]"
                 >
                   Nombre
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:table-cell lg:w-[21%]"
                 >
                   Descripción
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[11%]"
                 >
                   Duración
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="w-[17%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[13%]"
                 >
                   Precio
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[11%]"
                 >
                   Estado
                 </th>
                 <th
-                  class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                  class="w-[29%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary lg:w-[22%]"
                 >
                   Acciones
                 </th>
@@ -233,29 +233,31 @@
                 data-type-row
                 class="hover:bg-theme-surface"
               >
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <div class="flex items-center gap-2">
+                <td class="px-4 py-4 whitespace-nowrap">
+                  <div class="flex min-w-0 items-center gap-2">
                     <span
                       class="h-2.5 w-2.5 flex-shrink-0 rounded-full"
                       data-type-swatch
                       :style="{ backgroundColor: type.color }"
                       aria-hidden="true"
                     />
-                    <span class="text-sm font-medium text-theme-primary">{{ type.name }}</span>
+                    <span class="truncate text-sm font-medium text-theme-primary" :title="type.name">{{
+                      type.name
+                    }}</span>
                   </div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="hidden px-4 py-4 lg:table-cell">
                   <div
-                    class="max-w-xs truncate text-sm text-theme-secondary"
+                    class="w-full truncate text-sm text-theme-secondary"
                     :title="type.description || 'Sin descripción'"
                   >
                     {{ type.description || 'Sin descripción' }}
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
+                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
                   {{ type.default_duration_minutes }} min
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 py-4 whitespace-nowrap">
                   <div
                     class="text-sm tabular-nums text-theme-primary"
                     :aria-label="`Precio ${formatCurrency(type.price)}`"
@@ -263,15 +265,15 @@
                     {{ formatCurrency(type.price) }}
                   </div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="px-4 py-4 whitespace-nowrap">
                   <UiStatusBadge
                     :variant="type.is_active ? 'success' : 'neutral'"
                     :label="type.is_active ? 'Activo' : 'Inactivo'"
                     size="sm"
                   />
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div class="flex space-x-2">
+                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex items-center gap-1">
                     <UiButton
                       variant="ghost"
                       size="sm"
@@ -286,18 +288,22 @@
                       size="sm"
                       class="text-systemBlue-600 hover:text-systemBlue-700"
                       data-row-action="edit"
+                      title="Editar tipo"
+                      aria-label="Editar tipo"
                       @click="editType(type)"
                     >
-                      Editar
+                      <PencilIcon class="h-4 w-4" aria-hidden="true" />
                     </UiButton>
                     <UiButton
                       variant="ghost"
                       size="sm"
                       class="text-systemRed-600 hover:text-systemRed-700"
                       data-row-action="delete"
+                      title="Eliminar tipo"
+                      aria-label="Eliminar tipo"
                       @click="deleteType(type)"
                     >
-                      Eliminar
+                      <TrashIcon class="h-4 w-4" aria-hidden="true" />
                     </UiButton>
                   </div>
                 </td>
@@ -416,7 +422,9 @@ import {
   ArrowLeftIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
-  PlusIcon
+  PencilIcon,
+  PlusIcon,
+  TrashIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
@@ -445,7 +453,9 @@ export default {
     ArrowLeftIcon,
     ExclamationTriangleIcon,
     MagnifyingGlassIcon,
+    PencilIcon,
     PlusIcon,
+    TrashIcon,
     UiButton,
     UiInput,
     UiSelect,
