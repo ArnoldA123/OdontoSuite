@@ -82,24 +82,65 @@ describe('appointmentStatus registry', () => {
   })
 
   it('keeps the exact chip class tokens currently shown', () => {
-    expect(APPOINTMENT_CHIP_BASE_CLASSES).toBe('bg-theme-surface-elevated border border-hairline')
-    expect(statusChipClasses('scheduled')).toBe('border-systemBlue-200 bg-systemBlue-50')
+    // T8b defect 2: the base string changed from
+    // 'bg-theme-surface-elevated border border-hairline' — a base background
+    // + border colour fought the registry tint in the cascade (all chips
+    // computed white). Base is shape-only now; the tint lives in `chip`.
+    expect(APPOINTMENT_CHIP_BASE_CLASSES).toBe('border')
+    expect(statusChipClasses('scheduled')).toBe('border-accent-200 bg-accent-50')
     expect(statusChipClasses('confirmed')).toBe('border-systemGreen-200 bg-systemGreen-50')
     expect(statusChipClasses('in_consultation')).toBe('border-systemYellow-200 bg-systemYellow-50')
     expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
     expect(statusChipClasses('cancelled')).toBe('border-systemRed-200 bg-systemRed-50')
     expect(statusChipClasses('no_show')).toBe('border-systemYellow-200 bg-systemYellow-50')
-    expect(statusChipClasses('rescheduled')).toBe('border-systemBlue-200 bg-systemBlue-50')
+    expect(statusChipClasses('rescheduled')).toBe('border-accent-200 bg-accent-50')
   })
 
   it('keeps the exact tone class tokens currently shown', () => {
-    expect(statusToneClasses('scheduled')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusToneClasses('scheduled')).toBe('bg-accent-50 text-accent-700')
     expect(statusToneClasses('confirmed')).toBe('bg-systemGreen-50 text-systemGreen-700')
     expect(statusToneClasses('in_consultation')).toBe('bg-systemYellow-50 text-systemYellow-700')
     expect(statusToneClasses('completed')).toBe('bg-systemGray-100 text-systemGray-700')
     expect(statusToneClasses('cancelled')).toBe('bg-systemRed-50 text-systemRed-700')
     expect(statusToneClasses('no_show')).toBe('bg-systemYellow-50 text-systemYellow-700')
-    expect(statusToneClasses('rescheduled')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusToneClasses('rescheduled')).toBe('bg-accent-50 text-accent-700')
+  })
+})
+
+// T8b defect 2 — chip anatomy contract: the base classes carry SHAPE only
+// (no background, no border colour) and the registry status classes carry
+// the tint (background + border colour). With both layers setting
+// background-color/border-color, the CSS cascade decides by stylesheet
+// order and the status tint lost in the real browser (every chip computed
+// to rgb(255,255,255)).
+describe('appointment chip anatomy contract (T8b defect 2)', () => {
+  const baseTokens = APPOINTMENT_CHIP_BASE_CLASSES.split(/\s+/).filter(Boolean)
+
+  it('keeps base classes shape-only: no bg-* and no border-colour tokens', () => {
+    expect(baseTokens.length).toBeGreaterThan(0)
+    for (const token of baseTokens) {
+      expect(token.startsWith('bg-'), `base token "${token}" must not set a background`).toBe(false)
+      const isBorderColorToken = token.startsWith('border-') && token !== 'border-radius'
+      expect(isBorderColorToken, `base token "${token}" must not set a border colour`).toBe(false)
+    }
+  })
+
+  it('provides the full tint (background + border colour) from every status entry', () => {
+    for (const key of APPOINTMENT_STATUS_KEYS) {
+      const tokens = statusChipClasses(key).split(/\s+/).filter(Boolean)
+      expect(
+        tokens.some(token => token.startsWith('bg-')),
+        `status "${key}" must set its own background`
+      ).toBe(true)
+      expect(
+        tokens.some(token => token.startsWith('border-')),
+        `status "${key}" must set its own border colour`
+      ).toBe(true)
+    }
+  })
+
+  it('keeps the neutral completed entry on the theme surface tint', () => {
+    expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
   })
 })
 
@@ -121,10 +162,10 @@ describe('unknown status fallback', () => {
     expect(statusBadgeVariant('voided')).toBe('info')
     expect(statusBadgeProps('voided')).toEqual({ variant: 'info', showDot: true })
     expect(statusBadgeProps(undefined)).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('voided')).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusChipClasses(undefined)).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusToneClasses('voided')).toBe('bg-systemBlue-50 text-systemBlue-700')
-    expect(statusToneClasses(null)).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusChipClasses('voided')).toBe('border-accent-200 bg-accent-50')
+    expect(statusChipClasses(undefined)).toBe('border-accent-200 bg-accent-50')
+    expect(statusToneClasses('voided')).toBe('bg-accent-50 text-accent-700')
+    expect(statusToneClasses(null)).toBe('bg-accent-50 text-accent-700')
   })
 
   it('ignores prototype-inherited keys such as constructor and toString', () => {
@@ -132,7 +173,7 @@ describe('unknown status fallback', () => {
     expect(statusLabel('toString')).toBe('toString')
     expect(statusLabel('__proto__')).toBe('__proto__')
     expect(statusBadgeProps('constructor')).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('toString')).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusToneClasses('__proto__')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusChipClasses('toString')).toBe('border-accent-200 bg-accent-50')
+    expect(statusToneClasses('__proto__')).toBe('bg-accent-50 text-accent-700')
   })
 })
