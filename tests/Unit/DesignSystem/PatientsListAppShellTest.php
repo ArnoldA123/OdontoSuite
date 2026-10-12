@@ -56,12 +56,46 @@ namespace Tests\Unit\DesignSystem;
  * inherited `ModuleAppShellTestCase::test_no_style_scoped` rule is GREEN
  * for this file after the migration; the test is also re-asserted here
  * for the pacientes-specific context.
+ *
+ * Patients interface redesign (login/dashboard visual language) — the
+ * list section is restructured behind the dashboard's block contract:
+ * hero band (single page title + single primary CTA; the app-shell
+ * topbar owns the page's `<h1>`) → `data-patients-block=
+ * "summary"` KPI strip → `data-patients-block="directory"` list. New
+ * source-inspection pins mirror `DashboardHierarchyContractTest`:
+ *
+ *   - `test_patients_blocks_render_in_reading_order`
+ *   - `test_hero_band_carries_the_login_surface_vocabulary`
+ *
+ * Two genuinely-conflicting structural pins were re-anchored to the new
+ * contract (both were pins of the retired markup, not of a behavior):
+ *
+ *   - `test_list_stat_cards_use_ui_card_clickable` →\ *     `test_list_kpi_cards_are_non_interactive` (the dashboard KPI
+ *     anatomy mandates non-interactive cards; the old cards were
+ *     `clickable` with no handler at all).
+ *   - `test_list_dni_age_columns_have_tabular_nums` →
+ *     `test_kpi_values_and_row_cells_keep_tabular_nums` (KPI values ride
+ *     the dashboard literal `'tnum' 1, 'lnum' 1`; the row cells moved to
+ *     `PatientListRow.vue`, the shared row component both responsive
+ *     surfaces render).
+ *   - `test_patients_blocks_render_in_reading_order` heading-tier
+ *     assertions → importance mapping (architect decision): heading tiers
+ *     map by IMPORTANCE, not by source order. The directory is the
+ *     protagonist content block (`text-2xl font-semibold`); the summary
+ *     is a glanceable band (`text-xl font-semibold`). Source order stays
+ *     summary → directory.
+ *
+ * Every contract pin (useEcho `patients` channel, `useApi` destructure,
+ * 422 toast envelope, `<Pagination>` behavior/imports) stays unmodified.
  */
 class PatientsListAppShellTest extends ModuleAppShellTestCase
 {
     /** PatientsPage list file path constant — used by the data provider
      *  + the single-file rules. Keeps a single source of truth. */
     private const PATIENTS_LIST_PATH = '/resources/js/modules/patients/PatientsPage.vue';
+
+    /** Shared row component rendered by both responsive row surfaces. */
+    private const PATIENT_ROW_PATH = '/resources/js/modules/patients/PatientListRow.vue';
 
     /** @return array<int, string> */
     protected static function polishedFiles(): array
@@ -253,14 +287,18 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * PAC-LIST-001 — the 4 stat cards MUST consume `<UiCard>` with the
-     * `clickable` attribute. The card's primitive handles focus + hover
-     * + press; the click handler stays verbatim in `<script>`.
+     * Patients redesign — the 4 summary cards render the dashboard KPI
+     * anatomy (`<UiCard variant="glass" padding="sm">`) as a NON-
+     * interactive reference surface: no `clickable` / `hover` props, no
+     * click affordance classes, exactly one `data-kpi-caption` per card.
      *
-     * Asserts 4 `<UiCard ... clickable>` references in the stat-cards
-     * grid (one per stat card: Total / Activos / Inactivos / Filtrados).
+     * RE-ANCHOR of the retired `test_list_stat_cards_use_ui_card_clickable`
+     * pin: the old stat cards were `<UiCard clickable>` but carried no
+     * click handler at all. The redesigned KPI strip is a static reference
+     * surface (dashboard WU1/T3 contract); filtering stays on the status
+     * `<UiSelect>`.
      */
-    public function test_list_stat_cards_use_ui_card_clickable(): void
+    public function test_list_kpi_cards_are_non_interactive(): void
     {
         $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
@@ -268,68 +306,213 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
 
         $listSection = self::stripInlinedModals($src);
 
-        // The 4 stat cards each render `<UiCard variant="glass" clickable>`.
-        $count = preg_match_all(
-            '/<UiCard\b[^>]*\bclickable\b/',
+        $summaryStart = strpos($listSection, 'data-patients-block="summary"');
+        $directoryStart = strpos($listSection, 'data-patients-block="directory"');
+        $this->assertNotFalse($summaryStart, sprintf('%s MUST render the summary block hook.', $path));
+        $this->assertNotFalse($directoryStart, sprintf('%s MUST render the directory block hook.', $path));
+
+        $summaryBlock = substr($listSection, $summaryStart, $directoryStart - $summaryStart);
+
+        $cards = preg_match_all('/<UiCard\b[^>]*variant="glass"[^>]*padding="sm"/', $summaryBlock);
+        $this->assertGreaterThanOrEqual(
+            4,
+            $cards,
+            sprintf(
+                '%s MUST render 4 KPI cards with `<UiCard variant="glass" padding="sm">` (dashboard anatomy). Found %d.',
+                $path,
+                $cards
+            )
+        );
+
+        $this->assertSame(
+            0,
+            preg_match('/<UiCard\b[^>]*\bclickable\b/', $summaryBlock),
+            sprintf(
+                '%s KPI cards MUST NOT carry the `clickable` prop (dashboard WU1/T3: the strip is a static reference surface).',
+                $path
+            )
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/hover-lift|cursor-pointer/',
+            $summaryBlock,
+            sprintf('%s KPI cards MUST NOT carry click/hover affordance classes.', $path)
+        );
+
+        $captions = preg_match_all('/data-kpi-caption=/', $summaryBlock);
+        $this->assertSame(
+            4,
+            $captions,
+            sprintf('%s KPI cards MUST carry exactly one `data-kpi-caption` each. Found %d.', $path, $captions)
+        );
+    }
+
+    /**
+     * DLR-R-007 (re-anchored) — tabular numerals survive the redesign in
+     * the vocabulary each contract mandates: the 4 KPI values ride the
+     * dashboard literal `font-feature-settings: 'tnum' 1, 'lnum' 1`
+     * (DashboardPage KPI anatomy), and the row document/age cells keep the
+     * tokenized `var(--font-features-tabular-nums)` form inside
+     * `PatientListRow.vue`, the shared row component both responsive
+     * surfaces render.
+     *
+     * RE-ANCHOR of the retired
+     * `test_list_dni_age_columns_have_tabular_nums` pin: it scanned the
+     * pre-redesign inlined row markup that lived directly in the list
+     * section of `PatientsPage.vue`.
+     */
+    public function test_kpi_values_and_row_cells_keep_tabular_nums(): void
+    {
+        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $listSection = self::stripInlinedModals($src);
+
+        // 1) The 4 KPI value cells (Total / Activos / Inactivos /
+        // Filtrados) carry the dashboard's literal font-feature form.
+        $kpiCount = preg_match_all(
+            "/font-feature-settings: 'tnum' 1, 'lnum' 1/",
             $listSection
         );
         $this->assertGreaterThanOrEqual(
             4,
-            $count,
+            $kpiCount,
             sprintf(
-                '%s MUST render 4 stat cards with `<UiCard clickable>` (PAC-LIST-001). Found %d.',
+                '%s MUST carry `font-feature-settings: \'tnum\' 1, \'lnum\' 1` on the 4 KPI values (DLR-R-007 / dashboard anatomy). Found %d.',
                 $path,
-                $count
+                $kpiCount
+            )
+        );
+
+        // 2) The shared row component carries the tokenized form on its
+        // document/age cells in BOTH variants (table row + mobile card).
+        $rowPath = dirname(__DIR__, 3) . self::PATIENT_ROW_PATH;
+        $rowSrc = self::readSource($rowPath);
+        $this->assertNotNull($rowSrc, sprintf('%s must be readable.', $rowPath));
+
+        $rowCount = preg_match_all(
+            '/style\s*=\s*["\']font-feature-settings:\s*var\(--font-features-tabular-nums\)["\']/',
+            $rowSrc
+        );
+        $this->assertGreaterThanOrEqual(
+            4,
+            $rowCount,
+            sprintf(
+                '%s MUST carry `font-feature-settings: var(--font-features-tabular-nums)` on the document + age cells of both row variants (DLR-R-007). Found %d.',
+                $rowPath,
+                $rowCount
             )
         );
     }
 
     /**
-     * DLR-R-007 — stat card values + DNI + age cells MUST carry
-     * `tabular-nums` (the token-aligned form:
-     * `font-feature-settings: var(--font-features-tabular-nums)`).
-     * The rule is the same as the global DLR-R-007 design contract;
-     * the pacientes application uses inline `style` on the affected
-     * cells, matching the precedent in `DashboardPage.vue`.
+     * Patients redesign — block hierarchy contract (model:
+     * `DashboardHierarchyContractTest`). The hero band leads, then the KPI
+     * summary block, then the directory block, in reading order. Heading
+     * tiers map by IMPORTANCE (architect decision), not by source order:
+     * the directory is the protagonist block and takes the leading tier,
+     * the summary is a glanceable band on the second tier. The page title
+     * lives in the hero band (non-heading `.page-title`; the app-shell
+     * topbar owns the page's single `h1`).
      */
-    public function test_list_dni_age_columns_have_tabular_nums(): void
+    public function test_patients_blocks_render_in_reading_order(): void
     {
         $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $listSection = self::stripInlinedModals($src);
+        $hero = strpos($src, 'data-patients-hero');
+        $summary = strpos($src, 'data-patients-block="summary"');
+        $directory = strpos($src, 'data-patients-block="directory"');
 
-        // 1) The 4 stat-card value cells (one per card: Total /
-        // Activos / Inactivos / Filtrados) each carry the inline style.
-        $statCardCount = preg_match_all(
-            '/style\s*=\s*["\']font-feature-settings:\s*var\(--font-features-tabular-nums\)["\']/',
-            $listSection
+        $this->assertNotFalse($hero, 'PatientsPage.vue must render the hero band hook.');
+        $this->assertNotFalse($summary, 'PatientsPage.vue must render block "summary".');
+        $this->assertNotFalse($directory, 'PatientsPage.vue must render block "directory".');
+        $this->assertLessThan($summary, $hero, 'The hero band must render before block "summary".');
+        $this->assertLessThan($directory, $summary, 'Block "summary" must render before block "directory".');
+
+        $this->assertStringContainsString(
+            '<h2 class="text-xl font-semibold text-label">Resumen de pacientes</h2>',
+            $src,
+            'Block "summary" must render the second heading tier: glanceable band (importance mapping).'
         );
-        $this->assertGreaterThanOrEqual(
-            4,
-            $statCardCount,
-            sprintf(
-                '%s MUST carry `font-feature-settings: var(--font-features-tabular-nums)` on the 4 stat-card values (DLR-R-007 / PAC-LIST-001). Found %d.',
-                $path,
-                $statCardCount
-            )
+        $this->assertStringContainsString(
+            '<h2 class="text-2xl font-semibold text-label">Directorio de pacientes</h2>',
+            $src,
+            'Block "directory" must render the leading heading tier: protagonist block (importance mapping).'
         );
 
-        // 2) The desktop-table DNI/age cells (the "ID: ..." line on the
-        // Paciente column + the Edad column) each carry the same inline
-        // style. Mobile card also carries the same on its DNI/age spans.
-        // Total expected: 4 stat-card values + 2 desktop table cells + 2
-        // mobile card spans = 8.
-        $this->assertGreaterThanOrEqual(
-            8,
-            $statCardCount,
-            sprintf(
-                '%s MUST carry `tabular-nums` on the 4 stat-card values + the 2 desktop table DNI/age cells + the 2 mobile card DNI/age spans '
-                    . '(DLR-R-007 / PAC-LIST-001). Found %d.',
-                $path,
-                $statCardCount
-            )
+        $this->assertSame(
+            0,
+            preg_match_all('/<h1\b/', $src),
+            'The page must own no h1: the hero title is a non-heading .page-title '
+                . 'and the app-shell topbar (AppLayout.vue) owns the page\'s single h1.'
+        );
+    }
+
+    /**
+     * Patients redesign — the hero band carries the login's surface
+     * vocabulary (canvas backdrop, hairline, panel radius, elevation rung),
+     * the brand lockup wordmark, and the page's single primary CTA. The
+     * retired `<PageHeader>` is gone from this page.
+     */
+    public function test_hero_band_carries_the_login_surface_vocabulary(): void
+    {
+        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        $this->assertStringContainsString(
+            'data-patients-hero',
+            $src,
+            'PatientsPage.vue must render the hero band hook.'
+        );
+        $this->assertStringContainsString(
+            'background: var(--color-canvas)',
+            $src,
+            'The hero band must paint the login backdrop base.'
+        );
+        $this->assertStringContainsString(
+            'border: 1px solid var(--color-hairline)',
+            $src,
+            'The hero band must carry the hairline vocabulary.'
+        );
+        $this->assertStringContainsString(
+            'border-radius: var(--radius-panel)',
+            $src,
+            'The hero band must ride the panel radius.'
+        );
+        $this->assertStringContainsString(
+            'box-shadow: var(--elevation-2)',
+            $src,
+            'The hero band must ride the elevation-2 rung.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<p[^>]*class="page-title[^"]*"[^>]*>\s*Pacientes\s*<\/p>/',
+            $src,
+            'The hero band must render the page title "Pacientes" as a non-heading element '
+                . '(duplicate-h1 fix; the app-shell topbar owns the single h1).'
+        );
+        $this->assertStringContainsString(
+            'OdontoSuite',
+            $src,
+            'The hero band must carry the login brand lockup wordmark.'
+        );
+        $this->assertStringNotContainsString(
+            '<PageHeader',
+            $src,
+            'The hero band replaces <PageHeader> on the patients list page.'
+        );
+
+        $this->assertSame(
+            1,
+            preg_match_all('/variant="primary"/', $src),
+            'The page\'s single primary button must be the hero CTA.'
+        );
+        $this->assertStringContainsString(
+            'Nuevo paciente',
+            $src,
+            'The hero CTA must read "Nuevo paciente".'
         );
     }
 

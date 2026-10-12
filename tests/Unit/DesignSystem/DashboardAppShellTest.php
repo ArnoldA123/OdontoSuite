@@ -815,25 +815,42 @@ class DashboardAppShellTest extends TestCase
             'DashboardSectionEmpty.vue must exist (shared empty-state pattern).'
         );
         $componentSrc = (string) self::readFile($componentPath);
+
+        // Re-anchored (patients redesign): the empty-state panel markup now
+        // lives in the shared UiSectionEmpty primitive, so the structural
+        // tokens are pinned where they live and the dashboard wrapper is
+        // pinned to delegate instead of keeping its own copy.
+        $primitivePath = self::projectRootPath() . '/resources/js/components/ui/UiSectionEmpty.vue';
+        $this->assertFileExists(
+            $primitivePath,
+            'UiSectionEmpty.vue must exist (shared empty-state primitive).'
+        );
+        $primitiveSrc = (string) self::readFile($primitivePath);
+
+        $this->assertStringContainsString(
+            '<UiSectionEmpty',
+            $componentSrc,
+            'DashboardSectionEmpty.vue must delegate to the shared UiSectionEmpty primitive (patients redesign: one empty-state anatomy).'
+        );
         $this->assertStringContainsString(
             'data-section-empty',
-            $componentSrc,
-            'DashboardSectionEmpty.vue must expose the data-section-empty hook (T5).'
+            $primitiveSrc,
+            'UiSectionEmpty.vue must expose the data-section-empty hook (T5); DashboardSectionEmpty renders the block through the primitive.'
         );
         $this->assertStringContainsString(
             'p-6',
-            $componentSrc,
-            'DashboardSectionEmpty.vue must own the compact padding token used by every empty state (WU3 / D9).'
+            $primitiveSrc,
+            'UiSectionEmpty.vue must own the compact padding token used by every empty state (WU3 / D9).'
         );
         $this->assertStringNotContainsString(
             'p-10',
-            $componentSrc,
-            'DashboardSectionEmpty.vue must drop the retired generous p-10 padding (WU3 / D9: compact pattern).'
+            $primitiveSrc,
+            'UiSectionEmpty.vue must drop the retired generous p-10 padding (WU3 / D9: compact pattern).'
         );
         $this->assertMatchesRegularExpression(
             '/h-8 w-8/',
-            $componentSrc,
-            'DashboardSectionEmpty.vue must render the smaller h-8 w-8 icon (WU3 / D9).'
+            $primitiveSrc,
+            'UiSectionEmpty.vue must render the smaller h-8 w-8 icon (WU3 / D9).'
         );
 
         $this->assertSame(

@@ -32,7 +32,9 @@
 export function useFormatters () {
   return {
     formatPENLabel,
-    formatCurrency
+    formatCurrency,
+    formatCompactTime,
+    formatCompactTimeRange
   }
 }
 
@@ -80,3 +82,51 @@ export function formatCurrency (amount, options) {
  * @returns {string}
  */
 export const formatPENLabel = formatCurrency
+
+/**
+ * T8b defect 3 — compact chip time. The calendar chips render this 24h
+ * `HH:mm` form (tnum-friendly digits) instead of the long es-PE locale form
+ * (`toLocaleTimeString('es-PE', …)` → "10:00 a. m."), which clipped the
+ * patient name inside the Week chip. The full locale format stays in the
+ * appointment details modal.
+ */
+const COMPACT_TIME_FORMATTER = new Intl.DateTimeFormat('es-PE', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23'
+})
+
+const toValidDate = value => {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
+  if (value === null || value === undefined || value === '') return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+/**
+ * Format a date-ish value (string, Date, timestamp) as compact 24h `HH:mm`.
+ * Invalid or missing input collapses to `''` — never throws, never `NaN`.
+ *
+ * @param {string|number|Date|null|undefined} value
+ * @returns {string}
+ */
+export function formatCompactTime(value) {
+  const date = toValidDate(value)
+  return date ? COMPACT_TIME_FORMATTER.format(date) : ''
+}
+
+/**
+ * Compact `HH:mm - HH:mm` range for calendar chips. A missing/invalid end
+ * repeats the start (single-point chips); a missing/invalid start collapses
+ * the whole range to `''`.
+ *
+ * @param {string|number|Date|null|undefined} start
+ * @param {string|number|Date|null|undefined} end
+ * @returns {string}
+ */
+export function formatCompactTimeRange(start, end) {
+  const begin = formatCompactTime(start)
+  if (!begin) return ''
+  const finish = formatCompactTime(end) || begin
+  return `${begin} - ${finish}`
+}
