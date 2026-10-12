@@ -153,6 +153,36 @@
         <p class="mt-4 text-theme-secondary">Cargando agenda...</p>
       </div>
 
+      <!-- Empty State (D1/D9) -->
+      <div
+        v-else-if="appointments.length === 0"
+        data-calendar-empty
+        class="relative overflow-hidden p-6 text-center"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+        "
+      >
+        <DentalMotifLayer variant="box" data-calendar-empty-motif />
+        <div class="relative">
+          <CalendarDaysIcon class="mx-auto mb-3 h-8 w-8 text-theme-secondary" aria-hidden="true" />
+          <p class="text-sm font-medium text-theme-primary">{{ emptyStateCopy.title }}</p>
+          <p class="mx-auto mt-1 max-w-md text-xs text-theme-secondary">
+            {{ emptyStateCopy.description }}
+          </p>
+          <UiButton
+            v-if="can.createAppointment?.value"
+            size="sm"
+            class="mt-4"
+            data-calendar-action="empty-new-appointment"
+            @click="openNewAppointmentModal"
+          >
+            Nueva cita
+          </UiButton>
+        </div>
+      </div>
+
       <!-- Day View -->
       <div v-else-if="currentView === 'day'" class="p-6">
         <div
@@ -402,150 +432,144 @@
     </section>
 
     <!-- Appointment Details Modal -->
-    <div
-      v-if="selectedAppointment"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="selectedAppointment = null"
+    <UiModal
+      :model-value="!!selectedAppointment"
+      title="Detalles de la Cita"
+      size="lg"
+      @update:model-value="closeDetails"
+      @close="closeDetails"
     >
-      <div
-        class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-      >
-        <div class="p-6 border-b border-hairline">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-theme-primary">Detalles de la Cita</h2>
-            <button
-              class="text-theme-secondary hover:text-theme-primary transition-colors"
-              @click="selectedAppointment = null"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+      <div v-if="selectedAppointment" data-calendar-detail class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Paciente</label>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.patient?.first_name }}
+              {{ selectedAppointment.patient?.last_name }}
+            </p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Profesional</label>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.user?.name }}
+            </p>
           </div>
         </div>
-        <div class="p-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Paciente</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.patient.first_name }}
-                {{ selectedAppointment.patient.last_name }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Profesional</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.user.name }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
-              <p class="text-theme-primary">
-                {{ formatDateTime(selectedAppointment.scheduled_at) }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Duración</label>
-              <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.appointment_type.name }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Estado</label>
-              <UiStatusBadge
-                :variant="getStatusBadgeProps(selectedAppointment.status).variant"
-                :label="getStatusText(selectedAppointment.status)"
-                :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
-                :data-status="selectedAppointment.status"
-              />
-            </div>
-          </div>
-          <div v-if="selectedAppointment.notes">
-            <label class="text-sm font-medium text-theme-secondary">Notas</label>
-            <p class="text-theme-primary">
-              {{ selectedAppointment.notes }}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
+            <p class="text-theme-primary" style="font-feature-settings: 'tnum' 1">
+              {{ formatDateTime(selectedAppointment.scheduled_at) }}
+            </p>
+            <p class="text-sm text-theme-secondary" style="font-feature-settings: 'tnum' 1">
+              {{ appointmentTimeRange(selectedAppointment) }}
             </p>
           </div>
-          <div v-if="selectedAppointment.treatment_notes">
-            <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Duración</label>
+            <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-if="selectedAppointment.appointment_type?.name">
+            <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
             <p class="text-theme-primary">
-              {{ selectedAppointment.treatment_notes }}
+              {{ selectedAppointment.appointment_type.name }}
             </p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
-            <UiButton
-              v-if="selectedAppointment.status === 'scheduled'"
-              size="sm"
-              variant="secondary"
-              @click="changeStatus(selectedAppointment, 'confirmed')"
-            >
-              Confirmar
-            </UiButton>
-            <UiButton
-              v-if="
-                selectedAppointment.status === 'confirmed' ||
-                selectedAppointment.status === 'scheduled'
-              "
-              size="sm"
-              variant="secondary"
-              @click="startConsultation(selectedAppointment)"
-            >
-              Iniciar Consulta
-            </UiButton>
-            <UiButton
-              v-if="selectedAppointment.status === 'in_consultation'"
-              size="sm"
-              variant="primary"
-              @click="openConsultationWizard(selectedAppointment)"
-            >
-              Completar Consulta
-            </UiButton>
-            <UiButton
-              v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
-              size="sm"
-              variant="danger"
-              @click="changeStatus(selectedAppointment, 'cancelled')"
-            >
-              Cancelar Cita
-            </UiButton>
+          <div v-if="selectedAppointment.dental_chair?.name">
+            <label class="text-sm font-medium text-theme-secondary">Sillón Dental</label>
+            <p class="text-theme-primary">Sillón {{ selectedAppointment.dental_chair.name }}</p>
           </div>
-          <div class="flex justify-end gap-3 pt-4">
-            <UiButton
-              v-if="can.updateAppointment?.value"
-              variant="secondary"
-              @click="editAppointment(selectedAppointment)"
-            >
-              Editar
-            </UiButton>
-            <UiButton
-              v-if="can.deleteAppointment?.value"
-              variant="danger"
-              @click="deleteAppointment(selectedAppointment)"
-            >
-              Eliminar
-            </UiButton>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Estado</label>
+            <UiStatusBadge
+              :variant="getStatusBadgeProps(selectedAppointment.status).variant"
+              :label="getStatusText(selectedAppointment.status)"
+              :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
+              :data-status="selectedAppointment.status"
+            />
           </div>
+        </div>
+        <div v-if="selectedAppointment.notes">
+          <label class="text-sm font-medium text-theme-secondary">Notas</label>
+          <p class="text-theme-primary">
+            {{ selectedAppointment.notes }}
+          </p>
+        </div>
+        <div v-if="selectedAppointment.treatment_notes">
+          <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
+          <p class="text-theme-primary">
+            {{ selectedAppointment.treatment_notes }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
+          <UiButton
+            v-if="selectedAppointment.status === 'scheduled'"
+            size="sm"
+            variant="secondary"
+            data-calendar-action="status-confirmed"
+            @click="changeStatus(selectedAppointment, 'confirmed')"
+          >
+            Confirmar
+          </UiButton>
+          <UiButton
+            v-if="
+              selectedAppointment.status === 'confirmed' ||
+              selectedAppointment.status === 'scheduled'
+            "
+            size="sm"
+            variant="secondary"
+            data-calendar-action="check-in"
+            @click="startConsultation(selectedAppointment)"
+          >
+            Iniciar Consulta
+          </UiButton>
+          <UiButton
+            v-if="selectedAppointment.status === 'in_consultation'"
+            size="sm"
+            variant="primary"
+            data-calendar-action="complete-consultation"
+            @click="openConsultationWizard(selectedAppointment)"
+          >
+            Completar Consulta
+          </UiButton>
+          <UiButton
+            v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
+            size="sm"
+            variant="danger"
+            data-calendar-action="status-cancelled"
+            @click="changeStatus(selectedAppointment, 'cancelled')"
+          >
+            Cancelar Cita
+          </UiButton>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <UiButton
+            v-if="can.editAppointment?.value"
+            variant="secondary"
+            data-calendar-action="edit"
+            @click="editAppointment(selectedAppointment)"
+          >
+            Editar
+          </UiButton>
+          <UiButton
+            v-if="can.deleteAppointment?.value"
+            variant="danger"
+            data-calendar-action="delete"
+            @click="deleteAppointment(selectedAppointment)"
+          >
+            Eliminar
+          </UiButton>
         </div>
       </div>
-    </div>
+    </UiModal>
 
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
       :initial-date="newAppointmentPrefill"
+      :appointment="editingAppointment"
       @created="handleAppointmentSaved"
       @updated="handleAppointmentSaved"
     />
@@ -570,9 +594,11 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import UiModal from '../../components/ui/Modal.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import {
   ArrowLeftIcon,
+  CalendarDaysIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   PlusIcon
@@ -616,8 +642,10 @@ export default {
     UiButton,
     UiBadge,
     UiStatusBadge,
+    UiModal,
     DentalMotifLayer,
     ArrowLeftIcon,
+    CalendarDaysIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     PlusIcon,
@@ -635,7 +663,9 @@ export default {
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
-    const loading = ref(false)
+    // T7: starts true so the D1/D9 empty block never flashes before the
+    // first range load (empty state must never appear while loading).
+    const loading = ref(true)
     const currentView = ref('week')
     const currentDate = ref(new Date())
     const appointments = ref([])
@@ -893,6 +923,33 @@ export default {
       }
       selectedAppointment.value = appointment
     }
+
+    // T7: UiModal owns the details chrome (backdrop, Escape, focus trap);
+    // every close path funnels through clearing the selection.
+    const closeDetails = () => {
+      selectedAppointment.value = null
+    }
+
+    // T7 D1/D9 — quiet empty-state copy per view (one short title + one
+    // precise sentence), rendered instead of the grids when the loaded range
+    // has zero appointments.
+    const emptyStateCopy = computed(() => {
+      const copy = {
+        day: {
+          title: 'Sin citas este día',
+          description: 'La agenda de este día está libre. Crea una cita para empezar.'
+        },
+        week: {
+          title: 'Sin citas esta semana',
+          description: 'Ninguna cita en la semana cargada. Crea una cita para empezar.'
+        },
+        month: {
+          title: 'Sin citas este mes',
+          description: 'Ninguna cita en el mes cargado. Crea una cita para empezar.'
+        }
+      }
+      return copy[currentView.value]
+    })
 
     // T5 drag-and-drop reschedule: press + DRAG_THRESHOLD_PX of travel on a
     // Day/Week chip starts a drag; below the threshold the native click still
@@ -1226,6 +1283,8 @@ export default {
       getStatusText,
       getStatusBadgeProps,
       selectAppointment,
+      closeDetails,
+      emptyStateCopy,
       draggingAppointmentId,
       dropHoverSlot,
       dropTargetClasses,
