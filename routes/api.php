@@ -154,6 +154,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Citas (todos los roles excepto finanzas)
     Route::middleware('role:administrador,recepcionista,odontologo,implantologo,tecnico_dental,asistente')->group(function () {
         Route::patch('appointments/{appointment}/status', [AppointmentController::class, 'updateStatus']);
+        Route::patch('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
         Route::apiResource('appointments', AppointmentController::class);
         Route::apiResource('reminder-templates', ReminderTemplateController::class)->middleware('role:administrador');
 

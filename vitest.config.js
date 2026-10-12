@@ -18,7 +18,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/js/setup.js'],
-    include: ['tests/js/smoke/**/*.test.js'],
+    include: ['tests/js/smoke/**/*.test.js', 'tests/js/unit/**/*.test.js'],
     testTimeout: 15000
   }
 })

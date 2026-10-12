@@ -1,8 +1,19 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6 bg-canvas">
-      <template #actions>
+    <!-- Hero band: dashboard hero grammar (canvas + hairline + radius-panel + elevation-2) -->
+    <header
+      data-calendar-shell="hero"
+      class="relative overflow-hidden p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <DentalMotifLayer variant="hero" data-calendar-motif />
+      <div class="relative flex items-start justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">Agenda</p>
         <span
           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-systemGreen-50 text-systemGreen-700 text-xs font-medium"
           aria-label="Actualizaciones en tiempo real activas"
@@ -14,119 +25,128 @@
           />
           En vivo
         </span>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton v-if="can.createAppointment?.value" @click="openNewAppointmentModal">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </template>
-          Nueva Cita
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- View Controls -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center gap-2">
+      </div>
+      <p class="relative mt-3 text-4xl font-semibold text-label">
+        {{ currentPeriodTitle }}
+      </p>
+      <p
+        class="relative mt-2 text-base leading-relaxed text-theme-secondary"
+        style="
+          font-feature-settings:
+            'tnum' 1,
+            'lnum' 1;
+        "
+      >
+        {{ loadedAppointmentsCaption }}
+      </p>
+      <div class="relative mt-6 flex flex-wrap items-center gap-3">
+        <div
+          class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
+          role="group"
+          aria-label="Vista del calendario"
+          data-calendar-view-switcher
+        >
           <UiButton
-            :variant="currentView === 'day' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'day' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'day'"
+            data-calendar-view="day"
             @click="changeView('day')"
           >
             Día
           </UiButton>
           <UiButton
-            :variant="currentView === 'week' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'week' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'week'"
+            data-calendar-view="week"
             @click="changeView('week')"
           >
             Semana
           </UiButton>
           <UiButton
-            :variant="currentView === 'month' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'month' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'month'"
+            data-calendar-view="month"
             @click="changeView('month')"
           >
             Mes
           </UiButton>
         </div>
-        <div class="flex items-center gap-3">
-          <UiButton variant="ghost" size="sm" class="p-2" @click="previousPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+        <div class="inline-flex items-center gap-1">
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo anterior"
+            data-calendar-nav="prev"
+            @click="previousPeriod"
+          >
+            <template #icon-left>
+              <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+          <UiButton variant="ghost" size="sm" data-calendar-nav="today" @click="goToToday">
+            Hoy
           </UiButton>
           <UiButton
-variant="ghost"
-size="sm" class="px-4" @click="goToToday">Hoy</UiButton>
-          <UiButton variant="ghost" size="sm" class="p-2" @click="nextPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo siguiente"
+            data-calendar-nav="next"
+            @click="nextPeriod"
+          >
+            <template #icon-left>
+              <ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+        </div>
+        <div class="flex items-center gap-3 sm:ml-auto">
+          <UiButton variant="secondary" size="sm" data-calendar-action="back" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton
+            v-if="can.createAppointment?.value"
+            data-calendar-action="new-appointment"
+            @click="openNewAppointmentModal"
+          >
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nueva cita
           </UiButton>
         </div>
       </div>
-    </UiCard>
+    </header>
 
-    <!-- Calendar Header -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-theme-primary mb-2">
-          {{ currentPeriodTitle }}
-        </h2>
-        <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
-          <UiStatusBadge variant="info" label="Programada" show-dot
-data-status="scheduled" />
-          <UiStatusBadge variant="success" label="Confirmada" show-dot
-data-status="confirmed" />
-          <UiStatusBadge variant="warning" label="En Consulta" show-dot
-data-status="in_progress" />
-          <UiStatusBadge variant="neutral" label="Completada" show-dot
-data-status="completed" />
-          <UiStatusBadge variant="error" label="Cancelada" show-dot
-data-status="cancelled" />
-          <UiStatusBadge variant="neutral" label="No se presentó" show-dot
-data-status="no_show" />
-          <UiStatusBadge variant="warning" label="Reprogramada" data-status="rescheduled" />
-        </div>
+    <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
+    <section
+      data-calendar-shell="grid"
+      class="overflow-hidden bg-canvas"
+      style="
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <!-- Legend: registry-driven status pills as the surface's header strip -->
+      <div
+        class="flex flex-wrap items-center gap-2 border-b border-hairline bg-theme-surface px-6 py-4"
+        data-calendar-legend
+      >
+        <UiBadge
+          v-for="status in legendStatuses"
+          :key="status"
+          size="sm"
+          :variant="statusBadgeVariant(status)"
+          :data-status="status"
+        >
+          {{ statusLabel(status) }}
+        </UiBadge>
       </div>
-    </UiCard>
-
-    <!-- Calendar Content -->
-    <UiCard variant="glass" class="overflow-hidden">
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center">
         <LoadingSpinner size="lg" text="Cargando agenda..." />
@@ -135,24 +155,59 @@ data-status="no_show" />
 
       <!-- Day View -->
       <div v-else-if="currentView === 'day'" class="p-6">
-        <div class="space-y-4">
-          <div v-for="hour in dayHours" :key="hour" class="flex items-start gap-4">
-            <div class="w-16 text-sm text-theme-secondary font-medium pt-2">
+        <div
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <div
+            v-for="hour in dayHours"
+            :key="hour"
+            class="flex items-stretch border-b border-hairline last:border-b-0"
+          >
+            <div
+              class="w-16 shrink-0 border-r border-hairline bg-theme-surface px-3 py-2 text-right text-xs text-theme-secondary"
+              style="font-feature-settings: 'tnum' 1"
+            >
               {{ formatHour(hour) }}
             </div>
-            <div class="flex-1 min-h-[60px] border-l-2 border-hairline pl-4">
-              <div
-                v-for="appointment in getAppointmentsForHour(hour)"
-                :key="appointment.id"
-                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm transition-all duration-200 cursor-pointer"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <div class="font-semibold text-base">
-                      {{ appointment.appointment_type?.name || 'Cita' }}
-                    </div>
+            <div class="relative min-h-[64px] flex-1 px-3 py-2">
+              <button
+                v-if="can.createAppointment?.value"
+                type="button"
+                class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                :data-calendar-slot="`${dayDateString}-${hour}`"
+                :aria-label="`Crear cita el ${dayDateString} a las ${formatHour(hour)}`"
+                @click="openSlotCreate(dayDateString, hour)"
+              ></button>
+              <div class="pointer-events-none relative space-y-2">
+                <button
+                  v-for="appointment in appointmentsForSlot(dayDateString, hour)"
+                  :key="appointment.id"
+                  type="button"
+                  class="pointer-events-auto block w-full px-3 py-2 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :data-calendar-appointment="appointment.id"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span class="flex items-start justify-between gap-3">
+                    <span class="min-w-0">
+                      <span
+                        class="block truncate text-xs text-theme-primary"
+                        style="font-feature-settings: 'tnum' 1"
+                      >
+                        {{ appointmentTimeRange(appointment) }}
+                      </span>
+                      <span class="block truncate text-sm font-semibold text-theme-primary">
+                        {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                      </span>
+                      <span
+                        v-if="appointmentMetaLine(appointment)"
+                        class="block truncate text-xs text-theme-secondary"
+                      >
+                        {{ appointmentMetaLine(appointment) }}
+                      </span>
+                    </span>
                     <UiStatusBadge
                       size="sm"
                       :variant="getStatusBadgeProps(appointment.status).variant"
@@ -160,35 +215,8 @@ data-status="no_show" />
                       :show-dot="getStatusBadgeProps(appointment.status).showDot"
                       :data-status="appointment.status"
                     />
-                  </div>
-                  <div class="text-sm text-theme-primary">
-                    <span class="font-medium">{{ formatTime(appointment.scheduled_at) }}</span>
-                    <span v-if="appointment.ends_at" class="text-theme-secondary">
-                      - {{ formatTime(appointment.ends_at) }}
-                    </span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-xs text-theme-secondary">
-                    <div>
-                      <span class="font-medium">Paciente:</span>
-                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                    </div>
-                    <div>
-                      <span class="font-medium">Profesional:</span>
-                      {{ appointment.user?.name }}
-                    </div>
-                    <div v-if="appointment.dental_chair">
-                      <span class="font-medium">Sillón:</span>
-                      {{ appointment.dental_chair?.name }}
-                    </div>
-                    <div v-if="appointment.duration_minutes">
-                      <span class="font-medium">Duración:</span>
-                      {{ appointment.duration_minutes }} min
-                    </div>
-                  </div>
-                  <div v-if="appointment.notes" class="text-xs text-theme-secondary italic">
-                    {{ appointment.notes }}
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -198,65 +226,78 @@ data-status="no_show" />
       <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
         <div
-          class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums"
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
         >
-          <!-- Time column header -->
-          <div class="p-2 border-b border-hairline bg-theme-surface" />
-
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="p-2 border-b border-hairline bg-theme-surface text-center"
-          >
-            <div class="text-sm font-medium text-theme-primary">
-              {{ day.name }}
-            </div>
-            <div class="text-xs text-theme-secondary">
-              {{ day.number }}
-            </div>
-          </div>
-
-          <!-- Time column -->
-          <div class="border-r border-hairline">
+          <div class="grid grid-cols-8">
+            <!-- Header row -->
+            <div class="border-b border-r border-hairline bg-theme-surface" />
             <div
-              v-for="hour in weekHours"
-              :key="hour"
-              class="h-16 border-b border-theme-light flex items-start justify-end pr-2 pt-1"
+              v-for="day in weekDays"
+              :key="day.date"
+              class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
             >
-              <span class="text-xs text-theme-secondary font-medium">{{ formatHour(hour) }}</span>
-            </div>
-          </div>
-
-          <!-- Day columns -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="border-r border-hairline last:border-r-0"
-          >
-            <div
-              v-for="hour in weekHours"
-              :key="`${day.date}-${hour}`"
-              class="h-16 border-b border-theme-light relative"
-            >
+              <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
+                {{ day.name }}
+              </div>
               <div
-                v-for="appointment in getAppointmentsForDayAndHour(day.date, hour)"
-                :key="appointment.id"
-                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer transition-all duration-200 z-10"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
+                class="text-sm font-medium text-theme-primary"
+                style="font-feature-settings: 'tnum' 1"
               >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
+                {{ day.number }}
               </div>
             </div>
+
+            <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
+            <template v-for="hour in weekHours" :key="hour">
+              <div
+                class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
+                style="font-feature-settings: 'tnum' 1"
+              >
+                {{ formatHour(hour) }}
+              </div>
+              <div
+                v-for="day in weekDays"
+                :key="`${day.date}-${hour}`"
+                class="relative h-16 border-b border-r border-hairline"
+                :data-calendar-slot-day="day.date"
+              >
+                <button
+                  v-if="can.createAppointment?.value"
+                  type="button"
+                  class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-slot="`${day.date}-${hour}`"
+                  :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                  @click="openSlotCreate(day.date, hour)"
+                ></button>
+                <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
+                  <button
+                    v-for="appointment in appointmentsForSlot(day.date, hour)"
+                    :key="appointment.id"
+                    type="button"
+                    class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                    :class="getAppointmentClasses(appointment)"
+                    style="border-radius: var(--radius-panel)"
+                    :data-calendar-appointment="appointment.id"
+                    @click="selectAppointment(appointment)"
+                  >
+                    <span
+                      class="block truncate text-xs font-semibold text-theme-primary"
+                      style="font-feature-settings: 'tnum' 1"
+                    >
+                      {{ appointmentTimeRange(appointment) }} ·
+                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                    </span>
+                    <span
+                      v-if="appointmentMetaLine(appointment)"
+                      class="block truncate text-xs text-theme-secondary"
+                    >
+                      {{ appointmentMetaLine(appointment) }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -337,7 +378,7 @@ data-status="no_show" />
           </div>
         </div>
       </div>
-    </UiCard>
+    </section>
 
     <!-- Appointment Details Modal -->
     <div
@@ -484,6 +525,7 @@ viewBox="0 0 24 24">
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
+      :initial-date="newAppointmentPrefill"
       @created="handleAppointmentSaved"
       @updated="handleAppointmentSaved"
     />
@@ -504,20 +546,52 @@ import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import {
+  ArrowLeftIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
+import { useConfirm } from '../../composables/useConfirm'
+import {
+  APPOINTMENT_CHIP_BASE_CLASSES,
+  APPOINTMENT_STATUS_KEYS,
+  statusLabel,
+  statusBadgeProps,
+  statusBadgeVariant,
+  statusChipClasses,
+  statusToneClasses
+} from './appointmentStatus'
+import {
+  WEEK_DAY_NAMES,
+  buildHours,
+  toLocalDateString,
+  weekDays as buildWeekDays,
+  monthDays as buildMonthDays,
+  periodTitle,
+  dateRangeForView,
+  addPeriod
+} from './calendarDateMath'
 
 export default {
   name: 'CalendarPage',
   components: {
     AppLayout,
-    UiCard,
     UiButton,
+    UiBadge,
     UiStatusBadge,
+    DentalMotifLayer,
+    ArrowLeftIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    PlusIcon,
     NewAppointmentModal,
     ConsultationWizard
   },
@@ -527,6 +601,7 @@ export default {
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
+    const { confirm } = useConfirm()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
@@ -563,14 +638,7 @@ export default {
       await loadAppointments()
     }
     const editingAppointment = ref(null)
-
-    const toLocalDateString = date => {
-      const d = date instanceof Date ? date : new Date(date)
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+    const newAppointmentPrefill = ref(null)
 
     const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
@@ -583,11 +651,14 @@ export default {
       }
     }
 
-    const getInitialDateForModal = () => {
+    const getInitialDateForModal = (dateStr = null, hour = null) => {
+      const pad = n => String(n).padStart(2, '0')
+      if (dateStr && Number.isInteger(hour)) {
+        return `${dateStr}T${pad(hour)}:00`
+      }
       if (currentView.value === 'day') {
         const date = new Date(currentDate.value)
         date.setHours(9, 0, 0, 0)
-        const pad = n => String(n).padStart(2, '0')
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
       }
       return null
@@ -595,6 +666,13 @@ export default {
 
     const openNewAppointmentModal = () => {
       editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal()
+      showNewAppointmentModal.value = true
+    }
+
+    const openSlotCreate = (dateStr, hour) => {
+      editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal(dateStr, hour)
       showNewAppointmentModal.value = true
     }
 
@@ -603,89 +681,41 @@ export default {
       await loadAppointments()
     }
 
-    const dayHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const dayHours = buildHours()
 
-    const weekHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const weekHours = buildHours()
 
-    const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const weekDayNames = WEEK_DAY_NAMES
 
     const currentPeriodTitle = computed(() => {
-      const date = currentDate.value
-      switch (currentView.value) {
-        case 'day':
-          return date.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        case 'week': {
-          const startOfWeek = new Date(date)
-          startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-          const endOfWeek = new Date(startOfWeek)
-          endOfWeek.setDate(startOfWeek.getDate() + 6)
-          return `${startOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
-        }
-        case 'month':
-          return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
-        default:
-          return ''
-      }
+      return periodTitle(currentDate.value, currentView.value)
     })
 
-    const weekDays = computed(() => {
-      const date = currentDate.value
-      const startOfWeek = new Date(date)
-      startOfWeek.setDate(date.getDate() - date.getDay() + 1)
+    // `in_progress` es el alias legacy en BD de `in_consultation` (misma
+    // entrada en el registro): la leyenda muestra una píldora por estado.
+    const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
 
-      const days = []
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(startOfWeek)
-        day.setDate(startOfWeek.getDate() + i)
-        days.push({
-          date: toLocalDateString(day),
-          name: weekDayNames[i],
-          number: day.getDate()
-        })
-      }
-      return days
+    const loadedAppointmentsCaption = computed(() => {
+      const count = appointments.value.length
+      if (count === 0) return 'Sin citas cargadas en el rango actual'
+      return count === 1
+        ? '1 cita cargada en el rango actual'
+        : `${count} citas cargadas en el rango actual`
+    })
+
+    const dayDateString = computed(() => toLocalDateString(currentDate.value))
+
+    const weekDays = computed(() => {
+      return buildWeekDays(currentDate.value)
     })
 
     const monthDays = computed(() => {
-      const date = currentDate.value
-      const year = date.getFullYear()
-      const month = date.getMonth()
-
-      const firstDay = new Date(year, month, 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-
-      const days = []
       const now = new Date()
-      const currentDateStr = toLocalDateString(now)
-
-      for (let i = 0; i < 42; i++) {
-        const day = new Date(startDate)
-        day.setDate(startDate.getDate() + i)
-        const dayStr = toLocalDateString(day)
-        const isToday = dayStr === currentDateStr
-
+      return buildMonthDays(currentDate.value, now).map(cell => {
         const allDayAppointments = appointments.value.filter(apt => {
           const aptInfo = getAppointmentLocalDate(apt)
           if (!aptInfo) return false
-          return aptInfo.dateStr === dayStr
+          return aptInfo.dateStr === cell.date
         })
 
         const sortedDayAppointments = allDayAppointments.sort((a, b) => {
@@ -696,48 +726,17 @@ export default {
           }
         })
 
-        days.push({
-          date: dayStr,
-          number: day.getDate(),
-          isCurrentMonth: day.getMonth() === month,
-          isToday,
+        return {
+          ...cell,
           appointments: sortedDayAppointments.slice(0, 3),
           appointmentCount: allDayAppointments.length,
           hasMore: allDayAppointments.length > 3
-        })
-      }
-      return days
+        }
+      })
     })
 
     const getDateRangeForCurrentView = () => {
-      const date = currentDate.value
-      if (currentView.value === 'day') {
-        const start = new Date(date)
-        const end = new Date(date)
-        return {
-          start_date: toLocalDateString(start),
-          end_date: toLocalDateString(end)
-        }
-      }
-      if (currentView.value === 'week') {
-        const startOfWeek = new Date(date)
-        startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-        const endOfWeek = new Date(startOfWeek)
-        endOfWeek.setDate(startOfWeek.getDate() + 6)
-        return {
-          start_date: toLocalDateString(startOfWeek),
-          end_date: toLocalDateString(endOfWeek)
-        }
-      }
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-      const lastDay = new Date(startDate)
-      lastDay.setDate(startDate.getDate() + 41)
-      return {
-        start_date: toLocalDateString(startDate),
-        end_date: toLocalDateString(lastDay)
-      }
+      return dateRangeForView(currentDate.value, currentView.value)
     }
 
     const loadAppointments = async () => {
@@ -776,10 +775,23 @@ export default {
       return `${startStr}-${endStr}`
     }
 
+    const appointmentTimeRange = appointment => {
+      return formatTimeRange(
+        appointment.scheduled_at,
+        appointment.ends_at || appointment.scheduled_at
+      )
+    }
+
+    const appointmentMetaLine = appointment => {
+      const parts = []
+      if (appointment?.user?.name) parts.push(appointment.user.name)
+      if (appointment?.dental_chair?.name) parts.push(`Sillón ${appointment.dental_chair.name}`)
+      return parts.join(' · ')
+    }
+
     const getAppointmentLabel = apt => {
       const type = apt?.appointment_type?.name || 'Cita'
-      const range = formatTimeRange(apt.scheduled_at, apt.ends_at || apt.scheduled_at)
-      return `${type} ${range}`
+      return `${type} ${appointmentTimeRange(apt)}`
     }
 
     const changeView = view => {
@@ -788,36 +800,12 @@ export default {
     }
 
     const previousPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() - 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() - 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() - 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, -1)
       loadAppointments()
     }
 
     const nextPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() + 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() + 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() + 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, 1)
       loadAppointments()
     }
 
@@ -826,25 +814,7 @@ export default {
       loadAppointments()
     }
 
-    const getAppointmentsForHour = hour => {
-      const dateStr = toLocalDateString(currentDate.value)
-      const filtered = appointments.value
-        .filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === dateStr && aptInfo.hour === hour
-        })
-        .sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
-      return filtered
-    }
-
-    const getAppointmentsForDayAndHour = (dateStr, hour) => {
+    const appointmentsForSlot = (dateStr, hour) => {
       return appointments.value
         .filter(apt => {
           const aptInfo = getAppointmentLocalDate(apt)
@@ -861,56 +831,19 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      const baseClasses = 'bg-theme-surface-elevated border border-hairline'
-      const statusClasses = {
-        scheduled: 'border-systemBlue-200 bg-systemBlue-50',
-        confirmed: 'border-systemGreen-200 bg-systemGreen-50',
-        in_consultation: 'border-systemYellow-200 bg-systemYellow-50',
-        completed: 'border-hairline bg-theme-surface',
-        cancelled: 'border-systemRed-200 bg-systemRed-50',
-        no_show: 'border-systemYellow-200 bg-systemYellow-50',
-        rescheduled: 'border-systemBlue-200 bg-systemBlue-50'
-      }
-      return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)}`
     }
 
     const getStatusClasses = status => {
-      const classes = {
-        scheduled: 'bg-systemBlue-50 text-systemBlue-700',
-        confirmed: 'bg-systemGreen-50 text-systemGreen-700',
-        in_consultation: 'bg-systemYellow-50 text-systemYellow-700',
-        completed: 'bg-systemGray-100 text-systemGray-700',
-        cancelled: 'bg-systemRed-50 text-systemRed-700',
-        no_show: 'bg-systemYellow-50 text-systemYellow-700',
-        rescheduled: 'bg-systemBlue-50 text-systemBlue-700'
-      }
-      return classes[status] || classes.scheduled
+      return statusToneClasses(status)
     }
 
     const getStatusText = status => {
-      const texts = {
-        scheduled: 'Programada',
-        confirmed: 'Confirmada',
-        in_consultation: 'En Consulta',
-        completed: 'Completada',
-        cancelled: 'Cancelada',
-        no_show: 'No se presentó',
-        rescheduled: 'Reprogramada'
-      }
-      return texts[status] || status
+      return statusLabel(status)
     }
 
     const getStatusBadgeProps = status => {
-      const props = {
-        scheduled: { variant: 'info', showDot: true },
-        confirmed: { variant: 'success', showDot: true },
-        in_consultation: { variant: 'warning', showDot: true },
-        completed: { variant: 'neutral', showDot: true },
-        cancelled: { variant: 'error', showDot: true },
-        no_show: { variant: 'neutral', showDot: true },
-        rescheduled: { variant: 'warning', showDot: false }
-      }
-      return props[status] || props.scheduled
+      return statusBadgeProps(status)
     }
 
     const selectAppointment = appointment => {
@@ -919,6 +852,7 @@ export default {
 
     const editAppointment = appointment => {
       editingAppointment.value = appointment
+      newAppointmentPrefill.value = null
       showNewAppointmentModal.value = true
       selectedAppointment.value = null
     }
@@ -1054,6 +988,10 @@ export default {
       weekHours,
       weekDayNames,
       currentPeriodTitle,
+      legendStatuses,
+      loadedAppointmentsCaption,
+      statusLabel,
+      statusBadgeVariant,
       weekDays,
       monthDays,
       loadAppointments,
@@ -1061,8 +999,12 @@ export default {
       previousPeriod,
       nextPeriod,
       goToToday,
-      getAppointmentsForHour,
-      getAppointmentsForDayAndHour,
+      appointmentsForSlot,
+      dayDateString,
+      appointmentTimeRange,
+      appointmentMetaLine,
+      openSlotCreate,
+      newAppointmentPrefill,
       getAppointmentClasses,
       getStatusClasses,
       getStatusText,

@@ -12,6 +12,7 @@ use App\Models\DentalChair;
 use App\Models\AppointmentType;
 use App\Models\AuditLog;
 use App\Services\AppointmentService;
+use App\Http\Requests\RescheduleAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -317,6 +318,89 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Move an existing appointment to a new date/time (calendar drag-and-drop).
+     *
+     * Conflict detection reuses AppointmentService::checkForConflicts (professional
+     * + chair overlap, excluding the appointment being moved). On conflict the
+     * response is 422 with a structured `conflict` payload for the UI toast.
+     */
+    public function reschedule(RescheduleAppointmentRequest $request, Appointment $appointment): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $scheduledAt = Carbon::parse($validated['scheduled_at'])->setTimezone(config('app.timezone'));
+        $duration = (int) ($validated['duration_minutes'] ?? $appointment->duration_minutes ?? 60);
+
+        $conflict = $this->appointmentService->checkForConflicts(
+            $appointment->user_id,
+            $appointment->dental_chair_id,
+            $scheduledAt,
+            $duration,
+            $appointment->id
+        );
+
+        if ($conflict !== null) {
+            return response()->json([
+                'message' => $conflict['message'],
+                'errors' => [
+                    'scheduled_at' => [$conflict['message']],
+                ],
+                'conflict' => [
+                    'type' => $conflict['type'],
+                    'conflicting_appointment' => $this->conflictSummary($conflict['conflicting_appointment']),
+                ],
+            ], 422);
+        }
+
+        try {
+            $appointment = $this->appointmentService->rescheduleAppointment($appointment, $scheduledAt, $duration);
+
+            try {
+                event(new AppointmentUpdated($appointment));
+            } catch (\Exception $e) {
+                Log::warning('Failed to emit AppointmentUpdated event', [
+                    'appointment_id' => $appointment->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
+                ClearDashboardCache::handle();
+            } catch (\Exception $e) {
+                Log::warning('Failed to clear dashboard cache', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            return response()->json([
+                'data' => new AppointmentResource($appointment),
+                'meta' => [
+                    'message' => 'Cita reprogramada exitosamente',
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::channel('audit')->error('Error rescheduling appointment', [
+                'appointment_id' => $appointment->id,
+                'user_id' => Auth::id(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Error al reprogramar la cita',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy(Request $request, Appointment $appointment): JsonResponse
@@ -415,5 +499,40 @@ class AppointmentController extends Controller
                 'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
+    }
+
+    /**
+     * Summary of the appointment blocking a reschedule, shaped for UI toasts.
+     */
+    private function conflictSummary(Appointment $conflict): array
+    {
+        $conflict->load([
+            'patient:id,first_name,last_name',
+            'user:id,name',
+            'dentalChair:id,name,code',
+        ]);
+
+        return [
+            'id' => $conflict->id,
+            'scheduled_at' => $conflict->scheduled_at?->toIso8601String(),
+            'ends_at' => $conflict->ends_at?->toIso8601String(),
+            'duration_minutes' => $conflict->duration_minutes,
+            'status' => $conflict->status,
+            'user_id' => $conflict->user_id,
+            'dental_chair_id' => $conflict->dental_chair_id,
+            'patient' => [
+                'id' => $conflict->patient?->id,
+                'full_name' => $conflict->patient?->full_name,
+            ],
+            'professional' => [
+                'id' => $conflict->user?->id,
+                'name' => $conflict->user?->name,
+            ],
+            'dental_chair' => [
+                'id' => $conflict->dentalChair?->id,
+                'name' => $conflict->dentalChair?->name,
+                'code' => $conflict->dentalChair?->code,
+            ],
+        ];
     }
 }
