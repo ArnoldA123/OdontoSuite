@@ -16,12 +16,16 @@
         :style="revealStyle('--spring-patient-detail-hero-o')"
       >
         <DentalMotifLayer variant="hero" data-hero-motif />
-        <div class="relative flex items-center justify-between gap-3">
+        <div class="relative flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs :items="breadcrumbs" :show-home="false" size="sm" variant="minimal" />
-          <div class="flex items-center gap-3" data-hero-actions>
+          <div
+            class="flex w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
+            data-hero-actions
+          >
             <UiButton
               variant="secondary"
               size="sm"
+              class="flex-1 sm:flex-none"
               data-export-button
               :disabled="exporting"
               @click="exportPatientFile"
@@ -35,6 +39,7 @@
               v-if="can.editPatient?.value"
               variant="primary"
               size="sm"
+              class="flex-1 sm:flex-none"
               data-edit-patient-button
               @click="editPatient"
             >
@@ -45,9 +50,9 @@
             </UiButton>
           </div>
         </div>
-        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">
+        <p class="page-title relative mt-3 text-4xl font-semibold text-label">
           {{ patient?.first_name }} {{ patient?.last_name }}
-        </h1>
+        </p>
         <p
           class="relative mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-base text-theme-secondary"
         >

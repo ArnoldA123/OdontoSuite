@@ -73,7 +73,7 @@ viewBox="0 0 24 24">
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount, useId } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, useId } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
 
 const props = defineProps({
@@ -152,6 +152,7 @@ const handleBackdropClick = () => {
 }
 
 const handleEscape = event => {
+  if (!props.modelValue) return
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -164,17 +165,25 @@ const handleClose = () => {
   emit('close')
 }
 
+// The Escape listener lives for the component's mounted lifetime (guarded by
+// modelValue in handleEscape) rather than being added/removed by the modelValue
+// watch: consumers may mount the modal with a STATIC `model-value`
+// (e.g. PatientFormModal), in which case the watch never fires and a
+// watch-scoped listener would never be registered. Same net behaviour:
+// Escape is a no-op while closed, and the listener is gone on unmount.
+onMounted(() => {
+  document.addEventListener('keydown', handleDocumentEscape)
+})
+
 // Watch for modelValue changes
 watch(
   () => props.modelValue,
   newValue => {
     if (newValue) {
       emit('open')
-      document.addEventListener('keydown', handleDocumentEscape)
       document.body.style.overflow = 'hidden'
       focusTrap.activate(modalRef.value)
     } else {
-      document.removeEventListener('keydown', handleDocumentEscape)
       document.body.style.overflow = ''
       focusTrap.release()
     }

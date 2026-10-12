@@ -16,7 +16,7 @@
         :style="revealStyle('--spring-patients-hero-o')"
       >
         <DentalMotifLayer variant="hero" data-hero-motif />
-        <div class="relative flex items-center justify-between gap-3">
+        <div class="relative flex flex-wrap items-center justify-between gap-3">
           <!-- Brand lockup: tooth glyph + wordmark on accent-500. -->
           <p class="inline-flex items-center gap-2">
             <svg
@@ -37,8 +37,17 @@
             </svg>
             <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
           </p>
-          <div class="flex items-center gap-3" data-hero-actions>
-            <UiButton variant="ghost" size="sm" data-back-button @click="goBack">
+          <div
+            class="flex w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
+            data-hero-actions
+          >
+            <UiButton
+              variant="ghost"
+              size="sm"
+              class="flex-1 sm:flex-none"
+              data-back-button
+              @click="goBack"
+            >
               <template #icon-left>
                 <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
               </template>
@@ -48,6 +57,7 @@
               v-if="can.createPatient?.value"
               variant="primary"
               size="sm"
+              class="flex-1 sm:flex-none"
               data-new-patient-button
               @click="openPatientForm('create')"
             >
@@ -58,7 +68,7 @@
             </UiButton>
           </div>
         </div>
-        <h1 class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</h1>
+        <p class="page-title relative mt-3 text-4xl font-semibold text-label">Pacientes</p>
         <p class="relative mt-2 text-base leading-relaxed text-theme-secondary">
           Gestiona la información de tus pacientes
         </p>

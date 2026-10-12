@@ -59,7 +59,8 @@ namespace Tests\Unit\DesignSystem;
  *
  * Patients interface redesign (login/dashboard visual language) — the
  * list section is restructured behind the dashboard's block contract:
- * hero band (single h1 + single primary CTA) → `data-patients-block=
+ * hero band (single page title + single primary CTA; the app-shell
+ * topbar owns the page's `<h1>`) → `data-patients-block=
  * "summary"` KPI strip → `data-patients-block="directory"` list. New
  * source-inspection pins mirror `DashboardHierarchyContractTest`:
  *
@@ -410,8 +411,9 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * summary block, then the directory block, in reading order. Heading
      * tiers map by IMPORTANCE (architect decision), not by source order:
      * the directory is the protagonist block and takes the leading tier,
-     * the summary is a glanceable band on the second tier. The single
-     * `h1` lives in the hero band.
+     * the summary is a glanceable band on the second tier. The page title
+     * lives in the hero band (non-heading `.page-title`; the app-shell
+     * topbar owns the page's single `h1`).
      */
     public function test_patients_blocks_render_in_reading_order(): void
     {
@@ -441,9 +443,10 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertSame(
-            1,
+            0,
             preg_match_all('/<h1\b/', $src),
-            'The hero band must own the page\'s single h1.'
+            'The page must own no h1: the hero title is a non-heading .page-title '
+                . 'and the app-shell topbar (AppLayout.vue) owns the page\'s single h1.'
         );
     }
 
@@ -485,9 +488,10 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             'The hero band must ride the elevation-2 rung.'
         );
         $this->assertMatchesRegularExpression(
-            '/<h1[^>]*>\s*Pacientes\s*<\/h1>/',
+            '/<p[^>]*class="page-title[^"]*"[^>]*>\s*Pacientes\s*<\/p>/',
             $src,
-            'The hero band must render the single h1 "Pacientes".'
+            'The hero band must render the page title "Pacientes" as a non-heading element '
+                . '(duplicate-h1 fix; the app-shell topbar owns the single h1).'
         );
         $this->assertStringContainsString(
             'OdontoSuite',

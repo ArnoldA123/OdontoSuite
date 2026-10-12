@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs'
 
 // Patient detail redesign (dashboard/login visual language). Pins the
 // structural contract at the DOM level: hero band recipe with the single
-// h1 + identity line (document, age, status badge) + data-hero-actions
+// page title (non-heading .page-title; the app-shell topbar owns the h1)
+// + identity line (document, age, status badge) + data-hero-actions
 // whose only page-wide primary is Editar, the ordered
 // data-patient-detail-block hierarchy with importance-mapped h2 weights,
 // the six tab panels rendering through ONE shared PatientTabPanel
@@ -126,7 +127,7 @@ describe('patient detail hero band (login language)', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders the hero panel recipe with the single h1 and the identity line', async () => {
+  it('renders the hero panel recipe with the page title and the identity line', async () => {
     const wrapper = await mountPage()
 
     const hero = wrapper.find('[data-patient-detail-hero]')
@@ -141,13 +142,15 @@ describe('patient detail hero band (login language)', () => {
       expect(hero.attributes('style')).toContain(token)
     }
 
-    const heading = hero.find('h1')
-    expect(heading.exists()).toBe(true)
-    expect(heading.text()).toBe('Ana Torres')
-    expect(heading.classes()).toEqual(
+    const title = hero.get('.page-title')
+    expect(title.element.tagName).toBe('P')
+    expect(title.text()).toBe('Ana Torres')
+    expect(title.classes()).toEqual(
       expect.arrayContaining(['page-title', 'text-4xl', 'font-semibold', 'text-label'])
     )
-    expect(wrapper.findAll('h1').filter(h => h.text() === 'Ana Torres')).toHaveLength(1)
+    // The hero keeps the page-title element; the AppLayout topbar owns the
+    // page's single <h1> (duplicate-h1 fix: hero titles are non-heading).
+    expect(wrapper.findAll('h1').filter(h => h.text() === 'Ana Torres')).toHaveLength(0)
 
     // Identity line: document, age, status badge (no second identity surface).
     const document = hero.get('[data-patient-identity="document"]')
@@ -168,6 +171,27 @@ describe('patient detail hero band (login language)', () => {
 
     // The hero owns the title now; PageHeader is gone from this page.
     expect(wrapper.findComponent(PageHeader).exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the app-shell h1 contract: the page owns no h1, the page-title stays non-heading', async () => {
+    const wrapper = await mountPage()
+
+    const hero = wrapper.get('[data-patient-detail-hero]')
+    const title = hero.get('.page-title')
+    expect(title.element.tagName).toBe('P')
+    expect(title.text()).toBe('Ana Torres')
+    expect(title.classes()).toEqual(
+      expect.arrayContaining(['page-title', 'text-4xl', 'font-semibold', 'text-label'])
+    )
+
+    // The page source and the rendered page own ZERO <h1> elements.
+    expect(pageSource).not.toMatch(/<h1[\s>]/)
+    expect(hero.find('h1').exists()).toBe(false)
+
+    // The app-shell topbar owns the single <h1> (page-title map in AppLayout).
+    expect(wrapper.findAll('[data-app-chrome="topbar"] h1')).toHaveLength(1)
 
     wrapper.unmount()
   })
