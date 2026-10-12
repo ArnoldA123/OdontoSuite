@@ -40,6 +40,13 @@ namespace Tests\Unit\DesignSystem;
  * canvas + hairline + --radius-panel + --elevation-2 surface
  * (`data-calendar-shell="grid"`).
  *
+ * Contract-change note (T6): the Month view body was rebuilt in the quiet
+ * shell grammar (month-specific contract pinned by the new
+ * `CitasCalendarMonthViewTest`). The chip-hook counts above went 2 → 3
+ * because the Month grid now renders the same registry-driven chip as
+ * Day/Week; no rule was dropped and the drag wiring stays Day/Week-only
+ * (the T5 contract is untouched).
+ *
  * Implementation note: regex delimiters are `#` (NOT `/`) because the path
  * patterns contain forward slashes; using `/` as delimiter would force
  * every `/` in the path to be escaped `\/`, which is brittle and error-prone.
@@ -626,6 +633,12 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      * their status styling ONLY from the appointmentStatus registry
      * (`getAppointmentClasses` → `APPOINTMENT_CHIP_BASE_CLASSES` +
      * `statusChipClasses`). No hardcoded system-color class map on the chips.
+     *
+     * Contract update (T6): counts 2 → 3 — the redesigned Month view renders
+     * the same registry-driven chip as the Day and Week grids (compact,
+     * `selectAppointment` → details modal, `getAppointmentClasses` for the
+     * status accent). The T4 intent is unchanged and now covers all three
+     * grids: one chip hook per grid, no hardcoded colour map anywhere.
      */
     public function test_appointment_chips_hooked_and_registry_driven(): void
     {
@@ -634,29 +647,29 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $this->assertSame(
-            2,
+            3,
             preg_match_all('#:data-calendar-appointment\s*=\s*"appointment\.id"#', $src),
             sprintf(
-                '%s Day and Week chips MUST carry `:data-calendar-appointment="appointment.id"` (T4).',
+                '%s Day, Week and Month chips MUST carry `:data-calendar-appointment="appointment.id"` (T4 + T6: one chip hook per grid).',
                 $path
             )
         );
 
-        $this->assertGreaterThanOrEqual(
-            2,
+        $this->assertSame(
+            3,
             preg_match_all('#@click\s*=\s*"selectAppointment\(appointment\)"#', $src),
             sprintf(
-                '%s chips MUST keep the `selectAppointment(appointment)` wiring to the details modal (T4).',
+                '%s chips MUST keep the `selectAppointment(appointment)` wiring to the details modal in all three grids (T4 + T6).',
                 $path
             )
         );
 
-        $this->assertGreaterThanOrEqual(
-            2,
+        $this->assertSame(
+            3,
             preg_match_all('#:class\s*=\s*"getAppointmentClasses\(appointment\)"#', $src),
             sprintf(
-                '%s chips MUST bind `:class="getAppointmentClasses(appointment)"` — status styling comes '
-                . 'from the appointmentStatus registry, never from a template class map (T4).',
+                '%s chips MUST bind `:class="getAppointmentClasses(appointment)"` in all three grids — status styling comes '
+                . 'from the appointmentStatus registry, never from a template class map (T4 + T6).',
                 $path
             )
         );

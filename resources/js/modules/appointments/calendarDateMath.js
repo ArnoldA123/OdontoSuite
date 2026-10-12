@@ -114,6 +114,19 @@ export function dateRangeForView(date, view) {
   }
 }
 
+// D8/T6 month-cell overflow split: how many compact chips a day cell shows
+// before the "N más" drill-down control. Pure and presentation-free (the
+// template owns how the two fields render).
+export const MONTH_CELL_CHIP_LIMIT = 3
+
+export function splitMonthCellAppointments(list, max = MONTH_CELL_CHIP_LIMIT) {
+  const safeMax = Math.max(0, Math.floor(max))
+  return {
+    visible: list.slice(0, safeMax),
+    overflowCount: Math.max(0, list.length - safeMax)
+  }
+}
+
 export function addPeriod(date, view, delta = 1) {
   const result = new Date(date)
   switch (view) {
@@ -123,9 +136,24 @@ export function addPeriod(date, view, delta = 1) {
     case 'week':
       result.setDate(date.getDate() + 7 * delta)
       break
-    case 'month':
-      result.setMonth(date.getMonth() + delta)
+    case 'month': {
+      // D12: month steps clamp to the last day of the target month instead of
+      // overflowing through setMonth (31 ene +1 -> 28/29 feb, not 3 mar).
+      // Target month/year are resolved on day 1 first so the reference day
+      // never sees a 29..31-day overflow while the month is being shifted.
+      const targetMonthStart = new Date(date.getFullYear(), date.getMonth() + delta, 1)
+      const lastDayOfTarget = new Date(
+        targetMonthStart.getFullYear(),
+        targetMonthStart.getMonth() + 1,
+        0
+      ).getDate()
+      result.setFullYear(
+        targetMonthStart.getFullYear(),
+        targetMonthStart.getMonth(),
+        Math.min(date.getDate(), lastDayOfTarget)
+      )
       break
+    }
   }
   return result
 }

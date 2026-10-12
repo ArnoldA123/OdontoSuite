@@ -170,7 +170,12 @@
             >
               {{ formatHour(hour) }}
             </div>
-            <div class="relative min-h-[64px] flex-1 px-3 py-2">
+            <div
+              class="relative min-h-[64px] flex-1 px-3 py-2"
+              :class="dropTargetClasses(`${dayDateString}-${hour}`)"
+              :data-calendar-drop-target="`${dayDateString}-${hour}`"
+              :data-calendar-drop-active="dropHoverSlot === `${dayDateString}-${hour}` ? '' : null"
+            >
               <button
                 v-if="can.createAppointment?.value"
                 type="button"
@@ -188,6 +193,11 @@
                   :class="getAppointmentClasses(appointment)"
                   style="border-radius: var(--radius-panel)"
                   :data-calendar-appointment="appointment.id"
+                  :data-calendar-draggable="appointment.id"
+                  :data-calendar-drag-state="
+                    draggingAppointmentId === appointment.id ? 'active' : null
+                  "
+                  @pointerdown="onChipPointerDown($event, appointment)"
                   @click="selectAppointment(appointment)"
                 >
                   <span class="flex items-start justify-between gap-3">
@@ -260,7 +270,10 @@
                 v-for="day in weekDays"
                 :key="`${day.date}-${hour}`"
                 class="relative h-16 border-b border-r border-hairline"
+                :class="dropTargetClasses(`${day.date}-${hour}`)"
                 :data-calendar-slot-day="day.date"
+                :data-calendar-drop-target="`${day.date}-${hour}`"
+                :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
               >
                 <button
                   v-if="can.createAppointment?.value"
@@ -279,6 +292,11 @@
                     :class="getAppointmentClasses(appointment)"
                     style="border-radius: var(--radius-panel)"
                     :data-calendar-appointment="appointment.id"
+                    :data-calendar-draggable="appointment.id"
+                    :data-calendar-drag-state="
+                      draggingAppointmentId === appointment.id ? 'active' : null
+                    "
+                    @pointerdown="onChipPointerDown($event, appointment)"
                     @click="selectAppointment(appointment)"
                   >
                     <span
@@ -304,75 +322,78 @@
 
       <!-- Month View -->
       <div v-else-if="currentView === 'month'" class="p-6">
-        <div class="grid grid-cols-7 gap-1 tabular-nums">
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDayNames"
-            :key="day"
-            class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-hairline"
-          >
-            {{ day }}
+        <div
+          data-calendar-month-grid
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <!-- Weekday header row: same Spanish short names as the week view -->
+          <div class="grid grid-cols-7 border-b border-hairline bg-theme-surface">
+            <div
+              v-for="name in weekDayNames"
+              :key="name"
+              data-calendar-month-weekday
+              class="border-r border-hairline px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-theme-secondary last:border-r-0"
+            >
+              {{ name }}
+            </div>
           </div>
 
-          <!-- Calendar days -->
-          <div
-            v-for="day in monthDays"
-            :key="day.date"
-            class="min-h-[120px] border border-hairline p-2 hover:bg-theme-surface transition-colors"
-            :class="{
-              'bg-theme-surface': !day.isCurrentMonth,
-              'bg-systemBlue-50 border-systemBlue-200': day.isToday
-            }"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span
-                class="text-sm font-medium"
-                :class="{
-                  'text-theme-secondary': !day.isCurrentMonth,
-                  'text-systemBlue-600': day.isToday,
-                  'text-theme-primary': day.isCurrentMonth && !day.isToday
-                }"
-              >
-                {{ day.number }}
-              </span>
-              <UiStatusBadge
-                v-if="day.appointmentCount > 0"
-                variant="info"
-                size="sm"
-                :label="String(day.appointmentCount)"
-                :data-status="`count-${day.date}`"
-              />
-            </div>
+          <!-- 42 day cells (6 rows): hairline separators, registry chips, "N más" drill-down -->
+          <div class="grid grid-cols-7">
+            <div
+              v-for="day in monthDays"
+              :key="day.date"
+              class="flex min-h-[112px] flex-col gap-1 border-b border-r border-hairline p-1.5"
+              :class="monthCellClasses(day)"
+              :data-calendar-month-day="day.date"
+            >
+              <div class="flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  class="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums transition-colors [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="monthDayNumberClasses(day)"
+                  :data-calendar-day-link="day.date"
+                  :aria-label="`Ver ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  {{ day.number }}
+                </button>
+              </div>
 
-            <div class="space-y-1">
-              <div
-                v-for="appointment in day.appointments"
-                :key="appointment.id"
-                class="p-1.5 rounded text-xs cursor-pointer hover:shadow-sm transition-all duration-200"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
-              </div>
-              <div
-                v-if="day.hasMore"
-                class="text-xs text-systemBlue-600 font-medium text-center mt-1"
-              >
-                +{{ day.appointmentCount - 3 }} más
-              </div>
-              <div
-                v-if="day.appointments.length === 0"
-                class="text-xs text-theme-secondary text-center py-2"
-              >
-                Sin citas
+              <div class="flex min-h-0 flex-1 flex-col gap-1">
+                <button
+                  v-for="appointment in day.appointments"
+                  :key="appointment.id"
+                  type="button"
+                  class="flex w-full items-center gap-1.5 px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :data-calendar-appointment="appointment.id"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span
+                    class="shrink-0 text-xs font-semibold text-theme-primary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ formatTime(appointment.scheduled_at) }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-theme-primary">
+                    {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                  </span>
+                </button>
+
+                <button
+                  v-if="day.overflowCount > 0"
+                  type="button"
+                  class="w-full rounded-md px-1.5 py-0.5 text-left text-xs font-medium text-accent-700 transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-more="day.date"
+                  :data-calendar-more-count="day.overflowCount"
+                  :aria-label="`Ver las ${day.overflowCount} citas de ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  +{{ day.overflowCount }} más
+                </button>
               </div>
             </div>
           </div>
@@ -396,8 +417,7 @@
               class="text-theme-secondary hover:text-theme-primary transition-colors"
               @click="selectedAppointment = null"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -545,6 +565,7 @@ import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { useReducedMotion } from '../../composables/useReducedMotion'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
@@ -577,8 +598,16 @@ import {
   monthDays as buildMonthDays,
   periodTitle,
   dateRangeForView,
-  addPeriod
+  addPeriod,
+  splitMonthCellAppointments
 } from './calendarDateMath'
+import {
+  DRAG_THRESHOLD_PX,
+  resolveDropSlot,
+  slotKeyToScheduledAt,
+  addMinutesToLocal,
+  canDropOn
+} from './dragDropMath'
 
 export default {
   name: 'CalendarPage',
@@ -597,11 +626,12 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const { get, del } = useApi()
+    const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
     const { confirm } = useConfirm()
+    const reducedMotion = useReducedMotion()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
@@ -712,25 +742,15 @@ export default {
     const monthDays = computed(() => {
       const now = new Date()
       return buildMonthDays(currentDate.value, now).map(cell => {
-        const allDayAppointments = appointments.value.filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === cell.date
-        })
-
-        const sortedDayAppointments = allDayAppointments.sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
+        const dayAppointments = appointments.value
+          .filter(apt => getAppointmentLocalDate(apt)?.dateStr === cell.date)
+          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
+        const { visible, overflowCount } = splitMonthCellAppointments(dayAppointments)
 
         return {
           ...cell,
-          appointments: sortedDayAppointments.slice(0, 3),
-          appointmentCount: allDayAppointments.length,
-          hasMore: allDayAppointments.length > 3
+          appointments: visible,
+          overflowCount
         }
       })
     })
@@ -799,6 +819,26 @@ export default {
       loadAppointments()
     }
 
+    // D8 month drill-down: "N más" (and the day-number header) jump straight
+    // to the already-redesigned Day view for that date.
+    const drillDownToDate = dateStr => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      currentDate.value = new Date(year, month - 1, day)
+      changeView('day')
+    }
+
+    const monthCellClasses = day => {
+      if (day.isToday) return 'bg-accent-50'
+      if (!day.isCurrentMonth) return 'bg-theme-surface'
+      return ''
+    }
+
+    const monthDayNumberClasses = day => {
+      if (day.isToday) return 'bg-accent-500 text-white font-semibold'
+      if (!day.isCurrentMonth) return 'text-theme-secondary hover:bg-theme-surface'
+      return 'text-theme-primary hover:bg-theme-surface'
+    }
+
     const previousPeriod = () => {
       currentDate.value = addPeriod(currentDate.value, currentView.value, -1)
       loadAppointments()
@@ -831,7 +871,7 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)}`
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)} ${dragChipClasses(appointment)}`.trim()
     }
 
     const getStatusClasses = status => {
@@ -847,7 +887,173 @@ export default {
     }
 
     const selectAppointment = appointment => {
+      if (suppressNextClick) {
+        suppressNextClick = false
+        return
+      }
       selectedAppointment.value = appointment
+    }
+
+    // T5 drag-and-drop reschedule: press + DRAG_THRESHOLD_PX of travel on a
+    // Day/Week chip starts a drag; below the threshold the native click still
+    // opens the details modal. Slot buttons are never drag sources.
+    const DRAG_CHIP_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 -translate-y-0.5 transition-[transform,opacity] duration-normal'
+    const DRAG_CHIP_REDUCED_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 ring-2 ring-inset ring-systemBlue-500'
+    const DRAG_CHIP_IDLE_CLASSES = 'cursor-grab'
+    const DROP_TARGET_HOVER_CLASSES = 'bg-systemBlue-50 ring-2 ring-inset ring-systemBlue-500'
+
+    const draggingAppointmentId = ref(null)
+    const dropHoverSlot = ref(null)
+    let dragSession = null
+    let suppressNextClick = false
+
+    const dragChipClasses = appointment => {
+      if (currentView.value === 'month' || !can.editAppointment?.value) return ''
+      if (draggingAppointmentId.value === appointment.id) {
+        return reducedMotion.value ? DRAG_CHIP_REDUCED_MOTION_CLASSES : DRAG_CHIP_MOTION_CLASSES
+      }
+      return DRAG_CHIP_IDLE_CLASSES
+    }
+
+    const dropTargetClasses = slotKey =>
+      dropHoverSlot.value === slotKey ? DROP_TARGET_HOVER_CLASSES : ''
+
+    const collectDropTargets = () =>
+      Array.from(document.querySelectorAll('[data-calendar-drop-target]')).map(element => ({
+        key: element.getAttribute('data-calendar-drop-target'),
+        rect: element.getBoundingClientRect()
+      }))
+
+    const attachDragListeners = () => {
+      window.addEventListener('pointermove', onDragPointerMove)
+      window.addEventListener('pointerup', onDragPointerUp)
+      window.addEventListener('pointercancel', onDragPointerCancel)
+      window.addEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const detachDragListeners = () => {
+      window.removeEventListener('pointermove', onDragPointerMove)
+      window.removeEventListener('pointerup', onDragPointerUp)
+      window.removeEventListener('pointercancel', onDragPointerCancel)
+      window.removeEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const onChipPointerDown = (event, appointment) => {
+      if (!can.editAppointment?.value) return
+      if (typeof event.button === 'number' && event.button !== 0) return
+      suppressNextClick = false
+      dragSession = {
+        appointment,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+        dropTargets: []
+      }
+      attachDragListeners()
+    }
+
+    const startDrag = session => {
+      session.active = true
+      session.dropTargets = collectDropTargets()
+      draggingAppointmentId.value = session.appointment.id
+      document.body.style.userSelect = 'none'
+    }
+
+    const endDrag = ({ suppressClick = false } = {}) => {
+      const session = dragSession
+      dragSession = null
+      detachDragListeners()
+      draggingAppointmentId.value = null
+      dropHoverSlot.value = null
+      document.body.style.userSelect = ''
+      if (suppressClick) {
+        suppressNextClick = true
+        setTimeout(() => {
+          suppressNextClick = false
+        }, 0)
+      }
+      return session
+    }
+
+    const onDragPointerMove = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        const moved = Math.hypot(event.clientX - session.startX, event.clientY - session.startY)
+        if (moved < DRAG_THRESHOLD_PX) return
+        startDrag(session)
+      }
+      if (event.cancelable) event.preventDefault()
+      dropHoverSlot.value = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+    }
+
+    const onDragPointerUp = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        endDrag()
+        return
+      }
+      const slotKey = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+      endDrag({ suppressClick: true })
+      if (!slotKey || !canDropOn(slotKey, session.appointment)) return
+      rescheduleAppointment(session.appointment, slotKey)
+    }
+
+    const onDragPointerCancel = () => {
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const onDragKeyDown = event => {
+      if (event.key !== 'Escape') return
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const conflictToastMessage = conflict => {
+      const other = conflict.conflicting_appointment
+      const blocker =
+        conflict.type === 'chair_conflict'
+          ? `El sillón ${other?.dental_chair?.name || 'asignado'} ya está ocupado`
+          : 'El profesional ya tiene una cita en ese horario'
+      const detail =
+        other?.patient?.full_name && other?.scheduled_at
+          ? `${other.patient.full_name} (${formatTimeRange(other.scheduled_at, other.ends_at || other.scheduled_at)})`
+          : other?.patient?.full_name || ''
+      return detail ? `${blocker}. Conflicto con ${detail}.` : `${blocker}.`
+    }
+
+    const rescheduleAppointment = async (appointment, slotKey) => {
+      const scheduledAt = slotKeyToScheduledAt(slotKey)
+      if (!scheduledAt) return
+      const durationMinutes = Number(appointment.duration_minutes) || 60
+      const original = {
+        scheduled_at: appointment.scheduled_at,
+        ends_at: appointment.ends_at
+      }
+      appointment.scheduled_at = scheduledAt
+      appointment.ends_at = addMinutesToLocal(scheduledAt, durationMinutes)
+      try {
+        await patch(`/api/appointments/${appointment.id}/reschedule`, {
+          scheduled_at: scheduledAt,
+          duration_minutes: durationMinutes
+        })
+        toast.success('Cita reprogramada')
+      } catch (error) {
+        appointment.scheduled_at = original.scheduled_at
+        appointment.ends_at = original.ends_at
+        const conflict = error?.response?.data?.conflict
+        if (conflict) {
+          toast.error(conflictToastMessage(conflict))
+        } else {
+          toast.error(normalizeError(error, 'No se pudo reprogramar la cita'))
+        }
+      }
     }
 
     const editAppointment = appointment => {
@@ -960,6 +1166,13 @@ export default {
     })
 
     onUnmounted(() => {
+      // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
+      if (dragSession) {
+        endDrag()
+      } else {
+        detachDragListeners()
+      }
+
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
@@ -994,6 +1207,9 @@ export default {
       statusBadgeVariant,
       weekDays,
       monthDays,
+      monthCellClasses,
+      monthDayNumberClasses,
+      drillDownToDate,
       loadAppointments,
       changeView,
       previousPeriod,
@@ -1010,6 +1226,10 @@ export default {
       getStatusText,
       getStatusBadgeProps,
       selectAppointment,
+      draggingAppointmentId,
+      dropHoverSlot,
+      dropTargetClasses,
+      onChipPointerDown,
       editAppointment,
       changeStatus,
       deleteAppointment,
