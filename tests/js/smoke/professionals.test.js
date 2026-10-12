@@ -87,6 +87,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { SPECIALTY_OPTIONS } from '../../../resources/js/modules/professionals/professionals.constants'
 import Page from '../../../resources/js/modules/professionals/ProfessionalsPage.vue'
 const router = createRouter({
   history: createMemoryHistory(),
@@ -110,6 +111,17 @@ const chooseSelectOption = async (select, label) => {
   await option.trigger('click')
   await flushPromises()
 }
+
+const openSelect = async select => {
+  await select.find('button').trigger('click')
+  await flushPromises()
+  return select.findAll('[role="listbox"] button').map(button => button.text().trim())
+}
+
+const findSelectByPlaceholder = (wrapper, placeholder) =>
+  wrapper
+    .findAll('.select-container')
+    .find(select => select.find('button').text().includes(placeholder))
 
 // 2 active / 1 inactive; specialties: orthodontics x2, endodontics x1.
 const TEAM = [
@@ -356,6 +368,116 @@ describe('professionals smoke', () => {
     expect(wrapper.find('[data-professionals-specialty-filter]').text()).toContain(
       'Todas las especialidades'
     )
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+
+    wrapper.unmount()
+  })
+
+  it('renders the SPECIALTY_OPTIONS labels in the filter and modal and submits the matching value', async () => {
+    installTeam([
+      makeUser(1, { name: 'Ana Torres', specialty: 'oral_surgery' }),
+      makeUser(2, { name: 'Beto Salas', specialty: 'endodontics' })
+    ])
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+    const expectedLabels = SPECIALTY_OPTIONS.map(option => option.label)
+
+    const filter = wrapper.find('[data-professionals-specialty-filter]')
+    expect(await openSelect(filter)).toEqual(expectedLabels)
+
+    const filterOption = filter
+      .findAll('[role="listbox"] button')
+      .find(button => button.text().includes('Cirugía Oral'))
+    await filterOption.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Ana Torres')
+    expect(wrapper.text()).not.toContain('Beto Salas')
+
+    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await flushPromises()
+
+    const modalSpecialtySelect = findSelectByPlaceholder(wrapper, 'Seleccionar especialidad')
+    expect(await openSelect(modalSpecialtySelect)).toEqual(expectedLabels)
+
+    const modalOption = modalSpecialtySelect
+      .findAll('[role="listbox"] button')
+      .find(button => button.text().includes('Endodoncia'))
+    await modalOption.trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
+    await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
+    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(postMock.mock.calls[0][1].specialty).toBe('endodontics')
+
+    wrapper.unmount()
+  })
+
+  it('submits the edited values including the selected role to PUT /api/users/{id}', async () => {
+    installTeam(TEAM)
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+
+    const row = wrapper.findAll('[data-team-row]')[0]
+    await row
+      .findAll('button')
+      .find(button => button.text().includes('Editar'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-professionals-edit-name] input').element.value).toBe('Ana Torres')
+
+    await wrapper.find('[data-professionals-edit-name] input').setValue('Ana Torres Editada')
+    await chooseSelectOption(wrapper.find('[data-professionals-role-edit]'), 'Asistente')
+
+    await findButtonByText(wrapper, 'Actualizar').trigger('click')
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledTimes(1)
+    expect(putMock.mock.calls[0][0]).toBe('/api/users/1')
+    expect(putMock.mock.calls[0][1].name).toBe('Ana Torres Editada')
+    expect(putMock.mock.calls[0][1].role).toBe('asistente')
+
+    wrapper.unmount()
+  })
+
+  it('routes to the professional detail page from the row action', async () => {
+    installTeam(TEAM)
+    const pushSpy = vi.spyOn(router, 'push')
+    const wrapper = await mountPage()
+
+    const row = wrapper.findAll('[data-team-row]')[1]
+    await row
+      .findAll('button')
+      .find(button => button.text().includes('Ver Detalle'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(pushSpy).toHaveBeenCalledTimes(1)
+    expect(pushSpy).toHaveBeenCalledWith('/professionals/2')
+
+    pushSpy.mockRestore()
+    wrapper.unmount()
+  })
+
+  it('shows the clear-filters affordance only while filters are active', async () => {
+    installTeam(TEAM)
+    const wrapper = await mountPage()
+    const search = wrapper.find('[data-professionals-search] input')
+
+    expect(wrapper.findAll('[data-team-clear-filters]')).toHaveLength(0)
+
+    await search.setValue('ana')
+    expect(wrapper.findAll('[data-team-clear-filters]')).toHaveLength(1)
+
+    await wrapper.find('[data-team-clear-filters]').trigger('click')
+    await flushPromises()
+
+    expect(search.element.value).toBe('')
+    expect(wrapper.findAll('[data-team-clear-filters]')).toHaveLength(0)
     expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
 
     wrapper.unmount()

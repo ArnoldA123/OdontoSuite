@@ -18,10 +18,19 @@ use PHPUnit\Framework\TestCase;
  *     bg-error-100) nor their token/var form bg-[color:var(--color-*-100)]
  *     (T4, RELIABILITY-004) — pills come from <UiBadge>
  *   - no raw <select> elements — selects come from <UiSelect>
- *   - no native confirm() — confirmations come from useConfirm()
+ *   - no native confirm() leak — every confirm() call site must be an awaited
+ *     consumption gating the destructive action
+ *     (`const ok = await confirm({...})` + `if (ok)`) (T6, RELIABILITY-001)
  *   - no U+2014 em-dash in module sources
  *   - both page files import the shared vocabulary from
  *     ./professionals.constants (kills the duplicated specialty map)
+ *
+ * T6 (RELIABILITY-003): import/export assertions match quote-style
+ * independently (single or double quotes), the './professionals.constants'
+ * import accepts an optional '.js' suffix, and the constants contract accepts
+ * both `export const NAME =` and `export { NAME }` forms. The contracts
+ * (which module is imported, which names are exported, which copy is frozen)
+ * are unchanged; only the quoting noise is tolerated.
  */
 class ProfessionalsAppShellTest extends TestCase
 {
@@ -125,21 +134,68 @@ class ProfessionalsAppShellTest extends TestCase
 
     public function test_module_vues_ban_native_confirm(): void
     {
+        $callSiteTotal = 0;
         foreach (self::moduleVueSources() as $path => $src) {
-            self::assertStringNotContainsString(
-                'window.confirm',
-                $src,
-                self::shortName($path) . ' must not call window.confirm (D12: useConfirm composable).'
+            self::assertConfirmCallSitesAreAwaitedAndGuarded($src, self::shortName($path));
+            preg_match_all('/(?<![\w.$])confirm\s*\(/', $src, $matches);
+            $callSiteTotal += count($matches[0]);
+        }
+
+        self::assertGreaterThan(
+            0,
+            $callSiteTotal,
+            'The professionals module must route its destructive actions through confirm() from useConfirm (D12; zero confirm call sites in the whole module would make this rule vacuous).'
+        );
+    }
+
+    /**
+     * T6 (RELIABILITY-001) — hardened D12 rule. Merely mentioning useConfirm
+     * is not enough: every confirm( call site must be an awaited consumption
+     * (`const ok = await confirm({...})`) whose result gates the destructive
+     * action (`if (ok)`). An unawaited confirm resolves to a Promise, which is
+     * always truthy, so a bare/unchecked call would silently delete; the old
+     * substring rule let that slip. Files without call sites pass here (the
+     * detail page has no destructive action); the test method anchors at
+     * least one confirm call site across the whole module so the rule can
+     * never pass vacuously.
+     */
+    private static function assertConfirmCallSitesAreAwaitedAndGuarded(string $src, string $shortName): void
+    {
+        self::assertStringNotContainsString(
+            'window.confirm',
+            $src,
+            "{$shortName} must not call window.confirm (D12: useConfirm composable)."
+        );
+
+        preg_match_all('/(?<![\w.$])confirm\s*\(/', $src, $matches, PREG_OFFSET_CAPTURE);
+        $callSites = $matches[0];
+        if ($callSites === []) {
+            return;
+        }
+
+        self::assertStringContainsString(
+            'useConfirm',
+            $src,
+            "{$shortName} calls confirm() without importing useConfirm (native confirm leak, D12)."
+        );
+
+        foreach ($callSites as [$call, $offset]) {
+            $before = substr($src, 0, $offset);
+            $tail = substr($before, max(0, strlen($before) - 120));
+
+            self::assertMatchesRegularExpression(
+                '/\b(\w+)\s*=\s*await\s*$/',
+                $tail,
+                "{$shortName}: the confirm() call site '{$call}...' must be an awaited consumption of the form `const ok = await confirm({...})` (D12/RELIABILITY-001: an unawaited confirm returns a Promise, which is always truthy)."
             );
 
-            $callsConfirm = preg_match('/(?<![\w.$])confirm\s*\(/', $src) === 1;
-            if ($callsConfirm) {
-                self::assertStringContainsString(
-                    'useConfirm',
-                    $src,
-                    self::shortName($path) . ' calls confirm() without importing useConfirm (native confirm leak, D12).'
-                );
-            }
+            preg_match('/\b(\w+)\s*=\s*await\s*$/', $tail, $assigned);
+            $resultVar = $assigned[1];
+            self::assertMatchesRegularExpression(
+                '/\bif\s*\(\s*!?\s*' . preg_quote($resultVar, '/') . '\b/',
+                substr($src, $offset),
+                "{$shortName}: the awaited confirm() result '{$resultVar}' must gate the action with `if ({$resultVar})` (D12/RELIABILITY-001: an unchecked confirmation always proceeds)."
+            );
         }
     }
 
@@ -157,24 +213,43 @@ class ProfessionalsAppShellTest extends TestCase
     {
         foreach (self::PAGE_FILES as $file) {
             $src = self::readSource(self::projectRootPath() . $file);
-            self::assertStringContainsString(
-                "from './professionals.constants'",
-                $src,
-                basename($file) . ' must import the shared vocabulary from ./professionals.constants (D1: one specialty map).'
-            );
+            self::assertImportsSharedConstants($src, basename($file));
         }
+    }
+
+    /**
+     * T6 (RELIABILITY-003) — quote-style independent import rule: single or
+     * double quotes and an optional '.js' module suffix are noise; the
+     * contract is which module is imported (D1: one shared specialty map).
+     */
+    private static function assertImportsSharedConstants(string $src, string $shortName): void
+    {
+        self::assertMatchesRegularExpression(
+            "/from\\s*['\"]\\.\\/professionals\\.constants(?:\\.js)?['\"]/",
+            $src,
+            "{$shortName} must import the shared vocabulary from './professionals.constants' (D1: one specialty map; quote style and an optional .js suffix are irrelevant)."
+        );
     }
 
     public function test_professionals_constants_export_frozen_vocabulary(): void
     {
         $path = self::projectRootPath() . self::MODULE_DIR . '/professionals.constants.js';
-        $src = self::readSource($path);
+        self::assertConstantsExportVocabulary(self::readSource($path));
+    }
 
+    /**
+     * T6 (RELIABILITY-003) — the constants contract tolerates either export
+     * form (`export const NAME =` or `export { NAME }`) and either quote
+     * style for the frozen labels; the exported names and the exact copy
+     * remain pinned, including the key-to-label direction (no inversion).
+     */
+    private static function assertConstantsExportVocabulary(string $src): void
+    {
         foreach (['SPECIALTY_LABELS', 'SPECIALTY_OPTIONS', 'CLINICAL_ROLES', 'ROLE_LABELS'] as $export) {
-            self::assertStringContainsString(
-                "export const {$export}",
+            self::assertMatchesRegularExpression(
+                "/export\\s+const\\s+{$export}\\b|export\\s*\\{[^}]*\\b{$export}\\b[^}]*\\}/",
                 $src,
-                "professionals.constants.js must export {$export} (D1 shared vocabulary)."
+                "professionals.constants.js must export {$export} via `export const {$export} =` or `export { {$export} }` (D1 shared vocabulary; RELIABILITY-003 accepts either form)."
             );
         }
 
@@ -190,10 +265,10 @@ class ProfessionalsAppShellTest extends TestCase
         ];
 
         foreach ($frozenSpecialtyLabels as $key => $label) {
-            self::assertStringContainsString(
-                "{$key}: '{$label}'",
+            self::assertMatchesRegularExpression(
+                '/\b' . preg_quote($key, '/') . '\s*:\s*[\x27\x22]' . preg_quote($label, '/') . '[\x27\x22]/',
                 $src,
-                "SPECIALTY_LABELS must keep the frozen label '{$label}' for '{$key}' (vocabulary normalization must not change copy)."
+                "SPECIALTY_LABELS must keep the frozen label '{$label}' for '{$key}' with either quote style (vocabulary normalization must not change copy, RELIABILITY-003)."
             );
         }
     }
@@ -381,10 +456,10 @@ class ProfessionalsAppShellTest extends TestCase
     {
         $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
 
-        self::assertStringContainsString(
-            "from '../dashboard/DashboardSectionEmpty.vue'",
+        self::assertMatchesRegularExpression(
+            "/from\\s*['\"]\\.\\.\\/dashboard\\/DashboardSectionEmpty\\.vue['\"]/",
             $src,
-            'ProfessionalsPage.vue must import DashboardSectionEmpty (D7: one empty-state pattern, reuse by import only).'
+            'ProfessionalsPage.vue must import DashboardSectionEmpty (D7: one empty-state pattern, reuse by import only; quote style is irrelevant).'
         );
         self::assertStringContainsString(
             '<DashboardSectionEmpty',
@@ -477,10 +552,10 @@ class ProfessionalsAppShellTest extends TestCase
     {
         $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
 
-        self::assertStringContainsString(
-            "from '../dashboard/DashboardSectionEmpty.vue'",
+        self::assertMatchesRegularExpression(
+            "/from\\s*['\"]\\.\\.\\/dashboard\\/DashboardSectionEmpty\\.vue['\"]/",
             $src,
-            'ProfessionalDetailPage.vue must import DashboardSectionEmpty (D7/D10: one empty-state pattern, reuse by import only).'
+            'ProfessionalDetailPage.vue must import DashboardSectionEmpty (D7/D10: one empty-state pattern, reuse by import only; quote style is irrelevant).'
         );
         self::assertStringContainsString(
             '<DashboardSectionEmpty',
@@ -538,10 +613,10 @@ class ProfessionalsAppShellTest extends TestCase
     {
         $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
 
-        self::assertStringContainsString(
-            "from '../../components/ui/Breadcrumbs.vue'",
+        self::assertMatchesRegularExpression(
+            "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/Breadcrumbs\\.vue['\"]/",
             $src,
-            'ProfessionalDetailPage.vue must import the Breadcrumbs primitive (D10: list > detail wayfinding).'
+            'ProfessionalDetailPage.vue must import the Breadcrumbs primitive (D10: list > detail wayfinding; quote style is irrelevant).'
         );
         foreach (['var(--color-canvas)', 'var(--color-hairline)', 'var(--radius-panel)', 'var(--elevation-2)'] as $token) {
             self::assertStringContainsString(
