@@ -158,6 +158,15 @@ describe('patients hero band (login language)', () => {
     expect(heroPrimaries).toHaveLength(1)
     expect(heroPrimaries[0].text().trim()).toBe('Nuevo paciente')
 
+    // Hero action buttons keep their natural width with unwrappable labels
+    // at xs; the row wraps instead of squeezing the CTA into two lines.
+    const actions = hero.get('[data-hero-actions]')
+    expect(actions.classes()).toContain('flex-wrap')
+    for (const button of actions.findAll('button')) {
+      expect(button.classes()).toEqual(expect.arrayContaining(['flex-none', 'whitespace-nowrap']))
+      expect(button.classes()).not.toContain('flex-1')
+    }
+
     expect(wrapper.findAll('button[data-variant="primary"]')).toHaveLength(1)
 
     wrapper.unmount()

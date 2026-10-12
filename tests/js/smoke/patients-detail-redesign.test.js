@@ -213,6 +213,14 @@ describe('patient detail hero band (login language)', () => {
     expect(exportButton.text().trim()).toBe('Exportar')
     expect(exportButton.attributes('data-variant')).toBe('secondary')
 
+    // Hero action buttons keep their natural width with unwrappable labels
+    // at xs; the row wraps instead of squeezing the buttons into two lines.
+    expect(actions.classes()).toContain('flex-wrap')
+    for (const button of buttons) {
+      expect(button.classes()).toEqual(expect.arrayContaining(['flex-none', 'whitespace-nowrap']))
+      expect(button.classes()).not.toContain('flex-1')
+    }
+
     // The hero owns the page's only primary CTA (the modal is closed).
     expect(wrapper.findAll('button[data-variant="primary"]')).toHaveLength(1)
 

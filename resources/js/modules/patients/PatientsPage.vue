@@ -38,13 +38,13 @@
             <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
           </p>
           <div
-            class="flex w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
+            class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
             data-hero-actions
           >
             <UiButton
               variant="ghost"
               size="sm"
-              class="flex-1 sm:flex-none"
+              class="flex-none whitespace-nowrap"
               data-back-button
               @click="goBack"
             >
@@ -57,7 +57,7 @@
               v-if="can.createPatient?.value"
               variant="primary"
               size="sm"
-              class="flex-1 sm:flex-none"
+              class="flex-none whitespace-nowrap"
               data-new-patient-button
               @click="openPatientForm('create')"
             >

@@ -19,13 +19,13 @@
         <div class="relative flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs :items="breadcrumbs" :show-home="false" size="sm" variant="minimal" />
           <div
-            class="flex w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
+            class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
             data-hero-actions
           >
             <UiButton
               variant="secondary"
               size="sm"
-              class="flex-1 sm:flex-none"
+              class="flex-none whitespace-nowrap"
               data-export-button
               :disabled="exporting"
               @click="exportPatientFile"
@@ -39,7 +39,7 @@
               v-if="can.editPatient?.value"
               variant="primary"
               size="sm"
-              class="flex-1 sm:flex-none"
+              class="flex-none whitespace-nowrap"
               data-edit-patient-button
               @click="editPatient"
             >
