@@ -3,26 +3,36 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * PR-ambientes-02 — EnvironmentsModalChromeTest.
+ * PR-ambientes-02 + T3 (modal surfaces) — EnvironmentsModalChromeTest.
  *
- * Asserts the AMB-02-007 rule for the 3 inlined modals on `EnvironmentsPage.vue`:
+ * Asserts the AMB-02-007 rule for the 2 inlined modals on `EnvironmentsPage.vue`:
  *
- *   - New Environment Modal (lines 213-259 in the source): 4 raw form
- *     fields — 1 `<input>` (name), 2 `<textarea>` (description + equipment),
- *     1 `<select>` (status). All 4 fields MUST migrate to the canonical
- *     primitives: `<UiInput>` / `<UiTextarea>` / `<UiSelect>`.
+ *   - New Environment Modal: 4 form fields (1 `<UiInput>` name, 2
+ *     `<UiTextarea>` description + equipment, 1 `<UiSelect>` status) on the
+ *     canonical primitives. In the pre-migration source these were 4 raw
+ *     form fields (1 `<input>`, 2 `<textarea>`, 1 `<select>`).
  *
- *   - Edit Environment Modal (lines 262-314 in the source): 4 raw form
- *     fields — 2 `<input>` (name + code), 1 `<textarea>` (description),
- *     1 `<select>` (status). Same primitive migration applies.
+ *   - Edit Environment Modal: 5 form fields (2 `<UiInput>` name + code,
+ *     2 `<UiTextarea>` description + equipment, 1 `<UiSelect>` status) on
+ *     the same primitives. T5/F2 adds the equipment field (the edit modal
+ *     could not edit equipment while the API accepts it); T5/F3 keeps the
+ *     code `<UiInput>` but read-only with the "Generado automáticamente"
+ *     hint (update() validates updateRules(storeRules()) and storeRules()
+ *     has no `code` rule — the code is generated server-side on create).
  *
- *   - View Environment Modal (lines 317-352 in the source): NO raw form
- *     fields (it's read-only). The status pill at line 340 in the original
+ *   - View Environment Modal: DELETED by T3 (design decision D4). It was
+ *     unreachable dead code fed only by the `viewEnvironment` handler that
+ *     an eslint-disable kept alive; "Ver detalle" (EyeIcon row action) is
+ *     the single path to the detail route. Its status-pill duty moved to
+ *     the Estado-group preview badge inside the create + edit modals, which
  *     MUST consume `<UiBadge>` (NOT a raw `<span>` with legacy class).
  *
  * Additional rules:
  *   - Every `v-model=` binding on the migrated fields MUST be preserved
- *     byte-for-byte (the reactivity contract stays verbatim).
+ *     byte-for-byte (the reactivity contract stays verbatim). T5 re-anchors
+ *     the pin from 8 to 9 bindings: `editingEnvironment.equipment` is an
+ *     ADDITIVE binding on the new edit-modal equipment field (F2). The 8
+ *     original bindings are asserted verbatim; nothing is loosened.
  *   - The `required` attribute on the name + code + status fields MUST
  *     survive the migration (browser-side form validation stays in place).
  *
@@ -55,7 +65,7 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * AMB-02-007 — the 3 inlined modals MUST consume `<UiInput>` /
+     * AMB-02-007 — the 2 inlined modals MUST consume `<UiInput>` /
      * `<UiTextarea>` / `<UiSelect>` primitives instead of raw `<input>` /
      * `<textarea>` / `<select>` controls with legacy focus chrome.
      *
@@ -66,12 +76,12 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
      *
      * NEGATIVE rule: zero raw `<input>`, `<textarea>`, `<select>` literals
      * anywhere in the modal sections. The modal sections are bracketed by
-     * `<UiModal v-model="showNewEnvironmentModal"`,
-     * `<UiModal v-model="showEditEnvironmentModal"`, and
-     * `<UiModal v-model="showViewEnvironmentModal"`. To avoid matching the
-     * `<UiModal>` controls (which contain `<input>` for search, etc.) we
-     * rely on the source already being clean: the apply phase replaces the
-     * raw `<input>`/`<textarea>`/`<select>` blocks inside the modals.
+     * `<UiModal v-model="showNewEnvironmentModal"` and
+     * `<UiModal v-model="showEditEnvironmentModal"` (the View modal was
+     * deleted by T3/D4). To avoid matching the `<UiModal>` controls (which
+     * contain `<input>` for search, etc.) we rely on the source already being
+     * clean: the apply phase replaces the raw `<input>`/`<textarea>`/`<select>`
+     * blocks inside the modals.
      */
     public function test_modals_use_ui_form_primitives(): void
     {
@@ -97,16 +107,19 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             )
         );
 
-        // POSITIVE: ≥3 `<UiTextarea>` references — New modal `description`
-        // + New modal `equipment` + Edit modal `description` = 3 textareas.
+        // POSITIVE: ≥4 `<UiTextarea>` references — New modal `description`
+        // + New modal `equipment` + Edit modal `description` + Edit modal
+        // `equipment` (T5/F2) = 4 textareas. T5 tightens the rung from ≥3 to
+        // ≥4: the edit modal gained the equipment field, and a regression
+        // dropping it must fail here, not only in the JS smoke suite.
         $uiTextareaCount = preg_match_all('#<UiTextarea\b#', $src);
         $this->assertGreaterThanOrEqual(
-            3,
+            4,
             $uiTextareaCount,
             sprintf(
                 '%s MUST consume `<UiTextarea>` for the New modal description + equipment '
-                . 'fields + the Edit modal description field (AMB-02-007). '
-                . 'Found %d <UiTextarea> reference(s); expected at least 3.',
+                . 'fields + the Edit modal description + equipment fields (AMB-02-007 / '
+                . 'T5-F2). Found %d <UiTextarea> reference(s); expected at least 4.',
                 $path,
                 $uiTextareaCount
             )
@@ -186,12 +199,13 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * AMB-02-007 — every `v-model=` binding on the migrated fields MUST be
-     * preserved byte-for-byte (the reactivity contract stays verbatim).
-     * Pinning the 8 specific bindings: `newEnvironment.name`,
+     * AMB-02-007 + T5/F2 — every `v-model=` binding on the migrated fields
+     * MUST be preserved byte-for-byte (the reactivity contract stays
+     * verbatim). Pinning the 9 bindings: `newEnvironment.name`,
      * `newEnvironment.description`, `newEnvironment.equipment`,
      * `newEnvironment.status`, `editingEnvironment.name`,
      * `editingEnvironment.code`, `editingEnvironment.description`,
+     * `editingEnvironment.equipment` (T5/F2, additive),
      * `editingEnvironment.status`.
      */
     public function test_vmodel_bindings_preserved_byte_for_byte(): void
@@ -208,6 +222,7 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             'editingEnvironment.name',
             'editingEnvironment.code',
             'editingEnvironment.description',
+            'editingEnvironment.equipment',
             'editingEnvironment.status',
         ];
 
@@ -228,21 +243,29 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * AMB-02-007 — the View modal status pill (line 340 in the original)
-     * MUST consume `<UiStatusBadge>` (NOT a raw `<span>` with legacy class
-     * string). The list-row status pill already consumes `<UiStatusBadge>`
-     * from PR-ambientes-01 (AMB-01-008); the View modal must follow suit.
+     * AMB-02-007 + T3/D4 — the View modal is deleted (dead code). The status
+     * pill surfaces that remain MUST consume `<UiStatusBadge>` (NOT a raw
+     * `<span>` with legacy class string): the list-row pill (PR-ambientes-01 /
+     * AMB-01-008) and the Estado-group preview badge inside the create and
+     * edit modals.
      *
-     * POSITIVE rule: ≥2 `<Ui(?:Status)?Badge` references in the file —
-     * one for the list-row pill + one for the View-modal pill.
+     * POSITIVE rule: ≥2 `<Ui(?:Status)?Badge` references in the file (the
+     * count rule from PR-ambientes-02 is kept verbatim; the second surface is
+     * the modal Estado preview now, not the deleted View modal).
+     *
+     * NEGATIVE rule (D4 re-anchor): zero View modal remnants — the
+     * `viewEnvironment` handler, the `viewingEnvironment` /
+     * `showViewEnvironmentModal` refs, and the `Ver Ambiente` modal title
+     * MUST be gone; "Ver detalle" remains the single path to the detail route.
      */
-    public function test_view_modal_status_pill_uses_ui_badge(): void
+    public function test_view_modal_removed_status_pills_use_ui_badge(): void
     {
         $path = self::listPagePath();
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥2 `<UiBadge>` / `<UiStatusBadge>` references.
+        // POSITIVE: ≥2 `<UiBadge>` / `<UiStatusBadge>` references (list-row
+        // pill + create/edit Estado preview badges).
         $badgeRefs = preg_match_all(
             '#<Ui(?:Status)?Badge\b#',
             $src
@@ -251,16 +274,42 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             2,
             $badgeRefs,
             sprintf(
-                '%s MUST consume `<UiStatusBadge>` for both the list-row pill and the View-modal '
-                . 'status pill (AMB-02-007 / AMB-01-008). Found %d badge reference(s); '
+                '%s MUST consume `<UiStatusBadge>` for the list-row pill and the modal Estado-group '
+                . 'preview pills (AMB-02-007 / AMB-01-008 / T3-D4). Found %d badge reference(s); '
                 . 'expected at least 2.',
                 $path,
                 $badgeRefs
             )
         );
 
-        // The View modal already consumed `<UiStatusBadge>` per PR-ambientes-01
-        // (see line 327 in the current source), so this assertion is satisfied
-        // from PR-01 forward. PR-02 keeps it intact.
+        // NEGATIVE (D4 re-anchor): the unreachable View modal and its handler
+        // are gone. `viewEnvironment` was kept alive only by an eslint-disable
+        // and never reachable from the template; T3 removes both surfaces.
+        $this->assertSame(
+            0,
+            preg_match('#\bviewEnvironment\b#', $src),
+            sprintf(
+                '%s MUST NOT keep the dead `viewEnvironment` handler (T3/D4). '
+                . '"Ver detalle" (EyeIcon row action) is the single path to the detail route.',
+                $path
+            )
+        );
+        $this->assertSame(
+            0,
+            preg_match('#viewingEnvironment|showViewEnvironmentModal#', $src),
+            sprintf(
+                '%s MUST NOT keep the `viewingEnvironment` / `showViewEnvironmentModal` refs '
+                . '(T3/D4). The View modal is deleted.',
+                $path
+            )
+        );
+        $this->assertStringNotContainsString(
+            'Ver Ambiente',
+            $src,
+            sprintf(
+                '%s MUST NOT keep the `Ver Ambiente` modal title (T3/D4). The View modal is deleted.',
+                $path
+            )
+        );
     }
 }

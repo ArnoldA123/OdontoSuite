@@ -1,373 +1,385 @@
 <template>
   <AppLayout>
     <PageHeader
-      :title="environment?.name || 'Cargando...'"
-      :subtitle="environment ? `ID: ${environment.id} | Código: ${environment.code}` : ''"
+      :title="environment?.name || 'Detalle del ambiente'"
+      :subtitle="environment ? `Código: ${environment.code}` : ''"
       :breadcrumbs="[{ to: '/environments', label: 'Ambientes' }]"
       class="bg-canvas mb-6"
     >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
+            <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
           </template>
           Volver
         </UiButton>
       </template>
     </PageHeader>
 
-    <!-- Environment Info Card -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex items-center gap-4">
-        <!-- PR-ambientes-02 / AMB-02-004 — the header avatar was a forbidden
-             gradient utility; replaced with a flat systemBlue ramp + token
-             radius (mirrors `PatientsPage` row-avatar precedent). -->
-        <div class="h-16 w-16 rounded-[var(--radius-card-lg)] bg-systemBlue-50 flex items-center justify-center">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-            />
-          </svg>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-theme-primary">
-            {{ environment?.name }}
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
-            <div>
-              <span class="font-medium">Código:</span>
-              {{ environment?.code }}
-            </div>
-            <div>
-              <span class="font-medium">Estado:</span>
-              {{ getStatusText(environment?.status) }}
-            </div>
-            <div>
-              <span class="font-medium">Activo:</span>
-              {{ environment?.is_active ? 'Sí' : 'No' }}
-            </div>
-          </div>
-        </div>
-        <div class="text-right">
-          <UiBadge :variant="environment?.is_active ? 'success' : 'error'">
-            {{ environment?.is_active ? 'Activo' : 'Inactivo' }}
-          </UiBadge>
-        </div>
-      </div>
+    <UiCard
+      v-if="loading"
+      variant="glass"
+      padding="sm"
+      :style="panelStyle"
+      data-environment-detail-loading
+    >
+      <UiSkeleton variant="card" animation="wave" aria-label="Cargando ambiente..." />
     </UiCard>
 
-    <!-- Tabs Navigation (PR-ambientes-02 / AMB-02-003) — `<UiTabs>` primitive.
-         The active indicator + tab labels + click handlers stay byte-for-byte;
-         the hand-rolled step strip + per-button legacy active indicator
-         are gone. The `tab.label` field name is the canonical UiTabs contract
-         (`Tabs.vue` validator requires `id` + `label`); the display strings
-         ("Datos" / "Historial") are preserved byte-for-byte. -->
-    <div class="mb-6">
-      <UiTabs v-model="activeTab" :tabs="tabs" />
+    <div
+      v-else-if="loadError"
+      data-environment-detail-error
+      class="flex items-center justify-between flex-wrap gap-4 rounded-[var(--radius-panel)] p-5 bg-systemRed-50"
+      style="border: 1px solid var(--color-hairline)"
+    >
+      <div class="flex items-center gap-3 min-w-0">
+        <ExclamationTriangleIcon
+          class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-theme-primary">No pudimos cargar el ambiente</p>
+          <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+        </div>
+      </div>
+      <UiButton variant="primary" size="sm" @click="loadEnvironment">Reintentar</UiButton>
     </div>
 
-    <!-- Tab Content -->
-    <div class="tab-content">
-      <!-- Datos del Ambiente -->
-      <div v-if="activeTab === 'data'" class="space-y-6">
-        <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Información del Ambiente</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Nombre</label>
-              <p class="text-theme-primary">
-                {{ environment?.name }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Código</label>
-              <p class="text-theme-primary">
-                {{ environment?.code }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-              <p class="text-theme-primary">
-                {{ getStatusText(environment?.status) }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Activo</label>
-              <p class="text-theme-primary">
-                {{ environment?.is_active ? 'Sí' : 'No' }}
-              </p>
-            </div>
-            <div v-if="environment?.description" class="md:col-span-2">
-              <label class="block text-sm font-medium text-theme-primary mb-1">Descripción</label>
-              <p class="text-theme-primary">
-                {{ environment?.description }}
-              </p>
-            </div>
-            <div v-if="environment?.equipment" class="md:col-span-2">
-              <label class="block text-sm font-medium text-theme-primary mb-1">Equipamiento</label>
-              <p class="text-theme-primary">
-                {{ environment?.equipment }}
-              </p>
-            </div>
+    <template v-else-if="environment">
+      <!-- Summary card: flat systemBlue avatar (AMB-02-004) with the tint's
+           foreground, shared status vocabulary badge, hairline definition rows. -->
+      <UiCard
+        variant="glass"
+        padding="sm"
+        class="mb-6"
+        :style="panelStyle"
+        data-environment-summary
+      >
+        <div class="flex items-start gap-4">
+          <div
+            class="h-16 w-16 rounded-[var(--radius-card-lg)] bg-systemBlue-50 flex items-center justify-center"
+          >
+            <BuildingOffice2Icon class="w-8 h-8 text-systemBlue-700" aria-hidden="true" />
           </div>
-        </UiCard>
-      </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 flex-wrap">
+              <h2 class="text-lg font-semibold text-theme-primary">{{ environment.name }}</h2>
+              <UiStatusBadge
+                :variant="getStatusVariant(environment.status)"
+                :label="getStatusText(environment.status)"
+              />
+            </div>
+            <p class="mt-1 text-sm text-theme-secondary">Código: {{ environment.code }}</p>
+            <dl class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+              <div class="border-t border-[color:var(--color-hairline)] py-3">
+                <dt class="text-xs font-medium text-theme-secondary">Equipamiento</dt>
+                <dd class="mt-1 text-sm text-theme-primary">
+                  {{ environment.equipment || 'Sin equipamiento' }}
+                </dd>
+              </div>
+              <div class="border-t border-[color:var(--color-hairline)] py-3">
+                <dt class="text-xs font-medium text-theme-secondary">Descripción</dt>
+                <dd class="mt-1 text-sm text-theme-primary">
+                  {{ environment.description || 'Sin descripción' }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </UiCard>
 
-      <!-- Historial de Auditoría -->
-      <div v-if="activeTab === 'audit'" class="space-y-6">
-        <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
-          <div v-if="auditLogsLoading" class="p-8 text-center">
+      <UiTabs v-model="activeTab" :tabs="tabs">
+        <template #data>
+          <UiCard variant="glass" padding="sm" :style="panelStyle" data-environment-info>
+            <div class="space-y-6">
+              <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                  Identificación
+                </h3>
+                <dl class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Nombre</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">{{ environment.name }}</dd>
+                  </div>
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Código</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">{{ environment.code }}</dd>
+                  </div>
+                </dl>
+              </section>
+              <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                  Operación
+                </h3>
+                <dl class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Estado</dt>
+                    <dd class="mt-1">
+                      <UiStatusBadge
+                        :variant="getStatusVariant(environment.status)"
+                        :label="getStatusText(environment.status)"
+                      />
+                    </dd>
+                  </div>
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Activo</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">
+                      {{ environment.is_active ? 'Sí' : 'No' }}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+              <section>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                  Descripción y equipamiento
+                </h3>
+                <dl class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Descripción</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">
+                      {{ environment.description || 'Sin descripción' }}
+                    </dd>
+                  </div>
+                  <div class="border-t border-[color:var(--color-hairline)] py-3">
+                    <dt class="text-xs font-medium text-theme-secondary">Equipamiento</dt>
+                    <dd class="mt-1 text-sm text-theme-primary">
+                      {{ environment.equipment || 'Sin equipamiento' }}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            </div>
+          </UiCard>
+        </template>
+
+        <template #audit>
+          <UiCard variant="glass" padding="sm" :style="panelStyle" data-environment-audit>
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+              Historial de auditoría
+            </h3>
+
+            <div v-if="auditLoading" class="mt-4" data-environment-audit-loading>
+              <UiSkeleton
+                variant="list"
+                animation="wave"
+                aria-label="Cargando historial de auditoría..."
+              />
+            </div>
+
             <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
-          </div>
-          <div v-else-if="auditLogs.length === 0">
-            <UiEmptyState
-              title="No hay historial de auditoría"
-              description="Los cambios en este ambiente aparecerán aquí."
-            />
-          </div>
-          <div v-else class="space-y-4">
-            <!-- PR-ambientes-02 / AMB-02-006 — hand-rolled audit-item wrapper
-                 replaced with `<UiCard variant="glass">` so the audit log item
-                 consumes the canonical card primitive + token hover chrome. -->
-            <UiCard
-              v-for="log in auditLogs"
-              :key="log.id"
-              variant="glass"
+              v-else-if="auditError"
+              data-environment-audit-error
+              class="mt-4 flex items-center justify-between flex-wrap gap-4 rounded-[var(--radius-panel)] p-5 bg-systemRed-50"
+              style="border: 1px solid var(--color-hairline)"
             >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                    <UiBadge :variant="getAuditActionVariant(log.action)">
+              <div class="flex items-center gap-3 min-w-0">
+                <ExclamationTriangleIcon
+                  class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-theme-primary">
+                    No pudimos cargar el historial de auditoría
+                  </p>
+                  <p class="text-sm text-theme-secondary">
+                    Revisa tu conexión y vuelve a intentarlo.
+                  </p>
+                </div>
+              </div>
+              <UiButton variant="primary" size="sm" @click="loadAuditLogs">Reintentar</UiButton>
+            </div>
+
+            <div v-else-if="auditLogs.length === 0" class="mt-4" data-environment-audit-empty>
+              <UiEmptyState
+                title="No hay historial de auditoría"
+                description="Los cambios realizados en este ambiente quedarán registrados aquí."
+              />
+            </div>
+
+            <!-- Flat hairline-divided entries (AMB-02-006 re-anchor): no nested
+                 card chrome inside the panel; flat systemBlue avatar per the
+                 AMB-02-004 contract. -->
+            <ul v-else class="mt-2 divide-y divide-[color:var(--color-hairline)]">
+              <li v-for="log in auditLogs" :key="log.id" class="py-4 flex items-start gap-3">
+                <div
+                  class="flex-shrink-0 h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center"
+                >
+                  <span class="text-sm font-medium text-systemBlue-700">
+                    {{ (log.user?.name || 'Sistema').charAt(0) }}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <UiBadge :variant="getAuditActionVariant(log.action)" size="sm">
                       {{ formatAction(log.action) }}
                     </UiBadge>
                     <span class="text-sm text-theme-secondary">
                       por {{ log.user?.name || 'Sistema' }}
                     </span>
+                    <span class="text-xs text-theme-secondary">
+                      {{ formatDate(log.created_at) }}
+                    </span>
                   </div>
-                  <p class="text-sm text-theme-secondary mb-2">
-                    {{ formatDate(log.created_at) }}
-                  </p>
                   <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
-                    <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
                     <div
                       v-if="
                         getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
                       "
-                      class="text-theme-secondary space-y-1"
+                      class="space-y-2"
                     >
                       <div
                         v-for="(change, field) in getChangesSummary(log)"
                         :key="field"
                         class="pl-2 border-l-2 border-[color:var(--color-hairline)]"
                       >
-                        <p class="font-medium text-theme-primary">{{ change.field }}:</p>
-                        <p class="text-xs">
+                        <p class="text-xs font-medium text-theme-primary">{{ change.field }}</p>
+                        <p class="text-xs text-theme-secondary">
                           De:
-                          <!-- PR-ambientes-02 / AMB-02-008 — `text-red-500` replaced
-                               with the tokenised `text-systemRed-600` ramp (the
-                               canvas-readable shade per the design system). -->
                           <span class="text-systemRed-600">{{ change.old }}</span>
                         </p>
-                        <p class="text-xs">
+                        <p class="text-xs text-theme-secondary">
                           A:
                           <span class="text-systemGreen-600">{{ change.new }}</span>
                         </p>
                       </div>
                     </div>
-                    <div v-else class="text-theme-secondary italic">
-Sin cambios registrados
-</div>
+                    <p v-else class="text-xs text-theme-secondary italic">
+                      Sin cambios registrados
+                    </p>
                   </div>
-                  <div
+                  <p
                     v-else-if="log.action === 'dental_chair_created'"
                     class="mt-2 text-sm text-theme-secondary"
                   >
                     Ambiente creado en el sistema.
-                  </div>
-                  <div
+                  </p>
+                  <p
                     v-else-if="log.action === 'dental_chair_deleted'"
                     class="mt-2 text-sm text-theme-secondary"
                   >
                     Ambiente eliminado del sistema.
-                  </div>
+                  </p>
                 </div>
-              </div>
-            </UiCard>
-          </div>
-        </UiCard>
-      </div>
-    </div>
+              </li>
+            </ul>
+          </UiCard>
+        </template>
+      </UiTabs>
+    </template>
   </AppLayout>
 </template>
 
-<script>
-import { ref, onMounted, watch } from 'vue'
+<script setup>
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  BuildingOffice2Icon,
+  ClockIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
-import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
+import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import UiCard from '../../components/ui/Card.vue'
-import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
-import UiTabs from '../../components/ui/Tabs.vue'
+import UiButton from '../../components/ui/Button.vue'
+import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import UiTabs from '../../components/ui/Tabs.vue'
 
-export default {
-  name: 'EnvironmentDetailPage',
-  components: {
-    AppLayout,
-    UiCard,
-    UiButton,
-    UiBadge,
-    UiTabs,
-    UiEmptyState
-  },
-  setup() {
-    const route = useRoute()
-    const router = useRouter()
-    const { get } = useApi()
-    const toast = useToast()
-    const {
-      loading: auditLogsLoading,
-      auditLogs,
-      getDentalChairAuditLogs,
-      formatAction,
-      getChangesSummary
-    } = useAuditLogs()
+const route = useRoute()
+const router = useRouter()
+const { get } = useApi()
+const { formatAction, getChangesSummary } = useAuditLogs()
 
-    // State
-    const environment = ref(null)
-    const activeTab = ref('data')
+const environment = ref(null)
+const loading = ref(false)
+const loadError = ref(false)
+const auditLogs = ref([])
+const auditLoading = ref(false)
+const auditError = ref(false)
+const activeTab = ref('data')
 
-    // Icon components
-    const BuildingIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      `
+const tabs = [
+  { id: 'data', label: 'Información', icon: BuildingOffice2Icon },
+  { id: 'audit', label: 'Auditoría', icon: ClockIcon }
+]
+
+// Panel chrome rung shared with the T2 list: hairline edge, --radius-panel
+// shape, --elevation-2 shadow.
+const panelStyle = {
+  borderColor: 'var(--color-hairline)',
+  borderRadius: 'var(--radius-panel)',
+  boxShadow: 'var(--elevation-2)'
+}
+
+const loadEnvironment = async () => {
+  loading.value = true
+  loadError.value = false
+  try {
+    const response = await get(`/api/dental-chairs/${route.params.id}`)
+    environment.value = response?.data || null
+    if (!environment.value) {
+      loadError.value = true
     }
-
-    const ClockIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      `
-    }
-
-    // Tabs configuration (PR-ambientes-02 / AMB-02-003): the `name` field
-    // was renamed to `label` to satisfy `<UiTabs>`'s data contract
-    // (`Tabs.vue` validator: `id` + `label` are required; display strings
-    // "Datos" / "Historial" are preserved byte-for-byte).
-    const tabs = [
-      {
-        id: 'data',
-        label: 'Datos',
-        icon: BuildingIcon
-      },
-      {
-        id: 'audit',
-        label: 'Historial',
-        icon: ClockIcon
-      }
-    ]
-
-    // Methods
-    const loadEnvironment = async () => {
-      try {
-        const response = await get(`/api/dental-chairs/${route.params.id}`)
-        environment.value = response.data
-      } catch (error) {
-        toast.error('Error al cargar el ambiente')
-      }
-    }
-
-    const loadAuditLogs = async () => {
-      if (!environment.value) return
-      try {
-        await getDentalChairAuditLogs(environment.value.id)
-      } catch (error) {
-        // La auditoría es informativa, el detalle sigue visible sin ella
-      }
-    }
-
-    const getStatusText = status => {
-      const statuses = {
-        active: 'Activo',
-        inactive: 'Inactivo',
-        maintenance: 'Mantenimiento'
-      }
-      return statuses[status] || status || 'No especificado'
-    }
-
-    const formatDate = date => {
-      if (!date) return 'No especificada'
-      try {
-        return new Date(date).toLocaleDateString('es-ES')
-      } catch {
-        return date
-      }
-    }
-
-    const getAuditActionVariant = action => {
-      if (action.includes('created')) return 'success'
-      if (action.includes('updated')) return 'warning'
-      if (action.includes('deleted')) return 'error'
-      return 'neutral'
-    }
-
-    const goBack = () => {
-      router.push('/environments')
-    }
-
-    // Watch for tab changes
-    watch(activeTab, newTab => {
-      if (newTab === 'audit' && environment.value) {
-        loadAuditLogs()
-      }
-    })
-
-    // Lifecycle
-    onMounted(async () => {
-      await loadEnvironment()
-      if (activeTab.value === 'audit' && environment.value) {
-        loadAuditLogs()
-      }
-    })
-
-    return {
-      environment,
-      activeTab,
-      tabs,
-      auditLogsLoading,
-      auditLogs,
-      loadEnvironment,
-      loadAuditLogs,
-      getStatusText,
-      formatDate,
-      formatAction,
-      getChangesSummary,
-      getAuditActionVariant,
-      goBack
-    }
+  } catch {
+    environment.value = null
+    loadError.value = true
+  } finally {
+    loading.value = false
   }
 }
+
+// The audit list fetches through useApi directly: useAuditLogs swallows fetch
+// failures and this page renders a retryable error state instead of only a toast.
+const loadAuditLogs = async () => {
+  if (!environment.value) return
+  auditLoading.value = true
+  auditError.value = false
+  try {
+    const response = await get(`/api/audit-logs/dental-chair/${environment.value.id}`)
+    auditLogs.value = response?.data || []
+  } catch {
+    auditLogs.value = []
+    auditError.value = true
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+const formatDate = date => {
+  if (!date) return 'Fecha no disponible'
+  try {
+    return new Date(date).toLocaleDateString('es-ES')
+  } catch {
+    return date
+  }
+}
+
+const getAuditActionVariant = action => {
+  if (action.includes('created')) return 'success'
+  if (action.includes('updated')) return 'warning'
+  if (action.includes('deleted')) return 'error'
+  return 'neutral'
+}
+
+const goBack = () => {
+  router.push('/environments')
+}
+
+watch(activeTab, newTab => {
+  if (newTab === 'audit' && environment.value) {
+    loadAuditLogs()
+  }
+})
+
+onMounted(async () => {
+  await loadEnvironment()
+  if (activeTab.value === 'audit' && environment.value) {
+    loadAuditLogs()
+  }
+})
 </script>
