@@ -38,7 +38,7 @@
           <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
         </p>
         <div class="flex items-center gap-3">
-          <UiButton @click="showNewProfessionalModal = true">
+          <UiButton @click="openCreateModal">
             <template #icon-left>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -158,190 +158,244 @@
       </UiCard>
     </div>
 
-    <!-- Search and Filters -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
-          <UiInput
-            v-model="searchQuery"
-            data-professionals-search
-            placeholder="Buscar profesionales por nombre, especialidad o email..."
-            class="w-full"
+    <!--
+      Team list (D5): the list is the protagonist surface. One block heading
+      tiered under the hero display owns the section; the results caption and
+      the filter bar belong to this block.
+    -->
+    <section data-team-list>
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold text-label">Equipo</h2>
+        <p class="mt-1 text-sm text-theme-secondary" data-team-results>{{ resultsCaption }}</p>
+      </div>
+
+      <div data-team-filters class="mb-4">
+        <UiCard variant="glass">
+          <div class="flex flex-col lg:flex-row gap-4">
+            <div class="flex-1">
+              <UiInput
+                v-model="searchQuery"
+                data-professionals-search
+                placeholder="Buscar profesionales por nombre, especialidad o email..."
+                class="w-full"
+              >
+                <template #prefix>
+                  <svg
+                    class="w-5 h-5 text-theme-secondary"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </template>
+              </UiInput>
+            </div>
+            <div class="flex items-end gap-3">
+              <UiSelect
+                v-model="specialtyFilter"
+                data-professionals-specialty-filter
+                :options="specialtyOptions"
+                placeholder="Todas las especialidades"
+                class="w-64"
+              />
+              <UiButton
+                v-if="hasActiveFilters"
+                variant="secondary"
+                data-team-clear-filters
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+            </div>
+          </div>
+        </UiCard>
+      </div>
+
+      <UiCard variant="glass" class="overflow-hidden">
+        <div v-if="loading" class="p-8 text-center">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+          <p class="mt-2 text-theme-secondary">Cargando profesionales...</p>
+        </div>
+
+        <div v-else-if="showEmptyTeam" class="p-8">
+          <DashboardSectionEmpty
+            title="Sin profesionales registrados"
+            description="Aún no hay nadie en el equipo clínico."
+          />
+        </div>
+
+        <div v-else-if="showEmptyResults" class="p-8">
+          <DashboardSectionEmpty
+            title="Sin resultados"
+            description="Ningún profesional coincide con los filtros activos."
           >
-            <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </template>
-          </UiInput>
+            <UiButton variant="secondary" size="sm" data-team-clear-filters @click="clearFilters">
+              Limpiar filtros
+            </UiButton>
+          </DashboardSectionEmpty>
         </div>
-        <div class="flex gap-3">
-          <UiSelect
-            v-model="specialtyFilter"
-            data-professionals-specialty-filter
-            :options="specialtyOptions"
-            placeholder="Todas las especialidades"
-            class="w-64"
-          />
-        </div>
-      </div>
-    </UiCard>
 
-    <!-- Professionals List -->
-    <UiCard variant="glass" class="overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-        <p class="mt-2 text-theme-secondary">Cargando profesionales...</p>
-      </div>
-
-      <div v-else-if="professionals.length === 0" class="p-8 text-center">
-        <svg
-          class="mx-auto h-12 w-12 text-theme-secondary"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-          />
-        </svg>
-        <p class="mt-2 text-theme-secondary">No se encontraron profesionales</p>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Profesional
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Especialidad
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Contacto
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-[color:var(--color-surface-elevated)] divide-y divide-theme">
-            <tr
-              v-for="professional in professionals"
-              :key="professional.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div
-                      class="h-10 w-10 rounded-full bg-[color:var(--color-primary-100)] flex items-center justify-center"
-                    >
-                      <span class="text-sm font-medium text-accent">
-                        {{ professional.name.charAt(0) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-[color:var(--color-text-primary)]">
-                      {{ professional.name }}
-                    </div>
-                    <div class="text-sm text-theme-secondary">
-                      {{ professional.username }}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiBadge variant="primary" size="sm" shape="pill">
-                  {{ getSpecialtyText(professional.specialty) }}
-                </UiBadge>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-[color:var(--color-text-primary)]">
-                  {{ professional.email }}
-                </div>
-                <div class="text-sm text-theme-secondary">
-                  {{ professional.phone || 'Sin teléfono' }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiBadge
-                  :variant="professional.is_active ? 'success' : 'error'"
-                  size="sm"
-                  shape="pill"
+        <div v-else class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-theme">
+            <thead class="bg-theme-surface">
+              <tr>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
                 >
-                  {{ professional.is_active ? 'Activo' : 'Inactivo' }}
-                </UiBadge>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <UiButton
-                    variant="ghost"
+                  Profesional
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Especialidad
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Rol
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Matrícula
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Sucursal
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Estado
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
+                >
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-[color:var(--color-surface-elevated)] divide-y divide-theme">
+              <tr
+                v-for="professional in professionals"
+                :key="professional.id"
+                data-team-row
+                class="hover:bg-theme-surface"
+              >
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10">
+                      <div
+                        class="h-10 w-10 rounded-full bg-theme-surface flex items-center justify-center"
+                        style="border: 1px solid var(--color-hairline)"
+                      >
+                        <span class="text-sm font-medium text-accent">
+                          {{ professional.name.charAt(0) }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-[color:var(--color-text-primary)]">
+                        {{ professional.name }}
+                      </div>
+                      <div class="text-sm text-theme-secondary">
+                        {{ secondaryLine(professional) }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <UiBadge variant="primary" size="sm" shape="pill">
+                    {{ getSpecialtyText(professional.specialty) }}
+                  </UiBadge>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <UiBadge variant="neutral" size="sm" shape="pill">
+                    {{ roleLabel(professional.role) }}
+                  </UiBadge>
+                </td>
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
+                >
+                  {{ professionalLicense(professional) }}
+                </td>
+                <td
+                  class="px-6 py-4 whitespace-nowrap text-sm text-[color:var(--color-text-primary)]"
+                >
+                  {{ branchName(professional) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <UiBadge
+                    :variant="professional.is_active ? 'success' : 'error'"
                     size="sm"
-                    class="text-accent hover:text-accent-hover"
-                    @click="viewDetail(professional)"
+                    shape="pill"
                   >
-                    Ver Detalle
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-accent hover:text-primary-800"
-                    @click="editProfessional(professional)"
-                  >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-red-600 hover:text-red-900"
-                    @click="deleteProfessional(professional)"
-                  >
-                    Eliminar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </UiCard>
+                    {{ professional.is_active ? 'Activo' : 'Inactivo' }}
+                  </UiBadge>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div class="flex space-x-2">
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-accent hover:text-accent-hover"
+                      @click="viewDetail(professional)"
+                    >
+                      Ver Detalle
+                    </UiButton>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-accent hover:text-primary-800"
+                      @click="editProfessional(professional)"
+                    >
+                      Editar
+                    </UiButton>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-red-600 hover:text-red-900"
+                      @click="deleteProfessional(professional)"
+                    >
+                      Eliminar
+                    </UiButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </UiCard>
+    </section>
   </AppLayout>
 
   <!-- New Professional Modal -->
   <UiModal v-model="showNewProfessionalModal" title="Nuevo Profesional" size="md">
     <form id="form-new-prof" class="space-y-4" @submit.prevent="createProfessional">
-      <UiInput v-model="newProfessional.name" label="Nombre Completo" type="text" required />
+      <UiInput
+        v-model="newProfessional.name"
+        data-professionals-form-name
+        label="Nombre Completo"
+        type="text"
+        required
+        :error="createErrors.name"
+      />
       <UiInput v-model="newProfessional.username" label="Usuario" type="text" required />
-      <UiInput v-model="newProfessional.email" label="Email" type="email" required />
+      <UiInput
+        v-model="newProfessional.email"
+        data-professionals-form-email
+        label="Email"
+        type="email"
+        required
+        :error="createErrors.email"
+      />
       <UiInput v-model="newProfessional.phone" label="Teléfono" type="tel" />
       <UiSelect
         v-model="newProfessional.specialty"
@@ -349,6 +403,15 @@
         label="Especialidad"
         placeholder="Seleccionar especialidad"
         required
+      />
+      <UiSelect
+        v-model="newProfessional.role"
+        data-professionals-role
+        :options="roleOptions"
+        label="Rol"
+        placeholder="Seleccionar rol"
+        required
+        :error="createErrors.role"
       />
       <UiInput v-model="newProfessional.password" label="Contraseña" type="password" required />
     </form>
@@ -368,9 +431,23 @@
       class="space-y-4"
       @submit.prevent="updateProfessional"
     >
-      <UiInput v-model="editingProfessional.name" label="Nombre" type="text" required />
+      <UiInput
+        v-model="editingProfessional.name"
+        data-professionals-edit-name
+        label="Nombre"
+        type="text"
+        required
+        :error="editErrors.name"
+      />
       <UiInput v-model="editingProfessional.username" label="Usuario" type="text" required />
-      <UiInput v-model="editingProfessional.email" label="Email" type="email" required />
+      <UiInput
+        v-model="editingProfessional.email"
+        data-professionals-edit-email
+        label="Email"
+        type="email"
+        required
+        :error="editErrors.email"
+      />
       <UiInput v-model="editingProfessional.phone" label="Teléfono" type="tel" />
       <UiSelect
         v-model="editingProfessional.specialty"
@@ -378,71 +455,21 @@
         label="Especialidad"
         placeholder="Seleccionar especialidad"
       />
+      <UiSelect
+        v-model="editingProfessional.role"
+        data-professionals-role-edit
+        :options="roleOptions"
+        label="Rol"
+        placeholder="Seleccionar rol"
+        required
+        :error="editErrors.role"
+      />
     </form>
     <template #footer>
       <UiButton variant="secondary" :disabled="updating" @click="showEditProfessionalModal = false">
         Cancelar
       </UiButton>
       <UiButton type="submit" :loading="updating" @click="updateProfessional">Actualizar</UiButton>
-    </template>
-  </UiModal>
-
-  <!-- View Professional Modal -->
-  <UiModal v-model="showViewProfessionalModal" title="Ver Profesional" size="md">
-    <div v-if="viewingProfessional" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Nombre
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          {{ viewingProfessional.name }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Usuario
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          {{ viewingProfessional.username }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Email
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          {{ viewingProfessional.email }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Teléfono
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          {{ viewingProfessional.phone || 'Sin teléfono' }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Especialidad
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          {{ getSpecialtyText(viewingProfessional.specialty) }}
-        </p>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--color-text-primary)]">
-          Estado
-        </label>
-        <p class="mt-1 text-sm text-[color:var(--color-text-primary)]">
-          <span :class="viewingProfessional.is_active ? 'text-success-700' : 'text-error-700'">
-            {{ viewingProfessional.is_active ? 'Activo' : 'Inactivo' }}
-          </span>
-        </p>
-      </div>
-    </div>
-    <template #footer>
-      <UiButton variant="secondary" @click="showViewProfessionalModal = false">Cerrar</UiButton>
     </template>
   </UiModal>
 </template>
@@ -462,7 +489,13 @@ import UiBadge from '../../components/ui/Badge.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
 import DentalMotifLayer from '../dashboard/DentalMotifLayer.vue'
-import { SPECIALTY_LABELS, SPECIALTY_OPTIONS, CLINICAL_ROLES } from './professionals.constants'
+import DashboardSectionEmpty from '../dashboard/DashboardSectionEmpty.vue'
+import {
+  SPECIALTY_LABELS,
+  SPECIALTY_OPTIONS,
+  CLINICAL_ROLES,
+  ROLE_LABELS
+} from './professionals.constants'
 
 const router = useRouter()
 const { get, post, put, delete: remove } = useApi()
@@ -474,14 +507,15 @@ const loading = ref(false)
 const creating = ref(false)
 const updating = ref(false)
 const team = ref([])
+const branchesById = ref({})
 const searchQuery = ref('')
 const specialtyFilter = ref('')
 const specialtyOptions = SPECIALTY_OPTIONS
 const showNewProfessionalModal = ref(false)
 const showEditProfessionalModal = ref(false)
-const showViewProfessionalModal = ref(false)
 const editingProfessional = ref(null)
-const viewingProfessional = ref(null)
+const createErrors = ref({})
+const editErrors = ref({})
 
 const newProfessional = ref({
   name: '',
@@ -489,11 +523,35 @@ const newProfessional = ref({
   email: '',
   phone: '',
   specialty: '',
+  role: 'odontologo',
   password: ''
 })
 
 const getSpecialtyText = specialty => {
   return SPECIALTY_LABELS[specialty] || specialty
+}
+
+const roleOptions = CLINICAL_ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] || role }))
+
+const roleLabel = role => ROLE_LABELS[role] || role || 'N/D'
+
+const professionalLicense = professional => {
+  const license =
+    typeof professional.professional_license === 'string'
+      ? professional.professional_license.trim()
+      : ''
+  return license || 'N/D'
+}
+
+const branchName = professional => {
+  const branchId = professional.branch_id
+  if (branchId === null || branchId === undefined || branchId === '') return 'Sin sucursal'
+  return branchesById.value[branchId] || 'N/D'
+}
+
+const secondaryLine = professional => {
+  const parts = [professional.username, professional.email].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : 'N/D'
 }
 
 const teamKpis = computed(() => {
@@ -532,15 +590,57 @@ const professionals = computed(() => {
   })
 })
 
+const hasActiveFilters = computed(() => Boolean(searchQuery.value.trim() || specialtyFilter.value))
+
+const showEmptyTeam = computed(() => !loading.value && team.value.length === 0)
+
+const showEmptyResults = computed(
+  () => !loading.value && team.value.length > 0 && professionals.value.length === 0
+)
+
+const resultsCaption = computed(() => {
+  const shown = professionals.value.length
+  const total = team.value.length
+  return hasActiveFilters.value ? `${shown} de ${total} profesionales` : `${total} profesionales`
+})
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  specialtyFilter.value = ''
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const validateProfessionalForm = (form, errors) => {
+  const next = {}
+  const name = String(form?.name ?? '').trim()
+  const email = String(form?.email ?? '').trim()
+  if (!name) next.name = 'El nombre es obligatorio.'
+  if (!email) {
+    next.email = 'El email es obligatorio.'
+  } else if (!EMAIL_PATTERN.test(email)) {
+    next.email = 'Ingresa un email válido.'
+  }
+  if (!form?.role) next.role = 'Selecciona un rol.'
+  errors.value = next
+  return Object.keys(next).length === 0
+}
+
+const loadBranches = async () => {
+  try {
+    const response = await get('/api/branches/active')
+    const list = response?.data || []
+    branchesById.value = Object.fromEntries(list.map(branch => [branch.id, branch.name]))
+  } catch {
+    branchesById.value = {}
+  }
+}
+
 const loadProfessionals = async () => {
   loading.value = true
   try {
     const response = await get(`/api/users?role=${encodeURIComponent(CLINICAL_ROLES.join(','))}`)
     team.value = response?.data || []
-
-    if (team.value.length === 0) {
-      toast.info('Aún no hay profesionales registrados')
-    }
   } catch (error) {
     handleError(error, 'Error al cargar los profesionales. Por favor, recarga la página.')
     team.value = []
@@ -551,13 +651,10 @@ const loadProfessionals = async () => {
 
 const createProfessional = async () => {
   if (creating.value) return
+  if (!validateProfessionalForm(newProfessional.value, createErrors)) return
   creating.value = true
   try {
-    const professionalData = {
-      ...newProfessional.value,
-      role: 'odontologo'
-    }
-    await post('/api/users', professionalData)
+    await post('/api/users', { ...newProfessional.value })
     showNewProfessionalModal.value = false
     newProfessional.value = {
       name: '',
@@ -565,8 +662,10 @@ const createProfessional = async () => {
       email: '',
       phone: '',
       specialty: '',
+      role: 'odontologo',
       password: ''
     }
+    createErrors.value = {}
     toast.success('Profesional creado exitosamente')
     loadProfessionals()
   } catch (error) {
@@ -576,8 +675,14 @@ const createProfessional = async () => {
   }
 }
 
+const openCreateModal = () => {
+  createErrors.value = {}
+  showNewProfessionalModal.value = true
+}
+
 const editProfessional = professional => {
   editingProfessional.value = { ...professional }
+  editErrors.value = {}
   showEditProfessionalModal.value = true
 }
 
@@ -587,6 +692,8 @@ const viewDetail = professional => {
 
 const updateProfessional = async () => {
   if (updating.value) return
+  if (!editingProfessional.value) return
+  if (!validateProfessionalForm(editingProfessional.value, editErrors)) return
   updating.value = true
   try {
     await put(`/api/users/${editingProfessional.value.id}`, editingProfessional.value)
@@ -620,6 +727,7 @@ const deleteProfessional = async professional => {
 }
 
 onMounted(() => {
+  loadBranches()
   loadProfessionals()
 })
 </script>
