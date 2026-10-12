@@ -49,7 +49,7 @@
               variant="primary"
               size="sm"
               data-new-patient-button
-              @click="showNewPatientModal = true"
+              @click="openPatientForm('create')"
             >
               <template #icon-left>
                 <PlusIcon class="w-4 h-4" aria-hidden="true" />
@@ -379,260 +379,14 @@
       </section>
     </div>
 
-    <!-- New Patient Modal -->
-    <UiModal
-      :model-value="showNewPatientModal"
-      title="Nuevo Paciente"
-      size="xl"
-      @close="showNewPatientModal = false"
-    >
-      <form @submit.prevent="createPatient" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="newPatient.first_name"
-            label="Nombre"
-            placeholder="Ingresa el nombre"
-            required
-          />
-          <UiInput
-            v-model="newPatient.last_name"
-            label="Apellido"
-            placeholder="Ingresa el apellido"
-            required
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="newPatient.document_number"
-            label="DNI"
-            placeholder="Ingresa el DNI"
-          />
-          <UiInput
-            v-model="newPatient.email"
-            label="Email"
-            type="email"
-            placeholder="correo@ejemplo.com"
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="newPatient.phone"
-            label="Teléfono"
-            placeholder="+51 999 999 999"
-          />
-          <UiInput
-            v-model="newPatient.birth_date"
-            label="Fecha de Nacimiento"
-            type="date"
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Género
-            </label>
-            <UiSelect
-              v-model="newPatient.gender"
-              :options="genderOptions"
-              placeholder="Seleccionar"
-              class="w-full"
-            />
-          </div>
-        </div>
-        <UiInput
-          v-model="newPatient.address"
-          label="Dirección"
-          placeholder="Ingresa la dirección"
-        />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="newPatient.emergency_contact_name"
-            label="Contacto de Emergencia"
-            placeholder="Nombre del contacto"
-          />
-          <UiInput
-            v-model="newPatient.emergency_contact_phone"
-            label="Teléfono de Emergencia"
-            placeholder="+51 999 999 999"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Historial Médico</label>
-          <UiTextarea
-            v-model="newPatient.medical_history"
-            placeholder="Alergias, condiciones médicas, etc."
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Alergias</label>
-          <UiTextarea
-            v-model="newPatient.allergies"
-            placeholder="Lista de alergias conocidas"
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
-          <UiTextarea
-            v-model="newPatient.notes"
-            placeholder="Notas adicionales"
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div class="flex justify-end gap-3 pt-4">
-          <UiButton
-            type="button"
-            variant="secondary"
-            @click="showNewPatientModal = false"
-          >
-            Cancelar
-          </UiButton>
-          <UiButton
-            type="submit"
-            :loading="creating"
-          >
-            Crear Paciente
-          </UiButton>
-        </div>
-      </form>
-    </UiModal>
-
-    <!-- Edit Patient Modal -->
-    <UiModal
-      :model-value="showEditPatientModal"
-      title="Editar Paciente"
-      size="xl"
-      @close="showEditPatientModal = false; resetEditPatient()"
-    >
-      <form @submit.prevent="updatePatient" class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="editPatientData.first_name"
-            label="Nombre"
-            placeholder="Ingresa el nombre"
-            required
-          />
-          <UiInput
-            v-model="editPatientData.last_name"
-            label="Apellido"
-            placeholder="Ingresa el apellido"
-            required
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="editPatientData.document_number"
-            label="DNI"
-            placeholder="Ingresa el DNI"
-          />
-          <UiInput
-            v-model="editPatientData.email"
-            label="Email"
-            type="email"
-            placeholder="correo@ejemplo.com"
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="editPatientData.phone"
-            label="Teléfono"
-            placeholder="+51 999 999 999"
-          />
-          <UiInput
-            v-model="editPatientData.birth_date"
-            label="Fecha de Nacimiento"
-            type="date"
-          />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Género
-            </label>
-            <UiSelect
-              v-model="editPatientData.gender"
-              :options="genderOptions"
-              placeholder="Seleccionar"
-              class="w-full"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">
-              Estado
-            </label>
-            <UiSelect
-              v-model="editPatientData.is_active"
-              :options="statusOptions"
-              placeholder="Seleccionar"
-              class="w-full"
-            />
-          </div>
-        </div>
-        <UiInput
-          v-model="editPatientData.address"
-          label="Dirección"
-          placeholder="Ingresa la dirección"
-        />
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UiInput
-            v-model="editPatientData.emergency_contact_name"
-            label="Contacto de Emergencia"
-            placeholder="Nombre del contacto"
-          />
-          <UiInput
-            v-model="editPatientData.emergency_contact_phone"
-            label="Teléfono de Emergencia"
-            placeholder="+51 999 999 999"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Historial Médico</label>
-          <UiTextarea
-            v-model="editPatientData.medical_history"
-            placeholder="Alergias, condiciones médicas, etc."
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Alergias</label>
-          <UiTextarea
-            v-model="editPatientData.allergies"
-            placeholder="Lista de alergias conocidas"
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Notas</label>
-          <UiTextarea
-            v-model="editPatientData.notes"
-            placeholder="Notas adicionales"
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div class="flex justify-end gap-3 pt-4">
-          <UiButton
-            type="button"
-            variant="secondary"
-            @click="showEditPatientModal = false; resetEditPatient()"
-          >
-            Cancelar
-          </UiButton>
-          <UiButton
-            type="submit"
-            :loading="updating"
-          >
-            Actualizar Paciente
-          </UiButton>
-        </div>
-      </form>
-    </UiModal>
+    <!-- Shared create/edit patient form -->
+    <PatientFormModal
+      v-if="showPatientFormModal"
+      :mode="patientFormMode"
+      :patient="patientFormPayload"
+      @close="closePatientForm"
+      @saved="handlePatientSaved"
+    />
   </AppLayout>
 </template>
 
@@ -658,10 +412,9 @@ import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
-import UiModal from '../../components/ui/Modal.vue'
-import UiTextarea from '../../components/ui/UiTextarea.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import Pagination from '../../components/ui/Pagination.vue'
+import PatientFormModal from './PatientFormModal.vue'
 import PatientListRow from './PatientListRow.vue'
 
 export default {
@@ -677,15 +430,14 @@ export default {
     UiButton,
     UiInput,
     UiSelect,
-    UiModal,
-    UiTextarea,
     UiSectionEmpty,
     Pagination,
+    PatientFormModal,
     PatientListRow
   },
   setup() {
     const router = useRouter()
-    const { get, post, put, delete: del } = useApi()
+    const { get, delete: del } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { confirm } = useConfirm()
@@ -695,8 +447,6 @@ export default {
 
     const loading = ref(false)
     const loadError = ref(false)
-    const creating = ref(false)
-    const updating = ref(false)
     const patients = ref([])
     const filteredPatients = ref([])
     const paginationMeta = ref({
@@ -727,42 +477,20 @@ export default {
       { value: 30, label: '30 por página' },
       { value: 50, label: '50 por página' }
     ]
-    const showNewPatientModal = ref(false)
-    const showEditPatientModal = ref(false)
-    const editingPatientId = ref(null)
+    const showPatientFormModal = ref(false)
+    const patientFormMode = ref('create')
+    const patientFormPayload = ref(null)
 
-    const newPatient = ref({
-      first_name: '',
-      last_name: '',
-      document_number: '',
-      email: '',
-      phone: '',
-      birth_date: '',
-      gender: '',
-      address: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      medical_history: '',
-      allergies: '',
-      notes: ''
-    })
+    const openPatientForm = (mode, patient = null) => {
+      patientFormMode.value = mode
+      patientFormPayload.value = patient ? { ...patient } : null
+      showPatientFormModal.value = true
+    }
 
-    const editPatientData = ref({
-      first_name: '',
-      last_name: '',
-      document_number: '',
-      email: '',
-      phone: '',
-      birth_date: '',
-      gender: '',
-      address: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      medical_history: '',
-      allergies: '',
-      notes: '',
-      is_active: true
-    })
+    const closePatientForm = () => {
+      showPatientFormModal.value = false
+      patientFormPayload.value = null
+    }
 
     // Almacenar totales de activos/inactivos desde el backend
     const activeCount = ref(0)
@@ -929,174 +657,80 @@ export default {
       }
     }
 
-    const createPatient = async () => {
-      creating.value = true
-      try {
-        const response = await post('/api/patients', newPatient.value)
-        const newPatientData = response?.data
+    const addPatientToList = patientData => {
+      let shouldAdd = true
 
-        if (newPatientData) {
-          // Verificar si el paciente cumple los filtros actuales
-          let shouldAdd = true
+      if (statusFilter.value === 'active' && !patientData.is_active) {
+        shouldAdd = false
+      } else if (statusFilter.value === 'inactive' && patientData.is_active) {
+        shouldAdd = false
+      }
 
-          // Verificar filtro de estado
-          if (statusFilter.value === 'active' && !newPatientData.is_active) {
-            shouldAdd = false
-          } else if (statusFilter.value === 'inactive' && newPatientData.is_active) {
-            shouldAdd = false
-          }
+      if (shouldAdd && searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        const matchesSearch =
+          (patientData.first_name || '').toLowerCase().includes(query) ||
+          (patientData.last_name || '').toLowerCase().includes(query) ||
+          (patientData.email || '').toLowerCase().includes(query) ||
+          (patientData.phone || '').includes(query) ||
+          (patientData.document_number || '').toLowerCase().includes(query)
 
-          // Verificar búsqueda
-          if (shouldAdd && searchQuery.value) {
-            const query = searchQuery.value.toLowerCase()
-            const matchesSearch =
-              (newPatientData.first_name || '').toLowerCase().includes(query) ||
-              (newPatientData.last_name || '').toLowerCase().includes(query) ||
-              (newPatientData.email || '').toLowerCase().includes(query) ||
-              (newPatientData.phone || '').includes(query) ||
-              (newPatientData.document_number || '').toLowerCase().includes(query)
+        if (!matchesSearch) {
+          shouldAdd = false
+        }
+      }
 
-            if (!matchesSearch) {
-              shouldAdd = false
-            }
-          }
+      if (shouldAdd) {
+        const insertIndex = patients.value.findIndex(p => {
+          const newLastName = (patientData.last_name || '').toLowerCase()
+          const currentLastName = (p.last_name || '').toLowerCase()
+          return (
+            currentLastName > newLastName ||
+            (currentLastName === newLastName &&
+              (p.first_name || '').toLowerCase() > (patientData.first_name || '').toLowerCase())
+          )
+        })
 
-          if (shouldAdd) {
-            // Agregar el paciente directamente a la lista si cumple los filtros
-            // Como se ordena por apellido, insertarlo en la posición correcta
-            const insertIndex = patients.value.findIndex(p => {
-              const newLastName = (newPatientData.last_name || '').toLowerCase()
-              const currentLastName = (p.last_name || '').toLowerCase()
-              return currentLastName > newLastName ||
-                     (currentLastName === newLastName && (p.first_name || '').toLowerCase() > (newPatientData.first_name || '').toLowerCase())
-            })
-
-            if (insertIndex === -1) {
-              // Agregar al final si no se encuentra posición
-              patients.value.push(newPatientData)
-            } else {
-              // Insertar en la posición correcta
-              patients.value.splice(insertIndex, 0, newPatientData)
-            }
-
-            // Actualizar filteredPatients
-            filteredPatients.value = patients.value
-          }
-
-          // Actualizar el total de pacientes (siempre, independientemente de si se muestra)
-          if (paginationMeta.value.total !== undefined) {
-            paginationMeta.value.total += 1
-          }
+        if (insertIndex === -1) {
+          patients.value.push(patientData)
+        } else {
+          patients.value.splice(insertIndex, 0, patientData)
         }
 
-        showNewPatientModal.value = false
-        resetNewPatient()
+        filteredPatients.value = patients.value
+      }
 
-        // Notificación de éxito
-        toast.success(
-          `Paciente registrado: ${newPatient.value.first_name} ${newPatient.value.last_name}\n` +
-          `Email: ${newPatient.value.email}\n` +
-          `Teléfono: ${newPatient.value.phone}`,
-          {
-            duration: 5000,
-            title: '✓ Paciente Creado'
-          }
-        )
-      } catch (error) {
-        // Notificación de error
-        const errorMsg = error.response?.data?.message || 'Error al crear paciente'
-        const errors = error.response?.data?.errors
-        let details = ''
-        if (errors) {
-          details = `\n${Object.values(errors).flat().join('\n')}`
-        }
-        toast.error(
-          `${errorMsg}${details}`,
-          {
-            duration: 8000,
-            title: '✗ Error al Crear Paciente'
-          }
-        )
-      } finally {
-        creating.value = false
+      if (paginationMeta.value.total !== undefined) {
+        paginationMeta.value.total += 1
       }
     }
 
-    const editPatient = (patient) => {
-      editingPatientId.value = patient.id
-      editPatientData.value = {
-        first_name: patient.first_name || '',
-        last_name: patient.last_name || '',
-        document_number: patient.document_number || '',
-        email: patient.email || '',
-        phone: patient.phone || '',
-        birth_date: patient.birth_date ? patient.birth_date.split('T')[0] : '',
-        gender: patient.gender || '',
-        address: patient.address || '',
-        emergency_contact_name: patient.emergency_contact_name || '',
-        emergency_contact_phone: patient.emergency_contact_phone || '',
-        medical_history: patient.medical_history || '',
-        allergies: patient.allergies || '',
-        notes: patient.notes || '',
-        is_active: patient.is_active !== undefined ? patient.is_active : true
-      }
-      showEditPatientModal.value = true
-    }
-
-    const updatePatient = async () => {
-      if (!editingPatientId.value) return
-
-      updating.value = true
-      try {
-        await put(`/api/patients/${editingPatientId.value}`, editPatientData.value)
+    const handlePatientSaved = async ({ mode, patient }) => {
+      if (mode === 'edit') {
         await loadPatients()
-        showEditPatientModal.value = false
-        resetEditPatient()
 
-        toast.success(
-          `Paciente actualizado: ${editPatientData.value.first_name} ${editPatientData.value.last_name}`,
-          {
-            duration: 5000,
-            title: '✓ Paciente Actualizado'
-          }
-        )
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Error al actualizar paciente'
-        const errors = error.response?.data?.errors
-        let details = ''
-        if (errors) {
-          details = `\n${Object.values(errors).flat().join('\n')}`
-        }
-        toast.error(
-          `${errorMsg}${details}`,
-          {
-            duration: 8000,
-            title: '✗ Error al Actualizar Paciente'
-          }
-        )
-      } finally {
-        updating.value = false
+        toast.success(`Paciente actualizado: ${patient.first_name} ${patient.last_name}`, {
+          duration: 5000,
+          title: '✓ Paciente Actualizado'
+        })
+        return
       }
+
+      addPatientToList(patient)
+
+      toast.success(
+        `Paciente registrado: ${patient.first_name} ${patient.last_name}\n` +
+        `Email: ${patient.email}\n` +
+        `Teléfono: ${patient.phone}`,
+        {
+          duration: 5000,
+          title: '✓ Paciente Creado'
+        }
+      )
     }
 
-    const resetEditPatient = () => {
-      editingPatientId.value = null
-      editPatientData.value = {
-        first_name: '',
-        last_name: '',
-        document_number: '',
-        email: '',
-        phone: '',
-        birth_date: '',
-        gender: '',
-        address: '',
-        emergency_contact_name: '',
-        emergency_contact_phone: '',
-        medical_history: '',
-        allergies: '',
-        notes: '',
-        is_active: true
-      }
+    const editPatient = patient => {
+      openPatientForm('edit', patient)
     }
 
     const viewPatient = (patient) => {
@@ -1139,24 +773,6 @@ export default {
             }
           )
         }
-      }
-    }
-
-    const resetNewPatient = () => {
-      newPatient.value = {
-        first_name: '',
-        last_name: '',
-        document_number: '',
-        email: '',
-        phone: '',
-        birth_date: '',
-        gender: '',
-        address: '',
-        emergency_contact_name: '',
-        emergency_contact_phone: '',
-        medical_history: '',
-        allergies: '',
-        notes: ''
       }
     }
 
@@ -1227,54 +843,8 @@ export default {
             .listen('.patient.created', async (e) => {
               const newPatient = e.patient
 
-              // Agregar el paciente directamente a la lista si cumple los filtros
               if (newPatient) {
-                // Verificar si cumple los filtros actuales
-                let shouldAdd = true
-
-                if (statusFilter.value === 'active' && !newPatient.is_active) {
-                  shouldAdd = false
-                } else if (statusFilter.value === 'inactive' && newPatient.is_active) {
-                  shouldAdd = false
-                }
-
-                if (searchQuery.value) {
-                  const query = searchQuery.value.toLowerCase()
-                  const matchesSearch =
-                    (newPatient.first_name || '').toLowerCase().includes(query) ||
-                    (newPatient.last_name || '').toLowerCase().includes(query) ||
-                    (newPatient.email || '').toLowerCase().includes(query) ||
-                    (newPatient.phone || '').includes(query) ||
-                    (newPatient.document_number || '').toLowerCase().includes(query)
-
-                  if (!matchesSearch) {
-                    shouldAdd = false
-                  }
-                }
-
-                if (shouldAdd) {
-                  // Insertar en la posición correcta (ordenado por apellido)
-                  const insertIndex = patients.value.findIndex(p => {
-                    const newLastName = (newPatient.last_name || '').toLowerCase()
-                    const currentLastName = (p.last_name || '').toLowerCase()
-                    return currentLastName > newLastName ||
-                           (currentLastName === newLastName && (p.first_name || '').toLowerCase() > (newPatient.first_name || '').toLowerCase())
-                  })
-
-                  if (insertIndex === -1) {
-                    patients.value.push(newPatient)
-                  } else {
-                    patients.value.splice(insertIndex, 0, newPatient)
-                  }
-
-                  // Actualizar filteredPatients
-                  filteredPatients.value = patients.value
-                }
-
-                // Actualizar el total
-                if (paginationMeta.value.total !== undefined) {
-                  paginationMeta.value.total += 1
-                }
+                addPatientToList(newPatient)
               }
 
               toast.success('Nuevo paciente agregado')
@@ -1321,8 +891,6 @@ export default {
       can,
       loading,
       loadError,
-      creating,
-      updating,
       patients,
       filteredPatients,
       searchQuery,
@@ -1334,10 +902,9 @@ export default {
       sortFilterOptions,
       perPageFilter,
       perPageOptions,
-      showNewPatientModal,
-      showEditPatientModal,
-      newPatient,
-      editPatientData,
+      showPatientFormModal,
+      patientFormMode,
+      patientFormPayload,
       totalPatients,
       activePatients,
       inactivePatients,
@@ -1351,10 +918,10 @@ export default {
       searchPatients,
       filterPatients,
       resetFilters,
-      createPatient,
+      openPatientForm,
+      closePatientForm,
+      handlePatientSaved,
       editPatient,
-      updatePatient,
-      resetEditPatient,
       viewPatient,
       deletePatient,
       formatDate,
