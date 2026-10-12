@@ -365,12 +365,13 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
         $this->assertSame(
             1,
             preg_match(
-                '#if \(!slotKey \|\| !canDropOn\(slotKey, session\.appointment\)\) return\s*rescheduleAppointment\(#',
+                '#if \(!canDropOn\(slotKey, session\.appointment\)\) \{[\s\S]*?return\s*\}\s*rescheduleAppointment\(session\.appointment, slotKey\)#',
                 $src
             ),
             sprintf(
                 '%s MUST consult `canDropOn` BEFORE calling `rescheduleAppointment` — an invalid drop (own slot / past slot) '
-                . 'must not fire a request (T5 no-request cancellations).',
+                . 'must not fire a request (T5 no-request cancellations; T8b: the past-slot rejection now also '
+                . 'announces itself with an info toast, still client-side only).',
                 self::CALENDAR_PATH
             )
         );

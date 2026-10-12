@@ -222,6 +222,7 @@
                   class="pointer-events-auto block w-full px-3 py-2 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                   :class="getAppointmentClasses(appointment)"
                   style="border-radius: var(--radius-panel)"
+                  :title="chipTitle(appointment)"
                   :data-calendar-appointment="appointment.id"
                   :data-calendar-draggable="appointment.id"
                   :data-calendar-drag-state="
@@ -236,7 +237,7 @@
                         class="block truncate text-xs text-theme-primary"
                         style="font-feature-settings: 'tnum' 1"
                       >
-                        {{ appointmentTimeRange(appointment) }}
+                        {{ chipTimeRange(appointment) }}
                       </span>
                       <span class="block truncate text-sm font-semibold text-theme-primary">
                         {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
@@ -321,6 +322,7 @@
                     class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                     :class="getAppointmentClasses(appointment)"
                     style="border-radius: var(--radius-panel)"
+                    :title="chipTitle(appointment)"
                     :data-calendar-appointment="appointment.id"
                     :data-calendar-draggable="appointment.id"
                     :data-calendar-drag-state="
@@ -333,8 +335,8 @@
                       class="block truncate text-xs font-semibold text-theme-primary"
                       style="font-feature-settings: 'tnum' 1"
                     >
-                      {{ appointmentTimeRange(appointment) }} ·
-                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                      {{ chipTimeRange(appointment) }} · {{ appointment.patient?.first_name }}
+                      {{ appointment.patient?.last_name }}
                     </span>
                     <span
                       v-if="appointmentMetaLine(appointment)"
@@ -399,6 +401,7 @@
                   class="flex w-full items-center gap-1.5 px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
                   :class="getAppointmentClasses(appointment)"
                   style="border-radius: var(--radius-panel)"
+                  :title="chipTitle(appointment)"
                   :data-calendar-appointment="appointment.id"
                   @click="selectAppointment(appointment)"
                 >
@@ -406,7 +409,7 @@
                     class="shrink-0 text-xs font-semibold text-theme-primary"
                     style="font-feature-settings: 'tnum' 1"
                   >
-                    {{ formatTime(appointment.scheduled_at) }}
+                    {{ chipTimeRange(appointment) }}
                   </span>
                   <span class="min-w-0 flex-1 truncate text-xs text-theme-primary">
                     {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
@@ -607,6 +610,7 @@ import NewAppointmentModal from '../../components/appointments/NewAppointmentMod
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
 import { useConfirm } from '../../composables/useConfirm'
+import { formatCompactTimeRange } from '../../composables/useFormatters'
 import {
   APPOINTMENT_CHIP_BASE_CLASSES,
   APPOINTMENT_STATUS_KEYS,
@@ -832,6 +836,22 @@ export default {
       )
     }
 
+    // T8b defect 3 — chips render the compact `HH:mm - HH:mm` (all three
+    // views) with a `title` carrying the full patient + locale range; the
+    // details modal keeps the full locale format through
+    // `appointmentTimeRange` above.
+    const chipTimeRange = appointment =>
+      formatCompactTimeRange(
+        appointment.scheduled_at,
+        appointment.ends_at || appointment.scheduled_at
+      )
+
+    const chipTitle = appointment => {
+      const name =
+        `${appointment.patient?.first_name || ''} ${appointment.patient?.last_name || ''}`.trim()
+      return `${name || 'Cita'} · ${appointmentTimeRange(appointment)}`
+    }
+
     const appointmentMetaLine = appointment => {
       const parts = []
       if (appointment?.user?.name) parts.push(appointment.user.name)
@@ -1055,7 +1075,24 @@ export default {
       }
       const slotKey = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
       endDrag({ suppressClick: true })
-      if (!slotKey || !canDropOn(slotKey, session.appointment)) return
+      if (!slotKey) return
+      // Own-slot drop is a no-op and stays silent (T5 contract: no request,
+      // no feedback).
+      const current = getAppointmentLocalDate(session.appointment)
+      if (current && slotKey === `${current.dateStr}-${current.hour}`) return
+      if (!canDropOn(slotKey, session.appointment)) {
+        // T8b investigation: drops onto past slots are rejected CLIENT-side
+        // by `canDropOn` before any request — in the real-browser pass that
+        // read as a silent cancel (armed drag, no PATCH, no toast). Announce
+        // the rule as a quiet info toast; other rejections (defensive
+        // unresolvable slots) keep the silent rollback.
+        const target = slotKeyToScheduledAt(slotKey)
+        const targetTime = target ? new Date(target).getTime() : NaN
+        if (Number.isFinite(targetTime) && targetTime < Date.now() + 60 * 1000) {
+          toast.info('No se puede mover a un horario pasado')
+        }
+        return
+      }
       rescheduleAppointment(session.appointment, slotKey)
     }
 
@@ -1159,13 +1196,6 @@ export default {
 
     const formatHour = hour => {
       return `${hour.toString().padStart(2, '0')}:00`
-    }
-
-    const formatTime = dateTime => {
-      return new Date(dateTime).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
     }
 
     const formatDateTime = dateTime => {
@@ -1275,6 +1305,8 @@ export default {
       appointmentsForSlot,
       dayDateString,
       appointmentTimeRange,
+      chipTimeRange,
+      chipTitle,
       appointmentMetaLine,
       openSlotCreate,
       newAppointmentPrefill,
@@ -1294,7 +1326,6 @@ export default {
       deleteAppointment,
       getAppointmentLabel,
       formatHour,
-      formatTime,
       formatDateTime,
       goBack,
       getInitialDateForModal,

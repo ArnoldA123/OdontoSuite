@@ -167,11 +167,22 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
             sprintf('%s month chips MUST derive status styling from the registry via `getAppointmentClasses` (T6; no template colour map).', self::CALENDAR_PATH)
         );
 
-        // Compact chip content: time with tnum + patient name.
+        // Compact chip content: compact time RANGE with tnum + patient name.
+        // T8b defect 3: the start-only `formatTime(appointment.scheduled_at)`
+        // became `chipTimeRange(appointment)` so Day, Week and Month chips all
+        // render the same compact `HH:mm - HH:mm` (the long es-PE locale form
+        // clipped the Week chip: "08:00 a. m.-0…"); the full patient + locale
+        // range moved to the chip `title` and the details modal keeps the
+        // locale format.
         $this->assertSame(
             1,
-            preg_match('#formatTime\(appointment\.scheduled_at\)#', $slice),
-            sprintf('%s month chips MUST show the appointment time via `formatTime` (T6 compact anatomy).', self::CALENDAR_PATH)
+            preg_match('#chipTimeRange\(appointment\)#', $slice),
+            sprintf('%s month chips MUST show the compact range via `chipTimeRange` (T8b defect 3 compact anatomy, all three views).', self::CALENDAR_PATH)
+        );
+        $this->assertSame(
+            1,
+            preg_match('#:title="chipTitle\(appointment\)"#', $slice),
+            sprintf('%s month chips MUST expose the full patient + range text via `title` (T8b defect 3).', self::CALENDAR_PATH)
         );
         $this->assertSame(
             1,

@@ -5,7 +5,14 @@
 // database/migrations/2025_10_14_123001_fix_appointments_status_enum.php (the
 // app writes `in_consultation`, but serialized rows may still carry it).
 
-export const APPOINTMENT_CHIP_BASE_CLASSES = 'bg-theme-surface-elevated border border-hairline'
+// T8b defect 2 — chip anatomy contract: the BASE classes carry shape only
+// (border width here; padding/radius/shadow live on the chip templates per
+// view). They must NOT set a background or a border colour: with both layers
+// setting background-color/border-color the CSS cascade decides by
+// stylesheet order and the registry status tint lost in the real browser
+// (every chip computed to rgb(255,255,255)). The registry `chip` entry
+// below is the single source of the tint (background + border colour).
+export const APPOINTMENT_CHIP_BASE_CLASSES = 'border'
 
 export const APPOINTMENT_STATUSES = {
   scheduled: {

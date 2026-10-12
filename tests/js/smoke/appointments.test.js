@@ -109,6 +109,164 @@ describe('appointments smoke', () => {
   })
 })
 
+// T8b defect 1 — click-to-create prefill race: clicking an empty slot must
+// land in NewAppointmentModal with the Fecha y Hora input ALREADY populated
+// with the slot's `YYYY-MM-DDTHH:mm`, regardless of the order in which the
+// page sets `newAppointmentPrefill` and `showNewAppointmentModal`. The old
+// T4 anchor only asserted the modal *props*; this block asserts the rendered
+// input value (the thing the real-browser pass saw empty).
+describe('T8b click-to-create prefill smoke (defect 1)', () => {
+  const expectedPrefill = slotKey => {
+    const dateStr = slotKey.slice(0, 10)
+    const hour = Number(slotKey.slice(11))
+    return `${dateStr}T${String(hour).padStart(2, '0')}:00`
+  }
+
+  const scheduledInput = () => document.querySelector('input[type="datetime-local"]')
+
+  const mounted = []
+  const mountPage = () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(Page, { attachTo: host, global: { plugins: [router, uiComponents] } })
+    mounted.push({ wrapper, host })
+    return wrapper
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    globalToasts.value.splice(0, globalToasts.value.length)
+    localStorage.removeItem('user')
+  })
+
+  afterEach(() => {
+    while (mounted.length) {
+      const { wrapper, host } = mounted.pop()
+      try {
+        wrapper.unmount()
+      } catch {
+        // already unmounted
+      }
+      host.remove()
+    }
+    vi.useRealTimers()
+    localStorage.removeItem('user')
+  })
+
+  it('populates the Fecha y Hora input from the clicked slot in Week view', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const slot = wrapper.find('button[data-calendar-slot]')
+    expect(slot.exists()).toBe(true)
+    const key = slot.attributes('data-calendar-slot')
+
+    await slot.trigger('click')
+    await flushPromises()
+
+    const input = scheduledInput()
+    expect(input, 'the modal form must render its datetime-local input').not.toBeNull()
+    expect(input.value).toBe(expectedPrefill(key))
+  })
+
+  it('populates the Fecha y Hora input from the clicked slot in Day view', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await wrapper.find('[data-calendar-view="day"]').trigger('click')
+    await flushPromises()
+
+    const slot = wrapper.find('button[data-calendar-slot]')
+    expect(slot.exists()).toBe(true)
+    const key = slot.attributes('data-calendar-slot')
+
+    await slot.trigger('click')
+    await flushPromises()
+
+    const input = scheduledInput()
+    expect(input, 'the modal form must render its datetime-local input').not.toBeNull()
+    expect(input.value).toBe(expectedPrefill(key))
+  })
+
+  // Order-independence regressions: the prefill must survive every reopen
+  // sequence, whatever the previous modal session was (button open with no
+  // slot context, repeated slot opens, or an edit session).
+  it('re-prefills after a previous open through the Nueva cita button (no slot context)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    await wrapper.find('[data-calendar-action="new-appointment"]').trigger('click')
+    await flushPromises()
+    expect(scheduledInput().value).toBe('') // button open carries no slot context
+
+    // close through the modal cancel button
+    const cancel = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent.trim() === 'Cancelar'
+    )
+    cancel.click()
+    await flushPromises()
+    expect(scheduledInput()).toBeNull() // closed → form unmounted
+
+    const slot = wrapper.find('button[data-calendar-slot]')
+    const key = slot.attributes('data-calendar-slot')
+    await slot.trigger('click')
+    await flushPromises()
+    expect(scheduledInput().value).toBe(expectedPrefill(key))
+  })
+
+  it('re-prefills when the same slot is opened a second time', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const slot = wrapper.find('button[data-calendar-slot]')
+    const key = slot.attributes('data-calendar-slot')
+
+    await slot.trigger('click')
+    await flushPromises()
+    expect(scheduledInput().value).toBe(expectedPrefill(key))
+
+    const cancel = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent.trim() === 'Cancelar'
+    )
+    cancel.click()
+    await flushPromises()
+
+    await slot.trigger('click')
+    await flushPromises()
+    expect(scheduledInput().value).toBe(expectedPrefill(key))
+  })
+
+  it('prefills the slot after a previous edit session (edit data must not leak)', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 9, role: 'odontologo', name: 'Odonto' }))
+    const wrapper = mountPage()
+    await flushPromises()
+
+    // open edit mode through the details modal
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+    document.querySelector('[data-calendar-action="edit"]').click()
+    await flushPromises()
+    expect(scheduledInput().value).toBe('2026-05-13T10:00:00'.slice(0, 16)) // edit populates
+
+    const cancel = Array.from(document.querySelectorAll('button')).find(
+      b => b.textContent.trim() === 'Cancelar'
+    )
+    cancel.click()
+    await flushPromises()
+
+    const slot = wrapper.find('button[data-calendar-slot]')
+    const key = slot.attributes('data-calendar-slot')
+    await slot.trigger('click')
+    await flushPromises()
+
+    const input = scheduledInput()
+    expect(input.value).toBe(expectedPrefill(key))
+    // create mode: no leftover edit binding
+    expect(wrapper.findComponent(NewAppointmentModal).props('appointment')).toBeNull()
+  })
+})
+
 // T5 drag-and-drop reschedule: interaction contract for the Day/Week grids.
 // The pointer lifecycle (threshold -> drag -> hover -> drop) is driven with
 // real MouseEvents on window; slot geometry is stubbed because jsdom rects
@@ -304,6 +462,38 @@ describe('appointments drag reschedule smoke (T5)', () => {
     wrapper.unmount()
   })
 
+  it('informs when a drop is rejected client-side on a past slot (T8b investigation)', async () => {
+    // Real-browser hypothesis replay: the seeded fixtures sit in a week that
+    // is entirely in the past, so `canDropOn` rejects the drop BEFORE any
+    // request — the old code cancelled silently (no PATCH, no toast). The
+    // rejection must now be announced quietly while staying client-side.
+    vi.setSystemTime(new Date(2026, 4, 13, 15, 0, 0))
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const chip = wrapper.find(chipSelector)
+    stubSlotRects(wrapper, '2026-05-13-14')
+
+    startDrag(chip)
+    await nextTick()
+    dispatchPointer(window, 'pointermove', { clientX: 150, clientY: 240 })
+    await nextTick()
+    dispatchPointer(window, 'pointerup', { clientX: 150, clientY: 240 })
+    await flushPromises()
+
+    // client-side rejection: no request, chip rolled back, no details modal
+    expect(patchMock).not.toHaveBeenCalled()
+    expect(
+      wrapper.find(`[data-calendar-drop-target="2026-05-13-10"] ${chipSelector}`).exists()
+    ).toBe(true)
+    expect(document.body.textContent).not.toContain('Detalles de la Cita')
+
+    // …but no longer silent: an informative (non-error) toast names the rule.
+    const last = globalToasts.value.at(-1)
+    expect(last?.type).toBe('info')
+    expect(last?.message).toBe('No se puede mover a un horario pasado')
+  })
+
   it('rolls back to the original slot and names the blocker on a 422 conflict (T5)', async () => {
     patchMock.mockRejectedValueOnce(conflictError())
     const wrapper = mountPage()
@@ -420,6 +610,99 @@ describe('appointments drag reschedule smoke (T5)', () => {
       expect(cell.attributes('data-calendar-drop-active')).toBeUndefined()
     })
     wrapper.unmount()
+  })
+})
+
+// T8b defects 2 & 3 — chip anatomy: the registry status tint must survive
+// the CSS cascade in ALL three views (base classes carry shape only, status
+// classes carry bg + border colour), and chip time text must be the compact
+// `HH:mm - HH:mm` (no locale a. m./p. m. clipping) with a `title` carrying
+// the full patient + range text.
+describe('T8b chip tint and compact time smoke (defects 2/3)', () => {
+  const mounted = []
+  const mountPage = () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(Page, { attachTo: host, global: { plugins: [router, uiComponents] } })
+    mounted.push({ wrapper, host })
+    return wrapper
+  }
+
+  const defaultAppointments = apiAppointments.value
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    localStorage.removeItem('user')
+  })
+
+  afterEach(() => {
+    while (mounted.length) {
+      const { wrapper, host } = mounted.pop()
+      try {
+        wrapper.unmount()
+      } catch {
+        // already unmounted
+      }
+      host.remove()
+    }
+    apiAppointments.value = defaultAppointments
+    vi.useRealTimers()
+    localStorage.removeItem('user')
+  })
+
+  const assertChipContract = (chip, view) => {
+    const classes = chip.classes()
+
+    // Defect 2: the registry tint is the ONLY background/border-colour the
+    // chip wears — no base or template token may compete with it in the
+    // cascade (both would set background-color/border-color and the winner
+    // would be decided by stylesheet order).
+    expect(
+      classes.filter(c => c.startsWith('bg-')),
+      `${view}: single bg`
+    ).toEqual(['bg-accent-50'])
+    expect(
+      classes.filter(c => c.startsWith('border-')),
+      `${view}: single border colour`
+    ).toEqual(['border-accent-200'])
+
+    // Defect 3: compact range, never the long locale form, full title.
+    expect(chip.text(), `${view}: compact range`).toContain('10:00 - 10:30')
+    expect(chip.text(), `${view}: no locale meridiem`).not.toMatch(/a\. m\.|p\. m\./)
+    expect(chip.attributes('title'), `${view}: full title`).toContain('Ana Pérez')
+    expect(chip.attributes('title'), `${view}: full title range`).toContain('10:30')
+  }
+
+  it('carries the registry tint + compact time on the Week chip', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+
+    const chip = wrapper.find('[data-calendar-appointment="1"]')
+    expect(chip.exists()).toBe(true)
+    assertChipContract(chip, 'week')
+  })
+
+  it('carries the registry tint + compact time on the Day chip', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await wrapper.find('[data-calendar-view="day"]').trigger('click')
+    await flushPromises()
+
+    const chip = wrapper.find('[data-calendar-appointment="1"]')
+    expect(chip.exists()).toBe(true)
+    assertChipContract(chip, 'day')
+  })
+
+  it('carries the registry tint + compact time on the Month chip', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await wrapper.find('[data-calendar-view="month"]').trigger('click')
+    await flushPromises()
+
+    const chip = wrapper.find('[data-calendar-appointment="1"]')
+    expect(chip.exists()).toBe(true)
+    assertChipContract(chip, 'month')
   })
 })
 
