@@ -1,237 +1,358 @@
 <template>
   <AppLayout>
-    <!-- bg-canvas pinned on the page header (DLR-R-001); AppLayout also
-         paints canvas for this route (canvasRoutes list). -->
-    <PageHeader
-      :title="appointmentType?.name || 'Cargando...'"
-      :subtitle="
-        appointmentType
-          ? `ID: ${appointmentType.id} | Duración: ${appointmentType.default_duration_minutes} minutos`
-          : ''
+    <!-- Hero band (D1): the list hero surface recipe (canvas base + hairline
+         + radius-panel + elevation-2) with breadcrumb, eyebrow, display
+         headline, status pill and right-aligned actions. -->
+    <header
+      data-detail-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
       "
-      :breadcrumbs="[{ to: '/appointment-types', label: 'Tipos de Cita' }]"
-      class="bg-canvas mb-6"
     >
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-      </template>
-    </PageHeader>
+      <button
+        type="button"
+        data-detail-crumb
+        class="inline-flex items-center gap-1 text-sm font-medium text-theme-secondary hover:text-theme-primary"
+        @click="goBack"
+      >
+        <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+        Tipos de Cita
+      </button>
 
-    <!-- Appointment Type Info Card -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex items-center gap-4">
-        <div
-          class="h-16 w-16 rounded-xl flex items-center justify-center"
-          :style="{ backgroundColor: appointmentType?.color || DEFAULT_TYPE_COLOR }"
-        >
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      <div class="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p
+            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            data-detail-eyebrow
+          >
+            Catálogo
+          </p>
+          <div class="mt-2 flex flex-wrap items-center gap-3">
+            <h1 v-if="appointmentType" class="text-4xl font-semibold text-label" data-detail-title>
+              {{ appointmentType.name }}
+            </h1>
+            <div
+              v-else
+              class="h-9 w-72 max-w-full rounded border border-hairline bg-systemGray-100"
+              data-detail-title-placeholder
+              aria-hidden="true"
             />
-          </svg>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-theme-primary">
-            {{ appointmentType?.name }}
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
-            <div>
-              <span class="font-medium">Duración:</span>
-              {{ appointmentType?.default_duration_minutes }} minutos
-            </div>
-            <div>
-              <span class="font-medium">Precio:</span>
-              <span class="tabular-nums">{{ formatCurrency(appointmentType?.price) }}</span>
-            </div>
-            <div>
-              <span class="font-medium">Color:</span>
-              <span
-                class="inline-block w-4 h-4 rounded ml-1"
-                :style="{ backgroundColor: appointmentType?.color }"
+            <span v-if="appointmentType" data-detail-status>
+              <UiStatusBadge
+                :variant="appointmentType.is_active ? 'success' : 'neutral'"
+                :label="appointmentType.is_active ? 'Activo' : 'Inactivo'"
               />
-            </div>
+            </span>
           </div>
-        </div>
-        <div class="text-right">
-          <UiStatusBadge
-            :variant="appointmentType?.is_active ? 'success' : 'neutral'"
-            :label="appointmentType?.is_active ? 'Activo' : 'Inactivo'"
-            size="sm"
+          <p v-if="appointmentType" class="mt-2 text-sm text-theme-secondary" data-detail-caption>
+            {{ appointmentType.description || 'Sin descripción registrada' }}
+          </p>
+          <p v-else-if="loadError" class="mt-2 text-sm text-theme-secondary" data-detail-caption>
+            Sin datos del tipo de cita.
+          </p>
+          <div
+            v-else
+            class="mt-2 h-4 w-48 rounded border border-hairline bg-systemGray-100"
+            aria-hidden="true"
           />
         </div>
+        <div class="flex flex-shrink-0 items-center gap-3" data-detail-actions>
+          <UiButton data-detail-action="edit" @click="goEdit">
+            <template #icon-left>
+              <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Editar
+          </UiButton>
+          <UiButton variant="secondary" data-detail-action="back" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+        </div>
       </div>
-    </UiCard>
+    </header>
 
-    <!-- Tabs Navigation (TIPOS-02-001) — raw <button> step strip replaced
-         with <UiTabs> primitive. The variant="underline" of Tabs.vue
-         paints `text-systemBlue-600 border-systemBlue-500` for the active
-         indicator — owned by the primitive, no hand-rolled classes here. -->
-    <UiTabs v-model="activeTab" :tabs="tabs" class="mb-6">
-      <template #data>
-      <!-- Datos del Tipo de Cita -->
-      <div class="space-y-6">
-        <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">
-            Información del Tipo de Cita
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Nombre</label>
-              <p class="text-theme-primary">
-                {{ appointmentType?.name }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Duración</label>
-              <p class="text-theme-primary">
-                {{ appointmentType?.default_duration_minutes }} minutos
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Precio</label>
-              <p class="text-theme-primary tabular-nums">
-                {{ formatCurrency(appointmentType?.price) }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Color</label>
-              <div class="flex items-center gap-2">
-                <span
-                  class="inline-block w-6 h-6 rounded"
-                  :style="{ backgroundColor: appointmentType?.color }"
-                />
-                <span class="text-theme-primary">{{ appointmentType?.color }}</span>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Activo</label>
-              <p class="text-theme-primary">
-                {{ appointmentType?.is_active ? 'Sí' : 'No' }}
-              </p>
-            </div>
-            <div v-if="appointmentType?.description" class="md:col-span-2">
-              <label class="block text-sm font-medium text-theme-primary mb-1">Descripción</label>
-              <p class="text-theme-primary">
-                {{ appointmentType?.description }}
-              </p>
-            </div>
-          </div>
-        </UiCard>
+    <!-- Skeleton (D4): mirrors the final shape (hero + info groups) with
+         neutral placeholder blocks over hairline borders. No shimmer. -->
+    <div v-if="loading" data-detail-skeleton class="space-y-6" aria-busy="true">
+      <div
+        class="p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
+      >
+        <div class="h-3 w-24 rounded border border-hairline bg-systemGray-100" />
+        <div class="mt-3 h-9 w-72 max-w-full rounded border border-hairline bg-systemGray-100" />
+        <div class="mt-3 h-4 w-48 rounded border border-hairline bg-systemGray-100" />
       </div>
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div
+          v-for="group in 3"
+          :key="group"
+          data-detail-skeleton-group
+          class="p-6"
+          style="
+            background: var(--color-canvas);
+            border: 1px solid var(--color-hairline);
+            border-radius: var(--radius-panel);
+          "
+        >
+          <div class="h-6 w-40 rounded border border-hairline bg-systemGray-100" />
+          <div class="mt-2 h-4 w-56 rounded border border-hairline bg-systemGray-100" />
+          <div class="mt-6 space-y-3">
+            <div class="h-4 w-full rounded border border-hairline bg-systemGray-100" />
+            <div class="h-4 w-2/3 rounded border border-hairline bg-systemGray-100" />
+            <div class="h-4 w-1/2 rounded border border-hairline bg-systemGray-100" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error surface (D4): the same inline surface the list page uses. -->
+    <div
+      v-else-if="loadError"
+      data-types-error
+      role="alert"
+      class="rounded-ios bg-systemRed-50 p-10 text-center"
+      style="border: 1px solid var(--color-hairline)"
+    >
+      <ExclamationTriangleIcon
+        class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+        aria-hidden="true"
+      />
+      <p class="text-base font-medium text-theme-primary">No pudimos cargar el tipo de cita</p>
+      <p class="mt-1 max-w-md mx-auto text-sm text-theme-secondary">
+        Revisa tu conexión e inténtalo de nuevo. Si el problema continúa, vuelve a intentarlo en
+        unos minutos.
+      </p>
+      <div class="mt-6">
+        <UiButton variant="primary" size="md" data-retry-detail @click="loadAppointmentType">
+          Reintentar
+        </UiButton>
+      </div>
+    </div>
+
+    <UiTabs v-else v-model="activeTab" :tabs="tabs">
+      <!-- Sectioned info grid (D2): each group lives in ONE glass UiCard with
+           the dashboard heading grammar (h2 + caption). -->
+      <template #data>
+        <div class="space-y-6">
+          <UiCard variant="glass" data-detail-group="general">
+            <h2 class="text-2xl font-semibold text-label">Información general</h2>
+            <p class="mt-1 text-sm text-theme-secondary">
+              Identidad y descripción del tipo de cita
+            </p>
+            <dl class="mt-6 space-y-4">
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                  Nombre
+                </dt>
+                <dd class="mt-1 text-base font-medium text-label">
+                  {{ appointmentType?.name }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                  Descripción
+                </dt>
+                <dd class="mt-1 text-sm text-theme-primary">
+                  {{ appointmentType?.description || 'Sin descripción registrada' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                  Color
+                </dt>
+                <dd class="mt-2 flex items-center gap-2">
+                  <span
+                    class="h-6 w-6 rounded border border-hairline"
+                    data-detail-swatch
+                    :style="{ backgroundColor: appointmentType?.color }"
+                    aria-hidden="true"
+                  />
+                  <span class="text-sm text-theme-primary" data-detail-field="color">
+                    {{ appointmentType?.color }}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </UiCard>
+
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <UiCard variant="glass" data-detail-group="operation">
+              <h2 class="text-2xl font-semibold text-label">Operación</h2>
+              <p class="mt-1 text-sm text-theme-secondary">
+                Reglas que este tipo aporta a la agenda
+              </p>
+              <dl class="mt-6 space-y-4">
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Duración por defecto
+                  </dt>
+                  <dd
+                    class="mt-1 text-sm text-theme-primary tabular-nums"
+                    data-detail-field="duration"
+                  >
+                    {{ appointmentType?.default_duration_minutes }} min
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Requiere confirmación
+                  </dt>
+                  <dd
+                    class="mt-1 text-sm text-theme-primary"
+                    data-detail-field="requires-confirmation"
+                  >
+                    {{ appointmentType?.requires_confirmation ? 'Sí' : 'No' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Requiere materiales
+                  </dt>
+                  <dd
+                    class="mt-1 text-sm text-theme-primary"
+                    data-detail-field="requires-materials"
+                  >
+                    {{ appointmentType?.requires_materials ? 'Sí' : 'No' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Modo consulta
+                  </dt>
+                  <dd class="mt-1 text-sm text-theme-primary" data-detail-field="consultation-mode">
+                    {{ appointmentType?.is_consultation_mode ? 'Sí' : 'No' }}
+                  </dd>
+                </div>
+              </dl>
+            </UiCard>
+
+            <UiCard variant="glass" data-detail-group="price">
+              <h2 class="text-2xl font-semibold text-label">Precio</h2>
+              <p class="mt-1 text-sm text-theme-secondary">Tarifa y procedimiento por defecto</p>
+              <dl class="mt-6 space-y-4">
+                <div>
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Precio
+                  </dt>
+                  <dd
+                    class="mt-1 text-2xl font-semibold text-label tabular-nums"
+                    data-detail-field="price"
+                  >
+                    {{ formatCurrency(appointmentType?.price) }}
+                  </dd>
+                </div>
+                <div v-if="appointmentType?.default_procedure_catalog_id">
+                  <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                    Procedimiento por defecto
+                  </dt>
+                  <dd class="mt-1">
+                    <RouterLink
+                      data-detail-procedure-link
+                      class="text-sm font-medium text-systemBlue-600 hover:text-systemBlue-700"
+                      :to="`/procedure-catalog/${appointmentType.default_procedure_catalog_id}`"
+                    >
+                      Ver procedimiento en el catálogo
+                    </RouterLink>
+                  </dd>
+                </div>
+              </dl>
+            </UiCard>
+          </div>
+        </div>
       </template>
 
+      <!-- Audit tab (D3): hairline-divided rows inside ONE UiCard. -->
       <template #audit>
-      <!-- Historial de Auditoría -->
-      <div class="space-y-6">
         <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
-          <!-- TIPOS-02-005 (audit spinner) — hand-rolled animate-spin
-               replaced with the canonical <LoadingSpinner> primitive. -->
-          <div v-if="auditLogsLoading" class="p-8">
+          <h2 class="text-2xl font-semibold text-label">Historial de auditoría</h2>
+          <p class="mt-1 text-sm text-theme-secondary">
+            Cambios registrados sobre este tipo de cita
+          </p>
+
+          <div v-if="auditLogsLoading" class="py-8">
             <LoadingSpinner text="Cargando historial de auditoría..." />
           </div>
-          <!-- TIPOS-02-002 + TIPOS-02-003 — hand-rolled audit empty state
-               WITH the forbidden gradient-to-br gradient (line 167 pre-PR)
-               replaced with the canonical <UiEmptyState> primitive. The
-               gradient removal is the load-bearing CRITICAL fix for
-               global guard rail #10. -->
-          <div v-else-if="auditLogs.length === 0" class="p-8">
+
+          <div v-else-if="auditLogs.length === 0" class="py-8">
             <UiEmptyState
               title="No hay historial de auditoría"
               description="Este tipo de cita no tiene registros de auditoría."
             />
           </div>
-          <!-- TIPOS-02-004 — each audit log row wrapped in <UiCard
-               variant="glass"> with the canonical `space-y-4` parent
-               (pacientes precedent). -->
-          <div v-else class="space-y-4">
-            <UiCard
+
+          <div v-else class="mt-6 divide-y divide-hairline" data-audit-list>
+            <article
               v-for="log in auditLogs"
               :key="log.id"
-              variant="glass"
-              class="hover:bg-theme-surface transition-colors"
+              data-audit-row
+              class="py-5 first:pt-0 last:pb-0"
             >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                    <UiStatusBadge
-                      :variant="getAuditActionVariant(log.action)"
-                      :label="formatAction(log.action)"
-                      size="sm"
-                    />
-                    <span class="text-sm text-theme-secondary">
-                      por {{ log.user?.name || 'Sistema' }}
-                    </span>
-                  </div>
-                  <p class="text-sm text-theme-secondary mb-2">
-                    {{ formatDate(log.created_at) }}
-                  </p>
-                  <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
-                    <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
-                    <div
-                      v-if="
-                        getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
-                      "
-                      class="text-theme-secondary space-y-1"
-                    >
-                      <div
-                        v-for="(change, field) in getChangesSummary(log)"
-                        :key="field"
-                        class="pl-2 border-l-2 border-hairline"
-                      >
-                        <p class="font-medium text-theme-primary">{{ change.field }}:</p>
-                        <!-- TIPOS-02-005 (system ramps) — raw Tailwind
-                             red-500 / green-500 colour ramps replaced with
-                             token-aligned Apple-language ramps. -->
-                        <p class="text-xs">
-                          De:
-                          <span class="text-systemRed-600">{{ change.old }}</span>
-                        </p>
-                        <p class="text-xs">
-                          A:
-                          <span class="text-systemGreen-600">{{ change.new }}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div v-else class="text-theme-secondary italic">
-Sin cambios registrados
-</div>
-                  </div>
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <UiStatusBadge
+                    :variant="getAuditActionVariant(log.action)"
+                    :label="formatAction(log.action)"
+                    size="sm"
+                  />
+                  <span class="text-sm text-theme-secondary" data-audit-actor>
+                    por {{ log.user?.name || 'Sistema' }}
+                  </span>
+                </div>
+                <p class="text-sm text-theme-secondary" data-audit-date>
+                  {{ formatDate(log.created_at) }}
+                </p>
+              </div>
+
+              <div v-if="log.old_values && log.new_values" class="mt-3">
+                <p class="text-sm font-medium text-theme-primary">Cambios realizados:</p>
+                <div
+                  v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0"
+                  class="mt-2 space-y-2"
+                >
                   <div
-                    v-else-if="log.action === 'appointment_type_created'"
-                    class="mt-2 text-sm text-theme-secondary"
+                    v-for="(change, field) in getChangesSummary(log)"
+                    :key="field"
+                    class="pl-3 border-l-2 border-hairline"
                   >
-                    Tipo de cita creado en el sistema.
-                  </div>
-                  <div
-                    v-else-if="log.action === 'appointment_type_deleted'"
-                    class="mt-2 text-sm text-theme-secondary"
-                  >
-                    Tipo de cita eliminado del sistema.
+                    <p class="text-sm font-medium text-label">{{ change.field }}</p>
+                    <p class="mt-1 text-xs text-theme-secondary">
+                      De:
+                      <span class="text-systemRed-600">{{ change.old }}</span>
+                    </p>
+                    <p class="text-xs text-theme-secondary">
+                      A:
+                      <span class="text-systemGreen-600">{{ change.new }}</span>
+                    </p>
                   </div>
                 </div>
+                <p v-else class="mt-1 text-sm text-theme-secondary">Sin cambios registrados</p>
               </div>
-            </UiCard>
+              <p
+                v-else-if="log.action === 'appointment_type_created'"
+                class="mt-3 text-sm text-theme-secondary"
+              >
+                Tipo de cita creado en el sistema.
+              </p>
+              <p
+                v-else-if="log.action === 'appointment_type_deleted'"
+                class="mt-3 text-sm text-theme-secondary"
+              >
+                Tipo de cita eliminado del sistema.
+              </p>
+            </article>
           </div>
         </UiCard>
-      </div>
       </template>
     </UiTabs>
   </AppLayout>
@@ -240,6 +361,13 @@ Sin cambios registrados
 <script>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  CalendarIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  PencilSquareIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import { useAuditLogs } from '../../composables/useAuditLogs'
@@ -255,6 +383,9 @@ export default {
   name: 'AppointmentTypeDetailPage',
   components: {
     AppLayout,
+    ArrowLeftIcon,
+    ExclamationTriangleIcon,
+    PencilSquareIcon,
     UiCard,
     UiButton,
     UiStatusBadge,
@@ -276,28 +407,12 @@ export default {
 
     // State
     const appointmentType = ref(null)
+    const loading = ref(true)
+    const loadError = ref(false)
     const activeTab = ref('data')
 
-    // Icon components
-    const CalendarIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      `
-    }
-
-    const ClockIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      `
-    }
-
-    // Tabs configuration — TIPOS-02-001 data-layer rename: `name` → `label`
-    // per `Tabs.vue:78` validator (`tab.label` is required, `tab.name` is
-    // not recognised). `id` + `icon` stay verbatim.
+    // Tabs configuration: `{ id: 'data', label: ... }` literal shape is pinned
+    // by AppointmentTypesAppShellTest (TIPOS-02-001 / Tabs.vue validator).
     const tabs = [
       {
         id: 'data',
@@ -313,11 +428,17 @@ export default {
 
     // Methods
     const loadAppointmentType = async () => {
+      loading.value = true
       try {
         const response = await get(`/api/appointment-types/${route.params.id}`)
         appointmentType.value = response.data
+        loadError.value = false
       } catch (error) {
+        appointmentType.value = null
+        loadError.value = true
         toast.error('Error al cargar el tipo de cita')
+      } finally {
+        loading.value = false
       }
     }
 
@@ -330,7 +451,7 @@ export default {
       }
     }
 
-    // PR-citas-04 — Thin wrapper around the canonical `formatCurrency` from
+    // PR-citas-04: thin wrapper around the canonical `formatCurrency` from
     // `useFormatters.js` that preserves the legacy "No especificado" fallback
     // for null/undefined prices. The actual money formatting delegates to the
     // canonical helper (PAGOS-MNY-002 / CITAS-AT-001).
@@ -359,6 +480,17 @@ export default {
       router.push('/appointment-types')
     }
 
+    // D1 `Editar` deep-links into the shared edit modal on the list page
+    // (`?edit=<id>`), so the module keeps ONE edit form.
+    const goEdit = () => {
+      const id = appointmentType.value?.id
+      if (id === null || id === undefined) {
+        router.push('/appointment-types')
+        return
+      }
+      router.push({ path: '/appointment-types', query: { edit: String(id) } })
+    }
+
     // Watch for tab changes
     watch(activeTab, newTab => {
       if (newTab === 'audit' && appointmentType.value) {
@@ -376,6 +508,8 @@ export default {
 
     return {
       appointmentType,
+      loading,
+      loadError,
       activeTab,
       tabs,
       auditLogsLoading,
@@ -388,7 +522,8 @@ export default {
       formatAction,
       getChangesSummary,
       getAuditActionVariant,
-      goBack
+      goBack,
+      goEdit
     }
   }
 }
