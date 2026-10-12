@@ -1,853 +1,695 @@
 <template>
   <AppLayout>
-    <PageHeader
-      :title="`${patient?.first_name || ''} ${patient?.last_name || ''}`"
-      :subtitle="
-        patient ? `ID: ${patient.id} | ${patient.email || ''} | ${patient.phone || ''}` : ''
-      "
-      :breadcrumbs="[{ to: '/patients', label: 'Pacientes' }]"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton :disabled="exporting" variant="secondary" @click="exportPatientFile">
-          <template #icon-left>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </template>
-          Exportar
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- Patient Info Card -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex items-center gap-4">
-        <div class="h-16 w-16 rounded-xl bg-gradient-accent flex items-center justify-center">
-          <span class="text-xl font-semibold text-white">
-            {{ patient?.first_name?.charAt(0) }}{{ patient?.last_name?.charAt(0) }}
-          </span>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-lg font-semibold text-theme-primary">
-            {{ patient?.first_name }} {{ patient?.last_name }}
-          </h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm text-theme-secondary">
-            <div>
-              <span class="font-medium">Email:</span>
-              {{ patient?.email }}
-            </div>
-            <div>
-              <span class="font-medium">Teléfono:</span>
-              {{ patient?.phone }}
-            </div>
-            <div>
-              <span class="font-medium">Fecha de Nacimiento:</span>
-              {{ formatDate(patient?.birth_date) }}
-            </div>
+    <div class="space-y-6">
+      <!-- Hero band: the login surface vocabulary + the page's primary edit CTA. -->
+      <header
+        ref="heroSection"
+        data-patient-detail-hero
+        data-reveal="hero"
+        class="relative overflow-hidden p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
+        :style="revealStyle('--spring-patient-detail-hero-o')"
+      >
+        <DentalMotifLayer variant="hero" data-hero-motif />
+        <div class="relative flex flex-wrap items-center justify-between gap-3">
+          <Breadcrumbs :items="breadcrumbs" :show-home="false" size="sm" variant="minimal" />
+          <div
+            class="flex flex-wrap w-full sm:w-auto items-center justify-end gap-2 sm:gap-3"
+            data-hero-actions
+          >
+            <UiButton
+              variant="secondary"
+              size="sm"
+              class="flex-none whitespace-nowrap"
+              data-export-button
+              :disabled="exporting"
+              @click="exportPatientFile"
+            >
+              <template #icon-left>
+                <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Exportar
+            </UiButton>
+            <UiButton
+              v-if="can.editPatient?.value"
+              variant="primary"
+              size="sm"
+              class="flex-none whitespace-nowrap"
+              data-edit-patient-button
+              @click="editPatient"
+            >
+              <template #icon-left>
+                <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Editar
+            </UiButton>
           </div>
         </div>
-        <div class="text-right">
-          <UiBadge :variant="patient?.is_active ? 'success' : 'error'">
-            {{ patient?.is_active ? 'Activo' : 'Inactivo' }}
+        <p class="page-title relative mt-3 text-4xl font-semibold text-label">
+          {{ patient?.first_name }} {{ patient?.last_name }}
+        </p>
+        <p
+          class="relative mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-base text-theme-secondary"
+        >
+          <span
+            v-if="patient?.document_number"
+            data-patient-identity="document"
+            class="tabular-nums"
+          >
+            DNI {{ patient.document_number }}
+          </span>
+          <span v-if="patientAge !== null" data-patient-identity="age" class="tabular-nums">
+            {{ patientAge }} años
+          </span>
+          <UiBadge
+            v-if="patient"
+            data-patient-identity="status"
+            :variant="patient.is_active ? 'success' : 'error'"
+          >
+            {{ patient.is_active ? 'Activo' : 'Inactivo' }}
           </UiBadge>
-        </div>
-      </div>
-    </UiCard>
+        </p>
+      </header>
 
-    <!-- Tabs Navigation -->
-    <UiTabs
-      v-model="activeTab"
-      :tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))"
-      class="min-h-[400px]"
-    >
-      <template #data>
-      <!-- Datos del Paciente -->
-      <div class="space-y-6">
+      <!-- Summary block: the contact band that follows the hero. -->
+      <section
+        ref="summarySection"
+        data-patient-detail-block="summary"
+        data-reveal="summary"
+        class="space-y-4"
+        :style="revealStyle('--spring-patient-detail-summary-o')"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-xl font-semibold text-label">Resumen del paciente</h2>
+          <p class="text-sm text-theme-secondary">Contacto directo de la ficha</p>
+        </div>
         <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Información Personal</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Nombre Completo
-              </label>
-              <p class="text-theme-primary">{{ patient?.first_name }} {{ patient?.last_name }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
-              <p class="text-theme-primary">
-                {{ patient?.email }}
+              <p class="text-xs font-medium text-theme-secondary uppercase">Email</p>
+              <p class="mt-1 text-sm text-label">
+                {{ patient?.email || 'No registrado' }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Teléfono</label>
-              <p class="text-theme-primary">
-                {{ patient?.phone }}
+              <p class="text-xs font-medium text-theme-secondary uppercase">Teléfono</p>
+              <p class="mt-1 text-sm text-label tabular-nums">
+                {{ patient?.phone || 'No registrado' }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">
-                Fecha de Nacimiento
-              </label>
-              <p class="text-theme-primary">
+              <p class="text-xs font-medium text-theme-secondary uppercase">Fecha de Nacimiento</p>
+              <p class="mt-1 text-sm text-label tabular-nums">
                 {{ formatDate(patient?.birth_date) }}
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Género</label>
-              <p class="text-theme-primary">
-                {{ patient?.gender }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Dirección</label>
-              <p class="text-theme-primary">
-                {{ patient?.address || 'No especificada' }}
-              </p>
-            </div>
           </div>
         </UiCard>
+      </section>
 
-        <UiCard v-if="patient?.medical_history" variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial Médico</h3>
-          <p class="text-theme-primary">
-            {{ patient.medical_history }}
+      <!-- Work block: the tabbed clinical record (page protagonist). -->
+      <section
+        ref="workSection"
+        data-patient-detail-block="work"
+        data-reveal="work"
+        class="space-y-4"
+        :style="revealStyle('--spring-patient-detail-work-o')"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Expediente clínico</h2>
+          <p class="text-sm text-theme-secondary">
+            Planes, presupuestos, historias y auditoría del paciente
           </p>
-        </UiCard>
-
-        <UiCard v-if="patient?.notes" variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Notas</h3>
-          <p class="text-theme-primary">
-            {{ patient.notes }}
-          </p>
-        </UiCard>
-      </div>
-      </template>
-
-      <template #treatment-plans>
-
-      <!-- Planes de Tratamiento -->
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-theme-primary">Planes de Tratamiento</h3>
-          <UiButton
-            v-if="can.createTreatmentPlan?.value"
-            class="flex items-center gap-2"
-            @click="createTreatmentPlan"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nuevo Plan
-          </UiButton>
         </div>
 
-        <UiCard variant="glass">
-          <div v-if="treatmentPlansLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando planes...</p>
-          </div>
-          <div v-else-if="treatmentPlans.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+        <UiTabs
+          v-model="activeTab"
+          :tabs="tabs.map(t => ({ id: t.id, label: t.name, icon: t.icon }))"
+          class="min-h-[400px]"
+        >
+          <template #data>
+            <!-- Datos del Paciente -->
+            <PatientTabPanel
+              state="data"
+              :loading="patientLoading"
+              loading-text="Cargando paciente..."
+              :error="patientError"
+              error-title="No pudimos cargar el paciente"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              @retry="loadPatient"
             >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
-              No hay planes de tratamiento
-            </h3>
-            <p class="text-theme-secondary mb-4">
-              Este paciente no tiene planes de tratamiento registrados
-            </p>
-            <UiButton
-              v-if="can.createTreatmentPlan?.value"
-              class="flex items-center gap-2"
-              @click="createTreatmentPlan"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Crear Primer Plan
-            </UiButton>
-          </div>
-          <div v-else class="space-y-4">
-            <div
-              v-for="plan in treatmentPlans"
-              :key="plan.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
-            >
-              <div class="flex justify-between items-start">
+              <div class="space-y-6">
                 <div>
-                  <h4 class="font-semibold text-theme-primary">
-                    {{ plan.title }}
-                  </h4>
-                  <p class="text-sm text-theme-secondary mt-1">
-                    {{ plan.description }}
-                  </p>
-                  <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>
-                      Estado:
-                      <UiBadge :variant="getStatusVariant(plan.status)">{{ plan.status }}</UiBadge>
-                    </span>
-                    <span>Costo: S/ {{ plan.total_cost }}</span>
-                    <span>Fecha: {{ formatDate(plan.created_at) }}</span>
+                  <h3 class="text-lg font-semibold text-theme-primary mb-4">
+                    Información Personal
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">
+                        Nombre Completo
+                      </p>
+                      <p class="text-theme-primary">
+                        {{ patient?.first_name }} {{ patient?.last_name }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">Email</p>
+                      <p class="text-theme-primary">
+                        {{ patient?.email }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">Teléfono</p>
+                      <p class="text-theme-primary">
+                        {{ patient?.phone }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">
+                        Fecha de Nacimiento
+                      </p>
+                      <p class="text-theme-primary">
+                        {{ formatDate(patient?.birth_date) }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">Género</p>
+                      <p class="text-theme-primary">
+                        {{ patient?.gender }}
+                      </p>
+                    </div>
+                    <div>
+                      <p class="block text-sm font-medium text-theme-primary mb-1">Dirección</p>
+                      <p class="text-theme-primary">
+                        {{ patient?.address || 'No especificada' }}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div class="flex gap-2">
-                  <UiButton variant="ghost" size="sm" @click="viewTreatmentPlan(plan.id)">
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    v-if="can.editTreatmentPlan?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="editTreatmentPlan(plan.id)"
-                  >
-                    Editar
-                  </UiButton>
+                <div v-if="patient?.medical_history">
+                  <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial Médico</h3>
+                  <p class="text-theme-primary">
+                    {{ patient.medical_history }}
+                  </p>
+                </div>
+                <div v-if="patient?.notes">
+                  <h3 class="text-lg font-semibold text-theme-primary mb-4">Notas</h3>
+                  <p class="text-theme-primary">
+                    {{ patient.notes }}
+                  </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </UiCard>
-      </div>
-      </template>
+            </PatientTabPanel>
+          </template>
 
-      <template #quotations>
-
-      <!-- Presupuestos -->
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-theme-primary">Presupuestos</h3>
-          <UiButton
-            v-if="can.createQuotation?.value"
-            class="flex items-center gap-2"
-            @click="createQuotation"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nuevo Presupuesto
-          </UiButton>
-        </div>
-
-        <UiCard variant="glass">
-          <div v-if="quotationsLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando presupuestos...</p>
-          </div>
-          <div v-else-if="quotations.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
+          <template #treatment-plans>
+            <!-- Planes de Tratamiento -->
+            <PatientTabPanel
+              state="treatment-plans"
+              :loading="treatmentPlansLoading"
+              loading-text="Cargando planes..."
+              :error="treatmentPlansError"
+              error-title="No pudimos cargar los planes"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              :empty="treatmentPlans.length === 0"
+              empty-title="No hay planes de tratamiento"
+              empty-description="Este paciente no tiene planes de tratamiento registrados"
+              @retry="loadTreatmentPlans"
             >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay presupuestos</h3>
-            <p class="text-theme-secondary mb-4">Este paciente no tiene presupuestos registrados</p>
-            <UiButton
-              v-if="can.createQuotation?.value"
-              class="flex items-center gap-2"
-              @click="createQuotation"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Crear Primer Presupuesto
-            </UiButton>
-          </div>
-          <div v-else class="space-y-4">
-            <div
-              v-for="quotation in quotations"
-              :key="quotation.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div>
-                  <h4 class="font-semibold text-theme-primary">
-                    {{ quotation.quotation_number }}
-                  </h4>
-                  <p class="text-sm text-theme-secondary mt-1">
-                    {{ quotation.notes }}
-                  </p>
-                  <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>
-                      Estado:
-                      <UiBadge :variant="getQuotationStatusVariant(quotation.status)">
-                        {{ quotation.status }}
-                      </UiBadge>
-                    </span>
-                    <span>Total: S/ {{ quotation.total_amount }}</span>
-                    <span>Fecha: {{ formatDate(quotation.quotation_date) }}</span>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <UiButton variant="ghost" size="sm" @click="viewQuotation(quotation.id)">
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    v-if="can.downloadQuotationPDF?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="downloadQuotationPDF(quotation.id)"
-                  >
-                    PDF
-                  </UiButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </UiCard>
-      </div>
-      </template>
-
-      <template #medical-records>
-
-      <!-- Historia Clínica -->
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-theme-primary">Historia Clínica</h3>
-          <UiButton
-            v-if="can.createMedicalRecord?.value"
-            class="flex items-center gap-2"
-            @click="createMedicalRecord"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nueva Historia
-          </UiButton>
-        </div>
-
-        <UiCard variant="glass">
-          <div v-if="medicalRecordsLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando historias clínicas...</p>
-          </div>
-          <div v-else-if="medicalRecords.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">No hay historias clínicas</h3>
-            <p class="text-theme-secondary mb-4">
-              Este paciente no tiene historias clínicas registradas
-            </p>
-            <UiButton
-              v-if="can.createMedicalRecord?.value"
-              class="flex items-center gap-2"
-              @click="createMedicalRecord"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Crear Primera Historia
-            </UiButton>
-          </div>
-          <div v-else class="space-y-4">
-            <div
-              v-for="record in medicalRecords"
-              :key="record.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div>
-                  <h4 class="font-semibold text-theme-primary">
-                    {{ record.record_number || `HC-${record.id}` }}
-                  </h4>
-                  <p class="text-sm text-theme-secondary mt-1">
-                    {{ record.chief_complaint }}
-                  </p>
-                  <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>Primera visita: {{ formatDate(record.first_visit_date) }}</span>
-                    <span>
-                      Estado:
-                      <UiBadge :variant="record.is_active ? 'success' : 'error'">
-                        {{ record.is_active ? 'Activa' : 'Inactiva' }}
-                      </UiBadge>
-                    </span>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <UiButton variant="ghost" size="sm" @click="viewMedicalRecord(record.id)">
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    v-if="can.editMedicalRecord?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="editMedicalRecord(record.id)"
-                  >
-                    Editar
-                  </UiButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </UiCard>
-      </div>
-      </template>
-
-      <template #specialties>
-
-      <!-- Especialidades -->
-      <div class="space-y-6">
-        <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-theme-primary">Registros de Especialidades</h3>
-          <UiButton
-            v-if="can.createSpecialtyRecord?.value"
-            class="flex items-center gap-2"
-            @click="createSpecialtyRecord"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            Nuevo Registro
-          </UiButton>
-        </div>
-
-        <UiCard variant="glass">
-          <div v-if="specialtyRecordsLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando registros de especialidades...</p>
-          </div>
-          <div v-else-if="specialtyRecords.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 14l9-5-9-5-9 5 9 5z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
-              No hay registros de especialidades
-            </h3>
-            <p class="text-theme-secondary mb-4">
-              Este paciente no tiene registros de especialidades
-            </p>
-            <UiButton
-              v-if="can.createSpecialtyRecord?.value"
-              class="flex items-center gap-2"
-              @click="createSpecialtyRecord"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              Crear Primer Registro
-            </UiButton>
-          </div>
-          <div v-else class="space-y-4">
-            <div
-              v-for="record in specialtyRecords"
-              :key="record.id"
-              class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div>
-                  <h4 class="font-semibold text-theme-primary">
-                    {{ getSpecialtyName(record.specialty_type) }}
-                  </h4>
-                  <p class="text-sm text-theme-secondary mt-1">
-                    {{ record.description || 'Sin descripción' }}
-                  </p>
-                  <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                    <span>Fecha: {{ formatDate(record.created_at) }}</span>
-                    <span>Especialidad: {{ getSpecialtyName(record.specialty_type) }}</span>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    @click="viewSpecialtyRecord(record.id, record.specialty_type)"
-                  >
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    v-if="can.editSpecialtyRecord?.value"
-                    variant="ghost"
-                    size="sm"
-                    @click="editSpecialtyRecord(record.id, record.specialty_type)"
-                  >
-                    Editar
-                  </UiButton>
-                </div>
-              </div>
-            </div>
-          </div>
-        </UiCard>
-      </div>
-      </template>
-
-      <template #audit>
-
-      <!-- Historial de Auditoría -->
-      <div class="space-y-6">
-        <UiCard variant="glass">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">Historial de Auditoría</h3>
-          <div v-if="auditLogsLoading" class="p-8 text-center">
-            <div
-              class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600"
-            />
-            <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
-          </div>
-          <div v-else-if="auditLogs.length === 0" class="p-8 text-center">
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-theme-surface to-theme-surface-elevated rounded-2xl mx-auto mb-4 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-semibold text-theme-primary mb-2">
-              No hay historial de auditoría
-            </h3>
-            <p class="text-theme-secondary">Este paciente no tiene registros de auditoría.</p>
-          </div>
-          <div v-else class="space-y-4">
-            <UiCard
-              v-for="log in auditLogs"
-              :key="log.id"
-              variant="glass"
-              class="hover:bg-theme-surface transition-colors"
-            >
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <div class="flex items-center gap-2 mb-2">
-                    <UiBadge variant="info">
-                      {{ formatAction(log.action) }}
-                    </UiBadge>
-                    <span class="text-sm text-theme-secondary">
-                      por {{ log.user?.name || 'Sistema' }}
-                    </span>
-                  </div>
-                  <p class="text-sm text-theme-secondary mb-2">
-                    {{ formatDate(log.created_at) }}
-                  </p>
-                  <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
-                    <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
-                    <div
-                      v-if="
-                        getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
-                      "
-                      class="text-theme-secondary space-y-1"
-                    >
-                      <div
-                        v-for="(change, field) in getChangesSummary(log)"
-                        :key="field"
-                        class="pl-2 border-l-2 border-hairline"
-                      >
-                        <p class="font-medium text-theme-primary">{{ change.field }}:</p>
-                        <p class="text-xs">
-                          De:
-                          <span class="text-red-500">{{ change.old }}</span>
-                        </p>
-                        <p class="text-xs">
-                          A:
-                          <span class="text-green-500">{{ change.new }}</span>
-                        </p>
+              <template #header>
+                <h3 class="text-lg font-semibold text-theme-primary">Planes de Tratamiento</h3>
+                <UiButton
+                  v-if="can.createTreatmentPlan?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createTreatmentPlan"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Nuevo Plan
+                </UiButton>
+              </template>
+              <template #empty-action>
+                <UiButton
+                  v-if="can.createTreatmentPlan?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createTreatmentPlan"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Crear Primer Plan
+                </UiButton>
+              </template>
+              <div class="space-y-4">
+                <div
+                  v-for="plan in treatmentPlans"
+                  :key="plan.id"
+                  class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h4 class="font-semibold text-theme-primary">
+                        {{ plan.title }}
+                      </h4>
+                      <p class="text-sm text-theme-secondary mt-1">
+                        {{ plan.description }}
+                      </p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>
+                          Estado:
+                          <UiBadge :variant="getStatusVariant(plan.status)">
+                            {{ plan.status }}
+                          </UiBadge>
+                        </span>
+                        <span>Costo: S/ {{ plan.total_cost }}</span>
+                        <span>Fecha: {{ formatDate(plan.created_at) }}</span>
                       </div>
                     </div>
-                    <div v-else class="text-theme-secondary italic">
-Sin cambios registrados
-</div>
-                  </div>
-                  <div
-                    v-else-if="log.action === 'patient_created'"
-                    class="mt-2 text-sm text-theme-secondary"
-                  >
-                    Paciente creado en el sistema.
-                  </div>
-                  <div
-                    v-else-if="log.action === 'patient_deleted'"
-                    class="mt-2 text-sm text-theme-secondary"
-                  >
-                    Paciente eliminado del sistema.
+                    <div class="flex gap-2">
+                      <UiButton variant="ghost" size="sm" @click="viewTreatmentPlan(plan.id)">
+                        Ver
+                      </UiButton>
+                      <UiButton
+                        v-if="can.editTreatmentPlan?.value"
+                        variant="ghost"
+                        size="sm"
+                        @click="editTreatmentPlan(plan.id)"
+                      >
+                        Editar
+                      </UiButton>
+                    </div>
                   </div>
                 </div>
               </div>
-            </UiCard>
-          </div>
-        </UiCard>
-      </div>
-      </template>
-    </UiTabs>
+            </PatientTabPanel>
+          </template>
+
+          <template #quotations>
+            <!-- Presupuestos -->
+            <PatientTabPanel
+              state="quotations"
+              :loading="quotationsLoading"
+              loading-text="Cargando presupuestos..."
+              :error="quotationsError"
+              error-title="No pudimos cargar los presupuestos"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              :empty="quotations.length === 0"
+              empty-title="No hay presupuestos"
+              empty-description="Este paciente no tiene presupuestos registrados"
+              @retry="loadQuotations"
+            >
+              <template #header>
+                <h3 class="text-lg font-semibold text-theme-primary">Presupuestos</h3>
+                <UiButton
+                  v-if="can.createQuotation?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createQuotation"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Nuevo Presupuesto
+                </UiButton>
+              </template>
+              <template #empty-action>
+                <UiButton
+                  v-if="can.createQuotation?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createQuotation"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Crear Primer Presupuesto
+                </UiButton>
+              </template>
+              <div class="space-y-4">
+                <div
+                  v-for="quotation in quotations"
+                  :key="quotation.id"
+                  class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h4 class="font-semibold text-theme-primary">
+                        {{ quotation.quotation_number }}
+                      </h4>
+                      <p class="text-sm text-theme-secondary mt-1">
+                        {{ quotation.notes }}
+                      </p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>
+                          Estado:
+                          <UiBadge :variant="getQuotationStatusVariant(quotation.status)">
+                            {{ quotation.status }}
+                          </UiBadge>
+                        </span>
+                        <span>Total: S/ {{ quotation.total_amount }}</span>
+                        <span>Fecha: {{ formatDate(quotation.quotation_date) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <UiButton variant="ghost" size="sm" @click="viewQuotation(quotation.id)">
+                        Ver
+                      </UiButton>
+                      <UiButton
+                        v-if="can.downloadQuotationPDF?.value"
+                        variant="ghost"
+                        size="sm"
+                        @click="downloadQuotationPDF(quotation.id)"
+                      >
+                        PDF
+                      </UiButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </PatientTabPanel>
+          </template>
+
+          <template #medical-records>
+            <!-- Historia Clínica -->
+            <PatientTabPanel
+              state="medical-records"
+              :loading="medicalRecordsLoading"
+              loading-text="Cargando historias clínicas..."
+              :error="medicalRecordsError"
+              error-title="No pudimos cargar las historias clínicas"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              :empty="medicalRecords.length === 0"
+              empty-title="No hay historias clínicas"
+              empty-description="Este paciente no tiene historias clínicas registradas"
+              @retry="loadMedicalRecords"
+            >
+              <template #header>
+                <h3 class="text-lg font-semibold text-theme-primary">Historia Clínica</h3>
+                <UiButton
+                  v-if="can.createMedicalRecord?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createMedicalRecord"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Nueva Historia
+                </UiButton>
+              </template>
+              <template #empty-action>
+                <UiButton
+                  v-if="can.createMedicalRecord?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createMedicalRecord"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Crear Primera Historia
+                </UiButton>
+              </template>
+              <div class="space-y-4">
+                <div
+                  v-for="record in medicalRecords"
+                  :key="record.id"
+                  class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h4 class="font-semibold text-theme-primary">
+                        {{ record.record_number || `HC-${record.id}` }}
+                      </h4>
+                      <p class="text-sm text-theme-secondary mt-1">
+                        {{ record.chief_complaint }}
+                      </p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>Primera visita: {{ formatDate(record.first_visit_date) }}</span>
+                        <span>
+                          Estado:
+                          <UiBadge :variant="record.is_active ? 'success' : 'error'">
+                            {{ record.is_active ? 'Activa' : 'Inactiva' }}
+                          </UiBadge>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <UiButton variant="ghost" size="sm" @click="viewMedicalRecord(record.id)">
+                        Ver
+                      </UiButton>
+                      <UiButton
+                        v-if="can.editMedicalRecord?.value"
+                        variant="ghost"
+                        size="sm"
+                        @click="editMedicalRecord(record.id)"
+                      >
+                        Editar
+                      </UiButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </PatientTabPanel>
+          </template>
+
+          <template #specialties>
+            <!-- Especialidades -->
+            <PatientTabPanel
+              state="specialties"
+              :loading="specialtyRecordsLoading"
+              loading-text="Cargando registros de especialidades..."
+              :error="specialtyRecordsError"
+              error-title="No pudimos cargar los registros de especialidades"
+              error-description="Revisa tu conexión e inténtalo de nuevo."
+              :empty="specialtyRecords.length === 0"
+              empty-title="No hay registros de especialidades"
+              empty-description="Este paciente no tiene registros de especialidades"
+              @retry="loadSpecialtyRecords"
+            >
+              <template #header>
+                <h3 class="text-lg font-semibold text-theme-primary">
+                  Registros de Especialidades
+                </h3>
+                <UiButton
+                  v-if="can.createSpecialtyRecord?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createSpecialtyRecord"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Nuevo Registro
+                </UiButton>
+              </template>
+              <template #empty-action>
+                <UiButton
+                  v-if="can.createSpecialtyRecord?.value"
+                  variant="secondary"
+                  class="flex items-center gap-2"
+                  @click="createSpecialtyRecord"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="w-4 h-4" aria-hidden="true" />
+                  </template>
+                  Crear Primer Registro
+                </UiButton>
+              </template>
+              <div class="space-y-4">
+                <div
+                  v-for="record in specialtyRecords"
+                  :key="record.id"
+                  class="border border-theme rounded-lg p-4 hover:bg-theme-surface transition-colors"
+                >
+                  <div class="flex justify-between items-start">
+                    <div>
+                      <h4 class="font-semibold text-theme-primary">
+                        {{ getSpecialtyName(record.specialty_type) }}
+                      </h4>
+                      <p class="text-sm text-theme-secondary mt-1">
+                        {{ record.description || 'Sin descripción' }}
+                      </p>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
+                        <span>Fecha: {{ formatDate(record.created_at) }}</span>
+                        <span>Especialidad: {{ getSpecialtyName(record.specialty_type) }}</span>
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <UiButton
+                        variant="ghost"
+                        size="sm"
+                        @click="viewSpecialtyRecord(record.id, record.specialty_type)"
+                      >
+                        Ver
+                      </UiButton>
+                      <UiButton
+                        v-if="can.editSpecialtyRecord?.value"
+                        variant="ghost"
+                        size="sm"
+                        @click="editSpecialtyRecord(record.id, record.specialty_type)"
+                      >
+                        Editar
+                      </UiButton>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </PatientTabPanel>
+          </template>
+
+          <template #audit>
+            <!-- Historial de Auditoría -->
+            <PatientTabPanel
+              state="audit"
+              :loading="auditLogsLoading"
+              loading-text="Cargando historial de auditoría..."
+              :empty="auditLogs.length === 0"
+              empty-title="No hay historial de auditoría"
+              empty-description="Este paciente no tiene registros de auditoría."
+              @retry="loadAuditLogs"
+            >
+              <div class="space-y-4">
+                <div>
+                  <h3 class="text-lg font-semibold text-theme-primary mb-4">
+                    Historial de Auditoría
+                  </h3>
+                  <UiCard
+                    v-for="log in auditLogs"
+                    :key="log.id"
+                    variant="glass"
+                    class="hover:bg-theme-surface transition-colors"
+                  >
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                          <UiBadge variant="info">
+                            {{ formatAction(log.action) }}
+                          </UiBadge>
+                          <span class="text-sm text-theme-secondary">
+                            por {{ log.user?.name || 'Sistema' }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-theme-secondary mb-2">
+                          {{ formatDate(log.created_at) }}
+                        </p>
+                        <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
+                          <p class="font-medium text-theme-primary mb-1">Cambios realizados:</p>
+                          <div
+                            v-if="
+                              getChangesSummary(log) &&
+                              Object.keys(getChangesSummary(log)).length > 0
+                            "
+                            class="text-theme-secondary space-y-1"
+                          >
+                            <div
+                              v-for="(change, field) in getChangesSummary(log)"
+                              :key="field"
+                              class="pl-2 border-l-2 border-hairline"
+                            >
+                              <p class="font-medium text-theme-primary">{{ change.field }}:</p>
+                              <p class="text-xs">
+                                De:
+                                <span class="text-red-500">{{ change.old }}</span>
+                              </p>
+                              <p class="text-xs">
+                                A:
+                                <span class="text-green-500">{{ change.new }}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div v-else class="text-theme-secondary italic">
+                            Sin cambios registrados
+                          </div>
+                        </div>
+                        <div
+                          v-else-if="log.action === 'patient_created'"
+                          class="mt-2 text-sm text-theme-secondary"
+                        >
+                          Paciente creado en el sistema.
+                        </div>
+                        <div
+                          v-else-if="log.action === 'patient_deleted'"
+                          class="mt-2 text-sm text-theme-secondary"
+                        >
+                          Paciente eliminado del sistema.
+                        </div>
+                      </div>
+                    </div>
+                  </UiCard>
+                </div>
+              </div>
+            </PatientTabPanel>
+          </template>
+        </UiTabs>
+      </section>
+    </div>
 
     <!-- Edit Patient Modal -->
-    <UiModal
-      :model-value="showEditModal"
-      title="Editar Paciente"
-      size="xl"
+    <PatientFormModal
+      v-if="showEditModal"
+      mode="edit"
+      :patient="patient"
       @close="cancelEdit"
-    >
-      <form class="space-y-4" @submit.prevent="updatePatient">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.first_name"
-                label="Nombre"
-                placeholder="Ingresa el nombre"
-                required
-              />
-              <UiInput
-                v-model="editPatientData.last_name"
-                label="Apellido"
-                placeholder="Ingresa el apellido"
-                required
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.document_number"
-                label="DNI"
-                placeholder="Ingresa el DNI"
-              />
-              <UiInput
-                v-model="editPatientData.email"
-                label="Email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.phone"
-                label="Teléfono"
-                placeholder="+51 999 999 999"
-              />
-              <UiInput
-                v-model="editPatientData.birth_date"
-                label="Fecha de Nacimiento"
-                type="date"
-              />
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Género</label>
-                <UiSelect
-                  v-model="editPatientData.gender"
-                  :options="[
-                    { value: '', label: 'Seleccionar' },
-                    { value: 'male', label: 'Masculino' },
-                    { value: 'female', label: 'Femenino' },
-                    { value: 'other', label: 'Otro' }
-                  ]"
-                  placeholder="Seleccionar"
-                  class="w-full"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-                <UiSelect
-                  v-model="editPatientData.is_active"
-                  :options="[
-                    { value: true, label: 'Activo' },
-                    { value: false, label: 'Inactivo' }
-                  ]"
-                  placeholder="Seleccionar"
-                  class="w-full"
-                />
-              </div>
-            </div>
-            <UiInput
-              v-model="editPatientData.address"
-              label="Dirección"
-              placeholder="Ingresa la dirección"
-            />
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <UiInput
-                v-model="editPatientData.emergency_contact_name"
-                label="Contacto de Emergencia"
-                placeholder="Nombre del contacto"
-              />
-              <UiInput
-                v-model="editPatientData.emergency_contact_phone"
-                label="Teléfono de Emergencia"
-                placeholder="+51 999 999 999"
-              />
-            </div>
-            <UiInput
-              v-model="editPatientData.medical_history"
-              label="Historial Médico"
-              placeholder="Alergias, condiciones médicas, etc."
-              type="textarea"
-            />
-            <UiInput
-              v-model="editPatientData.allergies"
-              label="Alergias"
-              placeholder="Lista de alergias conocidas"
-              type="textarea"
-            />
-            <UiInput
-              v-model="editPatientData.notes"
-              label="Notas"
-              placeholder="Notas adicionales"
-              type="textarea"
-            />
-            <div class="flex justify-end gap-3 pt-4">
-              <UiButton type="button" variant="secondary" @click="cancelEdit">
-                Cancelar
-              </UiButton>
-              <UiButton type="submit" :loading="updating">
-                Actualizar Paciente
-              </UiButton>
-            </div>
-          </form>
-    </UiModal>
+      @saved="handlePatientSaved"
+    />
   </AppLayout>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import {
+  AcademicCapIcon,
+  ArrowDownTrayIcon,
+  ClipboardDocumentListIcon,
+  ClockIcon,
+  DocumentTextIcon,
+  HeartIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  UserIcon
+} from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
 import { useAuditLogs } from '../../composables/useAuditLogs'
+import { useSpring } from '../../composables/useSpring'
+import { prefersReducedMotion } from '../../composables/useSpringMath'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
+import UiTabs from '../../components/ui/Tabs.vue'
+import PatientFormModal from './PatientFormModal.vue'
+import PatientTabPanel from './PatientTabPanel.vue'
 
 export default {
   name: 'PatientDetailPage',
   components: {
     AppLayout,
+    ArrowDownTrayIcon,
+    PencilSquareIcon,
+    PlusIcon,
+    Breadcrumbs,
+    DentalMotifLayer,
     UiCard,
     UiButton,
-    UiBadge
+    UiBadge,
+    UiTabs,
+    PatientFormModal,
+    PatientTabPanel
   },
   setup() {
     const route = useRoute()
@@ -866,6 +708,8 @@ export default {
 
     // State
     const patient = ref(null)
+    const patientLoading = ref(true)
+    const patientError = ref(false)
     const activeTab = ref('data')
     const treatmentPlans = ref([])
     const quotations = ref([])
@@ -875,79 +719,26 @@ export default {
     const quotationsLoading = ref(false)
     const medicalRecordsLoading = ref(false)
     const specialtyRecordsLoading = ref(false)
+    const treatmentPlansError = ref(false)
+    const quotationsError = ref(false)
+    const medicalRecordsError = ref(false)
+    const specialtyRecordsError = ref(false)
     const exporting = ref(false)
-    const editing = ref(false)
-    const updating = ref(false)
     const showEditModal = ref(false)
 
-    const editPatientData = ref({
-      first_name: '',
-      last_name: '',
-      document_number: '',
-      email: '',
-      phone: '',
-      birth_date: '',
-      gender: '',
-      address: '',
-      emergency_contact_name: '',
-      emergency_contact_phone: '',
-      medical_history: '',
-      allergies: '',
-      notes: '',
-      is_active: true
+    const breadcrumbs = [{ to: '/patients', label: 'Pacientes' }]
+
+    const patientAge = computed(() => {
+      const current = patient.value
+      if (!current) return null
+      if (typeof current.age === 'number') return current.age
+      if (!current.birth_date) return null
+      const birth = new Date(current.birth_date)
+      if (Number.isNaN(birth.getTime())) return null
+      const diff = Date.now() - birth.getTime()
+      return Math.max(0, Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000)))
     })
 
-    // Icon components
-    const UserIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      `
-    }
-
-    const ClipboardDocumentListIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 3 3 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.933.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-        </svg>
-      `
-    }
-
-    const ClockIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      `
-    }
-
-    const DocumentTextIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      `
-    }
-
-    const HeartIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-        </svg>
-      `
-    }
-
-    const AcademicCapIcon = {
-      template: `
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-        </svg>
-      `
-    }
-
-    // Tabs configuration (must be after all icon definitions)
     const tabs = [
       {
         id: 'data',
@@ -983,22 +774,28 @@ export default {
 
     // Methods
     const loadPatient = async () => {
+      patientLoading.value = true
+      patientError.value = false
       try {
         const response = await get(`/api/patients/${route.params.id}`)
         patient.value = response.data
       } catch (error) {
+        patientError.value = true
         toast.error('Error al cargar el paciente')
+      } finally {
+        patientLoading.value = false
       }
     }
 
     const loadTreatmentPlans = async () => {
       if (!patient.value) return
       treatmentPlansLoading.value = true
+      treatmentPlansError.value = false
       try {
         const response = await get(`/api/treatment-plans?patient_id=${patient.value.id}`)
         treatmentPlans.value = response.data
       } catch (error) {
-        // La ficha sigue visible con las demás secciones aunque fallen los planes
+        treatmentPlansError.value = true
       } finally {
         treatmentPlansLoading.value = false
       }
@@ -1007,11 +804,12 @@ export default {
     const loadQuotations = async () => {
       if (!patient.value) return
       quotationsLoading.value = true
+      quotationsError.value = false
       try {
         const response = await get(`/api/quotations?patient_id=${patient.value.id}`)
         quotations.value = response.data
       } catch (error) {
-        // La ficha sigue visible con las demás secciones aunque fallen los presupuestos
+        quotationsError.value = true
       } finally {
         quotationsLoading.value = false
       }
@@ -1020,11 +818,12 @@ export default {
     const loadMedicalRecords = async () => {
       if (!patient.value) return
       medicalRecordsLoading.value = true
+      medicalRecordsError.value = false
       try {
         const response = await get(`/api/medical-records?patient_id=${patient.value.id}`)
         medicalRecords.value = response.data
       } catch (error) {
-        // La ficha sigue visible con las demás secciones aunque fallen las historias
+        medicalRecordsError.value = true
       } finally {
         medicalRecordsLoading.value = false
       }
@@ -1033,11 +832,12 @@ export default {
     const loadSpecialtyRecords = async () => {
       if (!patient.value) return
       specialtyRecordsLoading.value = true
+      specialtyRecordsError.value = false
       try {
         const response = await get(`/api/specialty-records/patient/${patient.value.id}/all`)
         specialtyRecords.value = response.data
       } catch (error) {
-        // La ficha sigue visible con las demás secciones aunque fallen los registros
+        specialtyRecordsError.value = true
       } finally {
         specialtyRecordsLoading.value = false
       }
@@ -1095,78 +895,18 @@ export default {
       return variants[action] || 'secondary'
     }
 
-    // Navigation methods
-    const goBack = () => {
-      router.push('/patients')
-    }
-
     const editPatient = () => {
       if (!patient.value) return
-
-      editing.value = true
-      editPatientData.value = {
-        first_name: patient.value.first_name || '',
-        last_name: patient.value.last_name || '',
-        document_number: patient.value.document_number || '',
-        email: patient.value.email || '',
-        phone: patient.value.phone || '',
-        birth_date: patient.value.birth_date ? patient.value.birth_date.split('T')[0] : '',
-        gender: patient.value.gender || '',
-        address: patient.value.address || '',
-        emergency_contact_name: patient.value.emergency_contact_name || '',
-        emergency_contact_phone: patient.value.emergency_contact_phone || '',
-        medical_history: patient.value.medical_history || '',
-        allergies: patient.value.allergies || '',
-        notes: patient.value.notes || '',
-        is_active: patient.value.is_active !== undefined ? patient.value.is_active : true
-      }
       showEditModal.value = true
-    }
-
-    const updatePatient = async () => {
-      if (!patient.value) return
-
-      updating.value = true
-      try {
-        const { put } = useApi()
-        await put(`/api/patients/${patient.value.id}`, editPatientData.value)
-        await loadPatient()
-        showEditModal.value = false
-        editing.value = false
-
-        toast.success('Paciente actualizado exitosamente')
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Error al actualizar paciente'
-        const errors = error.response?.data?.errors
-        let details = ''
-        if (errors) {
-          details = `\n${Object.values(errors).flat().join('\n')}`
-        }
-        toast.error(errorMsg + details)
-      } finally {
-        updating.value = false
-      }
     }
 
     const cancelEdit = () => {
       showEditModal.value = false
-      editing.value = false
-      editPatientData.value = {
-        first_name: '',
-        last_name: '',
-        document_number: '',
-        email: '',
-        phone: '',
-        birth_date: '',
-        gender: '',
-        address: '',
-        emergency_contact_name: '',
-        emergency_contact_phone: '',
-        medical_history: '',
-        allergies: '',
-        notes: '',
-        is_active: true
-      }
+    }
+
+    const handlePatientSaved = async () => {
+      await loadPatient()
+      toast.success('Paciente actualizado exitosamente')
     }
 
     const exportPatientFile = async (format = 'pdf') => {
@@ -1297,6 +1037,49 @@ export default {
       router.push(`/specialty-records/${id}?edit=true&specialty=${specialty}`)
     }
 
+    // One-shot staggered entrance (60ms) per section, mirroring the
+    // dashboard pattern. revealStyle() renders the FINAL state whenever no
+    // spring is attached (reduced motion, or a section mounting later).
+    const heroSpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patient-detail-hero-o'
+    })
+    const summarySpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patient-detail-summary-o'
+    })
+    const workSpring = useSpring({
+      damping: 1.0,
+      response: 0.35,
+      cssVar: '--spring-patient-detail-work-o'
+    })
+
+    const heroSection = ref(null)
+    const summarySection = ref(null)
+    const workSection = ref(null)
+
+    const revealStyle = cssVar => ({
+      opacity: `var(${cssVar}, 1)`,
+      transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
+    })
+
+    let entrancePlayed = false
+    const playEntrance = () => {
+      if (entrancePlayed) return
+      entrancePlayed = true
+      if (prefersReducedMotion()) return
+
+      if (heroSection.value) heroSpring.attach(heroSection.value)
+      if (summarySection.value) summarySpring.attach(summarySection.value)
+      if (workSection.value) workSpring.attach(workSection.value)
+
+      setTimeout(() => heroSpring.set(1), 0)
+      setTimeout(() => summarySpring.set(1), 60)
+      setTimeout(() => workSpring.set(1), 120)
+    }
+
     // WebSocket subscriptions
     let patientsChannel = null
     let treatmentPlansChannel = null
@@ -1315,6 +1098,9 @@ export default {
     onMounted(async () => {
       await loadPatient()
       if (patient.value) {
+        await nextTick()
+        playEntrance()
+
         await Promise.all([
           loadTreatmentPlans(),
           loadQuotations(),
@@ -1496,6 +1282,10 @@ export default {
 
     return {
       patient,
+      patientLoading,
+      patientError,
+      patientAge,
+      breadcrumbs,
       activeTab,
       tabs,
       treatmentPlans,
@@ -1506,21 +1296,27 @@ export default {
       quotationsLoading,
       medicalRecordsLoading,
       specialtyRecordsLoading,
+      treatmentPlansError,
+      quotationsError,
+      medicalRecordsError,
+      specialtyRecordsError,
       exporting,
-      editing,
-      updating,
       showEditModal,
-      editPatientData,
       can,
+      loadPatient,
+      loadTreatmentPlans,
+      loadQuotations,
+      loadMedicalRecords,
+      loadSpecialtyRecords,
+      loadAuditLogs,
       formatDate,
       getStatusVariant,
       getQuotationStatusVariant,
       getSpecialtyName,
       getAuditActionVariant,
-      goBack,
       editPatient,
-      updatePatient,
       cancelEdit,
+      handlePatientSaved,
       exportPatientFile,
       auditLogs,
       auditLogsLoading,
@@ -1537,7 +1333,11 @@ export default {
       editMedicalRecord,
       createSpecialtyRecord,
       viewSpecialtyRecord,
-      editSpecialtyRecord
+      editSpecialtyRecord,
+      heroSection,
+      summarySection,
+      workSection,
+      revealStyle
     }
   }
 }

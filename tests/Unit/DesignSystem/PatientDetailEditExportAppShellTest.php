@@ -10,12 +10,35 @@ namespace Tests\Unit\DesignSystem;
  * action surface uses UiButton + binary download pattern preserved
  * byte-for-byte).
  *
- * The Edit Patient modal lives at line 706+ of PatientDetailPage.vue and
- * was excluded from PatientDetailAppShellTest's polished section (that
- * test scoped to the header + 5-tab drawer + audit tab content). This
- * test class scopes its section-scoped assertions to the Edit modal
- * surface (between the <!-- Edit Patient Modal --> marker + the closing
- * </AppLayout> tag) and pins the Export action surface (whole-file).
+ * PATIENT DETAIL REDESIGN — RE-ANCHORED PINS: the inlined edit form
+ * moved from PatientDetailPage.vue into the shared
+ * `PatientFormModal.vue` (single source of truth with the list page).
+ * The edit-chrome rules below therefore scan the COMPONENT that owns
+ * the form surface (they must still bite there), and a new pin
+ * (`test_detail_edit_uses_shared_form_modal`) keeps the DETAIL page
+ * honest: exactly one `mode="edit"` usage and NO second patient form on
+ * the page. Re-anchored (same rule, new scan target):
+ *
+ *   - test_no_legacy_border_theme_literal      -> PatientFormModal.vue
+ *   - test_no_legacy_focus_ring_alias          -> PatientFormModal.vue
+ *   - test_detail_edit_no_bg_black_bg_opacity_50 -> PatientFormModal.vue
+ *     (positive UiModal) + BOTH files (negative backdrop)
+ *   - test_detail_edit_no_raw_select           -> PatientFormModal.vue
+ *   - test_detail_edit_uses_ui_select          -> PatientFormModal.vue
+ *   - test_detail_edit_422_duplicate_handled   -> PatientFormModal.vue
+ *   - test_detail_edit_use_api_put_preserved   -> PatientFormModal.vue
+ *     (positive put) + BOTH files (negative axios import)
+ *
+ * NOT weakened: PAC-EXP-001 export pins keep scanning the detail page
+ * whole-file (the export action did not move), and the patient resource
+ * endpoint + binary download chain stay byte-for-byte.
+ *
+ * The Edit Patient form now lives in `PatientFormModal.vue` (shared
+ * with the list page); the detail page renders it via a single
+ * `<PatientFormModal mode="edit">` usage under the same
+ * `<!-- Edit Patient Modal -->` marker, and this test class pins the
+ * Export action surface on the detail page (whole-file) plus the
+ * re-anchored edit-chrome rules on the component.
  *
  * Rules asserted (each parameterized via polishedFileProvider() so a
  * failure pinpoints the exact file that regressed):
@@ -55,11 +78,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
     /** PatientDetailPage file path constant -- single source of truth for the data provider. */
     private const PATIENT_DETAIL_PATH = '/resources/js/modules/patients/PatientDetailPage.vue';
 
-    /** Marker that demarcates the START of the Edit Patient modal. */
-    private const EDIT_MODAL_SECTION_START = '<!-- Edit Patient Modal -->';
-
-    /** Closing tag that demarcates the END of the Edit modal section. */
-    private const EDIT_MODAL_SECTION_END = '</AppLayout>';
+    /** Shared create/edit form component that now owns the edit modal surface. */
+    private const SHARED_FORM_PATH = '/resources/js/modules/patients/PatientFormModal.vue';
 
     /** @return array<int, string> */
     protected static function polishedFiles(): array
@@ -96,61 +116,55 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
 
     /**
      * Override the inherited test_no_legacy_border_theme_literal rule.
-     * Scope the assertion to the PR-pacientes-04 polished surface -- the
-     * Edit modal section between the EDIT MODAL SECTION START marker +
-     * the closing AppLayout tag.
      *
-     * The header + 5-tab drawer + audit tab content are PR-pacientes-03
-     * scope (asserted by PatientDetailAppShellTest); this rule scopes
-     * to the Edit modal only. The Edit modal header divider
-     * (border-b border-theme) MUST migrate to UiModal built-in
-     * hairline divider.
+     * RE-ANCHOR: the PR-pacientes-04 edit surface moved from the page's
+     * inlined modal section (marker-delimited) to the shared
+     * `PatientFormModal.vue`; the rule scans the component that owns
+     * the form surface. UiModal owns the header divider via its
+     * built-in hairline token.
      *
      * @dataProvider polishedFileProvider
      */
     public function test_no_legacy_border_theme_literal(string $path): void
     {
-        $src = self::readSource($path);
-        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
-
-        $section = self::extractEditModalSection($src);
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         $this->assertDoesNotMatchRegularExpression(
             '/(?<![\w-])border-theme(?![\w-])/',
-            $section,
+            $modal,
             sprintf(
-                '%s Edit modal section MUST NOT contain the legacy border-theme literal '
+                '%s Edit modal surface MUST NOT contain the legacy border-theme literal '
                     . '(PAC-EDIT-001 / DLR-R-002). UiModal owns the header divider via '
                     . 'its built-in hairline token.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
     }
 
     /**
      * Override the inherited test_no_legacy_focus_ring_alias rule.
-     * Scope to the Edit modal section. The two raw select elements
-     * for gender + is_active carry
-     * focus:ring-primary-500 focus:border-transparent; both MUST migrate
-     * to UiSelect (which consumes var(--focus-ring-default)).
+     *
+     * RE-ANCHOR: the gender + is_active dropdowns (and the rest of the
+     * form fields) live in `PatientFormModal.vue` now; the rule scans
+     * the component so the legacy alias cannot re-enter through the
+     * shared surface.
      *
      * @dataProvider polishedFileProvider
      */
     public function test_no_legacy_focus_ring_alias(string $path): void
     {
-        $src = self::readSource($path);
-        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
-
-        $section = self::extractEditModalSection($src);
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         $this->assertSame(
             0,
-            preg_match('/(?<![\w-])focus:ring-primary-500(?![\w-])/', $section),
+            preg_match('/(?<![\w-])focus:ring-primary-500(?![\w-])/', $modal),
             sprintf(
-                '%s Edit modal section MUST NOT contain the legacy focus:ring-primary-500 '
+                '%s Edit modal surface MUST NOT contain the legacy focus:ring-primary-500 '
                     . 'alias (PAC-EDIT-001 / DLR-R-004). UiSelect consumes the composed '
                     . 'var(--focus-ring-default) token.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
     }
@@ -160,10 +174,10 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * (NOT a hand-built fixed inset-0 bg-black bg-opacity-50 backdrop).
      * UiModal owns the backdrop + the focus trap + the iOS motion.
      *
-     * The hand-built backdrop is the legacy alias for UiModal; the
-     * rule is asserted as the NEGATIVE form (bg-black bg-opacity-50
-     * absent) so the test fires regardless of how the modal chrome is
-     * structured.
+     * RE-ANCHOR: the positive `<UiModal>` assertion scans
+     * `PatientFormModal.vue` (the component owns the chrome after the
+     * consolidation); the negative backdrop rule keeps scanning BOTH
+     * files so the legacy chrome cannot re-enter through either surface.
      *
      * @dataProvider polishedFileProvider
      */
@@ -171,29 +185,34 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
     {
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         // POSITIVE: the UiModal primitive is referenced for the Edit modal.
         $this->assertGreaterThanOrEqual(
             1,
-            preg_match_all('/<UiModal\b/', $src),
+            preg_match_all('/<UiModal\b/', $modal),
             sprintf(
                 '%s MUST consume UiModal for the Edit Patient modal '
                     . '(PAC-EDIT-001). Found %d.',
-                $path,
-                preg_match_all('/<UiModal\b/', $src)
+                self::SHARED_FORM_PATH,
+                preg_match_all('/<UiModal\b/', $modal)
             )
         );
 
-        // NEGATIVE: the hand-built bg-black bg-opacity-50 backdrop is gone.
-        $this->assertSame(
-            0,
-            preg_match('/(?<![\w-])bg-black\s+bg-opacity-50(?![\w-])/', $src),
-            sprintf(
-                '%s MUST NOT keep the legacy bg-black bg-opacity-50 modal backdrop '
-                    . '(PAC-EDIT-001). UiModal owns the backdrop + focus trap + iOS motion.',
-                $path
-            )
-        );
+        // NEGATIVE: the hand-built bg-black bg-opacity-50 backdrop is gone
+        // from BOTH files.
+        foreach ([self::PATIENT_DETAIL_PATH => $src, self::SHARED_FORM_PATH => $modal] as $file => $content) {
+            $this->assertSame(
+                0,
+                preg_match('/(?<![\w-])bg-black\s+bg-opacity-50(?![\w-])/', $content),
+                sprintf(
+                    '%s MUST NOT keep the legacy bg-black bg-opacity-50 modal backdrop '
+                        . '(PAC-EDIT-001). UiModal owns the backdrop + focus trap + iOS motion.',
+                    $file
+                )
+            );
+        }
     }
 
     /**
@@ -201,27 +220,25 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * element. The 2 raw select elements for gender + is_active MUST
      * migrate to UiSelect.
      *
-     * Note: the LIST section uses UiSelect v-model=statusFilter (PR-
-     * pacientes-01 already migrated). This rule scopes to the EDIT MODAL
-     * section to catch any raw select inside the form fields.
+     * RE-ANCHOR: scans `PatientFormModal.vue` (the edit surface after
+     * the consolidation); a page-level extraction would scan the bare
+     * `<PatientFormModal>` tag and pass vacuously.
      *
      * @dataProvider polishedFileProvider
      */
     public function test_detail_edit_no_raw_select(string $path): void
     {
-        $src = self::readSource($path);
-        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
-
-        $section = self::extractEditModalSection($src);
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         $this->assertSame(
             0,
-            preg_match('/<select\b/i', $section),
+            preg_match('/<select\b/i', $modal),
             sprintf(
-                '%s Edit modal section MUST NOT contain a raw select element '
+                '%s Edit modal surface MUST NOT contain a raw select element '
                     . '(PAC-EDIT-001 / DLR-R-009). Use UiSelect for the gender + is_active '
                     . 'dropdowns.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
     }
@@ -232,25 +249,109 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * options array; the rule asserts that UiSelect is referenced --
      * the exact options array shape is implementation detail.
      *
+     * RE-ANCHOR: scans `PatientFormModal.vue` (dropdowns moved with the
+     * form).
+     *
      * @dataProvider polishedFileProvider
      */
     public function test_detail_edit_uses_ui_select(string $path): void
     {
-        $src = self::readSource($path);
-        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
-
-        $section = self::extractEditModalSection($src);
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         $this->assertGreaterThanOrEqual(
             2,
-            preg_match_all('/<UiSelect\b/', $section),
+            preg_match_all('/<UiSelect\b/', $modal),
             sprintf(
-                '%s Edit modal section MUST consume UiSelect for BOTH the gender dropdown '
+                '%s Edit modal surface MUST consume UiSelect for BOTH the gender dropdown '
                     . 'AND the is_active dropdown (PAC-EDIT-001). Found %d.',
-                $path,
-                preg_match_all('/<UiSelect\b/', $section)
+                self::SHARED_FORM_PATH,
+                preg_match_all('/<UiSelect\b/', $modal)
             )
         );
+    }
+
+    /**
+     * PAC-EDIT-001 / consolidation — the detail page MUST consume the
+     * shared `PatientFormModal` for the Edit Patient flow and MUST NOT
+     * own a second patient form.
+     *
+     * NEW PIN (patient detail redesign): the inlined edit form moved to
+     * `PatientFormModal.vue` (single source of truth shared with the list
+     * page). The chrome pins below (UiModal / UiSelect / no raw select /
+     * 422 envelope / useApi PUT) were re-anchored to the component that
+     * owns the form; this pin keeps the DETAIL page honest: exactly one
+     * shared-component usage wired `mode="edit"` + `:patient`, and no
+     * leftover `<UiModal>`, `<form>`, `editPatientData` or
+     * `updatePatient` markup on the page itself.
+     *
+     * @dataProvider polishedFileProvider
+     */
+    public function test_detail_edit_uses_shared_form_modal(string $path): void
+    {
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
+
+        // 1) The page imports + renders the shared form exactly once.
+        $this->assertTrue(
+            (bool) preg_match(
+                "/import\s+PatientFormModal\s+from\s+['\"]\.\/PatientFormModal\.vue['\"]/",
+                $src
+            ),
+            sprintf(
+                '%s MUST import the shared form from `./PatientFormModal.vue` (consolidation contract).',
+                $path
+            )
+        );
+        $this->assertSame(
+            1,
+            preg_match_all('/<PatientFormModal\b/', $src),
+            sprintf(
+                '%s MUST render exactly ONE `<PatientFormModal>` usage (PAC-EDIT-001 / consolidation). Found %d.',
+                $path,
+                preg_match_all('/<PatientFormModal\b/', $src)
+            )
+        );
+
+        // 2) The usage is wired for the edit flow: mode + patient +
+        //    close/saved handlers.
+        $this->assertTrue(
+            (bool) preg_match('/<PatientFormModal\b[^>]*\smode\s*=\s*"edit"/s', $src),
+            sprintf('%s MUST bind `mode="edit"` on `<PatientFormModal>` (PAC-EDIT-001).', $path)
+        );
+        $this->assertTrue(
+            (bool) preg_match('/<PatientFormModal\b[^>]*:patient\s*=/s', $src),
+            sprintf('%s MUST bind `:patient` on `<PatientFormModal>` (PAC-EDIT-001).', $path)
+        );
+        $this->assertTrue(
+            (bool) preg_match('/<PatientFormModal\b[^>]*@close\s*=/s', $src),
+            sprintf('%s MUST wire `@close` on `<PatientFormModal>` (PAC-EDIT-001).', $path)
+        );
+        $this->assertTrue(
+            (bool) preg_match('/<PatientFormModal\b[^>]*@saved\s*=/s', $src),
+            sprintf('%s MUST wire `@saved` on `<PatientFormModal>` (PAC-EDIT-001).', $path)
+        );
+
+        // 3) NEGATIVE: the detail page owns NO second patient form —
+        //    no inlined modal chrome, no raw form, no duplicated form
+        //    state/handler left on the page.
+        foreach ([
+            '/<UiModal\b/' => 'the `<UiModal>` chrome (owned by the shared component)',
+            '/<form\b/' => 'a raw `<form>` element (owned by the shared component)',
+            '/editPatientData/' => 'the duplicated `editPatientData` form state',
+            '/updatePatient/' => 'the duplicated `updatePatient` submit handler',
+            '/<UiInput\b|<UiSelect\b|<UiTextarea\b/' => 'form field primitives (owned by the shared component)',
+        ] as $pattern => $what) {
+            $this->assertSame(
+                0,
+                preg_match($pattern, $src),
+                sprintf(
+                    '%s MUST NOT carry %s — the detail page renders the shared `<PatientFormModal>` instead (PAC-EDIT-001 / consolidation).',
+                    $path,
+                    $what
+                )
+            );
+        }
     }
 
     /**
@@ -458,33 +559,33 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * PAC-EDIT-001 / PAC-CON-001 -- the script block MUST stay
-     * byte-for-byte. The Edit modal migration is template-level only;
-     * the updatePatient catch block + the useApi PUT call signature
-     * + the useToast error envelope rendering all stay verbatim.
+     * PAC-EDIT-001 / PAC-CON-001 -- the update contract MUST stay
+     * byte-for-byte.
      *
-     * This rule pins the 422 error envelope rendering for the Edit
-     * modal updatePatient catch block: error.response.data.message
-     * + error.response.data.errors + Object.values(errors).flat().
+     * RE-ANCHORED: the catch block moved from `updatePatient` on the
+     * detail page to `submitPatient` in the shared `PatientFormModal`;
+     * the rule pins the 422 error envelope rendering (the envelope is
+     * surfaced verbatim via useToast) against the component that owns
+     * the submit path, so the contract still bites.
      *
      * @dataProvider polishedFileProvider
      */
     public function test_detail_edit_422_duplicate_handled(string $path): void
     {
-        $src = self::readSource($path);
-        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
         // 1) The catch block reads error.response.data.message.
         $this->assertTrue(
             (bool) preg_match(
                 '/error\.response\?\.\s*data\?\.\s*message/',
-                $src
+                $modal
             ),
             sprintf(
                 '%s MUST keep the error.response.data.message read in the catch block '
                     . '(PAC-EDIT-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
                     . 'via useToast.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
 
@@ -492,23 +593,26 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
         $this->assertTrue(
             (bool) preg_match(
                 '/error\.response\?\.\s*data\?\.\s*errors/',
-                $src
+                $modal
             ),
             sprintf(
                 '%s MUST keep the error.response.data.errors read + the '
                     . 'Object.values(errors).flat() flattening '
                     . '(PAC-EDIT-001). The 422 validation bag surfaces verbatim via useToast.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
     }
 
     /**
-     * PAC-CON-001 -- the Edit modal uses useApi for the PUT call (the
-     * updatePatient function). The PUT call signature
-     * put(/api/patients/${id}, data) MUST stay verbatim -- a refactor
-     * to axios direct would break the guard rail (useApi() wrapper
-     * only; NO axios direct).
+     * PAC-CON-001 -- the Edit modal uses useApi for the PUT call.
+     *
+     * RE-ANCHORED: the PUT call moved with the form to
+     * `PatientFormModal.submitPatient`; the signature
+     * put(/api/patients/${id}, data) MUST stay verbatim on the
+     * component (a refactor to axios direct would break the guard rail:
+     * useApi() wrapper only; NO axios direct). The axios-negative keeps
+     * scanning BOTH files.
      *
      * @dataProvider polishedFileProvider
      */
@@ -516,35 +620,39 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
     {
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
+        $modal = self::sharedFormSource();
+        $this->assertNotNull($modal, sprintf('%s must exist and be readable.', self::SHARED_FORM_PATH));
 
-        // POSITIVE: the updatePatient function calls put(...) from useApi().
+        // POSITIVE: the submit function calls put(...) from useApi().
         $this->assertTrue(
             (bool) preg_match(
                 '#put\s*\(\s*[`\'"]/api/patients/\$\{[^`\'"]+\}[^`\'"]*[`\'"]\s*,#',
-                $src
+                $modal
             ),
             sprintf(
-                '%s MUST keep put(/api/patients/INTERPOLATION, data) in the updatePatient '
-                    . 'function (PAC-EDIT-001 / PAC-CON-001). The useApi() PUT signature is '
+                '%s MUST keep put(/api/patients/INTERPOLATION, data) in the submit function '
+                    . '(PAC-EDIT-001 / PAC-CON-001). The useApi() PUT signature is '
                     . 'the canonical pattern for the Edit modal form submit.',
-                $path
+                self::SHARED_FORM_PATH
             )
         );
 
-        // NEGATIVE: no axios direct import.
-        $this->assertSame(
-            0,
-            preg_match(
-                '#import\s+axios\s+from\s+[\'"]axios[\'"]#',
-                $src
-            ),
-            sprintf(
-                '%s MUST NOT import axios directly (PAC-CON-001). The useApi() wrapper is '
-                    . 'the canonical HTTP primitive; axios-direct would silently bypass the '
-                    . '401 redirect + JSON envelope handling.',
-                $path
-            )
-        );
+        // NEGATIVE: no axios direct import on either surface.
+        foreach ([self::PATIENT_DETAIL_PATH => $src, self::SHARED_FORM_PATH => $modal] as $file => $content) {
+            $this->assertSame(
+                0,
+                preg_match(
+                    '#import\s+axios\s+from\s+[\'"]axios[\'"]#',
+                    $content
+                ),
+                sprintf(
+                    '%s MUST NOT import axios directly (PAC-CON-001). The useApi() wrapper is '
+                        . 'the canonical HTTP primitive; axios-direct would silently bypass the '
+                        . '401 redirect + JSON envelope handling.',
+                    $file
+                )
+            );
+        }
     }
 
     private static function readSource(string $path): ?string
@@ -556,30 +664,9 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
         return $src === false ? null : $src;
     }
 
-    /**
-     * Extract the PR-pacientes-04 polished surface from the full file.
-     * The polished surface is the Edit modal section, demarcated by:
-     *
-     *   - START: the EDIT MODAL SECTION START comment marker
-     *   - END:   the closing AppLayout tag
-     *
-     * The header + 5-tab drawer + audit tab content are PR-pacientes-03
-     * scope (asserted by PatientDetailAppShellTest); the Edit modal is
-     * the PR-pacientes-04 scope. Cutting at the marker comments gives a
-     * clean slice for the section-scoped rules above.
-     */
-    private static function extractEditModalSection(string $src): string
+    /** Source of the shared edit/create form component (re-anchored scan target). */
+    private static function sharedFormSource(): ?string
     {
-        $start = strpos($src, self::EDIT_MODAL_SECTION_START);
-        if ($start === false) {
-            return '';
-        }
-
-        $end = strpos($src, self::EDIT_MODAL_SECTION_END, $start);
-        if ($end === false) {
-            return substr($src, $start);
-        }
-
-        return substr($src, $start, $end - $start);
+        return self::readSource(dirname(__DIR__, 3) . self::SHARED_FORM_PATH);
     }
 }
