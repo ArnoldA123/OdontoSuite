@@ -35,6 +35,9 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
     /** List page path constant — single source of truth for the data provider. */
     private const LIST_PAGE_PATH = '/resources/js/modules/environments/EnvironmentsPage.vue';
 
+    /** Shared status vocabulary module (T2/D2) — source of truth for variant + label. */
+    private const SHARED_STATUS_PATH = '/resources/js/modules/environments/environmentStatus.js';
+
     private static function projectRoot(): string
     {
         return dirname(__DIR__, 3);
@@ -43,6 +46,11 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
     private static function listPagePath(): string
     {
         return self::projectRoot() . self::LIST_PAGE_PATH;
+    }
+
+    private static function sharedStatusPath(): string
+    {
+        return self::projectRoot() . self::SHARED_STATUS_PATH;
     }
 
     private static function readSource(string $path): ?string
@@ -169,89 +177,126 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * DLR-AMB-005 EXCEPTION #1 + AMB-02-001 — the `<script>` helper
-     * `getStatusColor` MUST be renamed to `getStatusVariant` and its body
-     * MUST return variant tokens (`success | neutral | warning`) instead of
-     * legacy colour-class strings.
+     * DLR-AMB-005 EXCEPTION #1 + AMB-02-001 (re-anchored by T2/D2) — the
+     * status vocabulary lives in the shared module
+     * `resources/js/modules/environments/environmentStatus.js`: one source of
+     * truth for variant + label, consumed by the list page today and by the
+     * detail page in T4. Anchoring the mapping inline in the list page would
+     * pin a duplicate copy that T4 must not create.
      *
-     * POSITIVE rule: `getStatusVariant` reference present in the `<script>`
-     * block (the rename is in place).
+     * POSITIVE rule: the shared module declares `getStatusVariant` (the rename
+     * from `getStatusColor` is in place) and maps `active` → `'success'`,
+     * `inactive` → `'neutral'`, `maintenance` → `'warning'`.
+     *
+     * POSITIVE rule: the shared module labels the enum `Activo` / `Inactivo` /
+     * `Mantenimiento` (T2 contract: variant + label).
+     *
+     * POSITIVE rule: the list page imports the helpers from the shared module
+     * instead of inlining the maps.
      *
      * NEGATIVE rule: `getStatusColor` reference absent (the legacy name is
-     * gone).
-     *
-     * POSITIVE rule: the helper body returns `'success'`, `'neutral'`, and
-     * `'warning'` tokens for the dental-chair status enum
-     * (`active | inactive | maintenance`).
+     * gone) in both files.
      */
     public function test_get_status_variant_returns_tokens(): void
     {
+        $sharedPath = self::sharedStatusPath();
+        $shared = self::readSource($sharedPath);
+        $this->assertNotNull($shared, sprintf('%s must be readable.', $sharedPath));
+
         $path = self::listPagePath();
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: `getStatusVariant` reference present in the file.
+        // POSITIVE: `getStatusVariant` exported by the shared module.
         $this->assertTrue(
-            (bool) preg_match('#\bgetStatusVariant\b#', $src),
+            (bool) preg_match('#\bgetStatusVariant\b#', $shared),
             sprintf(
-                '%s MUST declare the `getStatusVariant` helper (DLR-AMB-005 EXCEPTION #1 / '
-                . 'AMB-02-001). The legacy `getStatusColor` returning colour-class strings '
+                '%s MUST export the `getStatusVariant` helper (DLR-AMB-005 EXCEPTION #1 / '
+                . 'AMB-02-001 / T2-D2). The legacy `getStatusColor` returning colour-class strings '
                 . 'MUST be renamed to `getStatusVariant` returning variant tokens.',
-                $path
+                $sharedPath
             )
         );
 
-        // NEGATIVE: zero `getStatusColor` references (the legacy name is gone).
-        $this->assertSame(
-            0,
-            preg_match('#\bgetStatusColor\b#', $src),
-            sprintf(
-                '%s MUST NOT keep the legacy `getStatusColor` helper name '
-                . '(DLR-AMB-005 EXCEPTION #1 / AMB-02-001). Rename to `getStatusVariant`.',
-                $path
-            )
-        );
-
-        // POSITIVE: the helper maps `active` to `'success'` and `inactive`
-        // to `'neutral'` and `maintenance` to `'warning'`. We assert each
-        // canonical mapping is present in the helper body by looking for
-        // the pattern `active: 'success'` / `inactive: 'neutral'` /
-        // `maintenance: 'warning'`. Tolerant of whitespace and arrow-fn
-        // placement.
+        // POSITIVE: the list page imports the vocabulary from the shared
+        // module (no inline copy may reappear in the page).
         $this->assertTrue(
             (bool) preg_match(
-                '#active\s*:\s*[\'"]success[\'"]#',
+                '#import\s*\{[^}]*\bgetStatusVariant\b[^}]*\}\s*from\s*[\'"][^\'"]*environmentStatus(?:\.js)?[\'"]#',
                 $src
             ),
             sprintf(
-                '%s MUST map `active` → `success` in the `getStatusVariant` helper body '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1).',
+                '%s MUST import `getStatusVariant` from the shared `environmentStatus` module '
+                . '(T2-D2). The variant/label maps live in the shared module, not inline in the page.',
                 $path
+            )
+        );
+
+        // NEGATIVE: zero `getStatusColor` references in either file (the
+        // legacy name is gone).
+        $this->assertSame(
+            0,
+            preg_match('#\bgetStatusColor\b#', $shared . "\n" . $src),
+            sprintf(
+                '%s + %s MUST NOT keep the legacy `getStatusColor` helper name '
+                . '(DLR-AMB-005 EXCEPTION #1 / AMB-02-001). Rename to `getStatusVariant`.',
+                $sharedPath,
+                $path
+            )
+        );
+
+        // POSITIVE: the shared vocabulary maps `active` to `'success'` and
+        // `inactive` to `'neutral'` and `maintenance` to `'warning'` (the
+        // canonical mapping, tolerant of whitespace and arrow-fn placement).
+        $this->assertTrue(
+            (bool) preg_match(
+                '#active\s*:\s*[\'"]success[\'"]#',
+                $shared
+            ),
+            sprintf(
+                '%s MUST map `active` → `success` in the `getStatusVariant` vocabulary '
+                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                $sharedPath
             )
         );
 
         $this->assertTrue(
             (bool) preg_match(
                 '#inactive\s*:\s*[\'"]neutral[\'"]#',
-                $src
+                $shared
             ),
             sprintf(
-                '%s MUST map `inactive` → `neutral` in the `getStatusVariant` helper body '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1).',
-                $path
+                '%s MUST map `inactive` → `neutral` in the `getStatusVariant` vocabulary '
+                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                $sharedPath
             )
         );
 
         $this->assertTrue(
             (bool) preg_match(
                 '#maintenance\s*:\s*[\'"]warning[\'"]#',
-                $src
+                $shared
             ),
             sprintf(
-                '%s MUST map `maintenance` → `warning` in the `getStatusVariant` helper body '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1).',
-                $path
+                '%s MUST map `maintenance` → `warning` in the `getStatusVariant` vocabulary '
+                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                $sharedPath
             )
+        );
+
+        // POSITIVE: the shared vocabulary owns the Spanish labels (T2
+        // contract: variant + label).
+        $this->assertTrue(
+            (bool) preg_match('#active\s*:\s*[\'"]Activo[\'"]#', $shared),
+            sprintf('%s MUST label `active` as `Activo` (T2-D2).', $sharedPath)
+        );
+        $this->assertTrue(
+            (bool) preg_match('#inactive\s*:\s*[\'"]Inactivo[\'"]#', $shared),
+            sprintf('%s MUST label `inactive` as `Inactivo` (T2-D2).', $sharedPath)
+        );
+        $this->assertTrue(
+            (bool) preg_match('#maintenance\s*:\s*[\'"]Mantenimiento[\'"]#', $shared),
+            sprintf('%s MUST label `maintenance` as `Mantenimiento` (T2-D2).', $sharedPath)
         );
     }
 }

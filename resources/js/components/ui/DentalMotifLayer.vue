@@ -23,7 +23,8 @@
 
 <script setup>
 // WU5b / user request - the login's dental parallax scene, scaled down for
-// dashboard surfaces. Same recipe as DentalParallaxBackground (three depth
+// compact shared surfaces (dashboard hero, empty-state boxes, patients).
+// Same recipe as DentalParallaxBackground (three depth
 // tiers with per-tier brightness/opacity and ambient drift loops) but marks
 // sized in px instead of vw so a small box never swallows them, and with
 // AUTOMATIC drift only (user direction: no pointer-following parallax).

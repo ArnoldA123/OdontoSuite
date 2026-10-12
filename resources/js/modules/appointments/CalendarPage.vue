@@ -1,8 +1,19 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <PageHeader title="Agenda" subtitle="Gestiona las citas y horarios" class="mb-6 bg-canvas">
-      <template #actions>
+    <!-- Hero band: dashboard hero grammar (canvas + hairline + radius-panel + elevation-2) -->
+    <header
+      data-calendar-shell="hero"
+      class="relative overflow-hidden p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <DentalMotifLayer variant="hero" data-calendar-motif />
+      <div class="relative flex items-start justify-between gap-3">
+        <p class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">Agenda</p>
         <span
           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-systemGreen-50 text-systemGreen-700 text-xs font-medium"
           aria-label="Actualizaciones en tiempo real activas"
@@ -14,145 +25,230 @@
           />
           En vivo
         </span>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton v-if="can.createAppointment?.value" @click="openNewAppointmentModal">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </template>
-          Nueva Cita
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- View Controls -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div class="flex items-center gap-2">
+      </div>
+      <p class="relative mt-3 text-4xl font-semibold text-label">
+        {{ currentPeriodTitle }}
+      </p>
+      <p
+        class="relative mt-2 text-base leading-relaxed text-theme-secondary"
+        style="
+          font-feature-settings:
+            'tnum' 1,
+            'lnum' 1;
+        "
+      >
+        {{ loadedAppointmentsCaption }}
+      </p>
+      <div class="relative mt-6 flex flex-wrap items-center gap-3">
+        <div
+          class="inline-flex items-center gap-1 rounded-full border border-hairline bg-theme-surface-elevated p-1"
+          role="group"
+          aria-label="Vista del calendario"
+          data-calendar-view-switcher
+        >
           <UiButton
-            :variant="currentView === 'day' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'day' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'day'"
+            data-calendar-view="day"
             @click="changeView('day')"
           >
             Día
           </UiButton>
           <UiButton
-            :variant="currentView === 'week' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'week' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'week'"
+            data-calendar-view="week"
             @click="changeView('week')"
           >
             Semana
           </UiButton>
           <UiButton
-            :variant="currentView === 'month' ? 'primary' : 'ghost'"
             size="sm"
+            :variant="currentView === 'month' ? 'primary' : 'ghost'"
+            :aria-pressed="currentView === 'month'"
+            data-calendar-view="month"
             @click="changeView('month')"
           >
             Mes
           </UiButton>
         </div>
-        <div class="flex items-center gap-3">
-          <UiButton variant="ghost" size="sm" class="p-2" @click="previousPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+        <div class="inline-flex items-center gap-1">
+          <UiButton
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo anterior"
+            data-calendar-nav="prev"
+            @click="previousPeriod"
+          >
+            <template #icon-left>
+              <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+          <UiButton variant="ghost" size="sm" data-calendar-nav="today" @click="goToToday">
+            Hoy
           </UiButton>
           <UiButton
-variant="ghost"
-size="sm" class="px-4" @click="goToToday">Hoy</UiButton>
-          <UiButton variant="ghost" size="sm" class="p-2" @click="nextPeriod">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
+            variant="ghost"
+            size="sm"
+            aria-label="Periodo siguiente"
+            data-calendar-nav="next"
+            @click="nextPeriod"
+          >
+            <template #icon-left>
+              <ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+          </UiButton>
+        </div>
+        <div class="flex items-center gap-3 sm:ml-auto">
+          <UiButton variant="secondary" size="sm" data-calendar-action="back" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton
+            v-if="can.createAppointment?.value"
+            data-calendar-action="new-appointment"
+            @click="openNewAppointmentModal"
+          >
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nueva cita
           </UiButton>
         </div>
       </div>
-    </UiCard>
+    </header>
 
-    <!-- Calendar Header -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-theme-primary mb-2">
-          {{ currentPeriodTitle }}
-        </h2>
-        <div class="flex flex-wrap items-center justify-center gap-4 text-sm">
-          <UiStatusBadge variant="info" label="Programada" show-dot
-data-status="scheduled" />
-          <UiStatusBadge variant="success" label="Confirmada" show-dot
-data-status="confirmed" />
-          <UiStatusBadge variant="warning" label="En Consulta" show-dot
-data-status="in_progress" />
-          <UiStatusBadge variant="neutral" label="Completada" show-dot
-data-status="completed" />
-          <UiStatusBadge variant="error" label="Cancelada" show-dot
-data-status="cancelled" />
-          <UiStatusBadge variant="neutral" label="No se presentó" show-dot
-data-status="no_show" />
-          <UiStatusBadge variant="warning" label="Reprogramada" data-status="rescheduled" />
-        </div>
+    <!-- Calendar Content: quiet surface (canvas + hairline + radius-panel + elevation-2) -->
+    <section
+      data-calendar-shell="grid"
+      class="overflow-hidden bg-canvas"
+      style="
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <!-- Legend: registry-driven status pills as the surface's header strip -->
+      <div
+        class="flex flex-wrap items-center gap-2 border-b border-hairline bg-theme-surface px-6 py-4"
+        data-calendar-legend
+      >
+        <UiBadge
+          v-for="status in legendStatuses"
+          :key="status"
+          size="sm"
+          :variant="statusBadgeVariant(status)"
+          :data-status="status"
+        >
+          {{ statusLabel(status) }}
+        </UiBadge>
       </div>
-    </UiCard>
-
-    <!-- Calendar Content -->
-    <UiCard variant="glass" class="overflow-hidden">
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center">
         <LoadingSpinner size="lg" text="Cargando agenda..." />
         <p class="mt-4 text-theme-secondary">Cargando agenda...</p>
       </div>
 
+      <!-- Empty State (D1/D9) -->
+      <div
+        v-else-if="appointments.length === 0"
+        data-calendar-empty
+        class="relative overflow-hidden p-6 text-center"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+        "
+      >
+        <DentalMotifLayer variant="box" data-calendar-empty-motif />
+        <div class="relative">
+          <CalendarDaysIcon class="mx-auto mb-3 h-8 w-8 text-theme-secondary" aria-hidden="true" />
+          <p class="text-sm font-medium text-theme-primary">{{ emptyStateCopy.title }}</p>
+          <p class="mx-auto mt-1 max-w-md text-xs text-theme-secondary">
+            {{ emptyStateCopy.description }}
+          </p>
+          <UiButton
+            v-if="can.createAppointment?.value"
+            size="sm"
+            class="mt-4"
+            data-calendar-action="empty-new-appointment"
+            @click="openNewAppointmentModal"
+          >
+            Nueva cita
+          </UiButton>
+        </div>
+      </div>
+
       <!-- Day View -->
       <div v-else-if="currentView === 'day'" class="p-6">
-        <div class="space-y-4">
-          <div v-for="hour in dayHours" :key="hour" class="flex items-start gap-4">
-            <div class="w-16 text-sm text-theme-secondary font-medium pt-2">
+        <div
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <div
+            v-for="hour in dayHours"
+            :key="hour"
+            class="flex items-stretch border-b border-hairline last:border-b-0"
+          >
+            <div
+              class="w-16 shrink-0 border-r border-hairline bg-theme-surface px-3 py-2 text-right text-xs text-theme-secondary"
+              style="font-feature-settings: 'tnum' 1"
+            >
               {{ formatHour(hour) }}
             </div>
-            <div class="flex-1 min-h-[60px] border-l-2 border-hairline pl-4">
-              <div
-                v-for="appointment in getAppointmentsForHour(hour)"
-                :key="appointment.id"
-                class="mb-3 p-4 rounded-xl border-l-4 shadow-sm transition-all duration-200 cursor-pointer"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <div class="font-semibold text-base">
-                      {{ appointment.appointment_type?.name || 'Cita' }}
-                    </div>
+            <div
+              class="relative min-h-[64px] flex-1 px-3 py-2"
+              :class="dropTargetClasses(`${dayDateString}-${hour}`)"
+              :data-calendar-drop-target="`${dayDateString}-${hour}`"
+              :data-calendar-drop-active="dropHoverSlot === `${dayDateString}-${hour}` ? '' : null"
+            >
+              <button
+                v-if="can.createAppointment?.value"
+                type="button"
+                class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                :data-calendar-slot="`${dayDateString}-${hour}`"
+                :aria-label="`Crear cita el ${dayDateString} a las ${formatHour(hour)}`"
+                @click="openSlotCreate(dayDateString, hour)"
+              ></button>
+              <div class="pointer-events-none relative space-y-2">
+                <button
+                  v-for="appointment in appointmentsForSlot(dayDateString, hour)"
+                  :key="appointment.id"
+                  type="button"
+                  class="pointer-events-auto block w-full px-3 py-2 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :title="chipTitle(appointment)"
+                  :data-calendar-appointment="appointment.id"
+                  :data-calendar-draggable="appointment.id"
+                  :data-calendar-drag-state="
+                    draggingAppointmentId === appointment.id ? 'active' : null
+                  "
+                  @pointerdown="onChipPointerDown($event, appointment)"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span class="flex items-start justify-between gap-3">
+                    <span class="min-w-0">
+                      <span
+                        class="block truncate text-xs text-theme-primary"
+                        style="font-feature-settings: 'tnum' 1"
+                      >
+                        {{ chipTimeRange(appointment) }}
+                      </span>
+                      <span class="block truncate text-sm font-semibold text-theme-primary">
+                        {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                      </span>
+                      <span
+                        v-if="appointmentMetaLine(appointment)"
+                        class="block truncate text-xs text-theme-secondary"
+                      >
+                        {{ appointmentMetaLine(appointment) }}
+                      </span>
+                    </span>
                     <UiStatusBadge
                       size="sm"
                       :variant="getStatusBadgeProps(appointment.status).variant"
@@ -160,35 +256,8 @@ data-status="no_show" />
                       :show-dot="getStatusBadgeProps(appointment.status).showDot"
                       :data-status="appointment.status"
                     />
-                  </div>
-                  <div class="text-sm text-theme-primary">
-                    <span class="font-medium">{{ formatTime(appointment.scheduled_at) }}</span>
-                    <span v-if="appointment.ends_at" class="text-theme-secondary">
-                      - {{ formatTime(appointment.ends_at) }}
-                    </span>
-                  </div>
-                  <div class="grid grid-cols-2 gap-2 text-xs text-theme-secondary">
-                    <div>
-                      <span class="font-medium">Paciente:</span>
-                      {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                    </div>
-                    <div>
-                      <span class="font-medium">Profesional:</span>
-                      {{ appointment.user?.name }}
-                    </div>
-                    <div v-if="appointment.dental_chair">
-                      <span class="font-medium">Sillón:</span>
-                      {{ appointment.dental_chair?.name }}
-                    </div>
-                    <div v-if="appointment.duration_minutes">
-                      <span class="font-medium">Duración:</span>
-                      {{ appointment.duration_minutes }} min
-                    </div>
-                  </div>
-                  <div v-if="appointment.notes" class="text-xs text-theme-secondary italic">
-                    {{ appointment.notes }}
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
@@ -198,292 +267,312 @@ data-status="no_show" />
       <!-- Week View -->
       <div v-else-if="currentView === 'week'" class="p-6">
         <div
-          class="grid grid-cols-8 gap-1 border border-hairline rounded-lg overflow-hidden tabular-nums"
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
         >
-          <!-- Time column header -->
-          <div class="p-2 border-b border-hairline bg-theme-surface" />
-
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="p-2 border-b border-hairline bg-theme-surface text-center"
-          >
-            <div class="text-sm font-medium text-theme-primary">
-              {{ day.name }}
-            </div>
-            <div class="text-xs text-theme-secondary">
-              {{ day.number }}
-            </div>
-          </div>
-
-          <!-- Time column -->
-          <div class="border-r border-hairline">
+          <div class="grid grid-cols-8">
+            <!-- Header row -->
+            <div class="border-b border-r border-hairline bg-theme-surface" />
             <div
-              v-for="hour in weekHours"
-              :key="hour"
-              class="h-16 border-b border-theme-light flex items-start justify-end pr-2 pt-1"
+              v-for="day in weekDays"
+              :key="day.date"
+              class="border-b border-r border-hairline bg-theme-surface px-2 py-2 text-center"
             >
-              <span class="text-xs text-theme-secondary font-medium">{{ formatHour(hour) }}</span>
-            </div>
-          </div>
-
-          <!-- Day columns -->
-          <div
-            v-for="day in weekDays"
-            :key="day.date"
-            class="border-r border-hairline last:border-r-0"
-          >
-            <div
-              v-for="hour in weekHours"
-              :key="`${day.date}-${hour}`"
-              class="h-16 border-b border-theme-light relative"
-            >
+              <div class="text-xs font-semibold uppercase tracking-widest text-theme-secondary">
+                {{ day.name }}
+              </div>
               <div
-                v-for="appointment in getAppointmentsForDayAndHour(day.date, hour)"
-                :key="appointment.id"
-                class="absolute inset-1 p-1.5 rounded-lg text-xs cursor-pointer transition-all duration-200 z-10"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
+                class="text-sm font-medium text-theme-primary"
+                style="font-feature-settings: 'tnum' 1"
               >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
+                {{ day.number }}
               </div>
             </div>
+
+            <!-- Hour rows: quiet hairline grid, one slot button per day+hour cell -->
+            <template v-for="hour in weekHours" :key="hour">
+              <div
+                class="border-b border-r border-hairline bg-theme-surface px-2 py-1 text-right text-xs text-theme-secondary"
+                style="font-feature-settings: 'tnum' 1"
+              >
+                {{ formatHour(hour) }}
+              </div>
+              <div
+                v-for="day in weekDays"
+                :key="`${day.date}-${hour}`"
+                class="relative h-16 border-b border-r border-hairline"
+                :class="dropTargetClasses(`${day.date}-${hour}`)"
+                :data-calendar-slot-day="day.date"
+                :data-calendar-drop-target="`${day.date}-${hour}`"
+                :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
+              >
+                <button
+                  v-if="can.createAppointment?.value"
+                  type="button"
+                  class="absolute inset-0 w-full transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-slot="`${day.date}-${hour}`"
+                  :aria-label="`Crear cita el ${day.date} a las ${formatHour(hour)}`"
+                  @click="openSlotCreate(day.date, hour)"
+                ></button>
+                <div class="pointer-events-none absolute inset-1 flex flex-col gap-1">
+                  <button
+                    v-for="appointment in appointmentsForSlot(day.date, hour)"
+                    :key="appointment.id"
+                    type="button"
+                    class="pointer-events-auto min-h-0 flex-1 overflow-hidden px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                    :class="getAppointmentClasses(appointment)"
+                    style="border-radius: var(--radius-panel)"
+                    :title="chipTitle(appointment)"
+                    :data-calendar-appointment="appointment.id"
+                    :data-calendar-draggable="appointment.id"
+                    :data-calendar-drag-state="
+                      draggingAppointmentId === appointment.id ? 'active' : null
+                    "
+                    @pointerdown="onChipPointerDown($event, appointment)"
+                    @click="selectAppointment(appointment)"
+                  >
+                    <span
+                      class="block truncate text-xs font-semibold text-theme-primary"
+                      style="font-feature-settings: 'tnum' 1"
+                    >
+                      {{ chipTimeRange(appointment) }} · {{ appointment.patient?.first_name }}
+                      {{ appointment.patient?.last_name }}
+                    </span>
+                    <span
+                      v-if="appointmentMetaLine(appointment)"
+                      class="block truncate text-xs text-theme-secondary"
+                    >
+                      {{ appointmentMetaLine(appointment) }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
 
       <!-- Month View -->
       <div v-else-if="currentView === 'month'" class="p-6">
-        <div class="grid grid-cols-7 gap-1 tabular-nums">
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDayNames"
-            :key="day"
-            class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-hairline"
-          >
-            {{ day }}
+        <div
+          data-calendar-month-grid
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <!-- Weekday header row: same Spanish short names as the week view -->
+          <div class="grid grid-cols-7 border-b border-hairline bg-theme-surface">
+            <div
+              v-for="name in weekDayNames"
+              :key="name"
+              data-calendar-month-weekday
+              class="border-r border-hairline px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-theme-secondary last:border-r-0"
+            >
+              {{ name }}
+            </div>
           </div>
 
-          <!-- Calendar days -->
-          <div
-            v-for="day in monthDays"
-            :key="day.date"
-            class="min-h-[120px] border border-hairline p-2 hover:bg-theme-surface transition-colors"
-            :class="{
-              'bg-theme-surface': !day.isCurrentMonth,
-              'bg-systemBlue-50 border-systemBlue-200': day.isToday
-            }"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span
-                class="text-sm font-medium"
-                :class="{
-                  'text-theme-secondary': !day.isCurrentMonth,
-                  'text-systemBlue-600': day.isToday,
-                  'text-theme-primary': day.isCurrentMonth && !day.isToday
-                }"
-              >
-                {{ day.number }}
-              </span>
-              <UiStatusBadge
-                v-if="day.appointmentCount > 0"
-                variant="info"
-                size="sm"
-                :label="String(day.appointmentCount)"
-                :data-status="`count-${day.date}`"
-              />
-            </div>
+          <!-- 42 day cells (6 rows): hairline separators, registry chips, "N más" drill-down -->
+          <div class="grid grid-cols-7">
+            <div
+              v-for="day in monthDays"
+              :key="day.date"
+              class="flex min-h-[112px] flex-col gap-1 border-b border-r border-hairline p-1.5"
+              :class="monthCellClasses(day)"
+              :data-calendar-month-day="day.date"
+            >
+              <div class="flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  class="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums transition-colors [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="monthDayNumberClasses(day)"
+                  :data-calendar-day-link="day.date"
+                  :aria-label="`Ver ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  {{ day.number }}
+                </button>
+              </div>
 
-            <div class="space-y-1">
-              <div
-                v-for="appointment in day.appointments"
-                :key="appointment.id"
-                class="p-1.5 rounded text-xs cursor-pointer hover:shadow-sm transition-all duration-200"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
-              </div>
-              <div
-                v-if="day.hasMore"
-                class="text-xs text-systemBlue-600 font-medium text-center mt-1"
-              >
-                +{{ day.appointmentCount - 3 }} más
-              </div>
-              <div
-                v-if="day.appointments.length === 0"
-                class="text-xs text-theme-secondary text-center py-2"
-              >
-                Sin citas
+              <div class="flex min-h-0 flex-1 flex-col gap-1">
+                <button
+                  v-for="appointment in day.appointments"
+                  :key="appointment.id"
+                  type="button"
+                  class="flex w-full items-center gap-1.5 px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :title="chipTitle(appointment)"
+                  :data-calendar-appointment="appointment.id"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span
+                    class="shrink-0 text-xs font-semibold text-theme-primary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ chipTimeRange(appointment) }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-theme-primary">
+                    {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                  </span>
+                </button>
+
+                <button
+                  v-if="day.overflowCount > 0"
+                  type="button"
+                  class="w-full rounded-md px-1.5 py-0.5 text-left text-xs font-medium text-accent-700 transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-more="day.date"
+                  :data-calendar-more-count="day.overflowCount"
+                  :aria-label="`Ver las ${day.overflowCount} citas de ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  +{{ day.overflowCount }} más
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </UiCard>
+    </section>
 
     <!-- Appointment Details Modal -->
-    <div
-      v-if="selectedAppointment"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-      @click.self="selectedAppointment = null"
+    <UiModal
+      :model-value="!!selectedAppointment"
+      title="Detalles de la Cita"
+      size="lg"
+      @update:model-value="closeDetails"
+      @close="closeDetails"
     >
-      <div
-        class="bg-theme-surface-elevated rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-      >
-        <div class="p-6 border-b border-hairline">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-theme-primary">Detalles de la Cita</h2>
-            <button
-              class="text-theme-secondary hover:text-theme-primary transition-colors"
-              @click="selectedAppointment = null"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+      <div v-if="selectedAppointment" data-calendar-detail class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Paciente</label>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.patient?.first_name }}
+              {{ selectedAppointment.patient?.last_name }}
+            </p>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Profesional</label>
+            <p class="text-theme-primary">
+              {{ selectedAppointment.user?.name }}
+            </p>
           </div>
         </div>
-        <div class="p-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Paciente</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.patient.first_name }}
-                {{ selectedAppointment.patient.last_name }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Profesional</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.user.name }}
-              </p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
-              <p class="text-theme-primary">
-                {{ formatDateTime(selectedAppointment.scheduled_at) }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Duración</label>
-              <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
-              <p class="text-theme-primary">
-                {{ selectedAppointment.appointment_type.name }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-theme-secondary">Estado</label>
-              <UiStatusBadge
-                :variant="getStatusBadgeProps(selectedAppointment.status).variant"
-                :label="getStatusText(selectedAppointment.status)"
-                :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
-                :data-status="selectedAppointment.status"
-              />
-            </div>
-          </div>
-          <div v-if="selectedAppointment.notes">
-            <label class="text-sm font-medium text-theme-secondary">Notas</label>
-            <p class="text-theme-primary">
-              {{ selectedAppointment.notes }}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Fecha y Hora</label>
+            <p class="text-theme-primary" style="font-feature-settings: 'tnum' 1">
+              {{ formatDateTime(selectedAppointment.scheduled_at) }}
+            </p>
+            <p class="text-sm text-theme-secondary" style="font-feature-settings: 'tnum' 1">
+              {{ appointmentTimeRange(selectedAppointment) }}
             </p>
           </div>
-          <div v-if="selectedAppointment.treatment_notes">
-            <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Duración</label>
+            <p class="text-theme-primary">{{ selectedAppointment.duration_minutes }} minutos</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div v-if="selectedAppointment.appointment_type?.name">
+            <label class="text-sm font-medium text-theme-secondary">Tipo de Cita</label>
             <p class="text-theme-primary">
-              {{ selectedAppointment.treatment_notes }}
+              {{ selectedAppointment.appointment_type.name }}
             </p>
           </div>
-          <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
-            <UiButton
-              v-if="selectedAppointment.status === 'scheduled'"
-              size="sm"
-              variant="secondary"
-              @click="changeStatus(selectedAppointment, 'confirmed')"
-            >
-              Confirmar
-            </UiButton>
-            <UiButton
-              v-if="
-                selectedAppointment.status === 'confirmed' ||
-                selectedAppointment.status === 'scheduled'
-              "
-              size="sm"
-              variant="secondary"
-              @click="startConsultation(selectedAppointment)"
-            >
-              Iniciar Consulta
-            </UiButton>
-            <UiButton
-              v-if="selectedAppointment.status === 'in_consultation'"
-              size="sm"
-              variant="primary"
-              @click="openConsultationWizard(selectedAppointment)"
-            >
-              Completar Consulta
-            </UiButton>
-            <UiButton
-              v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
-              size="sm"
-              variant="danger"
-              @click="changeStatus(selectedAppointment, 'cancelled')"
-            >
-              Cancelar Cita
-            </UiButton>
+          <div v-if="selectedAppointment.dental_chair?.name">
+            <label class="text-sm font-medium text-theme-secondary">Sillón Dental</label>
+            <p class="text-theme-primary">Sillón {{ selectedAppointment.dental_chair.name }}</p>
           </div>
-          <div class="flex justify-end gap-3 pt-4">
-            <UiButton
-              v-if="can.updateAppointment?.value"
-              variant="secondary"
-              @click="editAppointment(selectedAppointment)"
-            >
-              Editar
-            </UiButton>
-            <UiButton
-              v-if="can.deleteAppointment?.value"
-              variant="danger"
-              @click="deleteAppointment(selectedAppointment)"
-            >
-              Eliminar
-            </UiButton>
+          <div>
+            <label class="text-sm font-medium text-theme-secondary">Estado</label>
+            <UiStatusBadge
+              :variant="getStatusBadgeProps(selectedAppointment.status).variant"
+              :label="getStatusText(selectedAppointment.status)"
+              :show-dot="getStatusBadgeProps(selectedAppointment.status).showDot"
+              :data-status="selectedAppointment.status"
+            />
           </div>
+        </div>
+        <div v-if="selectedAppointment.notes">
+          <label class="text-sm font-medium text-theme-secondary">Notas</label>
+          <p class="text-theme-primary">
+            {{ selectedAppointment.notes }}
+          </p>
+        </div>
+        <div v-if="selectedAppointment.treatment_notes">
+          <label class="text-sm font-medium text-theme-secondary">Notas de Tratamiento</label>
+          <p class="text-theme-primary">
+            {{ selectedAppointment.treatment_notes }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-2 border-t border-hairline">
+          <UiButton
+            v-if="selectedAppointment.status === 'scheduled'"
+            size="sm"
+            variant="secondary"
+            data-calendar-action="status-confirmed"
+            @click="changeStatus(selectedAppointment, 'confirmed')"
+          >
+            Confirmar
+          </UiButton>
+          <UiButton
+            v-if="
+              selectedAppointment.status === 'confirmed' ||
+              selectedAppointment.status === 'scheduled'
+            "
+            size="sm"
+            variant="secondary"
+            data-calendar-action="check-in"
+            @click="startConsultation(selectedAppointment)"
+          >
+            Iniciar Consulta
+          </UiButton>
+          <UiButton
+            v-if="selectedAppointment.status === 'in_consultation'"
+            size="sm"
+            variant="primary"
+            data-calendar-action="complete-consultation"
+            @click="openConsultationWizard(selectedAppointment)"
+          >
+            Completar Consulta
+          </UiButton>
+          <UiButton
+            v-if="!['cancelled', 'completed'].includes(selectedAppointment.status)"
+            size="sm"
+            variant="danger"
+            data-calendar-action="status-cancelled"
+            @click="changeStatus(selectedAppointment, 'cancelled')"
+          >
+            Cancelar Cita
+          </UiButton>
+        </div>
+        <div class="flex justify-end gap-3 pt-4">
+          <UiButton
+            v-if="can.editAppointment?.value"
+            variant="secondary"
+            data-calendar-action="edit"
+            @click="editAppointment(selectedAppointment)"
+          >
+            Editar
+          </UiButton>
+          <UiButton
+            v-if="can.deleteAppointment?.value"
+            variant="danger"
+            data-calendar-action="delete"
+            @click="deleteAppointment(selectedAppointment)"
+          >
+            Eliminar
+          </UiButton>
         </div>
       </div>
-    </div>
+    </UiModal>
 
     <!-- New Appointment Modal -->
     <NewAppointmentModal
       v-model="showNewAppointmentModal"
+      :initial-date="newAppointmentPrefill"
+      :appointment="editingAppointment"
       @created="handleAppointmentSaved"
       @updated="handleAppointmentSaved"
     />
@@ -503,34 +592,84 @@ import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { useReducedMotion } from '../../composables/useReducedMotion'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import UiModal from '../../components/ui/Modal.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import {
+  ArrowLeftIcon,
+  CalendarDaysIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import ConsultationWizard from './ConsultationWizard.vue'
 import { useConsultation } from '../../composables/useConsultation'
+import { useConfirm } from '../../composables/useConfirm'
+import { formatCompactTimeRange } from '../../composables/useFormatters'
+import {
+  APPOINTMENT_CHIP_BASE_CLASSES,
+  APPOINTMENT_STATUS_KEYS,
+  statusLabel,
+  statusBadgeProps,
+  statusBadgeVariant,
+  statusChipClasses,
+  statusToneClasses
+} from './appointmentStatus'
+import {
+  WEEK_DAY_NAMES,
+  buildHours,
+  toLocalDateString,
+  weekDays as buildWeekDays,
+  monthDays as buildMonthDays,
+  periodTitle,
+  dateRangeForView,
+  addPeriod,
+  splitMonthCellAppointments
+} from './calendarDateMath'
+import {
+  DRAG_THRESHOLD_PX,
+  resolveDropSlot,
+  slotKeyToScheduledAt,
+  addMinutesToLocal,
+  canDropOn
+} from './dragDropMath'
 
 export default {
   name: 'CalendarPage',
   components: {
     AppLayout,
-    UiCard,
     UiButton,
+    UiBadge,
     UiStatusBadge,
+    UiModal,
+    DentalMotifLayer,
+    ArrowLeftIcon,
+    CalendarDaysIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    PlusIcon,
     NewAppointmentModal,
     ConsultationWizard
   },
   setup() {
     const router = useRouter()
-    const { get, del } = useApi()
+    const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
+    const { confirm } = useConfirm()
+    const reducedMotion = useReducedMotion()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
-    const loading = ref(false)
+    // T7: starts true so the D1/D9 empty block never flashes before the
+    // first range load (empty state must never appear while loading).
+    const loading = ref(true)
     const currentView = ref('week')
     const currentDate = ref(new Date())
     const appointments = ref([])
@@ -563,14 +702,7 @@ export default {
       await loadAppointments()
     }
     const editingAppointment = ref(null)
-
-    const toLocalDateString = date => {
-      const d = date instanceof Date ? date : new Date(date)
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+    const newAppointmentPrefill = ref(null)
 
     const getAppointmentLocalDate = appointment => {
       if (!appointment || !appointment.scheduled_at) return null
@@ -583,11 +715,14 @@ export default {
       }
     }
 
-    const getInitialDateForModal = () => {
+    const getInitialDateForModal = (dateStr = null, hour = null) => {
+      const pad = n => String(n).padStart(2, '0')
+      if (dateStr && Number.isInteger(hour)) {
+        return `${dateStr}T${pad(hour)}:00`
+      }
       if (currentView.value === 'day') {
         const date = new Date(currentDate.value)
         date.setHours(9, 0, 0, 0)
-        const pad = n => String(n).padStart(2, '0')
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
       }
       return null
@@ -595,6 +730,13 @@ export default {
 
     const openNewAppointmentModal = () => {
       editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal()
+      showNewAppointmentModal.value = true
+    }
+
+    const openSlotCreate = (dateStr, hour) => {
+      editingAppointment.value = null
+      newAppointmentPrefill.value = getInitialDateForModal(dateStr, hour)
       showNewAppointmentModal.value = true
     }
 
@@ -603,141 +745,52 @@ export default {
       await loadAppointments()
     }
 
-    const dayHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const dayHours = buildHours()
 
-    const weekHours = computed(() => {
-      const hours = []
-      for (let i = 6; i <= 21; i++) {
-        hours.push(i)
-      }
-      return hours
-    })
+    const weekHours = buildHours()
 
-    const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const weekDayNames = WEEK_DAY_NAMES
 
     const currentPeriodTitle = computed(() => {
-      const date = currentDate.value
-      switch (currentView.value) {
-        case 'day':
-          return date.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        case 'week': {
-          const startOfWeek = new Date(date)
-          startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-          const endOfWeek = new Date(startOfWeek)
-          endOfWeek.setDate(startOfWeek.getDate() + 6)
-          return `${startOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${endOfWeek.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
-        }
-        case 'month':
-          return date.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' })
-        default:
-          return ''
-      }
+      return periodTitle(currentDate.value, currentView.value)
     })
 
-    const weekDays = computed(() => {
-      const date = currentDate.value
-      const startOfWeek = new Date(date)
-      startOfWeek.setDate(date.getDate() - date.getDay() + 1)
+    // `in_progress` es el alias legacy en BD de `in_consultation` (misma
+    // entrada en el registro): la leyenda muestra una píldora por estado.
+    const legendStatuses = APPOINTMENT_STATUS_KEYS.filter(key => key !== 'in_consultation')
 
-      const days = []
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(startOfWeek)
-        day.setDate(startOfWeek.getDate() + i)
-        days.push({
-          date: toLocalDateString(day),
-          name: weekDayNames[i],
-          number: day.getDate()
-        })
-      }
-      return days
+    const loadedAppointmentsCaption = computed(() => {
+      const count = appointments.value.length
+      if (count === 0) return 'Sin citas cargadas en el rango actual'
+      return count === 1
+        ? '1 cita cargada en el rango actual'
+        : `${count} citas cargadas en el rango actual`
+    })
+
+    const dayDateString = computed(() => toLocalDateString(currentDate.value))
+
+    const weekDays = computed(() => {
+      return buildWeekDays(currentDate.value)
     })
 
     const monthDays = computed(() => {
-      const date = currentDate.value
-      const year = date.getFullYear()
-      const month = date.getMonth()
-
-      const firstDay = new Date(year, month, 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-
-      const days = []
       const now = new Date()
-      const currentDateStr = toLocalDateString(now)
+      return buildMonthDays(currentDate.value, now).map(cell => {
+        const dayAppointments = appointments.value
+          .filter(apt => getAppointmentLocalDate(apt)?.dateStr === cell.date)
+          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
+        const { visible, overflowCount } = splitMonthCellAppointments(dayAppointments)
 
-      for (let i = 0; i < 42; i++) {
-        const day = new Date(startDate)
-        day.setDate(startDate.getDate() + i)
-        const dayStr = toLocalDateString(day)
-        const isToday = dayStr === currentDateStr
-
-        const allDayAppointments = appointments.value.filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === dayStr
-        })
-
-        const sortedDayAppointments = allDayAppointments.sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
-
-        days.push({
-          date: dayStr,
-          number: day.getDate(),
-          isCurrentMonth: day.getMonth() === month,
-          isToday,
-          appointments: sortedDayAppointments.slice(0, 3),
-          appointmentCount: allDayAppointments.length,
-          hasMore: allDayAppointments.length > 3
-        })
-      }
-      return days
+        return {
+          ...cell,
+          appointments: visible,
+          overflowCount
+        }
+      })
     })
 
     const getDateRangeForCurrentView = () => {
-      const date = currentDate.value
-      if (currentView.value === 'day') {
-        const start = new Date(date)
-        const end = new Date(date)
-        return {
-          start_date: toLocalDateString(start),
-          end_date: toLocalDateString(end)
-        }
-      }
-      if (currentView.value === 'week') {
-        const startOfWeek = new Date(date)
-        startOfWeek.setDate(date.getDate() - date.getDay() + 1)
-        const endOfWeek = new Date(startOfWeek)
-        endOfWeek.setDate(startOfWeek.getDate() + 6)
-        return {
-          start_date: toLocalDateString(startOfWeek),
-          end_date: toLocalDateString(endOfWeek)
-        }
-      }
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-      const startDate = new Date(firstDay)
-      startDate.setDate(firstDay.getDate() - firstDay.getDay() + 1)
-      const lastDay = new Date(startDate)
-      lastDay.setDate(startDate.getDate() + 41)
-      return {
-        start_date: toLocalDateString(startDate),
-        end_date: toLocalDateString(lastDay)
-      }
+      return dateRangeForView(currentDate.value, currentView.value)
     }
 
     const loadAppointments = async () => {
@@ -776,10 +829,39 @@ export default {
       return `${startStr}-${endStr}`
     }
 
+    const appointmentTimeRange = appointment => {
+      return formatTimeRange(
+        appointment.scheduled_at,
+        appointment.ends_at || appointment.scheduled_at
+      )
+    }
+
+    // T8b defect 3 — chips render the compact `HH:mm - HH:mm` (all three
+    // views) with a `title` carrying the full patient + locale range; the
+    // details modal keeps the full locale format through
+    // `appointmentTimeRange` above.
+    const chipTimeRange = appointment =>
+      formatCompactTimeRange(
+        appointment.scheduled_at,
+        appointment.ends_at || appointment.scheduled_at
+      )
+
+    const chipTitle = appointment => {
+      const name =
+        `${appointment.patient?.first_name || ''} ${appointment.patient?.last_name || ''}`.trim()
+      return `${name || 'Cita'} · ${appointmentTimeRange(appointment)}`
+    }
+
+    const appointmentMetaLine = appointment => {
+      const parts = []
+      if (appointment?.user?.name) parts.push(appointment.user.name)
+      if (appointment?.dental_chair?.name) parts.push(`Sillón ${appointment.dental_chair.name}`)
+      return parts.join(' · ')
+    }
+
     const getAppointmentLabel = apt => {
       const type = apt?.appointment_type?.name || 'Cita'
-      const range = formatTimeRange(apt.scheduled_at, apt.ends_at || apt.scheduled_at)
-      return `${type} ${range}`
+      return `${type} ${appointmentTimeRange(apt)}`
     }
 
     const changeView = view => {
@@ -787,37 +869,33 @@ export default {
       loadAppointments()
     }
 
+    // D8 month drill-down: "N más" (and the day-number header) jump straight
+    // to the already-redesigned Day view for that date.
+    const drillDownToDate = dateStr => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      currentDate.value = new Date(year, month - 1, day)
+      changeView('day')
+    }
+
+    const monthCellClasses = day => {
+      if (day.isToday) return 'bg-accent-50'
+      if (!day.isCurrentMonth) return 'bg-theme-surface'
+      return ''
+    }
+
+    const monthDayNumberClasses = day => {
+      if (day.isToday) return 'bg-accent-500 text-white font-semibold'
+      if (!day.isCurrentMonth) return 'text-theme-secondary hover:bg-theme-surface'
+      return 'text-theme-primary hover:bg-theme-surface'
+    }
+
     const previousPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() - 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() - 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() - 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, -1)
       loadAppointments()
     }
 
     const nextPeriod = () => {
-      const date = new Date(currentDate.value)
-      switch (currentView.value) {
-        case 'day':
-          date.setDate(date.getDate() + 1)
-          break
-        case 'week':
-          date.setDate(date.getDate() + 7)
-          break
-        case 'month':
-          date.setMonth(date.getMonth() + 1)
-          break
-      }
-      currentDate.value = date
+      currentDate.value = addPeriod(currentDate.value, currentView.value, 1)
       loadAppointments()
     }
 
@@ -826,25 +904,7 @@ export default {
       loadAppointments()
     }
 
-    const getAppointmentsForHour = hour => {
-      const dateStr = toLocalDateString(currentDate.value)
-      const filtered = appointments.value
-        .filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === dateStr && aptInfo.hour === hour
-        })
-        .sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
-      return filtered
-    }
-
-    const getAppointmentsForDayAndHour = (dateStr, hour) => {
+    const appointmentsForSlot = (dateStr, hour) => {
       return appointments.value
         .filter(apt => {
           const aptInfo = getAppointmentLocalDate(apt)
@@ -861,64 +921,238 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      const baseClasses = 'bg-theme-surface-elevated border border-hairline'
-      const statusClasses = {
-        scheduled: 'border-systemBlue-200 bg-systemBlue-50',
-        confirmed: 'border-systemGreen-200 bg-systemGreen-50',
-        in_consultation: 'border-systemYellow-200 bg-systemYellow-50',
-        completed: 'border-hairline bg-theme-surface',
-        cancelled: 'border-systemRed-200 bg-systemRed-50',
-        no_show: 'border-systemYellow-200 bg-systemYellow-50',
-        rescheduled: 'border-systemBlue-200 bg-systemBlue-50'
-      }
-      return `${baseClasses} ${statusClasses[appointment.status] || statusClasses.scheduled}`
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)} ${dragChipClasses(appointment)}`.trim()
     }
 
     const getStatusClasses = status => {
-      const classes = {
-        scheduled: 'bg-systemBlue-50 text-systemBlue-700',
-        confirmed: 'bg-systemGreen-50 text-systemGreen-700',
-        in_consultation: 'bg-systemYellow-50 text-systemYellow-700',
-        completed: 'bg-systemGray-100 text-systemGray-700',
-        cancelled: 'bg-systemRed-50 text-systemRed-700',
-        no_show: 'bg-systemYellow-50 text-systemYellow-700',
-        rescheduled: 'bg-systemBlue-50 text-systemBlue-700'
-      }
-      return classes[status] || classes.scheduled
+      return statusToneClasses(status)
     }
 
     const getStatusText = status => {
-      const texts = {
-        scheduled: 'Programada',
-        confirmed: 'Confirmada',
-        in_consultation: 'En Consulta',
-        completed: 'Completada',
-        cancelled: 'Cancelada',
-        no_show: 'No se presentó',
-        rescheduled: 'Reprogramada'
-      }
-      return texts[status] || status
+      return statusLabel(status)
     }
 
     const getStatusBadgeProps = status => {
-      const props = {
-        scheduled: { variant: 'info', showDot: true },
-        confirmed: { variant: 'success', showDot: true },
-        in_consultation: { variant: 'warning', showDot: true },
-        completed: { variant: 'neutral', showDot: true },
-        cancelled: { variant: 'error', showDot: true },
-        no_show: { variant: 'neutral', showDot: true },
-        rescheduled: { variant: 'warning', showDot: false }
-      }
-      return props[status] || props.scheduled
+      return statusBadgeProps(status)
     }
 
     const selectAppointment = appointment => {
+      if (suppressNextClick) {
+        suppressNextClick = false
+        return
+      }
       selectedAppointment.value = appointment
+    }
+
+    // T7: UiModal owns the details chrome (backdrop, Escape, focus trap);
+    // every close path funnels through clearing the selection.
+    const closeDetails = () => {
+      selectedAppointment.value = null
+    }
+
+    // T7 D1/D9 — quiet empty-state copy per view (one short title + one
+    // precise sentence), rendered instead of the grids when the loaded range
+    // has zero appointments.
+    const emptyStateCopy = computed(() => {
+      const copy = {
+        day: {
+          title: 'Sin citas este día',
+          description: 'La agenda de este día está libre. Crea una cita para empezar.'
+        },
+        week: {
+          title: 'Sin citas esta semana',
+          description: 'Ninguna cita en la semana cargada. Crea una cita para empezar.'
+        },
+        month: {
+          title: 'Sin citas este mes',
+          description: 'Ninguna cita en el mes cargado. Crea una cita para empezar.'
+        }
+      }
+      return copy[currentView.value]
+    })
+
+    // T5 drag-and-drop reschedule: press + DRAG_THRESHOLD_PX of travel on a
+    // Day/Week chip starts a drag; below the threshold the native click still
+    // opens the details modal. Slot buttons are never drag sources.
+    const DRAG_CHIP_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 -translate-y-0.5 transition-[transform,opacity] duration-normal'
+    const DRAG_CHIP_REDUCED_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 ring-2 ring-inset ring-accent-500'
+    const DRAG_CHIP_IDLE_CLASSES = 'cursor-grab'
+    const DROP_TARGET_HOVER_CLASSES = 'bg-accent-50 ring-2 ring-inset ring-accent-500'
+
+    const draggingAppointmentId = ref(null)
+    const dropHoverSlot = ref(null)
+    let dragSession = null
+    let suppressNextClick = false
+
+    const dragChipClasses = appointment => {
+      if (currentView.value === 'month' || !can.editAppointment?.value) return ''
+      if (draggingAppointmentId.value === appointment.id) {
+        return reducedMotion.value ? DRAG_CHIP_REDUCED_MOTION_CLASSES : DRAG_CHIP_MOTION_CLASSES
+      }
+      return DRAG_CHIP_IDLE_CLASSES
+    }
+
+    const dropTargetClasses = slotKey =>
+      dropHoverSlot.value === slotKey ? DROP_TARGET_HOVER_CLASSES : ''
+
+    const collectDropTargets = () =>
+      Array.from(document.querySelectorAll('[data-calendar-drop-target]')).map(element => ({
+        key: element.getAttribute('data-calendar-drop-target'),
+        rect: element.getBoundingClientRect()
+      }))
+
+    const attachDragListeners = () => {
+      window.addEventListener('pointermove', onDragPointerMove)
+      window.addEventListener('pointerup', onDragPointerUp)
+      window.addEventListener('pointercancel', onDragPointerCancel)
+      window.addEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const detachDragListeners = () => {
+      window.removeEventListener('pointermove', onDragPointerMove)
+      window.removeEventListener('pointerup', onDragPointerUp)
+      window.removeEventListener('pointercancel', onDragPointerCancel)
+      window.removeEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const onChipPointerDown = (event, appointment) => {
+      if (!can.editAppointment?.value) return
+      if (typeof event.button === 'number' && event.button !== 0) return
+      suppressNextClick = false
+      dragSession = {
+        appointment,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+        dropTargets: []
+      }
+      attachDragListeners()
+    }
+
+    const startDrag = session => {
+      session.active = true
+      session.dropTargets = collectDropTargets()
+      draggingAppointmentId.value = session.appointment.id
+      document.body.style.userSelect = 'none'
+    }
+
+    const endDrag = ({ suppressClick = false } = {}) => {
+      const session = dragSession
+      dragSession = null
+      detachDragListeners()
+      draggingAppointmentId.value = null
+      dropHoverSlot.value = null
+      document.body.style.userSelect = ''
+      if (suppressClick) {
+        suppressNextClick = true
+        setTimeout(() => {
+          suppressNextClick = false
+        }, 0)
+      }
+      return session
+    }
+
+    const onDragPointerMove = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        const moved = Math.hypot(event.clientX - session.startX, event.clientY - session.startY)
+        if (moved < DRAG_THRESHOLD_PX) return
+        startDrag(session)
+      }
+      if (event.cancelable) event.preventDefault()
+      dropHoverSlot.value = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+    }
+
+    const onDragPointerUp = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        endDrag()
+        return
+      }
+      const slotKey = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+      endDrag({ suppressClick: true })
+      if (!slotKey) return
+      // Own-slot drop is a no-op and stays silent (T5 contract: no request,
+      // no feedback).
+      const current = getAppointmentLocalDate(session.appointment)
+      if (current && slotKey === `${current.dateStr}-${current.hour}`) return
+      if (!canDropOn(slotKey, session.appointment)) {
+        // T8b investigation: drops onto past slots are rejected CLIENT-side
+        // by `canDropOn` before any request — in the real-browser pass that
+        // read as a silent cancel (armed drag, no PATCH, no toast). Announce
+        // the rule as a quiet info toast; other rejections (defensive
+        // unresolvable slots) keep the silent rollback.
+        const target = slotKeyToScheduledAt(slotKey)
+        const targetTime = target ? new Date(target).getTime() : NaN
+        if (Number.isFinite(targetTime) && targetTime < Date.now() + 60 * 1000) {
+          toast.info('No se puede mover a un horario pasado')
+        }
+        return
+      }
+      rescheduleAppointment(session.appointment, slotKey)
+    }
+
+    const onDragPointerCancel = () => {
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const onDragKeyDown = event => {
+      if (event.key !== 'Escape') return
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const conflictToastMessage = conflict => {
+      const other = conflict.conflicting_appointment
+      const blocker =
+        conflict.type === 'chair_conflict'
+          ? `El sillón ${other?.dental_chair?.name || 'asignado'} ya está ocupado`
+          : 'El profesional ya tiene una cita en ese horario'
+      const detail =
+        other?.patient?.full_name && other?.scheduled_at
+          ? `${other.patient.full_name} (${formatTimeRange(other.scheduled_at, other.ends_at || other.scheduled_at)})`
+          : other?.patient?.full_name || ''
+      return detail ? `${blocker}. Conflicto con ${detail}.` : `${blocker}.`
+    }
+
+    const rescheduleAppointment = async (appointment, slotKey) => {
+      const scheduledAt = slotKeyToScheduledAt(slotKey)
+      if (!scheduledAt) return
+      const durationMinutes = Number(appointment.duration_minutes) || 60
+      const original = {
+        scheduled_at: appointment.scheduled_at,
+        ends_at: appointment.ends_at
+      }
+      appointment.scheduled_at = scheduledAt
+      appointment.ends_at = addMinutesToLocal(scheduledAt, durationMinutes)
+      try {
+        await patch(`/api/appointments/${appointment.id}/reschedule`, {
+          scheduled_at: scheduledAt,
+          duration_minutes: durationMinutes
+        })
+        toast.success('Cita reprogramada')
+      } catch (error) {
+        appointment.scheduled_at = original.scheduled_at
+        appointment.ends_at = original.ends_at
+        const conflict = error?.response?.data?.conflict
+        if (conflict) {
+          toast.error(conflictToastMessage(conflict))
+        } else {
+          toast.error(normalizeError(error, 'No se pudo reprogramar la cita'))
+        }
+      }
     }
 
     const editAppointment = appointment => {
       editingAppointment.value = appointment
+      newAppointmentPrefill.value = null
       showNewAppointmentModal.value = true
       selectedAppointment.value = null
     }
@@ -962,13 +1196,6 @@ export default {
 
     const formatHour = hour => {
       return `${hour.toString().padStart(2, '0')}:00`
-    }
-
-    const formatTime = dateTime => {
-      return new Date(dateTime).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
     }
 
     const formatDateTime = dateTime => {
@@ -1026,6 +1253,13 @@ export default {
     })
 
     onUnmounted(() => {
+      // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
+      if (dragSession) {
+        endDrag()
+      } else {
+        detachDragListeners()
+      }
+
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
@@ -1054,26 +1288,44 @@ export default {
       weekHours,
       weekDayNames,
       currentPeriodTitle,
+      legendStatuses,
+      loadedAppointmentsCaption,
+      statusLabel,
+      statusBadgeVariant,
       weekDays,
       monthDays,
+      monthCellClasses,
+      monthDayNumberClasses,
+      drillDownToDate,
       loadAppointments,
       changeView,
       previousPeriod,
       nextPeriod,
       goToToday,
-      getAppointmentsForHour,
-      getAppointmentsForDayAndHour,
+      appointmentsForSlot,
+      dayDateString,
+      appointmentTimeRange,
+      chipTimeRange,
+      chipTitle,
+      appointmentMetaLine,
+      openSlotCreate,
+      newAppointmentPrefill,
       getAppointmentClasses,
       getStatusClasses,
       getStatusText,
       getStatusBadgeProps,
       selectAppointment,
+      closeDetails,
+      emptyStateCopy,
+      draggingAppointmentId,
+      dropHoverSlot,
+      dropTargetClasses,
+      onChipPointerDown,
       editAppointment,
       changeStatus,
       deleteAppointment,
       getAppointmentLabel,
       formatHour,
-      formatTime,
       formatDateTime,
       goBack,
       getInitialDateForModal,

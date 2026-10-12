@@ -97,31 +97,52 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-003 — the environments table dividers (lines 104 + 134) MUST
-     * consume the `var(--color-hairline)` token instead of the legacy
-     * `divide-theme` literal.
+     * AMB-01-003 (re-anchored by T2/D1) — the page no longer renders
+     * `<thead>/<tbody>` markup: the list table is consumed through the shared
+     * primitive `components/ui/DataTable.vue`, which owns the table + divider
+     * chrome. The page-level contract is therefore: delegate to the primitive
+     * and keep the hairline token on the list panel chrome; the legacy
+     * `divide-theme` literal stays forbidden at page level.
      *
-     * POSITIVE rule: `divide-[color:var(--color-hairline)]` reference present.
+     * POSITIVE rule: ≥1 `<UiDataTable` reference (the shared primitive renders
+     * the table body/dividers).
      *
-     * NEGATIVE rule: zero `divide-theme` literal matches anywhere in the file.
+     * POSITIVE rule: `var(--color-hairline)` reference present (the list panel
+     * chrome keeps the hairline token rung).
+     *
+     * NEGATIVE rule: zero `divide-theme` literal matches anywhere in the file
+     * (unchanged from the original AMB-01-003).
      */
-    public function test_table_dividers_use_hairline(): void
+    public function test_list_table_consumes_data_table_primitive(): void
     {
         $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: at least one `divide-[color:var(--color-hairline)]` reference
-        // (apply phase replaces both `divide-theme` instances on the <thead>
-        // and <tbody> wrappers).
+        // POSITIVE: at least one `<UiDataTable` reference (D1: the shared
+        // primitive owns the table rendering + divider chrome).
+        $uiDataTableCount = preg_match_all('#<UiDataTable\b#', $src);
+        $this->assertGreaterThanOrEqual(
+            1,
+            $uiDataTableCount,
+            sprintf(
+                '%s MUST consume `<UiDataTable>` for the list table (AMB-01-003 / T2-D1). '
+                . 'Found %d <UiDataTable> reference(s); expected at least 1.',
+                $path,
+                $uiDataTableCount
+            )
+        );
+
+        // POSITIVE: at least one `var(--color-hairline)` reference (the list
+        // panel chrome keeps the hairline token rung).
         $this->assertTrue(
             (bool) preg_match(
-                '#divide-\[color:var\(--color-hairline\)\]#',
+                '#var\(--color-hairline\)#',
                 $src
             ),
             sprintf(
-                '%s MUST consume `divide-[color:var(--color-hairline)]` on the table dividers '
-                . '(AMB-01-003). Replace `divide-theme` on lines 104 + 134.',
+                '%s MUST consume `var(--color-hairline)` on the list panel chrome '
+                . '(AMB-01-003).',
                 $path
             )
         );
@@ -202,17 +223,28 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-005 — the three action buttons (Ver Detalle / Editar / Eliminar)
-     * MUST consume `<UiButton variant="link">` (Ver / Editar) and
-     * `<UiButton variant="ghost">` (Eliminar) instead of `<UiButton
-     * variant="ghost">` with legacy `text-accent hover:text-accent-hover` /
-     * `text-accent hover:text-primary-800` / `text-red-600 hover:text-red-900`
-     * raw Tailwind classes.
+     * AMB-01-005 (re-anchored by T3/D-modal-link) — the three row action
+     * buttons (Ver detalle / Editar / Eliminar) MUST consume the shared
+     * `<UiButton>` text-button rung, with the legacy raw Tailwind classes
+     * absent.
      *
-     * POSITIVE rule: at least 2 `variant="link"` references + at least 1
-     * `variant="ghost"` reference + at least 1 `text-systemRed-700` reference.
+     * D-modal-link rationale: the original contract pinned
+     * `<UiButton variant="link">` for Ver Detalle + Editar, but
+     * `components/ui/Button.vue` has no `link` variant in its prop validator
+     * (legal variants: primary, secondary, ghost, danger, success, warning,
+     * icon). Passing `variant="link"` fires a Vue prop warning and silently
+     * falls back to `primary`, so the row actions rendered as solid primary
+     * buttons instead of text buttons. `ghost` is the real text-button rung
+     * of the shared primitive (transparent background, no border), so the
+     * rule is re-anchored to `variant="ghost"` for all three actions and
+     * `variant="link"` becomes forbidden outright. `components/ui/*` is out
+     * of T3 scope, so the call site adapts to the primitive's real contract.
      *
-     * NEGATIVE rule: zero `text-accent` + zero `hover:text-accent-hover` +
+     * POSITIVE rule: at least 3 `variant="ghost"` references (Ver detalle +
+     * Editar + Eliminar) + at least 1 `text-systemRed-700` reference.
+     *
+     * NEGATIVE rule: zero `variant="link"` references (illegal variant) +
+     * zero `text-accent` + zero `hover:text-accent-hover` +
      * zero `text-red-600` + zero `hover:text-red-900` matches.
      */
     public function test_action_buttons_use_ui_button_variants(): void
@@ -221,29 +253,35 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥2 `variant="link"` references (Ver Detalle + Editar).
-        $linkCount = preg_match_all('#variant=["\']link["\']#', $src);
+        // POSITIVE: ≥3 `variant="ghost"` references (Ver detalle + Editar +
+        // Eliminar): `ghost` is the text-button rung of `components/ui/Button.vue`.
+        $ghostCount = preg_match_all('#variant=["\']ghost["\']#', $src);
         $this->assertGreaterThanOrEqual(
-            2,
-            $linkCount,
+            3,
+            $ghostCount,
             sprintf(
-                '%s MUST consume `<UiButton variant="link">` for Ver Detalle + Editar '
-                . '(AMB-01-005). Found %d `variant="link"` reference(s); expected at least 2.',
+                '%s MUST consume `<UiButton variant="ghost">` for Ver detalle + Editar + Eliminar '
+                . '(AMB-01-005 / D-modal-link). Found %d `variant="ghost"` reference(s); '
+                . 'expected at least 3.',
                 $path,
-                $linkCount
+                $ghostCount
             )
         );
 
-        // POSITIVE: ≥1 `variant="ghost"` reference on Eliminar.
-        $ghostCount = preg_match_all('#variant=["\']ghost["\']#', $src);
-        $this->assertGreaterThanOrEqual(
-            1,
-            $ghostCount,
+        // NEGATIVE: zero `variant="link"` references (D-modal-link). The
+        // shared primitive has no `link` variant: the prop warns and falls
+        // back to `primary`, so the row actions must never use it again.
+        $linkCount = preg_match_all('#variant=["\']link["\']#', $src);
+        $this->assertSame(
+            0,
+            $linkCount,
             sprintf(
-                '%s MUST consume `<UiButton variant="ghost">` for Eliminar '
-                . '(AMB-01-005). Found %d `variant="ghost"` reference(s); expected at least 1.',
+                '%s MUST NOT consume `<UiButton variant="link">` (AMB-01-005 / D-modal-link). '
+                . '`components/ui/Button.vue` has no `link` variant; the prop falls back to '
+                . '`primary`. Use `variant="ghost"` (the text-button rung). '
+                . 'Found %d `variant="link"` reference(s).',
                 $path,
-                $ghostCount
+                $linkCount
             )
         );
 
@@ -305,40 +343,56 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-01-006 — the hand-rolled spinner (line 82) carrying
-     * `inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent`
-     * MUST migrate to `<UiLoadingSpinner size="md" />`. The `border-accent`
-     * legacy alias MUST be removed.
+     * AMB-01-006 (re-anchored by T2/D6) — the list loading state MUST render
+     * the skeleton primitive (`components/ui/Skeleton.vue`, consumed as
+     * `<UiSkeleton>`), not the loading spinner. T2/D6 changed the loading
+     * contract: skeleton rows match the table shape so the panel does not
+     * jump when data lands (the dashboard precedent).
      *
-     * POSITIVE rule: ≥1 `<UiLoadingSpinner` reference in the file.
+     * POSITIVE rule: ≥1 `<UiSkeleton` reference (or the Skeleton.vue import).
+     *
+     * NEGATIVE rule: zero `<UiLoadingSpinner` references (loading is the
+     * skeleton now).
      *
      * NEGATIVE rule: zero `border-accent` legacy alias matches anywhere in
-     * the file.
+     * the file (unchanged from the original AMB-01-006).
      */
-    public function test_loading_spinner_uses_ui_component(): void
+    public function test_loading_state_uses_skeleton_primitive(): void
     {
         $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // POSITIVE: ≥1 `<UiLoadingSpinner` reference (the list loading
-        // state on line 82 must consume the canonical primitive).
+        // POSITIVE: ≥1 `<UiSkeleton` reference (the list loading state must
+        // consume the canonical skeleton primitive).
         $this->assertTrue(
-            (bool) preg_match('#<UiLoadingSpinner\b#', $src)
+            (bool) preg_match('#<UiSkeleton\b#', $src)
                 || (bool) preg_match(
-                    '#import\s+UiLoadingSpinner\s+from\s+[\'"][^\'"]*components/ui/LoadingSpinner\.vue[\'"]#',
+                    '#import\s+UiSkeleton\s+from\s+[\'"][^\'"]*components/ui/Skeleton\.vue[\'"]#',
                     $src
                 ),
             sprintf(
-                '%s MUST consume `<UiLoadingSpinner />` for the list loading state '
-                . '(AMB-01-006). Replace the hand-rolled spinner on line 82.',
+                '%s MUST consume `<UiSkeleton />` for the list loading state '
+                . '(AMB-01-006 / T2-D6). Replace the loading spinner with the skeleton primitive.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `<UiLoadingSpinner` references (T2/D6 re-anchors the
+        // loading contract to the skeleton primitive).
+        $this->assertSame(
+            0,
+            preg_match('#<UiLoadingSpinner\b#', $src),
+            sprintf(
+                '%s MUST NOT keep `<UiLoadingSpinner>` for the list loading state '
+                . '(AMB-01-006 / T2-D6). Loading renders `<UiSkeleton>`.',
                 $path
             )
         );
 
         // NEGATIVE: zero `border-accent` legacy alias matches anywhere in
         // the file. The hand-rolled spinner carried `border-b-2 border-accent`;
-        // the canonical primitive does not use any `border-accent` class.
+        // the canonical primitives do not use any `border-accent` class.
         $borderAccentCount = preg_match_all('#(?<![\w-])border-accent(?![\w-])#', $src);
         $this->assertSame(
             0,
@@ -439,8 +493,10 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      * `border-accent text-accent` / `border-transparent text-theme-secondary
      * hover:text-theme-primary hover:border-theme` active/inactive styles)
      * MUST migrate to `<UiTabs v-model="activeTab" :tabs="tabs">`. The
-     * 2 tab labels (`Datos` / `Historial de auditoría`) MUST keep their
-     * labels byte-for-byte.
+     * tab labels ride the `tabs` bindings and follow the T4/D7 contract:
+     * `Información` / `Auditoría` (T4 re-labelled them from the legacy
+     * `Datos` / `Historial`; the assertions pin the primitive + the legacy
+     * indicator absence, never the display strings).
      *
      * POSITIVE rule: ≥1 `<UiTabs` reference present in the detail page.
      *
@@ -533,6 +589,53 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
+     * AMB-02-004 (companion, added by T4) — the summary/avatar icon MUST sit
+     * on the tint's foreground (`text-systemBlue-700`), NOT `text-white`.
+     *
+     * Re-anchor justification: AMB-02-004 pinned the avatar tint
+     * (`bg-systemBlue-50`) but left the icon foreground unpinned, and the
+     * page shipped `text-white` on the light tint: an invisible icon
+     * (contrast defect found by the T4 audit). The fixed contract re-anchors
+     * the foreground to the T2 list-tile pairing (`bg-systemBlue-50` +
+     * `text-systemBlue-700`). No assertion is loosened: this is an additive
+     * pin on the previously unguarded foreground.
+     *
+     * POSITIVE rule: `text-systemBlue-700` reference present in the detail page.
+     *
+     * NEGATIVE rule: zero `text-white` matches anywhere in the file.
+     */
+    public function test_summary_avatar_icon_uses_tint_foreground(): void
+    {
+        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $src = self::readSource($path);
+        $this->assertNotNull($src, sprintf('%s must be readable.', $path));
+
+        // POSITIVE: `text-systemBlue-700` present (icon/initial foreground on
+        // the `bg-systemBlue-50` tint).
+        $this->assertTrue(
+            (bool) preg_match('#(?<![\w-])text-systemBlue-700(?![\w-])#', $src),
+            sprintf(
+                '%s MUST consume `text-systemBlue-700` as the foreground on the '
+                . '`bg-systemBlue-50` avatar tint (AMB-02-004 companion / T4). '
+                . 'Replace `text-white`.',
+                $path
+            )
+        );
+
+        // NEGATIVE: zero `text-white` matches (white on a -50 tint renders an
+        // invisible icon).
+        $this->assertSame(
+            0,
+            preg_match('#(?<![\w-])text-white(?![\w-])#', $src),
+            sprintf(
+                '%s MUST NOT keep `text-white` on light avatar tints (AMB-02-004 '
+                . 'companion / T4). Found a match.',
+                $path
+            )
+        );
+    }
+
+    /**
      * AMB-02-005 — the hand-rolled audit-log empty state (lines 145-167 with
      * `bg-gradient-to-br from-theme-surface to-theme-surface-elevated`
      * icon + custom `<h3>` + `<p>` paragraphs) MUST migrate to
@@ -580,9 +683,17 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * AMB-02-006 — the audit log item wrapper on line 172
-     * (`border border-theme rounded-lg p-4 hover:bg-theme-surface
-     * transition-colors`) MUST migrate to `<UiCard variant="glass">`.
+     * AMB-02-006 — the audit log panel MUST consume the canonical
+     * `<UiCard variant="glass">` wrapper (line 172 in the original carried
+     * the hand-rolled `border border-theme rounded-lg p-4 hover:bg-theme-surface
+     * transition-colors` item chrome).
+     *
+     * T4 re-anchor (assertion unchanged): the primitive now wraps the audit
+     * PANEL and the entries inside it are flat rows separated by hairline
+     * dividers (T4 spec: "hairline dividers, flat avatar"), which removes the
+     * panel-in-panel double chrome flagged as a T2 advisory. The positive rule
+     * keeps requiring a `<UiCard variant="glass">` reference in the file and
+     * the negative rule keeps forbidding the legacy wrapper class string.
      *
      * POSITIVE rule: ≥1 `<UiCard\b[^>]*\bvariant=["\']glass["\']` reference.
      *

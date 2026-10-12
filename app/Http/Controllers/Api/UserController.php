@@ -45,9 +45,15 @@ class UserController extends Controller
         try {
             $query = User::query();
 
-            // Filter by role if specified
+            // Filter by role if specified (comma-separated list allowed)
             if ($request->has('role')) {
-                $query->where('role', $request->get('role'));
+                $roles = collect(explode(',', (string) $request->get('role')))
+                    ->map(fn ($role) => trim($role))
+                    ->filter(fn ($role) => $role !== '')
+                    ->values()
+                    ->all();
+
+                $query->whereIn('role', $roles);
             }
 
             $users = $query->get();
@@ -266,44 +272,6 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar usuario',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Search users.
-     */
-    public function search(Request $request): JsonResponse
-    {
-        try {
-            $query = $request->get('q', '');
-            $role = $request->get('role', '');
-
-            $users = User::where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('username', 'like', "%{$query}%")
-                  ->orWhere('email', 'like', "%{$query}%")
-                  ->orWhere('specialty', 'like', "%{$query}%");
-            });
-
-            if ($role) {
-                $users->where('role', $role);
-            }
-
-            $users = $users->get();
-
-            return response()->json([
-                'data' => $users,
-                'meta' => [
-                    'total' => $users->count(),
-                    'query' => $query,
-                    'role' => $role
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al buscar usuarios',
                 'error' => $e->getMessage()
             ], 500);
         }

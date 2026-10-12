@@ -33,10 +33,20 @@ class DentalChairController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'sometimes|in:active,inactive,maintenance',
+        ]);
+
         try {
-            $chairs = DentalChair::where('is_active', true)->get();
+            $query = DentalChair::where('is_active', true);
+
+            if (isset($validated['status'])) {
+                $query->where('status', $validated['status']);
+            }
+
+            $chairs = $query->get();
 
             return response()->json([
                 'data' => $chairs,

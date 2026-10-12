@@ -100,7 +100,7 @@ resources/js/
   app.js                   # entry + router (guards en router/auth.js)
   composables/             # 23 composables singleton
   components/
-    ui/                    # 30 primitives (Button, Modal, DataTable, Toast, ...)
+    ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
   modules/                 # 17 módulos de dominio (ver §5)
@@ -116,7 +116,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 195 rutas API (medido con php artisan route:list --json: uris api/…; 208 totales con web)
+  api.php                  # 196 rutas API (medido con php artisan route:list --json: uris api/…; 209 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -295,6 +295,8 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-11 (calendar-scheduling-redesign T8)** — §4 sincronizado con valores medidos: 196 rutas API (añadida `PATCH /api/appointments/{appointment}/reschedule`), 209 totales con web; `components/ui/` de 30 a 35 primitives (incluye `DentalMotifLayer.vue` movido desde `modules/dashboard/` y `UiSectionEmpty.vue` de patients; la base ya tenía 33, deriva preexistente corregida). Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-05 (dashboard-ops-redesign T7a)** — §4 sincronizado con valores medidos: 195 rutas API (añadida `GET dashboard/pending`), 208 totales con web. Guard `scripts/audit/doc-drift.mjs` en verde.
 
