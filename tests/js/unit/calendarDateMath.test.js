@@ -7,7 +7,9 @@ import {
   monthDays,
   periodTitle,
   dateRangeForView,
-  addPeriod
+  addPeriod,
+  MONTH_CELL_CHIP_LIMIT,
+  splitMonthCellAppointments
 } from '../../../resources/js/modules/appointments/calendarDateMath.js'
 
 // All dates below are built from explicit local components so assertions never
@@ -267,8 +269,35 @@ describe('addPeriod', () => {
     expect(toLocalDateString(addPeriod(d(2026, 1, 15), 'month', 3))).toBe('2026-04-15')
   })
 
-  it('keeps setMonth overflow semantics (2026-01-31 + 1 month)', () => {
-    expect(toLocalDateString(addPeriod(d(2026, 1, 31), 'month', 1))).toBe('2026-03-03')
+  it('clamps a month step to the last day of the target month (D12)', () => {
+    // 31 ene +1 -> 28 feb (2026 is not a leap year); 31 ene 2024 +1 -> 29 feb.
+    expect(toLocalDateString(addPeriod(d(2026, 1, 31), 'month', 1))).toBe('2026-02-28')
+    expect(toLocalDateString(addPeriod(d(2024, 1, 31), 'month', 1))).toBe('2024-02-29')
+    // 31/30 mar +1 -> 30 abr: the target month is shorter than the source day.
+    expect(toLocalDateString(addPeriod(d(2026, 3, 31), 'month', 1))).toBe('2026-04-30')
+    expect(toLocalDateString(addPeriod(d(2026, 3, 30), 'month', 1))).toBe('2026-04-30')
+    // 29/28 mar +1 -> 29/28 abr: no clamp when the day exists in the target month.
+    expect(toLocalDateString(addPeriod(d(2026, 3, 29), 'month', 1))).toBe('2026-04-29')
+    expect(toLocalDateString(addPeriod(d(2026, 3, 28), 'month', 1))).toBe('2026-04-28')
+    // 31 may +1 -> 30 jun (clamped); 31 jul +1 -> 31 ago (no clamp).
+    expect(toLocalDateString(addPeriod(d(2026, 5, 31), 'month', 1))).toBe('2026-06-30')
+    expect(toLocalDateString(addPeriod(d(2026, 7, 31), 'month', 1))).toBe('2026-08-31')
+  })
+
+  it('clamps month steps across year boundaries (D12)', () => {
+    expect(toLocalDateString(addPeriod(d(2025, 12, 31), 'month', 1))).toBe('2026-01-31')
+    expect(toLocalDateString(addPeriod(d(2026, 1, 31), 'month', -1))).toBe('2025-12-31')
+  })
+
+  it('clamps negative month steps (D12)', () => {
+    expect(toLocalDateString(addPeriod(d(2026, 3, 31), 'month', -1))).toBe('2026-02-28')
+    expect(toLocalDateString(addPeriod(d(2024, 3, 31), 'month', -1))).toBe('2024-02-29')
+    expect(toLocalDateString(addPeriod(d(2026, 5, 31), 'month', -2))).toBe('2026-03-31')
+  })
+
+  it('clamps multi-month steps (D12)', () => {
+    expect(toLocalDateString(addPeriod(d(2026, 1, 31), 'month', 3))).toBe('2026-04-30')
+    expect(toLocalDateString(addPeriod(d(2026, 1, 31), 'month', 12))).toBe('2027-01-31')
   })
 
   it('defaults to a single step', () => {
@@ -298,6 +327,42 @@ describe('addPeriod', () => {
       addPeriod(input, view, 1)
       expect(input.getTime(), view).toBe(before)
     }
+  })
+})
+
+describe('splitMonthCellAppointments', () => {
+  const make = ids => ids.map(id => ({ id }))
+
+  it('keeps at most MONTH_CELL_CHIP_LIMIT chips and reports the overflow', () => {
+    expect(MONTH_CELL_CHIP_LIMIT).toBe(3)
+    const list = make([1, 2, 3, 4, 5])
+    const { visible, overflowCount } = splitMonthCellAppointments(list)
+    expect(visible.map(item => item.id)).toEqual([1, 2, 3])
+    expect(overflowCount).toBe(2)
+  })
+
+  it('reports no overflow at or under the limit', () => {
+    for (const size of [0, 1, 3]) {
+      const { visible, overflowCount } = splitMonthCellAppointments(make([1, 2, 3].slice(0, size)))
+      expect(visible, String(size)).toHaveLength(size)
+      expect(overflowCount, String(size)).toBe(0)
+    }
+  })
+
+  it('honors an explicit limit and never mutates the input list', () => {
+    const list = make([1, 2, 3, 4])
+    const before = list.slice()
+    const { visible, overflowCount } = splitMonthCellAppointments(list, 2)
+    expect(visible.map(item => item.id)).toEqual([1, 2])
+    expect(overflowCount).toBe(2)
+    expect(list).toEqual(before)
+    expect(visible).not.toBe(list)
+  })
+
+  it('treats a non-positive limit as zero visible chips', () => {
+    const { visible, overflowCount } = splitMonthCellAppointments(make([1, 2]), 0)
+    expect(visible).toHaveLength(0)
+    expect(overflowCount).toBe(2)
   })
 })
 

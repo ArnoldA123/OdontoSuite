@@ -2,30 +2,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-const { patchMock } = vi.hoisted(() => ({
-  patchMock: vi.fn()
+const { patchMock, apiAppointments } = vi.hoisted(() => ({
+  patchMock: vi.fn(),
+  // T5: `get` seeds one appointment at 2026-05-13 10:00 (30 min). Tests that
+  // need the chip mount with a faked system time at that week; every other
+  // test falls outside the rendered range and sees no chip. T6 month tests
+  // swap in a busier day through this handle (restored in afterEach).
+  apiAppointments: {
+    value: [
+      {
+        id: 1,
+        scheduled_at: '2026-05-13T10:00:00',
+        ends_at: '2026-05-13T10:30:00',
+        duration_minutes: 30,
+        status: 'scheduled',
+        notes: null,
+        patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
+        user: { id: 2, name: 'Dra. Ruiz' },
+        dental_chair: null,
+        appointment_type: { id: 3, name: 'Limpieza' }
+      }
+    ]
+  }
 }))
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
-    // T5: `get` seeds one appointment at 2026-05-13 10:00 (30 min). Tests that
-    // need the chip mount with a faked system time at that week; every other
-    // test falls outside the rendered range and sees no chip.
-    get: async () => ({
-      data: [
-        {
-          id: 1,
-          scheduled_at: '2026-05-13T10:00:00',
-          ends_at: '2026-05-13T10:30:00',
-          duration_minutes: 30,
-          status: 'scheduled',
-          notes: null,
-          patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
-          user: { id: 2, name: 'Dra. Ruiz' },
-          dental_chair: null,
-          appointment_type: { id: 3, name: 'Limpieza' }
-        }
-      ]
-    }),
+    get: async () => ({ data: JSON.parse(JSON.stringify(apiAppointments.value)) }),
     post: async () => ({ data: {} }),
     put: async () => ({ data: {} }),
     patch: patchMock,
@@ -394,5 +396,147 @@ describe('appointments drag reschedule smoke (T5)', () => {
       expect(cell.attributes('data-calendar-drop-active')).toBeUndefined()
     })
     wrapper.unmount()
+  })
+})
+
+// T6 month view: behavioural anchors for the redesigned month body. The
+// data-calendar-* month hooks + drill-down wiring are pinned structurally by
+// CitasCalendarMonthViewTest; these cases exercise the real mounted page: the
+// 42-cell quiet grid, the registry chips opening the details modal, and the
+// D8 "N más" drill-down switching view + date to the Day grid. System time is
+// pinned to Wednesday 2026-05-13 07:00 local; the API mock is swapped for a
+// busier 2026-05-13 (5 appointments -> 3 chips + "+2 más").
+describe('appointments month view smoke (T6)', () => {
+  const appointmentAt = (id, datetime, firstName) => ({
+    id,
+    scheduled_at: `${datetime}:00`,
+    ends_at: `${datetime}:30`,
+    duration_minutes: 30,
+    status: 'scheduled',
+    notes: null,
+    patient: { id: 100 + id, first_name: firstName, last_name: 'Pérez' },
+    user: { id: 2, name: 'Dra. Ruiz' },
+    dental_chair: null,
+    appointment_type: { id: 3, name: 'Limpieza' }
+  })
+
+  const busyDay = [
+    appointmentAt(1, '2026-05-13T09:00', 'Ana'),
+    appointmentAt(2, '2026-05-13T10:00', 'Luis'),
+    appointmentAt(3, '2026-05-13T11:00', 'María'),
+    appointmentAt(4, '2026-05-13T12:00', 'Jorge'),
+    appointmentAt(5, '2026-05-13T13:00', 'Sofía'),
+    appointmentAt(6, '2026-05-20T15:00', 'Pedro')
+  ]
+
+  const defaultAppointments = apiAppointments.value
+  const mounted = []
+  const mountPage = () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(Page, { attachTo: host, global: { plugins: [router, uiComponents] } })
+    mounted.push({ wrapper, host })
+    return wrapper
+  }
+
+  const toMonthView = async wrapper => {
+    await wrapper.find('[data-calendar-view="month"]').trigger('click')
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    apiAppointments.value = busyDay
+  })
+
+  afterEach(() => {
+    while (mounted.length) {
+      const { wrapper, host } = mounted.pop()
+      try {
+        wrapper.unmount()
+      } catch {
+        // already unmounted
+      }
+      host.remove()
+    }
+    apiAppointments.value = defaultAppointments
+    vi.useRealTimers()
+  })
+
+  it('renders the 42-cell quiet month grid with the shared weekday header (T6)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await toMonthView(wrapper)
+
+    const cells = wrapper.findAll('[data-calendar-month-day]')
+    expect(cells).toHaveLength(42)
+    expect(cells[0].attributes('data-calendar-month-day')).toBe('2026-04-27')
+
+    const header = wrapper.findAll('[data-calendar-month-weekday]')
+    expect(header.map(cell => cell.text())).toEqual([
+      'Lun',
+      'Mar',
+      'Mié',
+      'Jue',
+      'Vie',
+      'Sáb',
+      'Dom'
+    ])
+
+    // Today (2026-05-13) wears the accent token highlight; out-of-month days
+    // are quiet via the theme surface token (T6 quiet design language).
+    expect(wrapper.find('[data-calendar-month-day="2026-05-13"]').classes()).toContain(
+      'bg-accent-50'
+    )
+    expect(wrapper.find('[data-calendar-month-day="2026-04-27"]').classes()).toContain(
+      'bg-theme-surface'
+    )
+  })
+
+  it('caps month chips at the cell limit and opens the details modal from a chip (T6)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await toMonthView(wrapper)
+
+    const cell = wrapper.find('[data-calendar-month-day="2026-05-13"]')
+    const chips = cell.findAll('[data-calendar-appointment]')
+    expect(chips).toHaveLength(3)
+    expect(chips[0].text()).toContain('09:00')
+    expect(chips[0].text()).toContain('Ana Pérez')
+
+    const more = wrapper.find('[data-calendar-more="2026-05-13"]')
+    expect(more.exists()).toBe(true)
+    expect(more.attributes('data-calendar-more-count')).toBe('2')
+    expect(more.text()).toBe('+2 más')
+
+    await chips[0].trigger('click')
+    expect(wrapper.text()).toContain('Detalles de la Cita')
+  })
+
+  it('drills down from "N más" to the Day view for that date (T6/D8)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await toMonthView(wrapper)
+
+    await wrapper.find('[data-calendar-more="2026-05-13"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-calendar-view="day"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('miércoles, 13 de mayo de 2026')
+    expect(wrapper.findAll('[data-calendar-month-day]')).toHaveLength(0)
+    expect(wrapper.find('button[data-calendar-slot="2026-05-13-9"]').exists()).toBe(true)
+  })
+
+  it('drills down from the day-number header to the Day view for that date (T6)', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await toMonthView(wrapper)
+
+    await wrapper.find('[data-calendar-day-link="2026-05-20"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-calendar-view="day"]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('miércoles, 20 de mayo de 2026')
   })
 })

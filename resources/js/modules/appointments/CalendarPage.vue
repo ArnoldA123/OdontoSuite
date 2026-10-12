@@ -322,75 +322,78 @@
 
       <!-- Month View -->
       <div v-else-if="currentView === 'month'" class="p-6">
-        <div class="grid grid-cols-7 gap-1 tabular-nums">
-          <!-- Day headers -->
-          <div
-            v-for="day in weekDayNames"
-            :key="day"
-            class="p-3 text-center text-sm font-medium text-theme-secondary border-b border-hairline"
-          >
-            {{ day }}
+        <div
+          data-calendar-month-grid
+          class="overflow-hidden bg-canvas"
+          style="border: 1px solid var(--color-hairline); border-radius: var(--radius-panel)"
+        >
+          <!-- Weekday header row: same Spanish short names as the week view -->
+          <div class="grid grid-cols-7 border-b border-hairline bg-theme-surface">
+            <div
+              v-for="name in weekDayNames"
+              :key="name"
+              data-calendar-month-weekday
+              class="border-r border-hairline px-2 py-2 text-center text-xs font-semibold uppercase tracking-widest text-theme-secondary last:border-r-0"
+            >
+              {{ name }}
+            </div>
           </div>
 
-          <!-- Calendar days -->
-          <div
-            v-for="day in monthDays"
-            :key="day.date"
-            class="min-h-[120px] border border-hairline p-2 hover:bg-theme-surface transition-colors"
-            :class="{
-              'bg-theme-surface': !day.isCurrentMonth,
-              'bg-systemBlue-50 border-systemBlue-200': day.isToday
-            }"
-          >
-            <div class="flex items-center justify-between mb-2">
-              <span
-                class="text-sm font-medium"
-                :class="{
-                  'text-theme-secondary': !day.isCurrentMonth,
-                  'text-systemBlue-600': day.isToday,
-                  'text-theme-primary': day.isCurrentMonth && !day.isToday
-                }"
-              >
-                {{ day.number }}
-              </span>
-              <UiStatusBadge
-                v-if="day.appointmentCount > 0"
-                variant="info"
-                size="sm"
-                :label="String(day.appointmentCount)"
-                :data-status="`count-${day.date}`"
-              />
-            </div>
+          <!-- 42 day cells (6 rows): hairline separators, registry chips, "N más" drill-down -->
+          <div class="grid grid-cols-7">
+            <div
+              v-for="day in monthDays"
+              :key="day.date"
+              class="flex min-h-[112px] flex-col gap-1 border-b border-r border-hairline p-1.5"
+              :class="monthCellClasses(day)"
+              :data-calendar-month-day="day.date"
+            >
+              <div class="flex items-center justify-between gap-1">
+                <button
+                  type="button"
+                  class="flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-medium tabular-nums transition-colors [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="monthDayNumberClasses(day)"
+                  :data-calendar-day-link="day.date"
+                  :aria-label="`Ver ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  {{ day.number }}
+                </button>
+              </div>
 
-            <div class="space-y-1">
-              <div
-                v-for="appointment in day.appointments"
-                :key="appointment.id"
-                class="p-1.5 rounded text-xs cursor-pointer hover:shadow-sm transition-all duration-200"
-                :class="getAppointmentClasses(appointment)"
-                @click="selectAppointment(appointment)"
-              >
-                <div class="font-medium truncate">
-                  {{ appointment.appointment_type?.name || 'Cita' }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ formatTime(appointment.scheduled_at) }}
-                </div>
-                <div class="text-xs opacity-75 truncate">
-                  {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
-                </div>
-              </div>
-              <div
-                v-if="day.hasMore"
-                class="text-xs text-systemBlue-600 font-medium text-center mt-1"
-              >
-                +{{ day.appointmentCount - 3 }} más
-              </div>
-              <div
-                v-if="day.appointments.length === 0"
-                class="text-xs text-theme-secondary text-center py-2"
-              >
-                Sin citas
+              <div class="flex min-h-0 flex-1 flex-col gap-1">
+                <button
+                  v-for="appointment in day.appointments"
+                  :key="appointment.id"
+                  type="button"
+                  class="flex w-full items-center gap-1.5 px-1.5 py-1 text-left transition-shadow hover:shadow-medium [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :class="getAppointmentClasses(appointment)"
+                  style="border-radius: var(--radius-panel)"
+                  :data-calendar-appointment="appointment.id"
+                  @click="selectAppointment(appointment)"
+                >
+                  <span
+                    class="shrink-0 text-xs font-semibold text-theme-primary"
+                    style="font-feature-settings: 'tnum' 1"
+                  >
+                    {{ formatTime(appointment.scheduled_at) }}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-xs text-theme-primary">
+                    {{ appointment.patient?.first_name }} {{ appointment.patient?.last_name }}
+                  </span>
+                </button>
+
+                <button
+                  v-if="day.overflowCount > 0"
+                  type="button"
+                  class="w-full rounded-md px-1.5 py-0.5 text-left text-xs font-medium text-accent-700 transition-colors hover:bg-theme-surface [&:focus-visible]:[box-shadow:var(--focus-ring-default)]"
+                  :data-calendar-more="day.date"
+                  :data-calendar-more-count="day.overflowCount"
+                  :aria-label="`Ver las ${day.overflowCount} citas de ${day.date} en la vista día`"
+                  @click="drillDownToDate(day.date)"
+                >
+                  +{{ day.overflowCount }} más
+                </button>
               </div>
             </div>
           </div>
@@ -595,7 +598,8 @@ import {
   monthDays as buildMonthDays,
   periodTitle,
   dateRangeForView,
-  addPeriod
+  addPeriod,
+  splitMonthCellAppointments
 } from './calendarDateMath'
 import {
   DRAG_THRESHOLD_PX,
@@ -738,25 +742,15 @@ export default {
     const monthDays = computed(() => {
       const now = new Date()
       return buildMonthDays(currentDate.value, now).map(cell => {
-        const allDayAppointments = appointments.value.filter(apt => {
-          const aptInfo = getAppointmentLocalDate(apt)
-          if (!aptInfo) return false
-          return aptInfo.dateStr === cell.date
-        })
-
-        const sortedDayAppointments = allDayAppointments.sort((a, b) => {
-          try {
-            return new Date(a.scheduled_at) - new Date(b.scheduled_at)
-          } catch (e) {
-            return 0
-          }
-        })
+        const dayAppointments = appointments.value
+          .filter(apt => getAppointmentLocalDate(apt)?.dateStr === cell.date)
+          .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
+        const { visible, overflowCount } = splitMonthCellAppointments(dayAppointments)
 
         return {
           ...cell,
-          appointments: sortedDayAppointments.slice(0, 3),
-          appointmentCount: allDayAppointments.length,
-          hasMore: allDayAppointments.length > 3
+          appointments: visible,
+          overflowCount
         }
       })
     })
@@ -823,6 +817,26 @@ export default {
     const changeView = view => {
       currentView.value = view
       loadAppointments()
+    }
+
+    // D8 month drill-down: "N más" (and the day-number header) jump straight
+    // to the already-redesigned Day view for that date.
+    const drillDownToDate = dateStr => {
+      const [year, month, day] = dateStr.split('-').map(Number)
+      currentDate.value = new Date(year, month - 1, day)
+      changeView('day')
+    }
+
+    const monthCellClasses = day => {
+      if (day.isToday) return 'bg-accent-50'
+      if (!day.isCurrentMonth) return 'bg-theme-surface'
+      return ''
+    }
+
+    const monthDayNumberClasses = day => {
+      if (day.isToday) return 'bg-accent-500 text-white font-semibold'
+      if (!day.isCurrentMonth) return 'text-theme-secondary hover:bg-theme-surface'
+      return 'text-theme-primary hover:bg-theme-surface'
     }
 
     const previousPeriod = () => {
@@ -1193,6 +1207,9 @@ export default {
       statusBadgeVariant,
       weekDays,
       monthDays,
+      monthCellClasses,
+      monthDayNumberClasses,
+      drillDownToDate,
       loadAppointments,
       changeView,
       previousPeriod,
