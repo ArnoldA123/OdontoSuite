@@ -26,6 +26,11 @@ class PatientController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'sort' => ['sometimes', 'nullable', 'string', Rule::in(['last_name', 'first_name', 'created_at', 'email'])],
+            'direction' => ['sometimes', 'nullable', 'string', Rule::in(['asc', 'desc'])],
+        ]);
+
         // Construir query base para contar totales (sin filtros de búsqueda)
         $baseQuery = Patient::query();
 
@@ -85,7 +90,12 @@ class PatientController extends Controller
         $perPage = $request->get('per_page', 15);
         $perPage = min($perPage, 100); // Limit max per page to 100
 
-        $patients = $searchQuery->orderBy('last_name')->orderBy('first_name')->paginate($perPage);
+        $direction = self::sortDirection($validated['direction'] ?? null);
+        foreach (self::sortColumns($validated['sort'] ?? null) as $column) {
+            $searchQuery->orderBy($column, $direction);
+        }
+
+        $patients = $searchQuery->paginate($perPage);
 
         // Bounded PR2 follow-up (verify-report #337 CRITICAL): wrap the
         // paginated items in PatientResource so the `age` key (and every
@@ -104,6 +114,25 @@ class PatientController extends Controller
                 'inactive_count' => $totalInactive,
             ],
         ]);
+    }
+
+    /**
+     * Whitelisted sort targets for the patients list; anything outside the
+     * whitelist keeps the legacy last_name,first_name ordering.
+     */
+    private static function sortColumns(?string $sort): array
+    {
+        return [
+            'last_name' => ['last_name', 'first_name'],
+            'first_name' => ['first_name', 'last_name'],
+            'created_at' => ['created_at'],
+            'email' => ['email'],
+        ][$sort] ?? ['last_name', 'first_name'];
+    }
+
+    private static function sortDirection(?string $direction): string
+    {
+        return $direction === 'desc' ? 'desc' : 'asc';
     }
 
     /**
