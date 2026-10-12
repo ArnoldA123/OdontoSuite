@@ -12,9 +12,13 @@ namespace Tests\Unit\DesignSystem;
  *     canonical primitives. In the pre-migration source these were 4 raw
  *     form fields (1 `<input>`, 2 `<textarea>`, 1 `<select>`).
  *
- *   - Edit Environment Modal: 4 form fields (2 `<UiInput>` name + code,
- *     1 `<UiTextarea>` description, 1 `<UiSelect>` status) on the same
- *     primitives.
+ *   - Edit Environment Modal: 5 form fields (2 `<UiInput>` name + code,
+ *     2 `<UiTextarea>` description + equipment, 1 `<UiSelect>` status) on
+ *     the same primitives. T5/F2 adds the equipment field (the edit modal
+ *     could not edit equipment while the API accepts it); T5/F3 keeps the
+ *     code `<UiInput>` but read-only with the "Generado automáticamente"
+ *     hint (update() validates updateRules(storeRules()) and storeRules()
+ *     has no `code` rule — the code is generated server-side on create).
  *
  *   - View Environment Modal: DELETED by T3 (design decision D4). It was
  *     unreachable dead code fed only by the `viewEnvironment` handler that
@@ -25,7 +29,10 @@ namespace Tests\Unit\DesignSystem;
  *
  * Additional rules:
  *   - Every `v-model=` binding on the migrated fields MUST be preserved
- *     byte-for-byte (the reactivity contract stays verbatim).
+ *     byte-for-byte (the reactivity contract stays verbatim). T5 re-anchors
+ *     the pin from 8 to 9 bindings: `editingEnvironment.equipment` is an
+ *     ADDITIVE binding on the new edit-modal equipment field (F2). The 8
+ *     original bindings are asserted verbatim; nothing is loosened.
  *   - The `required` attribute on the name + code + status fields MUST
  *     survive the migration (browser-side form validation stays in place).
  *
@@ -100,16 +107,19 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             )
         );
 
-        // POSITIVE: ≥3 `<UiTextarea>` references — New modal `description`
-        // + New modal `equipment` + Edit modal `description` = 3 textareas.
+        // POSITIVE: ≥4 `<UiTextarea>` references — New modal `description`
+        // + New modal `equipment` + Edit modal `description` + Edit modal
+        // `equipment` (T5/F2) = 4 textareas. T5 tightens the rung from ≥3 to
+        // ≥4: the edit modal gained the equipment field, and a regression
+        // dropping it must fail here, not only in the JS smoke suite.
         $uiTextareaCount = preg_match_all('#<UiTextarea\b#', $src);
         $this->assertGreaterThanOrEqual(
-            3,
+            4,
             $uiTextareaCount,
             sprintf(
                 '%s MUST consume `<UiTextarea>` for the New modal description + equipment '
-                . 'fields + the Edit modal description field (AMB-02-007). '
-                . 'Found %d <UiTextarea> reference(s); expected at least 3.',
+                . 'fields + the Edit modal description + equipment fields (AMB-02-007 / '
+                . 'T5-F2). Found %d <UiTextarea> reference(s); expected at least 4.',
                 $path,
                 $uiTextareaCount
             )
@@ -189,12 +199,13 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * AMB-02-007 — every `v-model=` binding on the migrated fields MUST be
-     * preserved byte-for-byte (the reactivity contract stays verbatim).
-     * Pinning the 8 specific bindings: `newEnvironment.name`,
+     * AMB-02-007 + T5/F2 — every `v-model=` binding on the migrated fields
+     * MUST be preserved byte-for-byte (the reactivity contract stays
+     * verbatim). Pinning the 9 bindings: `newEnvironment.name`,
      * `newEnvironment.description`, `newEnvironment.equipment`,
      * `newEnvironment.status`, `editingEnvironment.name`,
      * `editingEnvironment.code`, `editingEnvironment.description`,
+     * `editingEnvironment.equipment` (T5/F2, additive),
      * `editingEnvironment.status`.
      */
     public function test_vmodel_bindings_preserved_byte_for_byte(): void
@@ -211,6 +222,7 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             'editingEnvironment.name',
             'editingEnvironment.code',
             'editingEnvironment.description',
+            'editingEnvironment.equipment',
             'editingEnvironment.status',
         ];
 

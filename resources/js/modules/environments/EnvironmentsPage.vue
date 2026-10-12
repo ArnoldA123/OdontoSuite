@@ -51,8 +51,12 @@
       </div>
     </UiCard>
 
-    <!-- Environments List -->
-    <UiCard variant="glass" padding="sm" class="overflow-hidden" :style="panelStyle">
+    <!-- Environments List (T5/F5): no page-level card wraps this section —
+         the DataTable primitive renders its own single framed surface
+         (data-table-container), and the transient states (skeleton / error
+         callout / empty state) carry their own chrome. Wrapping it all in a
+         glass card stacked two bordered boxes with the same background. -->
+    <div data-environments-list>
       <div v-if="loading" data-environments-loading>
         <UiSkeleton variant="table" animation="wave" aria-label="Cargando ambientes..." />
       </div>
@@ -148,7 +152,7 @@
           </UiButton>
         </template>
       </UiDataTable>
-    </UiCard>
+    </div>
   </AppLayout>
 
   <!-- New environment modal (T3): grouped form (identification / description /
@@ -241,9 +245,12 @@
     </template>
   </UiModal>
 
-  <!-- Edit environment modal (T3): identification (name + code), description,
-       status. The prefill bindings are the ones pinned by
-       EnvironmentsModalChromeTest (AMB-02-007). -->
+  <!-- Edit environment modal (T3 + T5): identification (name + read-only
+       code), description, equipment, status. The prefill bindings are the
+       ones pinned by EnvironmentsModalChromeTest (AMB-02-007). The code
+       field is read-only (F3): DentalChairController@update validates
+       updateRules(storeRules()) and storeRules() has no `code` rule, so
+       code is generated server-side on create and never editable. -->
   <UiModal v-model="showEditEnvironmentModal" title="Editar ambiente" size="md">
     <div v-if="editingEnvironment" class="space-y-6" data-environment-form="edit">
       <fieldset class="space-y-3">
@@ -266,6 +273,8 @@
               label="Código"
               class="w-full"
               required
+              readonly
+              hint="Generado automáticamente"
               :disabled="updating"
             />
           </div>
@@ -280,6 +289,19 @@
             v-model="editingEnvironment.description"
             :rows="3"
             aria-label="Descripción"
+            :disabled="updating"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Equipamiento
+        </legend>
+        <div data-field="equipment">
+          <UiTextarea
+            v-model="editingEnvironment.equipment"
+            :rows="2"
+            aria-label="Equipamiento"
             :disabled="updating"
           />
         </div>
@@ -405,8 +427,9 @@ const columns = [
   { key: 'status', label: 'Estado' }
 ]
 
-// Panel chrome rung shared by the filter bar + list panel (hairline edge,
-// --radius-panel shape, --elevation-2 shadow).
+// Panel chrome rung for the filter bar (hairline edge, --radius-panel shape,
+// --elevation-2 shadow). The list section deliberately has no page-level
+// chrome: the DataTable primitive owns the single framed surface (T5/F5).
 const panelStyle = {
   borderColor: 'var(--color-hairline)',
   borderRadius: 'var(--radius-panel)',

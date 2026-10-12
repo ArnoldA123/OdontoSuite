@@ -376,3 +376,73 @@ describe('environments modal surfaces (T3)', () => {
     wrapper.unmount()
   })
 })
+
+describe('environments T5 polish (edit modal + list chrome)', () => {
+  it('edits equipment end-to-end through the edit modal (F2)', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    putMock.mockResolvedValue({ data: {} })
+    const wrapper = await mountPage()
+
+    await clickRowAction(wrapper, 'Editar')
+
+    const form = findModalForm('edit')
+    expect(form, 'edit modal form must render').toBeTruthy()
+    const equipmentField = form.querySelector('[data-field="equipment"] textarea')
+    expect(equipmentField, 'edit modal must expose the equipment field').toBeTruthy()
+
+    setFieldValue(equipmentField, 'Unidad dental + aspiracion')
+    findModalAction('edit', 'submit').click()
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/1', {
+      id: 1,
+      code: 'AMB-01',
+      name: 'Consultorio Norte',
+      description: 'Box 1',
+      equipment: 'Unidad dental + aspiracion',
+      status: 'active'
+    })
+    expect(findModalForm('edit')).toBeNull()
+    wrapper.unmount()
+  })
+
+  it('pins the read-only auto-generated code field and the single framed table surface (F3 + F5)', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    // F5 (render): the table sits in exactly one framed surface — the
+    // DataTable primitive container — not nested inside a page-level card.
+    const tableRoot = wrapper.find('[data-environments-table]')
+    expect(tableRoot.exists()).toBe(true)
+    expect(tableRoot.element.closest('[data-variant]')).toBeNull()
+
+    // F3 (render): the Código input is read-only and carries the hint.
+    await clickRowAction(wrapper, 'Editar')
+    const form = findModalForm('edit')
+    expect(form, 'edit modal form must render').toBeTruthy()
+    const codeInput = form.querySelector('[data-field="code"] input')
+    expect(codeInput.readOnly).toBe(true)
+    expect(form.querySelector('[data-field="code"]').textContent).toContain(
+      'Generado automáticamente'
+    )
+    wrapper.unmount()
+
+    const source = pageSource()
+
+    // F5 (source): the only remaining UiCard is the filter bar; the list
+    // section itself carries no card chrome around the DataTable.
+    expect((source.match(/<UiCard\b/g) || []).length).toBe(1)
+    const listSection = source.slice(
+      source.indexOf('<!-- Environments List -->'),
+      source.indexOf('data-environments-table')
+    )
+    expect(listSection).not.toContain('<UiCard')
+
+    // F3 (source): the code field keeps the pinned v-model binding but is
+    // read-only with the auto-generated hint.
+    const codeFieldStart = source.indexOf('data-field="code"')
+    const codeField = source.slice(codeFieldStart, source.indexOf('</div>', codeFieldStart))
+    expect(codeField).toContain('readonly')
+    expect(codeField).toContain('hint="Generado automáticamente"')
+  })
+})
