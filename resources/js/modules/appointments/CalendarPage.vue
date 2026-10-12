@@ -170,7 +170,12 @@
             >
               {{ formatHour(hour) }}
             </div>
-            <div class="relative min-h-[64px] flex-1 px-3 py-2">
+            <div
+              class="relative min-h-[64px] flex-1 px-3 py-2"
+              :class="dropTargetClasses(`${dayDateString}-${hour}`)"
+              :data-calendar-drop-target="`${dayDateString}-${hour}`"
+              :data-calendar-drop-active="dropHoverSlot === `${dayDateString}-${hour}` ? '' : null"
+            >
               <button
                 v-if="can.createAppointment?.value"
                 type="button"
@@ -188,6 +193,11 @@
                   :class="getAppointmentClasses(appointment)"
                   style="border-radius: var(--radius-panel)"
                   :data-calendar-appointment="appointment.id"
+                  :data-calendar-draggable="appointment.id"
+                  :data-calendar-drag-state="
+                    draggingAppointmentId === appointment.id ? 'active' : null
+                  "
+                  @pointerdown="onChipPointerDown($event, appointment)"
                   @click="selectAppointment(appointment)"
                 >
                   <span class="flex items-start justify-between gap-3">
@@ -260,7 +270,10 @@
                 v-for="day in weekDays"
                 :key="`${day.date}-${hour}`"
                 class="relative h-16 border-b border-r border-hairline"
+                :class="dropTargetClasses(`${day.date}-${hour}`)"
                 :data-calendar-slot-day="day.date"
+                :data-calendar-drop-target="`${day.date}-${hour}`"
+                :data-calendar-drop-active="dropHoverSlot === `${day.date}-${hour}` ? '' : null"
               >
                 <button
                   v-if="can.createAppointment?.value"
@@ -279,6 +292,11 @@
                     :class="getAppointmentClasses(appointment)"
                     style="border-radius: var(--radius-panel)"
                     :data-calendar-appointment="appointment.id"
+                    :data-calendar-draggable="appointment.id"
+                    :data-calendar-drag-state="
+                      draggingAppointmentId === appointment.id ? 'active' : null
+                    "
+                    @pointerdown="onChipPointerDown($event, appointment)"
                     @click="selectAppointment(appointment)"
                   >
                     <span
@@ -396,8 +414,7 @@
               class="text-theme-secondary hover:text-theme-primary transition-colors"
               @click="selectedAppointment = null"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -545,6 +562,7 @@ import { useApi } from '../../composables/useApi'
 import { usePermissions } from '../../composables/usePermissions'
 import { useToast } from '../../composables/useToast'
 import { useEcho } from '../../composables/useEcho'
+import { useReducedMotion } from '../../composables/useReducedMotion'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
@@ -579,6 +597,13 @@ import {
   dateRangeForView,
   addPeriod
 } from './calendarDateMath'
+import {
+  DRAG_THRESHOLD_PX,
+  resolveDropSlot,
+  slotKeyToScheduledAt,
+  addMinutesToLocal,
+  canDropOn
+} from './dragDropMath'
 
 export default {
   name: 'CalendarPage',
@@ -597,11 +622,12 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const { get, del } = useApi()
+    const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, echo } = useEcho()
     const { confirm } = useConfirm()
+    const reducedMotion = useReducedMotion()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
@@ -831,7 +857,7 @@ export default {
     }
 
     const getAppointmentClasses = appointment => {
-      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)}`
+      return `${APPOINTMENT_CHIP_BASE_CLASSES} ${statusChipClasses(appointment.status)} ${dragChipClasses(appointment)}`.trim()
     }
 
     const getStatusClasses = status => {
@@ -847,7 +873,173 @@ export default {
     }
 
     const selectAppointment = appointment => {
+      if (suppressNextClick) {
+        suppressNextClick = false
+        return
+      }
       selectedAppointment.value = appointment
+    }
+
+    // T5 drag-and-drop reschedule: press + DRAG_THRESHOLD_PX of travel on a
+    // Day/Week chip starts a drag; below the threshold the native click still
+    // opens the details modal. Slot buttons are never drag sources.
+    const DRAG_CHIP_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 -translate-y-0.5 transition-[transform,opacity] duration-normal'
+    const DRAG_CHIP_REDUCED_MOTION_CLASSES =
+      'cursor-grabbing opacity-70 ring-2 ring-inset ring-systemBlue-500'
+    const DRAG_CHIP_IDLE_CLASSES = 'cursor-grab'
+    const DROP_TARGET_HOVER_CLASSES = 'bg-systemBlue-50 ring-2 ring-inset ring-systemBlue-500'
+
+    const draggingAppointmentId = ref(null)
+    const dropHoverSlot = ref(null)
+    let dragSession = null
+    let suppressNextClick = false
+
+    const dragChipClasses = appointment => {
+      if (currentView.value === 'month' || !can.editAppointment?.value) return ''
+      if (draggingAppointmentId.value === appointment.id) {
+        return reducedMotion.value ? DRAG_CHIP_REDUCED_MOTION_CLASSES : DRAG_CHIP_MOTION_CLASSES
+      }
+      return DRAG_CHIP_IDLE_CLASSES
+    }
+
+    const dropTargetClasses = slotKey =>
+      dropHoverSlot.value === slotKey ? DROP_TARGET_HOVER_CLASSES : ''
+
+    const collectDropTargets = () =>
+      Array.from(document.querySelectorAll('[data-calendar-drop-target]')).map(element => ({
+        key: element.getAttribute('data-calendar-drop-target'),
+        rect: element.getBoundingClientRect()
+      }))
+
+    const attachDragListeners = () => {
+      window.addEventListener('pointermove', onDragPointerMove)
+      window.addEventListener('pointerup', onDragPointerUp)
+      window.addEventListener('pointercancel', onDragPointerCancel)
+      window.addEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const detachDragListeners = () => {
+      window.removeEventListener('pointermove', onDragPointerMove)
+      window.removeEventListener('pointerup', onDragPointerUp)
+      window.removeEventListener('pointercancel', onDragPointerCancel)
+      window.removeEventListener('keydown', onDragKeyDown, true)
+    }
+
+    const onChipPointerDown = (event, appointment) => {
+      if (!can.editAppointment?.value) return
+      if (typeof event.button === 'number' && event.button !== 0) return
+      suppressNextClick = false
+      dragSession = {
+        appointment,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+        dropTargets: []
+      }
+      attachDragListeners()
+    }
+
+    const startDrag = session => {
+      session.active = true
+      session.dropTargets = collectDropTargets()
+      draggingAppointmentId.value = session.appointment.id
+      document.body.style.userSelect = 'none'
+    }
+
+    const endDrag = ({ suppressClick = false } = {}) => {
+      const session = dragSession
+      dragSession = null
+      detachDragListeners()
+      draggingAppointmentId.value = null
+      dropHoverSlot.value = null
+      document.body.style.userSelect = ''
+      if (suppressClick) {
+        suppressNextClick = true
+        setTimeout(() => {
+          suppressNextClick = false
+        }, 0)
+      }
+      return session
+    }
+
+    const onDragPointerMove = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        const moved = Math.hypot(event.clientX - session.startX, event.clientY - session.startY)
+        if (moved < DRAG_THRESHOLD_PX) return
+        startDrag(session)
+      }
+      if (event.cancelable) event.preventDefault()
+      dropHoverSlot.value = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+    }
+
+    const onDragPointerUp = event => {
+      const session = dragSession
+      if (!session) return
+      if (!session.active) {
+        endDrag()
+        return
+      }
+      const slotKey = resolveDropSlot(session.dropTargets, event.clientX, event.clientY)
+      endDrag({ suppressClick: true })
+      if (!slotKey || !canDropOn(slotKey, session.appointment)) return
+      rescheduleAppointment(session.appointment, slotKey)
+    }
+
+    const onDragPointerCancel = () => {
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const onDragKeyDown = event => {
+      if (event.key !== 'Escape') return
+      const session = dragSession
+      if (!session) return
+      endDrag({ suppressClick: session.active })
+    }
+
+    const conflictToastMessage = conflict => {
+      const other = conflict.conflicting_appointment
+      const blocker =
+        conflict.type === 'chair_conflict'
+          ? `El sillón ${other?.dental_chair?.name || 'asignado'} ya está ocupado`
+          : 'El profesional ya tiene una cita en ese horario'
+      const detail =
+        other?.patient?.full_name && other?.scheduled_at
+          ? `${other.patient.full_name} (${formatTimeRange(other.scheduled_at, other.ends_at || other.scheduled_at)})`
+          : other?.patient?.full_name || ''
+      return detail ? `${blocker}. Conflicto con ${detail}.` : `${blocker}.`
+    }
+
+    const rescheduleAppointment = async (appointment, slotKey) => {
+      const scheduledAt = slotKeyToScheduledAt(slotKey)
+      if (!scheduledAt) return
+      const durationMinutes = Number(appointment.duration_minutes) || 60
+      const original = {
+        scheduled_at: appointment.scheduled_at,
+        ends_at: appointment.ends_at
+      }
+      appointment.scheduled_at = scheduledAt
+      appointment.ends_at = addMinutesToLocal(scheduledAt, durationMinutes)
+      try {
+        await patch(`/api/appointments/${appointment.id}/reschedule`, {
+          scheduled_at: scheduledAt,
+          duration_minutes: durationMinutes
+        })
+        toast.success('Cita reprogramada')
+      } catch (error) {
+        appointment.scheduled_at = original.scheduled_at
+        appointment.ends_at = original.ends_at
+        const conflict = error?.response?.data?.conflict
+        if (conflict) {
+          toast.error(conflictToastMessage(conflict))
+        } else {
+          toast.error(normalizeError(error, 'No se pudo reprogramar la cita'))
+        }
+      }
     }
 
     const editAppointment = appointment => {
@@ -960,6 +1152,13 @@ export default {
     })
 
     onUnmounted(() => {
+      // Drag en curso: no dejar listeners de ventana huérfanos al desmontar.
+      if (dragSession) {
+        endDrag()
+      } else {
+        detachDragListeners()
+      }
+
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
@@ -1010,6 +1209,10 @@ export default {
       getStatusText,
       getStatusBadgeProps,
       selectAppointment,
+      draggingAppointmentId,
+      dropHoverSlot,
+      dropTargetClasses,
+      onChipPointerDown,
       editAppointment,
       changeStatus,
       deleteAppointment,
