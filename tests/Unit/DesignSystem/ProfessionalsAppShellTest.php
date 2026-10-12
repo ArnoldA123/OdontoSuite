@@ -449,7 +449,7 @@ class ProfessionalsAppShellTest extends TestCase
     }
 
     /**
-     * T4 (D7) — one empty-state pattern: DashboardSectionEmpty imported and
+     * T4 (D7) — one empty-state pattern: UiSectionEmpty imported and
      * used; the bare inline-SVG empty state is gone.
      */
     public function test_professionals_page_uses_dashboard_section_empty(): void
@@ -457,19 +457,19 @@ class ProfessionalsAppShellTest extends TestCase
         $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
 
         self::assertMatchesRegularExpression(
-            "/from\\s*['\"]\\.\\.\\/dashboard\\/DashboardSectionEmpty\\.vue['\"]/",
+            "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/UiSectionEmpty\\.vue['\"]/",
             $src,
-            'ProfessionalsPage.vue must import DashboardSectionEmpty (D7: one empty-state pattern, reuse by import only; quote style is irrelevant).'
+            'ProfessionalsPage.vue must import UiSectionEmpty (D7: one empty-state pattern, reuse by import only; quote style is irrelevant).'
         );
         self::assertStringContainsString(
-            '<DashboardSectionEmpty',
+            '<UiSectionEmpty',
             $src,
-            'ProfessionalsPage.vue must render DashboardSectionEmpty for its empty states (D7).'
+            'ProfessionalsPage.vue must render UiSectionEmpty for its empty states (D7).'
         );
         self::assertStringNotContainsString(
             'M16 7a4 4 0 11-8 0',
             $src,
-            'ProfessionalsPage.vue must drop the bare inline-SVG empty state (D7: DashboardSectionEmpty owns the dental motif).'
+            'ProfessionalsPage.vue must drop the bare inline-SVG empty state (D7: UiSectionEmpty owns the dental motif).'
         );
     }
 
@@ -545,7 +545,7 @@ class ProfessionalsAppShellTest extends TestCase
     }
 
     /**
-     * T5 (D7/D10) — the audit empty state uses the shared DashboardSectionEmpty
+     * T5 (D7/D10) — the audit empty state uses the shared UiSectionEmpty
      * pattern; the hand-built gradient-box empty state is gone.
      */
     public function test_detail_page_uses_dashboard_section_empty(): void
@@ -553,14 +553,14 @@ class ProfessionalsAppShellTest extends TestCase
         $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
 
         self::assertMatchesRegularExpression(
-            "/from\\s*['\"]\\.\\.\\/dashboard\\/DashboardSectionEmpty\\.vue['\"]/",
+            "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/UiSectionEmpty\\.vue['\"]/",
             $src,
-            'ProfessionalDetailPage.vue must import DashboardSectionEmpty (D7/D10: one empty-state pattern, reuse by import only; quote style is irrelevant).'
+            'ProfessionalDetailPage.vue must import UiSectionEmpty (D7/D10: one empty-state pattern, reuse by import only; quote style is irrelevant).'
         );
         self::assertStringContainsString(
-            '<DashboardSectionEmpty',
+            '<UiSectionEmpty',
             $src,
-            'ProfessionalDetailPage.vue must render DashboardSectionEmpty for the empty audit history (D10).'
+            'ProfessionalDetailPage.vue must render UiSectionEmpty for the empty audit history (D10).'
         );
     }
 

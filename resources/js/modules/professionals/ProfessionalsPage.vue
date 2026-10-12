@@ -224,21 +224,21 @@
         </div>
 
         <div v-else-if="showEmptyTeam" class="p-8">
-          <DashboardSectionEmpty
+          <UiSectionEmpty
             title="Sin profesionales registrados"
             description="Aún no hay nadie en el equipo clínico."
           />
         </div>
 
         <div v-else-if="showEmptyResults" class="p-8">
-          <DashboardSectionEmpty
+          <UiSectionEmpty
             title="Sin resultados"
             description="Ningún profesional coincide con los filtros activos."
           >
             <UiButton variant="secondary" size="sm" data-team-clear-filters @click="clearFilters">
               Limpiar filtros
             </UiButton>
-          </DashboardSectionEmpty>
+          </UiSectionEmpty>
         </div>
 
         <div v-else class="overflow-x-auto">
@@ -490,8 +490,8 @@ import UiSelect from '../../components/ui/Select.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiModal from '../../components/ui/Modal.vue'
-import DentalMotifLayer from '../dashboard/DentalMotifLayer.vue'
-import DashboardSectionEmpty from '../dashboard/DashboardSectionEmpty.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import {
   SPECIALTY_LABELS,
   SPECIALTY_OPTIONS,

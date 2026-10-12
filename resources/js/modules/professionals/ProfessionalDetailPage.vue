@@ -115,7 +115,7 @@
           <p class="mt-2 text-theme-secondary">Cargando historial de auditoría...</p>
         </div>
         <div v-else-if="auditLogs.length === 0" class="p-4">
-          <DashboardSectionEmpty
+          <UiSectionEmpty
             title="No hay historial de auditoría"
             description="Este profesional no tiene registros de auditoría."
           />
@@ -193,8 +193,8 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiBadge from '../../components/ui/Badge.vue'
 import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
-import DentalMotifLayer from '../dashboard/DentalMotifLayer.vue'
-import DashboardSectionEmpty from '../dashboard/DashboardSectionEmpty.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import { SPECIALTY_LABELS, ROLE_LABELS } from './professionals.constants'
 
 const route = useRoute()
