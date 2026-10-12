@@ -289,7 +289,7 @@
                 data-team-row
                 class="hover:bg-theme-surface"
               >
-                <td class="px-3 py-4 whitespace-nowrap">
+                <td class="px-3 py-4">
                   <div class="flex items-center">
                     <div class="flex-shrink-0 h-10 w-10">
                       <div
@@ -301,7 +301,7 @@
                         </span>
                       </div>
                     </div>
-                    <div class="ml-4 min-w-0">
+                    <div class="ml-4 min-w-0 w-[220px]">
                       <div
                         class="text-sm font-medium text-[color:var(--color-text-primary)] truncate"
                       >
