@@ -83,23 +83,23 @@ describe('appointmentStatus registry', () => {
 
   it('keeps the exact chip class tokens currently shown', () => {
     expect(APPOINTMENT_CHIP_BASE_CLASSES).toBe('bg-theme-surface-elevated border border-hairline')
-    expect(statusChipClasses('scheduled')).toBe('border-systemBlue-200 bg-systemBlue-50')
+    expect(statusChipClasses('scheduled')).toBe('border-accent-200 bg-accent-50')
     expect(statusChipClasses('confirmed')).toBe('border-systemGreen-200 bg-systemGreen-50')
     expect(statusChipClasses('in_consultation')).toBe('border-systemYellow-200 bg-systemYellow-50')
     expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
     expect(statusChipClasses('cancelled')).toBe('border-systemRed-200 bg-systemRed-50')
     expect(statusChipClasses('no_show')).toBe('border-systemYellow-200 bg-systemYellow-50')
-    expect(statusChipClasses('rescheduled')).toBe('border-systemBlue-200 bg-systemBlue-50')
+    expect(statusChipClasses('rescheduled')).toBe('border-accent-200 bg-accent-50')
   })
 
   it('keeps the exact tone class tokens currently shown', () => {
-    expect(statusToneClasses('scheduled')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusToneClasses('scheduled')).toBe('bg-accent-50 text-accent-700')
     expect(statusToneClasses('confirmed')).toBe('bg-systemGreen-50 text-systemGreen-700')
     expect(statusToneClasses('in_consultation')).toBe('bg-systemYellow-50 text-systemYellow-700')
     expect(statusToneClasses('completed')).toBe('bg-systemGray-100 text-systemGray-700')
     expect(statusToneClasses('cancelled')).toBe('bg-systemRed-50 text-systemRed-700')
     expect(statusToneClasses('no_show')).toBe('bg-systemYellow-50 text-systemYellow-700')
-    expect(statusToneClasses('rescheduled')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusToneClasses('rescheduled')).toBe('bg-accent-50 text-accent-700')
   })
 })
 
@@ -121,10 +121,10 @@ describe('unknown status fallback', () => {
     expect(statusBadgeVariant('voided')).toBe('info')
     expect(statusBadgeProps('voided')).toEqual({ variant: 'info', showDot: true })
     expect(statusBadgeProps(undefined)).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('voided')).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusChipClasses(undefined)).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusToneClasses('voided')).toBe('bg-systemBlue-50 text-systemBlue-700')
-    expect(statusToneClasses(null)).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusChipClasses('voided')).toBe('border-accent-200 bg-accent-50')
+    expect(statusChipClasses(undefined)).toBe('border-accent-200 bg-accent-50')
+    expect(statusToneClasses('voided')).toBe('bg-accent-50 text-accent-700')
+    expect(statusToneClasses(null)).toBe('bg-accent-50 text-accent-700')
   })
 
   it('ignores prototype-inherited keys such as constructor and toString', () => {
@@ -132,7 +132,7 @@ describe('unknown status fallback', () => {
     expect(statusLabel('toString')).toBe('toString')
     expect(statusLabel('__proto__')).toBe('__proto__')
     expect(statusBadgeProps('constructor')).toEqual({ variant: 'info', showDot: true })
-    expect(statusChipClasses('toString')).toBe('border-systemBlue-200 bg-systemBlue-50')
-    expect(statusToneClasses('__proto__')).toBe('bg-systemBlue-50 text-systemBlue-700')
+    expect(statusChipClasses('toString')).toBe('border-accent-200 bg-accent-50')
+    expect(statusToneClasses('__proto__')).toBe('bg-accent-50 text-accent-700')
   })
 })

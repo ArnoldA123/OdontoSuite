@@ -618,7 +618,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             )
         );
         $this->assertMatchesRegularExpression(
-            '#ring-2 ring-inset ring-systemBlue-500#',
+            '#ring-2 ring-inset ring-accent-500#',
             $reducedClasses,
             sprintf(
                 '%s reduced-motion drag classes MUST use the token ring for the static outline (T5).',

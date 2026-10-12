@@ -957,9 +957,9 @@ export default {
     const DRAG_CHIP_MOTION_CLASSES =
       'cursor-grabbing opacity-70 -translate-y-0.5 transition-[transform,opacity] duration-normal'
     const DRAG_CHIP_REDUCED_MOTION_CLASSES =
-      'cursor-grabbing opacity-70 ring-2 ring-inset ring-systemBlue-500'
+      'cursor-grabbing opacity-70 ring-2 ring-inset ring-accent-500'
     const DRAG_CHIP_IDLE_CLASSES = 'cursor-grab'
-    const DROP_TARGET_HOVER_CLASSES = 'bg-systemBlue-50 ring-2 ring-inset ring-systemBlue-500'
+    const DROP_TARGET_HOVER_CLASSES = 'bg-accent-50 ring-2 ring-inset ring-accent-500'
 
     const draggingAppointmentId = ref(null)
     const dropHoverSlot = ref(null)

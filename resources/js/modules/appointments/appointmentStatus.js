@@ -12,8 +12,8 @@ export const APPOINTMENT_STATUSES = {
     label: 'Programada',
     badgeVariant: 'info',
     showDot: true,
-    chip: 'border-systemBlue-200 bg-systemBlue-50',
-    tone: 'bg-systemBlue-50 text-systemBlue-700'
+    chip: 'border-accent-200 bg-accent-50',
+    tone: 'bg-accent-50 text-accent-700'
   },
   confirmed: {
     label: 'Confirmada',
@@ -61,8 +61,8 @@ export const APPOINTMENT_STATUSES = {
     label: 'Reprogramada',
     badgeVariant: 'warning',
     showDot: false,
-    chip: 'border-systemBlue-200 bg-systemBlue-50',
-    tone: 'bg-systemBlue-50 text-systemBlue-700'
+    chip: 'border-accent-200 bg-accent-50',
+    tone: 'bg-accent-50 text-accent-700'
   }
 }
 
