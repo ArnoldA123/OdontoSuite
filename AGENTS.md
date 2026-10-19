@@ -116,7 +116,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 196 rutas API (medido con php artisan route:list --json: uris api/…; 209 totales con web)
+  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -295,6 +295,8 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-19 (procedure-catalog-ui-redesign)** — Interfaz del catálogo de procedimientos rediseñada al lenguaje del dashboard en sus cuatro superficies (`/procedure-catalog` lista y detalle, `/procedure-stats`, `/my-procedures`, `/reception-procedures`). §4 sincronizado: 198 rutas API (añadidas `GET procedure-catalog/summary` y `GET procedure-catalog/{id}/versions`), 211 totales con web. Endpoints aditivos; sin migraciones. Tests: `ProcedureCatalogSummaryVersionsTest` (6 tests, MySQL) y smoke JS del módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-11 (calendar-scheduling-redesign T8)** — §4 sincronizado con valores medidos: 196 rutas API (añadida `PATCH /api/appointments/{appointment}/reschedule`), 209 totales con web; `components/ui/` de 30 a 35 primitives (incluye `DentalMotifLayer.vue` movido desde `modules/dashboard/` y `UiSectionEmpty.vue` de patients; la base ya tenía 33, deriva preexistente corregida). Guard `scripts/audit/doc-drift.mjs` en verde.
 

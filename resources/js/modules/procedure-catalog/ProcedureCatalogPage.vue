@@ -1,248 +1,304 @@
 <template>
   <AppLayout>
-    <PageHeader
-      title="Catálogo de Procedimientos"
-      subtitle="Gestiona los procedimientos clínicos disponibles en la clínica"
-      class="mb-6"
+    <header
+      data-procedure-catalog-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
     >
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton @click="openCreate">
-          <svg
-class="w-4 h-4"
-fill="none" stroke="currentColor" viewBox="0 0 24 24"
->
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          Nuevo Procedimiento
-        </UiButton>
-        <UiButton
-          v-if="canViewStats"
-          variant="secondary"
-          class="flex items-center gap-2"
-          @click="goStats"
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Catálogo</p>
+          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+            Catálogo de Procedimientos
+          </h1>
+          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+            Gestiona los procedimientos clínicos disponibles en la clínica
+          </p>
+        </div>
+        <div class="flex flex-wrap flex-shrink-0 items-center gap-2 md:gap-3">
+          <UiButton variant="secondary" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton variant="secondary" data-hero-import @click="showImportModal = true">
+            <template #icon-left>
+              <ArrowUpTrayIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Importar CSV
+          </UiButton>
+          <UiButton v-if="canViewStats" variant="secondary" @click="goStats">
+            <template #icon-left>
+              <ChartBarIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Estadísticas
+          </UiButton>
+          <UiButton data-hero-action @click="openCreate">
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nuevo procedimiento
+          </UiButton>
+        </div>
+      </div>
+    </header>
+
+    <section aria-label="Resumen del catálogo" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+      <UiCard
+        v-for="kpi in kpis"
+        :key="kpi.key"
+        variant="glass"
+        padding="sm"
+        :data-kpi-card="kpi.key"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">{{ kpi.label }}</p>
+        <p
+          class="mt-2 text-2xl font-bold tabular-nums leading-none"
+          :class="kpi.tone"
+          :data-kpi-value="kpi.key"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          Estadísticas
-        </UiButton>
-        <UiButton
-          variant="secondary"
-          class="flex items-center gap-2"
-          @click="showImportModal = true"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M7 16a4 4 0 01-.88-7.9 5 5 0 019.9-1A5.5 5.5 0 0118 16H7z"
-            />
-          </svg>
-          Importar CSV
-        </UiButton>
-      </template>
-    </PageHeader>
+          {{ kpi.value }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">{{ kpi.caption }}</p>
+      </UiCard>
+    </section>
 
     <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <div class="w-full flex-1">
           <UiInput
             v-model="searchQuery"
+            data-procedure-search
             placeholder="Buscar por nombre, código o descripción..."
             class="w-full"
             @input="onSearch"
           >
             <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
             </template>
           </UiInput>
         </div>
-        <div class="flex gap-3">
-          <select
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <UiSelect
             v-model="specialtyFilter"
-            class="w-48 px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-            @change="onFilter"
-          >
-            <option value="">Todas las especialidades</option>
-            <option v-for="s in specialties" :key="s.id" :value="s.code">
-              {{ s.name }}
-            </option>
-          </select>
-          <select
+            :options="specialtyOptions"
+            placeholder="Todas las especialidades"
+            class="w-full sm:w-56"
+            data-specialty-filter
+          />
+          <UiSelect
             v-model="statusFilter"
-            class="w-40 px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-            @change="onFilter"
-          >
-            <option value="">Todos los estados</option>
-            <option value="true">Activos</option>
-            <option value="false">Inactivos</option>
-          </select>
+            :options="statusOptions"
+            placeholder="Todos los estados"
+            class="w-full sm:w-44"
+            data-status-filter
+          />
+          <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
+            {{ filterCountText }}
+          </p>
         </div>
       </div>
     </UiCard>
 
-    <UiCard variant="glass" class="overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <LoadingSpinner />
-        <p class="mt-2 text-theme-secondary">Cargando procedimientos...</p>
+    <section aria-label="Procedimientos" class="space-y-4">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-2xl font-semibold text-label">Procedimientos</h2>
+        <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada procedimiento</p>
       </div>
 
-      <EmptyState
-        v-else-if="!hasProcedures"
-        title="No hay procedimientos"
-        description="Crea el primer procedimiento para empezar a usar el catálogo clínico."
-      >
-        <template #action>
-          <UiButton @click="openCreate">Crear procedimiento</UiButton>
-        </template>
-      </EmptyState>
+      <UiCard variant="glass" class="overflow-hidden">
+        <div v-if="loading" class="p-8 text-center">
+          <LoadingSpinner class="inline-block" text="Cargando procedimientos..." />
+        </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-theme">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Código
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Procedimiento
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Especialidad
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Duración
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Costo
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-theme">
-            <tr v-for="p in procedures" :key="p.id" class="hover:bg-theme-surface">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="font-mono text-xs text-theme-secondary">{{ p.code }}</span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm font-medium text-theme-primary">
-                  {{ p.name }}
-                </div>
-                <div class="text-sm text-theme-secondary line-clamp-1">
-                  {{ p.description || 'Sin descripción' }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  v-if="p.specialty_name"
-                  class="px-2 py-1 text-xs rounded-full bg-primary-50 text-primary-700"
+        <div
+          v-else-if="loadError"
+          data-procedures-error
+          role="alert"
+          class="rounded-ios bg-systemRed-50 p-10 text-center"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <ExclamationTriangleIcon
+            class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <p class="text-base font-medium text-theme-primary">
+            No pudimos cargar el catálogo de procedimientos
+          </p>
+          <p class="mt-1 max-w-md mx-auto text-sm text-theme-secondary">
+            Revisa tu conexión e inténtalo de nuevo. Si el problema continúa, vuelve a intentarlo en
+            unos minutos.
+          </p>
+          <div class="mt-6">
+            <UiButton variant="primary" size="md" data-retry-procedures @click="load">
+              Reintentar
+            </UiButton>
+          </div>
+        </div>
+
+        <UiEmptyState
+          v-else-if="procedures.length === 0"
+          :title="emptyStateTitle"
+          :description="emptyStateDescription"
+        >
+          <template #action>
+            <UiButton v-if="!hasActiveFilters" @click="openCreate">Crear procedimiento</UiButton>
+          </template>
+        </UiEmptyState>
+
+        <div v-else class="overflow-x-auto">
+          <table class="w-full min-w-[880px] table-fixed divide-y divide-hairline">
+            <thead class="bg-theme-surface">
+              <tr>
+                <th
+                  class="w-[13%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
                 >
-                  {{ p.specialty_name }}
-                </span>
-                <span v-else class="text-sm text-theme-secondary">—</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ p.default_duration_minutes }} min
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                S/ {{ Number(p.default_cost).toFixed(2) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiBadge :variant="p.is_active ? 'success' : 'error'">
-                  {{ p.is_active ? 'Activo' : 'Inactivo' }}
-                </UiBadge>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex justify-end gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-accent hover:text-accent-hover"
-                    @click="goDetail(p.id)"
+                  Código
+                </th>
+                <th
+                  class="w-[29%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Procedimiento
+                </th>
+                <th
+                  class="w-[15%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Especialidad
+                </th>
+                <th
+                  class="w-[10%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Duración
+                </th>
+                <th
+                  class="w-[11%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Costo
+                </th>
+                <th
+                  class="w-[10%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Estado
+                </th>
+                <th
+                  class="w-[20%] px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
+              <tr
+                v-for="procedure in procedures"
+                :key="procedure.id"
+                data-procedure-row
+                class="hover:bg-theme-surface"
+              >
+                <td class="px-4 py-4 whitespace-nowrap">
+                  <span class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</span>
+                </td>
+                <td class="px-4 py-4">
+                  <button
+                    type="button"
+                    class="block max-w-full truncate text-left text-sm font-medium text-label hover:text-systemBlue-700"
+                    :title="procedure.name"
+                    data-row-action="detail"
+                    @click="goDetail(procedure.id)"
                   >
-                    Ver
-                  </UiButton>
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-accent hover:text-primary-800"
-                    @click="openEdit(p)"
+                    {{ procedure.name }}
+                  </button>
+                  <p
+                    class="mt-0.5 w-full truncate text-sm text-theme-secondary"
+                    :title="procedure.description || 'Sin descripción'"
                   >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    v-if="p.is_active"
-                    variant="ghost"
+                    {{ procedure.description || 'Sin descripción' }}
+                  </p>
+                </td>
+                <td class="px-4 py-4 whitespace-nowrap">
+                  <UiStatusBadge
+                    v-if="procedure.specialty_name"
+                    variant="info"
+                    :label="procedure.specialty_name"
                     size="sm"
-                    class="text-red-600 hover:text-red-900"
-                    @click="confirmDeactivate(p)"
-                  >
-                    Desactivar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  />
+                  <span v-else class="text-sm text-theme-secondary">—</span>
+                </td>
+                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
+                  {{ procedure.default_duration_minutes }} min
+                </td>
+                <td class="px-4 py-4 whitespace-nowrap text-sm tabular-nums text-theme-primary">
+                  {{ formatCurrency(procedure.default_cost) }}
+                </td>
+                <td class="px-4 py-4 whitespace-nowrap">
+                  <UiStatusBadge
+                    :variant="procedure.is_active ? 'success' : 'neutral'"
+                    :label="procedure.is_active ? 'Activo' : 'Inactivo'"
+                    size="sm"
+                  />
+                </td>
+                <td class="px-4 py-4 whitespace-nowrap">
+                  <div class="flex items-center gap-1">
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemBlue-600 hover:text-systemBlue-700"
+                      data-row-action="edit"
+                      title="Editar procedimiento"
+                      aria-label="Editar procedimiento"
+                      @click="openEdit(procedure)"
+                    >
+                      <PencilIcon class="h-4 w-4" aria-hidden="true" />
+                    </UiButton>
+                    <UiButton
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemBlue-600 hover:text-systemBlue-700"
+                      data-row-action="duplicate"
+                      title="Duplicar procedimiento"
+                      aria-label="Duplicar procedimiento"
+                      @click="openDuplicate(procedure)"
+                    >
+                      <DocumentDuplicateIcon class="h-4 w-4" aria-hidden="true" />
+                    </UiButton>
+                    <UiButton
+                      v-if="procedure.is_active"
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemRed-600 hover:text-systemRed-700"
+                      data-row-action="deactivate"
+                      title="Desactivar procedimiento"
+                      aria-label="Desactivar procedimiento"
+                      @click="confirmDeactivate(procedure)"
+                    >
+                      <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                    </UiButton>
+                    <UiButton
+                      v-else
+                      variant="ghost"
+                      size="sm"
+                      class="text-systemGreen-600 hover:text-systemGreen-700"
+                      data-row-action="reactivate"
+                      title="Reactivar procedimiento"
+                      aria-label="Reactivar procedimiento"
+                      @click="confirmReactivate(procedure)"
+                    >
+                      <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+                    </UiButton>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div v-if="totalPages > 1" class="p-4 border-t border-theme">
+        <div v-if="!loading && !loadError && totalPages > 1" class="p-4 border-t border-hairline">
           <Pagination
             :current-page="currentPage"
             :total-pages="totalPages"
@@ -250,8 +306,8 @@ viewBox="0 0 24 24">
             @page-change="onPageChange"
           />
         </div>
-      </div>
-    </UiCard>
+      </UiCard>
+    </section>
 
     <ProcedureCatalogFormModal
       v-if="showForm"
@@ -268,16 +324,34 @@ viewBox="0 0 24 24">
       @imported="onCsvImported"
     />
 
-    <UiModal v-model="showDeactivateConfirm" title="Desactivar procedimiento" size="sm">
-      <p class="text-theme-primary">
-        ¿Estás seguro de desactivar el procedimiento
-        <strong>{{ procedureToDeactivate?.name }}</strong>
-        ? Los procedimientos desactivados no aparecen en la selección al agendar citas.
-      </p>
+    <UiModal v-model="showDuplicateModal" title="Duplicar procedimiento" size="md">
+      <form id="form-duplicate-procedure" class="space-y-4" @submit.prevent="submitDuplicate">
+        <p class="text-sm text-theme-secondary">
+          Se copiarán todos los datos clínicos de
+          <strong class="text-theme-primary">{{ duplicateSource?.name }}</strong>
+          . Asigna un código y un nombre nuevos.
+        </p>
+        <UiInput
+          v-model="duplicateForm.code"
+          label="Código del nuevo procedimiento"
+          :error="duplicateErrors.code"
+          required
+        />
+        <UiInput
+          v-model="duplicateForm.name"
+          label="Nombre del nuevo procedimiento"
+          :error="duplicateErrors.name"
+          required
+        />
+      </form>
       <template #footer>
         <div class="flex justify-end gap-3">
-          <UiButton variant="secondary" @click="showDeactivateConfirm = false">Cancelar</UiButton>
-          <UiButton variant="danger" :disabled="loading" @click="doDeactivate">Desactivar</UiButton>
+          <UiButton variant="secondary" :disabled="duplicating" @click="showDuplicateModal = false">
+            Cancelar
+          </UiButton>
+          <UiButton type="submit" :loading="duplicating" @click="submitDuplicate">
+            Duplicar
+          </UiButton>
         </div>
       </template>
     </UiModal>
@@ -285,60 +359,200 @@ viewBox="0 0 24 24">
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ArrowUpTrayIcon,
+  ChartBarIcon,
+  DocumentDuplicateIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/vue/24/outline'
+import { useApi } from '../../composables/useApi'
 import { useAuth } from '../../composables/useAuth'
+import { useConfirm } from '../../composables/useConfirm'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useSpecialties } from '../../composables/useSpecialties'
 import { useToast } from '../../composables/useToast'
+import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
-import UiBadge from '../../components/ui/Badge.vue'
 import UiModal from '../../components/ui/Modal.vue'
-import EmptyState from '../../components/ui/EmptyState.vue'
+import UiSelect from '../../components/ui/Select.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import Pagination from '../../components/ui/Pagination.vue'
-import ProcedureCatalogFormModal from './ProcedureCatalogFormModal.vue'
 import ImportCsvModal from '../../components/procedures/ImportCsvModal.vue'
+import ProcedureCatalogFormModal from './ProcedureCatalogFormModal.vue'
 
+const route = useRoute()
 const router = useRouter()
+const { get } = useApi()
 const toast = useToast()
+const { confirm } = useConfirm()
 const { hasAnyRole } = useAuth()
-const canViewStats = computed(() => hasAnyRole(['administrador', 'finanzas']))
 const {
   procedures,
   loading,
-  error,
   pagination,
-  hasProcedures,
   totalPages,
   currentPage,
   getProcedures,
-  deactivateProcedure,
-  clearError
+  getProcedure,
+  createProcedure,
+  updateProcedure,
+  deactivateProcedure
 } = useProcedureCatalog()
 const { specialties, getSpecialties } = useSpecialties()
 
 const searchQuery = ref('')
 const specialtyFilter = ref('')
-const statusFilter = ref('')
+const statusFilter = ref('all')
+const loadError = ref(false)
 const showForm = ref(false)
 const editingProcedure = ref(null)
-const showDeactivateConfirm = ref(false)
-const procedureToDeactivate = ref(null)
 const showImportModal = ref(false)
+const showDuplicateModal = ref(false)
+const duplicateSource = ref(null)
+const duplicateForm = ref({ code: '', name: '' })
+const duplicateErrors = ref({})
+const duplicating = ref(false)
+
+const summary = ref(null)
+const summaryLoading = ref(false)
+const summaryError = ref(false)
+
+const canViewStats = computed(() => hasAnyRole(['administrador', 'finanzas']))
+
+const specialtyOptions = computed(() => [
+  { value: '', label: 'Todas las especialidades' },
+  ...specialties.value.map(specialty => ({ value: specialty.code, label: specialty.name }))
+])
+
+const statusOptions = [
+  { value: 'all', label: 'Todos los estados' },
+  { value: 'active', label: 'Activos' },
+  { value: 'inactive', label: 'Inactivos' }
+]
+
+const hasActiveFilters = computed(
+  () =>
+    Boolean(searchQuery.value.trim()) ||
+    specialtyFilter.value !== '' ||
+    statusFilter.value !== 'all'
+)
+
+const filterCountText = computed(
+  () => `Mostrando ${procedures.value.length} de ${pagination.value.total ?? 0}`
+)
+
+const kpiValue = (key, formatter = value => String(value)) => {
+  if (summaryError.value) return 'N/D'
+  if (summaryLoading.value || !summary.value) return '—'
+  return formatter(summary.value[key] ?? 0)
+}
+
+const kpis = computed(() => [
+  {
+    key: 'total',
+    label: 'Procedimientos',
+    value: kpiValue('total'),
+    caption: 'En el catálogo',
+    tone: 'text-label'
+  },
+  {
+    key: 'active',
+    label: 'Activos',
+    value: kpiValue('active'),
+    caption: 'Disponibles para uso clínico',
+    tone: 'text-systemGreen-600'
+  },
+  {
+    key: 'inactive',
+    label: 'Inactivos',
+    value: kpiValue('inactive'),
+    caption: 'Fuera del flujo clínico',
+    tone: 'text-theme-secondary'
+  },
+  {
+    key: 'avg-duration',
+    label: 'Duración media',
+    value: kpiValue('avg_duration_minutes', value => `${Math.round(Number(value))} min`),
+    caption: 'Promedio del catálogo',
+    tone: 'text-label'
+  },
+  {
+    key: 'avg-cost',
+    label: 'Costo medio',
+    value: kpiValue('avg_cost', value => formatCurrency(Number(value))),
+    caption: 'Promedio del catálogo',
+    tone: 'text-label'
+  }
+])
+
+const emptyStateTitle = computed(() => {
+  if (searchQuery.value.trim()) return 'Sin resultados'
+  if (statusFilter.value === 'active') return 'No hay procedimientos activos'
+  if (statusFilter.value === 'inactive') return 'No hay procedimientos inactivos'
+  if (specialtyFilter.value) return 'No hay procedimientos en esa especialidad'
+  return 'No hay procedimientos'
+})
+
+const emptyStateDescription = computed(() => {
+  if (searchQuery.value.trim()) {
+    return `Ningún procedimiento coincide con ${searchQuery.value.trim()}. Prueba con otro término de búsqueda.`
+  }
+  if (statusFilter.value === 'active')
+    return 'Todos los procedimientos del catálogo están inactivos.'
+  if (statusFilter.value === 'inactive')
+    return 'Todos los procedimientos del catálogo están activos.'
+  if (specialtyFilter.value)
+    return 'Ajusta la especialidad o crea el primer procedimiento de esta área.'
+  return 'Crea el primer procedimiento para empezar a usar el catálogo clínico.'
+})
 
 let searchTimeout = null
 
-const load = () =>
-  getProcedures({
-    q: searchQuery.value || undefined,
-    specialty: specialtyFilter.value || undefined,
-    is_active: statusFilter.value === '' ? undefined : statusFilter.value,
-    page: currentPage.value
-  })
+const load = async () => {
+  loading.value = true
+  loadError.value = false
+  try {
+    await getProcedures({
+      q: searchQuery.value.trim() || undefined,
+      specialty: specialtyFilter.value || undefined,
+      is_active: statusFilter.value === 'all' ? undefined : statusFilter.value === 'active',
+      page: pagination.value.current_page,
+      per_page: 20
+    })
+    await openEditFromQuery()
+  } catch {
+    loadError.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadSummary = async () => {
+  summaryLoading.value = true
+  summaryError.value = false
+  try {
+    const response = await get('/api/procedure-catalog/summary')
+    summary.value = response.data || null
+  } catch {
+    summaryError.value = true
+    summary.value = null
+  } finally {
+    summaryLoading.value = false
+  }
+}
 
 const onSearch = () => {
   clearTimeout(searchTimeout)
@@ -348,10 +562,12 @@ const onSearch = () => {
   }, 350)
 }
 
-const onFilter = () => {
+const onFilterChange = () => {
   pagination.value.current_page = 1
   load()
 }
+
+watch([specialtyFilter, statusFilter], onFilterChange)
 
 const onPageChange = page => {
   pagination.value.current_page = page
@@ -374,13 +590,117 @@ const closeForm = () => {
 }
 
 const onSaved = procedure => {
+  const wasEditing = Boolean(editingProcedure.value)
   closeForm()
   toast.success(
-    editingProcedure.value
+    wasEditing
       ? `Procedimiento "${procedure.name}" actualizado`
       : `Procedimiento "${procedure.name}" creado`
   )
   load()
+  loadSummary()
+}
+
+const openEditFromQuery = async () => {
+  const editId = route.query.edit
+  if (!editId) return
+  let match = procedures.value.find(procedure => String(procedure.id) === String(editId))
+  if (!match) {
+    try {
+      match = await getProcedure(editId)
+    } catch {
+      toast.error('No se pudo cargar el procedimiento solicitado')
+    }
+  }
+  if (match) openEdit(match)
+  router.replace({ query: { ...route.query, edit: undefined } })
+}
+
+const confirmDeactivate = async procedure => {
+  const ok = await confirm({
+    title: 'Desactivar procedimiento',
+    message: `¿Estás seguro de desactivar "${procedure.name}"? Los procedimientos desactivados no aparecen en la selección al agendar citas.`,
+    confirmText: 'Desactivar',
+    variant: 'danger'
+  })
+  if (!ok) return
+  try {
+    await deactivateProcedure(procedure.id)
+    toast.success(`Procedimiento "${procedure.name}" desactivado`)
+    load()
+    loadSummary()
+  } catch {
+    toast.error('No se pudo desactivar el procedimiento')
+  }
+}
+
+const confirmReactivate = async procedure => {
+  const ok = await confirm({
+    title: 'Reactivar procedimiento',
+    message: `¿Quieres reactivar "${procedure.name}" para que vuelva a estar disponible en el catálogo?`,
+    confirmText: 'Reactivar',
+    variant: 'default'
+  })
+  if (!ok) return
+  try {
+    await updateProcedure(procedure.id, { is_active: true })
+    toast.success(`Procedimiento "${procedure.name}" reactivado`)
+    load()
+    loadSummary()
+  } catch {
+    toast.error('No se pudo reactivar el procedimiento')
+  }
+}
+
+const openDuplicate = procedure => {
+  duplicateSource.value = procedure
+  duplicateForm.value = {
+    code: `${procedure.code}-COPIA`,
+    name: `${procedure.name} (copia)`
+  }
+  duplicateErrors.value = {}
+  showDuplicateModal.value = true
+}
+
+const submitDuplicate = async () => {
+  if (duplicating.value || !duplicateSource.value) return
+  duplicating.value = true
+  duplicateErrors.value = {}
+  try {
+    const source = duplicateSource.value
+    const created = await createProcedure({
+      code: duplicateForm.value.code.trim(),
+      name: duplicateForm.value.name.trim(),
+      description: source.description,
+      specialty_id: source.specialty_id,
+      legacy_specialty: source.legacy_specialty,
+      default_cost: source.default_cost,
+      default_duration_minutes: source.default_duration_minutes,
+      requirements: source.requirements,
+      materials_needed: source.materials_needed,
+      requires_anesthesia: source.requires_anesthesia,
+      requires_radiographs: source.requires_radiographs,
+      steps: source.steps,
+      contraindications: source.contraindications,
+      post_procedure_care: source.post_procedure_care,
+      is_active: true
+    })
+    showDuplicateModal.value = false
+    duplicateSource.value = null
+    toast.success(`Procedimiento "${created.name}" duplicado`)
+    load()
+    loadSummary()
+  } catch (error) {
+    if (error.response?.data?.errors) {
+      duplicateErrors.value = Object.fromEntries(
+        Object.entries(error.response.data.errors).map(([field, messages]) => [field, messages[0]])
+      )
+    } else {
+      toast.error(error.response?.data?.message || 'No se pudo duplicar el procedimiento')
+    }
+  } finally {
+    duplicating.value = false
+  }
 }
 
 const onCsvImported = result => {
@@ -389,37 +709,14 @@ const onCsvImported = result => {
   )
   showImportModal.value = false
   load()
+  loadSummary()
 }
 
-const confirmDeactivate = procedure => {
-  procedureToDeactivate.value = procedure
-  showDeactivateConfirm.value = true
-}
-
-const doDeactivate = async () => {
-  if (!procedureToDeactivate.value) return
-  try {
-    await deactivateProcedure(procedureToDeactivate.value.id)
-    toast.success(`Procedimiento "${procedureToDeactivate.value.name}" desactivado`)
-    showDeactivateConfirm.value = false
-    procedureToDeactivate.value = null
-  } catch (err) {
-    toast.error('No se pudo desactivar el procedimiento')
-  }
-}
-
-const goStats = () => router.push('/procedure-stats')
 const goDetail = id => router.push(`/procedure-catalog/${id}`)
+const goStats = () => router.push('/procedure-stats')
 const goBack = () => router.push('/dashboard')
 
-watch(error, newError => {
-  if (newError) {
-    toast.error(newError)
-    clearError()
-  }
-})
-
 onMounted(async () => {
-  await Promise.all([load(), getSpecialties(true)])
+  await Promise.all([load(), loadSummary(), getSpecialties(true)])
 })
 </script>
