@@ -138,12 +138,12 @@ export function useAuditLogs() {
    * Get changes summary from audit log
    */
   const getChangesSummary = log => {
-    if (!log.old_values || !log.new_values) {
-      return null
-    }
-
     const oldValues = log.old_values || {}
     const newValues = log.new_values || {}
+
+    if (!log.new_values || Object.keys(oldValues).length === 0) {
+      return null
+    }
 
     // Campos a ignorar (no son relevantes para mostrar)
     const ignoredFields = ['id', 'created_at', 'updated_at', 'branch_id', 'dni']
@@ -225,7 +225,11 @@ export function useAuditLogs() {
           oral_surgery: 'Cirugía Oral',
           pediatric: 'Odontopediatría',
           prosthodontics: 'Prótesis Dental',
-          cosmetic: 'Odontología Estética'
+          cosmetic: 'Odontología Estética',
+          implantology: 'Implantología',
+          dental_technician: 'Técnico Dental',
+          assistant: 'Asistente',
+          finance: 'Finanzas'
         }
         oldValueStr = specialtyMap[oldVal] || oldVal
       } else if (key === 'status') {
@@ -237,7 +241,11 @@ export function useAuditLogs() {
           administrador: 'Administrador',
           recepcion: 'Recepcionista',
           recepcionista: 'Recepcionista',
-          odontologo: 'Odontólogo'
+          odontologo: 'Odontólogo',
+          implantologo: 'Implantólogo',
+          tecnico_dental: 'Técnico Dental',
+          asistente: 'Asistente',
+          finanzas: 'Finanzas'
         }
         oldValueStr = roleMap[oldVal] || oldVal
       } else if (key === 'price') {
@@ -272,7 +280,11 @@ export function useAuditLogs() {
           oral_surgery: 'Cirugía Oral',
           pediatric: 'Odontopediatría',
           prosthodontics: 'Prótesis Dental',
-          cosmetic: 'Odontología Estética'
+          cosmetic: 'Odontología Estética',
+          implantology: 'Implantología',
+          dental_technician: 'Técnico Dental',
+          assistant: 'Asistente',
+          finance: 'Finanzas'
         }
         newValueStr = specialtyMap[newVal] || newVal
       } else if (key === 'status') {
@@ -284,7 +296,11 @@ export function useAuditLogs() {
           administrador: 'Administrador',
           recepcion: 'Recepcionista',
           recepcionista: 'Recepcionista',
-          odontologo: 'Odontólogo'
+          odontologo: 'Odontólogo',
+          implantologo: 'Implantólogo',
+          tecnico_dental: 'Técnico Dental',
+          asistente: 'Asistente',
+          finanzas: 'Finanzas'
         }
         newValueStr = roleMap[newVal] || newVal
       } else if (key === 'price') {
