@@ -123,24 +123,21 @@ class AppointmentTypeController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        try {
-            $type = AppointmentType::with([
-                'auditLogs' => function ($query) {
-                    $query->with('user:id,name,email')
-                          ->orderBy('created_at', 'desc')
-                          ->limit(50);
-                }
-            ])->findOrFail($id);
+        $type = AppointmentType::with([
+            'auditLogs' => function ($query) {
+                $query->with('user:id,name,email')
+                      ->orderBy('created_at', 'desc')
+                      ->limit(50);
+            }
+        ])->find($id);
 
-            return response()->json([
-                'data' => $type
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Tipo de cita no encontrado',
-                'error' => $e->getMessage()
-            ], 404);
+        if (! $type) {
+            return $this->notFoundResponse();
         }
+
+        return response()->json([
+            'data' => $type
+        ]);
     }
 
     /**
@@ -148,9 +145,13 @@ class AppointmentTypeController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        try {
-            $type = AppointmentType::findOrFail($id);
+        $type = AppointmentType::find($id);
 
+        if (! $type) {
+            return $this->notFoundResponse();
+        }
+
+        try {
             $validated = $request->validate($this->updateRules($this->storeRules()));
 
             // Map duration_minutes to default_duration_minutes if needed
@@ -217,9 +218,31 @@ class AppointmentTypeController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
+        $type = AppointmentType::find($id);
+
+        if (! $type) {
+            return $this->notFoundResponse();
+        }
+
+        // `appointments.appointment_type_id` deletes on cascade at the FK
+        // level, so a hard delete here would wipe every appointment of the
+        // type. Deactivation is the supported path once appointments exist.
+        $appointmentsCount = $type->appointments()->count();
+
+        if ($appointmentsCount > 0) {
+            $appointmentsLabel = $appointmentsCount === 1
+                ? '1 cita asociada'
+                : "{$appointmentsCount} citas asociadas";
+
+            return response()->json([
+                'message' => "No se puede eliminar el tipo de cita: tiene {$appointmentsLabel}. Desactívalo en su lugar.",
+                'meta' => [
+                    'appointments_count' => $appointmentsCount,
+                ],
+            ], 409);
+        }
+
         try {
-            $type = AppointmentType::findOrFail($id);
-            
             // Capture values for audit before deletion
             $typeData = [
                 'name' => $type->name,
@@ -254,6 +277,16 @@ class AppointmentTypeController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Standard 404 payload for an unknown appointment type.
+     */
+    private function notFoundResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Tipo de cita no encontrado'
+        ], 404);
     }
 
     /**

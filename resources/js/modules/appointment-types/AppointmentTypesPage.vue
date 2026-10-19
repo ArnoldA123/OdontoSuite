@@ -658,7 +658,7 @@ export default {
     const deleteType = async type => {
       const ok = await confirm({
         title: 'Eliminar tipo de cita',
-        message: `¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}?`,
+        message: `¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}? Si tiene citas registradas no se podrá eliminar: desactívalo en su lugar.`,
         confirmText: 'Eliminar',
         variant: 'danger'
       })
@@ -668,7 +668,9 @@ export default {
           loadTypes()
           toast.success('Tipo de cita eliminado exitosamente')
         } catch (error) {
-          handleError(error, 'Error al eliminar el tipo de cita')
+          // No custom message: a 409 carries the actionable reason (the type
+          // still has appointments) and must reach the operator verbatim.
+          handleError(error)
         }
       }
     }
