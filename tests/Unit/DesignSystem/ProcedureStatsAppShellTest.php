@@ -3,31 +3,41 @@
 namespace Tests\Unit\DesignSystem;
 
 /**
- * EC-* tokenization contract for the estadisticas-catalogo category slice
- * (ui-rollout-all-modules-2026-08 PR1: `pr1-procedure-stats-tokenise-and-wire-up`).
+ * Design contract for the `/procedure-stats` surface after
+ * procedure-stats-ui-redesign (S1 + S7, 2026-10-19).
  *
- * Covers the 9 EC-* MUST rows from
- * `openspec/changes/archive/2026-08-21-ui-estadisticas-catalogo/spec.md`:
+ * The page was rebuilt on the dashboard recipe (hero band -> KPI strip ->
+ * filters -> error/loading/empty states -> table + specialty tiles -> charts).
+ * Every assertion below pins the RULE behind a block, never the markup of the
+ * moment: the hooks the redesign exposes (`data-procedure-stats-hero`,
+ * `data-kpi-card`, `data-state="error"`, `data-period-empty`, `data-chart`,
+ * `data-export-csv`) plus the shared primitives and tokens those hooks must
+ * resolve to. Removing a hook, a token, or the primitive backing it fails
+ * here even while the page still renders. Dead anatomy from the previous
+ * slice (PageHeader, data-stat-card, fixed h-4/h-12/h-6/h-4 slots) is not
+ * resurrected by this contract.
  *
- *   EC-001  router registration for /procedure-stats (covered by AppLayoutCanvasRoutesTest
- *           + the additive app.js entry; the source-level smoke test asserts the route
- *           block sits between /procedure-catalog/:id and /my-procedures).
- *   EC-002  KPI anatomy (data-stat-card + hairline + elevation-2 + fixed-slot grid).
- *   EC-003  <PageHeader> adoption, page-level <h1> removed.
- *   EC-004  <UiEmptyState> for 2 empty blocks + <UiSkeleton> loading block.
- *   EC-005  formatPENLabel swap (no inline `.toFixed(2)` on currency cells).
- *   EC-006  text-systemGreen-600 / bg-systemRed-50 etc. (no raw green/red ramps).
- *   EC-007  hairline borders on table + specialty tile, radius-control on tile.
- *   EC-008  inline role disclosure block.
- *   EC-009  tabular-nums + font-feature-settings paired on 8 numerics.
+ * Coverage map:
+ *   S1  hero band + 4-card KPI strip + shared ui primitives + token ramps.
+ *   S2  retryable error block, period empty state, loading skeletons.
+ *   S4  currency through the shared formatter (no inline `.toFixed(2)`).
+ *   S5  chart canvases expose data-chart hooks with role="img" and labels;
+ *       no canvas is mounted without data.
+ *   S6  CSV export reads the applied period (never the draft) off one hook.
+ *   S7  router entry unchanged: /procedure-stats sits between
+ *       /procedure-catalog/:id and /my-procedures and lazy-imports the page.
  *
- * The 5 inherited DLR-R-001/002/004/004/021 assertions run via the
- * `ModuleAppShellTestCase::polishedFileProvider` data provider.
+ * The inherited DLR-R-001/002/004/021 assertions run through polishedFiles();
+ * DOM behavior lives in tests/js/smoke/procedure-stats*.test.js and the nav
+ * contract in tests/Unit/Documentation/CatalogStatsReachabilityTest.php.
  */
 class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
 {
     private const PAGE_PATH = '/resources/js/modules/procedure-catalog/ProcedureStatsPage.vue';
     private const APP_JS_PATH = '/resources/js/app.js';
+
+    /** KPI slots, left to right: catalog totals first, period usage last. */
+    private const KPI_SLOTS = ['total', 'active', 'inactive', 'period-usage'];
 
     /** @return array<int, string> */
     protected static function polishedFiles(): array
@@ -35,367 +45,551 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
         return [dirname(__DIR__, 3) . self::PAGE_PATH];
     }
 
-    private static function readSource(string $path): ?string
+    private function readSource(string $relativePath): string
     {
-        $src = @file_get_contents($path);
-        return $src === false ? null : $src;
+        $path = dirname(__DIR__, 3) . $relativePath;
+        $this->assertFileExists($path, sprintf('%s must exist.', $relativePath));
+
+        $source = file_get_contents($path);
+        $this->assertIsString($source, sprintf('%s must be readable.', $relativePath));
+
+        return $source;
+    }
+
+    private function pageSource(): string
+    {
+        return $this->readSource(self::PAGE_PATH);
     }
 
     /**
-     * EC-001 — `/procedure-stats` MUST be registered in `resources/js/app.js`
-     * between the `/procedure-catalog/:id` route block and the `/my-procedures`
-     * route block, with `beforeEnter: requireAuth`. Without this entry the
-     * polished page falls into the 404 catch-all (OQ-EC-1 CRITICAL).
+     * The outer `<template>` region: everything before the `<script>` block.
+     * Scoping to it keeps a ban from being satisfied by a script constant.
      */
-    public function test_procedure_stats_route_registered_in_app_js(): void
+    private function templateSource(string $src): string
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::APP_JS_PATH);
-        $this->assertNotNull($src, 'resources/js/app.js must be readable.');
+        $scriptStart = strpos($src, '<script');
+        $this->assertNotFalse($scriptStart, 'ProcedureStatsPage.vue must declare a <script> block.');
 
-        // The route block must reference the page component.
-        $this->assertMatchesRegularExpression(
-            "/path:\\s*['\"]\\/procedure-stats['\"]/",
-            $src,
-            'resources/js/app.js must declare a route with path: \'/procedure-stats\' (EC-001).'
-        );
+        return substr($src, 0, (int) $scriptStart);
+    }
 
-        // The route must mount the ProcedureStatsPage component (lazy import).
-        $this->assertMatchesRegularExpression(
-            "/ProcedureStatsPage\\.vue/",
-            $src,
-            'resources/js/app.js must lazy-import ./modules/procedure-catalog/ProcedureStatsPage.vue for /procedure-stats (EC-001).'
-        );
+    private function extractBlock(string $pattern, string $src, string $message): string
+    {
+        $matched = preg_match($pattern, $src, $matches);
+        $this->assertSame(1, $matched, $message);
 
-        // The route must sit BEFORE /my-procedures and AFTER /procedure-catalog/:id
-        // so the route table stays ordered by module cluster (matches sibling pattern).
-        $catalogDetailPos = strpos($src, "'/procedure-catalog/:id'");
-        $procStatsPos = strpos($src, "'/procedure-stats'");
-        $myProcPos = strpos($src, "'/my-procedures'");
-
-        $this->assertNotFalse($catalogDetailPos, '/procedure-catalog/:id block must precede /procedure-stats.');
-        $this->assertNotFalse($procStatsPos, '/procedure-stats block must exist.');
-        $this->assertNotFalse($myProcPos, '/my-procedures block must exist.');
-        $this->assertGreaterThan(
-            $catalogDetailPos,
-            $procStatsPos,
-            '/procedure-stats must be declared AFTER /procedure-catalog/:id (route cluster ordering; EC-001).'
-        );
-        $this->assertLessThan(
-            $myProcPos,
-            $procStatsPos,
-            '/procedure-stats must be declared BEFORE /my-procedures (route cluster ordering; EC-001).'
-        );
-
-        // The route MUST NOT be placed inside the 404 catch-all block — assert
-        // it sits BEFORE the /:pathMatch(.*)* catch-all.
-        $catchAllPos = strpos($src, "':pathMatch(.*)*'");
-        if ($catchAllPos !== false) {
-            $this->assertLessThan(
-                $catchAllPos,
-                $procStatsPos,
-                '/procedure-stats must be declared BEFORE the 404 catch-all block (EC-001).'
-            );
-        }
+        return $matches[0];
     }
 
     /**
-     * EC-002 — The three KPI cards keep the dashboard anatomy: data-stat-card,
-     * inline hairline border, elevation-2 shadow, and the eyebrow / value /
-     * caption hierarchy (the redesign replaced the old fixed h-4/h-12/h-6/h-4
-     * slot grid with the current dashboard KPI recipe).
+     * @return array<int, array{slot: string, html: string}>
      */
-    public function test_kpi_anatomy_matches_dashboard(): void
+    private function kpiCards(string $src): array
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
         preg_match_all(
-            '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
+            '~<UiCard\b[^>]*\bdata-kpi-card="([^"]+)"[^>]*>[\s\S]*?</UiCard>~',
             $src,
+            $matches,
+            PREG_SET_ORDER
+        );
+
+        return array_map(
+            static fn (array $match): array => ['slot' => $match[1], 'html' => $match[0]],
             $matches
         );
-        $cards = $matches[0] ?? [];
-        $this->assertGreaterThanOrEqual(
-            3,
-            count($cards),
-            'ProcedureStatsPage.vue must render at least 3 KPI <UiCard> blocks carrying data-stat-card (EC-002).'
-        );
+    }
 
-        $expectedKeys = ['total-procedures', 'active', 'inactive'];
-        foreach ($expectedKeys as $key) {
-            $this->assertStringContainsString(
-                'data-stat-card="' . $key . '"',
-                $src,
-                "ProcedureStatsPage.vue must mark the \"{$key}\" KPI with data-stat-card=\"{$key}\" (EC-002)."
-            );
+    private static function routeOffset(string $src, string $path): ?int
+    {
+        $pattern = '~path:\s*[\'"]' . preg_quote($path, '~') . '[\'"]~';
+        if (preg_match($pattern, $src, $matches, PREG_OFFSET_CAPTURE) !== 1) {
+            return null;
         }
 
-        foreach ($cards as $idx => $card) {
-            $this->assertMatchesRegularExpression(
-                '/--color-hairline/',
-                $card,
-                "KPI card #{$idx} must consume var(--color-hairline) for its border (EC-002)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/--elevation-2/',
-                $card,
-                "KPI card #{$idx} must consume var(--elevation-2) for its shadow (EC-002)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/text-xs font-medium uppercase/',
-                $card,
-                "KPI card #{$idx} must render the eyebrow with the dashboard label recipe (EC-002)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/text-3xl font-bold/',
-                $card,
-                "KPI card #{$idx} must render the counter with the dashboard value recipe (EC-002)."
-            );
-            $this->assertMatchesRegularExpression(
-                '/mt-1 text-xs/',
-                $card,
-                "KPI card #{$idx} must render a caption under the counter (EC-002)."
+        return $matches[0][1];
+    }
+
+    /**
+     * S7 (EC-001 unchanged) - the stats page must stay reachable: the
+     * `/procedure-stats` entry sits between `/procedure-catalog/:id` and
+     * `/my-procedures`, before the 404 catch-all, and binds its component
+     * through a lazy `import()`.
+     */
+    public function test_procedure_stats_route_block_is_lazy_and_ordered(): void
+    {
+        $src = $this->readSource(self::APP_JS_PATH);
+
+        $this->assertMatchesRegularExpression(
+            '~\{\s*path:\s*[\'"]/procedure-stats[\'"][\s\S]{0,300}?component:\s*\(\)\s*=>\s*import\(\s*[\'"][^\'"]*ProcedureStatsPage\.vue[\'"]~',
+            $src,
+            'resources/js/app.js must bind /procedure-stats to a lazy import of ProcedureStatsPage.vue (S7).'
+        );
+
+        $catalogDetail = self::routeOffset($src, '/procedure-catalog/:id');
+        $stats = self::routeOffset($src, '/procedure-stats');
+        $myProcedures = self::routeOffset($src, '/my-procedures');
+
+        $this->assertNotNull($catalogDetail, 'resources/js/app.js must keep the /procedure-catalog/:id route.');
+        $this->assertNotNull($stats, 'resources/js/app.js must keep the /procedure-stats route.');
+        $this->assertNotNull($myProcedures, 'resources/js/app.js must keep the /my-procedures route.');
+
+        $this->assertGreaterThan(
+            $catalogDetail,
+            $stats,
+            '/procedure-stats must be declared AFTER /procedure-catalog/:id (route cluster ordering; S7).'
+        );
+        $this->assertLessThan(
+            $myProcedures,
+            $stats,
+            '/procedure-stats must be declared BEFORE /my-procedures (route cluster ordering; S7).'
+        );
+
+        $catchAll = self::routeOffset($src, '/:pathMatch(.*)*');
+        if ($catchAll !== null) {
+            $this->assertLessThan(
+                $catchAll,
+                $stats,
+                '/procedure-stats must be declared BEFORE the 404 catch-all (S7 reachability).'
             );
         }
     }
 
     /**
-     * EC-003 — The page hero follows the dashboard hierarchy: the hero band
-     * carries the eyebrow, the single display <h1> and the caption. The legacy
-     * PageHeader block is gone (the redesigned catalog pages share the hero
-     * band recipe).
+     * S1 - the hero band owns the page title and surface recipe; the old
+     * `<PageHeader>` anatomy is gone. The band carries the eyebrow/title/
+     * caption hooks plus the canvas + hairline + panel radius + elevation-2
+     * tokens.
      */
     public function test_hero_band_replaces_page_header(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
+        $src = $this->pageSource();
+
+        $this->assertDoesNotMatchRegularExpression(
+            '~<PageHeader\b~',
+            $src,
+            'ProcedureStatsPage.vue must not render <PageHeader>: the hero band owns the page title (S1).'
+        );
+
+        $hero = $this->extractBlock(
+            '~<header\b[^>]*\bdata-procedure-stats-hero\b[^>]*>[\s\S]*?</header>~',
+            $src,
+            'ProcedureStatsPage.vue must render a <header> carrying data-procedure-stats-hero (S1).'
+        );
+
+        foreach (['data-hero-eyebrow', 'data-hero-title', 'data-hero-caption'] as $hook) {
+            $this->assertStringContainsString(
+                $hook,
+                $hero,
+                sprintf('The hero band must expose the `%s` hook (S1 hero anatomy).', $hook)
+            );
+        }
+
+        foreach ([
+            'var(--color-canvas)' => 'canvas base',
+            'var(--color-hairline)' => 'hairline border',
+            'var(--radius-panel)' => 'panel radius',
+            'var(--elevation-2)' => 'elevation-2 rung',
+        ] as $token => $label) {
+            $this->assertStringContainsString(
+                $token,
+                $hero,
+                sprintf('The hero band must consume the %s token `%s` (S1 surface recipe).', $label, $token)
+            );
+        }
+    }
+
+    /**
+     * S1 - exactly four KPI slots, each a shared `<UiCard>` on the
+     * elevation-2 + hairline recipe, each exposing a matching
+     * `data-kpi-value` hook on a tabular numeral.
+     */
+    public function test_kpi_strip_renders_four_shared_cards_on_the_surface_recipe(): void
+    {
+        $src = $this->pageSource();
+        $cards = $this->kpiCards($src);
+
+        $this->assertCount(
+            4,
+            $cards,
+            'ProcedureStatsPage.vue must render exactly four <UiCard data-kpi-card="..."> KPI slots (S1 KPI strip).'
+        );
+
+        $this->assertEqualsCanonicalizing(
+            self::KPI_SLOTS,
+            array_column($cards, 'slot'),
+            'The KPI strip must keep the four catalog/period slots: total, active, inactive, period-usage (S1).'
+        );
+
+        foreach ($cards as $card) {
+            $slot = $card['slot'];
+
+            $this->assertStringContainsString(
+                'var(--elevation-2)',
+                $card['html'],
+                sprintf('The `%s` KPI card must sit on the elevation-2 rung (S1 KPI recipe).', $slot)
+            );
+            $this->assertStringContainsString(
+                'var(--color-hairline)',
+                $card['html'],
+                sprintf('The `%s` KPI card must carry the hairline border token (S1 KPI recipe).', $slot)
+            );
+
+            $valueTag = $this->extractBlock(
+                '~<[a-z][^>]*\bdata-kpi-value="' . preg_quote($slot, '~') . '"[^>]*>~',
+                $card['html'],
+                sprintf('The `%s` KPI card must expose data-kpi-value="%s" (S1 KPI anatomy).', $slot, $slot)
+            );
+
+            $this->assertStringContainsString(
+                'tabular-nums',
+                $valueTag,
+                sprintf('The `%s` KPI numeral must carry tabular-nums (S1 numerals).', $slot)
+            );
+        }
+    }
+
+    /**
+     * S2 - the error state is a top-of-page `role="alert"` block with a retry
+     * action that re-emits `loadStats()`. It must precede the data surfaces
+     * and must never be rendered as an empty period.
+     */
+    public function test_error_state_is_retryable_and_never_renders_as_empty_data(): void
+    {
+        $src = $this->pageSource();
+
+        $errorTag = $this->extractBlock(
+            '~<[a-z][^>]*\bdata-state="error"[^>]*>~',
+            $src,
+            'ProcedureStatsPage.vue must expose a data-state="error" block (S2).'
+        );
 
         $this->assertMatchesRegularExpression(
-            '/<header\b[^>]*data-stats-hero/s',
+            '~\brole="alert"~',
+            $errorTag,
+            'The data-state="error" block must announce itself with role="alert" (S2).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~\bdata-retry\b(?:(?!</UiButton>)[\s\S]){0,300}?@click="loadStats"~',
             $src,
-            'ProcedureStatsPage.vue must render the hero band with data-stats-hero (EC-003).'
+            'The error block must expose a `data-retry` action wired to loadStats(), '
+            . 'so Reintentar re-emits the request and clears the error (S2).'
+        );
+
+        $errorPosition = strpos($src, 'data-state="error"');
+        $firstKpiPosition = strpos($src, 'data-kpi-card=');
+        $this->assertNotFalse($errorPosition, 'The error block must be present.');
+        $this->assertNotFalse($firstKpiPosition, 'The KPI strip must be present.');
+        $this->assertLessThan(
+            $firstKpiPosition,
+            $errorPosition,
+            'The error block must render above the data surfaces, never as a trailing banner under empty results (S2).'
+        );
+
+        $emptyTag = $this->extractBlock(
+            '~<UiCard\b[^>]*\bdata-period-empty\b[^>]*>~',
+            $src,
+            'ProcedureStatsPage.vue must expose a data-period-empty block (S2).'
+        );
+
+        $this->assertStringContainsString(
+            '!error',
+            $emptyTag,
+            'The empty state must be guarded by `v-else-if="!error ..."`, '
+            . 'so an error is never rendered as an empty period (S2).'
+        );
+    }
+
+    /**
+     * S2 - the empty period renders the shared `<UiEmptyState>` primitive,
+     * not an ad-hoc paragraph.
+     */
+    public function test_period_empty_state_uses_the_shared_primitive(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertMatchesRegularExpression(
+            '~<UiCard\b[^>]*\bdata-period-empty\b[^>]*>[\s\S]{0,400}?<UiEmptyState\b~',
+            $src,
+            'The data-period-empty block must render the shared <UiEmptyState>, not an ad-hoc empty paragraph (S2).'
+        );
+    }
+
+    /**
+     * S2 - the loading branch is a dedicated section carrying `aria-busy`
+     * and rendering the shared `<UiSkeleton>`.
+     */
+    public function test_loading_branch_renders_skeletons_with_aria_busy(): void
+    {
+        $src = $this->pageSource();
+
+        $loadingBlock = $this->extractBlock(
+            '~<section\b[^>]*\bv-if="loading"[^>]*>[\s\S]*?</section>~',
+            $src,
+            'ProcedureStatsPage.vue must render a dedicated loading section (S2).'
+        );
+
+        $this->assertStringContainsString(
+            'aria-busy="true"',
+            $loadingBlock,
+            'The loading section must carry aria-busy="true" (S2).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~<UiSkeleton\b~',
+            $loadingBlock,
+            'The loading section must render the shared <UiSkeleton>, not a blank surface (S2).'
+        );
+    }
+
+    /**
+     * S1/S7 - the role disclosure is a badge naming the two audiences the
+     * route serves.
+     */
+    public function test_role_disclosure_badge_names_the_two_audiences(): void
+    {
+        $src = $this->pageSource();
+
+        $badge = $this->extractBlock(
+            '~<UiBadge\b[^>]*\bdata-role-disclosure\b[^>]*>[\s\S]*?</UiBadge>~',
+            $src,
+            'ProcedureStatsPage.vue must render a <UiBadge data-role-disclosure> (S7 role disclosure).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~\bAdministrador\b~',
+            $badge,
+            'The role disclosure must name Administrador (S7: administrador + finanzas can reach the page).'
         );
         $this->assertMatchesRegularExpression(
-            '/<h1\b[^>]*data-hero-title/s',
+            '~\bFinanzas\b~',
+            $badge,
+            'The role disclosure must name Finanzas (S7: administrador + finanzas can reach the page).'
+        );
+    }
+
+    /**
+     * S4 - every currency figure flows through the shared formatter; the
+     * template never formats money inline.
+     */
+    public function test_currency_goes_through_the_shared_formatter(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertMatchesRegularExpression(
+            '~import\s*\{[^}]*\bformatCurrency\b[^}]*\}\s*from\s*[\'"][^\'"]*composables/useFormatters[\'"]~',
             $src,
-            'ProcedureStatsPage.vue must render its single display <h1> inside the hero (EC-003).'
+            'ProcedureStatsPage.vue must import formatCurrency from composables/useFormatters (S4 currency contract).'
+        );
+
+        $template = $this->templateSource($src);
+
+        $this->assertMatchesRegularExpression(
+            '~\bformatCurrency\(\s*~',
+            $template,
+            'The template must render currency through formatCurrency(...) (shared formatter).'
         );
         $this->assertDoesNotMatchRegularExpression(
-            '/<PageHeader\b/',
-            $src,
-            'ProcedureStatsPage.vue must not fall back to the legacy PageHeader (EC-003).'
+            '~\.toFixed\(\s*2\s*\)~',
+            $template,
+            'The template must not format currency inline with .toFixed(2); use formatCurrency (shared formatter).'
         );
-        $this->assertSame(
+        $this->assertDoesNotMatchRegularExpression(
+            '~Intl\.NumberFormat~',
+            $template,
+            'The template must not construct its own Intl.NumberFormat; use formatCurrency (shared formatter).'
+        );
+    }
+
+    /**
+     * S1 - status colors come from the tokenised systemGreen/systemRed ramps;
+     * raw Tailwind green/red ramps are banned.
+     */
+    public function test_status_colors_use_token_ramps_only(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertDoesNotMatchRegularExpression(
+            '~(?<![\w-])(?:text|bg|border|ring|from|via|to)-(?:green|red|emerald|rose)-[0-9]{2,3}(?![\w-])~',
+            $src,
+            'ProcedureStatsPage.vue must not use raw Tailwind green/red ramps; '
+            . 'consume the systemGreen/systemRed token ramps (S1).'
+        );
+
+        $activeCard = null;
+        foreach ($this->kpiCards($src) as $card) {
+            if ($card['slot'] === 'active') {
+                $activeCard = $card['html'];
+                break;
+            }
+        }
+        $this->assertNotNull($activeCard, 'The KPI strip must keep the `active` slot (S1).');
+        $this->assertStringContainsString(
+            'text-systemGreen-600',
+            (string) $activeCard,
+            'The `active` KPI numeral must use the tokenised `text-systemGreen-600` ramp (S1).'
+        );
+
+        $errorTag = $this->extractBlock(
+            '~<[a-z][^>]*\bdata-state="error"[^>]*>~',
+            $src,
+            'ProcedureStatsPage.vue must expose a data-state="error" block (S2).'
+        );
+        $this->assertStringContainsString(
+            'bg-systemRed-50',
+            $errorTag,
+            'The error block must paint the tokenised `bg-systemRed-50` ramp (S1/S2).'
+        );
+    }
+
+    /**
+     * S1 - every specialty tile keeps the shared tile vocabulary: control
+     * radius plus the hairline token.
+     */
+    public function test_specialty_tiles_keep_the_control_radius_and_hairline(): void
+    {
+        $src = $this->pageSource();
+
+        $matched = preg_match_all(
+            '~<li\b[^>]*\bdata-specialty-row\b[^>]*>[\s\S]*?</li>~',
+            $src,
+            $tiles
+        );
+
+        $this->assertGreaterThanOrEqual(
             1,
-            preg_match_all('/<h1[\s>]/i', $src),
-            'ProcedureStatsPage.vue must declare exactly one page <h1> (EC-003).'
+            $matched,
+            'ProcedureStatsPage.vue must render the specialty distribution as data-specialty-row tiles (S1).'
+        );
+
+        foreach ($tiles[0] as $tile) {
+            $openingTag = $this->extractBlock(
+                '~<li\b[^>]*>~',
+                $tile,
+                'Each specialty tile must keep a <li> opening tag.'
+            );
+
+            $this->assertStringContainsString(
+                'rounded-[var(--radius-control)]',
+                $openingTag,
+                'Every specialty tile must ride the control radius (S1 tile vocabulary).'
+            );
+            $this->assertStringContainsString(
+                'var(--color-hairline)',
+                $tile,
+                'Every specialty tile must consume the hairline token for its border (S1 tile vocabulary).'
+            );
+        }
+    }
+
+    /**
+     * S5/S6 - both charts expose stable canvas hooks with accessible roles,
+     * no canvas mounts without data, and the CSV action is wired to the
+     * applied period (never the draft).
+     */
+    public function test_charts_and_csv_export_expose_stable_hooks(): void
+    {
+        $src = $this->pageSource();
+
+        foreach (['usage', 'specialty'] as $chart) {
+            $canvas = $this->extractBlock(
+                '~<canvas\b[^>]*\bdata-chart="' . preg_quote($chart, '~') . '"[^>]*>~',
+                $src,
+                sprintf('ProcedureStatsPage.vue must expose a <canvas data-chart="%s"> hook (S5).', $chart)
+            );
+
+            $this->assertMatchesRegularExpression(
+                '~\brole="img"~',
+                $canvas,
+                sprintf('The `%s` chart canvas must declare role="img" (S5).', $chart)
+            );
+            $this->assertMatchesRegularExpression(
+                '~\baria-label="[^"]+"~',
+                $canvas,
+                sprintf('The `%s` chart canvas must carry an aria-label (S5).', $chart)
+            );
+        }
+
+        $chartsSection = $this->extractBlock(
+            '~<section\b[^>]*\bdata-charts\b[^>]*>~',
+            $src,
+            'ProcedureStatsPage.vue must wrap the charts in a data-charts section (S5).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~\bv-if="[^"]*\bhasData\b~',
+            $chartsSection,
+            'The charts section must render only when hasData is true; no canvas without data (S5).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~\bdata-export-csv\b(?:(?!</UiButton>)[\s\S]){0,300}?@click="exportCsv"~',
+            $src,
+            'The hero must expose a data-export-csv action wired to exportCsv() (S6).'
+        );
+
+        $exportHandler = $this->extractBlock(
+            '~const exportCsv = \(\) => \{[\s\S]*?\n\}~',
+            $src,
+            'ProcedureStatsPage.vue must keep the exportCsv() handler (S6).'
+        );
+
+        $this->assertStringContainsString(
+            'applied.value.from',
+            $exportHandler,
+            'The CSV filename must use the applied `from` date (S6).'
+        );
+        $this->assertStringContainsString(
+            'applied.value.to',
+            $exportHandler,
+            'The CSV filename must use the applied `to` date (S6).'
+        );
+        $this->assertStringNotContainsString(
+            'draft.value',
+            $exportHandler,
+            'The CSV export must read the applied period, never the draft filters (S6).'
         );
     }
 
     /**
-     * EC-004 — Loading branch MUST render ≥3 `<UiSkeleton variant="card">` +
-     * ≥6 `<UiSkeleton variant="list">`, wrapped in a container carrying
-     * `aria-busy="true"` AND `aria-live="polite"`. Empty blocks MUST consume
-     * `<UiEmptyState>` (≥2 instances).
+     * S1 - the ranking table and specialty tiles keep tabular numerals.
      */
-    public function test_loading_branch_renders_skeletons(): void
+    public function test_table_and_specialty_numerics_carry_tabular_nums(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
+        $src = $this->pageSource();
 
-        $cardSkeletons = preg_match_all('/<UiSkeleton\b[^>]*\bvariant="card"/', $src);
-        $listSkeletons = preg_match_all('/<UiSkeleton\b[^>]*\bvariant="list"/', $src);
+        foreach (['usage_count', 'total_quantity', 'total_revenue'] as $cell) {
+            $cellBlock = $this->extractBlock(
+                '~<template\b[^>]*#cell-' . preg_quote($cell, '~') . '\b[^>]*>[\s\S]*?</template>~',
+                $src,
+                sprintf('The ranking table must keep the `%s` cell slot (S1 table anatomy).', $cell)
+            );
 
-        $this->assertGreaterThanOrEqual(
-            3,
-            (int) $cardSkeletons,
-            'ProcedureStatsPage.vue must render ≥3 <UiSkeleton variant="card"> for KPI counters (EC-004).'
-        );
-        $this->assertGreaterThanOrEqual(
-            6,
-            (int) $listSkeletons,
-            'ProcedureStatsPage.vue must render ≥6 <UiSkeleton variant="list"> for table + specialty rows (EC-004).'
-        );
+            $this->assertStringContainsString(
+                'tabular-nums',
+                $cellBlock,
+                sprintf('The `%s` table numeral must carry tabular-nums (S1 numerals).', $cell)
+            );
+        }
 
-        // The loading wrapper must carry both aria-busy="true" AND aria-live="polite".
-        $this->assertMatchesRegularExpression(
-            '/aria-busy="true"/',
+        $matched = preg_match_all(
+            '~<li\b[^>]*\bdata-specialty-row\b[^>]*>[\s\S]*?</li>~',
             $src,
-            'ProcedureStatsPage.vue loading wrapper must carry aria-busy="true" (EC-004).'
-        );
-        $this->assertMatchesRegularExpression(
-            '/aria-live="polite"/',
-            $src,
-            'ProcedureStatsPage.vue loading wrapper must carry aria-live="polite" (EC-004).'
+            $tiles
         );
 
-        // Empty states consume <UiEmptyState> (≥2).
-        $this->assertGreaterThanOrEqual(
-            2,
-            preg_match_all('/<UiEmptyState\b/', $src),
-            'ProcedureStatsPage.vue must render ≥2 <UiEmptyState> blocks (EC-004).'
-        );
-    }
-
-    /**
-     * EC-005 — The `<script setup>` block MUST import `formatPENLabel` from
-     * `@/composables/useFormatters`. No inline `.toFixed(2)` MUST remain on
-     * currency cells.
-     */
-    public function test_format_pen_label_consumed(): void
-    {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
-        $this->assertMatchesRegularExpression(
-            "/import\\s*\\{\\s*formatPENLabel\\s*\\}\\s*from\\s*['\"]@\\/composables\\/useFormatters['\"]/",
-            $src,
-            'ProcedureStatsPage.vue <script setup> MUST import formatPENLabel from @/composables/useFormatters (EC-005).'
-        );
-
-        $this->assertDoesNotMatchRegularExpression(
-            '/\.toFixed\(2\)/',
-            $src,
-            'ProcedureStatsPage.vue must not contain inline `.toFixed(2)` literals on currency cells (EC-005).'
-        );
-    }
-
-    /**
-     * EC-006 — Raw Tailwind green/red ramps MUST be replaced with the tokenised
-     * `systemGreen-600` and `systemRed-50/200/700` ramps.
-     */
-    public function test_no_raw_green_or_red_ramps(): void
-    {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
-        $this->assertDoesNotMatchRegularExpression(
-            '/(?<![\w-])text-green-600(?![\w-])/',
-            $src,
-            'ProcedureStatsPage.vue must not contain the raw `text-green-600` Tailwind class (EC-006).'
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            '/(?<![\w-])bg-red-50(?![\w-])/',
-            $src,
-            'ProcedureStatsPage.vue must not contain the raw `bg-red-50` Tailwind class (EC-006).'
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            '/(?<![\w-])border-red-200(?![\w-])/',
-            $src,
-            'ProcedureStatsPage.vue must not contain the raw `border-red-200` Tailwind class (EC-006).'
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            '/(?<![\w-])text-red-700(?![\w-])/',
-            $src,
-            'ProcedureStatsPage.vue must not contain the raw `text-red-700` Tailwind class (EC-006).'
-        );
-
-        $this->assertMatchesRegularExpression(
-            '/text-systemGreen-600/',
-            $src,
-            'ProcedureStatsPage.vue must render the "Activos" KPI in `text-systemGreen-600` (EC-006).'
-        );
-        $this->assertMatchesRegularExpression(
-            '/bg-systemRed-50[^"]*border-systemRed-200[^"]*text-systemRed-700/',
-            $src,
-            'ProcedureStatsPage.vue error banner must consume the tokenised `bg-systemRed-50 border-systemRed-200 text-systemRed-700` ramp (EC-006).'
-        );
-    }
-
-    /**
-     * EC-007 — Hairline borders on table + specialty tile. Specialty tile
-     * wrapper carries `rounded-[var(--radius-control)]` AND
-     * `border-[color:var(--color-hairline)]`.
-     */
-    public function test_specialty_tile_uses_hairline_and_radius_control(): void
-    {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
-        $this->assertDoesNotMatchRegularExpression(
-            '/(?<![\w-])border-theme(?![\w-])/',
-            $src,
-            'ProcedureStatsPage.vue must not contain the legacy `border-theme` literal (EC-007).'
-        );
-
-        // Specialty tile wrapper carries the radius-control + hairline border pair.
-        $this->assertMatchesRegularExpression(
-            '/rounded-\[var\(--radius-control\)\]/',
-            $src,
-            'ProcedureStatsPage.vue specialty tile must carry `rounded-[var(--radius-control)]` (EC-007).'
-        );
-
-        // Count border-[color:var(--color-hairline)] occurrences — at least 1
-        // for the specialty tile (the table also uses hairline via border-b or
-        // similar, but the explicit `border-[color:var(--color-hairline)]`
-        // arbitrary-value form is the canonical specialty-tile marker).
-        $hairlineCount = preg_match_all(
-            '/border-\[color:var\(--color-hairline\)\]/',
-            $src
-        );
         $this->assertGreaterThanOrEqual(
             1,
-            (int) $hairlineCount,
-            'ProcedureStatsPage.vue specialty tile (and other consumers) must use `border-[color:var(--color-hairline)]` (EC-007).'
-        );
-    }
-
-    /**
-     * EC-008 — Inline role disclosure at page top: "Visible para: Administrador,
-     * Finanzas" inside an element carrying `text-xs text-theme-secondary`.
-     */
-    public function test_role_disclosure_present(): void
-    {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
-        // Case-insensitive Spanish literal.
-        $this->assertMatchesRegularExpression(
-            '/Visible\s+para:\s*Administrador,\s*Finanzas/i',
-            $src,
-            'ProcedureStatsPage.vue must render the role disclosure "Visible para: Administrador, Finanzas" (EC-008).'
+            $matched,
+            'ProcedureStatsPage.vue must render the specialty distribution as data-specialty-row tiles (S1).'
         );
 
-        // The disclosure lives inside an element carrying text-xs text-theme-secondary.
-        $this->assertMatchesRegularExpression(
-            '/text-xs\s+text-theme-secondary[^"]*"[^>]*>\s*Visible\s+para:\s*Administrador/i',
-            $src,
-            'ProcedureStatsPage.vue role disclosure must live inside an element carrying `text-xs text-theme-secondary` (EC-008).'
-        );
-    }
-
-    /**
-     * EC-009 — Every numeric element (3 KPI counters + 3 table numerics + 2
-     * specialty numerics) MUST carry BOTH `tabular-nums` AND
-     * `style="font-feature-settings: var(--font-features-tabular-nums)"`.
-     * Either alone is a contract violation (paired-only rule).
-     */
-    public function test_tabular_nums_on_all_numerics(): void
-    {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
-        $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
-
-        // Count elements that carry BOTH markers. The simplest reliable proxy:
-        // a substring `tabular-nums ... font-feature-settings: var(--font-features-tabular-nums)`
-        // appearing ≥8 times (3 KPI + 3 table + 2 specialty).
-        $pairedCount = preg_match_all(
-            '/tabular-nums[\s\S]{0,200}?font-feature-settings:\s*var\(--font-features-tabular-nums\)/',
-            $src
-        );
-        $this->assertGreaterThanOrEqual(
-            8,
-            (int) $pairedCount,
-            'ProcedureStatsPage.vue must apply the paired `tabular-nums` + `style="font-feature-settings: var(--font-features-tabular-nums)"` contract to ≥8 numerics (3 KPI + 3 table + 2 specialty; EC-009 paired-only rule).'
-        );
-
-        // Belt-and-braces: `tabular-nums` literal must be present (otherwise
-        // a hardcoded "0 paired" above would be the same as "0 features" — the
-        // regex returns 0 either way).
-        $tabularCount = preg_match_all('/tabular-nums/', $src);
-        $this->assertGreaterThanOrEqual(
-            8,
-            (int) $tabularCount,
-            'ProcedureStatsPage.vue must carry `tabular-nums` on ≥8 numeric elements (EC-009).'
-        );
+        foreach ($tiles[0] as $tile) {
+            $this->assertStringContainsString(
+                'tabular-nums',
+                $tile,
+                'Every specialty tile numeral must carry tabular-nums (S1 numerals).'
+            );
+        }
     }
 }

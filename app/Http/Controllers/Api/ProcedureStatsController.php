@@ -30,9 +30,10 @@ class ProcedureStatsController extends Controller
             $stats = $this->service->getStats($validated);
             return response()->json(['data' => $stats]);
         } catch (\Exception $e) {
+            report($e);
+
             return response()->json([
                 'message' => 'Error al obtener estadísticas de procedimientos',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

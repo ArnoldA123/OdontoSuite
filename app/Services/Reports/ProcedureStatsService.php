@@ -16,12 +16,11 @@ class ProcedureStatsService
 {
     public function getStats(array $filters = []): array
     {
-        $startDate = $filters['from'] ?? Carbon::now()->subDays(90)->toDateString();
-        $endDate = $filters['to'] ?? Carbon::now()->toDateString();
+        [$start, $end] = $this->period($filters);
 
-        $topProcedures = $this->topProcedures($startDate, $endDate, $filters['limit'] ?? 10);
+        $topProcedures = $this->topProcedures($start, $end, $filters['limit'] ?? 10);
 
-        $bySpecialty = $this->bySpecialty($startDate, $endDate);
+        $bySpecialty = $this->bySpecialty($start, $end);
 
         $catalog = [
             'total' => ProcedureCatalog::count(),
@@ -30,14 +29,28 @@ class ProcedureStatsService
         ];
 
         return [
-            'period' => ['from' => $startDate, 'to' => $endDate],
+            'period' => ['from' => $start->toDateString(), 'to' => $end->toDateString()],
             'catalog' => $catalog,
             'top_procedures' => $topProcedures,
             'by_specialty' => $bySpecialty,
         ];
     }
 
-    private function topProcedures(string $startDate, string $endDate, int $limit): array
+    /**
+     * The requested period covers whole days in the application timezone, so a
+     * `to` day is never truncated at 00:00.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function period(array $filters): array
+    {
+        $start = Carbon::parse($filters['from'] ?? Carbon::now()->subDays(90)->toDateString())->startOfDay();
+        $end = Carbon::parse($filters['to'] ?? Carbon::now()->toDateString())->endOfDay();
+
+        return [$start, $end];
+    }
+
+    private function topProcedures(Carbon $start, Carbon $end, int $limit): array
     {
         return TreatmentPlanItem::query()
             ->select([
@@ -47,8 +60,10 @@ class ProcedureStatsService
                 DB::raw('SUM(quantity) as total_quantity'),
             ])
             ->whereNotNull('procedure_catalog_id')
-            ->whereHas('treatmentPlan', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('created_at', [$startDate, $endDate]);
+            ->where('is_optional', false)
+            ->whereHas('treatmentPlan', function ($q) use ($start, $end) {
+                $q->where('status', '!=', 'cancelled')
+                    ->whereBetween('created_at', [$start, $end]);
             })
             ->with('procedureCatalog:id,code,name,specialty_id')
             ->groupBy('procedure_catalog_id')
@@ -68,13 +83,16 @@ class ProcedureStatsService
             ->toArray();
     }
 
-    private function bySpecialty(string $startDate, string $endDate): array
+    private function bySpecialty(Carbon $start, Carbon $end): array
     {
         return DB::table('treatment_plan_items')
             ->join('treatment_plans', 'treatment_plan_items.treatment_plan_id', '=', 'treatment_plans.id')
             ->join('procedure_catalog', 'treatment_plan_items.procedure_catalog_id', '=', 'procedure_catalog.id')
             ->leftJoin('specialties', 'procedure_catalog.specialty_id', '=', 'specialties.id')
-            ->whereBetween('treatment_plans.created_at', [$startDate, $endDate])
+            ->whereNull('treatment_plans.deleted_at')
+            ->where('treatment_plans.status', '!=', 'cancelled')
+            ->where('treatment_plan_items.is_optional', false)
+            ->whereBetween('treatment_plans.created_at', [$start, $end])
             ->whereNotNull('treatment_plan_items.procedure_catalog_id')
             ->groupBy('specialties.id', 'specialties.code', 'specialties.name')
             ->select(
