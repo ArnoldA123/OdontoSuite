@@ -1,341 +1,391 @@
 <template>
   <AppLayout>
-    <PageHeader title="Sucursales" subtitle="Gestiona las sedes de la clinica" class="mb-6">
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-        <UiButton @click="openCreate">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </template>
-          Nueva Sucursal
-        </UiButton>
-      </template>
-    </PageHeader>
+    <header
+      data-branches-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p
+            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            data-hero-eyebrow
+          >
+            Configuración
+          </p>
+          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Sucursales</h1>
+          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+            Sedes de la clínica: identificación, ubicación y estado operativo
+          </p>
+        </div>
+        <div class="flex flex-shrink-0 items-center gap-3">
+          <UiButton variant="secondary" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton data-hero-action @click="openCreate">
+            <template #icon-left>
+              <PlusIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Nueva sucursal
+          </UiButton>
+        </div>
+      </div>
+    </header>
 
-    <!-- Contadores -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      <UiCard variant="glass" class="hover-lift">
-        <div class="text-center">
-          <p class="text-sm font-medium text-theme-secondary">Total</p>
-          <p class="text-3xl font-bold text-theme-primary">
-            {{ pagination.total || branches.length }}
-          </p>
-        </div>
+    <section
+      aria-label="Resumen de sucursales"
+      class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+    >
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="total"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Sucursales</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="total"
+        >
+          {{ kpiTotalDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">En el directorio</p>
       </UiCard>
-      <UiCard variant="glass" class="hover-lift">
-        <div class="text-center">
-          <p class="text-sm font-medium text-theme-secondary">Activas</p>
-          <p class="text-3xl font-bold text-success-600">
-            {{ activeBranches.length }}
-          </p>
-        </div>
-      </UiCard>
-      <UiCard variant="glass" class="hover-lift">
-        <div class="text-center">
-          <p class="text-sm font-medium text-theme-secondary">Inactivas</p>
-          <p class="text-3xl font-bold text-theme-secondary">
-            {{ branches.length - activeBranches.length }}
-          </p>
-        </div>
-      </UiCard>
-    </div>
 
-    <!-- Filtros -->
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="active"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Activas</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="active"
+        >
+          {{ kpiActiveDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Disponibles para operar</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="inactive"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Inactivas</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="inactive"
+        >
+          {{ kpiInactiveDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Fuera de los selectores</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="cities"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Ciudades</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="cities"
+        >
+          {{ kpiCitiesDisplay }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Cobertura geográfica</p>
+      </UiCard>
+    </section>
+
     <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center">
+        <div class="w-full flex-1">
           <UiInput
             v-model="searchQuery"
-            placeholder="Buscar por nombre, codigo o ciudad..."
+            data-branch-search
+            placeholder="Buscar por código, nombre, ciudad o contacto..."
             class="w-full"
-            @input="onSearch"
           >
             <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
             </template>
           </UiInput>
         </div>
-        <div class="flex gap-3">
-          <select
+        <div class="flex items-center gap-3">
+          <UiSelect
             v-model="statusFilter"
-            class="w-40 px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-            @change="onFilter"
-          >
-            <option value="">Todas</option>
-            <option value="true">Activas</option>
-            <option value="false">Inactivas</option>
-          </select>
-        </div>
-      </div>
-    </UiCard>
-
-    <!-- Loading inicial -->
-    <div v-if="loading && branches.length === 0" class="flex justify-center py-12">
-      <LoadingSpinner size="lg" />
-    </div>
-
-    <!-- Empty state -->
-    <UiCard v-else-if="!hasBranches" variant="glass" class="text-center py-12">
-      <EmptyState
-        :icon="BuildingOfficeIcon"
-        title="No hay sucursales registradas"
-        description="Crea la primera sede para empezar a gestionar multiples ubicaciones."
-        action-text="Nueva Sucursal"
-        @action="openCreate"
-      />
-    </UiCard>
-
-    <!-- Tabla de sucursales -->
-    <UiCard v-else variant="glass">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-theme">
-              <th
-                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Codigo
-              </th>
-              <th
-                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Nombre
-              </th>
-              <th
-                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Ciudad
-              </th>
-              <th
-                class="text-left py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Telefono
-              </th>
-              <th
-                class="text-center py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                class="text-right py-3 px-4 text-xs font-semibold text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="b in branches"
-              :key="b.id"
-              class="border-b border-theme/50 hover:bg-theme-surface/30 transition-colors"
-            >
-              <td class="py-3 px-4">
-                <span class="font-mono text-sm text-theme-primary">{{ b.code }}</span>
-              </td>
-              <td class="py-3 px-4">
-                <div class="text-sm font-medium text-theme-primary">
-                  {{ b.name }}
-                </div>
-                <div v-if="b.address" class="text-xs text-theme-secondary mt-0.5">
-                  {{ b.address }}
-                </div>
-              </td>
-              <td class="py-3 px-4 text-sm text-theme-primary">
-                {{ b.city }}
-                <span v-if="b.state">, {{ b.state }}</span>
-              </td>
-              <td class="py-3 px-4 text-sm text-theme-primary">
-                {{ b.phone || '-' }}
-              </td>
-              <td class="py-3 px-4 text-center">
-                <UiBadge :variant="b.is_active ? 'success' : 'secondary'">
-                  {{ b.is_active ? 'Activa' : 'Inactiva' }}
-                </UiBadge>
-              </td>
-              <td class="py-3 px-4">
-                <div class="flex justify-end gap-2">
-                  <UiButton
-                    variant="ghost"
-                    size="sm"
-                    class="text-accent hover:text-primary-800"
-                    @click="openEdit(b)"
-                  >
-                    Editar
-                  </UiButton>
-                  <UiButton
-                    v-if="b.is_active"
-                    variant="ghost"
-                    size="sm"
-                    class="text-red-600 hover:text-red-900"
-                    @click="confirmDeactivate(b)"
-                  >
-                    Desactivar
-                  </UiButton>
-                  <UiButton
-                    v-else
-                    variant="ghost"
-                    size="sm"
-                    class="text-success-600 hover:text-success-800"
-                    @click="confirmActivate(b)"
-                  >
-                    Activar
-                  </UiButton>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div v-if="totalPages > 1" class="p-4 border-t border-theme">
-          <Pagination
-            :current-page="currentPage"
-            :total-pages="totalPages"
-            :total="pagination.total"
-            @page-change="onPageChange"
+            :options="statusFilterOptions"
+            class="w-48"
+            data-status-filter="status"
           />
+          <p class="whitespace-nowrap text-xs text-theme-secondary" data-filter-count>
+            {{ filterCountText }}
+          </p>
         </div>
       </div>
     </UiCard>
 
-    <!-- Modal de crear/editar -->
-    <BranchFormModal v-if="showForm" :branch="editingBranch" @close="closeForm" @saved="onSaved" />
+    <section aria-label="Sucursales" class="space-y-4">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-2xl font-semibold text-label">Directorio de sucursales</h2>
+        <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada sede</p>
+      </div>
 
-    <!-- Confirm deactivate -->
-    <UiModal v-model="showDeactivateConfirm" title="Desactivar sucursal" size="sm">
-      <p class="text-theme-primary">
-        ¿Estas seguro de desactivar la sucursal
-        <strong>{{ branchToToggle?.name }}</strong>
-        ? No aparecera en los dropdowns de abrir caja ni en la seleccion de sede.
-      </p>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <UiButton variant="secondary" @click="showDeactivateConfirm = false">Cancelar</UiButton>
-          <UiButton variant="danger" :disabled="toggling" @click="doDeactivate">
-            Desactivar
+      <div>
+        <div v-if="loading && branches.length === 0" data-branches-loading>
+          <UiSkeleton variant="table" animation="wave" aria-label="Cargando sucursales..." />
+        </div>
+
+        <div
+          v-else-if="loadError"
+          data-branches-error
+          class="flex items-center justify-between flex-wrap gap-4 rounded-[var(--radius-panel)] p-5 bg-systemRed-50"
+          style="border: 1px solid var(--color-hairline)"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <ExclamationTriangleIcon
+              class="flex-shrink-0 w-6 h-6 text-systemRed-600"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">No pudimos cargar las sucursales</p>
+              <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+            </div>
+          </div>
+          <UiButton variant="primary" size="sm" data-retry-branches @click="loadBranches">
+            Reintentar
           </UiButton>
         </div>
-      </template>
-    </UiModal>
 
-    <!-- Confirm activate -->
-    <UiModal v-model="showActivateConfirm" title="Activar sucursal" size="sm">
-      <p class="text-theme-primary">
-        ¿Activar la sucursal
-        <strong>{{ branchToToggle?.name }}</strong>
-        ? Volvera a estar disponible para seleccion en abrir caja.
-      </p>
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <UiButton variant="secondary" @click="showActivateConfirm = false">Cancelar</UiButton>
-          <UiButton :disabled="toggling" @click="doActivate">Activar</UiButton>
+        <div v-else-if="filteredBranches.length === 0" data-branches-empty class="py-4">
+          <UiEmptyState
+            :title="emptyStateTitle"
+            :description="emptyStateDescription"
+            :icon="BuildingOffice2Icon"
+          >
+            <template #action>
+              <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
+                Limpiar filtros
+              </UiButton>
+              <UiButton v-else @click="openCreate">Nueva sucursal</UiButton>
+            </template>
+          </UiEmptyState>
         </div>
-      </template>
-    </UiModal>
+
+        <UiDataTable
+          v-else
+          :data="filteredBranches"
+          :columns="columns"
+          :searchable="false"
+          :show-header="false"
+          :pagination="false"
+          data-branches-table
+        >
+          <template #cell-code="{ row }">
+            <span class="font-mono text-xs text-theme-secondary">{{ row.code }}</span>
+          </template>
+          <template #cell-name="{ row }">
+            <div class="text-sm font-medium text-theme-primary">{{ row.name }}</div>
+            <div v-if="row.address" class="mt-0.5 text-xs text-theme-secondary">
+              {{ row.address }}
+            </div>
+          </template>
+          <template #cell-city="{ row }">
+            <span class="text-sm text-theme-primary">{{ formatBranchLocation(row) }}</span>
+          </template>
+          <template #cell-contact="{ row }">
+            <div class="text-sm text-theme-primary">{{ row.phone || 'Sin teléfono' }}</div>
+            <div class="text-xs text-theme-secondary">{{ row.email || 'Sin email' }}</div>
+          </template>
+          <template #cell-status="{ row }">
+            <UiStatusBadge
+              data-branch-status
+              :variant="getBranchStatusVariant(row.is_active)"
+              :label="getBranchStatusLabel(row.is_active)"
+              size="sm"
+            />
+          </template>
+          <template #actions="{ row }">
+            <UiButton
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="detail"
+              aria-label="Ver detalle de la sucursal"
+              @click="viewDetail(row)"
+            >
+              <template #icon-left>
+                <EyeIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Ver
+            </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="edit"
+              title="Editar sucursal"
+              aria-label="Editar sucursal"
+              @click="openEdit(row)"
+            >
+              <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+            </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              :class="
+                row.is_active
+                  ? 'text-systemRed-600 hover:text-systemRed-700'
+                  : 'text-systemGreen-600 hover:text-systemGreen-700'
+              "
+              data-row-action="toggle"
+              :title="row.is_active ? 'Desactivar sucursal' : 'Activar sucursal'"
+              :aria-label="row.is_active ? 'Desactivar sucursal' : 'Activar sucursal'"
+              @click="toggleBranch(row)"
+            >
+              <PowerIcon class="w-4 h-4" aria-hidden="true" />
+            </UiButton>
+          </template>
+        </UiDataTable>
+      </div>
+    </section>
+
+    <BranchFormModal v-if="showForm" :branch="editingBranch" @close="closeForm" @saved="onSaved" />
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  BuildingOffice2Icon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  PowerIcon
+} from '@heroicons/vue/24/outline'
 import { useBranches } from '../../../composables/useBranches'
+import { useConfirm } from '../../../composables/useConfirm'
 import { useToast } from '../../../composables/useToast'
+import {
+  formatBranchLocation,
+  getBranchStatusLabel,
+  getBranchStatusVariant
+} from './branchPresentation'
 import AppLayout from '../../../components/layout/AppLayout.vue'
-import PageHeader from '../../../components/layout/PageHeader.vue'
 import UiButton from '../../../components/ui/Button.vue'
 import UiCard from '../../../components/ui/Card.vue'
+import UiDataTable from '../../../components/ui/DataTable.vue'
+import UiEmptyState from '../../../components/ui/EmptyState.vue'
 import UiInput from '../../../components/ui/Input.vue'
-import UiBadge from '../../../components/ui/Badge.vue'
-import UiModal from '../../../components/ui/Modal.vue'
-import EmptyState from '../../../components/ui/EmptyState.vue'
-import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
-import Pagination from '../../../components/ui/Pagination.vue'
+import UiSelect from '../../../components/ui/Select.vue'
+import UiSkeleton from '../../../components/ui/Skeleton.vue'
+import UiStatusBadge from '../../../components/ui/StatusBadge.vue'
 import BranchFormModal from './BranchFormModal.vue'
-import { BuildingOfficeIcon } from '@heroicons/vue/24/outline'
 
+const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const {
-  branches,
-  loading,
-  error,
-  pagination,
-  hasBranches,
-  totalPages,
-  currentPage,
-  activeBranches,
-  getBranches,
-  toggleActive,
-  clearError
-} = useBranches()
+const { confirm } = useConfirm()
+const { branches, loading, getBranches, toggleActive } = useBranches()
 
 const searchQuery = ref('')
 const statusFilter = ref('')
+const loadError = ref(false)
 const showForm = ref(false)
 const editingBranch = ref(null)
-const showDeactivateConfirm = ref(false)
-const showActivateConfirm = ref(false)
-const branchToToggle = ref(null)
-const toggling = ref(false)
 
-let searchTimeout = null
+const columns = [
+  { key: 'code', label: 'Código' },
+  { key: 'name', label: 'Sucursal' },
+  { key: 'city', label: 'Ciudad' },
+  { key: 'contact', label: 'Contacto' },
+  { key: 'status', label: 'Estado' }
+]
 
-const load = () =>
-  getBranches({
-    q: searchQuery.value || undefined,
-    is_active: statusFilter.value === '' ? undefined : statusFilter.value,
-    page: currentPage.value
+const statusFilterOptions = [
+  { value: '', label: 'Todas' },
+  { value: 'active', label: 'Activas' },
+  { value: 'inactive', label: 'Inactivas' }
+]
+
+const hasActiveFilters = computed(
+  () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
+)
+
+const filteredBranches = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  return branches.value.filter(branch => {
+    if (statusFilter.value === 'active' && !branch.is_active) return false
+    if (statusFilter.value === 'inactive' && branch.is_active) return false
+    if (query) {
+      const haystack = [
+        branch.code,
+        branch.name,
+        branch.city,
+        branch.state,
+        branch.phone,
+        branch.email
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(query)) return false
+    }
+    return true
   })
+})
 
-const onSearch = () => {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    pagination.value.current_page = 1
-    load()
-  }, 350)
-}
+const filterCountText = computed(
+  () => `Mostrando ${filteredBranches.value.length} de ${branches.value.length}`
+)
 
-const onFilter = () => {
-  pagination.value.current_page = 1
-  load()
-}
+const kpiTotalDisplay = computed(() => (loadError.value ? 'N/D' : String(branches.value.length)))
 
-const onPageChange = page => {
-  pagination.value.current_page = page
-  load()
-}
+const kpiActiveDisplay = computed(() =>
+  loadError.value ? 'N/D' : String(branches.value.filter(branch => branch.is_active).length)
+)
+
+const kpiInactiveDisplay = computed(() =>
+  loadError.value ? 'N/D' : String(branches.value.filter(branch => !branch.is_active).length)
+)
+
+const kpiCitiesDisplay = computed(() => {
+  if (loadError.value) return 'N/D'
+  const cities = new Set(
+    branches.value.map(branch => branch.city?.trim().toLowerCase()).filter(city => !!city)
+  )
+  return String(cities.size)
+})
+
+const emptyStateTitle = computed(() => {
+  if (hasActiveFilters.value) return 'No se encontraron sucursales'
+  return 'Aún no hay sucursales registradas'
+})
+
+const emptyStateDescription = computed(() => {
+  const query = searchQuery.value.trim()
+  if (query) {
+    return `Ninguna sucursal coincide con ${query}. Prueba con otro término de búsqueda.`
+  }
+  if (hasActiveFilters.value) return 'Prueba con otro estado o quita los filtros aplicados.'
+  return 'Crea la primera sede para empezar a gestionar múltiples ubicaciones.'
+})
 
 const openCreate = () => {
   editingBranch.value = null
@@ -352,66 +402,68 @@ const closeForm = () => {
   editingBranch.value = null
 }
 
-const onSaved = branch => {
+const openEditFromQuery = () => {
+  const editId = route.query.edit
+  if (!editId) return
+  const match = branches.value.find(branch => String(branch.id) === String(editId))
+  if (match) openEdit(match)
+  router.replace({ query: { ...route.query, edit: undefined } })
+}
+
+const loadBranches = async () => {
+  loadError.value = false
+  try {
+    await getBranches()
+    openEditFromQuery()
+  } catch {
+    loadError.value = true
+  }
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  statusFilter.value = ''
+}
+
+const viewDetail = branch => {
+  router.push(`/settings/branches/${branch.id}`)
+}
+
+const toggleBranch = async branch => {
+  const isActive = !!branch.is_active
+  const ok = await confirm({
+    title: isActive ? 'Desactivar sucursal' : 'Activar sucursal',
+    message: isActive
+      ? `¿Desactivar la sucursal ${branch.name}? Dejará de aparecer en los selectores de sede y de apertura de caja.`
+      : `¿Activar la sucursal ${branch.name}? Volverá a estar disponible en los selectores de sede.`,
+    confirmText: isActive ? 'Desactivar' : 'Activar',
+    variant: isActive ? 'danger' : 'default'
+  })
+  if (!ok) return
+  try {
+    await toggleActive(branch)
+    toast.success(
+      isActive ? `Sucursal "${branch.name}" desactivada` : `Sucursal "${branch.name}" activada`
+    )
+  } catch {
+    toast.error('No se pudo actualizar la sucursal')
+  }
+}
+
+const onSaved = saved => {
+  const wasEditing = !!editingBranch.value
   closeForm()
   toast.success(
-    editingBranch.value
-      ? `Sucursal "${branch.name}" actualizada`
-      : `Sucursal "${branch.name}" creada`
+    wasEditing ? `Sucursal "${saved.name}" actualizada` : `Sucursal "${saved.name}" creada`
   )
-  load()
+  loadBranches()
 }
 
-const confirmDeactivate = branch => {
-  branchToToggle.value = branch
-  showDeactivateConfirm.value = true
+const goBack = () => {
+  router.push('/dashboard')
 }
-
-const confirmActivate = branch => {
-  branchToToggle.value = branch
-  showActivateConfirm.value = true
-}
-
-const doDeactivate = async () => {
-  if (!branchToToggle.value) return
-  toggling.value = true
-  try {
-    await toggleActive(branchToToggle.value)
-    toast.success(`Sucursal "${branchToToggle.value.name}" desactivada`)
-    showDeactivateConfirm.value = false
-    branchToToggle.value = null
-  } catch (err) {
-    toast.error('No se pudo desactivar la sucursal')
-  } finally {
-    toggling.value = false
-  }
-}
-
-const doActivate = async () => {
-  if (!branchToToggle.value) return
-  toggling.value = true
-  try {
-    await toggleActive(branchToToggle.value)
-    toast.success(`Sucursal "${branchToToggle.value.name}" activada`)
-    showActivateConfirm.value = false
-    branchToToggle.value = null
-  } catch (err) {
-    toast.error('No se pudo activar la sucursal')
-  } finally {
-    toggling.value = false
-  }
-}
-
-const goBack = () => router.push('/dashboard')
-
-watch(error, newError => {
-  if (newError) {
-    toast.error(newError)
-    clearError()
-  }
-})
 
 onMounted(() => {
-  load()
+  loadBranches()
 })
 </script>
