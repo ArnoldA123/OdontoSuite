@@ -11,6 +11,7 @@ use App\Events\UserUpdated;
 use App\Listeners\ClearDashboardCache;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -19,6 +20,56 @@ use Illuminate\Support\Facades\Log;
 class UserController extends Controller
 {
     use HasCrudRules;
+
+    /**
+     * The roles the application actually authorizes (`routes/api.php` role
+     * middleware, AGENTS.md section 7). `admin`, `recepcion` and `dentista` are
+     * retired spellings that no middleware accepts.
+     */
+    protected const ROLES = [
+        'administrador',
+        'recepcionista',
+        'finanzas',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente',
+    ];
+
+    /**
+     * Tables whose rows are destroyed with the account by ON DELETE CASCADE.
+     * Every entry is clinical, billing or inventory history: losing it can not
+     * be undone, so an account that holds any of it is never hard deleted.
+     *
+     * [table => [singular, plural, foreign columns]]
+     */
+    protected const HISTORY_TABLES = [
+        'appointments' => ['cita', 'citas', ['user_id', 'created_by']],
+        'appointment_blocks' => ['bloqueo de agenda', 'bloqueos de agenda', ['user_id', 'created_by']],
+        'ai_image_analyses' => ['análisis de imagen', 'análisis de imagen', ['requested_by']],
+        'cash_movements' => ['movimiento de caja', 'movimientos de caja', ['created_by']],
+        'cash_register_sessions' => ['sesión de caja', 'sesiones de caja', ['user_id']],
+        'clinical_attachments' => ['adjunto clínico', 'adjuntos clínicos', ['created_by']],
+        'clinical_evolutions' => ['evolución clínica', 'evoluciones clínicas', ['created_by']],
+        'endodontics_records' => ['registro de endodoncia', 'registros de endodoncia', ['created_by']],
+        'implantology_records' => ['registro de implantología', 'registros de implantología', ['created_by']],
+        'interconsultations' => ['interconsulta', 'interconsultas', ['from_specialist_id', 'to_specialist_id']],
+        'medical_records' => ['historia clínica', 'historias clínicas', ['created_by']],
+        'odontograms' => ['odontograma', 'odontogramas', ['created_by']],
+        'odontogram_records' => ['registro de odontograma', 'registros de odontograma', ['created_by']],
+        'oral_surgery_records' => ['registro de cirugía oral', 'registros de cirugía oral', ['created_by']],
+        'orthodontics_records' => ['registro de ortodoncia', 'registros de ortodoncia', ['created_by']],
+        'payment_plans' => ['plan de pago', 'planes de pago', ['created_by']],
+        'procedure_materials' => ['material de procedimiento', 'materiales de procedimiento', ['created_by']],
+        'purchase_orders' => ['orden de compra', 'órdenes de compra', ['created_by']],
+        'quotations' => ['presupuesto', 'presupuestos', ['created_by']],
+        'receipts' => ['comprobante', 'comprobantes', ['created_by']],
+        'rehabilitation_records' => ['registro de rehabilitación', 'registros de rehabilitación', ['created_by']],
+        'stock_movements' => ['movimiento de inventario', 'movimientos de inventario', ['created_by']],
+        'transactions' => ['transacción', 'transacciones', ['created_by']],
+        'treatment_plans' => ['plan de tratamiento', 'planes de tratamiento', ['created_by']],
+        'work_schedules' => ['horario', 'horarios', ['user_id']],
+    ];
 
     /**
      * Rules shared by the store and update actions.
@@ -31,8 +82,11 @@ class UserController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:admin,recepcion,odontologo',
+            'role' => 'required|in:' . implode(',', self::ROLES),
             'specialty' => 'nullable|string|max:255',
+            'professional_license' => 'nullable|string|max:50',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+            'commission_rate' => 'nullable|numeric|min:0|max:100',
             'is_active' => 'boolean'
         ];
     }
@@ -56,7 +110,7 @@ class UserController extends Controller
                 $query->whereIn('role', $roles);
             }
 
-            $users = $query->get();
+            $users = $query->orderBy('name')->get();
 
             return response()->json([
                 'data' => $users,
@@ -162,6 +216,12 @@ class UserController extends Controller
         try {
             $user = User::findOrFail($id);
 
+            if (Auth::id() === $user->id && $request->has('is_active') && ! $request->boolean('is_active')) {
+                return response()->json([
+                    'message' => 'No puedes desactivar tu propia cuenta.',
+                ], 422);
+            }
+
             $validated = $request->validate($this->updateRules($this->storeRules(), [], [
                 'username' => 'sometimes|string|max:255|unique:users,username,' . $id,
                 'email' => 'sometimes|email|unique:users,email,' . $id,
@@ -234,13 +294,29 @@ class UserController extends Controller
 
     /**
      * Remove the specified resource from storage.
+     *
+     * The account is only hard deleted when it holds no clinical, billing or
+     * inventory history; every cascading relation would destroy those rows.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
         try {
             $user = User::findOrFail($id);
-            
-            // Capture values for audit before deletion
+
+            if ($request->user()->id === $user->id) {
+                return response()->json([
+                    'message' => 'No puedes eliminar tu propia cuenta.',
+                ], 422);
+            }
+
+            $blockingMessage = $this->historyBlockingMessage($user);
+
+            if ($blockingMessage !== null) {
+                return response()->json([
+                    'message' => $blockingMessage,
+                ], 409);
+            }
+
             $userData = [
                 'name' => $user->name,
                 'username' => $user->username,
@@ -275,6 +351,43 @@ class UserController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Build the message that blocks a hard delete, or null when the account
+     * holds no history.
+     */
+    protected function historyBlockingMessage(User $user): ?string
+    {
+        $parts = [];
+
+        foreach (self::HISTORY_TABLES as $table => [$singular, $plural, $columns]) {
+            $count = DB::table($table)
+                ->where(function ($query) use ($columns, $user) {
+                    foreach ($columns as $column) {
+                        $query->orWhere($column, $user->id);
+                    }
+                })
+                ->count();
+
+            if ($count > 0) {
+                $parts[] = $count . ' ' . ($count === 1 ? $singular : $plural);
+            }
+        }
+
+        if ($parts === []) {
+            return null;
+        }
+
+        $list = count($parts) === 1
+            ? $parts[0]
+            : implode(', ', array_slice($parts, 0, -1)) . ' y ' . end($parts);
+
+        return sprintf(
+            'No se puede eliminar a %s: tiene %s. Desactívalo en su lugar.',
+            $user->name,
+            $list
+        );
     }
 
     /**
