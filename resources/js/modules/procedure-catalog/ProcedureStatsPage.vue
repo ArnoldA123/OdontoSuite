@@ -1,256 +1,255 @@
 <template>
-  <AppLayout class="bg-canvas">
-    <!-- Page header (EC-003) — replaces the legacy page-level <h1> defect -->
-    <PageHeader
-      title="Estadísticas de Procedimientos"
-      subtitle="Uso del catálogo por especialidad y procedimientos más frecuentes"
-    />
+  <AppLayout>
+    <header
+      data-stats-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 text-sm font-medium text-theme-secondary hover:text-theme-primary"
+        @click="goBack"
+      >
+        <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+        Catálogo de Procedimientos
+      </button>
+      <div class="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Catálogo</p>
+          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+            Estadísticas de Procedimientos
+          </h1>
+          <p class="mt-2 text-sm text-theme-secondary">
+            Uso del catálogo por especialidad y procedimientos más frecuentes
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary">Visible para: Administrador, Finanzas</p>
+        </div>
+        <div class="flex flex-shrink-0 items-center gap-3">
+          <UiButton variant="secondary" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+        </div>
+      </div>
+    </header>
 
-    <!-- Role disclosure (EC-008) — inline, small; not a full-width banner -->
-    <div class="text-xs text-theme-secondary mb-4">
-      Visible para: Administrador, Finanzas
-    </div>
-
-    <!-- Filtros -->
     <UiCard variant="glass" class="mb-6">
-      <template #header>
-        <h2 class="text-lg font-semibold text-theme-primary">Filtros</h2>
-      </template>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-2">Desde</label>
-          <UiInput v-model="filters.from" type="date" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-2">Hasta</label>
-          <UiInput v-model="filters.to" type="date" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-2">Top N</label>
-          <UiInput v-model.number="filters.limit" type="number" min="1"
-max="50" />
-        </div>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <UiInput v-model="filters.from" label="Desde" type="date" />
+        <UiInput v-model="filters.to" label="Hasta" type="date" />
+        <UiInput v-model.number="filters.limit" label="Top N" type="number" min="1" max="50" />
         <div class="flex items-end">
-          <UiButton class="w-full" :disabled="loading" @click="loadStats">
-            {{ loading ? 'Cargando...' : 'Aplicar filtros' }}
+          <UiButton class="w-full" :disabled="loading" :loading="loading" @click="loadStats">
+            Aplicar filtros
           </UiButton>
         </div>
       </div>
     </UiCard>
 
-    <!-- Loading state (EC-004) — 3 card skeletons + 6 list skeletons -->
-    <template v-if="loading">
-      <div class="space-y-6" aria-busy="true" aria-live="polite">
-        <section aria-label="Cargando resumen">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <UiSkeleton variant="card" />
-            <UiSkeleton variant="card" />
-            <UiSkeleton variant="card" />
-          </div>
-        </section>
-        <section aria-label="Cargando tabla y distribución">
-          <UiSkeleton variant="list" />
-          <UiSkeleton variant="list" />
-          <UiSkeleton variant="list" />
-          <UiSkeleton variant="list" />
-          <UiSkeleton variant="list" />
-          <UiSkeleton variant="list" />
-        </section>
+    <div v-if="loading" data-stats-loading class="space-y-6" aria-busy="true">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <UiSkeleton v-for="card in 3" :key="card" variant="card" />
       </div>
-    </template>
-
-    <!-- Resumen del catalogo (EC-002 KPI anatomy) -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <UiCard
-        variant="glass"
-        data-stat-card="total-procedures"
-        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-      >
-        <div class="min-w-0 flex-1">
-          <div class="h-4 flex items-center">
-            <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
-              Total procedimientos
-            </p>
-          </div>
-          <div class="h-12 flex items-center">
-            <p
-              class="text-5xl font-bold text-label tabular-nums leading-none"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ stats?.catalog?.total ?? 0 }}
-            </p>
-          </div>
-          <div class="h-6 min-h-[24px]" />
-          <div class="h-4 flex items-center">
-            <p class="text-xs text-theme-secondary truncate">
-              {{ stats?.catalog?.total ?? 0 }} en el catálogo
-            </p>
-          </div>
-        </div>
-      </UiCard>
-      <UiCard
-        variant="glass"
-        data-stat-card="active"
-        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-      >
-        <div class="min-w-0 flex-1">
-          <div class="h-4 flex items-center">
-            <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
-              Activos
-            </p>
-          </div>
-          <div class="h-12 flex items-center">
-            <p
-              class="text-5xl font-bold text-systemGreen-600 tabular-nums leading-none"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ stats?.catalog?.active ?? 0 }}
-            </p>
-          </div>
-          <div class="h-6 min-h-[24px]" />
-          <div class="h-4 flex items-center">
-            <p class="text-xs text-theme-secondary truncate">
-              disponibles para uso clínico
-            </p>
-          </div>
-        </div>
-      </UiCard>
-      <UiCard
-        variant="glass"
-        data-stat-card="inactive"
-        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
-      >
-        <div class="min-w-0 flex-1">
-          <div class="h-4 flex items-center">
-            <p class="text-[11px] font-medium text-theme-secondary uppercase whitespace-nowrap">
-              Inactivos
-            </p>
-          </div>
-          <div class="h-12 flex items-center">
-            <p
-              class="text-5xl font-bold text-label tabular-nums leading-none"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ stats?.catalog?.inactive ?? 0 }}
-            </p>
-          </div>
-          <div class="h-6 min-h-[24px]" />
-          <div class="h-4 flex items-center">
-            <p class="text-xs text-theme-secondary truncate">
-              fuera del flujo clínico
-            </p>
-          </div>
-        </div>
-      </UiCard>
+      <UiSkeleton variant="list" />
+      <UiSkeleton variant="list" />
     </div>
 
-    <!-- Top procedimientos -->
-    <UiCard variant="glass" class="mb-6">
-      <template #header>
-        <h2 class="text-lg font-semibold text-theme-primary">
-          Top {{ stats?.top_procedures?.length || 0 }} procedimientos más usados
-        </h2>
-      </template>
-      <UiEmptyState
-        v-if="!stats?.top_procedures?.length"
-        title="Sin datos"
-        description="No hay datos para el período seleccionado."
-      />
-      <table v-else class="w-full">
-        <thead class="text-left text-sm text-theme-secondary border-b border-[color:var(--color-hairline)]">
-          <tr>
-            <th class="py-2">#</th>
-            <th class="py-2">Código</th>
-            <th class="py-2">Nombre</th>
-            <th class="py-2 text-right">Usos</th>
-            <th class="py-2 text-right">Cantidad total</th>
-            <th class="py-2 text-right">Ingresos S/</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(proc, idx) in stats.top_procedures"
-            :key="proc.procedure_id"
-            class="border-b border-[color:var(--color-hairline)]"
-          >
-            <td class="py-2 text-theme-secondary">
-              {{ idx + 1 }}
-            </td>
-            <td class="py-2 font-mono text-theme-primary">
-              {{ proc.code }}
-            </td>
-            <td class="py-2 text-theme-primary">
-              {{ proc.name }}
-            </td>
-            <td
-              class="py-2 text-right text-theme-primary tabular-nums"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ proc.usage_count }}
-            </td>
-            <td
-              class="py-2 text-right text-theme-primary tabular-nums"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ proc.total_quantity }}
-            </td>
-            <td
-              class="py-2 text-right text-theme-primary tabular-nums"
-              style="font-feature-settings: var(--font-features-tabular-nums)"
-            >
-              {{ formatPENLabel(proc.total_revenue) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </UiCard>
-
-    <!-- Por especialidad -->
-    <UiCard variant="glass">
-      <template #header>
-        <h2 class="text-lg font-semibold text-theme-primary">Distribución por especialidad</h2>
-      </template>
-      <UiEmptyState
-        v-if="!stats?.by_specialty?.length"
-        title="Sin datos"
-        description="No hay datos para el período seleccionado."
-      />
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="spec in stats.by_specialty"
-          :key="spec.specialty_id || 'sin'"
-          class="p-4 rounded-[var(--radius-control)] border border-[color:var(--color-hairline)] bg-theme-surface-elevated"
-        >
-          <p class="text-sm text-theme-secondary">
-            {{ spec.specialty_name || 'Sin especialidad' }}
-          </p>
-          <p
-            class="text-2xl font-bold text-theme-primary mt-1 tabular-nums"
-            style="font-feature-settings: var(--font-features-tabular-nums)"
-          >{{ spec.usage_count }} usos</p>
-          <p
-            class="text-sm text-theme-secondary mt-1 tabular-nums"
-            style="font-feature-settings: var(--font-features-tabular-nums)"
-          >{{ formatPENLabel(spec.total_revenue) }}</p>
-        </div>
-      </div>
-    </UiCard>
-
-    <!-- Error banner (EC-006 — systemRed ramp) -->
     <div
-      v-if="error"
-      class="mt-4 p-4 bg-systemRed-50 border border-systemRed-200 rounded-lg text-systemRed-700"
+      v-else-if="error"
+      data-stats-error
+      role="alert"
+      class="rounded-ios bg-systemRed-50 p-10 text-center"
+      style="border: 1px solid var(--color-hairline)"
     >
-      {{ error }}
+      <ExclamationTriangleIcon
+        class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
+        aria-hidden="true"
+      />
+      <p class="text-base font-medium text-theme-primary">
+        No pudimos cargar las estadísticas del catálogo
+      </p>
+      <p class="mt-1 max-w-md mx-auto text-sm text-theme-secondary">{{ error }}</p>
+      <div class="mt-6">
+        <UiButton variant="primary" size="md" data-retry-stats @click="loadStats">
+          Reintentar
+        </UiButton>
+      </div>
     </div>
+
+    <template v-else>
+      <section aria-label="Resumen del catálogo" class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-stat-card="total-procedures"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Total procedimientos</p>
+          <p class="mt-2 text-3xl font-bold text-label tabular-nums leading-none">
+            {{ stats?.catalog?.total ?? 0 }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary">En el catálogo</p>
+        </UiCard>
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-stat-card="active"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Activos</p>
+          <p class="mt-2 text-3xl font-bold text-systemGreen-600 tabular-nums leading-none">
+            {{ stats?.catalog?.active ?? 0 }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary">Disponibles para uso clínico</p>
+        </UiCard>
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-stat-card="inactive"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Inactivos</p>
+          <p class="mt-2 text-3xl font-bold text-theme-secondary tabular-nums leading-none">
+            {{ stats?.catalog?.inactive ?? 0 }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary">Fuera del flujo clínico</p>
+        </UiCard>
+      </section>
+
+      <UiCard variant="glass" class="mb-6 overflow-hidden">
+        <div class="border-b border-hairline p-6">
+          <h2 class="text-2xl font-semibold text-label">
+            Top {{ stats?.top_procedures?.length || 0 }} procedimientos más usados
+          </h2>
+          <p class="mt-1 text-sm text-theme-secondary">
+            Del {{ formatDate(stats?.period?.from) }} al {{ formatDate(stats?.period?.to) }}
+          </p>
+        </div>
+        <UiEmptyState
+          v-if="!stats?.top_procedures?.length"
+          title="Sin datos"
+          description="No hay datos para el período seleccionado."
+        />
+        <div v-else class="overflow-x-auto">
+          <table class="w-full min-w-[640px] divide-y divide-hairline">
+            <thead class="bg-theme-surface">
+              <tr>
+                <th
+                  class="w-12 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  #
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Código
+                </th>
+                <th
+                  class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Nombre
+                </th>
+                <th
+                  class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Usos
+                </th>
+                <th
+                  class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Cantidad
+                </th>
+                <th
+                  class="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-theme-secondary"
+                >
+                  Ingresos
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
+              <tr
+                v-for="(procedure, index) in stats.top_procedures"
+                :key="procedure.procedure_id"
+                data-top-row
+              >
+                <td class="px-4 py-3 text-sm tabular-nums text-theme-secondary">{{ index + 1 }}</td>
+                <td class="px-4 py-3 font-mono text-xs text-theme-secondary">
+                  {{ procedure.code }}
+                </td>
+                <td class="px-4 py-3 text-sm font-medium text-theme-primary">
+                  {{ procedure.name }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                  {{ procedure.usage_count }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                  {{ procedure.total_quantity }}
+                </td>
+                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                  {{ formatPENLabel(procedure.total_revenue) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </UiCard>
+
+      <UiCard variant="glass">
+        <div class="border-b border-hairline p-6">
+          <h2 class="text-2xl font-semibold text-label">Distribución por especialidad</h2>
+          <p class="mt-1 text-sm text-theme-secondary">Uso clínico agrupado por especialidad</p>
+        </div>
+        <div class="p-6">
+          <UiEmptyState
+            v-if="!stats?.by_specialty?.length"
+            title="Sin datos"
+            description="No hay datos para el período seleccionado."
+          />
+          <div v-else class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div
+              v-for="specialty in stats.by_specialty"
+              :key="specialty.specialty_id || 'without-specialty'"
+              data-specialty-card
+              class="rounded-panel border border-hairline bg-theme-surface-elevated p-4"
+            >
+              <p class="text-sm text-theme-secondary">
+                {{ specialty.specialty_name || 'Sin especialidad' }}
+              </p>
+              <p class="mt-1 text-2xl font-bold text-label tabular-nums">
+                {{ specialty.usage_count }} usos
+              </p>
+              <p class="mt-1 text-sm text-theme-secondary tabular-nums">
+                {{ formatPENLabel(specialty.total_revenue) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </UiCard>
+    </template>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ArrowLeftIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useApi } from '@/composables/useApi'
 import { formatPENLabel } from '@/composables/useFormatters'
+import AppLayout from '../../components/layout/AppLayout.vue'
+import UiButton from '../../components/ui/Button.vue'
+import UiCard from '../../components/ui/Card.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
 
+const router = useRouter()
 const { get } = useApi()
 
 const filters = ref({
@@ -262,6 +261,12 @@ const filters = ref({
 const stats = ref(null)
 const loading = ref(false)
 const error = ref(null)
+
+const formatDate = value => {
+  if (!value) return 'sin fecha'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-PE')
+}
 
 const buildQuery = () => {
   const params = new URLSearchParams()
@@ -278,14 +283,14 @@ const loadStats = async () => {
     const response = await get(`/api/admin/procedure-stats?${buildQuery()}`)
     stats.value = response.data || null
   } catch (err) {
-    error.value = err.response?.data?.message || 'Error al cargar estadísticas'
+    error.value = err.response?.data?.message || 'Error al cargar las estadísticas del catálogo'
     stats.value = null
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  loadStats()
-})
+const goBack = () => router.push('/procedure-catalog')
+
+onMounted(loadStats)
 </script>
