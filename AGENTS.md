@@ -108,7 +108,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 111 migraciones
+  migrations/              # 113 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -295,6 +295,8 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-19 (appointment-types audit)** — §4 sincronizado con el valor medido: 113 migraciones (nueva migración que fija `requires_confirmation` por defecto en `appointment_types`). Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-19 (procedure-catalog-ui-redesign)** — Interfaz del catálogo de procedimientos rediseñada al lenguaje del dashboard en sus cuatro superficies (`/procedure-catalog` lista y detalle, `/procedure-stats`, `/my-procedures`, `/reception-procedures`). §4 sincronizado: 198 rutas API (añadidas `GET procedure-catalog/summary` y `GET procedure-catalog/{id}/versions`), 211 totales con web. Endpoints aditivos; sin migraciones. Tests: `ProcedureCatalogSummaryVersionsTest` (6 tests, MySQL) y smoke JS del módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
 
