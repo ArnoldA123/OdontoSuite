@@ -263,16 +263,24 @@ class ProcedureStatsReportTest extends TestCase
 
     public function test_catalog_totals_ignore_the_period(): void
     {
+        // Baseline first: sibling suites may leave catalog rows behind, so the
+        // rule is asserted as a delta, never as an absolute count.
+        $baseline = [
+            'total' => ProcedureCatalog::count(),
+            'active' => ProcedureCatalog::where('is_active', true)->count(),
+            'inactive' => ProcedureCatalog::where('is_active', false)->count(),
+        ];
+
         $admin = $this->admin();
         $this->catalog('S44-ACT-1');
         $this->catalog('S44-ACT-2');
         $this->catalog('S44-INA', null, false);
 
-        $stats = $this->stats($admin, ['from' => '2026-01-01', 'to' => '2026-01-02']);
+        $stats = $this->stats($admin, ['from' => '2031-05-01', 'to' => '2031-05-31']);
 
-        $this->assertSame(3, $stats['catalog']['total']);
-        $this->assertSame(2, $stats['catalog']['active']);
-        $this->assertSame(1, $stats['catalog']['inactive']);
+        $this->assertSame($baseline['total'] + 3, $stats['catalog']['total']);
+        $this->assertSame($baseline['active'] + 2, $stats['catalog']['active']);
+        $this->assertSame($baseline['inactive'] + 1, $stats['catalog']['inactive']);
     }
 
     public function test_top_procedures_order_by_usage_and_respect_limit(): void
@@ -281,7 +289,7 @@ class ProcedureStatsReportTest extends TestCase
         $most = $this->catalog('S44-MOST');
         $mid = $this->catalog('S44-MID');
         $least = $this->catalog('S44-LEAST');
-        $plan = $this->plan($admin, 'approved', '2026-10-10 10:00:00');
+        $plan = $this->plan($admin, 'approved', '2031-05-10 10:00:00');
 
         foreach ([[$most, 3], [$mid, 2], [$least, 1]] as [$catalog, $count]) {
             for ($i = 0; $i < $count; $i++) {
@@ -289,7 +297,7 @@ class ProcedureStatsReportTest extends TestCase
             }
         }
 
-        $stats = $this->stats($admin, ['from' => '2026-10-01', 'to' => '2026-10-31', 'limit' => 2]);
+        $stats = $this->stats($admin, ['from' => '2031-05-01', 'to' => '2031-05-31', 'limit' => 2]);
 
         $codes = array_map(fn ($row) => $row['code'], $stats['top_procedures']);
         $this->assertCount(2, $codes, 'S4.4: `limit` caps the number of rows.');
@@ -312,10 +320,10 @@ class ProcedureStatsReportTest extends TestCase
     {
         $admin = $this->admin();
         $catalog = $this->catalog('S44-NOSPEC');
-        $plan = $this->plan($admin, 'approved', '2026-10-10 10:00:00');
+        $plan = $this->plan($admin, 'approved', '2031-05-10 10:00:00');
         $this->item($plan, $catalog);
 
-        $stats = $this->stats($admin, ['from' => '2026-10-01', 'to' => '2026-10-31']);
+        $stats = $this->stats($admin, ['from' => '2031-05-01', 'to' => '2031-05-31']);
 
         $row = $this->specialtyRow($stats, null);
         $this->assertNotNull($row, 'S4.4: items without a specialty MUST keep their own bucket.');
