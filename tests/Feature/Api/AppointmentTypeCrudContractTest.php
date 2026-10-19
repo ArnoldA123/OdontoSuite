@@ -169,18 +169,21 @@ class AppointmentTypeCrudContractTest extends TestCase
         ]);
     }
 
-    public function test_store_keeps_the_catalog_flag_defaults_when_omitted(): void
+    public function test_store_defaults_to_confirming_appointment_types(): void
     {
+        // Decision D1 (2026-10-19): appointments confirm by default, so the
+        // schema default agrees with the seeded catalog instead of contradicting
+        // it. Materials and consultation mode stay off.
         $response = $this->actingAs($this->admin(), 'sanctum')->postJson('/api/appointment-types', [
             'name' => 'Control',
             'duration_minutes' => 30,
             'color' => '#3B82F6',
         ]);
 
-        $response->assertCreated();
+        $response->assertCreated()->assertJsonPath('data.requires_confirmation', true);
         $this->assertDatabaseHas('appointment_types', [
             'name' => 'Control',
-            'requires_confirmation' => false,
+            'requires_confirmation' => true,
             'requires_materials' => false,
             'is_consultation_mode' => false,
         ]);

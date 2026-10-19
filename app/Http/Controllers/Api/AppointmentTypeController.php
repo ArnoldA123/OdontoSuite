@@ -112,6 +112,9 @@ class AppointmentTypeController extends Controller
             }
 
             $type = AppointmentType::create($validated);
+            // The response is the persisted resource: fields omitted by the
+            // caller (the flags) carry their schema default, not null.
+            $type->refresh();
 
             // Log audit
             if (Auth::check()) {

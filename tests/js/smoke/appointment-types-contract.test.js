@@ -187,14 +187,14 @@ describe('appointment-types CRUD contract', () => {
     wrapper.unmount()
   })
 
-  it('exposes the three catalog flags in the create modal and starts them at false', async () => {
+  it('exposes the three catalog flags in the create modal and starts confirmation on', async () => {
     const wrapper = await mountPage([makeType(1, { name: 'Limpieza dental' })])
     await openNewModal(wrapper)
 
     expect(document.body.textContent).toContain('Requiere confirmación')
     expect(document.body.textContent).toContain('Requiere materiales')
     expect(document.body.textContent).toContain('Modo consulta')
-    expect(flagLabel('requires_confirmation')).toBe('No')
+    expect(flagLabel('requires_confirmation')).toBe('Sí')
     expect(flagLabel('requires_materials')).toBe('No')
     expect(flagLabel('is_consultation_mode')).toBe('No')
 
