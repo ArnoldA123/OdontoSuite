@@ -200,7 +200,7 @@
               <UiSelect
                 v-model="specialtyFilter"
                 data-professionals-specialty-filter
-                :options="specialtyOptions"
+                :options="specialtyFilterOptions"
                 placeholder="Todas las especialidades"
                 class="w-64"
               />
@@ -453,7 +453,7 @@
       <UiInput v-model="editingProfessional.phone" label="Teléfono" type="tel" />
       <UiSelect
         v-model="editingProfessional.specialty"
-        :options="specialtyOptions"
+        :options="editSpecialtyOptions"
         label="Especialidad"
         placeholder="Seleccionar especialidad"
       />
@@ -532,6 +532,25 @@ const newProfessional = ref({
 const getSpecialtyText = specialty => {
   return SPECIALTY_LABELS[specialty] || specialty
 }
+
+const specialtyFilterOptions = computed(() => {
+  const options = [...SPECIALTY_OPTIONS]
+  const known = new Set(SPECIALTY_OPTIONS.map(option => option.value))
+  for (const member of team.value) {
+    const specialty = typeof member.specialty === 'string' ? member.specialty.trim() : ''
+    if (!specialty || known.has(specialty)) continue
+    known.add(specialty)
+    options.push({ value: specialty, label: getSpecialtyText(specialty) })
+  }
+  return options
+})
+
+const editSpecialtyOptions = computed(() => {
+  const current = editingProfessional.value?.specialty
+  if (!current) return SPECIALTY_OPTIONS
+  if (SPECIALTY_OPTIONS.some(option => option.value === current)) return SPECIALTY_OPTIONS
+  return [...SPECIALTY_OPTIONS, { value: current, label: getSpecialtyText(current) }]
+})
 
 const roleOptions = CLINICAL_ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] || role }))
 

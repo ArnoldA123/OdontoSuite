@@ -417,6 +417,41 @@ describe('professionals smoke', () => {
     wrapper.unmount()
   })
 
+  it('labels every specialty code stored in the database and offers them in the filter', async () => {
+    installTeam([
+      makeUser(1, { name: 'Ana Torres', specialty: 'implantology' }),
+      makeUser(2, { name: 'Beto Salas', specialty: 'dental_technician' }),
+      makeUser(3, { name: 'Carla Díaz', specialty: 'general' })
+    ])
+    const wrapper = await mountPage()
+
+    const rows = wrapper.findAll('[data-team-row]')
+    expect(rows).toHaveLength(3)
+    expect(rows[0].text()).toContain('Implantología')
+    expect(rows[1].text()).toContain('Técnico Dental')
+    expect(wrapper.text()).not.toContain('implantology')
+    expect(wrapper.text()).not.toContain('dental_technician')
+
+    const filter = wrapper.find('[data-professionals-specialty-filter]')
+    const labels = await openSelect(filter)
+    expect(labels).toContain('Implantología')
+    expect(labels).toContain('Técnico Dental')
+
+    const technicalOption = filter
+      .findAll('[role="listbox"] button')
+      .find(button => button.text().trim() === 'Técnico Dental')
+    expect(technicalOption).toBeTruthy()
+    if (!technicalOption) return
+
+    await technicalOption.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Beto Salas')
+
+    wrapper.unmount()
+  })
+
   it('submits the edited values including the selected role to PUT /api/users/{id}', async () => {
     installTeam(TEAM)
     const wrapper = await mountPage({ stubs: { teleport: true } })
