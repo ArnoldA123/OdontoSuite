@@ -53,10 +53,16 @@
       </div>
     </UiCard>
 
-    <div v-if="loading" data-stats-loading class="space-y-6" aria-busy="true">
+    <div v-if="loading" data-stats-loading class="space-y-6" aria-busy="true" aria-live="polite">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <UiSkeleton v-for="card in 3" :key="card" variant="card" />
+        <UiSkeleton variant="card" />
+        <UiSkeleton variant="card" />
+        <UiSkeleton variant="card" />
       </div>
+      <UiSkeleton variant="list" />
+      <UiSkeleton variant="list" />
+      <UiSkeleton variant="list" />
+      <UiSkeleton variant="list" />
       <UiSkeleton variant="list" />
       <UiSkeleton variant="list" />
     </div>
@@ -65,8 +71,7 @@
       v-else-if="error"
       data-stats-error
       role="alert"
-      class="rounded-ios bg-systemRed-50 p-10 text-center"
-      style="border: 1px solid var(--color-hairline)"
+      class="rounded-ios bg-systemRed-50 border border-systemRed-200 p-10 text-center text-systemRed-700"
     >
       <ExclamationTriangleIcon
         class="mx-auto h-12 w-12 mb-4 text-systemRed-600"
@@ -92,7 +97,10 @@
           :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
         >
           <p class="text-xs font-medium uppercase text-theme-secondary">Total procedimientos</p>
-          <p class="mt-2 text-3xl font-bold text-label tabular-nums leading-none">
+          <p
+            class="mt-2 text-3xl font-bold text-label tabular-nums leading-none"
+            style="font-feature-settings: var(--font-features-tabular-nums)"
+          >
             {{ stats?.catalog?.total ?? 0 }}
           </p>
           <p class="mt-1 text-xs text-theme-secondary">En el catálogo</p>
@@ -104,7 +112,10 @@
           :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
         >
           <p class="text-xs font-medium uppercase text-theme-secondary">Activos</p>
-          <p class="mt-2 text-3xl font-bold text-systemGreen-600 tabular-nums leading-none">
+          <p
+            class="mt-2 text-3xl font-bold text-systemGreen-600 tabular-nums leading-none"
+            style="font-feature-settings: var(--font-features-tabular-nums)"
+          >
             {{ stats?.catalog?.active ?? 0 }}
           </p>
           <p class="mt-1 text-xs text-theme-secondary">Disponibles para uso clínico</p>
@@ -116,7 +127,10 @@
           :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
         >
           <p class="text-xs font-medium uppercase text-theme-secondary">Inactivos</p>
-          <p class="mt-2 text-3xl font-bold text-theme-secondary tabular-nums leading-none">
+          <p
+            class="mt-2 text-3xl font-bold text-theme-secondary tabular-nums leading-none"
+            style="font-feature-settings: var(--font-features-tabular-nums)"
+          >
             {{ stats?.catalog?.inactive ?? 0 }}
           </p>
           <p class="mt-1 text-xs text-theme-secondary">Fuera del flujo clínico</p>
@@ -179,20 +193,34 @@
                 :key="procedure.procedure_id"
                 data-top-row
               >
-                <td class="px-4 py-3 text-sm tabular-nums text-theme-secondary">{{ index + 1 }}</td>
+                <td
+                  class="px-4 py-3 text-sm tabular-nums text-theme-secondary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
+                  {{ index + 1 }}
+                </td>
                 <td class="px-4 py-3 font-mono text-xs text-theme-secondary">
                   {{ procedure.code }}
                 </td>
                 <td class="px-4 py-3 text-sm font-medium text-theme-primary">
                   {{ procedure.name }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                <td
+                  class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
                   {{ procedure.usage_count }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                <td
+                  class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
                   {{ procedure.total_quantity }}
                 </td>
-                <td class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary">
+                <td
+                  class="px-4 py-3 text-right text-sm tabular-nums text-theme-primary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
                   {{ formatPENLabel(procedure.total_revenue) }}
                 </td>
               </tr>
@@ -217,15 +245,21 @@
               v-for="specialty in stats.by_specialty"
               :key="specialty.specialty_id || 'without-specialty'"
               data-specialty-card
-              class="rounded-panel border border-hairline bg-theme-surface-elevated p-4"
+              class="rounded-[var(--radius-control)] border border-[color:var(--color-hairline)] bg-theme-surface-elevated p-4"
             >
               <p class="text-sm text-theme-secondary">
                 {{ specialty.specialty_name || 'Sin especialidad' }}
               </p>
-              <p class="mt-1 text-2xl font-bold text-label tabular-nums">
+              <p
+                class="mt-1 text-2xl font-bold text-label tabular-nums"
+                style="font-feature-settings: var(--font-features-tabular-nums)"
+              >
                 {{ specialty.usage_count }} usos
               </p>
-              <p class="mt-1 text-sm text-theme-secondary tabular-nums">
+              <p
+                class="mt-1 text-sm text-theme-secondary tabular-nums"
+                style="font-feature-settings: var(--font-features-tabular-nums)"
+              >
                 {{ formatPENLabel(specialty.total_revenue) }}
               </p>
             </div>

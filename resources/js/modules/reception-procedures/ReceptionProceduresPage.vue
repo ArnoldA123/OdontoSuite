@@ -146,7 +146,7 @@
         data-procedure-card
       >
         <div class="flex items-start justify-between gap-2">
-          <UiStatusBadge variant="info" :label="procedure.code" size="sm" />
+          <UiBadge variant="primary" size="sm" class="tabular-nums">{{ procedure.code }}</UiBadge>
           <span class="text-xs text-theme-secondary">
             {{ procedure.specialty_name || 'General' }}
           </span>
@@ -164,7 +164,10 @@
           </div>
           <div class="text-right">
             <p class="text-xs text-theme-secondary">Precio</p>
-            <p class="text-lg font-bold text-systemBlue-600 tabular-nums">
+            <p
+              class="text-lg font-bold text-systemBlue-600 tabular-nums"
+              style="font-feature-settings: var(--font-features-tabular-nums)"
+            >
               {{ formatCurrency(procedure.default_cost) }}
             </p>
           </div>
@@ -195,12 +198,12 @@ import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useSpecialties } from '../../composables/useSpecialties'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
-import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 import Pagination from '../../components/ui/Pagination.vue'
 

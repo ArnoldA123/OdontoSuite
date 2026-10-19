@@ -55,37 +55,48 @@
     <div v-else class="space-y-6">
       <section data-favorites-section aria-label="Mis favoritos">
         <div class="mb-3 flex items-baseline gap-3">
-          <h2 class="text-2xl font-semibold text-label">Mis favoritos</h2>
+          <h2 class="flex items-center gap-2 text-2xl font-semibold text-label">
+            <StarIcon class="h-5 w-5 text-systemYellow-500" aria-hidden="true" />
+            Mis favoritos
+          </h2>
           <p class="text-sm text-theme-secondary">Tu acceso rápido, en el orden que elijas</p>
         </div>
 
         <UiCard variant="glass">
           <div v-if="loading && !favorites.length" class="py-8">
-            <LoadingSpinner text="Cargando favoritos..." />
+            <UiLoadingSpinner text="Cargando favoritos..." />
           </div>
           <UiEmptyState
             v-else-if="!favorites.length"
             title="Sin favoritos"
             description="Marca los procedimientos que uses con frecuencia para tenerlos a mano."
           />
-          <ul v-else class="divide-y divide-hairline" data-favorites-list>
+          <ul
+            v-else
+            class="divide-y divide-hairline rounded-[var(--radius-control)]"
+            data-favorites-list
+          >
             <li
               v-for="(favorite, index) in favorites"
               :key="favorite.id"
               data-favorite-row
-              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-canvas"
             >
               <span
-                class="w-8 flex-shrink-0 text-center text-sm font-semibold text-theme-secondary tabular-nums"
+                class="w-8 flex-shrink-0 rounded-full bg-systemBlue-50 px-2 py-1 text-center text-sm font-semibold text-systemBlue-700 tabular-nums"
+                style="font-feature-settings: var(--font-features-tabular-nums)"
               >
                 {{ index + 1 }}
               </span>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-mono text-xs text-theme-secondary">{{ favorite.code }}</span>
+                  <span class="text-xs tabular-nums text-theme-secondary">{{ favorite.code }}</span>
                   <p class="truncate text-sm font-medium text-theme-primary">{{ favorite.name }}</p>
                 </div>
-                <p class="mt-0.5 text-xs text-theme-secondary">
+                <p
+                  class="mt-0.5 text-xs tabular-nums text-theme-secondary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
                   {{ favorite.specialty_name || 'Sin especialidad' }} ·
                   {{ favorite.default_duration_minutes }} min ·
                   {{ formatCurrency(favorite.default_cost) }}
@@ -96,6 +107,7 @@
                   variant="ghost"
                   size="sm"
                   :disabled="index === 0"
+                  class="disabled:opacity-40 focus-visible:shadow-[var(--focus-ring-default)]"
                   title="Subir"
                   aria-label="Subir favorito"
                   @click="moveFav(index, -1)"
@@ -106,6 +118,7 @@
                   variant="ghost"
                   size="sm"
                   :disabled="index === favorites.length - 1"
+                  class="disabled:opacity-40 focus-visible:shadow-[var(--focus-ring-default)]"
                   title="Bajar"
                   aria-label="Bajar favorito"
                   @click="moveFav(index, 1)"
@@ -115,7 +128,7 @@
                 <UiButton
                   variant="ghost"
                   size="sm"
-                  class="text-systemRed-600 hover:text-systemRed-700"
+                  class="text-systemRed-500 hover:text-systemRed-700 focus-visible:shadow-[var(--focus-ring-default)]"
                   title="Quitar de favoritos"
                   aria-label="Quitar de favoritos"
                   @click="removeFav(favorite)"
@@ -147,11 +160,11 @@
               v-for="procedure in suggested"
               :key="procedure.id"
               data-suggestion-row
-              class="rounded-panel border border-hairline bg-theme-surface-elevated p-4"
+              class="rounded-[var(--radius-control)] border border-hairline bg-theme-surface-elevated p-4"
             >
               <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
-                  <p class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</p>
+                  <p class="text-xs tabular-nums text-theme-secondary">{{ procedure.code }}</p>
                   <p class="mt-1 truncate text-sm font-medium text-theme-primary">
                     {{ procedure.name }}
                   </p>
@@ -168,7 +181,10 @@
                   Favorito
                 </UiButton>
               </div>
-              <p class="mt-2 text-xs text-theme-secondary">
+              <p
+                class="mt-2 text-xs tabular-nums text-theme-secondary"
+                style="font-feature-settings: var(--font-features-tabular-nums)"
+              >
                 {{ procedure.specialty_name || 'Sin especialidad' }} ·
                 {{ procedure.default_duration_minutes }} min ·
                 {{ formatCurrency(procedure.default_cost) }}
@@ -187,9 +203,9 @@
         </div>
 
         <UiCard variant="glass">
-          <div class="max-w-xl">
+          <div class="relative max-w-xl rounded-[var(--radius-control)]">
             <UiInput
-              v-model="explorerTerm"
+              v-model="search"
               data-explore-search
               placeholder="Buscar por nombre o código..."
               class="w-full"
@@ -201,36 +217,44 @@
           </div>
 
           <div v-if="explorerLoading" class="py-6">
-            <LoadingSpinner text="Buscando procedimientos..." />
+            <UiLoadingSpinner text="Buscando procedimientos..." />
           </div>
           <div
             v-else-if="explorerError"
             data-explorer-error
             role="alert"
-            class="mt-4 rounded-control bg-systemRed-50 p-4 text-sm text-systemRed-700"
+            class="mt-4 rounded-[var(--radius-control)] bg-systemRed-50 p-4 text-sm text-systemRed-700"
           >
             No pudimos buscar en el catálogo. Inténtalo de nuevo.
           </div>
           <UiEmptyState
-            v-else-if="explorerTerm.trim() && !explorerResults.length"
+            v-else-if="search.trim() && !explorerResults.length"
             title="Sin resultados"
             description="Ningún procedimiento activo coincide con tu búsqueda."
           />
-          <ul v-else-if="explorerResults.length" class="mt-4 divide-y divide-hairline">
+          <ul
+            v-else-if="explorerResults.length"
+            class="mt-4 divide-y divide-hairline rounded-[var(--radius-control)]"
+          >
             <li
               v-for="procedure in explorerResults"
               :key="procedure.id"
               data-explorer-row
-              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-canvas"
             >
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</span>
+                  <span class="text-xs tabular-nums text-theme-secondary">
+                    {{ procedure.code }}
+                  </span>
                   <p class="truncate text-sm font-medium text-theme-primary">
                     {{ procedure.name }}
                   </p>
                 </div>
-                <p class="mt-0.5 text-xs text-theme-secondary">
+                <p
+                  class="mt-0.5 text-xs tabular-nums text-theme-secondary"
+                  style="font-feature-settings: var(--font-features-tabular-nums)"
+                >
                   {{ procedure.specialty_name || 'Sin especialidad' }} ·
                   {{ procedure.default_duration_minutes }} min ·
                   {{ formatCurrency(procedure.default_cost) }}
@@ -269,6 +293,7 @@ import {
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  StarIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '../../composables/useApi'
@@ -281,7 +306,7 @@ import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiStatusBadge from '../../components/ui/StatusBadge.vue'
-import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 
 const router = useRouter()
 const { get } = useApi()
@@ -299,7 +324,7 @@ const {
 } = useProcedureFavorites()
 
 const loadError = ref(false)
-const explorerTerm = ref('')
+const search = ref('')
 const explorerResults = ref([])
 const explorerLoading = ref(false)
 const explorerError = ref(false)
@@ -366,7 +391,7 @@ const searchCatalog = async term => {
   }
 }
 
-watch(explorerTerm, value => {
+watch(search, value => {
   clearTimeout(explorerTimer)
   const term = value.trim()
   if (!term) {
