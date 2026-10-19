@@ -35,6 +35,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import { useToast } from '../../../resources/js/composables/useToast'
+import { useConfirm } from '../../../resources/js/composables/useConfirm'
 import Page from '../../../resources/js/modules/environments/EnvironmentsPage.vue'
 
 const rowActive = {
@@ -43,7 +44,8 @@ const rowActive = {
   name: 'Consultorio Norte',
   description: 'Box 1',
   equipment: 'Unidad dental',
-  status: 'active'
+  status: 'active',
+  is_active: true
 }
 const rowMaintenance = {
   id: 2,
@@ -51,7 +53,8 @@ const rowMaintenance = {
   name: 'Sala de Esterilizacion',
   description: 'Area de autoclave',
   equipment: 'Autoclave',
-  status: 'maintenance'
+  status: 'maintenance',
+  is_active: true
 }
 const rowInactive = {
   id: 3,
@@ -59,7 +62,18 @@ const rowInactive = {
   name: 'Recepcion',
   description: null,
   equipment: null,
-  status: 'inactive'
+  status: 'inactive',
+  is_active: true
+}
+
+const rowArchived = {
+  id: 4,
+  code: 'AMB-04',
+  name: 'Consultorio Historico',
+  description: 'Archivado',
+  equipment: 'Unidad dental',
+  status: 'maintenance',
+  is_active: false
 }
 
 let pageRouter = null
@@ -75,8 +89,8 @@ const mountPage = async () => {
   return wrapper
 }
 
-const selectFilterOption = async (wrapper, label) => {
-  await wrapper.find('button[aria-haspopup="true"]').trigger('click')
+const selectFilterOption = async (wrapper, label, index = 0) => {
+  await wrapper.findAll('button[aria-haspopup="true"]')[index].trigger('click')
   const option = wrapper
     .findAll('[role="listbox"] button')
     .find(candidate => candidate.text().trim() === label)
@@ -117,7 +131,11 @@ const openModalStatusOptions = async form => {
   )
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Close any teleported dialog left by the previous test before its host
+  // container is discarded; otherwise the teleport anchors are stale.
+  useConfirm().handleCancel()
+  await flushPromises()
   vi.clearAllMocks()
   document.body.innerHTML = ''
   getMock.mockResolvedValue({ data: [] })
@@ -381,7 +399,8 @@ describe('environments modal surfaces (T3)', () => {
       name: 'Consultorio Sur',
       description: 'Box 1',
       equipment: 'Unidad dental',
-      status: 'active'
+      status: 'active',
+      is_active: true
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
@@ -444,7 +463,8 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
       name: 'Consultorio Norte',
       description: 'Box 1',
       equipment: 'Unidad dental + aspiracion',
-      status: 'active'
+      status: 'active',
+      is_active: true
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
@@ -632,6 +652,83 @@ describe('environments error messages (S6)', () => {
     expect(errorBlock(wrapper).text()).not.toContain(
       'Ocurrió un error en el servidor. Intenta nuevamente.'
     )
+    wrapper.unmount()
+  })
+})
+
+describe('environments archive management (S9)', () => {
+  it('requests only archived environments and offers reactivation', async () => {
+    getMock.mockResolvedValue({ data: [rowArchived] })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await flushPromises()
+
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs?archived=only')
+    expect(wrapper.text()).toContain('Consultorio Historico')
+    expect(wrapper.text()).toContain('Archivado')
+    expect(wrapper.text()).toContain('Reactivar')
+    expect(wrapper.text()).not.toContain('Archivar')
+    wrapper.unmount()
+  })
+
+  it('carries the archive visibility into search requests', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
+    await flushPromises()
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs/search?q=consult')
+
+    await selectFilterOption(wrapper, 'Incluir archivados', 1)
+    await flushPromises()
+
+    expect(getMock.mock.calls.at(-1)[0]).toBe(
+      '/api/dental-chairs/search?q=consult&archived=include'
+    )
+    wrapper.unmount()
+  })
+
+  it('archives an environment after confirmation', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    putMock.mockResolvedValue({ data: {} })
+    const wrapper = await mountPage()
+        await clickRowAction(wrapper, 'Archivar')
+    await flushPromises()
+
+    const dialog = findConfirmDialog()
+    expect(dialog, 'archive confirmation must open').toBeTruthy()
+    const confirmButton = [...dialog.querySelectorAll('button')].find(
+      button => button.textContent.trim() === 'Archivar'
+    )
+    confirmButton.click()
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/1', { is_active: false })
+    expect(wrapper.text()).toContain('Ambiente archivado exitosamente')
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs')
+    wrapper.unmount()
+  })
+
+  it('reactivates an archived environment without a confirmation dialog', async () => {
+    getMock.mockResolvedValue({ data: [rowArchived] })
+    putMock.mockResolvedValue({ data: {} })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await flushPromises()
+    await clickRowAction(wrapper, 'Reactivar')
+    await flushPromises()
+
+    expect(findConfirmDialog()).toBeFalsy()
+    expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/4', { is_active: true })
+    expect(wrapper.text()).toContain('Ambiente reactivado exitosamente')
     wrapper.unmount()
   })
 })

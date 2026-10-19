@@ -40,10 +40,19 @@ class DentalChairController extends Controller
     {
         $validated = $request->validate([
             'status' => 'sometimes|in:active,inactive,maintenance',
+            'archived' => 'sometimes|in:exclude,include,only',
         ]);
 
         try {
-            $query = DentalChair::where('is_active', true);
+            $query = DentalChair::query();
+
+            $archived = $validated['archived'] ?? 'exclude';
+
+            if ($archived === 'exclude') {
+                $query->where('is_active', true);
+            } elseif ($archived === 'only') {
+                $query->where('is_active', false);
+            }
 
             if (isset($validated['status'])) {
                 $query->where('status', $validated['status']);
@@ -365,10 +374,17 @@ class DentalChairController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'archived' => 'sometimes|in:exclude,include,only',
+        ]);
+
         try {
             $query = $request->get('q', '');
+            $archived = $validated['archived'] ?? 'exclude';
 
-            $chairs = DentalChair::where('is_active', true)
+            $chairs = DentalChair::query()
+                ->when($archived === 'exclude', fn ($q) => $q->where('is_active', true))
+                ->when($archived === 'only', fn ($q) => $q->where('is_active', false))
                 ->where(function ($q) use ($query) {
                     $q->where('name', 'like', "%{$query}%")
                       ->orWhere('description', 'like', "%{$query}%")

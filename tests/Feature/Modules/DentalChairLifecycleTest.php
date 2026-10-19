@@ -289,4 +289,67 @@ class DentalChairLifecycleTest extends TestCase
             collect($response->json('data'))->pluck('code')->all()
         );
     }
+
+    public function test_index_can_include_or_isolate_archived_environments(): void
+    {
+        $this->chair('AMB-LIVE', 'active');
+        $this->chair('AMB-ARCHIVED', 'maintenance', false);
+
+        $admin = $this->admin();
+
+        $default = $this->actingAs($admin, 'sanctum')->getJson('/api/dental-chairs');
+        $default->assertOk();
+        $this->assertSame(
+            ['AMB-LIVE'],
+            collect($default->json('data'))->pluck('code')->all()
+        );
+
+        $include = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/dental-chairs?archived=include');
+        $include->assertOk();
+        $this->assertSame(
+            ['AMB-ARCHIVED', 'AMB-LIVE'],
+            collect($include->json('data'))->pluck('code')->all()
+        );
+
+        $only = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/dental-chairs?archived=only');
+        $only->assertOk();
+        $this->assertSame(
+            ['AMB-ARCHIVED'],
+            collect($only->json('data'))->pluck('code')->all()
+        );
+    }
+
+    public function test_search_can_include_archived_environments(): void
+    {
+        $this->chair('AMB-LIVE', 'active');
+        $this->chair('AMB-ARCHIVED', 'maintenance', false);
+
+        $admin = $this->admin();
+
+        $default = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/dental-chairs/search?q=AMB');
+        $default->assertOk();
+        $this->assertSame(
+            ['AMB-LIVE'],
+            collect($default->json('data'))->pluck('code')->all()
+        );
+
+        $include = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/dental-chairs/search?q=AMB&archived=include');
+        $include->assertOk();
+        $this->assertSame(
+            ['AMB-ARCHIVED', 'AMB-LIVE'],
+            collect($include->json('data'))->pluck('code')->all()
+        );
+    }
+
+    public function test_invalid_archived_filter_returns_422(): void
+    {
+        $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/dental-chairs?archived=bogus')
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['archived']);
+    }
 }

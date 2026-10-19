@@ -47,6 +47,13 @@
             data-status-filter
             @change="filterEnvironments"
           />
+          <UiSelect
+            v-model="archivedFilter"
+            :options="archivedOptions"
+            class="w-56"
+            data-archived-filter
+            @change="filterArchived"
+          />
         </div>
       </div>
     </UiCard>
@@ -112,8 +119,9 @@
                 </span>
               </div>
             </div>
-            <div class="ml-4">
+            <div class="ml-4 flex items-center gap-2">
               <div class="text-sm font-medium text-theme-primary">{{ row.name }}</div>
+              <UiBadge v-if="!row.is_active" variant="neutral" size="sm">Archivado</UiBadge>
             </div>
           </div>
         </template>
@@ -138,6 +146,18 @@
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </template>
             Editar
+          </UiButton>
+          <UiButton v-if="row.is_active" variant="ghost" size="sm" @click="archiveEnvironment(row)">
+            <template #icon-left>
+              <ArchiveBoxIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Archivar
+          </UiButton>
+          <UiButton v-else variant="ghost" size="sm" @click="reactivateEnvironment(row)">
+            <template #icon-left>
+              <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Reactivar
           </UiButton>
           <UiButton
             variant="ghost"
@@ -352,7 +372,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  ArchiveBoxIcon,
   ArrowLeftIcon,
+  ArrowPathIcon,
   BuildingOffice2Icon,
   ExclamationTriangleIcon,
   EyeIcon,
@@ -369,6 +391,7 @@ import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -392,6 +415,7 @@ const loadErrorMessage = ref('')
 const sourceRows = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
+const archivedFilter = ref('exclude')
 const showNewEnvironmentModal = ref(false)
 const showEditEnvironmentModal = ref(false)
 const editingEnvironment = ref(null)
@@ -411,6 +435,15 @@ const statusOptions = [
   { value: 'active', label: 'Activos' },
   { value: 'inactive', label: 'Inactivos' },
   { value: 'maintenance', label: 'Mantenimiento' }
+]
+
+// Archive visibility is a separate axis from the operational status: a chair
+// can be in maintenance while still visible, or archived (is_active=false) and
+// only reachable through this filter.
+const archivedOptions = [
+  { value: 'exclude', label: 'Sin archivados' },
+  { value: 'include', label: 'Incluir archivados' },
+  { value: 'only', label: 'Solo archivados' }
 ]
 
 // Form-state options for the create/edit modals: only the operational
@@ -446,7 +479,10 @@ const environments = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
+  () =>
+    searchQuery.value.trim() !== '' ||
+    statusFilter.value !== '' ||
+    archivedFilter.value !== 'exclude'
 )
 
 const emptyTitle = computed(() =>
@@ -506,14 +542,20 @@ const fetchEnvironments = async url => {
 }
 
 const loadEnvironments = () => {
-  const query = statusFilter.value ? `?status=${statusFilter.value}` : ''
-  return fetchEnvironments(`/api/dental-chairs${query}`)
+  const params = new URLSearchParams()
+  if (statusFilter.value) params.set('status', statusFilter.value)
+  if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+  const query = params.toString()
+
+  return fetchEnvironments(`/api/dental-chairs${query ? `?${query}` : ''}`)
 }
 
 const searchEnvironments = () => {
   clearPendingSearch()
-  const query = searchQuery.value.trim()
-  return fetchEnvironments(`/api/dental-chairs/search?q=${encodeURIComponent(query)}`)
+  const params = new URLSearchParams({ q: searchQuery.value.trim() })
+  if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+
+  return fetchEnvironments(`/api/dental-chairs/search?${params.toString()}`)
 }
 
 // One request 300 ms after the last keystroke. Queries shorter than two
@@ -536,6 +578,20 @@ const filterEnvironments = () => {
   loadEnvironments()
 }
 
+const filterArchived = () => {
+  clearPendingSearch()
+  if (searchQuery.value.trim().length >= 2) {
+    searchEnvironments()
+    return
+  }
+  loadEnvironments()
+}
+
+const reloadCurrentView = () => {
+  if (searchQuery.value.trim().length >= 2) return searchEnvironments()
+  return loadEnvironments()
+}
+
 const retryLoad = () => {
   if (searchQuery.value.trim().length >= 2) {
     searchEnvironments()
@@ -548,6 +604,7 @@ const clearFilters = () => {
   clearPendingSearch()
   searchQuery.value = ''
   statusFilter.value = ''
+  archivedFilter.value = 'exclude'
   loadEnvironments()
 }
 
@@ -564,7 +621,7 @@ const createEnvironment = async () => {
       status: 'active'
     }
     toast.success('Ambiente creado exitosamente')
-    loadEnvironments()
+    reloadCurrentView()
   } catch (error) {
     handleError(error, 'Error al crear el ambiente')
   } finally {
@@ -588,7 +645,7 @@ const updateEnvironment = async () => {
     await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
     showEditEnvironmentModal.value = false
     editingEnvironment.value = null
-    loadEnvironments()
+    reloadCurrentView()
     toast.success('Ambiente actualizado exitosamente')
   } catch (error) {
     handleError(error, 'Error al actualizar el ambiente')
@@ -607,7 +664,7 @@ const deleteEnvironment = async environment => {
   if (ok) {
     try {
       await remove(`/api/dental-chairs/${environment.id}`)
-      loadEnvironments()
+      reloadCurrentView()
       toast.success('Ambiente eliminado exitosamente')
     } catch (error) {
       const status = error?.status ?? error?.response?.status
@@ -621,6 +678,33 @@ const deleteEnvironment = async environment => {
 
 const goBack = () => {
   router.back()
+}
+const archiveEnvironment = async environment => {
+  const ok = await confirm({
+    title: 'Archivar ambiente',
+    message: `¿Archivar el ambiente ${environment.name}? Dejará de estar disponible para agendar citas, pero conservará su historial.`,
+    confirmText: 'Archivar',
+    variant: 'danger'
+  })
+  if (!ok) return
+
+  try {
+    await put(`/api/dental-chairs/${environment.id}`, { is_active: false })
+    toast.success('Ambiente archivado exitosamente')
+    reloadCurrentView()
+  } catch (error) {
+    handleError(error, 'Error al archivar el ambiente')
+  }
+}
+
+const reactivateEnvironment = async environment => {
+  try {
+    await put(`/api/dental-chairs/${environment.id}`, { is_active: true })
+    toast.success('Ambiente reactivado exitosamente')
+    reloadCurrentView()
+  } catch (error) {
+    handleError(error, 'Error al reactivar el ambiente')
+  }
 }
 
 onMounted(() => {
