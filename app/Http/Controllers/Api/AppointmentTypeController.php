@@ -18,6 +18,12 @@ class AppointmentTypeController extends Controller
 
     /**
      * Rules shared by the store and update actions.
+     *
+     * `duration_minutes` is the write alias of the `default_duration_minutes`
+     * column, and every catalog rule the domain consumes
+     * (`requires_confirmation`, `requires_materials`, `is_consultation_mode`,
+     * `default_procedure_catalog_id`) is part of the contract: a flag that no
+     * write path accepts is a rule the operator cannot set.
      */
     protected function storeRules(): array
     {
@@ -26,9 +32,33 @@ class AppointmentTypeController extends Controller
             'description' => 'nullable|string',
             'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'nullable|numeric|min:0',
-            'color' => 'required|string|max:7',
+            'default_procedure_catalog_id' => 'nullable|integer|exists:procedure_catalog,id',
+            'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'requires_confirmation' => 'boolean',
+            'requires_materials' => 'boolean',
+            'is_consultation_mode' => 'boolean',
             'is_active' => 'boolean'
         ];
+    }
+
+    /**
+     * Accept the resource field `default_duration_minutes` as the duration on
+     * write. Without this, a client that echoes a resource back (the shape the
+     * API itself returns) gets a 200 and an unchanged duration.
+     *
+     * The explicit `duration_minutes` alias always wins when both are sent.
+     */
+    private function normalizeDurationInput(Request $request): void
+    {
+        if ($request->has('duration_minutes')) {
+            return;
+        }
+
+        if ($request->has('default_duration_minutes')) {
+            $request->merge([
+                'duration_minutes' => $request->input('default_duration_minutes'),
+            ]);
+        }
     }
 
     /**
@@ -69,6 +99,8 @@ class AppointmentTypeController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            $this->normalizeDurationInput($request);
+
             $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
@@ -80,6 +112,9 @@ class AppointmentTypeController extends Controller
             }
 
             $type = AppointmentType::create($validated);
+            // The response is the persisted resource: fields omitted by the
+            // caller (the flags) carry their schema default, not null.
+            $type->refresh();
 
             // Log audit
             if (Auth::check()) {
@@ -93,7 +128,11 @@ class AppointmentTypeController extends Controller
                         'description' => $type->description,
                         'default_duration_minutes' => $type->default_duration_minutes,
                         'price' => $type->price,
+                        'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                         'color' => $type->color,
+                        'requires_confirmation' => $type->requires_confirmation,
+                        'requires_materials' => $type->requires_materials,
+                        'is_consultation_mode' => $type->is_consultation_mode,
                         'is_active' => $type->is_active,
                     ]
                 );
@@ -123,24 +162,21 @@ class AppointmentTypeController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        try {
-            $type = AppointmentType::with([
-                'auditLogs' => function ($query) {
-                    $query->with('user:id,name,email')
-                          ->orderBy('created_at', 'desc')
-                          ->limit(50);
-                }
-            ])->findOrFail($id);
+        $type = AppointmentType::with([
+            'auditLogs' => function ($query) {
+                $query->with('user:id,name,email')
+                      ->orderBy('created_at', 'desc')
+                      ->limit(50);
+            }
+        ])->find($id);
 
-            return response()->json([
-                'data' => $type
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Tipo de cita no encontrado',
-                'error' => $e->getMessage()
-            ], 404);
+        if (! $type) {
+            return $this->notFoundResponse();
         }
+
+        return response()->json([
+            'data' => $type
+        ]);
     }
 
     /**
@@ -148,8 +184,14 @@ class AppointmentTypeController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
+        $type = AppointmentType::find($id);
+
+        if (! $type) {
+            return $this->notFoundResponse();
+        }
+
         try {
-            $type = AppointmentType::findOrFail($id);
+            $this->normalizeDurationInput($request);
 
             $validated = $request->validate($this->updateRules($this->storeRules()));
 
@@ -165,7 +207,11 @@ class AppointmentTypeController extends Controller
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
@@ -178,7 +224,11 @@ class AppointmentTypeController extends Controller
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
@@ -217,16 +267,42 @@ class AppointmentTypeController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
+        $type = AppointmentType::find($id);
+
+        if (! $type) {
+            return $this->notFoundResponse();
+        }
+
+        // `appointments.appointment_type_id` deletes on cascade at the FK
+        // level, so a hard delete here would wipe every appointment of the
+        // type. Deactivation is the supported path once appointments exist.
+        $appointmentsCount = $type->appointments()->count();
+
+        if ($appointmentsCount > 0) {
+            $appointmentsLabel = $appointmentsCount === 1
+                ? '1 cita asociada'
+                : "{$appointmentsCount} citas asociadas";
+
+            return response()->json([
+                'message' => "No se puede eliminar el tipo de cita: tiene {$appointmentsLabel}. Desactívalo en su lugar.",
+                'meta' => [
+                    'appointments_count' => $appointmentsCount,
+                ],
+            ], 409);
+        }
+
         try {
-            $type = AppointmentType::findOrFail($id);
-            
             // Capture values for audit before deletion
             $typeData = [
                 'name' => $type->name,
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
@@ -254,6 +330,16 @@ class AppointmentTypeController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Standard 404 payload for an unknown appointment type.
+     */
+    private function notFoundResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Tipo de cita no encontrado'
+        ], 404);
     }
 
     /**

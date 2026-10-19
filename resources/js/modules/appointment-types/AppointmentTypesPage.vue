@@ -260,9 +260,9 @@
                 <td class="px-4 py-4 whitespace-nowrap">
                   <div
                     class="text-sm tabular-nums text-theme-primary"
-                    :aria-label="`Precio ${formatCurrency(type.price)}`"
+                    :aria-label="`Precio ${formatTypePrice(type.price)}`"
                   >
-                    {{ formatCurrency(type.price) }}
+                    {{ formatTypePrice(type.price) }}
                   </div>
                 </td>
                 <td class="px-4 py-4 whitespace-nowrap">
@@ -331,6 +331,30 @@
       />
       <UiInput v-model="newType.price" label="Precio (S/)" type="number" min="0" step="0.01" />
       <div>
+        <label class="block text-sm font-medium text-theme-primary">Requiere confirmación</label>
+        <UiSelect
+          v-model="newType.requires_confirmation"
+          :options="booleanOptions"
+          data-flag-select="requires_confirmation"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Requiere materiales</label>
+        <UiSelect
+          v-model="newType.requires_materials"
+          :options="booleanOptions"
+          data-flag-select="requires_materials"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Modo consulta</label>
+        <UiSelect
+          v-model="newType.is_consultation_mode"
+          :options="booleanOptions"
+          data-flag-select="is_consultation_mode"
+        />
+      </div>
+      <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
         <div class="mt-1 flex items-center gap-2">
           <input
@@ -353,7 +377,7 @@
       <UiButton variant="secondary" :disabled="creating" @click="showNewTypeModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" :loading="creating" @click="createType">Crear</UiButton>
+      <UiButton type="submit" form="form-new-type" :loading="creating">Crear</UiButton>
     </template>
   </UiModal>
 
@@ -379,6 +403,30 @@
         step="0.01"
         required
       />
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Requiere confirmación</label>
+        <UiSelect
+          v-model="editingType.requires_confirmation"
+          :options="booleanOptions"
+          data-flag-select="requires_confirmation"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Requiere materiales</label>
+        <UiSelect
+          v-model="editingType.requires_materials"
+          :options="booleanOptions"
+          data-flag-select="requires_materials"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-theme-primary">Modo consulta</label>
+        <UiSelect
+          v-model="editingType.is_consultation_mode"
+          :options="booleanOptions"
+          data-flag-select="is_consultation_mode"
+        />
+      </div>
       <div>
         <label class="block text-sm font-medium text-theme-primary">Color</label>
         <div class="mt-1 flex items-center gap-2">
@@ -410,7 +458,7 @@
       <UiButton variant="secondary" :disabled="updating" @click="showEditTypeModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" :loading="updating" @click="updateType">Actualizar</UiButton>
+      <UiButton type="submit" form="form-edit-type" :loading="updating">Actualizar</UiButton>
     </template>
   </UiModal>
 </template>
@@ -489,9 +537,20 @@ export default {
       description: '',
       duration_minutes: 60,
       price: 0,
+      requires_confirmation: true,
+      requires_materials: false,
+      is_consultation_mode: false,
       color: DEFAULT_TYPE_COLOR,
       is_active: true
     })
+
+    const booleanOptions = [
+      { value: true, label: 'Sí' },
+      { value: false, label: 'No' }
+    ]
+
+    const formatTypePrice = price =>
+      price === null || price === undefined ? 'No especificado' : formatCurrency(price)
 
     const statusFilterOptions = computed(() => [
       { value: 'all', label: 'Todos' },
@@ -611,6 +670,9 @@ export default {
           description: '',
           duration_minutes: 60,
           price: 0,
+          requires_confirmation: true,
+          requires_materials: false,
+          is_consultation_mode: false,
           color: DEFAULT_TYPE_COLOR,
           is_active: true
         }
@@ -628,8 +690,10 @@ export default {
       // payload (storeRules) takes `editingType.duration_minutes`: initialize
       // it from the record so the edit form is pre-filled and a save without
       // retyping keeps the duration.
+      const storedColor = /^#[0-9A-Fa-f]{6}$/.test(type.color) ? type.color : DEFAULT_TYPE_COLOR
       editingType.value = {
         ...type,
+        color: storedColor,
         duration_minutes: type.default_duration_minutes
       }
       showEditTypeModal.value = true
@@ -658,7 +722,7 @@ export default {
     const deleteType = async type => {
       const ok = await confirm({
         title: 'Eliminar tipo de cita',
-        message: `¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}?`,
+        message: `¿Estás seguro de que quieres eliminar el tipo de cita ${type.name}? Si tiene citas registradas no se podrá eliminar: desactívalo en su lugar.`,
         confirmText: 'Eliminar',
         variant: 'danger'
       })
@@ -668,7 +732,9 @@ export default {
           loadTypes()
           toast.success('Tipo de cita eliminado exitosamente')
         } catch (error) {
-          handleError(error, 'Error al eliminar el tipo de cita')
+          // No custom message: a 409 carries the actionable reason (the type
+          // still has appointments) and must reach the operator verbatim.
+          handleError(error)
         }
       }
     }
@@ -704,6 +770,7 @@ export default {
       showEditTypeModal,
       newType,
       editingType,
+      booleanOptions,
       DEFAULT_TYPE_COLOR,
       loadTypes,
       createType,
@@ -712,7 +779,8 @@ export default {
       updateType,
       deleteType,
       goBack,
-      formatCurrency
+      formatCurrency,
+      formatTypePrice
     }
   }
 }
