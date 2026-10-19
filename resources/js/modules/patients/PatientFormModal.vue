@@ -71,6 +71,15 @@
           />
         </div>
       </div>
+      <div data-patient-field="branch_id">
+        <label class="block text-sm font-medium text-theme-primary mb-1">Sucursal</label>
+        <UiSelect
+          v-model="form.branch_id"
+          :options="branchOptions"
+          placeholder="Sin sucursal"
+          class="w-full"
+        />
+      </div>
       <UiInput
         v-model="form.address"
         data-patient-field="address"
@@ -124,7 +133,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useApi } from '../../composables/useApi'
 import { useToast } from '../../composables/useToast'
 import UiButton from '../../components/ui/Button.vue'
@@ -148,6 +157,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const { post, put } = useApi()
+const { get } = useApi()
 const toast = useToast()
 
 const genderOptions = [
@@ -161,6 +171,21 @@ const statusOptions = [
   { value: true, label: 'Activo' },
   { value: false, label: 'Inactivo' }
 ]
+
+const branchOptions = ref([{ value: '', label: 'Sin sucursal' }])
+
+const loadBranches = async () => {
+  try {
+    const response = await get('/api/branches/active')
+    const branches = (response?.data || []).map(branch => ({
+      value: branch.id,
+      label: branch.name
+    }))
+    branchOptions.value = [{ value: '', label: 'Sin sucursal' }, ...branches]
+  } catch {
+    branchOptions.value = [{ value: '', label: 'Sin sucursal' }]
+  }
+}
 
 const emptyForm = () => ({
   first_name: '',
@@ -176,7 +201,8 @@ const emptyForm = () => ({
   medical_history: '',
   allergies: '',
   notes: '',
-  is_active: true
+  is_active: true,
+  branch_id: ''
 })
 
 const patientToForm = patient => ({
@@ -193,11 +219,31 @@ const patientToForm = patient => ({
   medical_history: patient.medical_history || '',
   allergies: patient.allergies || '',
   notes: patient.notes || '',
-  is_active: patient.is_active !== undefined ? patient.is_active : true
+  is_active: patient.is_active !== undefined ? patient.is_active : true,
+  branch_id: patient.branch_id ?? ''
 })
+
+const trimStringFields = formValues => {
+  const payload = { ...formValues }
+
+  Object.keys(payload).forEach(key => {
+    if (typeof payload[key] === 'string') {
+      payload[key] = payload[key].trim()
+    }
+  })
+
+  payload.branch_id =
+    payload.branch_id === '' || payload.branch_id === null || payload.branch_id === undefined
+      ? null
+      : Number(payload.branch_id)
+
+  return payload
+}
 
 const form = ref(emptyForm())
 const submitting = ref(false)
+
+onMounted(loadBranches)
 
 watch(
   () => props.patient,
@@ -210,7 +256,7 @@ watch(
 const submitPatient = async () => {
   submitting.value = true
   try {
-    const payload = { ...form.value }
+    const payload = trimStringFields(form.value)
     const response =
       props.mode === 'edit'
         ? await put(`/api/patients/${props.patient.id}`, payload)

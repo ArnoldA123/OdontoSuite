@@ -160,7 +160,7 @@ const {
   transformDentalChairs
 } = useOptionsTransform()
 const toast = useToast()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 
 const loadingData = ref(false)
 const creating = ref(false)
@@ -498,7 +498,7 @@ onMounted(() => {
 
   // Suscribirse a canales WebSocket para actualizaciones en tiempo real
   try {
-    patientsChannel = channel('patients')
+    patientsChannel = privateChannel('patients')
     if (patientsChannel) {
       patientsChannel
         .listen('.patient.created', async () => {

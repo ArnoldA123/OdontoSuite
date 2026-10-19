@@ -29,7 +29,12 @@ class PatientController extends Controller
         $validated = $request->validate([
             'sort' => ['sometimes', 'nullable', 'string', Rule::in(['last_name', 'first_name', 'created_at', 'email'])],
             'direction' => ['sometimes', 'nullable', 'string', Rule::in(['asc', 'desc'])],
+            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
+
+        $term = self::normalizeSearchTerm($validated['search'] ?? null);
+        $branchId = $validated['branch_id'] ?? null;
 
         // Construir query base para contar totales (sin filtros de búsqueda)
         $baseQuery = Patient::query();
@@ -51,44 +56,44 @@ class PatientController extends Controller
         ]);
 
         // Search by name, email, phone or document_number (DNI)
-        if ($request->has('search')) {
-            $search = $request->get('search');
-            $searchQuery->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('document_number', 'like', "%{$search}%");
-            });
+        if ($term !== null) {
+            $applySearch = static function ($query) use ($term): void {
+                $like = self::likePattern($term);
 
-            // Aplicar misma búsqueda a baseQuery para contar totales
-            $baseQuery->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  ->orWhere('document_number', 'like', "%{$search}%");
-            });
+                $query->where(function ($q) use ($like) {
+                    $q->where('first_name', 'like', $like)
+                      ->orWhere('last_name', 'like', $like)
+                      ->orWhere('email', 'like', $like)
+                      ->orWhere('phone', 'like', $like)
+                      ->orWhere('document_number', 'like', $like);
+                });
+            };
+
+            $applySearch($searchQuery);
+            $applySearch($baseQuery);
         }
 
         // Multi-tenant: filtrar por branch_id si se envía
-        if ($request->has('branch_id')) {
-            $searchQuery->where('branch_id', $request->input('branch_id'));
-            $baseQuery->where('branch_id', $request->input('branch_id'));
+        if ($branchId !== null) {
+            $searchQuery->where('branch_id', $branchId);
+            $baseQuery->where('branch_id', $branchId);
         }
 
         // Calcular totales de activos e inactivos (antes de aplicar filtro de estado)
         $totalActive = (clone $baseQuery)->where('is_active', true)->count();
         $totalInactive = (clone $baseQuery)->where('is_active', false)->count();
 
-        // Filter by active status - Solo aplicar filtro si se envía explícitamente
-        // Por defecto mostrar TODOS los pacientes (activos e inactivos)
-        if ($request->has('active')) {
+        // Filter by active status - Solo aplicar filtro si se envía explícitamente.
+        // `boolean()` acepta true/false/1/0 y los strings 'true'/'false' que manda
+        // la lista; `filled()` ignora un `active=` vacío en lugar de leerlo como
+        // «inactivos».
+        if ($request->filled('active')) {
             $searchQuery->where('is_active', $request->boolean('active'));
         }
 
-        $perPage = $request->get('per_page', 15);
-        $perPage = min($perPage, 100); // Limit max per page to 100
+        // per_page nunca puede romper el listado: fuera de 1..100 cae al default.
+        $perPage = filter_var($request->input('per_page', 15), FILTER_VALIDATE_INT);
+        $perPage = ($perPage === false || $perPage < 1) ? 15 : min($perPage, 100);
 
         $direction = self::sortDirection($validated['direction'] ?? null);
         foreach (self::sortColumns($validated['sort'] ?? null) as $column) {
@@ -136,6 +141,29 @@ class PatientController extends Controller
     }
 
     /**
+     * Trimmed search term, or null when the client sent nothing usable.
+     */
+    private static function normalizeSearchTerm(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $term = trim($value);
+
+        return $term === '' ? null : $term;
+    }
+
+    /**
+     * LIKE pattern with the wildcards escaped, so a literal % or _ matches
+     * itself instead of the whole table.
+     */
+    private static function likePattern(string $term): string
+    {
+        return '%' . addcslashes($term, '\\%_') . '%';
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request): JsonResponse
@@ -145,7 +173,7 @@ class PatientController extends Controller
             'last_name' => 'required|string|max:255',
             'document_number' => 'nullable|string|max:20|unique:patients,document_number',
             'email' => 'nullable|email|unique:patients,email',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:20|unique:patients,phone',
             'birth_date' => 'nullable|date|before:today',
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:500',
@@ -155,6 +183,7 @@ class PatientController extends Controller
             'allergies' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         // Asegurar que is_active sea true por defecto si no se proporciona
@@ -239,7 +268,12 @@ class PatientController extends Controller
                 'email',
                 Rule::unique('patients', 'email')->ignore($patient->id),
             ],
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'nullable',
+                'string',
+                'max:20',
+                Rule::unique('patients', 'phone')->ignore($patient->id),
+            ],
             'birth_date' => 'nullable|date|before:today',
             'gender' => 'nullable|in:male,female,other',
             'address' => 'nullable|string|max:500',
@@ -249,6 +283,7 @@ class PatientController extends Controller
             'allergies' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
+            'branch_id' => ['nullable', 'integer', Rule::exists('branches', 'id')],
         ]);
 
         // Capture old values for audit (only relevant fields)
@@ -267,6 +302,7 @@ class PatientController extends Controller
             'allergies' => $patient->allergies,
             'notes' => $patient->notes,
             'is_active' => $patient->is_active,
+            'branch_id' => $patient->branch_id,
         ];
 
         $patient->update($validated);
@@ -291,12 +327,28 @@ class PatientController extends Controller
      */
     public function destroy(Patient $patient): JsonResponse
     {
-        // Check if patient has appointments
-        if ($patient->appointments()->count() > 0) {
+        // Un paciente con historial clínico o financiero no se elimina: cada
+        // belongsTo(Patient) deja de resolverlo (el soft delete lo oculta) y
+        // el expediente queda huérfano en los demás módulos.
+        $blockers = array_filter([
+            'cita(s)' => $patient->appointments()->count(),
+            'historia(s) clínica(s)' => $patient->medicalRecords()->count(),
+            'plan(es) de tratamiento' => $patient->treatmentPlans()->count(),
+            'presupuesto(s)' => $patient->quotations()->count(),
+            'movimiento(s) de caja' => $patient->transactions()->count(),
+            'adjunto(s) clínico(s)' => $patient->clinicalAttachments()->count(),
+        ]);
+
+        if ($blockers !== []) {
+            $detail = collect($blockers)
+                ->map(fn (int $count, string $label) => "{$count} {$label}")
+                ->implode(', ');
+            $message = "No se puede eliminar un paciente con historial clínico o financiero ({$detail}). Desactívalo en lugar de eliminarlo.";
+
             return response()->json([
-                'message' => 'No se puede eliminar un paciente que tiene citas programadas.',
+                'message' => $message,
                 'errors' => [
-                    'patient' => ['No se puede eliminar un paciente que tiene citas programadas.'],
+                    'patient' => [$message],
                 ],
             ], 422);
         }
@@ -327,24 +379,31 @@ class PatientController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $term = $request->get('q') ?? $request->get('search');
+        $term = self::normalizeSearchTerm($request->get('q') ?? $request->get('search'));
 
         $request->merge(['search' => $term]);
 
-        $request->validate([
+        $validated = $request->validate([
             'search' => 'required|string|min:2',
+            'branch_id' => ['sometimes', 'nullable', 'integer', Rule::exists('branches', 'id')],
         ], [
             'search.required' => 'Debes escribir al menos 2 caracteres',
             'search.min' => 'Mínimo 2 caracteres para buscar',
         ]);
 
+        $like = self::likePattern($validated['search']);
+
         $patients = Patient::where('is_active', true)
-            ->where(function ($query) use ($term) {
-                $query->where('first_name', 'like', "%{$term}%")
-                    ->orWhere('last_name', 'like', "%{$term}%")
-                    ->orWhere('email', 'like', "%{$term}%")
-                    ->orWhere('phone', 'like', "%{$term}%")
-                    ->orWhere('document_number', 'like', "%{$term}%");
+            ->when(
+                $validated['branch_id'] ?? null,
+                fn ($query, $branchId) => $query->where('branch_id', $branchId)
+            )
+            ->where(function ($query) use ($like) {
+                $query->where('first_name', 'like', $like)
+                    ->orWhere('last_name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('document_number', 'like', $like);
             })
             ->orderBy('last_name')
             ->orderBy('first_name')
