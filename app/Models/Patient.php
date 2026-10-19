@@ -48,14 +48,6 @@ class Patient extends Model
     }
 
     /**
-     * Get the document number attribute.
-     */
-    public function getDocumentNumberAttribute()
-    {
-        return $this->attributes['document_number'] ?? $this->id;
-    }
-
-    /**
      * Get the appointments for the patient.
      */
     public function appointments(): HasMany
