@@ -1,4 +1,4 @@
-# Payment Methods Interface Redesign — EN CURSO
+# Payment Methods Interface Redesign — CERRADO ✅
 
 Rama: `feat/payment-methods-interface-redesign` (desde `main` @ 862f416)
 Worktree: `.worktrees/payment-methods-ui`
@@ -65,7 +65,7 @@ Creado: 2026-10-19 · Orquestador: el Gentleman
 | T3 | Lista: hero + KPI + filtros + UiDataTable + estados + acciones + confirm | S1, S3, D1-D5, D7 | ✅ 3ce0ec5 |
 | T4 | Modal crear/editar: secciones, UiSelect, reglas de sistema, credenciales | S1, S3, D8-D10 | ✅ c133a4b |
 | T5 | Guards/tests + verificación completa + pasada visual | S1-S3 | hecho (f092127, 60d9293, fadee7d, 80ce86b + polish) |
-| T6 | Cierre: evidencia, memoria, reporte | S1-S3 | pendiente |
+| T6 | Cierre: evidencia, memoria, reporte | S1-S3 | ✅ b914f45 + cierre |
 
 ## Estrategia de entrega (work units)
 
@@ -100,6 +100,14 @@ Creado: 2026-10-19 · Orquestador: el Gentleman
 - `Modal.vue`: columna flex + body scrolleable + header/footer fijos. Afecta a todos los modales; verificado con la suite PHP Unit (1011/1011), la suite JS y la medición visual del footer en 3 viewports.
 - `DataTable.vue`: `scope="col"` en sus headers y el header de acciones con el estilo de header (no de celda).
 
+## Cierre (2026-10-19)
+
+- **Commits**: 11 en `feat/payment-methods-interface-redesign` (`936061a`, `749f48c`, `c133a4b`, `3ce0ec5`, `f092127`, `60d9293`, `fadee7d`, `80ce86b`, `108c252`, `2712def`, `b914f45`).
+- **Verificación final**: JS 446/446 (55 archivos; `--testTimeout=60000` por la carga concurrente de otras dos sesiones), PHP MySQL 1288/1289 (el único fallo era el guard del `PageHeader` retirado, ya re-anclado → 51/51), PHP Unit 1011/1011, ESLint 0 errores (warnings preexistentes), build ✓, doc-drift 12/12, visual Playwright PASS 3/3 viewports sin defectos de contrato.
+- **ASSESS**: nativo `medium`, 15 paths / 2614 líneas, `review_due=false` (`under_budget`). La ruta compacta `assess` devolvió `unassessable` para un rango commiteado; se usó el CLI read-only `gentle-ai review assess --base-ref 862f416… --committed-only`. Con `review_due=false` y sin pedido explícito del usuario **no se inicia revisión nativa**; el plan ASSESS no pide verificador independiente (sin escalación de item de alto riesgo).
+- **Riesgo ODD**: `none` — sin migraciones, sin datos reescritos, sin contratos de otros consumidores rotos; los cambios de backend son fixes aditivos/alineados al contrato documentado y el cambio de `Modal.vue` es chrome compartido cubierto por la suite y medido visualmente.
+- **Entrega**: push, PR y merge quedan a decisión del usuario.
+
 ## Log
 
 - **L1** (2026-10-19 16:06) — "continuando con este proyecto conforme dejamos el dashboar quiero hacer ahora la interfaz de metodos de pago, para hacer ello en un worktree nuevo"
@@ -108,3 +116,4 @@ Creado: 2026-10-19 · Orquestador: el Gentleman
 - **L4** (2026-10-19 16:20) — T3 y T4 delegados a dos workers con superficies disjuntas; ambos devuelven commits revisados por el orquestador (`3ce0ec5`, `c133a4b`).
 - **L5** (2026-10-19 16:45) — Guard `DashboardAppShellTest:1845` fijaba el literal `title="Métodos de Pago"` del `PageHeader` retirado; se re-ancló a `data-hero-title` (regla: anclar al contrato, no al literal). El guard PAGOS-A11Y-001 se re-ancló a la tabla renderizada (`<th scope="col">` en el primitivo).
 - **L6** (2026-10-19 16:50) — JS suite completa bajo carga concurrente falló 11 archivos sin un solo test rojo (timeouts de colección); se re-ejecuta en reposo antes de concluir.
+- **L7** (2026-10-19 17:05) — JS 446/446 con `--testTimeout=60000`; PHP Unit 1011/1011; visual PASS 3/3 con footer del modal medido visible. `gentle_review assess` (facade) devolvió `unassessable` por no haber cambios pendientes; el CLI read-only devolvió `medium` / `review_due=false` (`under_budget`) → sin revisión nativa por regla de entrada (solo con `reviewDue` o pedido explícito).
