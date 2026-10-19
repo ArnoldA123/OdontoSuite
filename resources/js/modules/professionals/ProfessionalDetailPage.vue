@@ -44,7 +44,7 @@
           <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
         </p>
         <h1 class="mt-3 text-4xl font-semibold text-label">
-          {{ professional?.name || 'Cargando...' }}
+          {{ professional?.name || (loadError ? 'No disponible' : 'Cargando...') }}
         </h1>
         <p class="mt-2 text-base leading-relaxed text-theme-secondary">{{ heroCaption }}</p>
       </div>
@@ -83,7 +83,13 @@
 
       <!-- Datos del profesional -->
       <UiCard v-if="activeTab === 'data'" variant="glass">
-        <div v-if="!professional" class="p-8 text-center">
+        <div v-if="!professional && loadError" class="p-8">
+          <UiSectionEmpty
+            title="No se pudo cargar el profesional"
+            description="Revisa la conexión e intenta de nuevo."
+          />
+        </div>
+        <div v-else-if="!professional" class="p-8 text-center">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
           <p class="mt-2 text-theme-secondary">Cargando profesional...</p>
         </div>
@@ -135,14 +141,11 @@
               </span>
             </div>
             <p class="text-sm text-theme-secondary mb-2">{{ formatDate(log.created_at) }}</p>
-            <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
+            <div v-if="getChangesSummary(log)" class="mt-2 text-sm">
               <p class="font-medium text-[color:var(--color-text-primary)] mb-1">
                 Cambios realizados:
               </p>
-              <div
-                v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0"
-                class="text-theme-secondary space-y-1"
-              >
+              <div class="text-theme-secondary space-y-1">
                 <div
                   v-for="(change, field) in getChangesSummary(log)"
                   :key="field"
@@ -161,7 +164,6 @@
                   </p>
                 </div>
               </div>
-              <div v-else class="text-theme-secondary italic">Sin cambios registrados</div>
             </div>
             <div
               v-else-if="log.action === 'user_created'"
@@ -209,6 +211,7 @@ const {
 } = useAuditLogs()
 
 const professional = ref(null)
+const loadError = ref(false)
 const activeTab = ref('data')
 const branchesById = ref({})
 
@@ -229,9 +232,10 @@ const breadcrumbs = computed(() => [
   { label: professional.value?.name || 'Detalle' }
 ])
 
-const heroCaption = computed(() =>
-  professional.value ? `Ficha del equipo clínico · ID ${professional.value.id}` : 'Cargando ficha'
-)
+const heroCaption = computed(() => {
+  if (professional.value) return `Ficha del equipo clínico · ID ${professional.value.id}`
+  return loadError.value ? 'No se pudo cargar la ficha' : 'Cargando ficha'
+})
 
 const roleLabel = role => ROLE_LABELS[role] || role || 'N/D'
 
@@ -290,14 +294,17 @@ const getAuditActionVariant = action => {
   if (action.includes('created')) return 'success'
   if (action.includes('updated')) return 'warning'
   if (action.includes('deleted')) return 'error'
-  return 'secondary'
+  return 'default'
 }
 
 const loadProfessional = async () => {
+  loadError.value = false
   try {
     const response = await get(`/api/users/${route.params.id}`)
     professional.value = response.data
   } catch (error) {
+    professional.value = null
+    loadError.value = true
     toast.error('Error al cargar el profesional')
   }
 }
