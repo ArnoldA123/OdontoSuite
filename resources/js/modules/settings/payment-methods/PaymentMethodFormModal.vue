@@ -5,10 +5,7 @@
     size="lg"
     @close="emit('close')"
   >
-    <div
-      class="space-y-6 bg-canvas"
-      :data-payment-method-form="isEdit ? 'edit' : 'create'"
-    >
+    <div class="space-y-6 bg-canvas" :data-payment-method-form="isEdit ? 'edit' : 'create'">
       <fieldset class="space-y-4" data-form-section="identification">
         <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
           Identificación
@@ -86,7 +83,7 @@
               type="checkbox"
               :disabled="saving"
               class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
-            >
+            />
             <div>
               <label for="requires_authorization" class="text-sm font-medium text-theme-primary">
                 Requiere autorización
@@ -103,7 +100,7 @@
               type="checkbox"
               :disabled="saving"
               class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
-            >
+            />
             <div>
               <label for="allows_change" class="text-sm font-medium text-theme-primary">
                 Permite cambio
@@ -202,12 +199,7 @@
       >
         Cancelar
       </UiButton>
-      <UiButton
-        type="button"
-        :loading="saving"
-        data-modal-submit
-        @click="onSubmit"
-      >
+      <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
         {{ isEdit ? 'Actualizar método' : 'Crear método' }}
       </UiButton>
     </template>
@@ -218,11 +210,7 @@
 import { computed, reactive, ref } from 'vue'
 import { usePaymentMethods } from '../../../composables/usePaymentMethods'
 import { useToast } from '../../../composables/useToast'
-import {
-  GATEWAY_TYPE_OPTIONS,
-  STATUS_FORM_OPTIONS,
-  hasGateway
-} from './paymentMethodMeta'
+import { GATEWAY_TYPE_OPTIONS, STATUS_FORM_OPTIONS, hasGateway } from './paymentMethodMeta'
 import UiButton from '../../../components/ui/Button.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiModal from '../../../components/ui/Modal.vue'

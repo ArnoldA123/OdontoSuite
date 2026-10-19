@@ -146,9 +146,7 @@ describe('PaymentMethodFormModal', () => {
     expect(inputOf('public_key').placeholder).toBe('••••••')
 
     expect(dialogText()).not.toContain('APP_USR-SECRETO-QUE-NO-DEBE-VERSE')
-    const renderedValues = Array.from(redacted.querySelectorAll('input')).map(
-      input => input.value
-    )
+    const renderedValues = Array.from(redacted.querySelectorAll('input')).map(input => input.value)
     expect(renderedValues.join(' ')).not.toContain('APP_USR-SECRETO-QUE-NO-DEBE-VERSE')
   })
 

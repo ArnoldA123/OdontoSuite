@@ -19,40 +19,40 @@ const GATEWAY_LABELS = Object.freeze({
   mercadopago: 'Mercado Pago'
 })
 
-export function getGatewayLabel (gatewayType) {
+export function getGatewayLabel(gatewayType) {
   return GATEWAY_LABELS[gatewayType] || GATEWAY_LABELS.manual
 }
 
-export function hasGateway (gatewayType) {
+export function hasGateway(gatewayType) {
   return Boolean(gatewayType) && gatewayType !== 'manual'
 }
 
-export function getScopeLabel (isSystem) {
+export function getScopeLabel(isSystem) {
   return isSystem ? 'Sistema' : 'Personalizado'
 }
 
-export function getScopeVariant (isSystem) {
+export function getScopeVariant(isSystem) {
   return isSystem ? 'warning' : 'neutral'
 }
 
-export function getStatusLabel (isActive) {
+export function getStatusLabel(isActive) {
   return isActive ? 'Activo' : 'Inactivo'
 }
 
-export function getStatusVariant (isActive) {
+export function getStatusVariant(isActive) {
   return isActive ? 'success' : 'neutral'
 }
 
-export function transactionCount (method) {
+export function transactionCount(method) {
   const count = Number(method?.transactions_count ?? 0)
   return Number.isFinite(count) ? count : 0
 }
 
-export function canDelete (method) {
+export function canDelete(method) {
   return Boolean(method) && !method.is_system && transactionCount(method) === 0
 }
 
-export function getDeleteBlockedReason (method) {
+export function getDeleteBlockedReason(method) {
   if (!method || canDelete(method)) return null
   if (method.is_system) return 'Los métodos del sistema no se pueden eliminar.'
 
@@ -62,7 +62,7 @@ export function getDeleteBlockedReason (method) {
   return `Tiene ${count} ${noun}.`
 }
 
-export function formatCommission (value) {
+export function formatCommission(value) {
   const numeric = Number(value ?? 0)
   if (!Number.isFinite(numeric)) return '0%'
 
