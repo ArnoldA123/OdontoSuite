@@ -135,7 +135,7 @@
     </UiCard>
 
     <section aria-label="Métodos de pago" class="space-y-4">
-      <div class="flex items-baseline gap-3">
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
         <h2 class="text-2xl font-semibold text-label">Todos los métodos</h2>
         <p class="text-sm text-theme-secondary">Busca, filtra y gestiona cada método</p>
       </div>

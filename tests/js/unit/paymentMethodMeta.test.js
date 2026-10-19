@@ -84,8 +84,9 @@ describe('payment methods vocabulary', () => {
   it('formats the commission as a percentage without trailing decimals', () => {
     expect(formatCommission(0)).toBe('0%')
     expect(formatCommission('0.00')).toBe('0%')
-    expect(formatCommission(3.5)).toBe('3.50%')
+    expect(formatCommission(3.5)).toBe('3.5%')
     expect(formatCommission('2.00')).toBe('2%')
+    expect(formatCommission(0.5)).toBe('0.5%')
     expect(formatCommission(null)).toBe('0%')
     expect(formatCommission('abc')).toBe('0%')
   })

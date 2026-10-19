@@ -67,5 +67,7 @@ export function formatCommission(value) {
   if (!Number.isFinite(numeric)) return '0%'
 
   const rounded = Math.round(numeric * 100) / 100
-  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(2)}%`
+  const formatted = rounded.toFixed(2).replace(/\.?0+$/, '')
+
+  return `${formatted || '0'}%`
 }

@@ -231,12 +231,17 @@ const isEdit = computed(() => Boolean(props.method))
 const isSystem = computed(() => Boolean(props.method?.is_system))
 const hasStoredCredentials = computed(() => Boolean(props.method?.has_gateway_config))
 
+const commissionFrom = method => {
+  const value = Number(method?.commission_percentage ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
 const createFormState = method => ({
   code: method?.code || '',
   name: method?.name || '',
   description: method?.description || '',
   gateway_type: method?.gateway_type || 'manual',
-  commission_percentage: method?.commission_percentage ?? 0,
+  commission_percentage: commissionFrom(method),
   requires_authorization: Boolean(method?.requires_authorization),
   allows_change: method ? Boolean(method.allows_change) : true,
   is_active: method ? Boolean(method.is_active) : true

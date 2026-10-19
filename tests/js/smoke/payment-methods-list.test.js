@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
@@ -33,6 +33,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue'
+import { confirmIsOpen } from '../../../resources/js/composables/useConfirm'
 
 const METHODS = [
   {
@@ -132,6 +133,12 @@ beforeEach(() => {
   getMock.mockResolvedValue({ data: [] })
 })
 
+afterEach(async () => {
+  confirmIsOpen.value = false
+  await nextTick()
+  document.body.innerHTML = ''
+})
+
 describe('payment methods list smoke', () => {
   it('renders the hero band with the page title and its actions', async () => {
     const wrapper = await mountPage()
@@ -190,7 +197,7 @@ describe('payment methods list smoke', () => {
     const gatewayRow = rowByText(wrapper, 'Tarjeta')
     expect(gatewayRow.text()).toContain('Mercado Pago')
     expect(gatewayRow.text()).not.toContain('mercadopago')
-    expect(gatewayRow.text()).toContain('3.50%')
+    expect(gatewayRow.text()).toContain('3.5%')
     expect(gatewayRow.text()).toContain('Personalizado')
     expect(gatewayRow.text()).toContain('Inactivo')
     expect(gatewayRow.find('[data-gateway-configured]').exists()).toBe(true)
