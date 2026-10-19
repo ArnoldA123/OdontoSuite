@@ -21,6 +21,10 @@
         :disabled="disabled"
         :autocomplete="autocomplete"
         :readonly="readonly"
+        :required="required"
+        :min="min"
+        :max="max"
+        :step="step"
         :class="inputClasses"
         :aria-describedby="hintId"
         :aria-invalid="!!error"
@@ -95,6 +99,13 @@ const props = defineProps({
   autocomplete: String,
   disabled: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  // Native constraint attributes are props, not fallthrough attrs: without
+  // this the whole group lands on the wrapper <div> (Vue's fallthrough target)
+  // and the browser never validates the real <input>.
+  required: { type: Boolean, default: false },
+  min: { type: [String, Number], default: undefined },
+  max: { type: [String, Number], default: undefined },
+  step: { type: [String, Number], default: undefined },
   error: String,
   hint: String,
   size: {
