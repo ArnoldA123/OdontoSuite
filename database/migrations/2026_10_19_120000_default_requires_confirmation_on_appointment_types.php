@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -22,15 +23,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('appointment_types', function (Blueprint $table) {
-            $table->boolean('requires_confirmation')->default(true)->change();
-        });
+        // `->change()` emits MODIFY COLUMN, which the SQLite test environment
+        // cannot run; the guard keeps the MySQL-only DDL conditional.
+        if (DB::getDriverName() === 'mysql') {
+            Schema::table('appointment_types', function (Blueprint $table) {
+                $table->boolean('requires_confirmation')->default(true)->change();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('appointment_types', function (Blueprint $table) {
-            $table->boolean('requires_confirmation')->default(false)->change();
-        });
+        if (DB::getDriverName() === 'mysql') {
+            Schema::table('appointment_types', function (Blueprint $table) {
+                $table->boolean('requires_confirmation')->default(false)->change();
+            });
+        }
     }
 };
