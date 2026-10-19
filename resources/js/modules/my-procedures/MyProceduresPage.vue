@@ -1,207 +1,277 @@
 <template>
   <AppLayout>
-    <PageHeader
-      title="Mis Procedimientos"
-      subtitle="Marca tus procedimientos frecuentes como favoritos para acceder a ellos rapidamente"
-      class="mb-6"
+    <header
+      data-my-procedures-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
     >
-      <template #actions>
-        <UiButton variant="secondary" @click="goBack">
-          <template #icon-left>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M10 19l-7-7m0 0l7-7m-7 7h18"
-              />
-            </svg>
-          </template>
-          Volver
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <UiCard variant="glass" class="mb-6 rounded-[var(--radius-ios)]">
-      <h2 class="text-lg font-semibold text-theme-primary mb-3 flex items-center gap-2">
-        <span class="text-systemYellow-500">⭐</span>
-        Mis favoritos
-        <span class="text-sm font-normal text-theme-secondary tabular-nums">({{ favorites.length }})</span>
-      </h2>
-
-      <div v-if="loading && !favorites.length" class="py-4 text-center">
-        <UiLoadingSpinner />
-      </div>
-
-      <UiEmptyState
-        v-else-if="!favorites.length"
-        description="Aún no tienes favoritos. Marca los procedimientos que uses frecuentemente para acceder a ellos rapidamente."
-        title="Sin favoritos"
-      />
-
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div
-          v-for="(fav, index) in favorites"
-          :key="fav.id"
-          class="border border-hairline rounded-[var(--radius-card-lg)] p-3 bg-theme-surface-elevated flex items-start justify-between gap-2"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-theme-secondary tabular-nums">
-                {{ fav.code }}
-              </span>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-systemBlue-50 text-systemBlue-700 tabular-nums">
-                #{{ index + 1 }}
-              </span>
-            </div>
-            <div class="font-medium text-theme-primary truncate">
-              {{ fav.name }}
-            </div>
-            <div class="text-xs text-theme-secondary tabular-nums">
-              {{ fav.specialty_name || 'Sin especialidad' }} ·
-              {{ fav.default_duration_minutes }} min · {{ formatCurrency(fav.default_cost) }}
-            </div>
-          </div>
-          <div class="flex flex-col gap-1">
-            <button
-              type="button"
-              :disabled="index === 0"
-              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-40 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
-              title="Subir"
-              @click="moveFav(index, -1)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 15l7-7 7 7"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              :disabled="index === favorites.length - 1"
-              class="p-1 text-theme-secondary hover:text-theme-primary disabled:opacity-40 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
-              title="Bajar"
-              @click="moveFav(index, 1)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="p-1 text-systemRed-500 hover:text-systemRed-700 focus-visible:outline-none focus-visible:shadow-[var(--focus-ring-default)]"
-              title="Quitar"
-              @click="removeFav(fav)"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </UiCard>
-
-    <UiCard variant="glass" class="rounded-[var(--radius-ios)]">
-      <h2 class="text-lg font-semibold text-theme-primary mb-3">
-Explorar catalogo
-</h2>
-      <p class="text-sm text-theme-secondary mb-4">
-        Busca y marca como favorito cualquier procedimiento del catalogo. Si tienes especialidades
-        asignadas, veras primero las tuyas.
-      </p>
-
-      <div class="relative mb-4">
-        <UiInput
-          v-model="search"
-          type="text"
-          placeholder="Buscar por nombre o codigo..."
-          class="w-full pl-9"
-        >
-          <template #prefix>
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </template>
-        </UiInput>
-      </div>
-
-      <div v-if="loading && !forMe.length" class="py-4 text-center">
-        <UiLoadingSpinner />
-      </div>
-
-      <div
-        v-else
-        class="max-h-[500px] overflow-y-auto border border-hairline rounded-[var(--radius-card-lg)] divide-y divide-hairline"
+      <button
+        type="button"
+        class="inline-flex items-center gap-1 text-sm font-medium text-theme-secondary hover:text-theme-primary"
+        @click="goBack"
       >
-        <div
-          v-for="proc in filteredForMe"
-          :key="proc.id"
-          class="px-3 py-2 flex items-center justify-between gap-3 hover:bg-canvas"
-        >
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-theme-secondary tabular-nums">{{ proc.code }}</span>
-              <span v-if="proc.is_favorite" class="text-systemYellow-500 text-xs">⭐ Favorito</span>
-            </div>
-            <div class="text-sm font-medium text-theme-primary truncate">
-              {{ proc.name }}
-            </div>
-            <div class="text-xs text-theme-secondary tabular-nums">
-              {{ proc.specialty_name || 'Sin especialidad' }} ·
-              {{ proc.default_duration_minutes }} min · {{ formatCurrency(proc.default_cost) }}
-            </div>
-          </div>
-          <UiButton
-            v-if="!proc.is_favorite"
-            variant="secondary"
-            size="sm"
-            :disabled="loading"
-            @click="addFav(proc)"
-          >
-            Marcar favorito
-          </UiButton>
+        <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
+        Volver al panel
+      </button>
+      <div class="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+            Catálogo clínico
+          </p>
+          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Mis Procedimientos</h1>
+          <p class="mt-2 text-sm text-theme-secondary">
+            Marca tus procedimientos frecuentes para acceder a ellos rápidamente
+          </p>
         </div>
-        <UiEmptyState
-          v-if="!filteredForMe.length"
-          description="Prueba con otro termino de busqueda."
-          title="Sin resultados"
+        <UiStatusBadge
+          variant="info"
+          :label="`${favorites.length} favoritos`"
+          data-favorites-count
         />
       </div>
-    </UiCard>
+    </header>
+
+    <div
+      v-if="loadError"
+      data-my-procedures-error
+      role="alert"
+      class="rounded-ios bg-systemRed-50 p-8 text-center"
+      style="border: 1px solid var(--color-hairline)"
+    >
+      <ExclamationTriangleIcon class="mx-auto h-10 w-10 text-systemRed-600" aria-hidden="true" />
+      <p class="mt-3 text-base font-medium text-theme-primary">
+        No pudimos cargar tus procedimientos
+      </p>
+      <div class="mt-4">
+        <UiButton variant="primary" size="sm" @click="load">Reintentar</UiButton>
+      </div>
+    </div>
+
+    <div v-else class="space-y-6">
+      <section data-favorites-section aria-label="Mis favoritos">
+        <div class="mb-3 flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Mis favoritos</h2>
+          <p class="text-sm text-theme-secondary">Tu acceso rápido, en el orden que elijas</p>
+        </div>
+
+        <UiCard variant="glass">
+          <div v-if="loading && !favorites.length" class="py-8">
+            <LoadingSpinner text="Cargando favoritos..." />
+          </div>
+          <UiEmptyState
+            v-else-if="!favorites.length"
+            title="Sin favoritos"
+            description="Marca los procedimientos que uses con frecuencia para tenerlos a mano."
+          />
+          <ul v-else class="divide-y divide-hairline" data-favorites-list>
+            <li
+              v-for="(favorite, index) in favorites"
+              :key="favorite.id"
+              data-favorite-row
+              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <span
+                class="w-8 flex-shrink-0 text-center text-sm font-semibold text-theme-secondary tabular-nums"
+              >
+                {{ index + 1 }}
+              </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono text-xs text-theme-secondary">{{ favorite.code }}</span>
+                  <p class="truncate text-sm font-medium text-theme-primary">{{ favorite.name }}</p>
+                </div>
+                <p class="mt-0.5 text-xs text-theme-secondary">
+                  {{ favorite.specialty_name || 'Sin especialidad' }} ·
+                  {{ favorite.default_duration_minutes }} min ·
+                  {{ formatCurrency(favorite.default_cost) }}
+                </p>
+              </div>
+              <div class="flex flex-shrink-0 items-center gap-1">
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="index === 0"
+                  title="Subir"
+                  aria-label="Subir favorito"
+                  @click="moveFav(index, -1)"
+                >
+                  <ArrowUpIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  :disabled="index === favorites.length - 1"
+                  title="Bajar"
+                  aria-label="Bajar favorito"
+                  @click="moveFav(index, 1)"
+                >
+                  <ArrowDownIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  class="text-systemRed-600 hover:text-systemRed-700"
+                  title="Quitar de favoritos"
+                  aria-label="Quitar de favoritos"
+                  @click="removeFav(favorite)"
+                >
+                  <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+              </div>
+            </li>
+          </ul>
+        </UiCard>
+      </section>
+
+      <section data-suggestions-section aria-label="Sugerencias para ti">
+        <div class="mb-3 flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Sugerencias para ti</h2>
+          <p class="text-sm text-theme-secondary">
+            Procedimientos de tus especialidades que aún no marcas
+          </p>
+        </div>
+
+        <UiCard variant="glass">
+          <UiEmptyState
+            v-if="!suggested.length"
+            title="Sin sugerencias pendientes"
+            description="Ya marcaste como favoritos todos los procedimientos de tus especialidades."
+          />
+          <div v-else class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <article
+              v-for="procedure in suggested"
+              :key="procedure.id"
+              data-suggestion-row
+              class="rounded-panel border border-hairline bg-theme-surface-elevated p-4"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</p>
+                  <p class="mt-1 truncate text-sm font-medium text-theme-primary">
+                    {{ procedure.name }}
+                  </p>
+                </div>
+                <UiButton
+                  variant="secondary"
+                  size="sm"
+                  class="flex-shrink-0"
+                  @click="addFav(procedure)"
+                >
+                  <template #icon-left>
+                    <PlusIcon class="h-4 w-4" aria-hidden="true" />
+                  </template>
+                  Favorito
+                </UiButton>
+              </div>
+              <p class="mt-2 text-xs text-theme-secondary">
+                {{ procedure.specialty_name || 'Sin especialidad' }} ·
+                {{ procedure.default_duration_minutes }} min ·
+                {{ formatCurrency(procedure.default_cost) }}
+              </p>
+            </article>
+          </div>
+        </UiCard>
+      </section>
+
+      <section data-explorer-section aria-label="Explorar catálogo">
+        <div class="mb-3 flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Explorar catálogo</h2>
+          <p class="text-sm text-theme-secondary">
+            Busca cualquier procedimiento activo y márcalo como favorito
+          </p>
+        </div>
+
+        <UiCard variant="glass">
+          <div class="max-w-xl">
+            <UiInput
+              v-model="explorerTerm"
+              data-explore-search
+              placeholder="Buscar por nombre o código..."
+              class="w-full"
+            >
+              <template #prefix>
+                <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
+              </template>
+            </UiInput>
+          </div>
+
+          <div v-if="explorerLoading" class="py-6">
+            <LoadingSpinner text="Buscando procedimientos..." />
+          </div>
+          <div
+            v-else-if="explorerError"
+            data-explorer-error
+            role="alert"
+            class="mt-4 rounded-control bg-systemRed-50 p-4 text-sm text-systemRed-700"
+          >
+            No pudimos buscar en el catálogo. Inténtalo de nuevo.
+          </div>
+          <UiEmptyState
+            v-else-if="explorerTerm.trim() && !explorerResults.length"
+            title="Sin resultados"
+            description="Ningún procedimiento activo coincide con tu búsqueda."
+          />
+          <ul v-else-if="explorerResults.length" class="mt-4 divide-y divide-hairline">
+            <li
+              v-for="procedure in explorerResults"
+              :key="procedure.id"
+              data-explorer-row
+              class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono text-xs text-theme-secondary">{{ procedure.code }}</span>
+                  <p class="truncate text-sm font-medium text-theme-primary">
+                    {{ procedure.name }}
+                  </p>
+                </div>
+                <p class="mt-0.5 text-xs text-theme-secondary">
+                  {{ procedure.specialty_name || 'Sin especialidad' }} ·
+                  {{ procedure.default_duration_minutes }} min ·
+                  {{ formatCurrency(procedure.default_cost) }}
+                </p>
+              </div>
+              <UiStatusBadge
+                v-if="isFavorite(procedure.id)"
+                variant="success"
+                label="Favorito"
+                size="sm"
+              />
+              <UiButton v-else variant="secondary" size="sm" @click="addFav(procedure)">
+                <template #icon-left>
+                  <PlusIcon class="h-4 w-4" aria-hidden="true" />
+                </template>
+                Marcar favorito
+              </UiButton>
+            </li>
+          </ul>
+          <p v-else class="mt-4 text-sm text-theme-secondary">
+            Escribe un nombre o código para buscar en todo el catálogo.
+          </p>
+        </UiCard>
+      </section>
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowDownIcon,
+  ArrowLeftIcon,
+  ArrowUpIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/vue/24/outline'
+import { useApi } from '../../composables/useApi'
 import { useProcedureFavorites } from '../../composables/useProcedureFavorites'
 import { useToast } from '../../composables/useToast'
 import { formatCurrency } from '../../composables/useFormatters'
@@ -210,14 +280,17 @@ import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
-import UiLoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
+import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
 
 const router = useRouter()
+const { get } = useApi()
 const toast = useToast()
 const {
   favorites,
   forMe,
   loading,
+  isFavorite,
   getFavorites,
   getForMe,
   addFavorite,
@@ -225,52 +298,85 @@ const {
   reorderFavorites
 } = useProcedureFavorites()
 
-const search = ref('')
+const loadError = ref(false)
+const explorerTerm = ref('')
+const explorerResults = ref([])
+const explorerLoading = ref(false)
+const explorerError = ref(false)
 
-const filteredForMe = computed(() => {
-  if (!search.value) return forMe.value
-  const term = search.value.toLowerCase()
-  return forMe.value.filter(
-    p => p.name.toLowerCase().includes(term) || p.code.toLowerCase().includes(term)
-  )
-})
+let explorerTimer = null
+
+const suggested = computed(() => forMe.value.filter(procedure => !isFavorite(procedure.id)))
 
 const load = async () => {
-  await Promise.all([getFavorites(), getForMe({ per_page: 100 })])
+  loadError.value = false
+  try {
+    await Promise.all([getFavorites(), getForMe({ per_page: 100 })])
+  } catch {
+    loadError.value = true
+  }
 }
 
-const addFav = async proc => {
+const addFav = async procedure => {
   try {
-    await addFavorite(proc.id)
-    toast.success(`"${proc.name}" agregado a favoritos`)
-  } catch (err) {
+    await addFavorite(procedure.id)
+    toast.success(`"${procedure.name}" agregado a favoritos`)
+  } catch {
     toast.error('No se pudo agregar a favoritos')
   }
 }
 
-const removeFav = async fav => {
+const removeFav = async favorite => {
   try {
-    await removeFavorite(fav.id)
-    toast.success(`"${fav.name}" eliminado de favoritos`)
-  } catch (err) {
+    await removeFavorite(favorite.id)
+    toast.success(`"${favorite.name}" eliminado de favoritos`)
+  } catch {
     toast.error('No se pudo quitar de favoritos')
   }
 }
 
 const moveFav = async (index, delta) => {
-  const newIndex = index + delta
-  if (newIndex < 0 || newIndex >= favorites.value.length) return
+  const nextIndex = index + delta
+  if (nextIndex < 0 || nextIndex >= favorites.value.length) return
   const reordered = [...favorites.value]
   const [moved] = reordered.splice(index, 1)
-  reordered.splice(newIndex, 0, moved)
+  reordered.splice(nextIndex, 0, moved)
   favorites.value = reordered
   try {
-    await reorderFavorites(reordered.map(f => f.id))
-  } catch (err) {
-    toast.error('No se pudo reordenar')
+    await reorderFavorites(reordered.map(favorite => favorite.id))
+  } catch {
+    toast.error('No se pudo reordenar los favoritos')
     load()
   }
 }
+
+const searchCatalog = async term => {
+  explorerLoading.value = true
+  explorerError.value = false
+  try {
+    const response = await get(
+      `/api/procedure-catalog/search?q=${encodeURIComponent(term)}&limit=20`
+    )
+    explorerResults.value = response.data || []
+  } catch {
+    explorerError.value = true
+    explorerResults.value = []
+  } finally {
+    explorerLoading.value = false
+  }
+}
+
+watch(explorerTerm, value => {
+  clearTimeout(explorerTimer)
+  const term = value.trim()
+  if (!term) {
+    explorerResults.value = []
+    explorerError.value = false
+    explorerLoading.value = false
+    return
+  }
+  explorerTimer = setTimeout(() => searchCatalog(term), 300)
+})
 
 const goBack = () => router.push('/dashboard')
 
