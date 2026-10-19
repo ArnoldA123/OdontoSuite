@@ -17,9 +17,8 @@ class ProcedureCatalogFactory extends Factory
             'code' => strtoupper($this->faker->bothify('PROC-####')),
             'name' => $this->faker->words(3, true),
             'description' => $this->faker->sentence(),
-            'category' => $this->faker->randomElement([
-                'restorative', 'endodontic', 'surgical', 'orthodontic', 'preventive',
-            ]),
+            // `category` was dropped from procedure_catalog in the 2026 catalog
+            // redesign; the row now fills only the columns the schema has.
             'default_duration_minutes' => 30,
             'default_cost' => 100.00,
             'is_active' => true,

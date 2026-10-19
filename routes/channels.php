@@ -16,6 +16,21 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+// Canal privado del paciente: la lista, la ficha, el modal de cita y las
+// notificaciones globales reciben aquí datos clínicos (medical_history,
+// allergies), por eso el payload viaja solo por un canal privado y la
+// suscripción exige el handshake de /api/broadcasting/auth. Todos los roles
+// autenticados pueden ver pacientes (PatientPolicy::viewAny).
+Broadcast::channel('patients', function ($user) {
+    if ($user === null) {
+        return false;
+    }
+    return in_array($user->role ?? null, [
+        'administrador', 'recepcionista', 'odontologo', 'implantologo',
+        'tecnico_dental', 'asistente', 'finanzas',
+    ], true);
+});
+
 // Canal privado para sesiones de caja específicas
 Broadcast::channel('cash-session.{sessionId}', function ($user, $sessionId) {
     // Verificar que el usuario tenga acceso a esta sesión

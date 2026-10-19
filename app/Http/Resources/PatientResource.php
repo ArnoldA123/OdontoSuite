@@ -32,6 +32,7 @@ class PatientResource extends JsonResource
             'allergies' => $this->allergies,
             'notes' => $this->notes,
             'is_active' => $this->is_active,
+            'branch_id' => $this->branch_id,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
             

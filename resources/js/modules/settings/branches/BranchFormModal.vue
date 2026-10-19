@@ -5,140 +5,176 @@
     size="lg"
     @close="emit('close')"
   >
-    <form class="space-y-4" @submit.prevent="onSubmit">
-      <!-- Codigo y nombre -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Codigo
-            <span class="text-red-500">*</span>
-          </label>
-          <UiInput
-            v-model="form.code"
-            :disabled="isEdit"
-            placeholder="ej. SC-LIM-01"
-            :error="errors.code"
-            class="w-full"
-          />
-          <p v-if="isEdit" class="text-xs text-theme-secondary mt-1">
-            El codigo no puede modificarse una vez creado.
-          </p>
+    <div class="space-y-6">
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Identificación
+        </legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="code">
+            <UiInput
+              v-model="form.code"
+              label="Código"
+              placeholder="SC-LIM-01"
+              :disabled="isEdit"
+              :error="errors.code"
+              :hint="isEdit ? 'El código no se puede modificar una vez creado.' : ''"
+            />
+          </div>
+          <div data-field="name">
+            <UiInput
+              v-model="form.name"
+              label="Nombre de la sucursal"
+              placeholder="Sede Central Lima"
+              :error="errors.name"
+            />
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Nombre
-            <span class="text-red-500">*</span>
-          </label>
-          <UiInput
-            v-model="form.name"
-            placeholder="ej. Sede Central Lima"
-            :error="errors.name"
-            class="w-full"
-          />
-        </div>
-      </div>
+      </fieldset>
 
-      <!-- Direccion -->
-      <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">Direccion</label>
-        <UiInput
-          v-model="form.address"
-          placeholder="Av. / Jr. / Calle, numero, distrito"
-          :error="errors.address"
-          class="w-full"
-        />
-      </div>
-
-      <!-- Ciudad / Estado / Pais -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Ciudad
-            <span class="text-red-500">*</span>
-          </label>
-          <UiInput v-model="form.city" placeholder="Lima" :error="errors.city" class="w-full" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Departamento</label>
-          <UiInput v-model="form.state" placeholder="Lima" :error="errors.state" class="w-full" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Pais</label>
-          <UiInput v-model="form.country" placeholder="Peru" class="w-full" />
-        </div>
-      </div>
-
-      <!-- Telefono / Email -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Telefono</label>
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Ubicación
+        </legend>
+        <div data-field="address">
           <UiInput
-            v-model="form.phone"
-            placeholder="+51 1 426-0001"
-            :error="errors.phone"
-            class="w-full"
+            v-model="form.address"
+            label="Dirección"
+            placeholder="Av. / Jr. / Calle, número, distrito"
+            :error="errors.address"
           />
         </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Email</label>
-          <UiInput
-            v-model="form.email"
-            type="email"
-            placeholder="sucursal@odontosuite.pe"
-            :error="errors.email"
-            class="w-full"
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="city">
+            <UiInput v-model="form.city" label="Ciudad" placeholder="Lima" :error="errors.city" />
+          </div>
+          <div data-field="state">
+            <UiInput
+              v-model="form.state"
+              label="Departamento"
+              placeholder="Lima"
+              :error="errors.state"
+            />
+          </div>
+          <div data-field="country">
+            <UiInput
+              v-model="form.country"
+              label="País"
+              placeholder="Perú"
+              :error="errors.country"
+            />
+          </div>
+          <div data-field="postal_code">
+            <UiInput
+              v-model="form.postal_code"
+              label="Código postal"
+              placeholder="15046"
+              :error="errors.postal_code"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Contacto
+        </legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="phone">
+            <UiInput
+              v-model="form.phone"
+              label="Teléfono"
+              placeholder="+51 1 426-0001"
+              :error="errors.phone"
+            />
+          </div>
+          <div data-field="email">
+            <UiInput
+              v-model="form.email"
+              label="Correo electrónico"
+              type="email"
+              placeholder="sucursal@odontosuite.pe"
+              :error="errors.email"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Operación
+        </legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="timezone">
+            <UiInput
+              v-model="form.timezone"
+              label="Zona horaria"
+              placeholder="America/Lima"
+              :error="errors.timezone"
+            />
+          </div>
+          <div data-field="is_active">
+            <UiSelect
+              v-model="statusValue"
+              :options="statusOptions"
+              label="Estado"
+              placeholder="Seleccionar estado"
+            />
+            <p class="mt-1 text-xs text-theme-secondary">
+              Las sucursales inactivas no aparecen en los selectores de sede ni de apertura de caja.
+            </p>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Descripción
+        </legend>
+        <div data-field="description">
+          <UiTextarea
+            v-model="form.description"
+            :rows="3"
+            aria-label="Descripción"
+            placeholder="Notas internas sobre esta sede (opcional)"
           />
         </div>
-      </div>
+      </fieldset>
 
-      <!-- Descripcion -->
-      <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">Descripcion</label>
-        <UiTextarea
-          v-model="form.description"
-          :rows="2"
-          placeholder="Notas internas sobre esta sede (opcional)"
-          class="w-full"
-        />
-      </div>
-
-      <!-- Estado (activo/inactivo) -->
-      <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-        <select
-          v-model="form.is_active"
-          class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-        >
-          <option :value="true">Activa</option>
-          <option :value="false">Inactiva</option>
-        </select>
-        <p class="text-xs text-theme-secondary mt-1">
-          Las sucursales inactivas no aparecen en los dropdowns de abrir caja ni de seleccion de
-          sede.
-        </p>
-      </div>
-    </form>
+      <p
+        v-if="generalError"
+        role="alert"
+        class="rounded-[var(--radius-panel)] p-3 text-sm text-systemRed-700 bg-systemRed-50"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        {{ generalError }}
+      </p>
+    </div>
 
     <template #footer>
-      <div class="flex justify-end gap-3">
-        <UiButton variant="secondary" :disabled="saving" @click="emit('close')">
-Cancelar
-</UiButton>
-        <UiButton :disabled="saving" @click="onSubmit">
-          {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
-        </UiButton>
-      </div>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="saving"
+        data-modal-cancel
+        @click="emit('close')"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
+        {{ isEdit ? 'Actualizar' : 'Crear' }}
+      </UiButton>
     </template>
   </UiModal>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, ref } from 'vue'
 import { useBranches } from '../../../composables/useBranches'
-import { useToast } from '../../../composables/useToast'
 import UiModal from '../../../components/ui/Modal.vue'
 import UiButton from '../../../components/ui/Button.vue'
 import UiInput from '../../../components/ui/Input.vue'
+import UiSelect from '../../../components/ui/Select.vue'
 import UiTextarea from '../../../components/ui/UiTextarea.vue'
 
 const props = defineProps({
@@ -148,80 +184,121 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const { createBranch, updateBranch } = useBranches()
-const toast = useToast()
 
 const isEdit = computed(() => !!props.branch)
 
-const getEmptyForm = () => ({
+const EMPTY_FORM = {
   code: '',
   name: '',
   address: '',
   city: '',
   state: '',
-  country: 'Peru',
+  country: 'Perú',
+  postal_code: '',
   phone: '',
   email: '',
+  timezone: 'America/Lima',
   description: '',
   is_active: true
-})
+}
 
-const form = ref(getEmptyForm())
+const statusOptions = [
+  { value: 'active', label: 'Activa' },
+  { value: 'inactive', label: 'Inactiva' }
+]
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const toForm = branch =>
+  branch
+    ? {
+        code: branch.code || '',
+        name: branch.name || '',
+        address: branch.address || '',
+        city: branch.city || '',
+        state: branch.state || '',
+        country: branch.country || 'Perú',
+        postal_code: branch.postal_code || '',
+        phone: branch.phone || '',
+        email: branch.email || '',
+        timezone: branch.timezone || 'America/Lima',
+        description: branch.description || '',
+        is_active: !!branch.is_active
+      }
+    : { ...EMPTY_FORM }
+
+const form = ref(toForm(props.branch))
 const errors = ref({})
+const generalError = ref('')
 const saving = ref(false)
 
-onMounted(() => {
-  if (props.branch) {
-    form.value = {
-      code: props.branch.code,
-      name: props.branch.name,
-      address: props.branch.address || '',
-      city: props.branch.city || '',
-      state: props.branch.state || '',
-      country: props.branch.country || 'Peru',
-      phone: props.branch.phone || '',
-      email: props.branch.email || '',
-      description: props.branch.description || '',
-      is_active: !!props.branch.is_active
-    }
+const statusValue = computed({
+  get: () => (form.value.is_active ? 'active' : 'inactive'),
+  set: value => {
+    form.value.is_active = value === 'active'
   }
 })
 
 const validate = () => {
-  const e = {}
-  if (!isEdit.value && !form.value.code?.trim()) e.code = 'Requerido'
-  if (!form.value.name?.trim()) e.name = 'Requerido'
-  if (!form.value.city?.trim()) e.city = 'Requerido'
-  if (form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    e.email = 'Email invalido'
+  const next = {}
+  const code = form.value.code.trim()
+
+  if (!isEdit.value) {
+    if (!code) next.code = 'Requerido'
+    else if (code.length > 10) next.code = 'Máximo 10 caracteres'
   }
-  errors.value = e
-  return Object.keys(e).length === 0
+
+  if (!form.value.name.trim()) next.name = 'Requerido'
+  if (!form.value.city.trim()) next.city = 'Requerido'
+  if (form.value.postal_code.trim().length > 10) next.postal_code = 'Máximo 10 caracteres'
+  if (form.value.phone.trim().length > 20) next.phone = 'Máximo 20 caracteres'
+
+  const email = form.value.email.trim()
+  if (email && !EMAIL_PATTERN.test(email)) next.email = 'Email inválido'
+
+  errors.value = next
+  return Object.keys(next).length === 0
+}
+
+const buildPayload = () => {
+  const payload = {
+    name: form.value.name.trim(),
+    address: form.value.address.trim(),
+    city: form.value.city.trim(),
+    state: form.value.state.trim(),
+    country: form.value.country.trim() || 'Perú',
+    postal_code: form.value.postal_code.trim(),
+    phone: form.value.phone.trim(),
+    email: form.value.email.trim(),
+    timezone: form.value.timezone.trim() || 'America/Lima',
+    description: form.value.description.trim(),
+    is_active: !!form.value.is_active
+  }
+  if (!isEdit.value) payload.code = form.value.code.trim()
+  return payload
 }
 
 const onSubmit = async () => {
+  if (saving.value) return
+  generalError.value = ''
   if (!validate()) return
   saving.value = true
   try {
-    let result
-    if (isEdit.value) {
-      // No enviamos code (es inmutable) ni timestamps
-      const payload = { ...form.value }
-      delete payload.code
-      delete payload.created_at
-      delete payload.updated_at
-      delete payload.id
-      result = await updateBranch(props.branch.id, payload)
-    } else {
-      result = await createBranch(form.value)
-    }
-    emit('saved', result)
-  } catch (err) {
-    if (err.response?.data?.errors) {
+    const saved = isEdit.value
+      ? await updateBranch(props.branch.id, buildPayload())
+      : await createBranch(buildPayload())
+    emit('saved', saved)
+  } catch (error) {
+    const fieldErrors = error?.response?.data?.errors
+    if (fieldErrors) {
       errors.value = Object.fromEntries(
-        Object.entries(err.response.data.errors).map(([k, v]) => [k, v[0]])
+        Object.entries(fieldErrors).map(([key, value]) => [
+          key,
+          Array.isArray(value) ? value[0] : String(value)
+        ])
       )
     } else {
-      toast.error(err.response?.data?.message || 'Error al guardar la sucursal')
+      generalError.value = error?.response?.data?.message || 'No se pudo guardar la sucursal.'
     }
   } finally {
     saving.value = false

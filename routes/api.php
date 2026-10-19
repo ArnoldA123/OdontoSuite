@@ -186,10 +186,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Catálogo de procedimientos (Sprint 2: clínicos, admin y recep consultan; solo admin edita)
     Route::get('procedure-catalog', [ProcedureCatalogController::class, 'index']);
+    Route::get('procedure-catalog/summary', [ProcedureCatalogController::class, 'summary']);
     Route::get('procedure-catalog/active', [ProcedureCatalogController::class, 'active']);
     Route::get('procedure-catalog/search', [ProcedureCatalogController::class, 'search']);
     Route::get('procedure-catalog/for-me', [ProcedureCatalogController::class, 'forMe']);
     Route::get('procedure-catalog/{id}', [ProcedureCatalogController::class, 'show']);
+    Route::get('procedure-catalog/{id}/versions', [ProcedureCatalogController::class, 'versions']);
     Route::middleware('role:administrador')->group(function () {
         Route::post('procedure-catalog', [ProcedureCatalogController::class, 'store']);
         Route::put('procedure-catalog/{id}', [ProcedureCatalogController::class, 'update']);

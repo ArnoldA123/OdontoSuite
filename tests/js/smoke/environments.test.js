@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { readFileSync } from 'node:fs'
@@ -34,6 +34,8 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { useToast } from '../../../resources/js/composables/useToast'
+import { useConfirm } from '../../../resources/js/composables/useConfirm'
 import Page from '../../../resources/js/modules/environments/EnvironmentsPage.vue'
 
 const rowActive = {
@@ -42,7 +44,8 @@ const rowActive = {
   name: 'Consultorio Norte',
   description: 'Box 1',
   equipment: 'Unidad dental',
-  status: 'active'
+  status: 'active',
+  is_active: true
 }
 const rowMaintenance = {
   id: 2,
@@ -50,7 +53,8 @@ const rowMaintenance = {
   name: 'Sala de Esterilizacion',
   description: 'Area de autoclave',
   equipment: 'Autoclave',
-  status: 'maintenance'
+  status: 'maintenance',
+  is_active: true
 }
 const rowInactive = {
   id: 3,
@@ -58,7 +62,18 @@ const rowInactive = {
   name: 'Recepcion',
   description: null,
   equipment: null,
-  status: 'inactive'
+  status: 'inactive',
+  is_active: true
+}
+
+const rowArchived = {
+  id: 4,
+  code: 'AMB-04',
+  name: 'Consultorio Historico',
+  description: 'Archivado',
+  equipment: 'Unidad dental',
+  status: 'maintenance',
+  is_active: false
 }
 
 let pageRouter = null
@@ -74,8 +89,8 @@ const mountPage = async () => {
   return wrapper
 }
 
-const selectFilterOption = async (wrapper, label) => {
-  await wrapper.find('button[aria-haspopup="true"]').trigger('click')
+const selectFilterOption = async (wrapper, label, index = 0) => {
+  await wrapper.findAll('button[aria-haspopup="true"]')[index].trigger('click')
   const option = wrapper
     .findAll('[role="listbox"] button')
     .find(candidate => candidate.text().trim() === label)
@@ -116,10 +131,18 @@ const openModalStatusOptions = async form => {
   )
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+  // Close any teleported dialog left by the previous test before its host
+  // container is discarded; otherwise the teleport anchors are stale.
+  useConfirm().handleCancel()
+  await flushPromises()
   vi.clearAllMocks()
   document.body.innerHTML = ''
   getMock.mockResolvedValue({ data: [] })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('environments smoke', () => {
@@ -167,7 +190,13 @@ describe('environments status filter (T2)', () => {
     getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
     const wrapper = await mountPage()
 
-    await wrapper.find('input').setValue('consult')
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith('/api/dental-chairs/search?q=consult')
@@ -247,6 +276,39 @@ describe('environments delete flow (T2)', () => {
 
     expect(deleteMock).not.toHaveBeenCalled()
     wrapper.unmount()
+  })
+
+  it('surfaces the 409 explanation when the environment still has scheduling history', async () => {
+    const toast = useToast()
+    toast.clearAll()
+    getMock.mockResolvedValue({ data: [rowActive] })
+    deleteMock.mockRejectedValue({
+      status: 409,
+      response: {
+        data: {
+          message: 'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.'
+        }
+      }
+    })
+    const wrapper = await mountPage()
+
+    await clickRowAction(wrapper, 'Eliminar')
+    await flushPromises()
+
+    const dialog = findConfirmDialog()
+    expect(dialog, 'useConfirm dialog must open').toBeTruthy()
+    const confirmButton = [...dialog.querySelectorAll('button')].find(
+      button => button.textContent.trim() === 'Eliminar'
+    )
+    confirmButton.click()
+    await flushPromises()
+
+    expect(deleteMock).toHaveBeenCalledWith('/api/dental-chairs/1')
+    expect(wrapper.text()).toContain(
+      'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.'
+    )
+    wrapper.unmount()
+    toast.clearAll()
   })
 })
 
@@ -337,7 +399,8 @@ describe('environments modal surfaces (T3)', () => {
       name: 'Consultorio Sur',
       description: 'Box 1',
       equipment: 'Unidad dental',
-      status: 'active'
+      status: 'active',
+      is_active: true
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
@@ -400,7 +463,8 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
       name: 'Consultorio Norte',
       description: 'Box 1',
       equipment: 'Unidad dental + aspiracion',
-      status: 'active'
+      status: 'active',
+      is_active: true
     })
     expect(findModalForm('edit')).toBeNull()
     wrapper.unmount()
@@ -444,5 +508,227 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
     const codeField = source.slice(codeFieldStart, source.indexOf('</div>', codeFieldStart))
     expect(codeField).toContain('readonly')
     expect(codeField).toContain('hint="Generado automáticamente"')
+  })
+})
+
+describe('environments search debounce (S6)', () => {
+  const deferredSearch = () => {
+    const pendingSearches = []
+    getMock.mockImplementation(url => {
+      if (url === '/api/dental-chairs') return Promise.resolve({ data: [rowActive] })
+      return new Promise(resolve => pendingSearches.push({ url, resolve }))
+    })
+    return pendingSearches
+  }
+
+  it('issues a single search request 300 ms after the last keystroke', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+    getMock.mockClear()
+
+    vi.useFakeTimers()
+    try {
+      const input = wrapper.find('input')
+      await input.setValue('con')
+      await input.setValue('cons')
+      await input.setValue('consult')
+
+      expect(getMock).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(299)
+      expect(getMock).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(getMock).toHaveBeenCalledTimes(1)
+      expect(getMock).toHaveBeenCalledWith('/api/dental-chairs/search?q=consult')
+    } finally {
+      vi.useRealTimers()
+    }
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('Consultorio Norte')
+    wrapper.unmount()
+  })
+
+  it('loads the unfiltered list immediately for a short query and cancels the pending search', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+    getMock.mockClear()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await wrapper.find('input').setValue('c')
+
+      expect(getMock).toHaveBeenCalledWith('/api/dental-chairs')
+      const callsAfterShortQuery = getMock.mock.calls.length
+
+      await vi.advanceTimersByTimeAsync(500)
+      expect(getMock.mock.calls.length).toBe(callsAfterShortQuery)
+      expect(getMock).not.toHaveBeenCalledWith(expect.stringContaining('/search'))
+    } finally {
+      vi.useRealTimers()
+    }
+
+    await flushPromises()
+    wrapper.unmount()
+  })
+
+  it('never lets a superseded search response overwrite the newest one', async () => {
+    const pendingSearches = deferredSearch()
+    const wrapper = await mountPage()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+      await wrapper.find('input').setValue('recepcion')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(pendingSearches.map(search => search.url)).toEqual([
+      '/api/dental-chairs/search?q=consult',
+      '/api/dental-chairs/search?q=recepcion'
+    ])
+
+    pendingSearches[1].resolve({ data: [rowInactive] })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Recepcion')
+
+    pendingSearches[0].resolve({ data: [rowActive] })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Recepcion')
+    expect(wrapper.text()).not.toContain('Consultorio Norte')
+    wrapper.unmount()
+  })
+})
+
+describe('environments error messages (S6)', () => {
+  const errorBlock = wrapper => wrapper.find('[data-environments-error]')
+
+  it('shows the permission message for 403 responses read from error.status', async () => {
+    getMock.mockRejectedValueOnce({ status: 403, response: { data: { message: 'Forbidden' } } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('No tienes permisos para ver los ambientes.')
+    expect(errorBlock(wrapper).text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('shows the server message for 500 responses read from error.response.status', async () => {
+    getMock.mockRejectedValueOnce({ response: { status: 500, data: { message: 'Boom' } } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    expect(errorBlock(wrapper).text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message when the failure carries no status', async () => {
+    getMock.mockRejectedValueOnce(new Error('network down'))
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(errorBlock(wrapper).text()).not.toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    expect(errorBlock(wrapper).text()).not.toContain('No tienes permisos para ver los ambientes.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message for a status 0 failure', async () => {
+    getMock.mockRejectedValueOnce({ status: 0, response: { data: {} } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(errorBlock(wrapper).text()).not.toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    wrapper.unmount()
+  })
+})
+
+describe('environments archive management (S9)', () => {
+  it('requests only archived environments and offers reactivation', async () => {
+    getMock.mockResolvedValue({ data: [rowArchived] })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await flushPromises()
+
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs?archived=only')
+    expect(wrapper.text()).toContain('Consultorio Historico')
+    expect(wrapper.text()).toContain('Archivado')
+    expect(wrapper.text()).toContain('Reactivar')
+    expect(wrapper.text()).not.toContain('Archivar')
+    wrapper.unmount()
+  })
+
+  it('carries the archive visibility into search requests', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
+    await flushPromises()
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs/search?q=consult')
+
+    await selectFilterOption(wrapper, 'Incluir archivados', 1)
+    await flushPromises()
+
+    expect(getMock.mock.calls.at(-1)[0]).toBe(
+      '/api/dental-chairs/search?q=consult&archived=include'
+    )
+    wrapper.unmount()
+  })
+
+  it('archives an environment after confirmation', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    putMock.mockResolvedValue({ data: {} })
+    const wrapper = await mountPage()
+        await clickRowAction(wrapper, 'Archivar')
+    await flushPromises()
+
+    const dialog = findConfirmDialog()
+    expect(dialog, 'archive confirmation must open').toBeTruthy()
+    const confirmButton = [...dialog.querySelectorAll('button')].find(
+      button => button.textContent.trim() === 'Archivar'
+    )
+    confirmButton.click()
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/1', { is_active: false })
+    expect(wrapper.text()).toContain('Ambiente archivado exitosamente')
+    expect(getMock.mock.calls.at(-1)[0]).toBe('/api/dental-chairs')
+    wrapper.unmount()
+  })
+
+  it('reactivates an archived environment without a confirmation dialog', async () => {
+    getMock.mockResolvedValue({ data: [rowArchived] })
+    putMock.mockResolvedValue({ data: {} })
+    const wrapper = await mountPage()
+
+    await selectFilterOption(wrapper, 'Solo archivados', 1)
+    await flushPromises()
+    await clickRowAction(wrapper, 'Reactivar')
+    await flushPromises()
+
+    expect(findConfirmDialog()).toBeFalsy()
+    expect(putMock).toHaveBeenCalledWith('/api/dental-chairs/4', { is_active: true })
+    expect(wrapper.text()).toContain('Ambiente reactivado exitosamente')
+    wrapper.unmount()
   })
 })

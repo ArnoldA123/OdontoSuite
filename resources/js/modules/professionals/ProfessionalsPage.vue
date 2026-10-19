@@ -200,7 +200,7 @@
               <UiSelect
                 v-model="specialtyFilter"
                 data-professionals-specialty-filter
-                :options="specialtyOptions"
+                :options="specialtyFilterOptions"
                 placeholder="Todas las especialidades"
                 class="w-64"
               />
@@ -380,7 +380,12 @@
 
   <!-- New Professional Modal -->
   <UiModal v-model="showNewProfessionalModal" title="Nuevo Profesional" size="md">
-    <form id="form-new-prof" class="space-y-4" @submit.prevent="createProfessional">
+    <form
+      id="form-new-prof"
+      class="space-y-4"
+      @submit.prevent="createProfessional"
+      @keydown.enter.prevent="onFormEnter($event, createProfessional)"
+    >
       <UiInput
         v-model="newProfessional.name"
         data-professionals-form-name
@@ -399,6 +404,13 @@
         :error="createErrors.email"
       />
       <UiInput v-model="newProfessional.phone" label="Teléfono" type="tel" />
+      <UiInput
+        v-model="newProfessional.professional_license"
+        data-professionals-form-license
+        label="Matrícula"
+        type="text"
+        :error="createErrors.professional_license"
+      />
       <UiSelect
         v-model="newProfessional.specialty"
         :options="specialtyOptions"
@@ -415,13 +427,28 @@
         required
         :error="createErrors.role"
       />
+      <UiSelect
+        v-model="newProfessional.branch_id"
+        data-professionals-form-branch
+        :options="branchOptions"
+        label="Sucursal"
+        placeholder="Sin sucursal"
+        :error="createErrors.branch_id"
+      />
+      <UiSelect
+        v-model="newProfessional.is_active"
+        data-professionals-form-status
+        :options="statusOptions"
+        label="Estado"
+        :error="createErrors.is_active"
+      />
       <UiInput v-model="newProfessional.password" label="Contraseña" type="password" required />
     </form>
     <template #footer>
       <UiButton variant="secondary" :disabled="creating" @click="showNewProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" :loading="creating" @click="createProfessional">Crear</UiButton>
+      <UiButton type="button" :loading="creating" @click="createProfessional">Crear</UiButton>
     </template>
   </UiModal>
 
@@ -432,6 +459,7 @@
       id="form-edit-prof"
       class="space-y-4"
       @submit.prevent="updateProfessional"
+      @keydown.enter.prevent="onFormEnter($event, updateProfessional)"
     >
       <UiInput
         v-model="editingProfessional.name"
@@ -451,9 +479,16 @@
         :error="editErrors.email"
       />
       <UiInput v-model="editingProfessional.phone" label="Teléfono" type="tel" />
+      <UiInput
+        v-model="editingProfessional.professional_license"
+        data-professionals-edit-license
+        label="Matrícula"
+        type="text"
+        :error="editErrors.professional_license"
+      />
       <UiSelect
         v-model="editingProfessional.specialty"
-        :options="specialtyOptions"
+        :options="editSpecialtyOptions"
         label="Especialidad"
         placeholder="Seleccionar especialidad"
       />
@@ -466,12 +501,27 @@
         required
         :error="editErrors.role"
       />
+      <UiSelect
+        v-model="editingProfessional.branch_id"
+        data-professionals-edit-branch
+        :options="branchOptions"
+        label="Sucursal"
+        placeholder="Sin sucursal"
+        :error="editErrors.branch_id"
+      />
+      <UiSelect
+        v-model="editingProfessional.is_active"
+        data-professionals-edit-status
+        :options="statusOptions"
+        label="Estado"
+        :error="editErrors.is_active"
+      />
     </form>
     <template #footer>
       <UiButton variant="secondary" :disabled="updating" @click="showEditProfessionalModal = false">
         Cancelar
       </UiButton>
-      <UiButton type="submit" :loading="updating" @click="updateProfessional">Actualizar</UiButton>
+      <UiButton type="button" :loading="updating" @click="updateProfessional">Actualizar</UiButton>
     </template>
   </UiModal>
 </template>
@@ -519,21 +569,54 @@ const editingProfessional = ref(null)
 const createErrors = ref({})
 const editErrors = ref({})
 
-const newProfessional = ref({
+const emptyProfessional = () => ({
   name: '',
   username: '',
   email: '',
   phone: '',
+  professional_license: '',
   specialty: '',
   role: 'odontologo',
+  branch_id: null,
+  is_active: true,
   password: ''
 })
+
+const newProfessional = ref(emptyProfessional())
+
+const statusOptions = [
+  { value: true, label: 'Activo' },
+  { value: false, label: 'Inactivo' }
+]
 
 const getSpecialtyText = specialty => {
   return SPECIALTY_LABELS[specialty] || specialty
 }
 
+const specialtyFilterOptions = computed(() => {
+  const options = [...SPECIALTY_OPTIONS]
+  const known = new Set(SPECIALTY_OPTIONS.map(option => option.value))
+  for (const member of team.value) {
+    const specialty = typeof member.specialty === 'string' ? member.specialty.trim() : ''
+    if (!specialty || known.has(specialty)) continue
+    known.add(specialty)
+    options.push({ value: specialty, label: getSpecialtyText(specialty) })
+  }
+  return options
+})
+
+const editSpecialtyOptions = computed(() => {
+  const current = editingProfessional.value?.specialty
+  if (!current) return SPECIALTY_OPTIONS
+  if (SPECIALTY_OPTIONS.some(option => option.value === current)) return SPECIALTY_OPTIONS
+  return [...SPECIALTY_OPTIONS, { value: current, label: getSpecialtyText(current) }]
+})
+
 const roleOptions = CLINICAL_ROLES.map(role => ({ value: role, label: ROLE_LABELS[role] || role }))
+
+const branchOptions = computed(() =>
+  Object.entries(branchesById.value).map(([id, name]) => ({ value: Number(id), label: name }))
+)
 
 const roleLabel = role => ROLE_LABELS[role] || role || 'N/D'
 
@@ -611,6 +694,24 @@ const clearFilters = () => {
   specialtyFilter.value = ''
 }
 
+const applyServerErrors = (error, errors) => {
+  const fieldErrors = error?.response?.data?.errors
+  if (!fieldErrors || typeof fieldErrors !== 'object') return false
+
+  errors.value = Object.fromEntries(
+    Object.entries(fieldErrors).map(([field, messages]) => [
+      field,
+      Array.isArray(messages) ? messages[0] : String(messages)
+    ])
+  )
+  return true
+}
+
+const onFormEnter = (event, submit) => {
+  if (event.target?.closest?.('.select-container')) return
+  submit()
+}
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const validateProfessionalForm = (form, errors) => {
@@ -658,20 +759,14 @@ const createProfessional = async () => {
   try {
     await post('/api/users', { ...newProfessional.value })
     showNewProfessionalModal.value = false
-    newProfessional.value = {
-      name: '',
-      username: '',
-      email: '',
-      phone: '',
-      specialty: '',
-      role: 'odontologo',
-      password: ''
-    }
+    newProfessional.value = emptyProfessional()
     createErrors.value = {}
     toast.success('Profesional creado exitosamente')
     loadProfessionals()
   } catch (error) {
-    handleError(error, 'Error al crear el profesional')
+    if (!applyServerErrors(error, createErrors)) {
+      handleError(error, 'Error al crear el profesional')
+    }
   } finally {
     creating.value = false
   }
@@ -683,7 +778,12 @@ const openCreateModal = () => {
 }
 
 const editProfessional = professional => {
-  editingProfessional.value = { ...professional }
+  editingProfessional.value = {
+    ...professional,
+    professional_license: professional.professional_license || '',
+    branch_id: professional.branch_id ?? null,
+    is_active: Boolean(professional.is_active)
+  }
   editErrors.value = {}
   showEditProfessionalModal.value = true
 }
@@ -704,7 +804,9 @@ const updateProfessional = async () => {
     loadProfessionals()
     toast.success('Profesional actualizado exitosamente')
   } catch (error) {
-    handleError(error, 'Error al actualizar el profesional')
+    if (!applyServerErrors(error, editErrors)) {
+      handleError(error, 'Error al actualizar el profesional')
+    }
   } finally {
     updating.value = false
   }

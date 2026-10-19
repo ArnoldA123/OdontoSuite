@@ -51,6 +51,12 @@ class AuditLogController extends Controller
             $query->where('auditable_type', $request->get('model_type'));
         }
 
+        // Filter by a specific auditable record (model_type alone returns the
+        // history of every row of that model).
+        if ($request->filled('auditable_id')) {
+            $query->where('auditable_id', (int) $request->get('auditable_id'));
+        }
+
         $perPage = $request->get('per_page', 50);
         $perPage = min($perPage, 100); // Limit max per page to 100
 

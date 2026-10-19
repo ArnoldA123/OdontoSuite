@@ -147,7 +147,7 @@
                   {{ transaction.patient?.name }} {{ transaction.patient?.last_name }}
                 </div>
                 <div class="text-sm text-theme-secondary">
-                  {{ transaction.patient?.dni }}
+                  {{ transaction.patient?.document_number || transaction.patient?.dni }}
                 </div>
               </td>
 

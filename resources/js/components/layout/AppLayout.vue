@@ -1020,6 +1020,7 @@ const getPageDescription = () => {
     '/patients': 'Base de datos de pacientes',
     '/professionals': 'Gestión de profesionales',
     '/environments': 'Configuración de ambientes',
+    '/settings/branches': 'Sedes de la clínica',
     '/appointment-types': 'Tipos de citas disponibles',
     '/procedure-catalog': 'Catálogo clínico de procedimientos',
     '/procedure-catalog/': 'Detalle de procedimiento',

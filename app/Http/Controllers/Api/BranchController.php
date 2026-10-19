@@ -140,6 +140,17 @@ class BranchController extends Controller
                 'city' => 'required|string|max:100',
             ]));
 
+            // `address`, `country` and `timezone` are NOT NULL in the original
+            // migration. ConvertEmptyStringsToNull turns a cleared optional
+            // field into null, so normalize only the columns the client sent:
+            // a partial update keeps the stored value untouched.
+            $notNullDefaults = ['address' => '', 'country' => 'Perú', 'timezone' => 'America/Lima'];
+            foreach ($notNullDefaults as $column => $default) {
+                if (array_key_exists($column, $validated) && $validated[$column] === null) {
+                    $validated[$column] = $default;
+                }
+            }
+
             $branch->update($validated);
 
             return response()->json([

@@ -54,7 +54,7 @@
 {{ patient.name }} {{ patient.last_name }}
 </div>
               <div class="text-sm text-theme-secondary">
-{{ patient.dni }} - {{ patient.email }}
+{{ patient.document_number || patient.dni }} - {{ patient.email }}
 </div>
             </div>
           </div>
@@ -67,7 +67,7 @@
 {{ selectedPatient.name }} {{ selectedPatient.last_name }}
 </div>
                 <div class="text-sm text-theme-secondary">
-{{ selectedPatient.dni }} - {{ selectedPatient.email }}
+{{ selectedPatient.document_number || selectedPatient.dni }} - {{ selectedPatient.email }}
 </div>
               </div>
               <button

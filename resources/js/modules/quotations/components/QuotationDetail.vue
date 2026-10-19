@@ -30,9 +30,14 @@
               {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
             </span>
           </div>
-          <div v-if="quotation.patient?.dni" class="info-item">
+          <div
+            v-if="quotation.patient?.document_number || quotation.patient?.dni"
+            class="info-item"
+          >
             <span class="info-label">DNI:</span>
-            <span class="info-value">{{ quotation.patient.dni }}</span>
+            <span class="info-value">
+              {{ quotation.patient.document_number || quotation.patient.dni }}
+            </span>
           </div>
           <div v-if="quotation.patient?.phone" class="info-item">
             <span class="info-label">Teléfono:</span>

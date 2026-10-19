@@ -60,6 +60,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'commission_rate' => 'decimal:2',
+            'is_active' => 'boolean',
         ];
     }
 

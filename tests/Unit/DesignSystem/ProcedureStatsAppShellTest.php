@@ -99,19 +99,16 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
-     * EC-002 — Each of the 3 KPI `<UiCard>` elements (Total procedimientos /
-     * Activos / Inactivos) MUST carry:
-     *   (a) `data-stat-card="..."` attribute
-     *   (b) inline :style with `var(--color-hairline)` for the border
-     *   (c) inline :style with `var(--elevation-2)` for the shadow
-     *   (d) the four reserved slots h-4 / h-12 / h-6 / h-4 in that exact order
+     * EC-002 — The three KPI cards keep the dashboard anatomy: data-stat-card,
+     * inline hairline border, elevation-2 shadow, and the eyebrow / value /
+     * caption hierarchy (the redesign replaced the old fixed h-4/h-12/h-6/h-4
+     * slot grid with the current dashboard KPI recipe).
      */
     public function test_kpi_anatomy_matches_dashboard(): void
     {
         $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
         $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
 
-        // Scope to <UiCard ... data-stat-card="..." > blocks only.
         preg_match_all(
             '/<UiCard[^>]*\bdata-stat-card="[^"]+"[^>]*>[\s\S]*?<\/UiCard>/',
             $src,
@@ -134,58 +131,64 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
         }
 
         foreach ($cards as $idx => $card) {
-            // Hairline token consumed inline.
             $this->assertMatchesRegularExpression(
                 '/--color-hairline/',
                 $card,
                 "KPI card #{$idx} must consume var(--color-hairline) for its border (EC-002)."
             );
-            // Elevation-2 token consumed inline.
             $this->assertMatchesRegularExpression(
                 '/--elevation-2/',
                 $card,
                 "KPI card #{$idx} must consume var(--elevation-2) for its shadow (EC-002)."
             );
-            // Fixed-slot grid in the exact order: h-4 (eyebrow) / h-12 (number) / h-6 (chip) / h-4 (caption).
-            $eyebrowPos = strpos($card, 'h-4');
-            $numberPos  = strpos($card, 'h-12');
-            $chipPos    = strpos($card, 'h-6');
-            $captionPos = strpos($card, 'h-4', $chipPos === false ? 0 : $chipPos);
-
-            $this->assertNotFalse($eyebrowPos, "KPI card #{$idx} must reserve an eyebrow slot (h-4) (EC-002).");
-            $this->assertNotFalse($numberPos, "KPI card #{$idx} must reserve a number slot (h-12) (EC-002).");
-            $this->assertNotFalse($chipPos, "KPI card #{$idx} must reserve a chip slot (h-6) (EC-002).");
-            $this->assertNotFalse($captionPos, "KPI card #{$idx} must reserve a caption slot (h-4) (EC-002).");
-            $this->assertLessThan($numberPos, $eyebrowPos, "KPI card #{$idx} eyebrow must precede number (EC-002).");
-            $this->assertLessThan($chipPos, $numberPos, "KPI card #{$idx} number must precede chip (EC-002).");
-            $this->assertLessThan($captionPos, $chipPos, "KPI card #{$idx} chip must precede caption (EC-002).");
+            $this->assertMatchesRegularExpression(
+                '/text-xs font-medium uppercase/',
+                $card,
+                "KPI card #{$idx} must render the eyebrow with the dashboard label recipe (EC-002)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/text-3xl font-bold/',
+                $card,
+                "KPI card #{$idx} must render the counter with the dashboard value recipe (EC-002)."
+            );
+            $this->assertMatchesRegularExpression(
+                '/mt-1 text-xs/',
+                $card,
+                "KPI card #{$idx} must render a caption under the counter (EC-002)."
+            );
         }
     }
 
     /**
-     * EC-003 — `<PageHeader>` MUST replace the custom header block. The page
-     * source MUST declare zero `<h1>` tags after the change (defect 7 family).
+     * EC-003 — The page hero follows the dashboard hierarchy: the hero band
+     * carries the eyebrow, the single display <h1> and the caption. The legacy
+     * PageHeader block is gone (the redesigned catalog pages share the hero
+     * band recipe).
      */
-    public function test_page_header_replaces_h1(): void
+    public function test_hero_band_replaces_page_header(): void
     {
         $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
         $this->assertNotNull($src, 'ProcedureStatsPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression(
+            '/<header\b[^>]*data-stats-hero/s',
+            $src,
+            'ProcedureStatsPage.vue must render the hero band with data-stats-hero (EC-003).'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<h1\b[^>]*data-hero-title/s',
+            $src,
+            'ProcedureStatsPage.vue must render its single display <h1> inside the hero (EC-003).'
+        );
+        $this->assertDoesNotMatchRegularExpression(
             '/<PageHeader\b/',
             $src,
-            'ProcedureStatsPage.vue must render <PageHeader ...> (EC-003).'
+            'ProcedureStatsPage.vue must not fall back to the legacy PageHeader (EC-003).'
         );
-
-        // Strip HTML comments so a comment containing `<h1>` (a developer
-        // note about the legacy defect) does not falsely trigger the
-        // assertion. The base class strips JS comments inside <script>
-        // blocks; we strip template comments here for the same reason.
-        $stripped = preg_replace('/<!--[\s\S]*?-->/', '', $src) ?? $src;
-        $this->assertDoesNotMatchRegularExpression(
-            '/<h1[\s>]/i',
-            $stripped,
-            'ProcedureStatsPage.vue must not declare its own <h1> (defect 7 family; the page <h1> lives in AppLayout.vue). (EC-003)'
+        $this->assertSame(
+            1,
+            preg_match_all('/<h1[\s>]/i', $src),
+            'ProcedureStatsPage.vue must declare exactly one page <h1> (EC-003).'
         );
     }
 
