@@ -180,7 +180,7 @@
                     <div>
                       <p class="block text-sm font-medium text-theme-primary mb-1">Género</p>
                       <p class="text-theme-primary">
-                        {{ patient?.gender }}
+                        {{ genderLabel(patient?.gender) }}
                       </p>
                     </div>
                     <div>
@@ -665,6 +665,7 @@ import { useEcho } from '../../composables/useEcho'
 import { useAuditLogs } from '../../composables/useAuditLogs'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
+import { formatDateOnly } from '../../utils/formatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
@@ -849,8 +850,16 @@ export default {
     }
 
     const formatDate = date => {
-      if (!date) return 'No especificada'
-      return new Date(date).toLocaleDateString('es-ES')
+      return formatDateOnly(date) || 'No especificada'
+    }
+
+    const genderLabel = gender => {
+      const labels = {
+        male: 'Masculino',
+        female: 'Femenino',
+        other: 'Otro'
+      }
+      return labels[gender] || 'No especificado'
     }
 
     const getStatusVariant = status => {
@@ -1310,6 +1319,7 @@ export default {
       loadSpecialtyRecords,
       loadAuditLogs,
       formatDate,
+      genderLabel,
       getStatusVariant,
       getQuotationStatusVariant,
       getSpecialtyName,

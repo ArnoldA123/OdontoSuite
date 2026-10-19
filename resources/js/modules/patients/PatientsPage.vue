@@ -667,6 +667,14 @@ export default {
       }
     }
 
+    const updateKpiCounts = (patientData, delta) => {
+      if (patientData?.is_active) {
+        activeCount.value = Math.max(0, (activeCount.value || 0) + delta)
+      } else {
+        inactiveCount.value = Math.max(0, (inactiveCount.value || 0) + delta)
+      }
+    }
+
     const addPatientToList = patientData => {
       let shouldAdd = true
 
@@ -683,7 +691,9 @@ export default {
           (patientData.last_name || '').toLowerCase().includes(query) ||
           (patientData.email || '').toLowerCase().includes(query) ||
           (patientData.phone || '').includes(query) ||
-          (patientData.document_number || '').toLowerCase().includes(query)
+          String(patientData.document_number ?? '')
+            .toLowerCase()
+            .includes(query)
 
         if (!matchesSearch) {
           shouldAdd = false
@@ -727,6 +737,7 @@ export default {
       }
 
       addPatientToList(patient)
+      updateKpiCounts(patient, 1)
 
       toast.success(
         `Paciente registrado: ${patient.first_name} ${patient.last_name}\n` +
@@ -757,6 +768,9 @@ export default {
       if (ok) {
         try {
           await del(`/api/patients/${patient.id}`)
+
+          // Ajuste inmediato de los KPI; la recarga confirma los totales del servidor.
+          updateKpiCounts(patient, -1)
 
           // Recargar la página actual para asegurar que el paciente se elimine de la lista
           // y que la paginación se actualice correctamente desde el servidor
