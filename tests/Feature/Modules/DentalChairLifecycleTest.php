@@ -114,10 +114,47 @@ class DentalChairLifecycleTest extends TestCase
         ]);
     }
 
+    /**
+     * Keep assertions independent from rows seeded by sibling suites: the CI
+     * process can carry a seeded database into this class, so exact listing
+     * equality would fail for reasons unrelated to this contract.
+     *
+     * @param  array<int, string>  $only
+     * @return array<int, string>
+     */
+    private function listedCodes($response, array $only): array
+    {
+        $codes = collect($response->json('data'))->pluck('code')->all();
+
+        return array_values(array_intersect($codes, $only));
+    }
+
+    /**
+     * The next free numeric AMB code in the current database, seeded rows
+     * included. Codes outside the AMB-### namespace are ignored.
+     */
+    private function nextAmbNumber(): int
+    {
+        $max = 0;
+
+        foreach (DentalChair::pluck('code') as $code) {
+            if (preg_match('/^AMB-(\d+)$/', $code, $matches)) {
+                $max = max($max, (int) $matches[1]);
+            }
+        }
+
+        return $max + 1;
+    }
+
+    private function ambCode(int $number): string
+    {
+        return 'AMB-' . str_pad((string) $number, 3, '0', STR_PAD_LEFT);
+    }
+
     public function test_destroy_is_blocked_when_the_environment_has_appointments(): void
     {
         $admin = $this->admin();
-        $chair = $this->chair('AMB-001');
+        $chair = $this->chair('AMB-LC-DEL-001');
         $appointment = $this->appointmentFor($chair, $this->doctor());
 
         $this->actingAs($admin, 'sanctum')
@@ -133,7 +170,7 @@ class DentalChairLifecycleTest extends TestCase
 
     public function test_destroy_is_blocked_when_only_a_soft_deleted_appointment_references_it(): void
     {
-        $chair = $this->chair('AMB-002');
+        $chair = $this->chair('AMB-LC-DEL-002');
         $appointment = $this->appointmentFor($chair, $this->doctor());
         $appointment->delete();
 
@@ -148,7 +185,7 @@ class DentalChairLifecycleTest extends TestCase
     public function test_destroy_is_blocked_when_the_environment_has_appointment_blocks(): void
     {
         $admin = $this->admin();
-        $chair = $this->chair('AMB-003');
+        $chair = $this->chair('AMB-LC-DEL-003');
         $block = $this->blockFor($chair, $admin);
 
         $this->actingAs($admin, 'sanctum')
@@ -162,7 +199,7 @@ class DentalChairLifecycleTest extends TestCase
     public function test_destroy_removes_an_environment_without_relations_and_records_audit(): void
     {
         $admin = $this->admin();
-        $chair = $this->chair('AMB-004');
+        $chair = $this->chair('AMB-LC-DEL-004');
 
         $this->actingAs($admin, 'sanctum')
             ->deleteJson("/api/dental-chairs/{$chair->id}")
@@ -178,9 +215,10 @@ class DentalChairLifecycleTest extends TestCase
 
     public function test_store_generates_the_next_sequential_code_after_a_deletion(): void
     {
-        $this->chair('AMB-001');
-        $deleted = $this->chair('AMB-002');
-        $this->chair('AMB-003');
+        $start = $this->nextAmbNumber();
+        $this->chair($this->ambCode($start));
+        $deleted = $this->chair($this->ambCode($start + 1));
+        $this->chair($this->ambCode($start + 2));
         $deleted->delete();
 
         $this->actingAs($this->admin(), 'sanctum')
@@ -189,14 +227,15 @@ class DentalChairLifecycleTest extends TestCase
                 'status' => 'active',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.code', 'AMB-004');
+            ->assertJsonPath('data.code', $this->ambCode($start + 3));
     }
 
     public function test_store_does_not_reuse_a_code_that_is_still_taken(): void
     {
-        $this->chair('AMB-001');
-        $this->chair('AMB-002');
-        $this->chair('AMB-004');
+        $start = $this->nextAmbNumber();
+        $this->chair($this->ambCode($start));
+        $this->chair($this->ambCode($start + 1));
+        $this->chair($this->ambCode($start + 3));
 
         $this->actingAs($this->admin(), 'sanctum')
             ->postJson('/api/dental-chairs', [
@@ -204,7 +243,7 @@ class DentalChairLifecycleTest extends TestCase
                 'status' => 'active',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.code', 'AMB-005');
+            ->assertJsonPath('data.code', $this->ambCode($start + 4));
     }
 
     public function test_update_returns_404_for_a_missing_environment(): void
@@ -244,17 +283,12 @@ class DentalChairLifecycleTest extends TestCase
 
         $index = $this->actingAs($admin, 'sanctum')->getJson('/api/dental-chairs');
         $index->assertOk();
-        $this->assertSame(
-            ['AMB-ALFA', 'AMB-ZETA'],
-            collect($index->json('data'))->pluck('code')->all()
-        );
+        $fixtures = ['AMB-ALFA', 'AMB-ZETA', 'AMB-ARCHIVED'];
+        $this->assertSame(['AMB-ALFA', 'AMB-ZETA'], $this->listedCodes($index, $fixtures));
 
         $search = $this->actingAs($admin, 'sanctum')->getJson('/api/dental-chairs/search?q=AMB');
         $search->assertOk();
-        $this->assertSame(
-            ['AMB-ALFA', 'AMB-ZETA'],
-            collect($search->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-ALFA', 'AMB-ZETA'], $this->listedCodes($search, $fixtures));
     }
 
     public function test_active_endpoint_filters_by_operational_status_on_request(): void
@@ -269,7 +303,7 @@ class DentalChairLifecycleTest extends TestCase
         $response->assertOk();
         $this->assertSame(
             ['AMB-ACTIVE'],
-            collect($response->json('data'))->pluck('code')->all()
+            $this->listedCodes($response, ['AMB-ACTIVE', 'AMB-INACTIVE', 'AMB-MAINTENANCE'])
         );
     }
 
@@ -286,7 +320,7 @@ class DentalChairLifecycleTest extends TestCase
         $response->assertOk();
         $this->assertSame(
             ['AMB-ACTIVE', 'AMB-INACTIVE', 'AMB-MAINTENANCE'],
-            collect($response->json('data'))->pluck('code')->all()
+            $this->listedCodes($response, ['AMB-ACTIVE', 'AMB-INACTIVE', 'AMB-MAINTENANCE', 'AMB-ARCHIVED'])
         );
     }
 
@@ -297,28 +331,21 @@ class DentalChairLifecycleTest extends TestCase
 
         $admin = $this->admin();
 
+        $fixtures = ['AMB-LIVE', 'AMB-ARCHIVED'];
+
         $default = $this->actingAs($admin, 'sanctum')->getJson('/api/dental-chairs');
         $default->assertOk();
-        $this->assertSame(
-            ['AMB-LIVE'],
-            collect($default->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-LIVE'], $this->listedCodes($default, $fixtures));
 
         $include = $this->actingAs($admin, 'sanctum')
             ->getJson('/api/dental-chairs?archived=include');
         $include->assertOk();
-        $this->assertSame(
-            ['AMB-ARCHIVED', 'AMB-LIVE'],
-            collect($include->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-ARCHIVED', 'AMB-LIVE'], $this->listedCodes($include, $fixtures));
 
         $only = $this->actingAs($admin, 'sanctum')
             ->getJson('/api/dental-chairs?archived=only');
         $only->assertOk();
-        $this->assertSame(
-            ['AMB-ARCHIVED'],
-            collect($only->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-ARCHIVED'], $this->listedCodes($only, $fixtures));
     }
 
     public function test_search_can_include_archived_environments(): void
@@ -328,21 +355,17 @@ class DentalChairLifecycleTest extends TestCase
 
         $admin = $this->admin();
 
+        $fixtures = ['AMB-LIVE', 'AMB-ARCHIVED'];
+
         $default = $this->actingAs($admin, 'sanctum')
             ->getJson('/api/dental-chairs/search?q=AMB');
         $default->assertOk();
-        $this->assertSame(
-            ['AMB-LIVE'],
-            collect($default->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-LIVE'], $this->listedCodes($default, $fixtures));
 
         $include = $this->actingAs($admin, 'sanctum')
             ->getJson('/api/dental-chairs/search?q=AMB&archived=include');
         $include->assertOk();
-        $this->assertSame(
-            ['AMB-ARCHIVED', 'AMB-LIVE'],
-            collect($include->json('data'))->pluck('code')->all()
-        );
+        $this->assertSame(['AMB-ARCHIVED', 'AMB-LIVE'], $this->listedCodes($include, $fixtures));
     }
 
     public function test_invalid_archived_filter_returns_422(): void
