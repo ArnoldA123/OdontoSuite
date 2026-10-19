@@ -18,6 +18,12 @@ class AppointmentTypeController extends Controller
 
     /**
      * Rules shared by the store and update actions.
+     *
+     * `duration_minutes` is the write alias of the `default_duration_minutes`
+     * column, and every catalog rule the domain consumes
+     * (`requires_confirmation`, `requires_materials`, `is_consultation_mode`,
+     * `default_procedure_catalog_id`) is part of the contract: a flag that no
+     * write path accepts is a rule the operator cannot set.
      */
     protected function storeRules(): array
     {
@@ -26,9 +32,33 @@ class AppointmentTypeController extends Controller
             'description' => 'nullable|string',
             'duration_minutes' => 'required|integer|min:15|max:480',
             'price' => 'nullable|numeric|min:0',
-            'color' => 'required|string|max:7',
+            'default_procedure_catalog_id' => 'nullable|integer|exists:procedure_catalog,id',
+            'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'requires_confirmation' => 'boolean',
+            'requires_materials' => 'boolean',
+            'is_consultation_mode' => 'boolean',
             'is_active' => 'boolean'
         ];
+    }
+
+    /**
+     * Accept the resource field `default_duration_minutes` as the duration on
+     * write. Without this, a client that echoes a resource back (the shape the
+     * API itself returns) gets a 200 and an unchanged duration.
+     *
+     * The explicit `duration_minutes` alias always wins when both are sent.
+     */
+    private function normalizeDurationInput(Request $request): void
+    {
+        if ($request->has('duration_minutes')) {
+            return;
+        }
+
+        if ($request->has('default_duration_minutes')) {
+            $request->merge([
+                'duration_minutes' => $request->input('default_duration_minutes'),
+            ]);
+        }
     }
 
     /**
@@ -69,6 +99,8 @@ class AppointmentTypeController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            $this->normalizeDurationInput($request);
+
             $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
@@ -93,7 +125,11 @@ class AppointmentTypeController extends Controller
                         'description' => $type->description,
                         'default_duration_minutes' => $type->default_duration_minutes,
                         'price' => $type->price,
+                        'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                         'color' => $type->color,
+                        'requires_confirmation' => $type->requires_confirmation,
+                        'requires_materials' => $type->requires_materials,
+                        'is_consultation_mode' => $type->is_consultation_mode,
                         'is_active' => $type->is_active,
                     ]
                 );
@@ -152,6 +188,8 @@ class AppointmentTypeController extends Controller
         }
 
         try {
+            $this->normalizeDurationInput($request);
+
             $validated = $request->validate($this->updateRules($this->storeRules()));
 
             // Map duration_minutes to default_duration_minutes if needed
@@ -166,7 +204,11 @@ class AppointmentTypeController extends Controller
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
@@ -179,7 +221,11 @@ class AppointmentTypeController extends Controller
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
@@ -249,7 +295,11 @@ class AppointmentTypeController extends Controller
                 'description' => $type->description,
                 'default_duration_minutes' => $type->default_duration_minutes,
                 'price' => $type->price,
+                'default_procedure_catalog_id' => $type->default_procedure_catalog_id,
                 'color' => $type->color,
+                'requires_confirmation' => $type->requires_confirmation,
+                'requires_materials' => $type->requires_materials,
+                'is_consultation_mode' => $type->is_consultation_mode,
                 'is_active' => $type->is_active,
             ];
 
