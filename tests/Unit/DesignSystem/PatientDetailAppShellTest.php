@@ -323,12 +323,22 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
         $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
 
         $channels = [
-            'patients',
             'treatment-plans',
             'quotations',
             'medical-records',
             'specialty-records',
         ];
+
+        // `patients` carries clinical data, so it MUST ride the private variant.
+        $this->assertMatchesRegularExpression(
+            "/privateChannel\\s*\\(\\s*['\"]patients['\"]\\s*\\)/",
+            $src,
+            sprintf(
+                '%s MUST keep the PRIVATE `patients` subscription (PAC-RT-001 + patients-module-audit): '
+                    . 'the payload carries medical_history and allergies.',
+                $path
+            )
+        );
 
         foreach ($channels as $channelName) {
             $this->assertTrue(
@@ -338,7 +348,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
                 ),
                 sprintf(
                     '%s MUST keep `channel(\'%s\')` subscription (PAC-RT-001). '
-                        . 'The 5 Echo channels are the realtime pipe for cross-module patient events; '
+                        . 'The Echo channels are the realtime pipe for cross-module patient events; '
                         . 'a `<script>` edit that accidentally removes a subscription silently breaks '
                         . 'cross-tab realtime updates.',
                     $path,

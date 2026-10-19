@@ -451,7 +451,7 @@ export default {
     const { can } = usePermissions()
     const toast = useToast()
     const { confirm } = useConfirm()
-    const { channel, echo } = useEcho()
+    const { privateChannel, echo } = useEcho()
 
     // can ya es un objeto con propiedades computed, usarlo directamente
 
@@ -861,7 +861,7 @@ export default {
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real
       try {
-        patientsChannel = channel('patients')
+        patientsChannel = privateChannel('patients')
         if (patientsChannel) {
           patientsChannel
             .listen('.patient.created', async (e) => {

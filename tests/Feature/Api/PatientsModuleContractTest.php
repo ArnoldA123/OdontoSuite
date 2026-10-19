@@ -167,6 +167,110 @@ class PatientsModuleContractTest extends TestCase
     }
 
     // ---------------------------------------------------------------
+    // Round 2 — the patient events broadcast the resource, not the model
+    // ---------------------------------------------------------------
+
+    public function test_patient_events_broadcast_the_resource_payload(): void
+    {
+        $patient = $this->patient([
+            'first_name' => 'Ana',
+            'last_name' => 'Torres',
+            'document_number' => '45678912',
+            'birth_date' => '1990-04-15',
+            'medical_history' => 'Hipertensión',
+        ]);
+
+        foreach ([
+            new \App\Events\PatientCreated($patient),
+            new \App\Events\PatientUpdated($patient, []),
+        ] as $event) {
+            $payload = $event->broadcastWith();
+
+            $this->assertArrayHasKey('patient', $payload);
+            $patientPayload = $payload['patient'];
+
+            $this->assertSame('45678912', $patientPayload['document_number']);
+            $this->assertSame('Ana Torres', $patientPayload['full_name']);
+            $this->assertIsInt($patientPayload['age']);
+            $this->assertArrayHasKey('branch_id', $patientPayload);
+            $this->assertArrayNotHasKey(
+                'appointments',
+                $patientPayload,
+                'The event MUST NOT ship eagerly loaded relations the consumers never read.'
+            );
+            $this->assertArrayNotHasKey('deleted_at', $patientPayload);
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Round 2 — the dormant schema columns stay out of mass assignment
+    // ---------------------------------------------------------------
+
+    public function test_dormant_columns_are_not_mass_assignable(): void
+    {
+        $patient = Patient::create([
+            'first_name' => 'Dormido',
+            'last_name' => 'Columnas',
+            'dni' => '12345678',
+            'blood_type' => 'O+',
+            'insurance_provider' => 'Rimac',
+            'insurance_number' => 'INS-1',
+        ]);
+
+        $stored = $patient->fresh()->getAttributes();
+
+        foreach (['dni', 'blood_type', 'insurance_provider', 'insurance_number'] as $column) {
+            $this->assertNull(
+                $stored[$column] ?? null,
+                "patients.{$column} has no owner yet; it MUST NOT be writable through mass assignment."
+            );
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Round 2 — quotation/transaction payloads carry the patient DNI
+    // ---------------------------------------------------------------
+
+    public function test_quotation_and_transaction_payloads_expose_the_patient_document_number(): void
+    {
+        $admin = $this->admin();
+        $patient = $this->patient(['document_number' => 'DOC-99887766']);
+
+        $treatmentPlan = \App\Models\TreatmentPlan::factory()->create([
+            'patient_id' => $patient->id,
+            'created_by' => $admin->id,
+        ]);
+
+        $quotation = \App\Models\Quotation::create([
+            'patient_id' => $patient->id,
+            'treatment_plan_id' => $treatmentPlan->id,
+            'created_by' => $admin->id,
+            'quotation_number' => 'COT-0001',
+            'quotation_date' => now()->toDateString(),
+            'valid_until' => now()->addMonth()->toDateString(),
+            'subtotal' => 100,
+            'total_amount' => 100,
+        ]);
+
+        $method = PaymentMethod::create(['name' => 'Efectivo', 'code' => 'CASH', 'is_active' => true]);
+        $transaction = Transaction::create([
+            'patient_id' => $patient->id,
+            'payment_method_id' => $method->id,
+            'created_by' => $admin->id,
+            'transaction_number' => 'TX-0002',
+            'type' => 'payment',
+            'amount' => 100,
+            'status' => 'completed',
+        ]);
+
+        $quotationPayload = \App\Http\Resources\QuotationResource::make($quotation->load('patient'))->resolve();
+        $this->assertSame('DOC-99887766', $quotationPayload['patient']['document_number']);
+
+        $transactionPayload = \App\Http\Resources\TransactionResource::make($transaction->load('patient'))->resolve();
+        $this->assertSame('DOC-99887766', $transactionPayload['patient']['document_number']);
+    }
+
+    // ---------------------------------------------------------------
     // F3 — per_page never produces a 500
     // ---------------------------------------------------------------
 

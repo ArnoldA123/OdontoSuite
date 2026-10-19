@@ -698,7 +698,7 @@ export default {
     const { get } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
-    const { channel, echo } = useEcho()
+    const { channel, privateChannel, echo } = useEcho()
     const {
       loading: auditLogsLoading,
       auditLogs,
@@ -1127,7 +1127,7 @@ export default {
           const patientId = patient.value.id
 
           // Canal de pacientes
-          patientsChannel = channel('patients')
+          patientsChannel = privateChannel('patients')
           if (patientsChannel) {
             patientsChannel.listen('.patient.updated', async e => {
               if (e.patient.id === patientId) {

@@ -119,3 +119,37 @@ a `String(...)` guard in its own module. `MedicalRecordDetail.vue`, `SpecialtyRe
 `QuotationDetail.vue`, `TransactionModal.vue` and `TransactionList.vue` read `patient.dni`, which
 those endpoints never send, so those DNIs stay invisible; `PatientSelector.vue` now emits the alias
 for the payloads it owns. Both belong to their own modules and are reported, not changed here.
+
+## Round 2 — the findings reported as out of scope
+
+The user asked to fix what the first report listed as out of scope, so this
+round is one bounded security unit plus the contract inconsistencies it exposed.
+
+| # | Finding | Fix |
+| --- | --- | --- |
+| R1 | `PatientCreated`/`PatientUpdated`/`PatientDeleted` broadcast on the public `Channel('patients')` **and** on the public `dashboard-updates`, with the full model as payload (`medical_history`, `allergies` included). Anyone holding the Reverb app key could subscribe without authenticating. | The three events broadcast on `PrivateChannel('patients')` only. `BroadcastingAuthController` and the `routes/channels.php` mirror authorize exactly the seven roles that may read a patient. The four consumers (`PatientsPage`, `PatientDetailPage`, `NewAppointmentModal`, `useWebSocketNotifications`) subscribe with `privateChannel('patients')`; `DashboardPage` moved its three patient listeners to that private channel so the KPI refresh survives. |
+| R2 | The events emitted the raw Eloquent model, so a realtime update replaced a row with a payload that had no `age` and shipped eagerly loaded `appointments`/`waitingLists`. | `PatientCreated`/`PatientUpdated` emit `PatientResource`; the eager load is gone. |
+| R3 | Five components read `patient.dni`, a key those endpoints never sent, so the DNI never rendered. | `QuotationResource` and `TransactionResource` expose `document_number`; the components read `document_number` with the legacy `dni` fallback. |
+| R4 | `PendingPaymentsList.vue` called `.toLowerCase()` on `document_number`, which is `null` for a patient without a DNI. | `String(... ?? '')` guard on both search fields. |
+| R5 | `dni`, `blood_type`, `insurance_provider` and `insurance_number` exist in the schema with no owner. | Removed from `$fillable` so nothing writes them by accident; dropping the columns stays a separate destructive decision. |
+
+The three PAC-RT-001 guards in `PatientDetailAppShellTest`,
+`PatientsListAppShellTest` and `PatientsModalAppShellTest` now require the
+private subscription instead of the public one, because the old assertion pinned
+the leak itself.
+
+Checks for this round:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Backend (MySQL) | `--filter='Patient|BroadcastingAuth|Events'` | 388 passed, 1385 assertions |
+| Design-system + negative-space guards | `php artisan test --filter='DesignSystem'` | 662 passed, 3392 assertions |
+| Full Vitest smoke | `pnpm exec vitest run` | 416 passed, 8 dashboard timeouts under full-suite load; the same dashboard files pass 81/81 in isolation (`vitest run tests/js/smoke/dashboard`) |
+| ESLint (23 touched paths) | `pnpm exec eslint --ext .js,.vue ...` | 0 errors; the 227 warnings are the pre-existing Prettier debt AGENTS.md #15 tracks |
+| Prettier | `--check` on the touched files | only the five files that were already non-conforming on `main`; the new lines were formatted by hand |
+
+Still open after this round, and reported instead of changed because it is its
+own review: `dashboard-updates` remains public for the other 21 events
+(appointments, users, cash sessions, quotations, medical records, treatment
+plans, transactions, reminders), which also ship domain payloads. Closing it is
+the same treatment applied to 21 event files plus the dashboard/BI consumers.

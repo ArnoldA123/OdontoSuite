@@ -41,6 +41,7 @@ class QuotationResource extends JsonResource
                     'first_name' => $this->patient->first_name,
                     'last_name' => $this->patient->last_name,
                     'full_name' => $this->patient->full_name,
+                    'document_number' => $this->patient->document_number,
                 ];
             }),
             'treatment_plan' => $this->whenLoaded('treatmentPlan', function () {

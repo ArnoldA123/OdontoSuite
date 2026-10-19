@@ -12,6 +12,13 @@ class Patient extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * `dni`, `blood_type`, `insurance_provider` and `insurance_number` exist in
+     * the schema but no endpoint validates them and no screen collects them
+     * (PAC-PHI-001), so they stay out of `$fillable`: nothing can write them by
+     * accident until a feature owns them deliberately. Dropping the columns is a
+     * separate, destructive decision pending an explicit request.
+     */
     protected $fillable = [
         'first_name',
         'last_name',
@@ -28,10 +35,6 @@ class Patient extends Model
         'notes',
         'is_active',
         'branch_id',
-        'dni',
-        'blood_type',
-        'insurance_provider',
-        'insurance_number',
     ];
 
     protected $casts = [

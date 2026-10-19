@@ -647,7 +647,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * MUST keep the `useEcho` `patients` channel subscription byte-for-
      * byte: `channel('patients')` + `.listen('.patient.created', ...)` +
      * `.listen('.patient.updated', ...)` + `.listen('.patient.deleted', ...)`
-     * + `echo.leave('patients')` in `onUnmounted`.
+     * + `echo.leave('patients')` in `onUnmounted` (it also drops `private-patients`).
      *
      * The `<script>` block is NEVER edited in any pacientes PR; the rule
      * is asserted here for the list-section surface (the channels are
@@ -660,12 +660,14 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // The `patients` channel is fetched via the `channel('patients')` helper.
+        // The `patients` channel is private (clinical payload), so the page
+        // subscribes through `privateChannel('patients')`.
         $this->assertTrue(
-            (bool) preg_match("#channel\s*\(\s*['\"]patients['\"]\s*\)#", $src),
+            (bool) preg_match("#privateChannel\s*\(\s*['\"]patients['\"]\s*\)#", $src),
             sprintf(
-                '%s MUST keep `channel(\'patients\')` subscription (PAC-RT-001). '
-                    . 'The Echo channel name is the canonical realtime pipe for patient events on the list page.',
+                '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
+                    . 'The channel is the canonical realtime pipe for patient events on the list page '
+                    . 'and it is private because the payload carries clinical data.',
                 $path
             )
         );
