@@ -5,184 +5,217 @@
     size="lg"
     @close="emit('close')"
   >
-    <form class="space-y-4 bg-canvas" @submit.prevent="onSubmit">
-      <!-- Codigo y nombre -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Código
-            <span class="text-systemRed-500">*</span>
-          </label>
-          <UiInput
-            v-model="form.code"
-            :disabled="isEdit || isSystem"
-            placeholder="ej. cash, crédito, yape"
-            :error="errors.code"
-            class="w-full"
-          />
-          <p v-if="isEdit" class="text-xs text-theme-secondary mt-1">
-            El código no puede modificarse.
-          </p>
-          <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
-            Método del sistema: no editable.
-          </p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">
-            Nombre visible
-            <span class="text-systemRed-500">*</span>
-          </label>
-          <UiInput
-            v-model="form.name"
-            :disabled="isSystem"
-            placeholder="ej. Tarjeta de crédito"
-            :error="errors.name"
-            class="w-full"
-          />
-        </div>
-      </div>
-
-      <!-- Descripcion -->
-      <div>
-        <label class="block text-sm font-medium text-theme-primary mb-1">Descripción</label>
-        <UiTextarea
-          v-model="form.description"
-          :disabled="isSystem"
-          :rows="2"
-          placeholder="Notas sobre este método de pago"
-          class="w-full"
-        />
-      </div>
-
-      <!-- Comision + Requiere autorizacion -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Comisión (%)</label>
-          <UiInput
-            v-model.number="form.commission_percentage"
-            :disabled="isSystem"
-            type="number"
-            step="0.01"
-            min="0"
-            max="100"
-            placeholder="0"
-            :error="errors.commission_percentage"
-            class="w-full"
-          />
-          <p class="text-xs text-theme-secondary mt-1">
-            Se agrega al subtotal del cobro (visible para el paciente).
-          </p>
-        </div>
-        <div class="flex items-start gap-3 pt-6">
-          <input
-            id="requires_authorization"
-            v-model="form.requires_authorization"
-            :disabled="isSystem"
-            type="checkbox"
-            class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
-          >
-          <div>
-            <label for="requires_authorization" class="text-sm text-theme-primary font-medium">
-              Requiere autorización
-            </label>
-            <p class="text-xs text-theme-secondary">
-              Si se requiere voucher o código de operación.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pasarela de pago (preparado para Sprint 3) -->
-      <div v-if="!isSystem || form.gateway_type" class="border-t border-hairline pt-4 mt-4">
-        <h4 class="text-sm font-semibold text-theme-primary mb-3">Pasarela de pago (opcional)</h4>
-        <p class="text-xs text-theme-secondary mb-3">
-          Configura Mercado Pago u otra pasarela para cobrar en línea. El cobro manual siempre
-          estará disponible sin pasarela.
-        </p>
+    <div class="space-y-6 bg-canvas" :data-payment-method-form="isEdit ? 'edit' : 'create'">
+      <fieldset class="space-y-4" data-form-section="identification">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Identificación
+        </legend>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">Pasarela</label>
-            <select
-              v-model="form.gateway_type"
-              :disabled="isSystem"
-              class="w-full px-3 py-2 border border-hairline rounded-lg bg-theme-surface-elevated text-theme-primary"
-            >
-              <option value="manual">Manual (sin pasarela)</option>
-              <option value="mercadopago">Mercado Pago</option>
-            </select>
+          <div data-field="code">
+            <UiInput
+              v-model="form.code"
+              label="Código"
+              required
+              :disabled="isEdit || saving"
+              placeholder="ej. yape"
+              :hint="codeHint"
+              :error="errors.code"
+              class="w-full"
+            />
+            <UiStatusBadge
+              v-if="isSystem"
+              variant="warning"
+              label="Sistema"
+              size="sm"
+              class="mt-2"
+            />
           </div>
-          <!--
-            PAGOS-RED-001: `gateway_config` is encrypted at rest
-            (`Crypt::encryptString` keyed by APP_KEY) and is NEVER sent to the
-            client. The wrapper is flagged `data-redacted="true"`; the fields
-            below are write-only capture bound to a local reactive that starts
-            empty, so the stored blob never reaches a rendered text node.
-          -->
-          <div v-if="form.gateway_type === 'mercadopago'" class="space-y-2" data-redacted="true">
+          <div data-field="name">
+            <UiInput
+              v-model="form.name"
+              label="Nombre visible"
+              required
+              :disabled="saving"
+              placeholder="ej. Yape"
+              :error="errors.name"
+              class="w-full"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-4" data-form-section="billing">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Cobro
+        </legend>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="commission_percentage">
+            <UiInput
+              v-model.number="form.commission_percentage"
+              label="Comisión (%)"
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              :disabled="saving"
+              hint="Se agrega al subtotal del cobro (visible para el paciente)"
+              :error="errors.commission_percentage"
+              class="w-full"
+            />
+          </div>
+          <div data-field="status">
+            <p class="block text-sm font-medium text-theme-primary mb-1">Estado</p>
+            <UiSelect
+              v-model="statusValue"
+              :options="STATUS_FORM_OPTIONS"
+              label="Estado"
+              placeholder="Seleccionar estado"
+              :disabled="saving"
+              :error="errors.is_active"
+            />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex items-start gap-3" data-field="requires_authorization">
+            <input
+              id="requires_authorization"
+              v-model="form.requires_authorization"
+              type="checkbox"
+              :disabled="saving"
+              class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
+            />
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Access Token</label>
-              <UiInput
-                v-model="gatewayConfig.access_token"
-                type="password"
-                :placeholder="hasStoredCredentials ? '••••••' : 'TEST-... o APP_USR-...'"
-                class="w-full"
-              />
-              <p v-if="hasStoredCredentials" class="text-xs text-theme-secondary mt-1">
-                Credenciales guardadas. Déjalo vacío para conservarlas.
+              <label for="requires_authorization" class="text-sm font-medium text-theme-primary">
+                Requiere autorización
+              </label>
+              <p class="text-xs text-theme-secondary">
+                Si se requiere voucher o código de operación.
               </p>
             </div>
+          </div>
+          <div class="flex items-start gap-3" data-field="allows_change">
+            <input
+              id="allows_change"
+              v-model="form.allows_change"
+              type="checkbox"
+              :disabled="saving"
+              class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
+            />
             <div>
-              <label class="block text-sm font-medium text-theme-primary mb-1">Public Key</label>
-              <UiInput
-                v-model="gatewayConfig.public_key"
-                :placeholder="hasStoredCredentials ? '••••••' : 'TEST-... o APP_USR-...'"
-                class="w-full"
-              />
+              <label for="allows_change" class="text-sm font-medium text-theme-primary">
+                Permite cambio
+              </label>
+              <p class="text-xs text-theme-secondary">
+                Si el cobro puede cambiar de método de pago después de registrarse.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Estado (solo visible en edit) -->
-      <div v-if="isEdit" class="border-t border-hairline pt-4 mt-4">
-        <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-        <select
-          v-model="form.is_active"
-          :disabled="isSystem"
-          class="w-full px-3 py-2 border border-hairline rounded-lg bg-theme-surface-elevated text-theme-primary"
-        >
-          <option :value="true">Activo</option>
-          <option :value="false">Inactivo</option>
-        </select>
-        <p v-if="isSystem" class="text-xs text-systemYellow-600 mt-1">
-          Los métodos del sistema no pueden desactivarse desde esta UI.
+        <p v-if="isSystem" class="text-xs text-theme-secondary" data-system-notice>
+          Los métodos del sistema se pueden desactivar, pero no eliminar.
         </p>
-      </div>
-    </form>
+      </fieldset>
+
+      <fieldset class="space-y-4" data-form-section="gateway">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Pasarela
+        </legend>
+        <div data-field="gateway_type">
+          <p class="block text-sm font-medium text-theme-primary mb-1">Tipo de pasarela</p>
+          <UiSelect
+            v-model="form.gateway_type"
+            :options="GATEWAY_TYPE_OPTIONS"
+            label="Tipo de pasarela"
+            placeholder="Seleccionar pasarela"
+            :disabled="saving"
+            :error="errors.gateway_type"
+          />
+          <p class="text-xs text-theme-secondary mt-1">
+            El cobro manual siempre está disponible sin pasarela.
+          </p>
+        </div>
+        <div
+          v-if="gatewayEnabled"
+          class="space-y-4 rounded-lg border border-hairline p-4"
+          data-redacted="true"
+        >
+          <div data-field="access_token">
+            <UiInput
+              v-model="gatewayConfig.access_token"
+              type="password"
+              label="Access Token"
+              autocomplete="off"
+              :disabled="saving"
+              :placeholder="credentialPlaceholder"
+              class="w-full"
+            />
+          </div>
+          <div data-field="public_key">
+            <UiInput
+              v-model="gatewayConfig.public_key"
+              label="Public Key"
+              autocomplete="off"
+              :disabled="saving"
+              :placeholder="credentialPlaceholder"
+              class="w-full"
+            />
+          </div>
+          <p class="text-xs text-theme-secondary">
+            Se guardan cifradas y no se vuelven a mostrar. Ingresa el Access Token para
+            configurarlas o actualizarlas.
+          </p>
+          <p v-if="errors.credentials" class="text-xs text-error-500" data-credential-error>
+            {{ errors.credentials }}
+          </p>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3" data-form-section="description">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Descripción
+        </legend>
+        <div data-field="description">
+          <UiTextarea
+            v-model="form.description"
+            :rows="3"
+            aria-label="Descripción"
+            placeholder="Notas sobre este método de pago"
+            :disabled="saving"
+          />
+          <p v-if="errors.description" class="text-xs text-error-500">
+            {{ errors.description }}
+          </p>
+        </div>
+      </fieldset>
+    </div>
 
     <template #footer>
-      <div class="flex justify-end gap-3">
-        <UiButton variant="secondary" :disabled="saving" @click="emit('close')">
-Cancelar
-</UiButton>
-        <UiButton v-if="!isSystem" :disabled="saving" @click="onSubmit">
-          {{ saving ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear' }}
-        </UiButton>
-        <UiButton v-else variant="secondary" disabled>
-Método del sistema
-</UiButton>
-      </div>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="saving"
+        data-modal-cancel
+        @click="emit('close')"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
+        {{ isEdit ? 'Actualizar método' : 'Crear método' }}
+      </UiButton>
     </template>
   </UiModal>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { usePaymentMethods } from '../../../composables/usePaymentMethods'
 import { useToast } from '../../../composables/useToast'
-import UiModal from '../../../components/ui/Modal.vue'
+import { GATEWAY_TYPE_OPTIONS, STATUS_FORM_OPTIONS, hasGateway } from './paymentMethodMeta'
 import UiButton from '../../../components/ui/Button.vue'
 import UiInput from '../../../components/ui/Input.vue'
+import UiModal from '../../../components/ui/Modal.vue'
+import UiSelect from '../../../components/ui/Select.vue'
+import UiStatusBadge from '../../../components/ui/StatusBadge.vue'
 import UiTextarea from '../../../components/ui/UiTextarea.vue'
 
 const props = defineProps({
@@ -194,102 +227,145 @@ const emit = defineEmits(['close', 'saved'])
 const { createMethod, updateMethod } = usePaymentMethods()
 const toast = useToast()
 
-const isEdit = computed(() => !!props.method)
-const isSystem = computed(() => !!props.method?.is_system)
-// PAGOS-RED-001: the API only exposes the `has_gateway_config` boolean — the
-// encrypted blob itself never crosses the wire, so the form shows a masked
-// placeholder instead of a value.
-const hasStoredCredentials = computed(() => !!props.method?.has_gateway_config)
+const isEdit = computed(() => Boolean(props.method))
+const isSystem = computed(() => Boolean(props.method?.is_system))
+const hasStoredCredentials = computed(() => Boolean(props.method?.has_gateway_config))
 
+const commissionFrom = method => {
+  const value = Number(method?.commission_percentage ?? 0)
+  return Number.isFinite(value) ? value : 0
+}
+
+const createFormState = method => ({
+  code: method?.code || '',
+  name: method?.name || '',
+  description: method?.description || '',
+  gateway_type: method?.gateway_type || 'manual',
+  commission_percentage: commissionFrom(method),
+  requires_authorization: Boolean(method?.requires_authorization),
+  allows_change: method ? Boolean(method.allows_change) : true,
+  is_active: method ? Boolean(method.is_active) : true
+})
+
+const form = reactive(createFormState(props.method))
 const gatewayConfig = reactive({
   access_token: '',
   public_key: ''
 })
-
-const getEmptyForm = () => ({
-  code: '',
-  name: '',
-  description: '',
-  gateway_type: 'manual',
-  gateway_config: null,
-  commission_percentage: 0,
-  requires_authorization: false,
-  allows_change: true,
-  is_active: true,
-  is_system: false
-})
-
-const form = ref(getEmptyForm())
 const errors = ref({})
 const saving = ref(false)
 
-onMounted(() => {
-  if (props.method) {
-    form.value = {
-      code: props.method.code || '',
-      name: props.method.name || '',
-      description: props.method.description || '',
-      gateway_type: props.method.gateway_type || 'manual',
-      gateway_config: null, // se setea via gatewayConfig reactive
-      commission_percentage: props.method.commission_percentage ?? 0,
-      requires_authorization: !!props.method.requires_authorization,
-      allows_change: props.method.allows_change ?? true,
-      is_active: !!props.method.is_active,
-      is_system: !!props.method.is_system
-    }
-    // Pre-llenar credenciales si existen (solo si tiene has_gateway_config)
-    if (props.method.has_gateway_config && props.method.gateway_type === 'mercadopago') {
-      // No podemos desencriptar en el frontend; mostramos placeholders
-      gatewayConfig.access_token = ''
-      gatewayConfig.public_key = ''
-    }
+const gatewayEnabled = computed(() => hasGateway(form.gateway_type))
+
+const statusValue = computed({
+  get: () => (form.is_active ? 'active' : 'inactive'),
+  set: value => {
+    form.is_active = value === 'active'
   }
 })
 
+const codeHint = computed(() =>
+  isEdit.value
+    ? 'El código no puede modificarse'
+    : 'Identificador corto en minúsculas, sin espacios. Por ejemplo: yape.'
+)
+
+const credentialPlaceholder = computed(() =>
+  hasStoredCredentials.value ? '••••••' : 'TEST-... o APP_USR-...'
+)
+
+const commissionValue = () => {
+  const raw = form.commission_percentage
+  if (raw === '' || raw === null || raw === undefined) return 0
+  return Number(raw)
+}
+
 const validate = () => {
-  const e = {}
-  if (!isEdit.value && !form.value.code?.trim()) e.code = 'Requerido'
-  if (!form.value.name?.trim()) e.name = 'Requerido'
-  if (form.value.commission_percentage < 0) e.commission_percentage = 'Debe ser >= 0'
-  errors.value = e
-  return Object.keys(e).length === 0
+  const nextErrors = {}
+
+  if (!isEdit.value && !form.code.trim()) {
+    nextErrors.code = 'Ingresa el código del método.'
+  }
+  if (!form.name.trim()) {
+    nextErrors.name = 'Ingresa el nombre del método.'
+  }
+
+  const commission = commissionValue()
+  if (!Number.isFinite(commission) || commission < 0 || commission > 100) {
+    nextErrors.commission_percentage = 'Ingresa una comisión entre 0 y 100.'
+  }
+
+  if (
+    form.gateway_type === 'mercadopago' &&
+    gatewayConfig.public_key.trim() &&
+    !gatewayConfig.access_token.trim()
+  ) {
+    nextErrors.credentials = 'Ingresa el Access Token para actualizar las credenciales.'
+  }
+
+  errors.value = nextErrors
+  return Object.keys(nextErrors).length === 0
+}
+
+const buildPayload = () => {
+  const payload = {
+    name: form.name.trim(),
+    description: form.description.trim() || null,
+    gateway_type: form.gateway_type,
+    commission_percentage: commissionValue(),
+    requires_authorization: form.requires_authorization,
+    allows_change: form.allows_change,
+    is_active: form.is_active
+  }
+
+  if (!isEdit.value) {
+    payload.code = form.code.trim()
+  }
+
+  if (form.gateway_type === 'mercadopago' && gatewayConfig.access_token.trim()) {
+    payload.gateway_config = {
+      access_token: gatewayConfig.access_token.trim(),
+      public_key: gatewayConfig.public_key.trim() || null
+    }
+  }
+
+  return payload
+}
+
+const applyServerErrors = error => {
+  const responseErrors = error.response?.data?.errors
+
+  if (responseErrors && typeof responseErrors === 'object') {
+    const mapped = Object.fromEntries(
+      Object.entries(responseErrors).map(([field, messages]) => [
+        field,
+        Array.isArray(messages) ? messages[0] : messages
+      ])
+    )
+    const credentialKey = Object.keys(mapped).find(field => field.startsWith('gateway_config'))
+    if (!mapped.credentials && credentialKey) {
+      mapped.credentials = mapped[credentialKey]
+    }
+    errors.value = mapped
+    return
+  }
+
+  toast.error(error.response?.data?.message || 'No se pudo guardar el método de pago.')
 }
 
 const onSubmit = async () => {
+  if (saving.value) return
   if (!validate()) return
+
   saving.value = true
   try {
-    const payload = { ...form.value }
-
-    // Preparar gateway_config si se llenaron credenciales
-    if (payload.gateway_type === 'mercadopago' && gatewayConfig.access_token) {
-      payload.gateway_config = {
-        access_token: gatewayConfig.access_token,
-        public_key: gatewayConfig.public_key
-      }
-    }
-
-    // En edicion, no enviamos el code (inmutable)
-    if (isEdit.value) {
-      delete payload.code
-      delete payload.is_system // no editable via API
-    }
-
-    let result
-    if (isEdit.value) {
-      result = await updateMethod(props.method.id, payload)
-    } else {
-      result = await createMethod(payload)
-    }
+    const payload = buildPayload()
+    const result = isEdit.value
+      ? await updateMethod(props.method.id, payload)
+      : await createMethod(payload)
     emit('saved', result)
-  } catch (err) {
-    if (err.response?.data?.errors) {
-      errors.value = Object.fromEntries(
-        Object.entries(err.response.data.errors).map(([k, v]) => [k, v[0]])
-      )
-    } else {
-      toast.error(err.response?.data?.message || 'Error al guardar el método de pago')
-    }
+  } catch (error) {
+    applyServerErrors(error)
   } finally {
     saving.value = false
   }

@@ -110,7 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Metodos de pago activos (accesible para todos los roles autenticados).
     // Sprint 2: endpoint separado del CRUD admin para que recepcionistas
     // y finanzas puedan listar metodos en dropdowns de cobro sin role:admin.
-    Route::get('payment-methods/active', [PaymentMethodController::class, 'index']);
+    Route::get('payment-methods/active', [PaymentMethodController::class, 'active']);
 
     // Dashboard (todos los roles autenticados)
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
