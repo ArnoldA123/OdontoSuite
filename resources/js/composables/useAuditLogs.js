@@ -180,8 +180,20 @@ export function useAuditLogs() {
       // AppointmentType fields
       default_duration_minutes: 'Duración (minutos)',
       price: 'Precio',
-      color: 'Color'
+      color: 'Color',
+      requires_confirmation: 'Requiere confirmación',
+      requires_materials: 'Requiere materiales',
+      is_consultation_mode: 'Modo consulta',
+      default_procedure_catalog_id: 'Procedimiento por defecto'
     }
+
+    // Boolean appointment-type flags: rendered as Sí/No instead of the raw
+    // `true` / `false` the snapshot stores.
+    const booleanFlagFields = [
+      'requires_confirmation',
+      'requires_materials',
+      'is_consultation_mode'
+    ]
 
     const changes = {}
 
@@ -213,6 +225,8 @@ export function useAuditLogs() {
         }
       } else if (key === 'is_active') {
         oldValueStr = oldVal ? 'Activo' : 'Inactivo'
+      } else if (booleanFlagFields.includes(key)) {
+        oldValueStr = oldVal ? 'Sí' : 'No'
       } else if (key === 'gender') {
         const genderMap = { male: 'Masculino', female: 'Femenino', other: 'Otro' }
         oldValueStr = genderMap[oldVal] || oldVal
@@ -268,6 +282,8 @@ export function useAuditLogs() {
         }
       } else if (key === 'is_active') {
         newValueStr = newVal ? 'Activo' : 'Inactivo'
+      } else if (booleanFlagFields.includes(key)) {
+        newValueStr = newVal ? 'Sí' : 'No'
       } else if (key === 'gender') {
         const genderMap = { male: 'Masculino', female: 'Femenino', other: 'Otro' }
         newValueStr = genderMap[newVal] || newVal
