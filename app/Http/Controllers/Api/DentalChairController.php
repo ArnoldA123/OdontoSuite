@@ -327,11 +327,20 @@ class DentalChairController extends Controller
     /**
      * Get active dental chairs.
      */
-    public function active(): JsonResponse
+    public function active(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'status' => 'sometimes|in:active,inactive,maintenance',
+        ]);
+
         try {
-            $chairs = DentalChair::where('is_active', true)
-                ->where('status', 'active')
+            $query = DentalChair::where('is_active', true);
+
+            if (isset($validated['status'])) {
+                $query->where('status', $validated['status']);
+            }
+
+            $chairs = $query
                 ->select('id', 'name', 'code', 'description', 'status')
                 ->orderBy('name')
                 ->get();

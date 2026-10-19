@@ -257,18 +257,35 @@ class DentalChairLifecycleTest extends TestCase
         );
     }
 
-    public function test_active_endpoint_only_offers_operational_environments(): void
+    public function test_active_endpoint_filters_by_operational_status_on_request(): void
     {
         $this->chair('AMB-ACTIVE', 'active');
         $this->chair('AMB-INACTIVE', 'inactive');
         $this->chair('AMB-MAINTENANCE', 'maintenance');
 
         $response = $this->actingAs($this->admin(), 'sanctum')
-            ->getJson('/api/dental-chairs/active');
+            ->getJson('/api/dental-chairs/active?status=active');
 
         $response->assertOk();
         $this->assertSame(
             ['AMB-ACTIVE'],
+            collect($response->json('data'))->pluck('code')->all()
+        );
+    }
+
+    public function test_active_endpoint_keeps_the_active_flag_contract_for_other_consumers(): void
+    {
+        $this->chair('AMB-ACTIVE', 'active');
+        $this->chair('AMB-INACTIVE', 'inactive');
+        $this->chair('AMB-MAINTENANCE', 'maintenance');
+        $this->chair('AMB-ARCHIVED', 'active', false);
+
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->getJson('/api/dental-chairs/active');
+
+        $response->assertOk();
+        $this->assertSame(
+            ['AMB-ACTIVE', 'AMB-INACTIVE', 'AMB-MAINTENANCE'],
             collect($response->json('data'))->pluck('code')->all()
         );
     }
