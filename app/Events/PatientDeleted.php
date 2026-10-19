@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -21,11 +21,14 @@ class PatientDeleted implements ShouldBroadcast
         $this->oldValues = $oldValues;
     }
 
+    /**
+     * Canal privado: el evento de borrado solo expone el id, pero el canal
+     * es el mismo que el de alta/edición y vive detrás del mismo handshake.
+     */
     public function broadcastOn()
     {
         return [
-            new Channel('patients'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('patients'),
         ];
     }
 

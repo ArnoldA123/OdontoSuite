@@ -92,6 +92,26 @@ class BroadcastingAuthChannelsTest extends TestCase
         $this->authRequest($user, 'private-nope.1')->assertNotFound();
     }
 
+    public function test_every_role_with_patient_access_is_authorized_on_the_private_patients_channel(): void
+    {
+        foreach ([
+            'administrador', 'recepcionista', 'odontologo',
+            'implantologo', 'tecnico_dental', 'asistente', 'finanzas',
+        ] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-patients')
+                ->assertOk()
+                ->assertJsonStructure(['auth']);
+        }
+    }
+
+    public function test_private_patients_channel_rejects_an_unauthenticated_request(): void
+    {
+        $this->postJson('/api/broadcasting/auth', [
+            'socket_id' => '1.1',
+            'channel_name' => 'private-patients',
+        ])->assertStatus(401);
+    }
+
     public function test_events_emit_de_doubled_private_channel_names(): void
     {
         $appointment = new Appointment();

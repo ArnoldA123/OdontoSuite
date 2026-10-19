@@ -38,6 +38,48 @@ class ProcedureCatalogService
     }
 
     /**
+     * Resumen exacto del catálogo completo para los KPIs de la lista.
+     * No depende de la página visible ni de los filtros activos.
+     *
+     * @return array<string, mixed>
+     */
+    public function summary(): array
+    {
+        $total = ProcedureCatalog::query()->count();
+        $active = ProcedureCatalog::query()->where('is_active', true)->count();
+        $avgDuration = ProcedureCatalog::query()->avg('default_duration_minutes');
+        $avgCost = ProcedureCatalog::query()->avg('default_cost');
+
+        $bySpecialty = DB::table('procedure_catalog')
+            ->leftJoin('specialties', 'procedure_catalog.specialty_id', '=', 'specialties.id')
+            ->select([
+                'specialties.id as specialty_id',
+                'specialties.code as specialty_code',
+                'specialties.name as specialty_name',
+                DB::raw('COUNT(*) as count'),
+            ])
+            ->groupBy('specialties.id', 'specialties.code', 'specialties.name')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($row) => [
+                'specialty_id' => $row->specialty_id,
+                'specialty_code' => $row->specialty_code,
+                'specialty_name' => $row->specialty_name,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $total - $active,
+            'avg_duration_minutes' => round((float) ($avgDuration ?? 0), 1),
+            'avg_cost' => round((float) ($avgCost ?? 0), 2),
+            'by_specialty' => $bySpecialty,
+        ];
+    }
+
+    /**
      * Búsqueda rápida para autocomplete. Devuelve máximo $limit resultados activos.
      *
      * @return array<int, array<string, mixed>>

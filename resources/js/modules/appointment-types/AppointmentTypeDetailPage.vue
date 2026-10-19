@@ -249,7 +249,7 @@
                     class="mt-1 text-2xl font-semibold text-label tabular-nums"
                     data-detail-field="price"
                   >
-                    {{ formatCurrency(appointmentType?.price) }}
+                    {{ formatPrice(appointmentType?.price) }}
                   </dd>
                 </div>
                 <div v-if="appointmentType?.default_procedure_catalog_id">
@@ -314,7 +314,19 @@
                 </p>
               </div>
 
-              <div v-if="log.old_values && log.new_values" class="mt-3">
+              <p
+                v-if="log.action === 'appointment_type_created'"
+                class="mt-3 text-sm text-theme-secondary"
+              >
+                Tipo de cita creado en el sistema.
+              </p>
+              <p
+                v-else-if="log.action === 'appointment_type_deleted'"
+                class="mt-3 text-sm text-theme-secondary"
+              >
+                Tipo de cita eliminado del sistema.
+              </p>
+              <div v-else-if="log.old_values && log.new_values" class="mt-3">
                 <p class="text-sm font-medium text-theme-primary">Cambios realizados:</p>
                 <div
                   v-if="getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0"
@@ -338,18 +350,6 @@
                 </div>
                 <p v-else class="mt-1 text-sm text-theme-secondary">Sin cambios registrados</p>
               </div>
-              <p
-                v-else-if="log.action === 'appointment_type_created'"
-                class="mt-3 text-sm text-theme-secondary"
-              >
-                Tipo de cita creado en el sistema.
-              </p>
-              <p
-                v-else-if="log.action === 'appointment_type_deleted'"
-                class="mt-3 text-sm text-theme-secondary"
-              >
-                Tipo de cita eliminado del sistema.
-              </p>
             </article>
           </div>
         </UiCard>
