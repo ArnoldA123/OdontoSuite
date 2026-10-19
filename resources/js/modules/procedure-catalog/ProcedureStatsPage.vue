@@ -37,6 +37,17 @@
             </template>
             Volver al catálogo
           </UiButton>
+          <UiButton
+            variant="primary"
+            data-export-csv
+            :disabled="loading || !hasData"
+            @click="exportCsv"
+          >
+            <template #icon-left>
+              <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Exportar CSV
+          </UiButton>
           <UiButton variant="secondary" :disabled="loading" data-hero-refresh @click="applyFilters">
             <template #icon-left>
               <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
@@ -223,6 +234,41 @@
       </UiCard>
     </section>
 
+    <section
+      v-if="!loading && !error && hasData"
+      aria-label="Gráficos del período"
+      class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2"
+      data-charts
+    >
+      <UiCard variant="glass" data-chart-card="usage">
+        <template #header>
+          <h2 class="text-lg font-semibold text-theme-primary">Usos por procedimiento</h2>
+        </template>
+        <div class="h-64">
+          <canvas
+            ref="usageChartRef"
+            data-chart="usage"
+            role="img"
+            aria-label="Usos por procedimiento"
+          />
+        </div>
+      </UiCard>
+
+      <UiCard variant="glass" data-chart-card="specialty">
+        <template #header>
+          <h2 class="text-lg font-semibold text-theme-primary">Participación por especialidad</h2>
+        </template>
+        <div class="h-64">
+          <canvas
+            ref="specialtyChartRef"
+            data-chart="specialty"
+            role="img"
+            aria-label="Participación por especialidad"
+          />
+        </div>
+      </UiCard>
+    </section>
+
     <div v-if="loading" aria-busy="true" class="space-y-6">
       <UiSkeleton variant="card" height="320px" animation="wave" />
       <UiSkeleton variant="table" animation="wave" />
@@ -325,9 +371,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeftIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowDownTrayIcon,
+  ArrowLeftIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/vue/24/outline'
+import { colors } from '../../design-system/tokens.js'
 import { useApi } from '../../composables/useApi'
 import { formatCurrency } from '../../composables/useFormatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -339,8 +391,26 @@ import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
+import {
+  buildProcedureStatsCsv,
+  buildProcedureStatsFilename,
+  downloadCsvFile
+} from './procedureStatsCsv'
 
 const STATS_ENDPOINT = '/api/admin/procedure-stats'
+
+// Chart.js cannot read CSS custom properties, so the charts consume the same
+// token module the rest of the app uses instead of hard-coded hex values.
+const CHART_PALETTE = [
+  colors.accent[500],
+  colors.systemIndigo[500],
+  colors.systemOrange[500],
+  colors.systemGreen[500],
+  colors.systemPurple[500],
+  colors.systemPink[500],
+  colors.systemYellow[500]
+]
+const CHART_LABEL_MAX = 28
 
 const presets = [
   { id: '7d', label: '7 días', days: 7 },
@@ -387,6 +457,14 @@ const appliedPreset = ref('90d')
 const stats = ref(null)
 const loading = ref(false)
 const error = ref(null)
+
+const usageChartRef = ref(null)
+const specialtyChartRef = ref(null)
+
+let usageChart = null
+let specialtyChart = null
+let chartRenderToken = 0
+let disposed = false
 
 const rangeError = computed(() => {
   if (!draft.value.from || !draft.value.to) {
@@ -444,6 +522,125 @@ const specialtyRows = computed(() => {
 
 const goBack = () => router.push('/procedure-catalog')
 
+const exportCsv = () => {
+  if (!hasData.value) {
+    return
+  }
+
+  const csv = buildProcedureStatsCsv({
+    topProcedures: topProcedures.value,
+    bySpecialty: bySpecialty.value
+  })
+  downloadCsvFile(buildProcedureStatsFilename(applied.value.from, applied.value.to), csv)
+}
+
+const truncateChartLabel = label => {
+  const text = String(label ?? '')
+  return text.length > CHART_LABEL_MAX ? `${text.slice(0, CHART_LABEL_MAX - 1)}…` : text
+}
+
+const destroyCharts = () => {
+  for (const chart of [usageChart, specialtyChart]) {
+    if (!chart) {
+      continue
+    }
+    try {
+      chart.destroy()
+    } catch (chartError) {
+      // The instance was already disposed; nothing left to release.
+    }
+  }
+  usageChart = null
+  specialtyChart = null
+}
+
+const renderCharts = async () => {
+  chartRenderToken += 1
+  const token = chartRenderToken
+  destroyCharts()
+
+  if (!hasData.value) {
+    return
+  }
+
+  const usageCanvas = usageChartRef.value
+  const specialtyCanvas = specialtyChartRef.value
+  if (
+    typeof usageCanvas?.getContext !== 'function' ||
+    typeof specialtyCanvas?.getContext !== 'function'
+  ) {
+    return
+  }
+
+  try {
+    const { Chart, registerables } = await import('chart.js')
+    Chart.register(...registerables)
+
+    if (disposed || token !== chartRenderToken) {
+      return
+    }
+
+    const usageContext = usageCanvas.getContext('2d')
+    const specialtyContext = specialtyCanvas.getContext('2d')
+    if (!usageContext || !specialtyContext) {
+      return
+    }
+
+    usageChart = new Chart(usageCanvas, {
+      type: 'bar',
+      data: {
+        labels: topProcedures.value.map(row => truncateChartLabel(row.name)),
+        datasets: [
+          {
+            label: 'Usos',
+            data: topProcedures.value.map(row => Number(row.usage_count || 0)),
+            backgroundColor: `${colors.accent[500]}cc`,
+            borderColor: colors.accent[500],
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 } },
+          y: { ticks: { autoSkip: false } }
+        }
+      }
+    })
+
+    const specialtyLabels = bySpecialty.value.map(row => row.specialty_name || 'Sin especialidad')
+    specialtyChart = new Chart(specialtyCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: specialtyLabels,
+        datasets: [
+          {
+            label: 'Usos',
+            data: bySpecialty.value.map(row => Number(row.usage_count || 0)),
+            backgroundColor: specialtyLabels.map(
+              (label, index) => CHART_PALETTE[index % CHART_PALETTE.length]
+            ),
+            borderColor: colors.background.systemBackground,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: true, position: 'bottom' } }
+      }
+    })
+  } catch (chartError) {
+    // A chart failure must never remove the tabular data below.
+  }
+}
+
 const loadStats = async () => {
   loading.value = true
   error.value = null
@@ -461,6 +658,8 @@ const loadStats = async () => {
     stats.value = null
   } finally {
     loading.value = false
+    await nextTick()
+    await renderCharts()
   }
 }
 
@@ -486,4 +685,9 @@ const selectPreset = preset => {
 }
 
 onMounted(loadStats)
+
+onUnmounted(() => {
+  disposed = true
+  destroyCharts()
+})
 </script>
