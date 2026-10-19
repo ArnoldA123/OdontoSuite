@@ -77,7 +77,7 @@
                 </svg>
               </div>
             </th>
-            <th v-if="$slots.actions" scope="col" class="data-table-cell-actions">Acciones</th>
+            <th v-if="$slots.actions" scope="col" class="data-table-header-cell w-32">Acciones</th>
           </tr>
         </thead>
 

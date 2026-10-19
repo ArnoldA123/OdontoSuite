@@ -117,7 +117,7 @@ const backdropClasses = computed(() => [
 const modalClasses = computed(() => {
   const base = [
     'relative bg-theme-surface-elevated rounded-modal shadow-2xl',
-    'max-h-screen overflow-hidden',
+    'flex flex-col max-h-screen overflow-hidden',
     'focus:outline-none'
   ]
 
@@ -208,7 +208,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
+  @apply flex flex-shrink-0 items-center justify-between p-6 border-b border-theme;
 }
 
 .modal-title {
@@ -216,11 +216,11 @@ onBeforeUnmount(() => {
 }
 
 .modal-body {
-  @apply p-6 overflow-y-auto;
+  @apply flex-1 min-h-0 p-6 overflow-y-auto;
 }
 
 .modal-footer {
-  @apply flex items-center justify-end gap-3 p-6 border-t border-theme bg-theme-surface;
+  @apply flex flex-shrink-0 items-center justify-end gap-3 p-6 border-t border-theme bg-theme-surface;
 }
 
 /* Modal animations */
