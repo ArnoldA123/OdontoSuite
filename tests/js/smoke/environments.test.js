@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { readFileSync } from 'node:fs'
@@ -34,6 +34,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import { useToast } from '../../../resources/js/composables/useToast'
 import Page from '../../../resources/js/modules/environments/EnvironmentsPage.vue'
 
 const rowActive = {
@@ -122,6 +123,10 @@ beforeEach(() => {
   getMock.mockResolvedValue({ data: [] })
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe('environments smoke', () => {
   it('mounts EnvironmentsPage.vue and renders content', async () => {
     const wrapper = await mountPage()
@@ -167,7 +172,13 @@ describe('environments status filter (T2)', () => {
     getMock.mockResolvedValue({ data: [rowActive, rowMaintenance, rowInactive] })
     const wrapper = await mountPage()
 
-    await wrapper.find('input').setValue('consult')
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
     await flushPromises()
 
     expect(getMock).toHaveBeenCalledWith('/api/dental-chairs/search?q=consult')
@@ -247,6 +258,39 @@ describe('environments delete flow (T2)', () => {
 
     expect(deleteMock).not.toHaveBeenCalled()
     wrapper.unmount()
+  })
+
+  it('surfaces the 409 explanation when the environment still has scheduling history', async () => {
+    const toast = useToast()
+    toast.clearAll()
+    getMock.mockResolvedValue({ data: [rowActive] })
+    deleteMock.mockRejectedValue({
+      status: 409,
+      response: {
+        data: {
+          message: 'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.'
+        }
+      }
+    })
+    const wrapper = await mountPage()
+
+    await clickRowAction(wrapper, 'Eliminar')
+    await flushPromises()
+
+    const dialog = findConfirmDialog()
+    expect(dialog, 'useConfirm dialog must open').toBeTruthy()
+    const confirmButton = [...dialog.querySelectorAll('button')].find(
+      button => button.textContent.trim() === 'Eliminar'
+    )
+    confirmButton.click()
+    await flushPromises()
+
+    expect(deleteMock).toHaveBeenCalledWith('/api/dental-chairs/1')
+    expect(wrapper.text()).toContain(
+      'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.'
+    )
+    wrapper.unmount()
+    toast.clearAll()
   })
 })
 
@@ -444,5 +488,150 @@ describe('environments T5 polish (edit modal + list chrome)', () => {
     const codeField = source.slice(codeFieldStart, source.indexOf('</div>', codeFieldStart))
     expect(codeField).toContain('readonly')
     expect(codeField).toContain('hint="Generado automáticamente"')
+  })
+})
+
+describe('environments search debounce (S6)', () => {
+  const deferredSearch = () => {
+    const pendingSearches = []
+    getMock.mockImplementation(url => {
+      if (url === '/api/dental-chairs') return Promise.resolve({ data: [rowActive] })
+      return new Promise(resolve => pendingSearches.push({ url, resolve }))
+    })
+    return pendingSearches
+  }
+
+  it('issues a single search request 300 ms after the last keystroke', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+    getMock.mockClear()
+
+    vi.useFakeTimers()
+    try {
+      const input = wrapper.find('input')
+      await input.setValue('con')
+      await input.setValue('cons')
+      await input.setValue('consult')
+
+      expect(getMock).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(299)
+      expect(getMock).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(1)
+      expect(getMock).toHaveBeenCalledTimes(1)
+      expect(getMock).toHaveBeenCalledWith('/api/dental-chairs/search?q=consult')
+    } finally {
+      vi.useRealTimers()
+    }
+
+    await flushPromises()
+    expect(wrapper.text()).toContain('Consultorio Norte')
+    wrapper.unmount()
+  })
+
+  it('loads the unfiltered list immediately for a short query and cancels the pending search', async () => {
+    getMock.mockResolvedValue({ data: [rowActive] })
+    const wrapper = await mountPage()
+    getMock.mockClear()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await wrapper.find('input').setValue('c')
+
+      expect(getMock).toHaveBeenCalledWith('/api/dental-chairs')
+      const callsAfterShortQuery = getMock.mock.calls.length
+
+      await vi.advanceTimersByTimeAsync(500)
+      expect(getMock.mock.calls.length).toBe(callsAfterShortQuery)
+      expect(getMock).not.toHaveBeenCalledWith(expect.stringContaining('/search'))
+    } finally {
+      vi.useRealTimers()
+    }
+
+    await flushPromises()
+    wrapper.unmount()
+  })
+
+  it('never lets a superseded search response overwrite the newest one', async () => {
+    const pendingSearches = deferredSearch()
+    const wrapper = await mountPage()
+
+    vi.useFakeTimers()
+    try {
+      await wrapper.find('input').setValue('consult')
+      await vi.advanceTimersByTimeAsync(300)
+      await wrapper.find('input').setValue('recepcion')
+      await vi.advanceTimersByTimeAsync(300)
+    } finally {
+      vi.useRealTimers()
+    }
+
+    expect(pendingSearches.map(search => search.url)).toEqual([
+      '/api/dental-chairs/search?q=consult',
+      '/api/dental-chairs/search?q=recepcion'
+    ])
+
+    pendingSearches[1].resolve({ data: [rowInactive] })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Recepcion')
+
+    pendingSearches[0].resolve({ data: [rowActive] })
+    await flushPromises()
+    expect(wrapper.text()).toContain('Recepcion')
+    expect(wrapper.text()).not.toContain('Consultorio Norte')
+    wrapper.unmount()
+  })
+})
+
+describe('environments error messages (S6)', () => {
+  const errorBlock = wrapper => wrapper.find('[data-environments-error]')
+
+  it('shows the permission message for 403 responses read from error.status', async () => {
+    getMock.mockRejectedValueOnce({ status: 403, response: { data: { message: 'Forbidden' } } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('No tienes permisos para ver los ambientes.')
+    expect(errorBlock(wrapper).text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('shows the server message for 500 responses read from error.response.status', async () => {
+    getMock.mockRejectedValueOnce({ response: { status: 500, data: { message: 'Boom' } } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    expect(errorBlock(wrapper).text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message when the failure carries no status', async () => {
+    getMock.mockRejectedValueOnce(new Error('network down'))
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(errorBlock(wrapper).text()).not.toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    expect(errorBlock(wrapper).text()).not.toContain('No tienes permisos para ver los ambientes.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message for a status 0 failure', async () => {
+    getMock.mockRejectedValueOnce({ status: 0, response: { data: {} } })
+    const wrapper = await mountPage()
+
+    expect(errorBlock(wrapper).exists()).toBe(true)
+    expect(errorBlock(wrapper).text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(errorBlock(wrapper).text()).not.toContain(
+      'Ocurrió un error en el servidor. Intenta nuevamente.'
+    )
+    wrapper.unmount()
   })
 })

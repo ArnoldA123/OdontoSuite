@@ -32,7 +32,7 @@
             v-model="searchQuery"
             placeholder="Buscar ambientes por nombre o descripción..."
             class="w-full"
-            @input="searchEnvironments"
+            @input="handleSearchInput"
           >
             <template #prefix>
               <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
@@ -74,7 +74,7 @@
           />
           <div class="min-w-0">
             <p class="text-sm font-medium text-theme-primary">No pudimos cargar los ambientes</p>
-            <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+            <p class="text-sm text-theme-secondary">{{ loadErrorMessage }}</p>
           </div>
         </div>
         <UiButton variant="primary" size="sm" @click="retryLoad">Reintentar</UiButton>
@@ -349,7 +349,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -388,6 +388,7 @@ const loading = ref(false)
 const creating = ref(false)
 const updating = ref(false)
 const loadError = ref(false)
+const loadErrorMessage = ref('')
 const sourceRows = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -458,43 +459,79 @@ const emptyDescription = computed(() =>
     : 'Crea el primer ambiente para empezar a gestionar tus espacios clínicos.'
 )
 
-const loadEnvironments = async () => {
+const SEARCH_DEBOUNCE_MS = 300
+
+const CONNECTION_ERROR_MESSAGE = 'Revisa tu conexión y vuelve a intentarlo.'
+const SERVER_ERROR_MESSAGE = 'Ocurrió un error en el servidor. Intenta nuevamente.'
+
+// Errors arrive either as a useApi throw (`{ status, response }`) or as a plain
+// Error when the request never completed, so both carriers are read.
+const requestStatus = error => error?.status ?? error?.response?.status
+
+const listErrorMessage = error => {
+  const status = requestStatus(error)
+  if (status === 403) return 'No tienes permisos para ver los ambientes.'
+  if (typeof status === 'number' && status >= 500) return SERVER_ERROR_MESSAGE
+  return CONNECTION_ERROR_MESSAGE
+}
+
+// Monotonic token: only the newest request may commit rows, error state or the
+// loading flag, so a slow response can never overwrite a newer one.
+let latestRequestId = 0
+let searchDebounceTimer = null
+
+const clearPendingSearch = () => {
+  if (searchDebounceTimer === null) return
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = null
+}
+
+const fetchEnvironments = async url => {
+  const requestId = ++latestRequestId
   loading.value = true
   loadError.value = false
+  loadErrorMessage.value = ''
   try {
-    const query = statusFilter.value ? `?status=${statusFilter.value}` : ''
-    const response = await get(`/api/dental-chairs${query}`)
+    const response = await get(url)
+    if (requestId !== latestRequestId) return
     sourceRows.value = response?.data || []
-  } catch {
+  } catch (error) {
+    if (requestId !== latestRequestId) return
     sourceRows.value = []
     loadError.value = true
+    loadErrorMessage.value = listErrorMessage(error)
   } finally {
-    loading.value = false
+    if (requestId === latestRequestId) loading.value = false
   }
 }
 
-const searchEnvironments = async () => {
+const loadEnvironments = () => {
+  const query = statusFilter.value ? `?status=${statusFilter.value}` : ''
+  return fetchEnvironments(`/api/dental-chairs${query}`)
+}
+
+const searchEnvironments = () => {
+  clearPendingSearch()
+  const query = searchQuery.value.trim()
+  return fetchEnvironments(`/api/dental-chairs/search?q=${encodeURIComponent(query)}`)
+}
+
+// One request 300 ms after the last keystroke. Queries shorter than two
+// characters never hit /search: they reload the unfiltered list immediately.
+const handleSearchInput = () => {
+  clearPendingSearch()
   if (searchQuery.value.trim().length < 2) {
     loadEnvironments()
     return
   }
-
-  loading.value = true
-  loadError.value = false
-  try {
-    const response = await get(
-      `/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`
-    )
-    sourceRows.value = response?.data || []
-  } catch {
-    sourceRows.value = []
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    searchEnvironments()
+  }, SEARCH_DEBOUNCE_MS)
 }
 
 const filterEnvironments = () => {
+  clearPendingSearch()
   if (searchQuery.value.trim().length >= 2) return
   loadEnvironments()
 }
@@ -508,6 +545,7 @@ const retryLoad = () => {
 }
 
 const clearFilters = () => {
+  clearPendingSearch()
   searchQuery.value = ''
   statusFilter.value = ''
   loadEnvironments()
@@ -572,7 +610,11 @@ const deleteEnvironment = async environment => {
       loadEnvironments()
       toast.success('Ambiente eliminado exitosamente')
     } catch (error) {
-      handleError(error, 'Error al eliminar el ambiente')
+      const status = error?.status ?? error?.response?.status
+      handleError(
+        error,
+        status === 409 ? error?.response?.data?.message : 'Error al eliminar el ambiente'
+      )
     }
   }
 }
@@ -583,5 +625,9 @@ const goBack = () => {
 
 onMounted(() => {
   loadEnvironments()
+})
+
+onBeforeUnmount(() => {
+  clearPendingSearch()
 })
 </script>
