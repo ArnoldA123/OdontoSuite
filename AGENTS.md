@@ -296,6 +296,8 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-19 (procedure-stats-ui-redesign T1-T4)** — `/procedure-stats` rehace su superficie con la receta del dashboard (hero band, KPI strip, filtros con presets, estados de carga/error/vacío, tabla y tiles sobre `components/ui/`), suma gráficos Chart.js (barras del top por usos y doughnut por especialidad) y export CSV del período aplicado. Corrige las métricas: el período incluye el día `to` completo y excluye ítems opcionales y planes cancelados, de modo que la distribución por especialidad y el ranking comparten una sola población. Sin ruta, primitiva UI ni migración nuevas: §4, §5, §6 y §11 no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+
 - **2026-10-11 (calendar-scheduling-redesign T8)** — §4 sincronizado con valores medidos: 196 rutas API (añadida `PATCH /api/appointments/{appointment}/reschedule`), 209 totales con web; `components/ui/` de 30 a 35 primitives (incluye `DentalMotifLayer.vue` movido desde `modules/dashboard/` y `UiSectionEmpty.vue` de patients; la base ya tenía 33, deriva preexistente corregida). Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-05 (dashboard-ops-redesign T7a)** — §4 sincronizado con valores medidos: 195 rutas API (añadida `GET dashboard/pending`), 208 totales con web. Guard `scripts/audit/doc-drift.mjs` en verde.
