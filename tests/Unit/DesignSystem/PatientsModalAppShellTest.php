@@ -572,19 +572,20 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             )
         );
 
-        // 9) The page keeps the `useEcho` `patients` channel subscription.
+        // 9) The page keeps the `useEcho` PRIVATE `patients` subscription.
         //    The `.patient.created` / `.patient.updated` /
         //    `.patient.deleted` listeners + the `echo.leave('patients')`
         //    in `onUnmounted` are load-bearing for cross-tab realtime
-        //    updates.
+        //    updates, and the channel is private because the payload
+        //    carries clinical data.
         $this->assertTrue(
             (bool) preg_match(
-                "#channel\s*\(\s*['\"]patients['\"]\s*\)#",
+                "#privateChannel\s*\(\s*['\"]patients['\"]\s*\)#",
                 $page
             ),
             sprintf(
-                '%s MUST keep `channel(\'patients\')` subscription (PAC-RT-001). '
-                    . 'The Echo channel is the canonical realtime pipe for patient events.',
+                '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
+                    . 'The channel is the canonical realtime pipe for patient events.',
                 self::PATIENTS_PAGE_PATH
             )
         );

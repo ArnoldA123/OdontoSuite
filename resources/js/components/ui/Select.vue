@@ -2,6 +2,7 @@
   <div ref="containerRef" class="select-container">
     <!-- Trigger button -->
     <button
+      type="button"
       :class="triggerClasses"
       :disabled="disabled"
       :aria-expanded="isOpen"
@@ -88,6 +89,7 @@
                 <button
                   v-for="option in group.options"
                   :key="option.value"
+                  type="button"
                   :class="getOptionClasses(option)"
                   :aria-selected="isSelected(option)"
                   @click="selectOption(option)"
@@ -141,6 +143,7 @@
             <button
               v-for="option in filteredOptions"
               :key="option.value"
+              type="button"
               :class="getOptionClasses(option)"
               :aria-selected="isSelected(option)"
               @click="selectOption(option)"
@@ -195,10 +198,7 @@
 
         <!-- Clear button -->
         <div v-if="clearable && hasSelection" class="p-3 border-t border-theme">
-          <UiButton
-variant="ghost"
-size="sm" class="w-full" @click="clearSelection"
->
+          <UiButton type="button" variant="ghost" size="sm" class="w-full" @click="clearSelection">
             <template #icon-left>
               <svg class="w-4 h-4" fill="none" stroke="currentColor"
 viewBox="0 0 24 24">
@@ -225,7 +225,7 @@ import UiButton from './Button.vue'
 
 const props = defineProps({
   modelValue: {
-    type: [String, Number, Array],
+    type: [Boolean, String, Number, Array],
     default: () => null
   },
   options: {

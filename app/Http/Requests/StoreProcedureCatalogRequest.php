@@ -23,9 +23,15 @@ class StoreProcedureCatalogRequest extends FormRequest
             'default_duration_minutes' => 'nullable|integer|min:5|max:480',
             'is_active' => 'boolean',
             'requires_anesthesia' => 'boolean',
+            'requires_radiographs' => 'boolean',
             'materials' => 'nullable|array',
             'materials.*' => 'string|max:200',
+            'requirements' => 'sometimes|nullable|string|max:2000',
+            'materials_needed' => 'sometimes|nullable|string|max:2000',
+            'steps' => 'sometimes|nullable|array',
+            'steps.*' => 'string|max:500',
             'contraindications' => 'nullable|string|max:2000',
+            'post_procedure_care' => 'sometimes|nullable|string|max:2000',
         ];
     }
 

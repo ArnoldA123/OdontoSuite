@@ -12,11 +12,27 @@ import {
 // value/label pairing itself, so an inversion cannot ship behind a passing
 // source guard.
 describe('professionals shared vocabulary contract', () => {
-  it('pairs every SPECIALTY_OPTIONS entry with the label of the same key', () => {
-    expect(SPECIALTY_OPTIONS).toHaveLength(Object.keys(SPECIALTY_LABELS).length)
+  it('labels every stored specialty code and keeps role codes out of the selectable options', () => {
     for (const option of SPECIALTY_OPTIONS) {
       expect(option).toEqual({ value: option.value, label: SPECIALTY_LABELS[option.value] })
+      expect(option.label).toBeTruthy()
     }
+
+    for (const code of [
+      'general',
+      'orthodontics',
+      'implantology',
+      'dental_technician',
+      'assistant',
+      'finance'
+    ]) {
+      expect(SPECIALTY_LABELS[code]).toBeTruthy()
+    }
+
+    const selectableValues = SPECIALTY_OPTIONS.map(option => option.value)
+    expect(selectableValues).not.toContain('dental_technician')
+    expect(selectableValues).not.toContain('assistant')
+    expect(selectableValues).not.toContain('finance')
   })
 
   it('keeps ROLE_LABELS covering every clinical role with its frozen copy', () => {

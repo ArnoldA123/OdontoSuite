@@ -273,8 +273,8 @@ const filteredPayments = computed(() => {
     const search = filters.value.search.toLowerCase()
     filtered = filtered.filter(
       payment =>
-        payment.patient.name.toLowerCase().includes(search) ||
-        payment.patient.document_number.toLowerCase().includes(search)
+        String(payment.patient?.name ?? '').toLowerCase().includes(search) ||
+        String(payment.patient?.document_number ?? '').toLowerCase().includes(search)
     )
   }
 

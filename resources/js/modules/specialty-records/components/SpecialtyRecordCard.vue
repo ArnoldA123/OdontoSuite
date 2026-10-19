@@ -32,8 +32,10 @@
           <UserIcon class="w-4 h-4 text-theme-secondary" />
           <span>{{ record.patient?.first_name }} {{ record.patient?.last_name }}</span>
         </div>
-        <div v-if="record.patient?.dni" class="patient-dni">
-          <span class="text-sm text-theme-secondary">{{ record.patient.dni }}</span>
+        <div v-if="record.patient?.document_number || record.patient?.dni" class="patient-dni">
+          <span class="text-sm text-theme-secondary">
+            {{ record.patient.document_number || record.patient.dni }}
+          </span>
         </div>
       </div>
 

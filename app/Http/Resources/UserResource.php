@@ -50,6 +50,10 @@ class UserResource extends JsonResource
                 ];
             }),
             'appointments_count' => $this->when(isset($this->appointments_count), $this->appointments_count),
+
+            // `GET /api/users/{id}` already shipped this key; keep it when the
+            // controller eager loads it so the resource is additive only.
+            'audit_logs' => $this->whenLoaded('auditLogs'),
         ];
     }
 }

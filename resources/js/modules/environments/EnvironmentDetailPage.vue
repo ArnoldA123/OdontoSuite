@@ -39,7 +39,7 @@
         />
         <div class="min-w-0">
           <p class="text-sm font-medium text-theme-primary">No pudimos cargar el ambiente</p>
-          <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+          <p class="text-sm text-theme-secondary">{{ detailErrorMessage }}</p>
         </div>
       </div>
       <UiButton variant="primary" size="sm" @click="loadEnvironment">Reintentar</UiButton>
@@ -182,7 +182,7 @@
                     No pudimos cargar el historial de auditoría
                   </p>
                   <p class="text-sm text-theme-secondary">
-                    Revisa tu conexión y vuelve a intentarlo.
+                    {{ auditErrorMessage }}
                   </p>
                 </div>
               </div>
@@ -198,38 +198,38 @@
 
             <!-- Flat hairline-divided entries (AMB-02-006 re-anchor): no nested
                  card chrome inside the panel; flat systemBlue avatar per the
-                 AMB-02-004 contract. -->
+                 AMB-02-004 contract. Each entry precomputes its own diff so the
+                 summary helper runs once per row (S7). -->
             <ul v-else class="mt-2 divide-y divide-[color:var(--color-hairline)]">
-              <li v-for="log in auditLogs" :key="log.id" class="py-4 flex items-start gap-3">
+              <li
+                v-for="entry in auditEntries"
+                :key="entry.log.id"
+                class="py-4 flex items-start gap-3"
+              >
                 <div
                   class="flex-shrink-0 h-10 w-10 rounded-full bg-systemBlue-50 flex items-center justify-center"
                 >
                   <span class="text-sm font-medium text-systemBlue-700">
-                    {{ (log.user?.name || 'Sistema').charAt(0) }}
+                    {{ (entry.log.user?.name || 'Sistema').charAt(0) }}
                   </span>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
-                    <UiBadge :variant="getAuditActionVariant(log.action)" size="sm">
-                      {{ formatAction(log.action) }}
+                    <UiBadge :variant="entry.actionVariant" size="sm">
+                      {{ entry.actionLabel }}
                     </UiBadge>
                     <span class="text-sm text-theme-secondary">
-                      por {{ log.user?.name || 'Sistema' }}
+                      por {{ entry.log.user?.name || 'Sistema' }}
                     </span>
                     <span class="text-xs text-theme-secondary">
-                      {{ formatDate(log.created_at) }}
+                      {{ formatDate(entry.log.created_at) }}
                     </span>
                   </div>
-                  <div v-if="log.old_values && log.new_values" class="mt-2 text-sm">
-                    <div
-                      v-if="
-                        getChangesSummary(log) && Object.keys(getChangesSummary(log)).length > 0
-                      "
-                      class="space-y-2"
-                    >
+                  <div v-if="entry.changes.length > 0" class="mt-2 text-sm">
+                    <div class="space-y-2">
                       <div
-                        v-for="(change, field) in getChangesSummary(log)"
-                        :key="field"
+                        v-for="change in entry.changes"
+                        :key="change.key"
                         class="pl-2 border-l-2 border-[color:var(--color-hairline)]"
                       >
                         <p class="text-xs font-medium text-theme-primary">{{ change.field }}</p>
@@ -243,21 +243,21 @@
                         </p>
                       </div>
                     </div>
-                    <p v-else class="text-xs text-theme-secondary italic">
-                      Sin cambios registrados
-                    </p>
                   </div>
                   <p
-                    v-else-if="log.action === 'dental_chair_created'"
+                    v-else-if="entry.log.action === 'dental_chair_created'"
                     class="mt-2 text-sm text-theme-secondary"
                   >
                     Ambiente creado en el sistema.
                   </p>
                   <p
-                    v-else-if="log.action === 'dental_chair_deleted'"
+                    v-else-if="entry.log.action === 'dental_chair_deleted'"
                     class="mt-2 text-sm text-theme-secondary"
                   >
                     Ambiente eliminado del sistema.
+                  </p>
+                  <p v-else class="mt-2 text-xs text-theme-secondary italic">
+                    Sin cambios registrados
                   </p>
                 </div>
               </li>
@@ -270,7 +270,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeftIcon,
@@ -298,9 +298,11 @@ const { formatAction, getChangesSummary } = useAuditLogs()
 const environment = ref(null)
 const loading = ref(false)
 const loadError = ref(false)
+const detailErrorMessage = ref('')
 const auditLogs = ref([])
 const auditLoading = ref(false)
 const auditError = ref(false)
+const auditErrorMessage = ref('')
 const activeTab = ref('data')
 
 const tabs = [
@@ -316,18 +318,44 @@ const panelStyle = {
   boxShadow: 'var(--elevation-2)'
 }
 
+const CONNECTION_ERROR_MESSAGE = 'Revisa tu conexión y vuelve a intentarlo.'
+const SERVER_ERROR_MESSAGE = 'Ocurrió un error en el servidor. Intenta nuevamente.'
+
+// Errors arrive either as a useApi throw (`{ status, response }`) or as a plain
+// Error when the request never completed, so both carriers are read.
+const requestStatus = error => error?.status ?? error?.response?.status
+
+const detailErrorMessageFor = error => {
+  const status = requestStatus(error)
+  if (status === 404) return 'El ambiente no existe.'
+  if (status === 403) return 'No tienes permisos para ver este ambiente.'
+  if (typeof status === 'number' && status >= 500) return SERVER_ERROR_MESSAGE
+  return CONNECTION_ERROR_MESSAGE
+}
+
+const auditErrorMessageFor = error => {
+  const status = requestStatus(error)
+  if (status === 403) return 'No tienes permisos para ver la auditoría.'
+  if (status === 404) return 'El ambiente no existe.'
+  if (typeof status === 'number' && status >= 500) return SERVER_ERROR_MESSAGE
+  return CONNECTION_ERROR_MESSAGE
+}
+
 const loadEnvironment = async () => {
   loading.value = true
   loadError.value = false
+  detailErrorMessage.value = ''
   try {
     const response = await get(`/api/dental-chairs/${route.params.id}`)
     environment.value = response?.data || null
     if (!environment.value) {
       loadError.value = true
+      detailErrorMessage.value = CONNECTION_ERROR_MESSAGE
     }
-  } catch {
+  } catch (error) {
     environment.value = null
     loadError.value = true
+    detailErrorMessage.value = detailErrorMessageFor(error)
   } finally {
     loading.value = false
   }
@@ -339,12 +367,14 @@ const loadAuditLogs = async () => {
   if (!environment.value) return
   auditLoading.value = true
   auditError.value = false
+  auditErrorMessage.value = ''
   try {
     const response = await get(`/api/audit-logs/dental-chair/${environment.value.id}`)
     auditLogs.value = response?.data || []
-  } catch {
+  } catch (error) {
     auditLogs.value = []
     auditError.value = true
+    auditErrorMessage.value = auditErrorMessageFor(error)
   } finally {
     auditLoading.value = false
   }
@@ -360,11 +390,38 @@ const formatDate = date => {
 }
 
 const getAuditActionVariant = action => {
-  if (action.includes('created')) return 'success'
-  if (action.includes('updated')) return 'warning'
-  if (action.includes('deleted')) return 'error'
+  const normalized = typeof action === 'string' ? action : ''
+  if (normalized.includes('created')) return 'success'
+  if (normalized.includes('updated')) return 'warning'
+  if (normalized.includes('deleted')) return 'error'
   return 'neutral'
 }
+
+const formatAuditAction = action =>
+  formatAction(typeof action === 'string' ? action : '') || 'Acción desconocida'
+
+// The API serializes audit values as PHP arrays: created rows carry
+// `old_values: []` and deleted rows `new_values: []`. Empty arrays are truthy
+// objects in JS, so a record only counts when it is a non-null object with at
+// least one own key; otherwise the row is not a field-level diff.
+const hasRecordedValues = record =>
+  record !== null && typeof record === 'object' && Object.keys(record).length > 0
+
+const auditEntryChanges = log => {
+  if (!hasRecordedValues(log?.old_values) || !hasRecordedValues(log?.new_values)) return []
+  const changes = getChangesSummary(log)
+  if (!changes) return []
+  return Object.entries(changes).map(([key, change]) => ({ key, ...change }))
+}
+
+const auditEntries = computed(() =>
+  auditLogs.value.map(log => ({
+    log,
+    changes: auditEntryChanges(log),
+    actionLabel: formatAuditAction(log.action),
+    actionVariant: getAuditActionVariant(log.action)
+  }))
+)
 
 const goBack = () => {
   router.push('/environments')

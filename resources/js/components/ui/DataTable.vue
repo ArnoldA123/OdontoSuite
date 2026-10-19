@@ -43,7 +43,7 @@
         <!-- Header -->
         <thead class="data-table-header">
           <tr>
-            <th v-if="selectable" class="data-table-cell-select">
+            <th v-if="selectable" scope="col" class="data-table-cell-select">
               <UiInput
                 v-model="selectAll"
                 type="checkbox"
@@ -54,6 +54,7 @@
             <th
               v-for="column in columns"
               :key="column.key"
+              scope="col"
               :class="getHeaderCellClasses(column)"
               @click="handleSort(column)"
             >
@@ -76,7 +77,7 @@
                 </svg>
               </div>
             </th>
-            <th v-if="$slots.actions" class="data-table-cell-actions">Acciones</th>
+            <th v-if="$slots.actions" scope="col" class="data-table-header-cell w-32">Acciones</th>
           </tr>
         </thead>
 

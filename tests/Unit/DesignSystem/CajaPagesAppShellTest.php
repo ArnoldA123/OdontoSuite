@@ -154,10 +154,27 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
             sprintf('%s MUST NOT keep the legacy `<UiBadge>` pill (PAGOS-MOD-001).', $path));
 
         $headers = preg_match_all('/<th\b[^>]*>/', $src, $matches);
-        $this->assertGreaterThan(0, $headers, sprintf('%s must render a table header.', $path));
-        foreach ($matches[0] as $th) {
-            $this->assertMatchesRegularExpression('/\bscope\s*=\s*"col"/', $th,
-                sprintf('%s: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $path, $th));
+        if ($headers > 0) {
+            foreach ($matches[0] as $th) {
+                $this->assertMatchesRegularExpression('/\bscope\s*=\s*"col"/', $th,
+                    sprintf('%s: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $path, $th));
+            }
+        } else {
+            $this->assertTrue(
+                (bool) preg_match('/<UiDataTable\b/', $src),
+                sprintf('%s renders no literal `<th>` and therefore MUST consume `<UiDataTable>`, '
+                    . 'whose header cells declare `scope="col"` (PAGOS-A11Y-001).', $path));
+
+            $primitive = self::readSource(dirname(__DIR__, 3) . '/resources/js/components/ui/DataTable.vue');
+            $this->assertNotNull($primitive, 'DataTable.vue must be readable to prove the `scope="col"` rule (PAGOS-A11Y-001).');
+
+            $primitiveHeaders = preg_match_all('/<th\b[^>]*>/', $primitive, $primitiveMatches);
+            $this->assertGreaterThan(0, $primitiveHeaders,
+                'DataTable.vue must render header cells (PAGOS-A11Y-001).');
+            foreach ($primitiveMatches[0] as $th) {
+                $this->assertMatchesRegularExpression('/\bscope\s*=\s*"col"/', $th,
+                    sprintf('DataTable.vue: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $th));
+            }
         }
 
         $this->assertTrue(

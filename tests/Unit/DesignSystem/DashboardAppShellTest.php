@@ -1842,10 +1842,10 @@ class DashboardAppShellTest extends TestCase
         $this->assertFileExists($pagePath, 'PaymentMethodsPage.vue must exist (T6 naming boundary).');
         $page = (string) self::readFile($pagePath);
 
-        $this->assertStringContainsString(
-            'title="Métodos de Pago"',
+        $this->assertMatchesRegularExpression(
+            '/data-hero-title[^>]*>\s*Métodos de Pago\s*</',
             $page,
-            'PaymentMethodsPage.vue heading must read "Métodos de Pago" (T6).'
+            'PaymentMethodsPage.vue hero heading must read "Métodos de Pago" (T6).'
         );
 
         // Byte-safe pin: the accented form holds a 2-byte "é", so this ASCII

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\PaymentMethod;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -27,8 +28,6 @@ class PaymentMethodController extends Controller
             'allows_change' => 'sometimes|boolean',
             'commission_percentage' => 'sometimes|numeric|min:0|max:100',
             'is_active' => 'sometimes|boolean',
-            // Los metodos custom (no-seed) no son del sistema
-            'is_system' => 'sometimes|boolean'
         ];
     }
 
@@ -38,7 +37,7 @@ class PaymentMethodController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = PaymentMethod::query();
+            $query = PaymentMethod::query()->withCount('transactions');
 
             // Filtro por estado
             if ($request->has('is_active') && $request->is_active !== '') {
@@ -55,17 +54,7 @@ class PaymentMethodController extends Controller
                 });
             }
 
-            $methods = $query->orderBy('name')->get();
-
-            // Nunca devolver gateway_config en el listado (seguridad)
-            $methods->makeHidden('gateway_config');
-
-            return response()->json([
-                'data' => $methods,
-                'meta' => [
-                    'message' => 'Metodos de pago cargados exitosamente',
-                ],
-            ]);
+            return $this->methodsResponse($query->orderBy('name')->get(), 'Metodos de pago cargados exitosamente');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -73,6 +62,53 @@ class PaymentMethodController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display the active payment methods for cash-register dropdowns.
+     */
+    public function active(): JsonResponse
+    {
+        try {
+            $methods = PaymentMethod::query()
+                ->active()
+                ->withCount('transactions')
+                ->orderBy('name')
+                ->get();
+
+            return $this->methodsResponse($methods, 'Metodos de pago activos cargados exitosamente');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar metodos de pago activos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * @param  Collection<int, PaymentMethod>  $methods
+     */
+    private function methodsResponse(Collection $methods, string $message): JsonResponse
+    {
+        return response()->json([
+            'data' => $methods->map(fn (PaymentMethod $method) => $this->serializeMethod($method))->all(),
+            'meta' => [
+                'message' => $message,
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeMethod(PaymentMethod $method): array
+    {
+        $data = $method->makeHidden('gateway_config')->toArray();
+        $data['has_gateway_config'] = ! is_null($method->gateway_config);
+        $data['transactions_count'] = (int) ($method->transactions_count ?? 0);
+
+        return $data;
     }
 
     /**
@@ -84,7 +120,7 @@ class PaymentMethodController extends Controller
             $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
-            $validated['is_system'] = $validated['is_system'] ?? false;
+            $validated['is_system'] = false;
             $validated['commission_percentage'] = $validated['commission_percentage'] ?? 0;
             $validated['allows_change'] = $validated['allows_change'] ?? true;
             $validated['requires_authorization'] = $validated['requires_authorization'] ?? false;

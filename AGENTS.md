@@ -108,7 +108,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 111 migraciones
+  migrations/              # 113 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -116,7 +116,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 196 rutas API (medido con php artisan route:list --json: uris api/…; 209 totales con web)
+  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -296,7 +296,11 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50 m
 
 ## 12. Changelog de AGENTS.md
 
-- **2026-10-19 (procedure-stats-ui-redesign T1-T4)** — `/procedure-stats` rehace su superficie con la receta del dashboard (hero band, KPI strip, filtros con presets, estados de carga/error/vacío, tabla y tiles sobre `components/ui/`), suma gráficos Chart.js (barras del top por usos y doughnut por especialidad) y export CSV del período aplicado. Corrige las métricas: el período incluye el día `to` completo y excluye ítems opcionales y planes cancelados, de modo que la distribución por especialidad y el ranking comparten una sola población. Sin ruta, primitiva UI ni migración nuevas: §4, §5, §6 y §11 no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+- **2026-10-19 (procedure-stats-ui-redesign T1-T4)** — `/procedure-stats` pasa a un rediseño completo que reemplaza el pase anterior de esa misma página (procedure-catalog-ui-redesign): hero band con período aplicado, KPI strip de cuatro tarjetas, filtros con presets 7/30/90 días y rango validado, Top N acotado, ranking sobre `UiDataTable`, distribución por especialidad con barras proporcionales, estados completos (carga/error con retry/vacío de período) y export CSV del período aplicado. Suma gráficos Chart.js (barras del top por usos y doughnut por especialidad). Corrige las métricas del reporte: el período incluye el día `to` completo, los ítems opcionales y los planes cancelados dejan de contar, ranking y distribución comparten una sola población, y el 500 deja de devolver el mensaje de la excepción. Sin ruta, primitiva UI ni migración nuevas: los conteos de §4 no cambian por esta feature y `scripts/audit/doc-drift.mjs` sigue en verde.
+
+- **2026-10-19 (appointment-types audit)** — §4 sincronizado con el valor medido: 113 migraciones (nueva migración que fija `requires_confirmation` por defecto en `appointment_types`). Guard `scripts/audit/doc-drift.mjs` en verde.
+
+- **2026-10-19 (procedure-catalog-ui-redesign)** — Interfaz del catálogo de procedimientos rediseñada al lenguaje del dashboard en sus cuatro superficies (`/procedure-catalog` lista y detalle, `/procedure-stats`, `/my-procedures`, `/reception-procedures`). §4 sincronizado: 198 rutas API (añadidas `GET procedure-catalog/summary` y `GET procedure-catalog/{id}/versions`), 211 totales con web. Endpoints aditivos; sin migraciones. Tests: `ProcedureCatalogSummaryVersionsTest` (6 tests, MySQL) y smoke JS del módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-11 (calendar-scheduling-redesign T8)** — §4 sincronizado con valores medidos: 196 rutas API (añadida `PATCH /api/appointments/{appointment}/reschedule`), 209 totales con web; `components/ui/` de 30 a 35 primitives (incluye `DentalMotifLayer.vue` movido desde `modules/dashboard/` y `UiSectionEmpty.vue` de patients; la base ya tenía 33, deriva preexistente corregida). Guard `scripts/audit/doc-drift.mjs` en verde.
 

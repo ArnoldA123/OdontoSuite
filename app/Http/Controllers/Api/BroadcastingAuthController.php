@@ -49,6 +49,14 @@ class BroadcastingAuthController extends Controller
                 ], true);
             } elseif (preg_match('/^cash-register\.(\d+|global)$/', $cleanChannelName)) {
                 $authorized = in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
+            } elseif ($cleanChannelName === 'patients') {
+                // Canal con datos clínicos del paciente: solo roles con
+                // acceso a la ficha (PatientPolicy::viewAny). Cualquier rol
+                // nuevo queda fuera hasta que se agregue explícitamente.
+                $authorized = in_array($user->role ?? null, [
+                    'administrador', 'recepcionista', 'odontologo', 'implantologo',
+                    'tecnico_dental', 'asistente', 'finanzas',
+                ], true);
             } else {
                 Log::warning('Broadcasting auth: Canal no reconocido', ['channel' => $cleanChannelName]);
                 return response()->json(['message' => 'Channel not found'], 404);
