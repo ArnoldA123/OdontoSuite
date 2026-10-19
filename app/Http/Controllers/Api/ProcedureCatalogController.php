@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateProcedureCatalogRequest;
 use App\Http\Resources\ProcedureCatalogResource;
 use App\Models\AuditLog;
 use App\Models\ProcedureCatalog;
+use App\Models\ProcedureCatalogVersion;
 use App\Services\ProcedureCatalogService;
 use App\Services\ProcedureCsvImportService;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +43,16 @@ class ProcedureCatalogController extends Controller
         } catch (\Throwable $e) {
             Log::error('ProcedureCatalogController@index: ' . $e->getMessage());
             return response()->json(['message' => 'Error al obtener el catálogo de procedimientos'], 500);
+        }
+    }
+
+    public function summary(): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->service->summary()]);
+        } catch (\Throwable $e) {
+            Log::error('ProcedureCatalogController@summary: ' . $e->getMessage());
+            return response()->json(['message' => 'Error al obtener el resumen del catálogo'], 500);
         }
     }
 
@@ -109,6 +120,41 @@ class ProcedureCatalogController extends Controller
         } catch (\Throwable $e) {
             Log::error('ProcedureCatalogController@forMe: ' . $e->getMessage());
             return response()->json(['message' => 'Error al obtener procedimientos del usuario'], 500);
+        }
+    }
+
+    public function versions(string $id): JsonResponse
+    {
+        try {
+            $procedure = $this->service->findOrFail((int) $id);
+            $versions = $procedure->versions()
+                ->with('changedBy:id,name')
+                ->limit(50)
+                ->get()
+                ->map(fn (ProcedureCatalogVersion $version) => [
+                    'id' => $version->id,
+                    'change_type' => $version->change_type,
+                    'changed_fields' => $version->changed_fields ?? [],
+                    'default_cost' => $version->default_cost !== null ? (float) $version->default_cost : null,
+                    'name' => $version->name,
+                    'code' => $version->code,
+                    'is_active' => $version->is_active,
+                    'changed_at' => $version->changed_at?->toIso8601String(),
+                    'changed_by' => $version->changedBy ? [
+                        'id' => $version->changedBy->id,
+                        'name' => $version->changedBy->name,
+                    ] : null,
+                ]);
+
+            return response()->json([
+                'data' => $versions,
+                'meta' => ['total' => $versions->count()],
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json(['message' => 'Procedimiento no encontrado'], 404);
+        } catch (\Throwable $e) {
+            Log::error('ProcedureCatalogController@versions: ' . $e->getMessage());
+            return response()->json(['message' => 'Error al obtener el historial de versiones'], 500);
         }
     }
 

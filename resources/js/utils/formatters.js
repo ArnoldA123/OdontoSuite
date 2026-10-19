@@ -43,6 +43,43 @@ export const formatDateShort = date => {
 }
 
 /**
+ * Formatear una fecha sin hora evitando el desfase de zona horaria.
+ * Las fechas `YYYY-MM-DD` se construyen con sus componentes locales; un ISO
+ * datetime usa su prefijo `YYYY-MM-DD` sin pasar por `new Date('YYYY-MM-DD')`.
+ * @param {string|Date} value - Fecha a formatear
+ * @returns {string} - Fecha formateada o cadena vacía si falta o es inválida
+ */
+export const formatDateOnly = value => {
+  if (value === null || value === undefined || value === '') return ''
+
+  let date
+
+  if (value instanceof Date) {
+    date = value
+  } else if (typeof value === 'string') {
+    const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+
+    if (dateOnly) {
+      const year = Number(dateOnly[1])
+      const month = Number(dateOnly[2])
+      const day = Number(dateOnly[3])
+      date = new Date(year, month - 1, day)
+      if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        return ''
+      }
+    } else {
+      date = new Date(value)
+    }
+  } else {
+    return ''
+  }
+
+  if (Number.isNaN(date.getTime())) return ''
+
+  return date.toLocaleDateString('es-ES')
+}
+
+/**
  * Formatear hora
  * @param {string|Date} date - Fecha a formatear
  * @returns {string} - Hora formateada

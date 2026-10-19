@@ -138,12 +138,12 @@ export function useAuditLogs() {
    * Get changes summary from audit log
    */
   const getChangesSummary = log => {
-    if (!log.old_values || !log.new_values) {
-      return null
-    }
-
     const oldValues = log.old_values || {}
     const newValues = log.new_values || {}
+
+    if (!log.new_values || Object.keys(oldValues).length === 0) {
+      return null
+    }
 
     // Campos a ignorar (no son relevantes para mostrar)
     const ignoredFields = ['id', 'created_at', 'updated_at', 'branch_id', 'dni']
@@ -180,8 +180,20 @@ export function useAuditLogs() {
       // AppointmentType fields
       default_duration_minutes: 'Duración (minutos)',
       price: 'Precio',
-      color: 'Color'
+      color: 'Color',
+      requires_confirmation: 'Requiere confirmación',
+      requires_materials: 'Requiere materiales',
+      is_consultation_mode: 'Modo consulta',
+      default_procedure_catalog_id: 'Procedimiento por defecto'
     }
+
+    // Boolean appointment-type flags: rendered as Sí/No instead of the raw
+    // `true` / `false` the snapshot stores.
+    const booleanFlagFields = [
+      'requires_confirmation',
+      'requires_materials',
+      'is_consultation_mode'
+    ]
 
     const changes = {}
 
@@ -213,6 +225,8 @@ export function useAuditLogs() {
         }
       } else if (key === 'is_active') {
         oldValueStr = oldVal ? 'Activo' : 'Inactivo'
+      } else if (booleanFlagFields.includes(key)) {
+        oldValueStr = oldVal ? 'Sí' : 'No'
       } else if (key === 'gender') {
         const genderMap = { male: 'Masculino', female: 'Femenino', other: 'Otro' }
         oldValueStr = genderMap[oldVal] || oldVal
@@ -225,7 +239,11 @@ export function useAuditLogs() {
           oral_surgery: 'Cirugía Oral',
           pediatric: 'Odontopediatría',
           prosthodontics: 'Prótesis Dental',
-          cosmetic: 'Odontología Estética'
+          cosmetic: 'Odontología Estética',
+          implantology: 'Implantología',
+          dental_technician: 'Técnico Dental',
+          assistant: 'Asistente',
+          finance: 'Finanzas'
         }
         oldValueStr = specialtyMap[oldVal] || oldVal
       } else if (key === 'status') {
@@ -237,7 +255,11 @@ export function useAuditLogs() {
           administrador: 'Administrador',
           recepcion: 'Recepcionista',
           recepcionista: 'Recepcionista',
-          odontologo: 'Odontólogo'
+          odontologo: 'Odontólogo',
+          implantologo: 'Implantólogo',
+          tecnico_dental: 'Técnico Dental',
+          asistente: 'Asistente',
+          finanzas: 'Finanzas'
         }
         oldValueStr = roleMap[oldVal] || oldVal
       } else if (key === 'price') {
@@ -260,6 +282,8 @@ export function useAuditLogs() {
         }
       } else if (key === 'is_active') {
         newValueStr = newVal ? 'Activo' : 'Inactivo'
+      } else if (booleanFlagFields.includes(key)) {
+        newValueStr = newVal ? 'Sí' : 'No'
       } else if (key === 'gender') {
         const genderMap = { male: 'Masculino', female: 'Femenino', other: 'Otro' }
         newValueStr = genderMap[newVal] || newVal
@@ -272,7 +296,11 @@ export function useAuditLogs() {
           oral_surgery: 'Cirugía Oral',
           pediatric: 'Odontopediatría',
           prosthodontics: 'Prótesis Dental',
-          cosmetic: 'Odontología Estética'
+          cosmetic: 'Odontología Estética',
+          implantology: 'Implantología',
+          dental_technician: 'Técnico Dental',
+          assistant: 'Asistente',
+          finance: 'Finanzas'
         }
         newValueStr = specialtyMap[newVal] || newVal
       } else if (key === 'status') {
@@ -284,7 +312,11 @@ export function useAuditLogs() {
           administrador: 'Administrador',
           recepcion: 'Recepcionista',
           recepcionista: 'Recepcionista',
-          odontologo: 'Odontólogo'
+          odontologo: 'Odontólogo',
+          implantologo: 'Implantólogo',
+          tecnico_dental: 'Técnico Dental',
+          asistente: 'Asistente',
+          finanzas: 'Finanzas'
         }
         newValueStr = roleMap[newVal] || newVal
       } else if (key === 'price') {

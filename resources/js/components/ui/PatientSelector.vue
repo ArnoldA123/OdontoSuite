@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import {
   MagnifyingGlassIcon,
   UserIcon,
@@ -136,8 +136,21 @@ const patients = ref([])
 const selectedPatient = ref(props.modelValue)
 const searchQuery = ref('')
 const isLoading = ref(false)
+const lastListFromSearch = ref(false)
+let searchDebounceTimer = null
+
+const normalizePatient = patient => ({
+  ...patient,
+  dni: patient.document_number ?? patient.dni ?? null
+})
 
 const filteredPatients = computed(() => {
+  // Server results include matches on fields this component does not filter
+  // locally (email, document number), so render them as-is.
+  if (lastListFromSearch.value) {
+    return patients.value
+  }
+
   if (!searchQuery.value) {
     return patients.value.slice(0, 10) // Mostrar solo los primeros 10 si no hay búsqueda
   }
@@ -145,7 +158,7 @@ const filteredPatients = computed(() => {
   const query = searchQuery.value.toLowerCase()
   return patients.value.filter(patient => {
     const fullName = `${patient.first_name} ${patient.last_name}`.toLowerCase()
-    const dni = patient.dni?.toLowerCase() || ''
+    const dni = String(patient.dni ?? '').toLowerCase()
     const phone = patient.phone?.toLowerCase() || ''
 
     return fullName.includes(query) || dni.includes(query) || phone.includes(query)
@@ -153,26 +166,30 @@ const filteredPatients = computed(() => {
 })
 
 const handleSearch = () => {
-  // Debounce search if needed
-  if (searchQuery.value.length >= 2) {
-    searchPatients()
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
   }
+
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    if (searchQuery.value.length >= 2) {
+      searchPatients()
+    } else {
+      loadPatients()
+    }
+  }, 300)
 }
 
 const searchPatients = async () => {
-  if (!searchQuery.value) {
-    await loadPatients()
-    return
-  }
-
   isLoading.value = true
   try {
     const response = await get('/api/patients/search', {
       params: { q: searchQuery.value }
     })
-    patients.value = response.data || []
+    patients.value = (response.data || []).map(normalizePatient)
+    lastListFromSearch.value = true
   } catch (error) {
-    // Fallback to local filtering
+    // Fallback to the full list when the search endpoint is unavailable
     await loadPatients()
   } finally {
     isLoading.value = false
@@ -183,9 +200,11 @@ const loadPatients = async () => {
   isLoading.value = true
   try {
     const response = await get('/api/patients')
-    patients.value = response.data || []
+    patients.value = (response.data || []).map(normalizePatient)
+    lastListFromSearch.value = false
   } catch (error) {
     patients.value = []
+    lastListFromSearch.value = false
   } finally {
     isLoading.value = false
   }
@@ -219,6 +238,12 @@ watch(
 // Load patients on mount
 onMounted(() => {
   loadPatients()
+})
+
+onUnmounted(() => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
 })
 </script>
 

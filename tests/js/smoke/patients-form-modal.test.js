@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs'
 // Shared create/edit patient form (PatientFormModal). Pins the
 // consolidation contract at the DOM level: one `data-patient-form` root
 // serves BOTH flows from a single template source, create and edit modes
-// render the same 14 fields, the gender/status option lists actually
+// render the same 15 fields, the gender/status option lists actually
 // populate their UiSelect dropdowns, and the long-text fields render
 // through UiTextarea (never `UiInput type="textarea"`).
 const harness = vi.hoisted(() => ({
@@ -75,6 +75,7 @@ const EXPECTED_FIELDS = [
   'birth_date',
   'gender',
   'is_active',
+  'branch_id',
   'address',
   'emergency_contact_name',
   'emergency_contact_phone',
@@ -209,7 +210,7 @@ describe('patient form field parity between modes', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders the same 14 fields in create and edit', async () => {
+  it('renders the same 15 fields in create and edit', async () => {
     const wrapper = await mountPage()
 
     await openCreate(wrapper)

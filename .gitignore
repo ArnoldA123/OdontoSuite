@@ -17,6 +17,10 @@
 /.idea
 /.nova
 /.phpunit.cache
+# Worktrees locales (`git worktree add .worktrees/<name>`). Cada uno es un
+# checkout completo: sin esta regla un `git add -A` desde main intentaria
+# commitear el arbol entero de otras ramas en curso.
+/.worktrees/
 /.vscode
 /.zed
 /auth.json

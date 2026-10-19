@@ -265,16 +265,19 @@ class PacientesNegativeSpaceRulesTest extends TestCase
 
         // `patients` channel: must be present in BOTH pages (the list page
         // listens for list-level patient events; the detail page listens for
-        // the same channel for its own per-tab realtime sync).
+        // the same channel for its own per-tab realtime sync). It is PRIVATE
+        // because the payload carries clinical data, so both pages must go
+        // through `privateChannel`.
         foreach ([$patientsSrc, $detailSrc] as $label => $src) {
             $this->assertTrue(
                 (bool) preg_match(
-                    "#channel\\s*\\(\\s*['\"]patients['\"]\\s*\\)#",
+                    "#privateChannel\\s*\\(\\s*['\"]patients['\"]\\s*\\)#",
                     $src
                 ),
                 sprintf(
-                    '%s MUST keep `channel(\'patients\')` subscription (PAC-RT-001). '
-                        . 'The Echo channel name is the canonical realtime pipe for patient events.',
+                    '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
+                        . 'The channel is the canonical realtime pipe for patient events and it is '
+                        . 'private because the payload carries medical_history and allergies.',
                     $label === 0 ? self::PATIENTS_LIST_PATH : self::PATIENT_DETAIL_PATH
                 )
             );

@@ -732,7 +732,7 @@ const { get } = useApi()
 const { can } = usePermissions()
 const { currentSession, hasActiveSession, isOpen, realTimeTotals, loadCurrentSession } =
   useCashRegister()
-const { channel, echo } = useEcho()
+const { channel, privateChannel, echo } = useEcho()
 
 // State
 const loading = ref(false)
@@ -1404,6 +1404,7 @@ const retryPending = async () => {
 
 // WebSocket subscriptions
 let dashboardChannel = null
+let patientsChannel = null
 let appointmentsChannel = null
 let cashRegisterChannel = null
 
@@ -1455,14 +1456,21 @@ onMounted(async () => {
     if (dashboardChannel) {
       dashboardChannel
         .listen('.dashboard.stats-updated', () => debouncedLoadDashboardData())
-        .listen('.patient.created', () => debouncedLoadDashboardData())
-        .listen('.patient.updated', () => debouncedLoadDashboardData())
-        .listen('.patient.deleted', () => debouncedLoadDashboardData())
         .listen('.appointment.created', () => debouncedLoadDashboardData())
         .listen('.appointment.updated', () => debouncedLoadDashboardData())
         .listen('.appointment.deleted', () => debouncedLoadDashboardData())
         .listen('.user.created', () => debouncedLoadDashboardData())
         .listen('.user.updated', () => debouncedLoadDashboardData())
+    }
+
+    // Los eventos de paciente viajan por el canal privado `patients`
+    // (llevan datos clínicos), no por `dashboard-updates`.
+    patientsChannel = privateChannel('patients')
+    if (patientsChannel) {
+      patientsChannel
+        .listen('.patient.created', () => debouncedLoadDashboardData())
+        .listen('.patient.updated', () => debouncedLoadDashboardData())
+        .listen('.patient.deleted', () => debouncedLoadDashboardData())
     }
 
     appointmentsChannel = channel('appointments')
@@ -1522,6 +1530,7 @@ onUnmounted(() => {
   if (echo) {
     try {
       echo.leave('dashboard-updates')
+      echo.leave('patients')
       echo.leave('appointments')
       echo.leave('cash-register')
     } catch (e) {

@@ -32,7 +32,7 @@
             v-model="searchQuery"
             placeholder="Buscar ambientes por nombre o descripción..."
             class="w-full"
-            @input="searchEnvironments"
+            @input="handleSearchInput"
           >
             <template #prefix>
               <MagnifyingGlassIcon class="w-5 h-5 text-theme-secondary" aria-hidden="true" />
@@ -46,6 +46,13 @@
             class="w-48"
             data-status-filter
             @change="filterEnvironments"
+          />
+          <UiSelect
+            v-model="archivedFilter"
+            :options="archivedOptions"
+            class="w-56"
+            data-archived-filter
+            @change="filterArchived"
           />
         </div>
       </div>
@@ -74,7 +81,7 @@
           />
           <div class="min-w-0">
             <p class="text-sm font-medium text-theme-primary">No pudimos cargar los ambientes</p>
-            <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+            <p class="text-sm text-theme-secondary">{{ loadErrorMessage }}</p>
           </div>
         </div>
         <UiButton variant="primary" size="sm" @click="retryLoad">Reintentar</UiButton>
@@ -112,8 +119,9 @@
                 </span>
               </div>
             </div>
-            <div class="ml-4">
+            <div class="ml-4 flex items-center gap-2">
               <div class="text-sm font-medium text-theme-primary">{{ row.name }}</div>
+              <UiBadge v-if="!row.is_active" variant="neutral" size="sm">Archivado</UiBadge>
             </div>
           </div>
         </template>
@@ -138,6 +146,18 @@
               <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
             </template>
             Editar
+          </UiButton>
+          <UiButton v-if="row.is_active" variant="ghost" size="sm" @click="archiveEnvironment(row)">
+            <template #icon-left>
+              <ArchiveBoxIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Archivar
+          </UiButton>
+          <UiButton v-else variant="ghost" size="sm" @click="reactivateEnvironment(row)">
+            <template #icon-left>
+              <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Reactivar
           </UiButton>
           <UiButton
             variant="ghost"
@@ -349,10 +369,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  ArchiveBoxIcon,
   ArrowLeftIcon,
+  ArrowPathIcon,
   BuildingOffice2Icon,
   ExclamationTriangleIcon,
   EyeIcon,
@@ -369,6 +391,7 @@ import { getStatusText, getStatusVariant } from './environmentStatus'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiCard from '../../components/ui/Card.vue'
+import UiBadge from '../../components/ui/Badge.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiEmptyState from '../../components/ui/EmptyState.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -388,9 +411,11 @@ const loading = ref(false)
 const creating = ref(false)
 const updating = ref(false)
 const loadError = ref(false)
+const loadErrorMessage = ref('')
 const sourceRows = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
+const archivedFilter = ref('exclude')
 const showNewEnvironmentModal = ref(false)
 const showEditEnvironmentModal = ref(false)
 const editingEnvironment = ref(null)
@@ -410,6 +435,15 @@ const statusOptions = [
   { value: 'active', label: 'Activos' },
   { value: 'inactive', label: 'Inactivos' },
   { value: 'maintenance', label: 'Mantenimiento' }
+]
+
+// Archive visibility is a separate axis from the operational status: a chair
+// can be in maintenance while still visible, or archived (is_active=false) and
+// only reachable through this filter.
+const archivedOptions = [
+  { value: 'exclude', label: 'Sin archivados' },
+  { value: 'include', label: 'Incluir archivados' },
+  { value: 'only', label: 'Solo archivados' }
 ]
 
 // Form-state options for the create/edit modals: only the operational
@@ -445,7 +479,10 @@ const environments = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () => searchQuery.value.trim() !== '' || statusFilter.value !== ''
+  () =>
+    searchQuery.value.trim() !== '' ||
+    statusFilter.value !== '' ||
+    archivedFilter.value !== 'exclude'
 )
 
 const emptyTitle = computed(() =>
@@ -458,45 +495,101 @@ const emptyDescription = computed(() =>
     : 'Crea el primer ambiente para empezar a gestionar tus espacios clínicos.'
 )
 
-const loadEnvironments = async () => {
+const SEARCH_DEBOUNCE_MS = 300
+
+const CONNECTION_ERROR_MESSAGE = 'Revisa tu conexión y vuelve a intentarlo.'
+const SERVER_ERROR_MESSAGE = 'Ocurrió un error en el servidor. Intenta nuevamente.'
+
+// Errors arrive either as a useApi throw (`{ status, response }`) or as a plain
+// Error when the request never completed, so both carriers are read.
+const requestStatus = error => error?.status ?? error?.response?.status
+
+const listErrorMessage = error => {
+  const status = requestStatus(error)
+  if (status === 403) return 'No tienes permisos para ver los ambientes.'
+  if (typeof status === 'number' && status >= 500) return SERVER_ERROR_MESSAGE
+  return CONNECTION_ERROR_MESSAGE
+}
+
+// Monotonic token: only the newest request may commit rows, error state or the
+// loading flag, so a slow response can never overwrite a newer one.
+let latestRequestId = 0
+let searchDebounceTimer = null
+
+const clearPendingSearch = () => {
+  if (searchDebounceTimer === null) return
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = null
+}
+
+const fetchEnvironments = async url => {
+  const requestId = ++latestRequestId
   loading.value = true
   loadError.value = false
+  loadErrorMessage.value = ''
   try {
-    const query = statusFilter.value ? `?status=${statusFilter.value}` : ''
-    const response = await get(`/api/dental-chairs${query}`)
+    const response = await get(url)
+    if (requestId !== latestRequestId) return
     sourceRows.value = response?.data || []
-  } catch {
+  } catch (error) {
+    if (requestId !== latestRequestId) return
     sourceRows.value = []
     loadError.value = true
+    loadErrorMessage.value = listErrorMessage(error)
   } finally {
-    loading.value = false
+    if (requestId === latestRequestId) loading.value = false
   }
 }
 
-const searchEnvironments = async () => {
+const loadEnvironments = () => {
+  const params = new URLSearchParams()
+  if (statusFilter.value) params.set('status', statusFilter.value)
+  if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+  const query = params.toString()
+
+  return fetchEnvironments(`/api/dental-chairs${query ? `?${query}` : ''}`)
+}
+
+const searchEnvironments = () => {
+  clearPendingSearch()
+  const params = new URLSearchParams({ q: searchQuery.value.trim() })
+  if (archivedFilter.value !== 'exclude') params.set('archived', archivedFilter.value)
+
+  return fetchEnvironments(`/api/dental-chairs/search?${params.toString()}`)
+}
+
+// One request 300 ms after the last keystroke. Queries shorter than two
+// characters never hit /search: they reload the unfiltered list immediately.
+const handleSearchInput = () => {
+  clearPendingSearch()
   if (searchQuery.value.trim().length < 2) {
     loadEnvironments()
     return
   }
-
-  loading.value = true
-  loadError.value = false
-  try {
-    const response = await get(
-      `/api/dental-chairs/search?q=${encodeURIComponent(searchQuery.value)}`
-    )
-    sourceRows.value = response?.data || []
-  } catch {
-    sourceRows.value = []
-    loadError.value = true
-  } finally {
-    loading.value = false
-  }
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    searchEnvironments()
+  }, SEARCH_DEBOUNCE_MS)
 }
 
 const filterEnvironments = () => {
+  clearPendingSearch()
   if (searchQuery.value.trim().length >= 2) return
   loadEnvironments()
+}
+
+const filterArchived = () => {
+  clearPendingSearch()
+  if (searchQuery.value.trim().length >= 2) {
+    searchEnvironments()
+    return
+  }
+  loadEnvironments()
+}
+
+const reloadCurrentView = () => {
+  if (searchQuery.value.trim().length >= 2) return searchEnvironments()
+  return loadEnvironments()
 }
 
 const retryLoad = () => {
@@ -508,8 +601,10 @@ const retryLoad = () => {
 }
 
 const clearFilters = () => {
+  clearPendingSearch()
   searchQuery.value = ''
   statusFilter.value = ''
+  archivedFilter.value = 'exclude'
   loadEnvironments()
 }
 
@@ -526,7 +621,7 @@ const createEnvironment = async () => {
       status: 'active'
     }
     toast.success('Ambiente creado exitosamente')
-    loadEnvironments()
+    reloadCurrentView()
   } catch (error) {
     handleError(error, 'Error al crear el ambiente')
   } finally {
@@ -550,7 +645,7 @@ const updateEnvironment = async () => {
     await put(`/api/dental-chairs/${editingEnvironment.value.id}`, editingEnvironment.value)
     showEditEnvironmentModal.value = false
     editingEnvironment.value = null
-    loadEnvironments()
+    reloadCurrentView()
     toast.success('Ambiente actualizado exitosamente')
   } catch (error) {
     handleError(error, 'Error al actualizar el ambiente')
@@ -569,10 +664,14 @@ const deleteEnvironment = async environment => {
   if (ok) {
     try {
       await remove(`/api/dental-chairs/${environment.id}`)
-      loadEnvironments()
+      reloadCurrentView()
       toast.success('Ambiente eliminado exitosamente')
     } catch (error) {
-      handleError(error, 'Error al eliminar el ambiente')
+      const status = error?.status ?? error?.response?.status
+      handleError(
+        error,
+        status === 409 ? error?.response?.data?.message : 'Error al eliminar el ambiente'
+      )
     }
   }
 }
@@ -580,8 +679,39 @@ const deleteEnvironment = async environment => {
 const goBack = () => {
   router.back()
 }
+const archiveEnvironment = async environment => {
+  const ok = await confirm({
+    title: 'Archivar ambiente',
+    message: `¿Archivar el ambiente ${environment.name}? Dejará de estar disponible para agendar citas, pero conservará su historial.`,
+    confirmText: 'Archivar',
+    variant: 'danger'
+  })
+  if (!ok) return
+
+  try {
+    await put(`/api/dental-chairs/${environment.id}`, { is_active: false })
+    toast.success('Ambiente archivado exitosamente')
+    reloadCurrentView()
+  } catch (error) {
+    handleError(error, 'Error al archivar el ambiente')
+  }
+}
+
+const reactivateEnvironment = async environment => {
+  try {
+    await put(`/api/dental-chairs/${environment.id}`, { is_active: true })
+    toast.success('Ambiente reactivado exitosamente')
+    reloadCurrentView()
+  } catch (error) {
+    handleError(error, 'Error al reactivar el ambiente')
+  }
+}
 
 onMounted(() => {
   loadEnvironments()
+})
+
+onBeforeUnmount(() => {
+  clearPendingSearch()
 })
 </script>

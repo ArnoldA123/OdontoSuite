@@ -154,6 +154,12 @@ describe('appointment-types detail smoke', () => {
     wrapper.unmount()
   })
 
+  it('renders a null price as No especificado in the detail price field', async () => {
+    const wrapper = await mountPage({ type: makeType({ price: null }) })
+    expect(wrapper.find('[data-detail-field="price"]').text()).toBe('No especificado')
+    wrapper.unmount()
+  })
+
   it('shows the hero + info skeleton while the record is pending', async () => {
     let resolveType
     getMock.mockImplementation(url => {
@@ -236,6 +242,47 @@ describe('appointment-types detail smoke', () => {
     expect(wrapper.find('[data-audit-date]').text()).toMatch(/\d/)
     expect(wrapper.html()).not.toContain('text-red-500')
     expect(wrapper.html()).not.toContain('text-green-500')
+    wrapper.unmount()
+  })
+
+  it('renders the created and deleted messages when snapshots arrive as empty arrays', async () => {
+    const logs = [
+      makeLog(1, {
+        action: 'appointment_type_created',
+        old_values: [],
+        new_values: []
+      }),
+      makeLog(2, {
+        action: 'appointment_type_updated',
+        old_values: { price: 100 },
+        new_values: { price: 150 }
+      }),
+      makeLog(3, {
+        action: 'appointment_type_deleted',
+        old_values: [],
+        new_values: []
+      })
+    ]
+    const wrapper = await mountPage({ logs })
+    await openAuditTab(wrapper)
+
+    const rows = wrapper.findAll('[data-audit-row]')
+    expect(rows).toHaveLength(3)
+
+    const created = rows.find(r => r.text().includes('Tipo de Cita Creado'))
+    expect(created).toBeTruthy()
+    expect(created.text()).toContain('Tipo de cita creado en el sistema.')
+
+    const deleted = rows.find(r => r.text().includes('Tipo de Cita Eliminado'))
+    expect(deleted).toBeTruthy()
+    expect(deleted.text()).toContain('Tipo de cita eliminado del sistema.')
+
+    const updated = rows.find(r => r.text().includes('Tipo de Cita Actualizado'))
+    expect(updated.text()).toContain('Cambios realizados:')
+    expect(updated.find('.text-systemRed-600').exists()).toBe(true)
+    expect(updated.find('.text-systemGreen-600').exists()).toBe(true)
+
+    rows.forEach(row => expect(row.text()).not.toContain('Sin cambios registrados'))
     wrapper.unmount()
   })
 
