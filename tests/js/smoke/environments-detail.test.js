@@ -49,8 +49,8 @@ const auditEntries = [
     action: 'dental_chair_created',
     user: { name: 'Ana Torres' },
     created_at: '2026-10-01T09:00:00Z',
-    old_values: null,
-    new_values: null
+    old_values: [],
+    new_values: { code: 'AMB-01', name: 'Consultorio Norte', status: 'active' }
   },
   {
     id: 12,
@@ -65,8 +65,8 @@ const auditEntries = [
     action: 'dental_chair_deleted',
     user: null,
     created_at: '2026-10-03T11:00:00Z',
-    old_values: null,
-    new_values: null
+    old_values: { code: 'AMB-01', name: 'Consultorio Norte' },
+    new_values: []
   }
 ]
 
@@ -286,5 +286,184 @@ describe('environment detail chrome (T4, structural)', () => {
     expect(source).not.toContain('<svg')
     expect(source).not.toContain('border-primary-')
     expect(source).not.toContain('\u2014')
+  })
+})
+
+describe('environment detail audit payload shapes (S7)', () => {
+  const mockAudit = logs =>
+    mockApi(url => {
+      if (url === apiRoutes.detail) return Promise.resolve({ data: detailPayload })
+      if (url === apiRoutes.audit) return Promise.resolve({ data: logs })
+      return Promise.resolve({ data: [] })
+    })
+
+  it('renders the created and deleted messages for the real empty-array payloads', async () => {
+    mockAudit(auditEntries)
+    const wrapper = await mountDetail()
+    await openAuditTab(wrapper)
+
+    expect(wrapper.text()).toContain('Ambiente creado en el sistema.')
+    expect(wrapper.text()).toContain('Ambiente eliminado del sistema.')
+    expect(wrapper.text()).not.toContain('Sin cambios registrados')
+    expect(wrapper.text()).not.toContain('(vacío)')
+    wrapper.unmount()
+  })
+
+  it('renders the diff only for the entry that carries both records', async () => {
+    mockAudit([auditEntries[1]])
+    const wrapper = await mountDetail()
+    await openAuditTab(wrapper)
+
+    expect(wrapper.text()).toContain('De:')
+    expect(wrapper.text()).toContain('A:')
+    expect(wrapper.text()).toContain('Consultorio Viejo')
+    expect(wrapper.text()).toContain('Consultorio Norte')
+    expect(wrapper.text()).not.toContain('Sin cambios registrados')
+    wrapper.unmount()
+  })
+
+  it('falls back to "Sin cambios registrados" when both records exist but nothing changed', async () => {
+    mockAudit([
+      {
+        id: 21,
+        action: 'dental_chair_updated',
+        user: { name: 'Ana Torres' },
+        created_at: '2026-10-04T12:00:00Z',
+        old_values: { status: 'active' },
+        new_values: { status: 'active' }
+      }
+    ])
+    const wrapper = await mountDetail()
+    await openAuditTab(wrapper)
+
+    expect(wrapper.text()).toContain('Sin cambios registrados')
+    expect(wrapper.text()).not.toContain('De:')
+    wrapper.unmount()
+  })
+
+  it('renders a neutral unknown-action label and does not crash when action is null', async () => {
+    mockAudit([
+      {
+        id: 31,
+        action: null,
+        user: null,
+        created_at: '2026-10-05T13:00:00Z',
+        old_values: [],
+        new_values: { name: 'Consultorio Norte' }
+      }
+    ])
+    const wrapper = await mountDetail()
+    await openAuditTab(wrapper)
+
+    const badge = wrapper
+      .findAll('[data-variant]')
+      .find(candidate => candidate.text().trim() === 'Acción desconocida')
+    expect(badge, 'unknown actions must render a safe label').toBeTruthy()
+    expect(badge.attributes('data-variant')).toBe('neutral')
+    expect(wrapper.text()).toContain('Sin cambios registrados')
+    wrapper.unmount()
+  })
+})
+
+describe('environment detail error messages (S7)', () => {
+  const mockDetailFailure = error => {
+    mockApi(url => {
+      if (url === apiRoutes.detail) return Promise.reject(error)
+      return Promise.resolve({ data: [] })
+    })
+  }
+
+  it('shows the not-found message for a 404 detail response', async () => {
+    mockDetailFailure({ status: 404, response: { data: { message: 'Ambiente no encontrado' } } })
+    const wrapper = await mountDetail()
+
+    const block = wrapper.find('[data-environment-detail-error]')
+    expect(block.exists()).toBe(true)
+    expect(block.text()).toContain('No pudimos cargar el ambiente')
+    expect(block.text()).toContain('El ambiente no existe.')
+    expect(block.text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('shows the permission message for a 403 detail response', async () => {
+    mockDetailFailure({ response: { status: 403, data: { message: 'Forbidden' } } })
+    const wrapper = await mountDetail()
+
+    const block = wrapper.find('[data-environment-detail-error]')
+    expect(block.findAll('p')[1].text()).toBe('No tienes permisos para ver este ambiente.')
+    wrapper.unmount()
+  })
+
+  it('shows the server message for a 500 detail response', async () => {
+    mockDetailFailure({ status: 500, response: { data: { message: 'Boom' } } })
+    const wrapper = await mountDetail()
+
+    const block = wrapper.find('[data-environment-detail-error]')
+    expect(block.text()).toContain('Ocurrió un error en el servidor. Intenta nuevamente.')
+    expect(block.text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message for a detail failure without status', async () => {
+    mockDetailFailure(new Error('network down'))
+    const wrapper = await mountDetail()
+
+    const block = wrapper.find('[data-environment-detail-error]')
+    expect(block.text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(block.text()).not.toContain('El ambiente no existe.')
+    wrapper.unmount()
+  })
+})
+
+describe('environment audit error messages (S7)', () => {
+  const mockAuditFailure = error => {
+    mockApi(url => {
+      if (url === apiRoutes.detail) return Promise.resolve({ data: detailPayload })
+      if (url === apiRoutes.audit) return Promise.reject(error)
+      return Promise.resolve({ data: [] })
+    })
+  }
+
+  const auditErrorBlock = async () => {
+    const wrapper = await mountDetail()
+    await openAuditTab(wrapper)
+    return { wrapper, block: wrapper.find('[data-environment-audit-error]') }
+  }
+
+  it('shows the permission message for a 403 audit response', async () => {
+    mockAuditFailure({ status: 403, response: { data: { message: 'Forbidden' } } })
+    const { wrapper, block } = await auditErrorBlock()
+
+    expect(block.exists()).toBe(true)
+    expect(block.text()).toContain('No pudimos cargar el historial de auditoría')
+    expect(block.findAll('p')[1].text()).toBe('No tienes permisos para ver la auditoría.')
+    wrapper.unmount()
+  })
+
+  it('shows the not-found message for a 404 audit response', async () => {
+    mockAuditFailure({ response: { status: 404, data: { message: 'Ambiente no encontrado' } } })
+    const { wrapper, block } = await auditErrorBlock()
+
+    expect(block.text()).toContain('El ambiente no existe.')
+    expect(block.text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('shows the server message for a 500 audit response', async () => {
+    mockAuditFailure({ status: 500, response: { data: { message: 'Boom' } } })
+    const { wrapper, block } = await auditErrorBlock()
+
+    expect(block.text()).toContain('Ocurrió un error en el servidor. Intenta nuevamente.')
+    expect(block.text()).not.toContain('Revisa tu conexión y vuelve a intentarlo.')
+    wrapper.unmount()
+  })
+
+  it('keeps the connection message for an audit failure without status', async () => {
+    mockAuditFailure(new Error('audit down'))
+    const { wrapper, block } = await auditErrorBlock()
+
+    expect(block.text()).toContain('Revisa tu conexión y vuelve a intentarlo.')
+    expect(block.text()).not.toContain('No tienes permisos para ver la auditoría.')
+    wrapper.unmount()
   })
 })

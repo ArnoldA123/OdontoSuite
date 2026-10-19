@@ -318,7 +318,7 @@ const loadData = async () => {
     const [professionalsRes, typesRes, chairsRes] = await Promise.all([
       get('/api/users/active'),
       get('/api/appointment-types/active'),
-      get('/api/dental-chairs/active')
+      get('/api/dental-chairs/active?status=active')
     ])
 
     patients.value = allPatients
