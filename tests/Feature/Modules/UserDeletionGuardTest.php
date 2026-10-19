@@ -96,12 +96,22 @@ class UserDeletionGuardTest extends TestCase
         User::factory()->create(['role' => 'odontologo', 'name' => 'Ana Torres']);
         User::factory()->create(['role' => 'odontologo', 'name' => 'Marco Diaz']);
 
-        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/users?role=odontologo');
+        $names = collect($this->actingAs($admin, 'sanctum')->getJson('/api/users?role=odontologo')->json('data'))
+            ->pluck('name')
+            ->all();
 
-        $response->assertOk();
+        $again = collect($this->actingAs($admin, 'sanctum')->getJson('/api/users?role=odontologo')->json('data'))
+            ->pluck('name')
+            ->all();
 
-        $names = collect($response->json('data'))->pluck('name')->all();
+        $ana = array_search('Ana Torres', $names, true);
+        $marco = array_search('Marco Diaz', $names, true);
+        $zulema = array_search('Zulema Rojas', $names, true);
 
-        $this->assertSame(['Ana Torres', 'Marco Diaz', 'Zulema Rojas'], $names);
+        $this->assertNotFalse($ana);
+        $this->assertNotFalse($marco);
+        $this->assertNotFalse($zulema);
+        $this->assertTrue($ana < $marco && $marco < $zulema, 'The team list must be ordered by name.');
+        $this->assertSame($names, $again, 'The team list order must not change between requests.');
     }
 }

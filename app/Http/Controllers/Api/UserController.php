@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -113,7 +114,7 @@ class UserController extends Controller
             $users = $query->orderBy('name')->get();
 
             return response()->json([
-                'data' => $users,
+                'data' => UserResource::collection($users)->resolve(),
                 'meta' => [
                     'total' => $users->count()
                 ]
@@ -165,7 +166,7 @@ class UserController extends Controller
             ClearDashboardCache::handle();
 
             return response()->json([
-                'data' => $user,
+                'data' => (new UserResource($user))->resolve(),
                 'meta' => [
                     'message' => 'Usuario creado exitosamente'
                 ]
@@ -190,6 +191,7 @@ class UserController extends Controller
     {
         try {
             $user = User::with([
+                'specialties',
                 'auditLogs' => function ($query) {
                     $query->with('user:id,name,email')
                           ->orderBy('created_at', 'desc')
@@ -198,7 +200,7 @@ class UserController extends Controller
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => $user
+                'data' => (new UserResource($user))->resolve()
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -274,7 +276,7 @@ class UserController extends Controller
             ClearDashboardCache::handle();
 
             return response()->json([
-                'data' => $user,
+                'data' => (new UserResource($user))->resolve(),
                 'meta' => [
                     'message' => 'Usuario actualizado exitosamente'
                 ]
@@ -397,7 +399,7 @@ class UserController extends Controller
     {
         try {
             $users = User::where('is_active', true)
-                ->whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'dentista'])
+                ->whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'])
                 ->select('id', 'name', 'role', 'specialty')
                 ->get();
 
