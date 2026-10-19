@@ -27,9 +27,11 @@
               {{ record.patient?.first_name }} {{ record.patient?.last_name }}
             </span>
           </div>
-          <div v-if="record.patient?.dni" class="info-item">
+          <div v-if="record.patient?.document_number || record.patient?.dni" class="info-item">
             <span class="info-label">DNI:</span>
-            <span class="info-value">{{ record.patient.dni }}</span>
+            <span class="info-value">
+              {{ record.patient.document_number || record.patient.dni }}
+            </span>
           </div>
           <div v-if="record.patient?.phone" class="info-item">
             <span class="info-label">Teléfono:</span>

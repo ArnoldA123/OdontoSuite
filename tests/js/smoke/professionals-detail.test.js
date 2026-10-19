@@ -9,13 +9,16 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // figure and must never reach the DOM, even when the payload carries it.
 const { getMock, pushMock, routeState, installDetail, makeProfessional } = vi.hoisted(() => {
   const routeState = { path: '/professionals/1', params: { id: '1' } }
-  const state = { professional: null, branches: [], auditLogs: [] }
+  const state = { professional: null, branches: [], auditLogs: [], failProfessional: false }
 
   const getMock = vi.fn(async url => {
     if (typeof url === 'string' && url.startsWith('/api/audit-logs/user/')) {
       return { data: state.auditLogs }
     }
     if (typeof url === 'string' && url.startsWith('/api/users/')) {
+      if (state.failProfessional) {
+        throw { response: { data: { message: 'Usuario no encontrado' } }, status: 404 }
+      }
       return { data: state.professional }
     }
     if (typeof url === 'string' && url.startsWith('/api/branches')) {
@@ -41,11 +44,13 @@ const { getMock, pushMock, routeState, installDetail, makeProfessional } = vi.ho
   const installDetail = ({
     professional = makeProfessional(),
     branches = [],
-    auditLogs = []
+    auditLogs = [],
+    failProfessional = false
   } = {}) => {
     state.professional = professional
     state.branches = branches
     state.auditLogs = auditLogs
+    state.failProfessional = failProfessional
   }
 
   return { getMock, pushMock: vi.fn(), routeState, installDetail, makeProfessional }
@@ -109,6 +114,12 @@ const mountPage = async () => {
 }
 
 const factsText = wrapper => wrapper.find('[data-professional-facts]').text()
+
+const openHistory = async wrapper => {
+  const tab = wrapper.findAll('button').find(button => button.text().includes('Historial'))
+  await tab.trigger('click')
+  await flushPromises()
+}
 
 describe('professionals detail smoke', () => {
   beforeEach(() => {
@@ -195,6 +206,64 @@ describe('professionals detail smoke', () => {
     expect(wrapper.text()).not.toContain('0.15')
     expect(wrapper.text()).not.toContain('commission')
     expect(wrapper.text()).not.toContain('Comisión')
+
+    wrapper.unmount()
+  })
+
+  it('renders a creation entry as a creation instead of an empty field diff', async () => {
+    installDetail({
+      auditLogs: [
+        {
+          id: 10,
+          action: 'user_created',
+          created_at: '2026-10-19T10:00:00.000000Z',
+          old_values: [],
+          new_values: { name: 'Ana Torres', role: 'odontologo' },
+          user: { name: 'Admin Root' }
+        }
+      ]
+    })
+    const wrapper = await mountPage()
+    await openHistory(wrapper)
+
+    expect(wrapper.text()).toContain('Profesional creado en el sistema.')
+    expect(wrapper.text()).not.toContain('De:')
+    expect(wrapper.text()).not.toContain('Sin cambios registrados')
+
+    wrapper.unmount()
+  })
+
+  it('renders the field diff of an update entry, and only for real previous values', async () => {
+    installDetail({
+      auditLogs: [
+        {
+          id: 11,
+          action: 'user_updated',
+          created_at: '2026-10-19T11:00:00.000000Z',
+          old_values: { name: 'Ana Torres' },
+          new_values: { name: 'Ana Torres Editada' },
+          user: { name: 'Admin Root' }
+        }
+      ]
+    })
+    const wrapper = await mountPage()
+    await openHistory(wrapper)
+
+    expect(wrapper.text()).toContain('Nombre:')
+    expect(wrapper.text()).toContain('Ana Torres Editada')
+    expect(wrapper.text()).toContain('De:')
+    expect(wrapper.text()).not.toContain('Profesional creado en el sistema.')
+
+    wrapper.unmount()
+  })
+
+  it('shows an error state instead of an endless loading placeholder when the fetch fails', async () => {
+    installDetail({ failProfessional: true })
+    const wrapper = await mountPage()
+
+    expect(wrapper.text()).not.toContain('Cargando...')
+    expect(wrapper.text()).not.toContain('Cargando profesional...')
+    expect(wrapper.text()).toContain('No se pudo cargar el profesional')
 
     wrapper.unmount()
   })

@@ -10,7 +10,7 @@ import { NotificationService } from '@/services/NotificationService'
  */
 export function useWebSocketNotifications() {
   const route = useRoute()
-  const { channel, echo } = useEcho()
+  const { channel, privateChannel, echo } = useEcho()
   const { addNotification } = useNotifications()
   const { error: showErrorToast } = useToast()
 
@@ -98,7 +98,7 @@ export function useWebSocketNotifications() {
       }
 
       // Canal de pacientes
-      const patientsChannel = channel('patients')
+      const patientsChannel = privateChannel('patients')
       if (patientsChannel) {
         patientsChannel
           .listen('.patient.created', e => handleEvent('patient.created', e))

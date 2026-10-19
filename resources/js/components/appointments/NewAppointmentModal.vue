@@ -160,7 +160,7 @@ const {
   transformDentalChairs
 } = useOptionsTransform()
 const toast = useToast()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 
 const loadingData = ref(false)
 const creating = ref(false)
@@ -318,7 +318,7 @@ const loadData = async () => {
     const [professionalsRes, typesRes, chairsRes] = await Promise.all([
       get('/api/users/active'),
       get('/api/appointment-types/active'),
-      get('/api/dental-chairs/active')
+      get('/api/dental-chairs/active?status=active')
     ])
 
     patients.value = allPatients
@@ -498,7 +498,7 @@ onMounted(() => {
 
   // Suscribirse a canales WebSocket para actualizaciones en tiempo real
   try {
-    patientsChannel = channel('patients')
+    patientsChannel = privateChannel('patients')
     if (patientsChannel) {
       patientsChannel
         .listen('.patient.created', async () => {

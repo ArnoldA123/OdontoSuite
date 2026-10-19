@@ -2,8 +2,9 @@
 
 namespace App\Events;
 
+use App\Http\Resources\PatientResource;
 use App\Models\Patient;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -20,11 +21,15 @@ class PatientCreated implements ShouldBroadcast
         $this->patient = $patient;
     }
 
+    /**
+     * Canal privado: el payload lleva datos clínicos del paciente
+     * (medical_history, allergies), así que la suscripción exige el
+     * handshake de /api/broadcasting/auth.
+     */
     public function broadcastOn()
     {
         return [
-            new Channel('patients'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('patients'),
         ];
     }
 
@@ -36,7 +41,7 @@ class PatientCreated implements ShouldBroadcast
     public function broadcastWith()
     {
         return [
-            'patient' => $this->patient,
+            'patient' => PatientResource::make($this->patient)->resolve(),
         ];
     }
 }

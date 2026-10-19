@@ -45,6 +45,7 @@ class TransactionResource extends JsonResource
                     'first_name' => $this->patient->first_name,
                     'last_name' => $this->patient->last_name,
                     'full_name' => $this->patient->full_name,
+                    'document_number' => $this->patient->document_number,
                 ];
             }),
             'appointment' => $this->whenLoaded('appointment', function () {

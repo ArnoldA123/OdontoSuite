@@ -25,9 +25,15 @@ class UpdateProcedureCatalogRequest extends FormRequest
             'default_duration_minutes' => 'sometimes|nullable|integer|min:5|max:480',
             'is_active' => 'sometimes|boolean',
             'requires_anesthesia' => 'sometimes|boolean',
+            'requires_radiographs' => 'sometimes|boolean',
             'materials' => 'sometimes|nullable|array',
             'materials.*' => 'string|max:200',
+            'requirements' => 'sometimes|nullable|string|max:2000',
+            'materials_needed' => 'sometimes|nullable|string|max:2000',
+            'steps' => 'sometimes|nullable|array',
+            'steps.*' => 'string|max:500',
             'contraindications' => 'sometimes|nullable|string|max:2000',
+            'post_procedure_care' => 'sometimes|nullable|string|max:2000',
         ];
     }
 

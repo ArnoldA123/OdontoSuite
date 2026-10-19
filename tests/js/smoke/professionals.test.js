@@ -417,6 +417,41 @@ describe('professionals smoke', () => {
     wrapper.unmount()
   })
 
+  it('labels every specialty code stored in the database and offers them in the filter', async () => {
+    installTeam([
+      makeUser(1, { name: 'Ana Torres', specialty: 'implantology' }),
+      makeUser(2, { name: 'Beto Salas', specialty: 'dental_technician' }),
+      makeUser(3, { name: 'Carla Díaz', specialty: 'general' })
+    ])
+    const wrapper = await mountPage()
+
+    const rows = wrapper.findAll('[data-team-row]')
+    expect(rows).toHaveLength(3)
+    expect(rows[0].text()).toContain('Implantología')
+    expect(rows[1].text()).toContain('Técnico Dental')
+    expect(wrapper.text()).not.toContain('implantology')
+    expect(wrapper.text()).not.toContain('dental_technician')
+
+    const filter = wrapper.find('[data-professionals-specialty-filter]')
+    const labels = await openSelect(filter)
+    expect(labels).toContain('Implantología')
+    expect(labels).toContain('Técnico Dental')
+
+    const technicalOption = filter
+      .findAll('[role="listbox"] button')
+      .find(button => button.text().trim() === 'Técnico Dental')
+    expect(technicalOption).toBeTruthy()
+    if (!technicalOption) return
+
+    await technicalOption.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-team-row]')).toHaveLength(1)
+    expect(wrapper.text()).toContain('Beto Salas')
+
+    wrapper.unmount()
+  })
+
   it('submits the edited values including the selected role to PUT /api/users/{id}', async () => {
     installTeam(TEAM)
     const wrapper = await mountPage({ stubs: { teleport: true } })
@@ -479,6 +514,111 @@ describe('professionals smoke', () => {
     expect(search.element.value).toBe('')
     expect(wrapper.findAll('[data-team-clear-filters]')).toHaveLength(0)
     expect(wrapper.findAll('[data-team-row]')).toHaveLength(3)
+
+    wrapper.unmount()
+  })
+
+  it('submits licence, branch and status from the create modal', async () => {
+    installTeam(TEAM, [{ id: 7, name: 'Sede Miraflores' }])
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+
+    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
+    await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
+    await wrapper.find('[data-professionals-form-license] input').setValue('COP-2026')
+    await chooseSelectOption(wrapper.find('[data-professionals-form-branch]'), 'Sede Miraflores')
+    await chooseSelectOption(wrapper.find('[data-professionals-form-status]'), 'Inactivo')
+
+    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    const payload = postMock.mock.calls[0][1]
+    expect(payload.professional_license).toBe('COP-2026')
+    expect(payload.branch_id).toBe(7)
+    expect(payload.is_active).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('prefills licence, branch and status when editing and submits them to PUT', async () => {
+    installTeam(
+      [
+        makeUser(1, {
+          name: 'Ana Torres',
+          professional_license: 'CMP-999',
+          branch_id: 7,
+          is_active: false
+        })
+      ],
+      [{ id: 7, name: 'Sede Miraflores' }]
+    )
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+
+    const row = wrapper.findAll('[data-team-row]')[0]
+    await row
+      .findAll('button')
+      .find(button => button.text().includes('Editar'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-professionals-edit-license] input').element.value).toBe('CMP-999')
+    expect(wrapper.find('[data-professionals-edit-branch]').text()).toContain('Sede Miraflores')
+    expect(wrapper.find('[data-professionals-edit-status]').text()).toContain('Inactivo')
+
+    await wrapper.find('[data-professionals-edit-license] input').setValue('CMP-1000')
+    await findButtonByText(wrapper, 'Actualizar').trigger('click')
+    await flushPromises()
+
+    expect(putMock).toHaveBeenCalledTimes(1)
+    const payload = putMock.mock.calls[0][1]
+    expect(payload.professional_license).toBe('CMP-1000')
+    expect(payload.branch_id).toBe(7)
+    expect(payload.is_active).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('maps a 422 field error to the form field instead of a generic toast', async () => {
+    postMock.mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'Error de validación',
+          errors: { email: ['El email ya está registrado.'] }
+        }
+      },
+      status: 422
+    })
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+
+    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
+    await wrapper.find('[data-professionals-form-email] input').setValue('repetido@test.com')
+    await findButtonByText(wrapper, 'Crear').trigger('click')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('El email ya está registrado.')
+
+    wrapper.unmount()
+  })
+
+  it('submits the create form when Enter is pressed in a field', async () => {
+    const wrapper = await mountPage({ stubs: { teleport: true } })
+
+    await findButtonByText(wrapper, 'Nuevo Profesional').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-professionals-form-name] input').setValue('Nuevo Pro')
+    await wrapper.find('[data-professionals-form-email] input').setValue('nuevo@test.com')
+    await wrapper.find('[data-professionals-form-name] input').trigger('keydown.enter')
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
 
     wrapper.unmount()
   })
