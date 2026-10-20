@@ -7,10 +7,14 @@ use App\Events\ClinicalEvolutionCreated;
 use App\Events\MedicalRecordCreated;
 use App\Events\MedicalRecordUpdated;
 use App\Http\Controllers\Controller;
+use App\Models\ClinicalAttachment;
+use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Services\MedicalRecordService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class MedicalRecordController extends Controller
 {
@@ -27,18 +31,42 @@ class MedicalRecordController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = MedicalRecord::with(['patient', 'createdBy']);
+            $query = MedicalRecord::with(['patient', 'createdBy'])->withCount([
+                'evolutions',
+                'attachments' => fn ($attachments) => $attachments
+                    ->where('clinical_attachments.is_active', true),
+            ]);
 
-            if ($request->has('patient_id')) {
-                $query->where('patient_id', $request->patient_id);
+            if ($request->filled('patient_id')) {
+                $query->where('patient_id', $request->input('patient_id'));
             }
 
             // Multi-tenant: filtrar por branch_id del paciente asociado
-            if ($request->has('branch_id')) {
+            if ($request->filled('branch_id')) {
                 $query->whereHas('patient', fn ($q) => $q->where('branch_id', $request->input('branch_id')));
             }
 
-            $records = $query->orderBy('first_visit_date', 'desc')->paginate(10);
+            // Deactivated records stay in the database for audit; the index
+            // only offers them when the caller asks for them explicitly.
+            $status = (string) $request->input('status', 'active');
+            if ($status !== 'all') {
+                $query->where('is_active', $status !== 'inactive');
+            }
+
+            if ($request->filled('search')) {
+                $term = '%'.trim((string) $request->input('search')).'%';
+                $query->where(function ($search) use ($term) {
+                    $search->where('record_number', 'like', $term)
+                        ->orWhereHas('patient', function ($patient) use ($term) {
+                            $patient->where('first_name', 'like', $term)
+                                ->orWhere('last_name', 'like', $term)
+                                ->orWhere('document_number', 'like', $term);
+                        });
+                });
+            }
+
+            $perPage = max(1, min((int) $request->input('per_page', 10), 50));
+            $records = $query->orderBy('first_visit_date', 'desc')->paginate($perPage);
 
             return response()->json([
                 'data' => $records->items(),
@@ -95,7 +123,7 @@ class MedicalRecordController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $record = \App\Models\MedicalRecord::with([
+            $record = MedicalRecord::with([
                 'patient',
                 'createdBy',
                 'evolutions' => function ($query) {
@@ -140,7 +168,7 @@ class MedicalRecordController extends Controller
                 'notes' => 'nullable|string',
             ]);
 
-            $record = \App\Models\MedicalRecord::findOrFail($id);
+            $record = MedicalRecord::findOrFail($id);
             $record->update($validated);
             $record->refresh();
 
@@ -172,7 +200,7 @@ class MedicalRecordController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $record = \App\Models\MedicalRecord::findOrFail($id);
+            $record = MedicalRecord::findOrFail($id);
 
             // Marcar como inactivo en lugar de eliminar
             $record->update(['is_active' => false]);
@@ -229,7 +257,7 @@ class MedicalRecordController extends Controller
     public function getEvolutions(int $id): JsonResponse
     {
         try {
-            $evolutions = \App\Models\ClinicalEvolution::with([
+            $evolutions = ClinicalEvolution::with([
                 'patient',
                 'appointment',
                 'createdBy',
@@ -248,6 +276,62 @@ class MedicalRecordController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener evoluciones',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar una evolución clínica.
+     */
+    public function updateEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
+    {
+        try {
+            $evolution = $this->medicalRecordService->updateEvolution($id, $request->validated());
+
+            return response()->json([
+                'data' => $evolution,
+                'meta' => [
+                    'message' => 'Evolución actualizada exitosamente',
+                ],
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Evolución no encontrada',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al actualizar evolución',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar (soft) una evolución clínica.
+     */
+    public function deleteEvolution(int $id): JsonResponse
+    {
+        try {
+            $this->medicalRecordService->deleteEvolution($id);
+
+            return response()->json([
+                'meta' => [
+                    'message' => 'Evolución eliminada exitosamente',
+                ],
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Evolución no encontrada',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al eliminar evolución',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -302,7 +386,7 @@ class MedicalRecordController extends Controller
     public function deleteAttachment(int $attachmentId): \Illuminate\Http\Response|JsonResponse
     {
         try {
-            $attachment = \App\Models\ClinicalAttachment::findOrFail($attachmentId);
+            $attachment = ClinicalAttachment::findOrFail($attachmentId);
             $attachment->update(['is_active' => false]);
 
             return response()->noContent();
@@ -343,8 +427,14 @@ class MedicalRecordController extends Controller
     public function getAttachmentsByCategory(Request $request, int $patientId): JsonResponse
     {
         try {
-            $category = $request->get('category', 'general');
-            $attachments = $this->medicalRecordService->getAttachmentsByCategory($patientId, $category);
+            $validated = $request->validate([
+                'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro,general',
+            ]);
+
+            $attachments = $this->medicalRecordService->getAttachmentsByCategory(
+                $patientId,
+                $validated['category'] ?? null
+            );
 
             return response()->json([
                 'data' => $attachments,
@@ -352,6 +442,11 @@ class MedicalRecordController extends Controller
                     'total' => $attachments->count(),
                 ],
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener archivos',

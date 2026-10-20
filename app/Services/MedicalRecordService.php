@@ -150,6 +150,14 @@ class MedicalRecordService
     }
 
     /**
+     * Eliminar (soft) una evolución.
+     */
+    public function deleteEvolution(int $evolutionId): bool
+    {
+        return (bool) ClinicalEvolution::findOrFail($evolutionId)->delete();
+    }
+
+    /**
      * Eliminar archivo adjunto.
      */
     public function deleteAttachment(int $attachmentId): bool
@@ -170,10 +178,10 @@ class MedicalRecordService
     /**
      * Obtener archivos por categoría.
      */
-    public function getAttachmentsByCategory(int $patientId, string $category)
+    public function getAttachmentsByCategory(int $patientId, ?string $category = null)
     {
         return ClinicalAttachment::where('patient_id', $patientId)
-            ->where('category', $category)
+            ->when($category, fn ($query) => $query->where('category', $category))
             ->where('is_active', true)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -219,28 +227,39 @@ class MedicalRecordService
      */
     public function getRecordStats(int $patientId): array
     {
-        $record = MedicalRecord::where('patient_id', $patientId)
+        $recordIds = MedicalRecord::where('patient_id', $patientId)
             ->where('is_active', true)
-            ->first();
+            ->pluck('id');
 
-        if (! $record) {
+        // Attachments hang off the patient, not off an evolution, so a file
+        // uploaded without one still belongs to this clinical history.
+        $attachments = ClinicalAttachment::where('patient_id', $patientId)
+            ->where('is_active', true)
+            ->get();
+
+        if ($recordIds->isEmpty()) {
             return [
+                'total_records' => 0,
                 'total_evolutions' => 0,
-                'total_attachments' => 0,
+                'total_attachments' => $attachments->count(),
                 'last_evolution' => null,
                 'specialties_involved' => [],
+                'attachment_categories' => $attachments->groupBy('category')->map->count(),
+                'pending_follow_ups' => 0,
             ];
         }
 
-        $evolutions = $record->evolutions;
-        $attachments = $record->attachments()->where('is_active', true)->get();
+        $evolutions = ClinicalEvolution::whereIn('medical_record_id', $recordIds)->get();
+        $specialties = $evolutions->pluck('specialty')->filter()->unique()->values()->all();
 
         return [
+            'total_records' => $recordIds->count(),
             'total_evolutions' => $evolutions->count(),
             'total_attachments' => $attachments->count(),
             'last_evolution' => $evolutions->sortByDesc('evolution_date')->first(),
-            'specialties_involved' => $evolutions->pluck('specialty')->unique()->values()->toArray(),
+            'specialties_involved' => $specialties,
             'attachment_categories' => $attachments->groupBy('category')->map->count(),
+            'pending_follow_ups' => $evolutions->where('requires_follow_up', true)->count(),
         ];
     }
 }

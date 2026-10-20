@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MedicalRecord extends Model
@@ -55,7 +56,7 @@ class MedicalRecord extends Model
         return $this->hasMany(ClinicalEvolution::class);
     }
 
-    public function attachments(): HasMany
+    public function attachments(): HasManyThrough
     {
         // Attachments are related through clinical_evolutions
         // Get all attachment IDs from related evolutions
