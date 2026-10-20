@@ -375,6 +375,20 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (Business Intelligence: superficie + contrato de reportes v2)** —
+  `/business-intelligence` se rediseña sobre la receta del dashboard: hero band
+  con período aplicado, KPI strip, filtros compartidos y presets, selector de
+  corte de ingresos, `UiDataTable`, estados de carga/error/vacío y gráficos con
+  tokens y destrucción controlada. La página deja de consumir el canal público
+  `dashboard-updates` y refresca bajo demanda. Los servicios de reporte se
+  corrigen: una sola definición de ingresos (transacciones cobradas, no precio
+  de catálogo), atribución única por `appointment_id`, período inclusivo en
+  ambos extremos, disponibilidad por sillas activas y días hábiles reales,
+  contadores reales de canceladas/no-show, `meta.summary` en el reporte de
+  ingresos, export Excel/CSV/PDF honesto y errores 500 sin filtrar la excepción.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Follow-ups abiertos: canal privado por rol, devoluciones no neteadas
+  y retiro de la dependencia `maatwebsite/excel` (en desuso).
 - **2026-10-20 (treatment-plans-ui-redesign)** — Planes de tratamiento pasa al
   lenguaje del dashboard en sus cuatro superficies (lista y kanban, modal de
   alta/edición, detalle del plan y tarjetas/columnas/badge): hero band, tira de
