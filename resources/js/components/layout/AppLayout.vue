@@ -542,6 +542,7 @@ const canvasRoutes = [
   '/professionals',
   '/environments',
   '/appointment-types',
+  '/specialties',
   // Operación
   '/calendar',
   // Clínico
@@ -763,6 +764,15 @@ const AcademicCapIcon = {
   `
 }
 
+const TagIcon = {
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6h.008v.008H6V6z" />
+    </svg>
+  `
+}
+
 const CpuChipIcon = {
   template: `
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -828,6 +838,16 @@ const navigation = computed(() => {
       name: 'Tipos de Cita',
       to: '/appointment-types',
       icon: CogIcon,
+      roles: ['administrador'],
+      badge: null
+    },
+    {
+      // Catálogo maestro de especialidades (admin). La etiqueta difiere de la
+      // entrada clínica "Especialidades" (/specialty-records) a propósito:
+      // esta administra la taxonomía, aquella captura registros por paciente.
+      name: 'Catálogo de Especialidades',
+      to: '/specialties',
+      icon: TagIcon,
       roles: ['administrador'],
       badge: null
     },
