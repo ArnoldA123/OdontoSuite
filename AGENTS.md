@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 202 rutas API (medido con php artisan route:list --json: uris api/…; 215 totales con web)
+  api.php                  # 201 rutas API (medido con php artisan route:list --json: uris api/…; 214 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -418,6 +418,28 @@ documentada y no bloquea producción.
   único `overflow-x-auto`), así que ninguna página gana overflow de documento.
   Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
   cambian. Tests: `data-table-scroll-affordance.test.js` (5).
+- **2026-10-20 (caja: dureza del backend y cobro en recepción)** — Cierra las
+  issues #191, #193, #194, #196 y #198 en dos slices: `fix/caja-hardening`
+  (contrato y dureza) y `fix/caja-hardening-rbac` (#194, #191).
+  `CashRegisterController@show`, `@movements` y `@closureReport` aplican ahora
+  `CashRegisterPolicy::view` (dueño o administrador), regla que era código
+  muerto porque el auto-descubrimiento busca `CashRegisterSessionPolicy`;
+  `AppServiceProvider` la registra explícitamente y un id inexistente responde
+  404 en vez de 500. `GET /api/pending-payments` pagina con `per_page` (1..100,
+  default 15) y devuelve `current_page`, `last_page`, `per_page` y `total`; sus
+  500 dejan de exponer el mensaje de la excepción y el trace y pasan al log.
+  `GET /api/cash-register/summary` se acota al usuario autenticado salvo para
+  administrador/finanzas (que pueden filtrar por `user_id`) y hereda el filtro
+  de sucursal de `CashRegisterService::getCurrentSession()`; se retira
+  `POST /cash-register-sessions/{id}/open` (ignoraba `{id}`) y el método muerto
+  `currentView()`. Los pagos pendientes pasan al grupo de caja: `recepcionista`
+  cobra desde la tab Cobros (permiso `collectPendingPayments`), documentado en
+  la matriz de `CREDENTIALS.md`. §4 sincronizado con valores medidos: 201 rutas
+  API, 214 totales con web (la ruta `{id}/open` se retiró). Tests nuevos:
+  `CashSessionOwnershipTest` (8), `PendingPaymentsErrorEnvelopeTest` (2),
+  `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
+  `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
+  verde.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero

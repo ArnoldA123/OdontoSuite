@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PendingPaymentsController extends Controller
 {
@@ -48,10 +49,17 @@ class PendingPaymentsController extends Controller
                 $query->whereDate('scheduled_at', '<=', $request->get('date_to'));
             }
 
-            $appointments = $query->orderBy('scheduled_at', 'desc')->get();
+            // Issue #198: the collection used to arrive whole, so the Cobros
+            // tab had to page it on the client. `per_page` is clamped to the
+            // documented range and the meta the UI reads is the paginator's.
+            $perPage = max(1, min((int) $request->input('per_page', 15), 100));
+
+            $appointments = $query->with(['patient', 'appointmentType', 'user'])
+                ->orderBy('scheduled_at', 'desc')
+                ->paginate($perPage);
 
             // Transformar datos con manejo de errores
-            $pendingPayments = $appointments->map(function ($appointment) {
+            $pendingPayments = collect($appointments->items())->map(function ($appointment) {
                 try {
                     return [
                         'id' => $appointment->id,
@@ -112,16 +120,21 @@ class PendingPaymentsController extends Controller
             return response()->json([
                 'data' => $pendingPayments,
                 'meta' => [
-                    'total' => $pendingPayments->count(),
+                    'current_page' => $appointments->currentPage(),
+                    'last_page' => $appointments->lastPage(),
+                    'per_page' => $appointments->perPage(),
+                    'total' => $appointments->total(),
                     'filters' => $request->only(['search', 'date_from', 'date_to']),
                 ],
             ]);
 
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los pagos pendientes', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener los pagos pendientes',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -216,9 +229,13 @@ class PendingPaymentsController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudo procesar el pago pendiente', [
+                'exception' => $e,
+                'appointment_id' => $id,
+            ]);
+
             return response()->json([
                 'message' => 'Error al procesar el pago pendiente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

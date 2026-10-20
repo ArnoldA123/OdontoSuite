@@ -139,8 +139,8 @@ const columns = [
   { key: 'amount', label: 'Saldo' }
 ]
 
-const ADMIN_PROFILE_MESSAGE =
-  'Esta sección requiere un perfil administrativo para consultar los cobros pendientes.'
+const CASH_PROFILE_MESSAGE =
+  'Esta sección requiere un perfil de caja para consultar los cobros pendientes.'
 
 const payments = ref([])
 const meta = ref(null)
@@ -181,7 +181,7 @@ const pageRows = computed(() => {
 const resolveErrorMessage = err => {
   const status = err?.response?.status
   if (status === 401 || status === 403) {
-    return ADMIN_PROFILE_MESSAGE
+    return CASH_PROFILE_MESSAGE
   }
 
   return (
