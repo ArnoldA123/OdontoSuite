@@ -242,6 +242,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // escritura reservada a clinicos, admin y finanzas.
     Route::middleware('role:administrador,finanzas,odontologo,implantologo,recepcionista')->group(function () {
         Route::get('quotations', [QuotationController::class, 'index']);
+        Route::get('quotations/summary', [QuotationController::class, 'summary']);
         Route::get('quotations/patient/{patientId}', [QuotationController::class, 'byPatient']);
         Route::get('quotations/{id}/pdf', [QuotationController::class, 'downloadPDF']);
         Route::get('quotations/{id}', [QuotationController::class, 'show']);
