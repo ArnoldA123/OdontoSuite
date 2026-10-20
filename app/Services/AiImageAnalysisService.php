@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
+use App\Support\DateFilter;
+use App\Support\PerPage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -410,23 +412,26 @@ Responde únicamente en formato JSON válido.';
         $query = AiImageAnalysis::with(['clinicalAttachment', 'requestedBy', 'reviewedBy'])
             ->where('patient_id', $patientId);
 
-        if (isset($filters['status'])) {
+        if (isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['reviewed'])) {
-            $query->where('reviewed', $filters['reviewed']);
+        if (isset($filters['reviewed']) && $filters['reviewed'] !== '') {
+            $query->where('reviewed', filter_var($filters['reviewed'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        if (isset($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+        $dateFrom = DateFilter::normalize($filters['date_from'] ?? null);
+        if ($dateFrom !== null) {
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
-        if (isset($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+        $dateTo = DateFilter::normalize($filters['date_to'] ?? null);
+        if ($dateTo !== null) {
+            $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $analyses = $query->orderBy('created_at', 'desc')->paginate(15);
+        $analyses = $query->orderBy('created_at', 'desc')
+            ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
             'data' => $analyses->items(),
@@ -456,7 +461,8 @@ Responde únicamente en formato JSON válido.';
             $query->where('patient_id', $filters['patient_id']);
         }
 
-        $analyses = $query->orderBy('created_at', 'desc')->paginate(15);
+        $analyses = $query->orderBy('created_at', 'desc')
+            ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
             'data' => $analyses->items(),
@@ -477,12 +483,12 @@ Responde únicamente en formato JSON válido.';
         try {
             $query = AiImageAnalysis::query();
 
-            if (isset($filters['date_from'])) {
-                $query->whereDate('created_at', '>=', $filters['date_from']);
+            if ($dateFrom = DateFilter::normalize($filters['date_from'] ?? null)) {
+                $query->whereDate('created_at', '>=', $dateFrom);
             }
 
-            if (isset($filters['date_to'])) {
-                $query->whereDate('created_at', '<=', $filters['date_to']);
+            if ($dateTo = DateFilter::normalize($filters['date_to'] ?? null)) {
+                $query->whereDate('created_at', '<=', $dateTo);
             }
 
             $totalAnalyses = $query->count();

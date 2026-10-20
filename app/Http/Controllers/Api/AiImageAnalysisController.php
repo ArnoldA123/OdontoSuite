@@ -7,6 +7,8 @@ use App\Http\Requests\ReviewAiAnalysisRequest;
 use App\Models\AiImageAnalysis;
 use App\Services\AiImageAnalysisService;
 use App\Services\ClinicalAttachmentService;
+use App\Support\DateFilter;
+use App\Support\PerPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -126,7 +128,7 @@ class AiImageAnalysisController extends Controller
     public function byPatient(Request $request, int $patientId): JsonResponse
     {
         try {
-            $filters = $request->only(['status', 'reviewed', 'date_from', 'date_to']);
+            $filters = $request->only(['status', 'reviewed', 'date_from', 'date_to', 'per_page']);
             $result = $this->aiAnalysisService->getAnalysisByPatient($patientId, $filters);
 
             return response()->json($result);
@@ -180,7 +182,7 @@ class AiImageAnalysisController extends Controller
     public function pending(Request $request): JsonResponse
     {
         try {
-            $filters = $request->only(['requested_by', 'patient_id']);
+            $filters = $request->only(['requested_by', 'patient_id', 'per_page']);
             $result = $this->aiAnalysisService->getPendingAnalyses($filters);
 
             return response()->json($result);
@@ -244,13 +246,13 @@ class AiImageAnalysisController extends Controller
                 $query->where('requested_by', (int) $request->input('requested_by'));
             }
 
-            $dateFrom = $request->input('date_from');
-            if (is_string($dateFrom) && $dateFrom !== '') {
+            $dateFrom = DateFilter::normalize($request->input('date_from'));
+            if ($dateFrom !== null) {
                 $query->whereDate('created_at', '>=', $dateFrom);
             }
 
-            $dateTo = $request->input('date_to');
-            if (is_string($dateTo) && $dateTo !== '') {
+            $dateTo = DateFilter::normalize($request->input('date_to'));
+            if ($dateTo !== null) {
                 $query->whereDate('created_at', '<=', $dateTo);
             }
 
@@ -264,8 +266,7 @@ class AiImageAnalysisController extends Controller
                 });
             }
 
-            $perPage = $request->filled('per_page') ? (int) $request->input('per_page') : 15;
-            $perPage = max(1, min(100, $perPage));
+            $perPage = PerPage::resolve($request->input('per_page'));
 
             $analyses = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
@@ -352,6 +353,9 @@ class AiImageAnalysisController extends Controller
             return response()->json([
                 'data' => $analysis,
                 'message' => 'Análisis completado exitosamente.',
+                'meta' => [
+                    'message' => 'Análisis completado exitosamente.',
+                ],
             ], 201);
 
         } catch (\Exception $e) {

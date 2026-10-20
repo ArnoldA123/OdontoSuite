@@ -7,7 +7,9 @@ use App\Models\ClinicalAttachment;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\AiImageAnalysisService;
+use App\Services\ClinicalAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -44,19 +46,9 @@ class AiAnalysisContractTest extends TestCase
      */
     protected function analysis(Patient $patient, User $user, array $attributes = []): AiImageAnalysis
     {
-        $attachment = ClinicalAttachment::factory()->create([
-            'patient_id' => $patient->id,
-            'created_by' => $user->id,
-        ]);
-
-        return AiImageAnalysis::create(array_merge([
-            'clinical_attachment_id' => $attachment->id,
+        return AiImageAnalysis::factory()->create(array_merge([
             'patient_id' => $patient->id,
             'requested_by' => $user->id,
-            'status' => 'completed',
-            'findings' => [],
-            'recommendations' => [],
-            'confidence_score' => 72.5,
         ], $attributes));
     }
 
@@ -278,5 +270,122 @@ class AiAnalysisContractTest extends TestCase
             ->assertJsonMissingPath('error');
 
         $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
+    }
+
+    public function test_pending_accepts_per_page_within_bounds(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+
+        for ($i = 0; $i < 18; $i++) {
+            $this->analysis($patient, $user, ['status' => 'completed', 'reviewed' => false]);
+        }
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending?per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.last_page', 4)
+            ->assertJsonPath('meta.total', 18);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending?per_page=1000')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 100);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending?per_page=0')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.per_page', 1);
+    }
+
+    public function test_by_patient_accepts_per_page_within_bounds(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+
+        for ($i = 0; $i < 18; $i++) {
+            $this->analysis($patient, $user);
+        }
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/patient/'.$patient->id.'?per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.last_page', 4)
+            ->assertJsonPath('meta.total', 18);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/patient/'.$patient->id.'?per_page=1000')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 100)
+            ->assertJsonPath('meta.last_page', 1);
+    }
+
+    public function test_unparseable_date_filters_are_ignored(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+        $analysis = $this->analysis($patient, $user);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?date_from=abc&date_to=zzz')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $analysis->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/patient/'.$patient->id.'?date_from=abc&date_to=zzz')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+    }
+
+    public function test_upload_and_analyze_answers_with_the_meta_envelope(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+        $attachment = ClinicalAttachment::factory()->create([
+            'patient_id' => $patient->id,
+            'created_by' => $user->id,
+        ]);
+        $analysis = $this->analysis($patient, $user, ['clinical_attachment_id' => $attachment->id]);
+
+        $this->mock(ClinicalAttachmentService::class)
+            ->shouldReceive('store')
+            ->once()
+            ->andReturn($attachment);
+
+        $this->mock(AiImageAnalysisService::class)
+            ->shouldReceive('analyzeImage')
+            ->once()
+            ->with($attachment->id)
+            ->andReturn($analysis);
+
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        $response = $this->actingAs($user)->post('/api/ai-analysis/upload-and-analyze', [
+            'patient_id' => $patient->id,
+            'category' => 'radiografia',
+            'image' => UploadedFile::fake()->createWithContent('xray.png', $png),
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('meta.message', 'Análisis completado exitosamente.')
+            ->assertJsonPath('message', 'Análisis completado exitosamente.')
+            ->assertJsonPath('data.id', $analysis->id);
+    }
+
+    public function test_analysis_factory_builds_a_coherent_attachment_patient_and_requester(): void
+    {
+        $analysis = AiImageAnalysis::factory()->create();
+
+        $this->assertSame('completed', $analysis->status);
+        $this->assertFalse((bool) $analysis->reviewed);
+        $this->assertNotNull($analysis->clinical_attachment_id);
+        $this->assertSame($analysis->patient_id, $analysis->clinicalAttachment->patient_id);
+        $this->assertSame($analysis->requested_by, $analysis->clinicalAttachment->created_by);
     }
 }
