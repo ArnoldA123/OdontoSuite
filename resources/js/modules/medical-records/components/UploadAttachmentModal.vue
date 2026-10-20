@@ -1,134 +1,206 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2 class="modal-title">Subir Archivo</h2>
-        <button class="modal-close" @click="closeModal">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
+  <UiModal
+    model-value
+    title="Subir adjunto"
+    size="lg"
+    :closable="!uploading"
+    :close-on-backdrop="!uploading"
+    :close-on-escape="!uploading"
+    @close="emit('close')"
+  >
+    <form class="space-y-5" data-upload-attachment-form @submit.prevent="submit">
+      <div class="rounded-ios border border-hairline bg-theme-surface px-4 py-3">
+        <p class="text-xs font-medium uppercase text-theme-secondary">Paciente</p>
+        <p class="mt-1 text-sm font-medium text-label" data-upload-patient>{{ patientName }}</p>
       </div>
 
-      <form class="modal-body" @submit.prevent="handleSubmit">
+      <div>
+        <label for="attachment-file" class="block text-sm font-medium text-label mb-1">
+          Archivo
+          <span class="text-theme-secondary">*</span>
+        </label>
         <div
-          class="upload-area"
-          :class="{ 'drag-over': isDragOver }"
-          @dragover.prevent="handleDragOver"
-          @dragleave.prevent="handleDragLeave"
-          @drop.prevent="handleDrop"
+          class="rounded-ios border-2 border-dashed px-4 py-6 text-center transition-colors"
+          :class="
+            isDragOver ? 'border-accent bg-theme-surface' : 'border-hairline bg-theme-surface'
+          "
+          data-upload-dropzone
+          @dragover.prevent="isDragOver = true"
+          @dragleave.prevent="isDragOver = false"
+          @drop.prevent="onDrop"
         >
-          <div v-if="!selectedFile" class="upload-placeholder">
-            <CloudArrowUpIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-            <p class="text-lg font-medium text-theme-primary">Arrastra y suelta tu archivo aquí</p>
-            <p class="text-sm text-theme-secondary">o</p>
-            <button type="button" class="btn btn-outline mt-2" @click="selectFile">
+          <input
+            id="attachment-file"
+            ref="fileInput"
+            type="file"
+            class="hidden"
+            accept="image/*,.pdf,.doc,.docx"
+            data-upload-file-input
+            @change="onFileInput"
+          />
+
+          <div v-if="!selectedFile" class="space-y-2">
+            <CloudArrowUpIcon class="mx-auto h-10 w-10 text-theme-secondary" aria-hidden="true" />
+            <p class="text-sm font-medium text-label">Arrastra y suelta el archivo aquí</p>
+            <p class="text-xs text-theme-secondary">o selecciónalo desde tu equipo</p>
+            <UiButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              class="mt-2"
+              data-upload-pick-file
+              @click="openFilePicker"
+            >
+              <template #icon-left>
+                <FolderOpenIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
               Seleccionar archivo
-            </button>
-            <input
-              ref="fileInput"
-              type="file"
-              class="hidden"
-              accept="image/*,.pdf,.doc,.docx,.txt"
-              @change="handleFileSelect"
-            />
+            </UiButton>
           </div>
 
-          <div v-else class="file-preview">
-            <div class="preview-container">
-              <img
-                v-if="isImage(selectedFile)"
-                :src="filePreview"
-                :alt="selectedFile.name"
-                class="preview-image"
+          <div v-else class="flex items-center gap-3 text-left">
+            <img
+              v-if="filePreview"
+              :src="filePreview"
+              :alt="selectedFile.name"
+              class="h-16 w-16 flex-none rounded-ios object-cover"
+            />
+            <div
+              v-else
+              class="flex h-16 w-16 flex-none items-center justify-center rounded-ios bg-theme-surface-elevated"
+            >
+              <component
+                :is="fileTypeIcon(selectedFile)"
+                class="h-8 w-8 text-theme-secondary"
+                aria-hidden="true"
               />
-              <div v-else class="preview-icon">
-                <DocumentIcon class="w-12 h-12 text-theme-secondary" />
-              </div>
             </div>
-            <div class="file-info">
-              <h4 class="file-name">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium text-label" data-upload-file-name>
                 {{ selectedFile.name }}
-              </h4>
-              <p class="file-size">
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary tabular-nums">
                 {{ formatFileSize(selectedFile.size) }}
               </p>
             </div>
-            <button type="button" class="remove-btn" @click="removeFile">
-              <XMarkIcon class="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h3 class="section-title">Información del Archivo</h3>
-
-          <div class="form-group">
-            <label class="form-label">Categoría *</label>
-            <select
-              v-model="form.category"
-              class="form-input"
-              :class="{ 'border-red-500': errors.category }"
-              required
+            <UiButton
+              type="button"
+              variant="icon"
+              size="sm"
+              aria-label="Quitar archivo seleccionado"
+              data-upload-clear-file
+              @click="clearFile"
             >
-              <option value="">Seleccionar categoría</option>
-              <option value="image">Imagen</option>
-              <option value="document">Documento</option>
-              <option value="xray">Radiografía</option>
-              <option value="other">Otro</option>
-            </select>
-            <p v-if="errors.category" class="form-error">
-              {{ errors.category }}
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Descripción</label>
-            <textarea
-              v-model="form.description"
-              class="form-textarea"
-              rows="3"
-              placeholder="Descripción del archivo..."
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Fecha del Archivo</label>
-            <input v-model="form.file_date" type="date" class="form-input" />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Notas Adicionales</label>
-            <textarea
-              v-model="form.notes"
-              class="form-textarea"
-              rows="2"
-              placeholder="Notas adicionales sobre el archivo..."
-            />
+              <template #icon-left>
+                <XMarkIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+            </UiButton>
           </div>
         </div>
-      </form>
-
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          class="btn btn-primary"
-          :disabled="loading || !selectedFile"
-          @click="handleSubmit"
-        >
-          <CloudArrowUpIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Subiendo...' : 'Subir Archivo' }}
-        </button>
+        <p v-if="fieldError('file')" class="mt-1 text-xs text-error-500" data-upload-error="file">
+          {{ fieldError('file') }}
+        </p>
+        <p v-else class="mt-1 text-xs text-theme-secondary">Imágenes, PDF o Word. Máximo 10 MB.</p>
       </div>
-    </div>
-  </div>
+
+      <div>
+        <label class="block text-sm font-medium text-label mb-1">
+          Categoría
+          <span class="text-theme-secondary">*</span>
+        </label>
+        <UiSelect
+          v-model="form.category"
+          :options="categoryOptions"
+          placeholder="Seleccionar categoría"
+          class="w-full"
+          data-upload-category
+        />
+        <p
+          v-if="fieldError('category')"
+          class="mt-1 text-xs text-error-500"
+          data-upload-error="category"
+        >
+          {{ fieldError('category') }}
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-label mb-1">
+          Descripción
+          <span class="font-normal text-theme-secondary">(opcional)</span>
+        </label>
+        <UiTextarea
+          v-model="form.description"
+          :rows="3"
+          placeholder="Detalle clínico del archivo..."
+          class="w-full"
+          data-upload-description
+        />
+        <p
+          v-if="fieldError('description')"
+          class="mt-1 text-xs text-error-500"
+          data-upload-error="description"
+        >
+          {{ fieldError('description') }}
+        </p>
+      </div>
+
+      <label
+        class="flex items-start gap-3 rounded-ios border border-hairline px-4 py-3"
+        data-upload-private
+      >
+        <input
+          v-model="form.is_private"
+          type="checkbox"
+          class="mt-0.5 h-4 w-4 flex-none rounded border-hairline"
+          style="accent-color: var(--color-accent-500)"
+        />
+        <span class="min-w-0">
+          <span class="block text-sm font-medium text-label">Marcar como privado</span>
+          <span class="block text-xs text-theme-secondary">
+            Solo el personal clínico podrá ver este archivo.
+          </span>
+        </span>
+      </label>
+
+      <div class="flex flex-wrap items-center justify-end gap-3 border-t border-hairline pt-4">
+        <UiButton
+          type="button"
+          variant="secondary"
+          :disabled="uploading"
+          data-upload-cancel
+          @click="emit('close')"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton type="submit" :loading="uploading" data-upload-submit>
+          <template #icon-left>
+            <CloudArrowUpIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          {{ uploading ? 'Subiendo...' : 'Subir adjunto' }}
+        </UiButton>
+      </div>
+    </form>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import {
+  CloudArrowUpIcon,
+  DocumentIcon,
+  DocumentTextIcon,
+  FolderOpenIcon,
+  PaperClipIcon,
+  PhotoIcon,
+  XMarkIcon
+} from '@heroicons/vue/24/outline'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
-import { XMarkIcon, CloudArrowUpIcon, DocumentIcon } from '@heroicons/vue/24/outline'
+import { useToast } from '@/composables/useToast'
+import UiButton from '@/components/ui/Button.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiSelect from '@/components/ui/Select.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 const props = defineProps({
   patient: {
@@ -139,232 +211,168 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'uploaded'])
 
-const { addAttachment, loading } = useMedicalRecords()
+const MAX_FILE_BYTES = 10 * 1024 * 1024
 
-const fileInput = ref(null)
-const selectedFile = ref(null)
-const filePreview = ref(null)
-const isDragOver = ref(false)
+const { uploadAttachment } = useMedicalRecords()
+const toast = useToast()
+
+const categoryOptions = [
+  { value: 'radiografia', label: 'Radiografía' },
+  { value: 'foto_clinica', label: 'Foto clínica' },
+  { value: 'documento', label: 'Documento' },
+  { value: 'otro', label: 'Otro' }
+]
 
 const form = ref({
   category: '',
   description: '',
-  file_date: '',
-  notes: ''
+  is_private: false
 })
 
 const errors = ref({})
+const fileInput = ref(null)
+const selectedFile = ref(null)
+const filePreview = ref('')
+const isDragOver = ref(false)
+const uploading = ref(false)
 
-const isImage = file => {
-  return file.type.startsWith('image/')
+const patientName = computed(() => {
+  const patient = props.patient || {}
+  const full = `${patient.first_name || ''} ${patient.last_name || ''}`.trim()
+
+  return full || patient.full_name || `Paciente #${patient.id}`
+})
+
+const fieldError = key => {
+  const error = errors.value?.[key]
+
+  if (Array.isArray(error)) return error[0] || ''
+  if (typeof error === 'string') return error
+
+  return ''
+}
+
+const fileTypeIcon = file => {
+  if (file.type.startsWith('image/')) return PhotoIcon
+  if (file.type === 'application/pdf') return DocumentTextIcon
+  if (file.type.includes('word') || file.type.includes('document')) return DocumentIcon
+
+  return PaperClipIcon
 }
 
 const formatFileSize = bytes => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+  if (!bytes) return '0 B'
+
+  const units = ['B', 'KB', 'MB', 'GB']
+  let size = bytes
+  let unit = 0
+
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024
+    unit += 1
+  }
+
+  return `${Number(size.toFixed(2))} ${units[unit]}`
 }
 
-const selectFile = () => {
+const openFilePicker = () => {
   fileInput.value?.click()
 }
 
-const handleFileSelect = event => {
-  const file = event.target.files[0]
-  if (file) {
-    setSelectedFile(file)
-  }
-}
-
-const handleDragOver = event => {
-  event.preventDefault()
-  isDragOver.value = true
-}
-
-const handleDragLeave = event => {
-  event.preventDefault()
-  isDragOver.value = false
-}
-
-const handleDrop = event => {
-  event.preventDefault()
-  isDragOver.value = false
-
-  const { files } = event.dataTransfer
-  if (files.length > 0) {
-    setSelectedFile(files[0])
-  }
-}
-
-const setSelectedFile = file => {
-  selectedFile.value = file
-
-  if (isImage(file)) {
-    const reader = new FileReader()
-    reader.onload = e => {
-      filePreview.value = e.target.result
-    }
-    reader.readAsDataURL(file)
-  }
-}
-
-const removeFile = () => {
+const resetFileState = () => {
   selectedFile.value = null
-  filePreview.value = null
+  filePreview.value = ''
+  isDragOver.value = false
+
   if (fileInput.value) {
     fileInput.value.value = ''
   }
 }
 
-const handleSubmit = async () => {
-  try {
-    errors.value = {}
+const setFile = file => {
+  delete errors.value.file
 
-    if (!selectedFile.value) {
-      errors.value.file = 'Debes seleccionar un archivo'
-      return
+  if (file.size > MAX_FILE_BYTES) {
+    errors.value.file = 'El archivo supera el límite de 10 MB. Elige uno más ligero.'
+    resetFileState()
+
+    return
+  }
+
+  selectedFile.value = file
+
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader()
+    reader.onload = event => {
+      filePreview.value = event.target?.result || ''
     }
-
-    if (!form.value.category) {
-      errors.value.category = 'La categoría es obligatoria'
-      return
-    }
-
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-    formData.append('patient_id', props.patient.id)
-    formData.append('category', form.value.category)
-    formData.append('description', form.value.description)
-    formData.append('file_date', form.value.file_date)
-    formData.append('notes', form.value.notes)
-
-    await addAttachment(formData)
-    emit('uploaded')
-    closeModal()
-  } catch (err) {
-    if (err.response?.data?.errors) {
-      errors.value = err.response.data.errors
-    }
+    reader.readAsDataURL(file)
+  } else {
+    filePreview.value = ''
   }
 }
 
-const closeModal = () => {
-  emit('close')
+const onFileInput = event => {
+  const file = event.target.files?.[0]
+
+  if (file) setFile(file)
+}
+
+const onDrop = event => {
+  isDragOver.value = false
+
+  const file = event.dataTransfer?.files?.[0]
+
+  if (file) setFile(file)
+}
+
+const clearFile = () => {
+  resetFileState()
+  delete errors.value.file
+}
+
+const submit = async () => {
+  if (uploading.value) return
+
+  errors.value = {}
+
+  if (!selectedFile.value) {
+    errors.value.file = 'Selecciona el archivo que quieres subir.'
+  } else if (selectedFile.value.size > MAX_FILE_BYTES) {
+    errors.value.file = 'El archivo supera el límite de 10 MB. Elige uno más ligero.'
+  }
+
+  if (!form.value.category) {
+    errors.value.category = 'Selecciona una categoría.'
+  }
+
+  if (Object.keys(errors.value).length > 0) return
+
+  const payload = new FormData()
+  payload.append('file', selectedFile.value)
+  payload.append('patient_id', props.patient.id)
+  payload.append('category', form.value.category)
+  payload.append('description', form.value.description)
+  payload.append('is_private', form.value.is_private ? '1' : '0')
+
+  uploading.value = true
+
+  try {
+    await uploadAttachment(payload)
+    toast.success(`Adjunto subido: ${selectedFile.value.name}`)
+    emit('uploaded')
+  } catch (err) {
+    const apiErrors = err?.response?.data?.errors
+
+    if (apiErrors && typeof apiErrors === 'object') {
+      errors.value = apiErrors
+    } else {
+      const message = err?.response?.data?.message || 'No pudimos subir el archivo.'
+      errors.value.file = message
+      toast.error(message)
+    }
+  } finally {
+    uploading.value = false
+  }
 }
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.modal-close {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-body {
-  @apply p-6;
-}
-
-.upload-area {
-  @apply border-2 border-dashed border-theme rounded-lg p-8 text-center transition-colors;
-}
-
-.upload-area.drag-over {
-  @apply border-primary-500 bg-primary-50;
-}
-
-.upload-placeholder {
-  @apply space-y-2;
-}
-
-.file-preview {
-  @apply flex items-center space-x-4 p-4 bg-theme-surface rounded-lg;
-}
-
-.preview-container {
-  @apply flex-shrink-0;
-}
-
-.preview-image {
-  @apply w-16 h-16 object-cover rounded-lg;
-}
-
-.preview-icon {
-  @apply w-16 h-16 flex items-center justify-center;
-}
-
-.file-info {
-  @apply flex-1 min-w-0;
-}
-
-.file-name {
-  @apply text-sm font-medium text-theme-primary truncate;
-}
-
-.file-size {
-  @apply text-xs text-theme-secondary;
-}
-
-.remove-btn {
-  @apply p-1 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.form-section {
-  @apply mt-6 space-y-4;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary border-b border-theme pb-2;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-theme-primary;
-}
-
-.form-input {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-textarea {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-error {
-  @apply text-sm text-red-600;
-}
-
-.modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-</style>
