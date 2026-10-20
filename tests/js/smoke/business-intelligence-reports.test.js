@@ -44,6 +44,7 @@ const dashboardPayload = {
   totalPatients: 27,
   newPatients: 5,
   totalRevenue: 5320.5,
+  totalRefunds: 200,
   occupancyRate: 73.4,
   usedHours: 120,
   availableHours: 160,
@@ -79,6 +80,7 @@ const revenuePayload = {
       category: 'Limpieza dental',
       appointments_count: 2,
       total_revenue: 1200.5,
+      refunds: 150,
       average_per_appointment: 600.25
     },
     {
@@ -86,6 +88,7 @@ const revenuePayload = {
       category: '2026-10-18',
       appointments_count: 1,
       total_revenue: 700,
+      refunds: 50,
       average_per_appointment: 700
     },
     {
@@ -93,6 +96,7 @@ const revenuePayload = {
       category: 'Pagos sin cita resoluble',
       appointments_count: 0,
       total_revenue: 300,
+      refunds: 0,
       average_per_appointment: 0
     }
   ],
@@ -100,7 +104,8 @@ const revenuePayload = {
     { key: 'type', label: 'Tipo' },
     { key: 'category', label: 'Categoría' },
     { key: 'appointments_count', label: 'Número de Citas' },
-    { key: 'total_revenue', label: 'Ingresos Cobrados (S/)' },
+    { key: 'total_revenue', label: 'Ingresos netos (S/)' },
+    { key: 'refunds', label: 'Devoluciones (S/)' },
     { key: 'average_per_appointment', label: 'Promedio por Cita (S/)' }
   ],
   meta: {
@@ -108,6 +113,7 @@ const revenuePayload = {
     summary: {
       appointments_count: 3,
       total_revenue: 1900.5,
+      refunds: 200,
       average_per_appointment: 633.5,
       period: '20/09/2026 - 19/10/2026'
     }
@@ -282,7 +288,9 @@ describe('business intelligence reports and states (T7)', () => {
     expect(lastReportCall()[0]).toBe('/api/reports/revenue')
     expect(wrapper.find('[data-revenue-summary="appointments"]').text()).toBe('3')
     expect(wrapper.find('[data-revenue-summary="revenue"]').text()).toMatch(/S\/\s1,900\.50/)
+    expect(wrapper.find('[data-revenue-summary="refunds"]').text()).toMatch(/S\/\s200\.00/)
     expect(wrapper.find('[data-revenue-summary="average"]').text()).toMatch(/S\/\s633\.50/)
+    expect(wrapper.find('[data-report-table]').text()).toContain('Devoluciones (S/)')
 
     // The four cuts describe the same money; showing them together invites
     // adding the column and quadrupling the total.
