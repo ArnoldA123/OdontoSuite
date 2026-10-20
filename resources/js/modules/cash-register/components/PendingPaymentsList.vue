@@ -1,320 +1,232 @@
 <template>
-  <div class="pending-payments-list bg-canvas">
-    <div class="mb-4">
-      <h3 class="text-lg font-medium text-theme-primary mb-2">Pagos Pendientes</h3>
-      <p class="text-sm text-theme-secondary">Pacientes con citas completadas que requieren pago</p>
-    </div>
+  <div class="bg-canvas" data-pending-payments-list>
+    <UiFilterBar :columns="4" title="Filtros de cobros">
+      <UiInput
+        v-model="filters.search"
+        type="search"
+        label="Buscar paciente"
+        placeholder="Nombre o documento"
+        data-filter="search"
+      />
+      <UiInput v-model="filters.date_from" type="date" label="Desde" data-filter="date-from" />
+      <UiInput v-model="filters.date_to" type="date" label="Hasta" data-filter="date-to" />
+      <div class="flex items-end">
+        <UiButton variant="secondary" class="w-full" data-filter-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
-    <!-- Filtros -->
-    <div class="mb-6 bg-theme-surface-elevated rounded-lg border border-hairline p-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Buscar Paciente</label>
-          <input
-            v-model="filters.search"
-            type="text"
-            placeholder="Nombre o documento..."
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary placeholder-theme-secondary focus:outline-none sm:text-sm"
-          />
+    <div
+      v-if="error"
+      role="alert"
+      class="mt-4 rounded-ios border border-hairline bg-theme-surface-elevated p-6"
+      data-pending-payments-error
+    >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <ExclamationTriangleIcon class="h-5 w-5 shrink-0 text-systemRed-600" aria-hidden="true" />
+        <div class="flex-1">
+          <p class="text-sm font-medium text-label">No se pudieron cargar los cobros pendientes</p>
+          <p class="mt-1 text-sm text-theme-secondary" data-pending-payments-error-message>
+            {{ error }}
+          </p>
         </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
-          <input
-            v-model="filters.date_from"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
-          <input
-            v-model="filters.date_to"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
-        </div>
-
-        <div class="flex items-end">
-          <Button variant="secondary" class="w-full" @click="clearFilters">Limpiar</Button>
-        </div>
+        <UiButton
+          variant="secondary"
+          size="sm"
+          data-pending-payments-retry
+          @click="loadPendingPayments"
+        >
+          <template #icon-left>
+            <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Reintentar
+        </UiButton>
       </div>
     </div>
 
-    <!-- Lista de Pagos Pendientes -->
-    <div class="bg-theme-surface-elevated rounded-lg border border-hairline overflow-hidden">
-      <div v-if="loading" class="p-8 text-center">
-        <UiLoadingSpinner size="md" variant="primary" text="Cargando pagos pendientes..." />
-      </div>
-
-      <div v-else-if="filteredPayments.length === 0" class="p-8 text-center">
-        <BanknotesIcon class="mx-auto h-12 w-12 text-theme-secondary" />
-        <h3 class="mt-2 text-sm font-medium text-theme-primary">No hay pagos pendientes</h3>
-        <p class="mt-1 text-sm text-theme-secondary">
-          Todos los pagos han sido registrados o no hay citas completadas.
-        </p>
-      </div>
-
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Paciente
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Cita
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Tratamiento
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Monto
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr
-              v-for="payment in paginatedPayments"
-              :key="payment.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-10 w-10">
-                    <div
-                      class="h-10 w-10 rounded-full bg-systemBlue-100 flex items-center justify-center"
-                    >
-                      <span class="text-sm font-medium text-systemBlue-700">
-                        {{ getInitials(payment.patient.name) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-theme-primary">
-                      {{ payment.patient.name }}
-                    </div>
-                    <div class="text-sm text-theme-secondary">
-                      {{ payment.patient.document_number }}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-theme-primary">
-                  {{ formatDate(payment.appointment.date) }}
-                </div>
-                <div class="text-sm text-theme-secondary">
-                  {{ payment.appointment.appointment_type?.name }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-theme-primary">
-                  {{ payment.treatment_plan?.name || 'Consulta' }}
-                </div>
-                <div class="text-sm text-theme-secondary">
-                  {{ payment.concept }}
-                </div>
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap tabular-nums"
-                :aria-label="`Monto pendiente ${formatCurrency(payment.amount)} soles`"
-              >
-                <div class="text-sm font-medium text-theme-primary">
-                  {{ formatCurrency(payment.amount) }}
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge variant="warning" label="Pendiente" />
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div class="flex justify-end space-x-2">
-                  <Button variant="primary" size="sm" @click="handlePayment(payment)">
-                    <BanknotesIcon class="w-4 h-4 mr-1" />
-                    Cobrar
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Paginación -->
-      <div
-        v-if="totalPages > 1"
-        class="bg-theme-surface-elevated px-4 py-3 border-t border-hairline sm:px-6"
+    <div v-else class="mt-4">
+      <UiDataTable
+        :data="pageRows"
+        :columns="columns"
+        :loading="loading"
+        :pagination="false"
+        :searchable="false"
+        :show-header="false"
+        row-key="id"
+        empty-title="No hay cobros pendientes"
+        empty-description="Las citas completadas ya tienen su cobro registrado."
+        data-pending-payments-table
       >
-        <div class="flex items-center justify-between">
-          <div class="flex-1 flex justify-between sm:hidden">
-            <Button
-              variant="secondary"
-              size="sm"
-              :disabled="currentPage === 1"
-              @click="currentPage = currentPage - 1"
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              :disabled="currentPage === totalPages"
-              @click="currentPage = currentPage + 1"
-            >
-              Siguiente
-            </Button>
+        <template #cell-patient="{ row }">
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-label">{{ row.patient?.name }}</p>
+            <p class="truncate text-xs text-theme-secondary">{{ row.patient?.document_number }}</p>
           </div>
-          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p class="text-sm text-theme-primary">
-                Mostrando
-                <span class="tabular-nums">{{ (currentPage - 1) * itemsPerPage + 1 }}</span>
-                a
-                <span class="tabular-nums">
-                  {{ Math.min(currentPage * itemsPerPage, filteredPayments.length) }}
-                </span>
-                de
-                <span class="tabular-nums">{{ filteredPayments.length }}</span>
-                resultados
-              </p>
-            </div>
-            <div>
-              <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  :disabled="currentPage === 1"
-                  class="rounded-l-md"
-                  @click="currentPage = currentPage - 1"
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  :disabled="currentPage === totalPages"
-                  class="rounded-r-md"
-                  @click="currentPage = currentPage + 1"
-                >
-                  Siguiente
-                </Button>
-              </nav>
-            </div>
-          </div>
-        </div>
+        </template>
+
+        <template #cell-appointment="{ row }">
+          <p class="text-sm text-theme-primary">{{ formatDate(row.appointment?.date) }}</p>
+          <p class="text-xs text-theme-secondary">
+            {{ row.appointment?.appointment_type?.name }}
+          </p>
+          <p
+            v-if="row.appointment?.professional?.name"
+            class="text-xs text-theme-secondary"
+            data-pending-professional
+          >
+            {{ row.appointment.professional.name }}
+          </p>
+        </template>
+
+        <template #cell-concept="{ row }">
+          <p class="text-sm text-theme-primary">{{ row.concept }}</p>
+        </template>
+
+        <template #cell-amount="{ row }">
+          <span class="text-sm font-medium tabular-nums text-label" data-pending-amount>
+            {{ formatCurrency(row.amount) }}
+          </span>
+        </template>
+
+        <template #actions="{ row }">
+          <UiButton
+            variant="primary"
+            size="sm"
+            :data-pay-pending="row.id"
+            @click="handlePayment(row)"
+          >
+            <template #icon-left>
+              <BanknotesIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Cobrar
+          </UiButton>
+        </template>
+      </UiDataTable>
+
+      <div v-if="totalPages > 1" class="mt-4" data-pending-payments-pagination>
+        <UiPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total="total"
+          :per-page="perPage"
+          @page-change="handlePageChange"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { BanknotesIcon } from '@heroicons/vue/24/outline'
-import Button from '@/components/ui/Button.vue'
-import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ArrowPathIcon, BanknotesIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import UiButton from '@/components/ui/Button.vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiFilterBar from '@/components/ui/FilterBar.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiPagination from '@/components/ui/Pagination.vue'
 import { useApi } from '@/composables/useApi'
 import { formatCurrency } from '@/composables/useFormatters'
 
 const emit = defineEmits(['payment', 'paymentsLoaded'])
 
-// Composables
 const { get } = useApi()
 
-// Estado
-const loading = ref(false)
-const payments = ref([])
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
+const columns = [
+  { key: 'patient', label: 'Paciente' },
+  { key: 'appointment', label: 'Cita' },
+  { key: 'concept', label: 'Concepto' },
+  { key: 'amount', label: 'Saldo' }
+]
 
-// Filtros
+const ADMIN_PROFILE_MESSAGE =
+  'Esta sección requiere un perfil administrativo para consultar los cobros pendientes.'
+
+const payments = ref([])
+const meta = ref(null)
+const loading = ref(false)
+const error = ref('')
+const currentPage = ref(1)
+const perPage = ref(10)
+
 const filters = ref({
   search: '',
   date_from: '',
   date_to: ''
 })
 
-// Computed
-const filteredPayments = computed(() => {
-  let filtered = payments.value
+let filterTimer = null
 
-  if (filters.value.search) {
-    const search = filters.value.search.toLowerCase()
-    filtered = filtered.filter(
-      payment =>
-        String(payment.patient?.name ?? '')
-          .toLowerCase()
-          .includes(search) ||
-        String(payment.patient?.document_number ?? '')
-          .toLowerCase()
-          .includes(search)
-    )
+const serverPaginated = computed(() => Number(meta.value?.last_page ?? 0) > 0)
+
+const total = computed(() => Number(meta.value?.total ?? payments.value.length))
+
+const totalPages = computed(() => {
+  if (serverPaginated.value) {
+    return Number(meta.value.last_page)
   }
 
-  if (filters.value.date_from) {
-    filtered = filtered.filter(
-      payment => new Date(payment.appointment.date) >= new Date(filters.value.date_from)
-    )
-  }
-
-  if (filters.value.date_to) {
-    filtered = filtered.filter(
-      payment => new Date(payment.appointment.date) <= new Date(filters.value.date_to)
-    )
-  }
-
-  return filtered
+  return Math.max(1, Math.ceil(payments.value.length / perPage.value))
 })
 
-const totalPages = computed(() => Math.ceil(filteredPayments.value.length / itemsPerPage.value))
+const pageRows = computed(() => {
+  if (serverPaginated.value) {
+    return payments.value
+  }
 
-const paginatedPayments = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage.value
-  const end = start + itemsPerPage.value
-  return filteredPayments.value.slice(start, end)
+  const start = (currentPage.value - 1) * perPage.value
+  return payments.value.slice(start, start + perPage.value)
 })
 
-// Métodos
+const resolveErrorMessage = err => {
+  const status = err?.response?.status
+  if (status === 401 || status === 403) {
+    return ADMIN_PROFILE_MESSAGE
+  }
+
+  return (
+    err?.response?.data?.message ||
+    err?.response?.data?.meta?.message ||
+    'No se pudieron cargar los cobros pendientes. Intenta nuevamente.'
+  )
+}
+
 const loadPendingPayments = async () => {
   loading.value = true
+  error.value = ''
+
   try {
-    // Usar endpoint original autenticado
-    const response = await get('/api/cash-register/pending-payments', { params: filters.value })
-    payments.value = response.data || []
-    // Emitir los pagos cargados
+    const response = await get('/api/cash-register/pending-payments', {
+      params: {
+        search: filters.value.search || undefined,
+        date_from: filters.value.date_from || undefined,
+        date_to: filters.value.date_to || undefined,
+        page: currentPage.value,
+        per_page: perPage.value
+      }
+    })
+
+    payments.value = response?.data || []
+    meta.value = response?.meta || null
+
+    if (serverPaginated.value) {
+      currentPage.value = Number(meta.value.current_page || currentPage.value)
+    }
+
     emit('paymentsLoaded', payments.value)
-  } catch (error) {
-    // En caso de error, mostrar lista vacía
+  } catch (err) {
     payments.value = []
+    meta.value = null
+    error.value = resolveErrorMessage(err)
     emit('paymentsLoaded', [])
   } finally {
     loading.value = false
   }
+}
+
+const handlePageChange = page => {
+  currentPage.value = page
+  loadPendingPayments()
 }
 
 const handlePayment = payment => {
@@ -327,39 +239,43 @@ const clearFilters = () => {
     date_from: '',
     date_to: ''
   }
-  currentPage.value = 1
 }
 
-const getInitials = name => {
-  if (!name) return '??'
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-}
+const formatDate = value => {
+  if (!value) return '—'
 
-// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
 
-const formatDate = date => {
-  return new Date(date).toLocaleDateString('es-PE', {
+  return date.toLocaleDateString('es-PE', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   })
 }
 
-// Watchers
 watch(
   filters,
   () => {
     currentPage.value = 1
+
+    if (filterTimer) {
+      clearTimeout(filterTimer)
+    }
+
+    filterTimer = setTimeout(() => {
+      filterTimer = null
+      loadPendingPayments()
+    }, 300)
   },
   { deep: true }
 )
 
-// Lifecycle
-onMounted(() => {
-  loadPendingPayments()
+onMounted(loadPendingPayments)
+
+onBeforeUnmount(() => {
+  if (filterTimer) {
+    clearTimeout(filterTimer)
+  }
 })
 </script>
