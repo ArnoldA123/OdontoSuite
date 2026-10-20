@@ -15,7 +15,11 @@ class PaymentMethodFactory extends Factory
     {
         return [
             'name' => $this->faker->words(2, true),
-            'code' => strtoupper($this->faker->bothify('PM-##')),
+            // `PM-##` only offered 90 combinations and two fixture rows in one
+            // test already collided on the unique `code` index (CI flake). A
+            // letters+digits tail keeps the shape readable while making a
+            // collision negligible for the few rows the suite creates.
+            'code' => 'PM-'.strtoupper($this->faker->bothify('???###')),
             'description' => $this->faker->sentence(),
             'is_active' => true,
             'is_system' => false,
