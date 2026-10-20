@@ -1,93 +1,106 @@
 <template>
-  <div class="medical-record-card">
-    <div class="card-header">
-      <div class="flex justify-between items-start">
-        <div>
-          <h3 class="record-title">
-            {{ record.record_number }}
-          </h3>
-          <p class="record-date">
-            {{ formatDate(record.first_visit_date) }}
+  <UiCard
+    variant="glass"
+    padding="none"
+    data-medical-record-card
+    :data-record-id="record.id"
+    class="overflow-hidden"
+    style="
+      border: 1px solid var(--color-hairline);
+      border-radius: var(--radius-panel);
+      box-shadow: var(--elevation-2);
+    "
+  >
+    <div class="flex flex-col gap-4 p-5 md:flex-row md:items-start md:justify-between">
+      <div class="min-w-0 space-y-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="text-base font-semibold text-label tabular-nums" data-record-number>
+            {{ recordNumberLabel }}
           </p>
-        </div>
-        <div class="record-status">
-          <span :class="statusClasses">
+          <StatusBadge :variant="statusVariant" size="sm" show-dot data-record-status>
             {{ statusLabel }}
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-body">
-      <div class="record-summary">
-        <div class="summary-item">
-          <span class="summary-label">Motivo de consulta:</span>
-          <span class="summary-value">{{ record.chief_complaint || 'No especificado' }}</span>
+          </StatusBadge>
         </div>
 
-        <div v-if="record.diagnosis" class="summary-item">
-          <span class="summary-label">Diagnóstico:</span>
-          <span class="summary-value">{{ record.diagnosis }}</span>
-        </div>
+        <p class="text-xs text-theme-secondary">
+          Primera visita
+          <span class="tabular-nums" data-first-visit>{{ firstVisitLabel }}</span>
+          <template v-if="createdByLabel">
+            <span aria-hidden="true">·</span>
+            <span data-created-by>Registrada por {{ createdByLabel }}</span>
+          </template>
+        </p>
 
-        <div v-if="record.treatment_plan" class="summary-item">
-          <span class="summary-label">Plan de tratamiento:</span>
-          <span class="summary-value">{{ record.treatment_plan }}</span>
-        </div>
-      </div>
+        <p class="text-sm text-theme-primary" data-chief-complaint>
+          <span class="text-theme-secondary">Motivo de consulta:</span>
+          {{ chiefComplaintLabel }}
+        </p>
 
-      <div class="record-stats">
-        <div class="stat-item">
-          <span class="stat-label">Evoluciones:</span>
-          <span class="stat-value">{{ record.evolutions?.length || 0 }}</span>
-        </div>
-
-        <div class="stat-item">
-          <span class="stat-label">Adjuntos:</span>
-          <span class="stat-value">{{ record.attachments?.length || 0 }}</span>
-        </div>
-
-        <div class="stat-item">
-          <span class="stat-label">Creado:</span>
-          <span class="stat-value">{{ formatDate(record.created_at) }}</span>
-        </div>
-      </div>
-
-      <div v-if="record.notes" class="record-notes">
-        <p class="text-sm text-theme-secondary line-clamp-2">
-          {{ record.notes }}
+        <p v-if="diagnosisLabel" class="text-sm text-theme-primary" data-diagnosis>
+          <span class="text-theme-secondary">Diagnóstico:</span>
+          {{ diagnosisLabel }}
         </p>
       </div>
-    </div>
 
-    <div class="card-footer">
-      <div class="flex justify-between items-center">
-        <div class="flex space-x-2">
-          <button
-            class="btn btn-sm btn-outline"
-            title="Ver detalles"
-            @click="$emit('view', record)"
-          >
-            <EyeIcon class="w-4 h-4" />
-          </button>
-          <button class="btn btn-sm btn-outline" title="Editar" @click="$emit('edit', record)">
-            <PencilIcon class="w-4 h-4" />
-          </button>
+      <div class="flex flex-col gap-3 md:flex-shrink-0 md:items-end">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-theme-secondary">
+          <span class="tabular-nums" data-evolutions-count>{{ evolutionsCount }} evoluciones</span>
+          <span class="tabular-nums" data-attachments-count>{{ attachmentsCount }} adjuntos</span>
         </div>
 
-        <div class="flex space-x-2">
-          <button class="btn btn-sm btn-danger" title="Eliminar" @click="confirmDelete">
-            <TrashIcon class="w-4 h-4" />
-          </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <UiButton
+            v-if="canView"
+            variant="ghost"
+            size="sm"
+            data-record-action="view"
+            @click="emit('view', record)"
+          >
+            <template #icon-left>
+              <EyeIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Ver
+          </UiButton>
+          <UiButton
+            v-if="canEdit"
+            variant="ghost"
+            size="sm"
+            data-record-action="edit"
+            @click="emit('edit', record)"
+          >
+            <template #icon-left>
+              <PencilIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Editar
+          </UiButton>
+          <UiButton
+            v-if="canDelete"
+            variant="ghost"
+            size="sm"
+            class="text-systemRed-700 hover:opacity-80"
+            data-record-action="delete"
+            @click="requestDelete"
+          >
+            <template #icon-left>
+              <TrashIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Eliminar
+          </UiButton>
         </div>
       </div>
     </div>
-  </div>
+  </UiCard>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import UiCard from '@/components/ui/Card.vue'
+import UiButton from '@/components/ui/Button.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
+import { usePermissions } from '@/composables/usePermissions'
+import { useConfirm } from '@/composables/useConfirm'
+import { formatDateOnly } from '@/utils/formatters'
 
 const props = defineProps({
   record: {
@@ -98,121 +111,40 @@ const props = defineProps({
 
 const emit = defineEmits(['view', 'edit', 'delete'])
 
-// Computed
-const statusClasses = computed(() => {
-  const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'
+const { can } = usePermissions()
+const { confirm: confirmDialog } = useConfirm()
 
-  if (props.record.is_active) {
-    return `${baseClasses} bg-success-100 text-success-700`
-  } else {
-    return `${baseClasses} bg-theme-surface text-theme-secondary`
-  }
-})
+// `can` is an object of computed refs (decision D7), never a function.
+const canView = computed(() => can.viewMedicalRecord?.value ?? false)
+const canEdit = computed(() => can.editMedicalRecord?.value ?? false)
+const canDelete = computed(() => can.deleteMedicalRecord?.value ?? false)
 
-const statusLabel = computed(() => {
-  return props.record.is_active ? 'Activa' : 'Inactiva'
-})
+const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
+const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')
+const createdByLabel = computed(() => props.record.createdBy?.name || '')
+const chiefComplaintLabel = computed(
+  () => props.record.chief_complaint || 'Sin motivo de consulta registrado'
+)
+const diagnosisLabel = computed(() => props.record.diagnosis || '')
 
-// Métodos
-const formatDate = date => {
-  return new Date(date).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
+// The index ships `evolutions_count` / `attachments_count`; the relations are
+// not eager-loaded there, so their arrays can never be counted client-side.
+const evolutionsCount = computed(() => Number(props.record.evolutions_count ?? 0))
+const attachmentsCount = computed(() => Number(props.record.attachments_count ?? 0))
 
-const confirmDelete = async () => {
-  const ok = await confirm({
+const statusLabel = computed(() => (props.record.is_active ? 'Activa' : 'Inactiva'))
+const statusVariant = computed(() => (props.record.is_active ? 'success' : 'neutral'))
+
+const requestDelete = async () => {
+  const confirmed = await confirmDialog({
     title: 'Eliminar historia clínica',
-    message: '¿Estás seguro de que quieres eliminar esta historia clínica?',
+    message: `La historia ${recordNumberLabel.value} quedará inactiva y saldrá del listado. ¿Deseas continuar?`,
     confirmText: 'Eliminar',
     variant: 'danger'
   })
-  if (ok) {
+
+  if (confirmed) {
     emit('delete', props.record.id)
   }
 }
 </script>
-
-<style scoped>
-.medical-record-card {
-  @apply bg-theme-surface-elevated rounded-lg border border-theme shadow-sm hover-lift transition-shadow;
-}
-
-.card-header {
-  @apply p-4 border-b border-theme;
-}
-
-.record-title {
-  @apply text-lg font-semibold text-theme-primary mb-1;
-}
-
-.record-date {
-  @apply text-sm text-theme-secondary;
-}
-
-.record-status {
-  @apply flex-shrink-0;
-}
-
-.card-body {
-  @apply p-4;
-}
-
-.record-summary {
-  @apply space-y-2 mb-4;
-}
-
-.summary-item {
-  @apply flex flex-col space-y-1;
-}
-
-.summary-label {
-  @apply text-xs font-medium text-theme-secondary uppercase tracking-wider;
-}
-
-.summary-value {
-  @apply text-sm text-theme-primary;
-}
-
-.record-stats {
-  @apply grid grid-cols-3 gap-4 mb-4;
-}
-
-.stat-item {
-  @apply text-center;
-}
-
-.stat-label {
-  @apply block text-xs text-theme-secondary;
-}
-
-.stat-value {
-  @apply block text-sm font-semibold text-theme-primary;
-}
-
-.record-notes {
-  @apply p-3 bg-theme-surface rounded-lg;
-}
-
-.card-footer {
-  @apply p-4 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md transition-colors;
-}
-
-.btn-sm {
-  @apply px-2 py-1 text-xs;
-}
-
-.btn-outline {
-  @apply border-theme text-theme-primary bg-theme-surface-elevated hover:bg-theme-surface;
-}
-
-.btn-danger {
-  @apply bg-error-100 text-red-700 hover:bg-red-200;
-}
-</style>
