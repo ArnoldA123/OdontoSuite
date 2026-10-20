@@ -263,7 +263,7 @@
           caption="Cierre y ventas por período"
         ></CashSectionHeader>
 
-        <CashReports :summary="summary" />
+        <CashReports />
       </div>
 
       <OpenCashModal v-model="showOpenModal" @success="handleOpenSuccess" />
@@ -453,14 +453,16 @@ const loadTransactions = async (filters = {}) => {
   }
 }
 
-const loadMovements = async () => {
+const loadMovements = async (filters = {}) => {
   if (!hasActiveSession.value) {
     return
   }
 
   movementsLoading.value = true
   try {
-    const response = await get(`/api/cash-register/sessions/${currentSession.value.id}/movements`)
+    const response = await get(`/api/cash-register/sessions/${currentSession.value.id}/movements`, {
+      params: filters
+    })
     movements.value = response.data || []
     movementPagination.value = response.meta || null
   } catch (error) {
@@ -470,7 +472,10 @@ const loadMovements = async () => {
   }
 }
 
-const loadSessions = async (filters = {}) => {
+const sessionFilters = ref({})
+
+const loadSessions = async (filters = sessionFilters.value) => {
+  sessionFilters.value = filters
   sessionsLoading.value = true
   try {
     const response = await getSessions(filters)

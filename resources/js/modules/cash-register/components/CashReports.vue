@@ -1,447 +1,549 @@
 <template>
-  <div class="cash-reports bg-canvas">
-    <!-- Filtros de Reporte -->
-    <div class="mb-6">
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <h3 class="text-lg font-semibold text-theme-primary mb-4">Filtros de Reporte</h3>
+  <div class="cash-reports space-y-6 bg-canvas">
+    <UiFilterBar title="Período del reporte" :columns="4">
+      <UiInput
+        id="cash-reports-start"
+        v-model="draft.start"
+        type="date"
+        label="Desde"
+        data-report-start
+      />
+      <UiInput
+        id="cash-reports-end"
+        v-model="draft.end"
+        type="date"
+        label="Hasta"
+        data-report-end
+      />
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
-            <input
-              v-model="filters.date_from"
-              type="date"
-              class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
-            <input
-              v-model="filters.date_to"
-              type="date"
-              class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-theme-primary mb-1">Tipo de Reporte</label>
-            <select
-              v-model="filters.report_type"
-              class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-            >
-              <option value="daily">Reporte Diario</option>
-              <option value="period">Reporte por Período</option>
-              <option value="summary">Resumen Ejecutivo</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex justify-end mt-4">
-          <Button variant="primary" :loading="loading" @click="generateReport">
-            <ChartBarIcon class="w-4 h-4 mr-2" />
-            Generar Reporte
-          </Button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resumen de Caja -->
-    <div v-if="summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-systemBlue-100 rounded-lg flex items-center justify-center">
-              <BanknotesIcon class="w-5 h-5 text-systemBlue-600" />
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-theme-secondary">Sesiones</p>
-            <p class="text-2xl font-bold text-theme-primary tabular-nums">
-              {{ summary.sessions_count || 0 }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-systemGreen-100 rounded-lg flex items-center justify-center">
-              <ArrowUpIcon class="w-5 h-5 text-systemGreen-600" />
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-theme-secondary">Total Ingresos</p>
-            <p
-              class="text-2xl font-bold text-systemGreen-600 tabular-nums"
-              :aria-label="`${formatCurrency(summary.total_income)} soles`"
-            >
-              {{ formatCurrency(summary.total_income) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-systemRed-100 rounded-lg flex items-center justify-center">
-              <ArrowDownIcon class="w-5 h-5 text-systemRed-600" />
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-theme-secondary">Total Egresos</p>
-            <p
-              class="text-2xl font-bold text-systemRed-600 tabular-nums"
-              :aria-label="`${formatCurrency(summary.total_expenses)} soles`"
-            >
-              {{ formatCurrency(summary.total_expenses) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-systemBlue-100 rounded-lg flex items-center justify-center">
-              <ExclamationTriangleIcon class="w-5 h-5 text-systemBlue-600" />
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-theme-secondary">Diferencias</p>
-            <p
-              class="text-2xl font-bold text-systemBlue-600 tabular-nums"
-              :aria-label="`${formatCurrency(summary.total_difference)} soles`"
-            >
-              {{ formatCurrency(summary.total_difference) }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráficos -->
-    <div v-if="summary" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <!-- Gráfico por Método de Pago -->
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <h3 class="text-lg font-semibold text-theme-primary mb-4">Ingresos por Método de Pago</h3>
-        <div class="space-y-3">
-          <div
-            v-for="method in summary.by_payment_method"
-            :key="method.payment_method"
-            class="flex items-center justify-between"
+      <div class="flex flex-col justify-end">
+        <span class="mb-2 text-sm font-medium text-theme-primary">Rangos rápidos</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <UiButton
+            v-for="preset in presets"
+            :key="preset.days"
+            variant="secondary"
+            size="sm"
+            :data-preset="preset.days"
+            @click="applyPreset(preset.days)"
           >
-            <div class="flex items-center">
-              <div class="w-3 h-3 rounded-full bg-primary-500 mr-3" />
-              <span class="text-sm font-medium text-theme-primary">
-                {{ method.payment_method }}
-              </span>
-            </div>
-            <div class="text-right">
-              <div
-                class="text-sm font-semibold text-theme-primary tabular-nums"
-                :aria-label="`${formatCurrency(method.total)} soles`"
-              >
-                {{ formatCurrency(method.total) }}
-              </div>
-              <div class="text-xs text-theme-secondary">{{ method.count }} transacciones</div>
-            </div>
-          </div>
+            {{ preset.label }}
+          </UiButton>
         </div>
       </div>
 
-      <!-- Gráfico por Hora -->
-      <div class="bg-theme-surface-elevated p-6 rounded-lg shadow-sm border border-hairline">
-        <h3 class="text-lg font-semibold text-theme-primary mb-4">Ingresos por Hora</h3>
-        <div class="space-y-2">
-          <div
-            v-for="hour in summary.by_hour"
-            :key="hour.hour"
-            class="flex items-center justify-between"
-          >
-            <span class="text-sm text-theme-secondary">{{ hour.hour }}:00</span>
-            <div class="flex items-center">
-              <div class="w-32 bg-theme-surface rounded-full mr-3">
-                <div
-                  class="bg-primary-500 h-2 rounded-full"
-                  :style="{ width: getPercentage(hour.total, summary.by_hour) + '%' }"
-                />
-              </div>
-              <span
-                class="text-sm font-medium text-theme-primary tabular-nums"
-                :aria-label="`${formatCurrency(hour.total)} soles`"
-              >
-                {{ formatCurrency(hour.total) }}
-              </span>
-            </div>
-          </div>
-        </div>
+      <div class="flex items-end">
+        <UiButton
+          variant="primary"
+          data-report-apply
+          :loading="loading"
+          full-width
+          @click="applyFilters"
+        >
+          <template #icon-left>
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Aplicar
+        </UiButton>
       </div>
-    </div>
+    </UiFilterBar>
 
-    <!-- Tabla de Sesiones -->
     <div
-      v-if="summary && summary.sessions"
-      class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden"
+      v-if="error"
+      role="alert"
+      data-report-error
+      class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-1);
+      "
     >
-      <div class="px-6 py-4 border-b border-hairline">
-        <h3 class="text-lg font-semibold text-theme-primary">Sesiones del Período</h3>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Sesión
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Usuario
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Apertura
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Cierre
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Diferencia
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr
-              v-for="session in summary.sessions"
-              :key="session.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-theme-primary">
-                #{{ session.id }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ session.user?.name }}
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary tabular-nums"
-                :aria-label="`${formatCurrency(session.opening_amount)} soles`"
-              >
-                {{ formatCurrency(session.opening_amount) }}
-              </td>
-              <td
-                class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary tabular-nums"
-                :aria-label="`${formatCurrency(session.closing_amount)} soles`"
-              >
-                {{ formatCurrency(session.closing_amount) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span
-                  class="text-sm font-medium tabular-nums"
-                  :class="
-                    session.difference_amount === 0
-                      ? 'text-systemGreen-600'
-                      : session.difference_amount > 0
-                        ? 'text-systemBlue-600'
-                        : 'text-systemRed-600'
-                  "
-                  :aria-label="`${session.difference_amount === 0 ? 'Conforme' : session.difference_amount > 0 ? '+' : ''}${formatCurrency(session.difference_amount)} soles`"
-                >
-                  {{
-                    session.difference_amount === 0
-                      ? 'Conforme'
-                      : session.difference_amount > 0
-                        ? '+'
-                        : ''
-                  }}{{ formatCurrency(session.difference_amount) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="session.status === 'open' ? 'success' : 'neutral'"
-                  :label="session.status === 'open' ? 'Abierta' : 'Cerrada'"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <p class="text-sm text-systemRed-600">{{ error }}</p>
+      <UiButton variant="secondary" size="sm" data-report-retry @click="loadReport">
+        Reintentar
+      </UiButton>
     </div>
 
-    <!-- Acciones de Exportación -->
-    <div class="mt-6 flex justify-end space-x-3">
-      <Button variant="secondary" :loading="exporting" @click="exportToExcel">
-        <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-        Exportar Excel
-      </Button>
+    <section
+      aria-label="Resumen del período"
+      class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+    >
+      <UiCard
+        variant="glass"
+        padding="sm"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Sesiones</p>
+        <p
+          class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+          data-report-kpi="sessions"
+        >
+          {{ kpiSessions }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Turnos del período</p>
+      </UiCard>
 
-      <Button variant="secondary" :loading="exporting" @click="exportToPDF">
-        <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-        Exportar PDF
-      </Button>
+      <UiCard
+        variant="glass"
+        padding="sm"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Apertura</p>
+        <p
+          class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+          data-report-kpi="opening"
+        >
+          {{ kpiOpening }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Monto inicial acumulado</p>
+      </UiCard>
 
-      <Button variant="primary" :loading="exporting" @click="printReport">
-        <PrinterIcon class="w-4 h-4 mr-2" />
-        Imprimir
-      </Button>
+      <UiCard
+        variant="glass"
+        padding="sm"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Cierre</p>
+        <p
+          class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+          data-report-kpi="closing"
+        >
+          {{ kpiClosing }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Monto contado al cierre</p>
+      </UiCard>
+
+      <UiCard
+        variant="glass"
+        padding="sm"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Diferencia</p>
+        <p
+          class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+          data-report-kpi="difference"
+        >
+          {{ kpiDifference }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Arqueo acumulado</p>
+      </UiCard>
+    </section>
+
+    <UiCard
+      variant="glass"
+      padding="sm"
+      data-sales-line
+      :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-xs font-medium uppercase text-theme-secondary">Ventas del período</p>
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-2">
+          <div class="flex items-baseline gap-2">
+            <span class="text-xs text-theme-secondary">Cobros</span>
+            <span class="text-sm font-semibold text-label tabular-nums" data-report-kpi="income">
+              {{ kpiIncome }}
+            </span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-xs text-theme-secondary">Egresos</span>
+            <span class="text-sm font-semibold text-label tabular-nums" data-report-kpi="expenses">
+              {{ kpiExpenses }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </UiCard>
+
+    <template v-if="!error">
+      <section aria-label="Participación por método de pago" class="space-y-3">
+        <h3 class="text-base font-semibold text-label">Participación por método de pago</h3>
+        <UiDataTable
+          data-report-table="payment-methods"
+          :data="paymentMethods"
+          :columns="paymentMethodColumns"
+          :loading="loading"
+          :pagination="false"
+          :searchable="false"
+          :show-header="false"
+          row-key="payment_method"
+          empty-title="Sin operaciones en el período"
+          empty-description="No se registraron cobros dentro del período aplicado."
+        >
+          <template #cell-count="{ value }">
+            <span class="tabular-nums">{{ value ?? 0 }}</span>
+          </template>
+          <template #cell-total="{ value }">
+            <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+              {{ formatCurrency(value) }}
+            </span>
+          </template>
+          <template #cell-average="{ value }">
+            <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+              {{ formatCurrency(value) }}
+            </span>
+          </template>
+          <template #cell-percentage="{ value }">
+            <span class="tabular-nums">{{ formatPercentage(value) }}</span>
+          </template>
+        </UiDataTable>
+      </section>
+
+      <section aria-label="Resumen diario" class="space-y-3">
+        <h3 class="text-base font-semibold text-label">Resumen diario</h3>
+        <UiDataTable
+          data-report-table="daily"
+          :data="dailySummary"
+          :columns="dailyColumns"
+          :loading="loading"
+          :pagination="false"
+          :searchable="false"
+          :show-header="false"
+          row-key="date"
+          empty-title="Sin sesiones en el período"
+          empty-description="No se registraron sesiones dentro del período aplicado."
+        >
+          <template #cell-date="{ value }">
+            <span class="tabular-nums">{{ formatReportDate(value) }}</span>
+          </template>
+          <template #cell-sessions_count="{ value }">
+            <span class="tabular-nums">{{ value ?? 0 }}</span>
+          </template>
+          <template #cell-total_opening="{ value }">
+            <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+              {{ formatCurrency(value) }}
+            </span>
+          </template>
+          <template #cell-total_closing="{ value }">
+            <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+              {{ formatCurrency(value) }}
+            </span>
+          </template>
+          <template #cell-total_difference="{ value }">
+            <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+              {{ formatCurrency(value) }}
+            </span>
+          </template>
+        </UiDataTable>
+      </section>
+
+      <section
+        v-if="branchSummary.length || userSummary.length"
+        aria-label="Desglose del período"
+        class="grid grid-cols-1 gap-6 lg:grid-cols-2"
+      >
+        <div v-if="branchSummary.length" class="space-y-3">
+          <h3 class="text-base font-semibold text-label">Sesiones por sucursal</h3>
+          <UiDataTable
+            data-report-table="summary-branches"
+            :data="branchSummary"
+            :columns="branchColumns"
+            :pagination="false"
+            :searchable="false"
+            :show-header="false"
+            row-key="branch"
+          >
+            <template #cell-sessions_count="{ value }">
+              <span class="tabular-nums">{{ value ?? 0 }}</span>
+            </template>
+            <template #cell-total_opening="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+            <template #cell-total_closing="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+            <template #cell-total_difference="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+          </UiDataTable>
+        </div>
+
+        <div v-if="userSummary.length" class="space-y-3">
+          <h3 class="text-base font-semibold text-label">Sesiones por usuario</h3>
+          <UiDataTable
+            data-report-table="summary-users"
+            :data="userSummary"
+            :columns="userColumns"
+            :pagination="false"
+            :searchable="false"
+            :show-header="false"
+            row-key="user"
+          >
+            <template #cell-sessions_count="{ value }">
+              <span class="tabular-nums">{{ value ?? 0 }}</span>
+            </template>
+            <template #cell-total_opening="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+            <template #cell-total_closing="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+            <template #cell-total_difference="{ value }">
+              <span class="tabular-nums" :aria-label="`${formatCurrency(value)} soles`">
+                {{ formatCurrency(value) }}
+              </span>
+            </template>
+          </UiDataTable>
+        </div>
+      </section>
+    </template>
+
+    <div
+      v-if="exportError"
+      role="alert"
+      data-export-error
+      class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-1);
+      "
+    >
+      <p class="text-sm text-systemRed-600">{{ exportError }}</p>
+      <UiButton variant="secondary" size="sm" data-export-retry @click="retryExport">
+        Reintentar
+      </UiButton>
     </div>
+
+    <section aria-label="Exportar reporte" class="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <UiButton
+        variant="secondary"
+        data-export="csv"
+        :loading="exportingFormat === 'csv'"
+        :disabled="exportingFormat !== null"
+        @click="exportReport('csv')"
+      >
+        <template #icon-left>
+          <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        CSV
+      </UiButton>
+      <UiButton
+        variant="secondary"
+        data-export="pdf"
+        :loading="exportingFormat === 'pdf'"
+        :disabled="exportingFormat !== null"
+        @click="exportReport('pdf')"
+      >
+        <template #icon-left>
+          <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        PDF
+      </UiButton>
+      <UiButton
+        variant="secondary"
+        data-export="excel"
+        :loading="exportingFormat === 'excel'"
+        :disabled="exportingFormat !== null"
+        @click="exportReport('excel')"
+      >
+        <template #icon-left>
+          <ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        Excel
+      </UiButton>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Button from '@/components/ui/Button.vue'
-import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import { useToast } from '@/composables/useToast'
+import { computed, onMounted, ref } from 'vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
 import { formatCurrency } from '@/composables/useFormatters'
-import {
-  ChartBarIcon,
-  BanknotesIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  ExclamationTriangleIcon,
-  DocumentArrowDownIcon,
-  PrinterIcon
-} from '@heroicons/vue/24/outline'
+import { useApi } from '@/composables/useApi'
+import { ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 
-defineProps({
-  summary: {
-    type: Object,
-    default: null
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
+const { get, download } = useApi()
+
+const presets = [
+  { days: 7, label: '7 días' },
+  { days: 30, label: '30 días' },
+  { days: 90, label: '90 días' }
+]
+
+const paymentMethodColumns = [
+  { key: 'payment_method', label: 'Método' },
+  { key: 'count', label: 'Operaciones', sortable: true, align: 'right' },
+  { key: 'total', label: 'Total', sortable: true, align: 'right' },
+  { key: 'average', label: 'Promedio', sortable: true, align: 'right' },
+  { key: 'percentage', label: 'Participación', sortable: true, align: 'right' }
+]
+
+const dailyColumns = [
+  { key: 'date', label: 'Fecha' },
+  { key: 'sessions_count', label: 'Sesiones', sortable: true, align: 'right' },
+  { key: 'total_opening', label: 'Apertura', sortable: true, align: 'right' },
+  { key: 'total_closing', label: 'Cierre', sortable: true, align: 'right' },
+  { key: 'total_difference', label: 'Diferencia', sortable: true, align: 'right' }
+]
+
+const branchColumns = [
+  { key: 'branch', label: 'Sucursal' },
+  { key: 'sessions_count', label: 'Sesiones', sortable: true, align: 'right' },
+  { key: 'total_opening', label: 'Apertura', sortable: true, align: 'right' },
+  { key: 'total_closing', label: 'Cierre', sortable: true, align: 'right' },
+  { key: 'total_difference', label: 'Diferencia', sortable: true, align: 'right' }
+]
+
+const userColumns = [
+  { key: 'user', label: 'Usuario' },
+  { key: 'sessions_count', label: 'Sesiones', sortable: true, align: 'right' },
+  { key: 'total_opening', label: 'Apertura', sortable: true, align: 'right' },
+  { key: 'total_closing', label: 'Cierre', sortable: true, align: 'right' },
+  { key: 'total_difference', label: 'Diferencia', sortable: true, align: 'right' }
+]
+
+const EXPORT_EXTENSIONS = { csv: 'csv', pdf: 'pdf', excel: 'xls' }
+
+const formatDateInput = date => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const today = new Date()
+const defaultEnd = formatDateInput(today)
+const defaultStart = formatDateInput(
+  new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29)
+)
+
+const draft = ref({ start: defaultStart, end: defaultEnd })
+const applied = ref({ start: defaultStart, end: defaultEnd })
+const report = ref(null)
+const loading = ref(true)
+const error = ref('')
+const exportingFormat = ref(null)
+const exportError = ref('')
+const lastExportFormat = ref(null)
+
+const ready = computed(() => report.value !== null && !loading.value && !error.value)
+
+const moneyOrFallback = value => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? formatCurrency(numeric) : 'N/D'
+}
+
+const kpiSessions = computed(() => {
+  if (!ready.value) return 'N/D'
+  const count = Number(report.value.sessions_count)
+  return Number.isFinite(count) ? String(report.value.sessions_count) : 'N/D'
 })
-const emit = defineEmits(['export'])
-const toast = useToast()
 
-// Estado
-const filters = ref({
-  date_from: new Date().toISOString().split('T')[0],
-  date_to: new Date().toISOString().split('T')[0],
-  report_type: 'daily'
-})
+const kpiValue = key => (ready.value ? moneyOrFallback(report.value[key]) : 'N/D')
 
-const exporting = ref(false)
+const kpiOpening = computed(() => kpiValue('total_opening_amount'))
+const kpiClosing = computed(() => kpiValue('total_closing_amount'))
+const kpiDifference = computed(() => kpiValue('total_difference'))
+const kpiIncome = computed(() => kpiValue('total_income'))
+const kpiExpenses = computed(() => kpiValue('total_expenses'))
 
-// Métodos
-const generateReport = () => {
-  emit('export', filters.value)
-}
+const paymentMethods = computed(() => report.value?.payment_methods_analysis ?? [])
+const dailySummary = computed(() => report.value?.daily_summary ?? [])
+const branchSummary = computed(() => report.value?.summary_by_branch ?? [])
+const userSummary = computed(() => report.value?.summary_by_user ?? [])
 
-const exportToExcel = async () => {
-  exporting.value = true
+const messageOf = (err, fallback) => err?.response?.data?.message || err?.message || fallback
+
+const loadReport = async () => {
+  loading.value = true
+  error.value = ''
   try {
-    const token = localStorage.getItem('auth_token')
-    const response = await fetch('/api/cash-register/reports/export/excel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      },
-      body: JSON.stringify({
-        start_date: filters.value.date_from,
-        end_date: filters.value.date_to,
-        report_type: filters.value.report_type
-      })
+    const response = await get('/api/cash-register/reports/period', {
+      params: { start_date: applied.value.start, end_date: applied.value.end }
     })
-
-    if (!response.ok) {
-      throw new Error('Error al exportar reporte')
-    }
-
-    // Descargar archivo
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `reporte-caja-${filters.value.date_from}.xlsx`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-
-    toast.success('Reporte exportado a Excel exitosamente')
-  } catch (error) {
-    toast.error('Error al exportar reporte a Excel')
+    report.value = response.data ?? null
+  } catch (err) {
+    report.value = null
+    error.value = messageOf(err, 'No se pudo cargar el reporte de caja.')
   } finally {
-    exporting.value = false
+    loading.value = false
   }
 }
 
-const exportToPDF = async () => {
-  exporting.value = true
+const applyFilters = () => {
+  if (!draft.value.start || !draft.value.end) {
+    error.value = 'Selecciona la fecha de inicio y la fecha de fin.'
+    return
+  }
+  if (draft.value.start > draft.value.end) {
+    error.value = 'La fecha de inicio no puede ser posterior a la fecha de fin.'
+    return
+  }
+  applied.value = { start: draft.value.start, end: draft.value.end }
+  loadReport()
+}
+
+const applyPreset = days => {
+  const end = new Date()
+  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (days - 1))
+  draft.value = { start: formatDateInput(start), end: formatDateInput(end) }
+  applyFilters()
+}
+
+const formatPercentage = value => {
+  const numeric = Number(value)
+  const safe = Number.isFinite(numeric) ? numeric : 0
+  return `${Number(safe.toFixed(1))}%`
+}
+
+const formatReportDate = value => {
+  const [year, month, day] = String(value ?? '').split('-')
+  return year && month && day ? `${day}/${month}/${year}` : String(value ?? '')
+}
+
+const saveBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+const exportReport = async format => {
+  if (exportingFormat.value) {
+    return
+  }
+  exportingFormat.value = format
+  exportError.value = ''
+  lastExportFormat.value = format
   try {
-    const token = localStorage.getItem('auth_token')
-    const response = await fetch('/api/cash-register/reports/export/pdf', {
+    const blob = await download(`/api/cash-register/reports/export/${format}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/pdf'
-      },
-      body: JSON.stringify({
-        start_date: filters.value.date_from,
-        end_date: filters.value.date_to,
-        report_type: filters.value.report_type
-      })
+      data: {
+        start_date: applied.value.start,
+        end_date: applied.value.end,
+        report_type: 'period'
+      }
     })
-
-    if (!response.ok) {
-      throw new Error('Error al exportar reporte')
-    }
-
-    // Descargar archivo
-    const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `reporte-caja-${filters.value.date_from}.pdf`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-
-    toast.success('Reporte exportado a PDF exitosamente')
-  } catch (error) {
-    toast.error('Error al exportar reporte a PDF')
+    saveBlob(blob, `caja-${applied.value.start}-${applied.value.end}.${EXPORT_EXTENSIONS[format]}`)
+  } catch (err) {
+    exportError.value = messageOf(err, 'No se pudo exportar el reporte.')
   } finally {
-    exporting.value = false
+    exportingFormat.value = null
   }
 }
 
-const printReport = () => {
-  window.print()
+const retryExport = () => {
+  if (lastExportFormat.value) {
+    exportReport(lastExportFormat.value)
+  }
 }
 
-// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
-
-const getPercentage = (value, array) => {
-  const max = Math.max(...array.map(item => item.total))
-  return max > 0 ? (value / max) * 100 : 0
-}
+onMounted(loadReport)
 </script>
