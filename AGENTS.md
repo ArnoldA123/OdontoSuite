@@ -101,7 +101,7 @@ app/
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 50 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 33 eventos (10 con listener cableado + 21 con consumer WS, 2 sin dispatch)
+  Events/                  # 34 eventos (10 con listener cableado + 22 con consumer WS, 2 sin dispatch)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -181,7 +181,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 32 controllers API, 33 eventos (10 listener classes / 13 cableos
+- 50 modelos, 32 controllers API, 34 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -418,6 +418,31 @@ documentada y no bloquea producción.
   `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
   `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
   verde.
+- **2026-10-20 (endurecimiento del contrato de presupuestos, #200-#204)** — Los
+  tres eventos de presupuesto y el nuevo `QuotationRejected` viajan solo por
+  `PrivateChannel('quotations')`: `BroadcastingAuthController` autoriza
+  exactamente a administrador, finanzas, odontologo, implantologo y
+  recepcionista, y esos eventos dejan de publicarse por el canal público
+  `dashboard-updates` porque su payload lleva datos del paciente y montos (el
+  resto de eventos de ese canal queda para #183). `QuotationService` respeta la
+  máquina de estados: aprobar y rechazar solo desde `sent`/`viewed` (422 con
+  mensaje explícito), una sola fila de aprobación vigente, la descarga del PDF
+  escribe `viewed` y el nuevo comando diario `quotations:expire` escribe
+  `expired`; `index?expired=` y el resumen leen el estado en vez de derivarlo de
+  `valid_until`, mientras el badge de vigencia del front sigue avisando por
+  fecha. El rechazo emite `quotation.rejected` (no `QuotationUpdated`, para no
+  duplicar la notificación) y `NotificationService` lo mapea. El detalle de
+  paciente abre el presupuesto con `/quotations?open=<id>`, usa el vocabulario
+  de estado compartido y descarga con `useApi().download`. `store` y `update`
+  comparten el saneo de texto libre (`App\Support\QuotationText`: sin HTML,
+  topes 2000/1000) y el motivo de rechazo ya no desborda `notes`. Sin rutas,
+  migraciones, modelos ni primitivas UI nuevas: solo el conteo de eventos sube
+  a 34. Tests: `QuotationTextTest`, `QuotationTextHygieneTest`,
+  `QuotationStatusMachineTest`, `QuotationViewedOnPdfTest`,
+  `ExpireQuotationsCommandTest`, `QuotationBroadcastChannelsTest`,
+  `QuotationRejectedEventTest`, `BroadcastingAuthChannelsTest` extendido y los
+  smokes JS del canal privado, del deep link y de las acciones del paciente.
+  Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero
