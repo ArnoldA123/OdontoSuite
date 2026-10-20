@@ -8,8 +8,9 @@ import { resolve } from 'node:path'
 // console.error, pageerror and failed request (status >= 400) into
 // <evidence>/<slug>.json so the CLI wrapper can summarize findings without
 // re-parsing Playwright output. Selectors are read from the page templates:
-// authenticated pages render a PageHeader h1 (`h1.page-title`) and the
-// dashboard renders a stable `aria-label` region instead.
+// authenticated pages render their page title as `.page-title` (the app-shell
+// topbar owns the single <h1>), and the dashboard renders a stable `aria-label`
+// region instead.
 const EVIDENCE_DIR = resolve(
   process.cwd(),
   process.env.BROWSER_PASS_OUT || '.atl/qa-evidence/audit/browser'
@@ -20,22 +21,22 @@ const DASHBOARD_LOCATOR = 'section[aria-label="Resumen del día"]'
 
 const PAGES = [
   { slug: 'dashboard', path: '/dashboard', locator: DASHBOARD_LOCATOR },
-  { slug: 'calendar', path: '/calendar', locator: 'h1.page-title:has-text("Agenda")' },
-  { slug: 'patients', path: '/patients', locator: 'h1.page-title:has-text("Pacientes")' },
+  { slug: 'calendar', path: '/calendar', locator: '.page-title:has-text("Agenda")' },
+  { slug: 'patients', path: '/patients', locator: '.page-title:has-text("Pacientes")' },
   {
     slug: 'cash-register',
     path: '/cash-register',
-    locator: 'h1.page-title:has-text("Gestión de Caja")'
+    locator: '.page-title:has-text("Gestión de Caja")'
   },
   {
     slug: 'quotations',
     path: '/quotations',
-    locator: 'h1.page-title:has-text("Presupuestos")'
+    locator: '.page-title:has-text("Presupuestos")'
   },
   {
     slug: 'business-intelligence',
     path: '/business-intelligence',
-    locator: 'h1.page-title:has-text("Business Intelligence")'
+    locator: '.page-title:has-text("Business Intelligence")'
   }
 ]
 
