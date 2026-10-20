@@ -71,6 +71,31 @@ class ReminderCancellationTest extends TestCase
         );
     }
 
+    public function test_updating_unrelated_fields_does_not_touch_existing_reminders(): void
+    {
+        $this->activeTemplates('24h', '48h', '72h');
+        $appointment = $this->book($this->reminderNow->copy()->addHours(80));
+
+        // A reminder cancelled by hand must survive an update that changes
+        // neither the time nor the type nor the status.
+        $this->remindersOf($appointment)->firstWhere('hours_before', 24)->transitionTo('cancelled');
+        $before = $this->remindersOf($appointment)->mapWithKeys(
+            fn ($reminder) => [$reminder->hours_before => $reminder->scheduled_at->toDateTimeString()]
+        )->all();
+
+        $this->appointments->updateAppointment($appointment, ['notes' => 'Nota administrativa']);
+
+        $rows = $this->remindersOf($appointment);
+        $this->assertSame(3, $rows->count(), 'An unrelated update MUST NOT duplicate reminders.');
+        $this->assertSame('cancelled', $rows->firstWhere('hours_before', 24)->status, 'An unrelated update MUST NOT resurrect a cancelled reminder.');
+        $this->assertSame([48, 72], $this->pendingHours($appointment));
+        $this->assertSame(
+            $before,
+            $rows->mapWithKeys(fn ($reminder) => [$reminder->hours_before => $reminder->scheduled_at->toDateTimeString()])->all(),
+            'An unrelated update MUST NOT move the reminder times.'
+        );
+    }
+
     public function test_reactivating_a_cancelled_appointment_recreates_its_reminders(): void
     {
         $this->activeTemplates('24h', '48h', '72h');
