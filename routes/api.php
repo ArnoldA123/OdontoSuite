@@ -307,8 +307,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // GET /cash-register-sessions/{cash_register_session} -> show($id).
         Route::get('cash-register-sessions/active', [CashRegisterController::class, 'current']);
         Route::get('cash-register-sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
-        Route::apiResource('cash-register-sessions', CashRegisterController::class);
-        Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'close']);
+        Route::apiResource('cash-register-sessions', CashRegisterController::class)->only(['index', 'show']);
+        // Cash follow-up S1: `{id}/close` ignoraba su `{id}` y delegaba en el
+        // cierre generico (`POST cash-register/close` con `session_id`), mismo
+        // caso que el `{id}/open` retirado en #194. No se repone.
 
         // Rutas alias para compatibilidad con frontend
         Route::get('cash-register/current', [CashRegisterController::class, 'current']);
