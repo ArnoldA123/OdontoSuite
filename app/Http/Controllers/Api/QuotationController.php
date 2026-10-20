@@ -23,7 +23,7 @@ class QuotationController extends Controller
     {
         try {
             $filters = $request->only([
-                'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id',
+                'q', 'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id',
             ]);
 
             $result = $this->quotationService->getQuotations($filters);
@@ -40,6 +40,21 @@ class QuotationController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener presupuestos',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Aggregated counters for the KPI strip.
+     */
+    public function summary(): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->quotationService->summary()]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error al obtener el resumen de presupuestos',
                 'error' => $e->getMessage(),
             ], 500);
         }

@@ -109,6 +109,14 @@ const routes = [
     component: () => import('./modules/appointment-types/AppointmentTypeDetailPage.vue'),
     beforeEnter: requireAuth
   },
+  // Catálogo maestro de especialidades (admin). La taxonomía que ordena el
+  // catálogo de procedimientos y las especialidades de los profesionales.
+  {
+    path: '/specialties',
+    name: 'specialties',
+    component: () => import('./modules/specialties/SpecialtiesPage.vue'),
+    beforeEnter: requireAuth
+  },
   {
     path: '/procedure-catalog',
     name: 'procedure-catalog',

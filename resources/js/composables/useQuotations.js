@@ -2,12 +2,13 @@ import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
 export function useQuotations() {
-  const { get, post, put, delete: del } = useApi()
+  const { get, post, put, delete: del, download } = useApi()
 
   // Estado reactivo
   const quotations = ref([])
   const currentQuotation = ref(null)
   const loading = ref(false)
+  const downloading = ref(false)
   const error = ref(null)
   const pagination = ref({
     current_page: 1,
@@ -197,24 +198,21 @@ export function useQuotations() {
     }
   }
 
-  const downloadPDF = async id => {
+  const downloadPDF = async (id, filename) => {
     try {
-      loading.value = true
+      downloading.value = true
       error.value = null
 
-      const response = await get(`/api/quotations/${id}/pdf`, {
-        responseType: 'blob'
+      const downloaded = await download(`/api/quotations/${id}/pdf`, {
+        fallbackFilename: filename || `presupuesto_${id}.pdf`
       })
-
-      // Crear URL del blob y descargar
-      const blob = new Blob([response.data], { type: 'application/pdf' })
-      const url = window.URL.createObjectURL(blob)
+      const url = window.URL.createObjectURL(downloaded.blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `presupuesto_${id}.pdf`
+      link.download = downloaded.filename
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
       window.URL.revokeObjectURL(url)
 
       return true
@@ -222,7 +220,7 @@ export function useQuotations() {
       error.value = err.response?.data?.message || 'Error al descargar PDF'
       throw err
     } finally {
-      loading.value = false
+      downloading.value = false
     }
   }
 
@@ -265,6 +263,7 @@ export function useQuotations() {
     quotations,
     currentQuotation,
     loading,
+    downloading,
     error,
     pagination,
 

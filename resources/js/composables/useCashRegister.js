@@ -1,4 +1,4 @@
-import { ref, computed, watch, onUnmounted, nextTick, triggerRef } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useApi } from './useApi'
 import { useEcho } from './useEcho'
 
@@ -11,6 +11,21 @@ let cashSessionChannel = null
 let subscribedSessionId = null
 let subscriberCount = 0
 
+const normalizeSummary = payload => ({
+  ...payload,
+  opening_amount: Number(payload.opening_amount ?? 0),
+  total_income: Number(payload.total_income ?? 0),
+  total_expenses: Number(payload.total_expenses ?? 0),
+  cash_in: Number(payload.cash_in ?? 0),
+  cash_out: Number(payload.cash_out ?? 0),
+  net_flow: Number(payload.net_flow ?? 0),
+  expected_amount: Number(payload.expected_amount ?? 0),
+  transactions_count: Number(payload.transactions_count ?? 0),
+  movements_count: Number(payload.movements_count ?? 0),
+  by_payment_method: Array.isArray(payload.by_payment_method) ? payload.by_payment_method : [],
+  by_hour: Array.isArray(payload.by_hour) ? payload.by_hour : []
+})
+
 export function useCashRegister() {
   const { get, post } = useApi()
   const { channel, privateChannel } = useEcho()
@@ -20,7 +35,6 @@ export function useCashRegister() {
   const loading = ref(false)
   const error = ref(null)
   const summary = ref(null)
-  const summaryUpdateKey = ref(0) // Key para forzar actualización
 
   // Computed properties
   const isOpen = computed(() => currentSession.value?.status === 'open')
@@ -35,38 +49,8 @@ export function useCashRegister() {
     try {
       const response = await get('/api/cash-register/current')
 
-      // Verificar estructura de respuesta
-
       currentSession.value = response.data?.session || null
-
-      // Asegurar que el resumen se asigne correctamente
-      if (response.data?.summary) {
-        // Crear un objeto completamente nuevo para forzar reactividad
-        const newSummary = {
-          session: response.data.summary.session,
-          opening_amount: parseFloat(response.data.summary.opening_amount || 0),
-          total_income: parseFloat(response.data.summary.total_income || 0),
-          total_expenses: parseFloat(response.data.summary.total_expenses || 0),
-          total_movements: parseFloat(response.data.summary.total_movements || 0),
-          expected_amount: parseFloat(response.data.summary.expected_amount || 0),
-          transactions_count: parseInt(response.data.summary.transactions_count || 0),
-          movements_count: parseInt(response.data.summary.movements_count || 0),
-          by_payment_method: response.data.summary.by_payment_method || {},
-          by_hour: response.data.summary.by_hour || {}
-        }
-
-        // Asignar el nuevo resumen - forzar nueva referencia
-        summary.value = null // Limpiar primero
-        await nextTick()
-        summary.value = newSummary // Asignar nuevo objeto
-        summaryUpdateKey.value++ // Incrementar key para forzar reactividad
-
-        // Forzar actualización de Vue con nextTick y triggerRef
-        await nextTick()
-        triggerRef(summary)
-      } else {
-        summary.value = null
-      }
+      summary.value = response.data?.summary ? normalizeSummary(response.data.summary) : null
     } catch (err) {
       error.value = err.message || 'Error al cargar la sesión de caja'
       currentSession.value = null
@@ -135,9 +119,7 @@ export function useCashRegister() {
 
     try {
       const response = await get('/api/cash-register/sessions', { params: filters })
-      // Slice 01 / T-01.7 (API-011): backend returns {data, meta}. Return the
-      // unwrapped data array so callers can iterate `.sessions`-like lists.
-      return response.data || response
+      return { data: response.data || [], meta: response.meta || null }
     } catch (err) {
       error.value = err.message || 'Error al obtener las sesiones de caja'
       throw err
@@ -178,19 +160,16 @@ export function useCashRegister() {
       return null
     }
 
-    const totals = {
-      openingAmount: parseFloat(summary.value.opening_amount || 0),
-      totalIncome: parseFloat(summary.value.total_income || 0),
-      totalExpenses: parseFloat(summary.value.total_expenses || 0),
-      totalMovements: parseFloat(summary.value.total_movements || 0),
-      expectedAmount: parseFloat(summary.value.expected_amount || 0),
-      currentBalance:
-        parseFloat(summary.value.opening_amount || 0) +
-        parseFloat(summary.value.total_income || 0) -
-        parseFloat(summary.value.total_expenses || 0)
+    return {
+      openingAmount: summary.value.opening_amount,
+      totalIncome: summary.value.total_income,
+      totalExpenses: summary.value.total_expenses,
+      cashIn: summary.value.cash_in,
+      cashOut: summary.value.cash_out,
+      netFlow: summary.value.net_flow,
+      expectedAmount: summary.value.expected_amount,
+      currentBalance: summary.value.expected_amount
     }
-
-    return totals
   })
 
   // Forzar actualización de datos
@@ -257,6 +236,16 @@ export function useCashRegister() {
               await loadCurrentSession()
             }
           })
+          .listen('.transaction.updated', async e => {
+            // Anular o editar una transacción cambia el saldo esperado de la
+            // sesión, así que este evento también recarga el resumen. La
+            // suscripción vive aquí desde que Business Intelligence dejó de
+            // consumir el canal público (D11).
+            const updatedSession = e.transaction?.cash_register_session_id
+            if (!updatedSession || updatedSession === currentSession.value?.id) {
+              await loadCurrentSession()
+            }
+          })
       }
 
       // Canal privado para la sesión específica si hay sesión activa
@@ -286,6 +275,9 @@ export function useCashRegister() {
             await loadCurrentSession()
           })
           .listen('.transaction.created', async () => {
+            await loadCurrentSession()
+          })
+          .listen('.transaction.updated', async () => {
             await loadCurrentSession()
           })
       }
@@ -345,8 +337,8 @@ export function useCashRegister() {
     error.value = null
 
     try {
-      const response = await get('/api/payment-methods')
-      return response
+      const response = await get('/api/payment-methods/active')
+      return response.data || []
     } catch (err) {
       error.value = err.message || 'Error al obtener los métodos de pago'
       throw err
@@ -361,8 +353,8 @@ export function useCashRegister() {
     error.value = null
 
     try {
-      const response = await get('/api/branches')
-      return response
+      const response = await get('/api/branches/active')
+      return response.data || []
     } catch (err) {
       error.value = err.message || 'Error al obtener las sucursales'
       throw err

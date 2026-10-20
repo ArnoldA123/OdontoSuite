@@ -1,195 +1,403 @@
 <template>
   <AppLayout>
-    <div class="treatment-plans-page">
-      <!-- Header siempre a la vista -->
-      <PageHeader
-        title="Planes de Tratamiento"
-        subtitle="Gestiona los planes de tratamiento de tus pacientes"
-        class="mb-6"
+    <!--
+      Loading: the skeleton mirrors the block order (KPI strip -> rows) so the
+      surface does not jump when the payload lands. While a reload runs over an
+      already-populated list the content stays mounted instead of flashing.
+    -->
+    <section
+      v-if="loading && !hasPlans"
+      aria-busy="true"
+      aria-live="polite"
+      aria-label="Cargando planes de tratamiento"
+      class="space-y-6"
+    >
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <UiSkeleton
+          v-for="i in 4"
+          :key="`kpi-skel-${i}`"
+          variant="card"
+          animation="wave"
+          :aria-label="`Cargando indicador ${i}`"
+        />
+      </div>
+      <UiSkeleton
+        v-for="i in 3"
+        :key="`row-skel-${i}`"
+        variant="list"
+        animation="wave"
+        aria-label="Cargando plan de tratamiento"
+      />
+    </section>
+
+    <div v-else class="space-y-6">
+      <!--
+        Hero band: the dashboard surface recipe (canvas + hairline + panel
+        radius + elevation rung). The topbar keeps owning the single h1, so the
+        band stays typographic with an h2.
+      -->
+      <header
+        data-treatment-plans-hero
+        class="relative overflow-hidden p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
       >
-        <template #actions>
-          <div class="flex items-center gap-2 flex-wrap">
-            <div class="counters">
-              <span class="counter-pill" :class="{ active: !statusFilter }">
-                Todos
-                <strong>{{ pagination?.total ?? 0 }}</strong>
-              </span>
-              <span class="counter-pill pill-active">Activos {{ counters.active }}</span>
-              <span v-if="counters.overdue > 0" class="counter-pill pill-overdue">
-                Vencidos {{ counters.overdue }}
-              </span>
-            </div>
-            <UiButton :disabled="loading" @click="openCreateModal">
+        <div class="relative flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+              data-hero-eyebrow
+            >
+              Operación clínica
+            </p>
+            <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+              Planes de Tratamiento
+            </h2>
+            <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+              Gestiona los planes de tratamiento de tus pacientes
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap">
+            <UiButton
+              variant="secondary"
+              size="md"
+              data-refresh
+              :disabled="loading"
+              @click="loadAll"
+            >
               <template #icon-left>
-                <PlusIcon class="w-5 h-5" />
+                <ArrowPathIcon
+                  class="w-4 h-4"
+                  :class="{ 'animate-spin motion-reduce:animate-none': loading }"
+                  aria-hidden="true"
+                />
+              </template>
+              Actualizar
+            </UiButton>
+            <UiButton variant="primary" size="md" data-create-plan @click="openCreateModal">
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
               </template>
               Nuevo Plan
-              <kbd class="kbd">N</kbd>
+              <kbd
+                class="ml-2 rounded px-1.5 py-0.5 font-mono text-[10px]"
+                style="background: rgba(255, 255, 255, 0.2)"
+              >
+                N
+              </kbd>
             </UiButton>
           </div>
-        </template>
-      </PageHeader>
+        </div>
+      </header>
 
-      <!-- Filtros siempre visibles (no escondidos) -->
-      <div class="filters-section">
-        <div class="filters-grid">
-          <div class="filter-field">
-            <label class="filter-label">Paciente</label>
-            <input
+      <!-- Error: above every data surface, never rendered as empty results. -->
+      <div
+        v-if="error"
+        data-state="error"
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] bg-systemRed-50 p-5"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <ExclamationTriangleIcon
+            class="h-6 w-6 flex-shrink-0 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-theme-primary">No pudimos cargar los planes</p>
+            <p class="text-sm text-theme-secondary">{{ error }}</p>
+          </div>
+        </div>
+        <UiButton variant="primary" size="sm" data-retry @click="loadPlans()">Reintentar</UiButton>
+      </div>
+
+      <!--
+        KPI strip: the four cards summarize the WHOLE table through the summary
+        endpoint, never the visible page. Static reference surface: no card
+        carries a click affordance.
+      -->
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="active"
+          class="h-full"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Planes activos</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none tabular-nums text-systemGreen-600"
+            data-kpi-value="active"
+          >
+            {{ summary?.active ?? '—' }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="active">
+            Borrador, propuesta, aprobado o en curso
+          </p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="pending-approval"
+          class="h-full"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Por aprobar</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none tabular-nums text-label"
+            data-kpi-value="pending-approval"
+          >
+            {{ summary?.pending_approval ?? '—' }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="pending-approval">
+            Esperando la decisión del paciente
+          </p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="overdue"
+          class="h-full"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Vencidos</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none tabular-nums"
+            :class="overdueTone"
+            data-kpi-value="overdue"
+          >
+            {{ summary?.overdue ?? '—' }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="overdue">
+            Pasaron su fecha de cierre y siguen abiertos
+          </p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="pending-cost"
+          class="h-full"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Valor pendiente</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none tabular-nums text-label"
+            data-kpi-value="pending-cost"
+          >
+            {{ summary ? formatCurrency(summary.pending_cost) : '—' }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="pending-cost">
+            Costo de los planes abiertos
+          </p>
+        </UiCard>
+      </div>
+
+      <!-- Filters: one glass card; presets and the view toggle live inside it. -->
+      <UiCard variant="glass" data-filters>
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+          <div class="lg:col-span-4">
+            <label
+              for="treatment-plan-patient"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              Paciente
+            </label>
+            <UiInput
+              id="treatment-plan-patient"
               v-model="filters.patient_name"
-              type="text"
-              placeholder="Buscar por nombre o documento..."
-              class="filter-input"
+              placeholder="Nombre o documento"
+              data-filter-patient
             />
           </div>
 
-          <div class="filter-field">
-            <label class="filter-label">Estado</label>
-            <select v-model="filters.status" class="filter-input">
-              <option value="">Todos</option>
-              <option value="draft">Borrador</option>
-              <option value="proposed">Propuesto</option>
-              <option value="approved">Aprobado</option>
-              <option value="in_progress">En Progreso</option>
-              <option value="completed">Completado</option>
-              <option value="cancelled">Cancelado</option>
-            </select>
+          <div class="lg:col-span-3">
+            <span class="mb-2 block text-sm font-medium text-theme-primary">Estado</span>
+            <UiSelect
+              v-model="filters.status"
+              :options="statusOptions"
+              placeholder="Todos los estados"
+              data-filter-status
+              @change="onManualStatusChange"
+            />
           </div>
 
-          <div class="filter-field">
-            <label class="filter-label">Desde</label>
-            <input v-model="filters.date_from" type="date" class="filter-input" />
+          <div class="lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-theme-primary">Desde</span>
+            <UiInput v-model="filters.date_from" type="date" data-filter-from />
           </div>
 
-          <div class="filter-field">
-            <label class="filter-label">Hasta</label>
-            <input v-model="filters.date_to" type="date" class="filter-input" />
+          <div class="lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-theme-primary">Hasta</span>
+            <UiInput v-model="filters.date_to" type="date" data-filter-to />
           </div>
 
-          <div class="filter-actions">
-            <button class="btn btn-outline" :disabled="loading" @click="clearFilters">
+          <div class="lg:col-span-1">
+            <UiButton variant="ghost" size="md" full-width data-clear-filters @click="clearFilters">
               Limpiar
-            </button>
+            </UiButton>
           </div>
         </div>
 
-        <!-- Filtros rápidos tipo pill (1 click) -->
-        <div class="quick-filters">
-          <div class="quick-filters-left">
-            <button
+        <div
+          class="mt-4 flex flex-wrap items-center justify-between gap-3 pt-4"
+          style="border-top: 1px solid var(--color-hairline)"
+        >
+          <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filtros rápidos">
+            <UiButton
               v-for="qf in quickFilters"
               :key="qf.value"
-              class="quick-pill"
-              :class="[{ active: activeQuick === qf.value }]"
+              :variant="activeQuick === qf.value ? 'primary' : 'ghost'"
+              size="sm"
+              :aria-pressed="activeQuick === qf.value"
+              :data-quick-filter="qf.value"
               @click="applyQuickFilter(qf)"
             >
-              <component :is="qf.icon" v-if="qf.icon" class="w-3.5 h-3.5" />
               {{ qf.label }}
-            </button>
+            </UiButton>
           </div>
 
-          <div class="view-toggle">
-            <button
-              class="view-btn"
-              :class="[{ active: view === 'list' }]"
-              title="Vista lista"
-              aria-label="Vista lista"
+          <div
+            class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
+            role="group"
+            aria-label="Vista de los planes"
+            data-view-toggle
+            style="border: 1px solid var(--color-hairline)"
+          >
+            <UiButton
+              :variant="view === 'list' ? 'primary' : 'ghost'"
+              size="sm"
+              data-view="list"
+              :aria-pressed="view === 'list'"
               @click="view = 'list'"
             >
-              <Squares2X2Icon class="w-4 h-4" />
-            </button>
-            <button
-              class="view-btn"
-              :class="[{ active: view === 'kanban' }]"
-              title="Vista kanban"
-              aria-label="Vista kanban"
+              <template #icon-left>
+                <Squares2X2Icon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Lista
+            </UiButton>
+            <UiButton
+              :variant="view === 'kanban' ? 'primary' : 'ghost'"
+              size="sm"
+              data-view="kanban"
+              :aria-pressed="view === 'kanban'"
               @click="view = 'kanban'"
             >
-              <ViewColumnsIcon class="w-4 h-4" />
-            </button>
+              <template #icon-left>
+                <ViewColumnsIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Kanban
+            </UiButton>
           </div>
         </div>
-      </div>
+      </UiCard>
 
-      <!-- Vista: lista -->
-      <div v-if="view === 'list'" class="plans-section">
-        <div v-if="loading" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div v-for="n in 6" :key="n" class="skeleton-card" />
-        </div>
-
-        <div v-else-if="!hasPlans" class="empty-state">
-          <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-theme-primary mb-2">
-            {{ hasActiveFilters ? 'Sin resultados' : 'No hay planes de tratamiento' }}
-          </h3>
-          <p class="text-theme-secondary mb-4">
-            {{
+      <!-- List surface -->
+      <section v-if="view === 'list'" aria-label="Lista de planes de tratamiento" class="space-y-4">
+        <UiCard
+          v-if="!loading && !hasPlans && !error"
+          data-state="empty"
+          variant="glass"
+          padding="lg"
+        >
+          <UiEmptyState
+            :title="hasActiveFilters ? 'Sin resultados' : 'No hay planes de tratamiento'"
+            :description="
               hasActiveFilters
-                ? 'Prueba ajustando los filtros'
-                : 'Comienza creando tu primer plan de tratamiento'
-            }}
-          </p>
-          <button v-if="!hasActiveFilters" class="btn btn-primary" @click="openCreateModal">
-            Crear Plan
-          </button>
-          <button v-else class="btn btn-outline" @click="clearFilters">Limpiar filtros</button>
-        </div>
+                ? 'Prueba ajustando los filtros para encontrar el plan que buscas.'
+                : 'Comienza creando tu primer plan de tratamiento.'
+            "
+          >
+            <template #action>
+              <UiButton
+                v-if="hasActiveFilters"
+                variant="secondary"
+                size="md"
+                data-empty-clear
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+              <UiButton
+                v-else
+                variant="primary"
+                size="md"
+                data-empty-create
+                @click="openCreateModal"
+              >
+                Crear Plan
+              </UiButton>
+            </template>
+          </UiEmptyState>
+        </UiCard>
 
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div
+          v-else-if="hasPlans"
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
+          data-plan-list
+        >
           <TreatmentPlanCard
             v-for="plan in plans"
             :key="plan.id"
             :plan="plan"
             @view="viewPlan"
             @edit="editPlan"
-            @duplicate="duplicatePlan"
-            @change-status="changeStatus"
-            @delete="deletePlan"
+            @duplicate="onDuplicate"
+            @change-status="onCardStatusChange"
+            @delete="onDelete"
           />
         </div>
-      </div>
+      </section>
 
-      <!-- Vista: kanban (drag entre estados) -->
-      <div v-else class="kanban-section">
-        <div class="kanban-grid">
+      <!-- Kanban surface -->
+      <section v-else aria-label="Tablero kanban de planes" class="overflow-x-auto pb-2">
+        <div
+          class="grid min-w-[1100px] grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6"
+        >
           <KanbanColumn
             v-for="col in kanbanColumns"
             :key="col.value"
             :column="col"
             :plans="plansByStatus[col.value] || []"
             @view="viewPlan"
-            @change-status="changeStatus"
             @drop-plan="onDropPlan"
           />
         </div>
-      </div>
+      </section>
 
-      <!-- Paginación -->
-      <div v-if="hasPlans && totalPages > 1" class="pagination-section">
+      <div v-if="hasPlans && totalPages > 1" class="flex justify-center">
         <Pagination
           :current-page="currentPage"
           :total-pages="totalPages"
+          :total="pagination?.total ?? 0"
+          :per-page="pagination?.per_page ?? 15"
           @page-change="handlePageChange"
         />
       </div>
-
-      <!-- Modales -->
-      <TreatmentPlanModal
-        v-if="showModal"
-        :plan="selectedPlan"
-        :is-edit="isEdit"
-        @close="closeModal"
-        @saved="handlePlanSaved"
-      />
-
-      <TreatmentPlanDetail
-        v-if="showDetailModal"
-        :plan="selectedPlan"
-        @close="closeDetailModal"
-        @edit="editPlan"
-        @duplicate="duplicatePlan"
-      />
     </div>
+
+    <TreatmentPlanModal
+      v-if="showModal"
+      :plan="selectedPlan"
+      :is-edit="isEdit"
+      @close="closeModal"
+      @saved="handlePlanSaved"
+    />
+
+    <TreatmentPlanDetail
+      v-if="showDetailModal"
+      :plan="selectedPlan"
+      @close="closeDetailModal"
+      @edit="editPlan"
+      @duplicate="onDuplicate"
+    />
   </AppLayout>
 </template>
 
@@ -198,36 +406,42 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useEcho } from '@/composables/useEcho'
 import { useToast } from '@/composables/useToast'
+import { useAuth } from '@/composables/useAuth'
+import { formatCurrency } from '@/composables/useFormatters'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TreatmentPlanCard from './components/TreatmentPlanCard.vue'
 import TreatmentPlanModal from './components/TreatmentPlanModal.vue'
 import TreatmentPlanDetail from './components/TreatmentPlanDetail.vue'
 import KanbanColumn from './components/KanbanColumn.vue'
 import Pagination from '@/components/ui/Pagination.vue'
+import UiEmptyState from '@/components/ui/EmptyState.vue'
 import {
   PlusIcon,
-  DocumentTextIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  PencilIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
   Squares2X2Icon,
   ViewColumnsIcon
 } from '@heroicons/vue/24/outline'
 
+const OPEN_STATUSES = ['draft', 'proposed', 'approved', 'in_progress']
+
 const { channel, echo } = useEcho()
 const toast = useToast()
+const { user } = useAuth()
 const {
   plans,
   loading,
+  error,
   hasPlans,
   totalPages,
   currentPage,
   pagination,
+  summary,
   getPlans,
-  deletePlan,
+  getSummary,
   changeStatus,
-  duplicatePlan
+  duplicatePlan,
+  deletePlan
 } = useTreatmentPlans()
 
 const showModal = ref(false)
@@ -243,36 +457,55 @@ const filters = ref({
   date_to: ''
 })
 
-const statusFilter = computed(() => filters.value.status)
-
+/**
+ * Presets are shortcuts over the same API filters the manual fields use.
+ * `params` is what makes each pill truthful: the list endpoint understands
+ * `statuses` (list), `overdue` and `created_by`, not made-up status names.
+ */
 const quickFilters = [
-  { value: 'all', label: 'Todos', icon: null },
-  { value: 'active', label: 'Activos', icon: ClockIcon },
-  { value: 'mine', label: 'Míos', icon: PencilIcon },
-  { value: 'overdue', label: 'Vencidos', icon: XCircleIcon },
-  { value: 'completed', label: 'Completados', icon: CheckCircleIcon }
+  { value: 'all', label: 'Todos', params: {} },
+  { value: 'active', label: 'Activos', params: { statuses: OPEN_STATUSES.join(',') } },
+  {
+    value: 'mine',
+    label: 'Míos',
+    params: { created_by: user.value?.id ?? '' }
+  },
+  { value: 'overdue', label: 'Vencidos', params: { overdue: '1' } },
+  { value: 'completed', label: 'Completados', params: { status: 'completed' } }
 ]
+
 const activeQuick = ref('all')
+const presetParams = ref({})
 
-const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== ''))
-
-const counters = computed(() => {
-  const all = plans.value
-  return {
-    active: all.filter(p => ['draft', 'proposed', 'approved', 'in_progress'].includes(p.status))
-      .length,
-    overdue: all.filter(p => p.is_overdue).length
-  }
-})
+const statusOptions = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'draft', label: 'Borrador' },
+  { value: 'proposed', label: 'Propuesto' },
+  { value: 'approved', label: 'Aprobado' },
+  { value: 'in_progress', label: 'En Progreso' },
+  { value: 'completed', label: 'Completado' },
+  { value: 'cancelled', label: 'Cancelado' }
+]
 
 const kanbanColumns = [
-  { value: 'draft', label: 'Borrador', tone: 'gray' },
-  { value: 'proposed', label: 'Propuesto', tone: 'blue' },
+  { value: 'draft', label: 'Borrador', tone: 'neutral' },
+  { value: 'proposed', label: 'Propuesto', tone: 'steel' },
   { value: 'approved', label: 'Aprobado', tone: 'green' },
-  { value: 'in_progress', label: 'En Progreso', tone: 'amber' },
-  { value: 'completed', label: 'Completado', tone: 'emerald' },
+  { value: 'in_progress', label: 'En Progreso', tone: 'yellow' },
+  { value: 'completed', label: 'Completado', tone: 'accent' },
   { value: 'cancelled', label: 'Cancelado', tone: 'red' }
 ]
+
+const overdueCount = computed(() => summary.value?.overdue ?? 0)
+const overdueTone = computed(() => (overdueCount.value > 0 ? 'text-systemRed-600' : 'text-label'))
+
+const hasActiveFilters = computed(
+  () =>
+    activeQuick.value !== 'all' ||
+    Object.values(filters.value).some(
+      value => value !== '' && value !== null && value !== undefined
+    )
+)
 
 const plansByStatus = computed(() => {
   const map = {}
@@ -282,6 +515,45 @@ const plansByStatus = computed(() => {
   }
   return map
 })
+
+/**
+ * One request shape for every path: manual fields first, then the preset that
+ * is currently pressed. Empty values never reach the query string.
+ */
+const buildParams = (additional = {}) => {
+  const params = { ...filters.value }
+
+  if (activeQuick.value !== 'all') {
+    delete params.status
+    Object.assign(params, presetParams.value)
+  }
+
+  Object.assign(params, additional)
+
+  Object.keys(params).forEach(key => {
+    if (params[key] === '' || params[key] === null || params[key] === undefined) delete params[key]
+  })
+
+  return params
+}
+
+const loadPlans = async (additional = {}) => {
+  try {
+    await getPlans(buildParams(additional))
+  } catch (err) {
+    // La lista conserva los planes ya cargados si falla la recarga
+  }
+}
+
+const loadSummary = async () => {
+  try {
+    await getSummary()
+  } catch (err) {
+    // La tira de KPIs cae a "—" sin tumbar la lista
+  }
+}
+
+const loadAll = () => Promise.allSettled([loadPlans(), loadSummary()])
 
 const openCreateModal = () => {
   selectedPlan.value = null
@@ -313,46 +585,89 @@ const closeDetailModal = () => {
 
 const handlePlanSaved = () => {
   closeModal()
-  loadPlans()
+  loadAll()
 }
 
 const clearFilters = () => {
+  const hadPreset = activeQuick.value !== 'all'
+  const hadValues = Object.values(filters.value).some(value => value !== '')
+
   filters.value = { patient_name: '', status: '', date_from: '', date_to: '' }
   activeQuick.value = 'all'
-  loadPlans()
+  presetParams.value = {}
+
+  // The watchers reload when a field actually changed; with no field to reset
+  // but a pressed preset, the list still needs one explicit reload.
+  if (hadPreset && !hadValues) loadPlans()
 }
 
 const applyQuickFilter = qf => {
   activeQuick.value = qf.value
-  filters.value.status = qf.value === 'all' ? '' : qf.value
+  presetParams.value = { ...(qf.params || {}) }
+  filters.value.status = ''
+  loadPlans()
+}
+
+/**
+ * Picking a manual status releases the active preset: presets and the select
+ * are two ways to express the same filter, so the last action wins.
+ */
+const onManualStatusChange = () => {
+  if (activeQuick.value === 'all') {
+    loadPlans()
+
+    return
+  }
+
+  activeQuick.value = 'all'
+  presetParams.value = {}
   loadPlans()
 }
 
 const handlePageChange = page => loadPlans({ page })
 
-const onDropPlan = async ({ plan, newStatus }) => {
+const onCardStatusChange = async (planId, status) => {
   try {
-    await changeStatus(plan.id, newStatus)
-    toast.success(`Plan movido a ${newStatus}`)
-  } catch (e) {
+    await changeStatus(planId, status)
+    toast.success('Estado actualizado')
+    loadSummary()
+  } catch (err) {
     toast.error('No se pudo cambiar el estado')
     loadPlans()
   }
 }
 
-const loadPlans = async (additional = {}) => {
+const onDropPlan = async ({ plan, newStatus }) => {
+  await onCardStatusChange(plan.id, newStatus)
+}
+
+/**
+ * The card and the detail emit the whole plan; the composable needs its id.
+ * Passing the object straight through produced `/treatment-plans/[object
+ * Object]/duplicate` (defect found while rewiring this surface).
+ */
+const onDuplicate = async plan => {
   try {
-    const all = { ...filters.value, ...additional }
-    Object.keys(all).forEach(k => {
-      if (all[k] === '' || all[k] === null) delete all[k]
-    })
-    await getPlans(all)
+    await duplicatePlan(plan.id)
+    toast.success('Plan duplicado')
+    loadSummary()
   } catch (err) {
-    // La lista conserva los planes ya cargados si falla la recarga
+    toast.error('No se pudo duplicar el plan')
   }
 }
 
-// Debounce reactivo en patient_name (sin click en Buscar)
+const onDelete = async planId => {
+  try {
+    await deletePlan(planId)
+    if (selectedPlan.value?.id === planId) closeDetailModal()
+    toast.success('Plan eliminado')
+    loadSummary()
+  } catch (err) {
+    toast.error('No se pudo eliminar el plan')
+  }
+}
+
+// Debounce on the patient search so typing does not fire a request per key.
 let debounceTimer = null
 watch(
   () => filters.value.patient_name,
@@ -362,11 +677,11 @@ watch(
   }
 )
 watch(
-  () => [filters.value.status, filters.value.date_from, filters.value.date_to],
+  () => [filters.value.date_from, filters.value.date_to],
   () => loadPlans()
 )
 
-// Atajos de teclado
+// Keyboard: N opens the create modal, Escape closes the open overlay.
 const onKeydown = e => {
   if (e.target.matches('input, select, textarea')) return
   if (e.key === 'n' || e.key === 'N') {
@@ -382,7 +697,7 @@ const onKeydown = e => {
 let treatmentPlansChannel = null
 
 onMounted(() => {
-  loadPlans()
+  loadAll()
   document.addEventListener('keydown', onKeydown)
 
   try {
@@ -390,13 +705,14 @@ onMounted(() => {
     if (treatmentPlansChannel) {
       treatmentPlansChannel
         .listen('.treatment-plan.created', async () => {
-          await loadPlans()
+          await loadAll()
           toast.info('Nuevo plan creado')
         })
         .listen('.treatment-plan.updated', async e => {
           const idx = plans.value.findIndex(p => p.id === e.treatment_plan.id)
           if (idx !== -1) plans.value[idx] = e.treatment_plan
           else await loadPlans()
+          loadSummary()
         })
         .listen('.treatment-plan.deleted', async e => {
           plans.value = plans.value.filter(p => p.id !== e.treatment_plan_id)
@@ -404,6 +720,7 @@ onMounted(() => {
             selectedPlan.value = null
             showDetailModal.value = false
           }
+          loadSummary()
         })
     }
   } catch (err) {
@@ -423,140 +740,3 @@ onUnmounted(() => {
   clearTimeout(debounceTimer)
 })
 </script>
-
-<style scoped>
-.treatment-plans-page {
-  @apply p-6 space-y-5;
-}
-
-.page-title {
-  @apply text-2xl font-bold;
-  color: var(--color-text-primary);
-}
-
-.page-subtitle {
-  @apply text-sm;
-  color: var(--color-text-secondary);
-}
-
-.counters {
-  @apply hidden md:flex items-center gap-2 text-xs;
-}
-.counter-pill {
-  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-theme-surface text-theme-secondary;
-}
-.counter-pill strong {
-  @apply text-theme-primary font-semibold;
-}
-.counter-pill.pill-active {
-  background-color: rgb(219 234 254);
-  color: rgb(29 78 216);
-}
-.counter-pill.pill-overdue {
-  background-color: rgb(254 226 226);
-  color: rgb(185 28 28);
-}
-
-.filters-section {
-  @apply p-4 rounded-lg space-y-3;
-  background-color: var(--color-surface);
-}
-
-.filters-grid {
-  @apply grid grid-cols-1 md:grid-cols-5 gap-3;
-}
-
-.filter-field {
-  @apply space-y-1;
-}
-
-.filter-label {
-  @apply block text-xs font-medium;
-  color: var(--color-text-secondary);
-}
-
-.filter-input {
-  @apply w-full px-3 py-2 text-sm border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent;
-  background-color: var(--color-surface-elevated);
-  color: var(--color-text-primary);
-}
-
-.filter-actions {
-  @apply flex items-end;
-}
-
-.quick-filters {
-  @apply flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-theme;
-}
-
-.quick-filters-left {
-  @apply flex flex-wrap gap-2;
-}
-
-.view-toggle {
-  @apply flex items-center gap-1 p-0.5 rounded-md;
-  background-color: var(--color-surface-elevated);
-}
-
-.view-btn {
-  @apply p-1.5 rounded text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.view-btn.active {
-  @apply bg-primary-600 text-white;
-}
-
-.quick-pill {
-  @apply inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border border-theme bg-theme-surface-elevated text-theme-secondary hover:bg-theme-surface transition-colors;
-}
-.quick-pill.active {
-  @apply bg-primary-600 text-white border-primary-600;
-}
-
-.skeleton-card {
-  @apply h-48 rounded-lg;
-  background-color: var(--color-surface);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.empty-state {
-  @apply text-center py-12;
-}
-
-.pagination-section {
-  @apply flex justify-center;
-}
-
-.kanban-section {
-  @apply overflow-x-auto pb-2;
-}
-
-.kanban-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-[1100px];
-}
-
-.btn {
-  @apply inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-.btn-outline {
-  @apply border-theme text-theme-primary bg-theme-surface-elevated hover:bg-theme-surface;
-}
-
-.kbd {
-  @apply ml-2 px-1.5 py-0.5 text-[10px] font-mono rounded;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-</style>

@@ -281,6 +281,12 @@ class TransactionService
             ]);
         }
 
+        if (isset($data['discount_amount']) && $data['discount_amount'] > $data['amount']) {
+            throw ValidationException::withMessages([
+                'discount_amount' => ['El descuento no puede superar el monto de la transacción.'],
+            ]);
+        }
+
         // Validate discount authorization
         if (isset($data['discount_amount']) && $data['discount_amount'] > 0) {
             $discountPercentage = ($data['discount_amount'] / $data['amount']) * 100;
@@ -345,21 +351,20 @@ class TransactionService
     }
 
     /**
+     * Movement type a transaction of this type creates. The void reverses this
+     * mapping, so both sides can never drift apart.
+     */
+    private function movementTypeFor(string $transactionType): string
+    {
+        return $transactionType === 'payment' ? 'income' : 'expense';
+    }
+
+    /**
      * Create cash movement for transaction.
      */
     private function createCashMovement(Transaction $transaction, CashRegisterSession $session): CashMovement
     {
-        // Mapear tipos de transacción a tipos de movimiento de caja
-        // 'payment' = ingreso, 'refund' = egreso, otros = según el tipo
-        $movementType = 'income';
-        if ($transaction->type === 'refund') {
-            $movementType = 'expense';
-        } elseif ($transaction->type === 'payment') {
-            $movementType = 'income';
-        } else {
-            // Para 'discount' y 'adjustment', considerar como egreso
-            $movementType = 'expense';
-        }
+        $movementType = $this->movementTypeFor($transaction->type);
 
         return CashMovement::create([
             'cash_register_session_id' => $session->id,
@@ -378,14 +383,7 @@ class TransactionService
      */
     private function createVoidCashMovement(Transaction $transaction): void
     {
-        // Revertir el tipo: si era 'payment' (ingreso), crear movimiento de egreso
-        // Si era 'refund' (egreso), crear movimiento de ingreso
-        $movementType = 'expense';
-        if ($transaction->type === 'refund') {
-            $movementType = 'income';
-        } elseif ($transaction->type === 'payment') {
-            $movementType = 'expense';
-        }
+        $movementType = $this->movementTypeFor($transaction->type) === 'income' ? 'expense' : 'income';
 
         \App\Models\CashMovement::create([
             'cash_register_session_id' => $transaction->cash_register_session_id,

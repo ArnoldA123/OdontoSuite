@@ -113,12 +113,12 @@ resources/js/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
-  modules/                 # 17 módulos de dominio (ver §5)
+  modules/                 # 18 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 113 migraciones
+  migrations/              # 114 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 200 rutas API (medido con php artisan route:list --json: uris api/…; 213 totales con web)
+  api.php                  # 202 rutas API (medido con php artisan route:list --json: uris api/…; 215 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -142,29 +142,30 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (17 módulos, 19 páginas)
+## 5. Módulos del frontend (18 módulos, 20 páginas)
 
-| Módulo                   | Ruta                        | Roles                            |
-| ------------------------ | --------------------------- | -------------------------------- |
-| Dashboard                | `/dashboard`                | todos                            |
-| Calendario               | `/calendar`                 | todos los clínicos               |
-| Pacientes                | `/patients`                 | todos                            |
-| Profesionales            | `/professionals`            | admin                            |
-| Ambientes                | `/environments`             | admin                            |
-| Tipos de cita            | `/appointment-types`        | admin                            |
-| Sucursales               | `/settings/branches`        | admin                            |
-| Métodos de pago          | `/settings/payment-methods` | admin                            |
-| Caja                     | `/cash-register`            | admin, finanzas, recep           |
-| BI                       | `/business-intelligence`    | admin, finanzas                  |
-| Planes de tratamiento    | `/treatment-plans`          | clínicos                         |
-| Presupuestos             | `/quotations`               | admin, finanzas, odonto, implant |
-| Historias clínicas       | `/medical-records`          | clínicos                         |
-| Registros especialidad   | `/specialty-records`        | clínicos                         |
-| Análisis IA              | `/ai-analysis`              | clínicos                         |
-| Catálogo procedimientos  | `/procedure-catalog`        | admin                            |
-| Mis procedimientos       | `/my-procedures`            | clínicos (favoritos)             |
-| Recepción procedimientos | `/reception-procedures`     | recep                            |
-| Estadísticas catálogo    | `/procedure-stats`          | admin, finanzas                  |
+| Módulo                    | Ruta                        | Roles                            |
+| ------------------------- | --------------------------- | -------------------------------- |
+| Dashboard                 | `/dashboard`                | todos                            |
+| Calendario                | `/calendar`                 | todos los clínicos               |
+| Pacientes                 | `/patients`                 | todos                            |
+| Profesionales             | `/professionals`            | admin                            |
+| Ambientes                 | `/environments`             | admin                            |
+| Tipos de cita             | `/appointment-types`        | admin                            |
+| Especialidades (catálogo) | `/specialties`              | admin                            |
+| Sucursales                | `/settings/branches`        | admin                            |
+| Métodos de pago           | `/settings/payment-methods` | admin                            |
+| Caja                      | `/cash-register`            | admin, finanzas, recep           |
+| BI                        | `/business-intelligence`    | admin, finanzas                  |
+| Planes de tratamiento     | `/treatment-plans`          | clínicos                         |
+| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
+| Historias clínicas        | `/medical-records`          | clínicos                         |
+| Registros especialidad    | `/specialty-records`        | clínicos                         |
+| Análisis IA               | `/ai-analysis`              | clínicos                         |
+| Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
+| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
+| Recepción procedimientos  | `/reception-procedures`     | recep                            |
+| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                  |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -216,10 +217,14 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `php artisan test --configuration=phpunit.mysql.xml` contra un motor real
   (local: MySQL/MariaDB de XAMPP por socket; CI: service MySQL 8.0).
   `php artisan test` a secas (SQLite `:memory:`) no puede construir el esquema:
-  los tests con BD fallan ahí por diseño, no por regresión. **El número de
-  fallos no se cita aquí a propósito** (deriva con cada migración). Lo
-  ejecutable que fija esta declaración:
-  `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest`.
+  todo test que usa `RefreshDatabase`, `DatabaseMigrations`,
+  `DatabaseTruncation` o `DatabaseTransactions` se reporta como **skipped**, no
+  como failed, por `Tests\TestCase::setUpTraits()` vía
+  `Tests\Support\MysqlRunner` (#170), así que ese runner solo muestra
+  regresiones reales. **El número de fallos no se cita aquí a propósito**
+  (deriva con cada migración). Lo ejecutable que fija esta declaración:
+  `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest` y
+  `tests/Unit/Tooling/MysqlRunnerGateTest`.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con
   `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del
   dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007)
@@ -302,20 +307,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 8. Troubleshooting
 
-| Problema                                                | Solución                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                         |
-| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                        |
-| Tests fallan por DDL de SQLite                          | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6). Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql.                  |
-| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo). |
-| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                               |
-| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                     |
-| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                               |
-| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 14.                                                                                                                                                                                                                          |
-| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                            |
-| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                         |
-| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                              |
-| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                     |
+| Problema                                                | Solución                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                                                                               |
+| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                                                                              |
+| Tests con BD fallan por DDL de SQLite                   | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6) y, desde #170, esos tests se reportan como **skipped**, no como failed. Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql. |
+| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo).                                                       |
+| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                     |
+| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                           |
+| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                                     |
+| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 14.                                                                                                                                                                                                                                                                                |
+| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                  |
+| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                               |
+| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                    |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                           |
 
 ---
 
@@ -377,11 +382,111 @@ documentada y no bloquea producción.
   `/medical-records/{id}`), workspace del paciente con KPI strip, `UiTabs` y las
   cuatro superficies (historia general, evoluciones SOAP, adjuntos,
   estadísticas) reconstruidas sobre los campos que el backend valida. §4
-  sincronizado: 200 rutas API (añadidas `PUT` y
-  `DELETE /medical-records/evolutions/{evolution}`), 213 totales con web. Sin
+  sincronizado: 202 rutas API (añadidas `PUT` y
+  `DELETE /medical-records/evolutions/{evolution}`), 215 totales con web. Sin
   migraciones, modelos ni primitivas UI nuevas; `MedicalRecord::attachments()`
   declara el `HasManyThrough` que ya devolvía (el desajuste producía un 500 en
   `/stats`). Guard `scripts/audit/doc-drift.mjs` en verde.
+
+- **2026-10-20 (rediseño de la interfaz de Análisis IA)** — `/ai-analysis` pasa
+  al lenguaje de superficie del dashboard: hero band con el título en `<h2>`,
+  KPI strip no interactiva, filtros y paginación servidos por la API, tabla
+  sobre `UiDataTable` + `Pagination`, estados de carga/error con retry y vacío,
+  y motion con `prefers-reduced-motion`. El alta de análisis pasa a un `UiSheet`
+  con validación local (20 MB, solo imágenes) y el detalle/revisión se
+  reescribió con gate de permisos y confirmación de borrado. Backend:
+  `GET /api/ai-analysis` acepta `per_page` (1..100) y `search` por nombre de
+  paciente, ignora filtros vacíos, y `DELETE` de un id inexistente responde 404
+  (antes 500); las 500 del `AiImageAnalysisController` ya no exponen el mensaje
+  de la excepción. Corrige además el gate de `AiAnalysisButton.vue`, que llamaba
+  `can(...)` sobre el mapa de permisos. Sin rutas, migraciones ni primitivas UI
+  nuevas: los conteos de §4 no cambian y `scripts/audit/doc-drift.mjs` sigue en
+  verde.
+
+- **2026-10-20 (especialidades — catálogo maestro)** — Nueva interfaz admin en
+  `/specialties` para el maestro de especialidades, con el lenguaje del
+  dashboard (hero band, KPI strip, búsqueda y filtro de estado, `UiDataTable`,
+  estados de carga/error/vacío y modal de alta/edición). El backend suma de
+  forma aditiva `q`, `is_active`, `procedures_count`, `professionals_count` y
+  `meta.kpis` (población sin filtros) a `GET /api/specialties`, y conteos a
+  `GET /api/specialties/{id}`; sin rutas, migraciones, modelos ni controllers
+  nuevos. El `code` es inmutable en `PUT` (se descarta del payload, igual que en
+  métodos de pago). Las especialidades no se eliminan: se desactivan, porque
+  `procedure_catalog.specialty_id` y `user_specialties` las referencian. La
+  entrada clínica "Especialidades" (`/specialty-records`) no cambia; la nueva
+  entrada del sidebar se llama "Catálogo de Especialidades". §4 y §5
+  sincronizados: 18 módulos de dominio y 20 páginas; la feature no agrega rutas
+  API.
+- **2026-10-20 (presupuestos interface redesign)** — `/quotations` pasa a la
+  superficie del dashboard: hero band, KPI strip de cuatro tarjetas alimentado
+  por `GET /api/quotations/summary`, búsqueda `q` server-side (número, paciente,
+  documento) más estado (los 6 del enum) y rango de fechas, lista sobre
+  `UiDataTable` con badges de estado y vencimiento, y detalle / creación /
+  edición / aprobación / rechazo sobre `UiModal`, con estados skeleton, error y
+  vacío. Corrige el contrato del backend: `treatment_plan_id` pasa a nullable
+  (presupuesto manual), `approve` escribe las columnas reales de
+  `quotation_approvals` (`patient_id`, `approval_status`, `approval_date`,
+  `patient_notes`, `signature_data`) en vez de columnas inexistentes, y la
+  descarga del PDF deja de pedir un blob a `useApi.get`. Se retira
+  `QuotationCard.vue` (la tabla lo reemplaza) y se conserva
+  `QuotationStatusBadge.vue` para el detalle de planes de tratamiento. §4
+  sincronizado con valores medidos: 200 rutas API (nueva
+  `GET quotations/summary`) y 213 totales con web; 114 migraciones. Tests:
+  `QuotationIndexSummaryTest` (7, MySQL), `QuotationsRedesignContractTest` (10),
+  `quotationMeta.test.js` (8), `quotations-list.test.js` (4) y
+  `quotations-form.test.js` (2). Guard `scripts/audit/doc-drift.mjs` en verde.
+- **2026-10-20 (caja interface redesign)** — `/cash-register` pasa al lenguaje
+  del dashboard: hero band con estado de sesión, KPI strip permanente (Apertura
+  / Cobros / Egresos / Saldo esperado) y las cinco tabs sobre `UiDataTable`,
+  `UiFilterBar` y `UiPagination`, con estados de carga, error con retry y vacío.
+  `/cash-register/ready-to-bill` entra en `AppLayout` y usa las mismas
+  primitivas. Se arreglan los controles que no funcionaban: los cuatro modales
+  de sesión/transacción/movimiento pasan a `v-model`, "Nuevo movimiento" envía
+  el `concept` obligatorio, el Historial pagina y filtra contra el API, Cobros
+  paga con `pending-payments/{id}/pay` (actualiza el saldo de la cita) y
+  Reportes consume su propio payload de período. La aritmética de caja deja de
+  mezclar poblaciones: el ledger de movimientos es la fuente única de flujos
+  (`cash_in`, `cash_out`, `expected_amount`), las filas espejo de apertura y
+  cierre quedan fuera de la ecuación y el reporte de período suma
+  `total_income`/`total_expenses` y calcula el porcentaje de cada método sobre
+  el total del mix. Sin rutas, controladores, modelos ni migraciones nuevas: los
+  conteos de §4 no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+- **2026-10-20 (Business Intelligence: superficie + contrato de reportes v2)** —
+  `/business-intelligence` se rediseña sobre la receta del dashboard: hero band
+  con período aplicado, KPI strip, filtros compartidos y presets, selector de
+  corte de ingresos, `UiDataTable`, estados de carga/error/vacío y gráficos con
+  tokens y destrucción controlada. La página deja de consumir el canal público
+  `dashboard-updates` y refresca bajo demanda. Los servicios de reporte se
+  corrigen: una sola definición de ingresos (transacciones cobradas, no precio
+  de catálogo), atribución única por `appointment_id`, período inclusivo en
+  ambos extremos, disponibilidad por sillas activas y días hábiles reales,
+  contadores reales de canceladas/no-show, `meta.summary` en el reporte de
+  ingresos, export Excel/CSV/PDF honesto y errores 500 sin filtrar la excepción.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Follow-ups abiertos: canal privado por rol, devoluciones no neteadas
+  y retiro de la dependencia `maatwebsite/excel` (en desuso).
+- **2026-10-20 (treatment-plans-ui-redesign)** — Planes de tratamiento pasa al
+  lenguaje del dashboard en sus cuatro superficies (lista y kanban, modal de
+  alta/edición, detalle del plan y tarjetas/columnas/badge): hero band, tira de
+  cuatro KPIs, tarjeta de filtros con presets y estados de carga, error con
+  reintento y vacío compartido. Añade `GET /api/treatment-plans/summary` para
+  que los KPIs resuman la tabla completa y no la página visible, más los filtros
+  de índice `statuses` (lista) y `overdue`, que hacen funcionar los presets
+  Activos/Vencidos (antes enviaban `status=active|overdue` y nunca filtraban).
+  §4 sincronizado: 199 rutas API, 212 totales con web. Sin migraciones ni
+  primitivas UI nuevas. Tests: `TreatmentPlansSummaryTest`,
+  `TreatmentPlansIndexFiltersTest`, `TreatmentPlansAppShellTest` y smokes JS del
+  módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
+- **2026-10-20 (follow-ups #169/#170/#171 de citas)** — La ventana de lista de
+  espera se compara por fecha completa (`whereDate` en ambos bordes): un
+  `preferred_end_date` a medianoche cubre su día y el día de inicio cuenta
+  entero, sin migraciones (#169). Los tests que poseen o unen el esquema
+  (`RefreshDatabase`, `DatabaseMigrations`, `DatabaseTruncation`,
+  `DatabaseTransactions`) se saltan explícitamente con driver no-MySQL, vía
+  `Tests\TestCase::setUpTraits()` y `Tests\Support\MysqlRunner` (#170).
+  `AppointmentTimezonePersistenceTest` completa su matriz con el caso
+  naive-local de reprogramación (#171). Sin rutas, modelos, migraciones ni
+  primitivas UI nuevas: los conteos de §4 no cambian.
 
 - **2026-10-19 (recordatorios #154)** — `ReminderService::scheduleReminders()`
   deja de ser código muerto: `AppointmentService` agenda los recordatorios de

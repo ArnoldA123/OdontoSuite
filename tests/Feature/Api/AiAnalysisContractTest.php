@@ -1,0 +1,282 @@
+<?php
+
+namespace Tests\Feature\Api;
+
+use App\Models\AiImageAnalysis;
+use App\Models\ClinicalAttachment;
+use App\Models\Patient;
+use App\Models\User;
+use App\Services\AiImageAnalysisService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
+use Tests\TestCase;
+
+/**
+ * List contract for the AI analysis surface (slice T1, specs S5 and S7 of
+ * `odd/tasks/ai-analysis-interface-redesign.md`):
+ *  - `GET /api/ai-analysis` honours `per_page` (1..100) and `search`, and
+ *    ignores blank filter values while keeping the existing filters working.
+ *  - `DELETE /api/ai-analysis/{id}` answers 404 for an unknown id instead of 500.
+ *  - No controller 500 leaks the exception message in an `error` key.
+ */
+class AiAnalysisContractTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function clinician(): User
+    {
+        return User::factory()->create([
+            'role' => 'odontologo',
+            'is_active' => true,
+        ]);
+    }
+
+    protected function patient(string $firstName = 'Ana', string $lastName = 'Torres'): Patient
+    {
+        return Patient::factory()->create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    protected function analysis(Patient $patient, User $user, array $attributes = []): AiImageAnalysis
+    {
+        $attachment = ClinicalAttachment::factory()->create([
+            'patient_id' => $patient->id,
+            'created_by' => $user->id,
+        ]);
+
+        return AiImageAnalysis::create(array_merge([
+            'clinical_attachment_id' => $attachment->id,
+            'patient_id' => $patient->id,
+            'requested_by' => $user->id,
+            'status' => 'completed',
+            'findings' => [],
+            'recommendations' => [],
+            'confidence_score' => 72.5,
+        ], $attributes));
+    }
+
+    public function test_index_defaults_to_fifteen_items_per_page(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+
+        for ($i = 0; $i < 18; $i++) {
+            $this->analysis($patient, $user);
+        }
+
+        $response = $this->actingAs($user)->getJson('/api/ai-analysis');
+
+        $response->assertOk()
+            ->assertJsonCount(15, 'data')
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 15)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.total', 18);
+
+        $this->assertDatabaseCount('ai_image_analyses', 18);
+    }
+
+    public function test_index_honours_per_page_within_bounds(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+
+        for ($i = 0; $i < 18; $i++) {
+            $this->analysis($patient, $user);
+        }
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?per_page=5')
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('meta.per_page', 5)
+            ->assertJsonPath('meta.last_page', 4);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?per_page=1000')
+            ->assertOk()
+            ->assertJsonPath('meta.per_page', 100);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?per_page=0')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.per_page', 1)
+            ->assertJsonPath('meta.last_page', 18);
+
+        $this->assertDatabaseCount('ai_image_analyses', 18);
+    }
+
+    public function test_index_search_matches_patient_name_case_insensitively(): void
+    {
+        $user = $this->clinician();
+        $anaTorres = $this->analysis($this->patient('Ana', 'Torres'), $user);
+        $betoRuiz = $this->analysis($this->patient('Beto', 'Ruiz'), $user);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?search=ana')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $anaTorres->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?search=TORRES')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $anaTorres->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?search=ana%20torres')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $anaTorres->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?search=ruiz')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $betoRuiz->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?search=nobody')
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
+
+        $this->assertDatabaseCount('ai_image_analyses', 2);
+    }
+
+    public function test_index_ignores_blank_filter_values(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+        $this->analysis($patient, $user, ['status' => 'completed']);
+        $this->analysis($patient, $user, ['status' => 'pending']);
+        $this->analysis($patient, $user, ['status' => 'failed']);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?status=&reviewed=&patient_id=&date_from=&date_to=&search=&per_page=')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('meta.per_page', 15);
+
+        $this->assertDatabaseCount('ai_image_analyses', 3);
+    }
+
+    public function test_index_keeps_existing_filters_working(): void
+    {
+        $user = $this->clinician();
+        $firstPatient = $this->patient('Ana', 'Torres');
+        $secondPatient = $this->patient('Beto', 'Ruiz');
+
+        $this->analysis($firstPatient, $user, ['status' => 'completed', 'reviewed' => true]);
+        $this->analysis($firstPatient, $user, ['status' => 'failed']);
+        $this->analysis($secondPatient, $user, ['status' => 'completed']);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?status=failed')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.status', 'failed');
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?reviewed=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reviewed', true);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?patient_id='.$secondPatient->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.patient_id', $secondPatient->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?date_from=2999-01-01')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?date_to=1999-01-01')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        $this->assertDatabaseCount('ai_image_analyses', 3);
+    }
+
+    public function test_destroy_missing_analysis_returns_not_found_without_internals(): void
+    {
+        $user = $this->clinician();
+
+        $response = $this->actingAs($user)->deleteJson('/api/ai-analysis/999999');
+
+        $response->assertStatus(404)
+            ->assertJsonPath('message', 'Análisis no encontrado')
+            ->assertJsonMissingPath('error');
+
+        $this->assertStringNotContainsString('No query results', $response->getContent());
+    }
+
+    public function test_show_missing_analysis_returns_not_found_without_internals(): void
+    {
+        $user = $this->clinician();
+
+        $response = $this->actingAs($user)->getJson('/api/ai-analysis/999999');
+
+        $response->assertStatus(404)
+            ->assertJsonPath('message', 'Análisis no encontrado')
+            ->assertJsonMissingPath('error');
+
+        $this->assertStringNotContainsString('No query results', $response->getContent());
+    }
+
+    public function test_destroy_rejects_a_reviewed_analysis_and_keeps_it(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user, ['reviewed' => true]);
+
+        $this->actingAs($user)
+            ->deleteJson('/api/ai-analysis/'.$analysis->id)
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'No se puede eliminar un análisis que ya ha sido revisado');
+
+        $this->assertDatabaseHas('ai_image_analyses', ['id' => $analysis->id]);
+    }
+
+    public function test_destroy_removes_an_unreviewed_analysis(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->deleteJson('/api/ai-analysis/'.$analysis->id)
+            ->assertOk()
+            ->assertJsonPath('meta.message', 'Análisis eliminado exitosamente');
+
+        $this->assertDatabaseMissing('ai_image_analyses', ['id' => $analysis->id]);
+    }
+
+    public function test_server_errors_do_not_leak_the_exception_message(): void
+    {
+        $user = $this->clinician();
+
+        $this->mock(AiImageAnalysisService::class, function ($mock): void {
+            $mock->shouldReceive('getUsageStats')
+                ->andThrow(new RuntimeException('SQLSTATE[42000] access denied for user'));
+        });
+
+        $response = $this->actingAs($user)->getJson('/api/ai-analysis/stats');
+
+        $response->assertStatus(500)
+            ->assertJsonPath('message', 'Error al obtener estadísticas')
+            ->assertJsonMissingPath('error');
+
+        $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
+    }
+}

@@ -184,10 +184,12 @@ class QuotationService
             // Crear registro de aprobación
             QuotationApproval::create([
                 'quotation_id' => $id,
-                'approved_by' => Auth::id(),
+                'patient_id' => $quotation->patient_id,
+                'approval_status' => 'approved',
                 'approval_date' => now(),
-                'approval_notes' => $approvalData['notes'] ?? '',
-                'patient_signature' => $approvalData['patient_signature'] ?? null,
+                'approval_method' => 'manual',
+                'patient_notes' => $approvalData['notes'] ?? null,
+                'signature_data' => $approvalData['patient_signature'] ?? null,
             ]);
 
             $quotation->refresh();
@@ -284,6 +286,24 @@ class QuotationService
     {
         $query = Quotation::with(['patient', 'treatmentPlan', 'createdBy', 'items']);
 
+        if (! empty($filters['q'])) {
+            $term = trim((string) $filters['q']);
+
+            if ($term !== '') {
+                $like = '%'.$term.'%';
+
+                $query->where(function ($query) use ($like) {
+                    $query->where('quotation_number', 'like', $like)
+                        ->orWhereHas('patient', function ($patient) use ($like) {
+                            $patient->where('first_name', 'like', $like)
+                                ->orWhere('last_name', 'like', $like)
+                                ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$like])
+                                ->orWhere('document_number', 'like', $like);
+                        });
+                });
+            }
+        }
+
         if (isset($filters['patient_id'])) {
             $query->where('patient_id', $filters['patient_id']);
         }
@@ -317,5 +337,57 @@ class QuotationService
         }
 
         return $query->orderBy('quotation_date', 'desc')->paginate(15);
+    }
+
+    /**
+     * Aggregated counters for the KPI strip. Every status of the DB enum is
+     * present so the client never has to invent a zero.
+     *
+     * @return array<string, mixed>
+     */
+    public function summary(): array
+    {
+        $statuses = ['draft', 'sent', 'viewed', 'approved', 'rejected', 'expired'];
+
+        $byStatus = [];
+        foreach ($statuses as $status) {
+            $byStatus[$status] = ['count' => 0, 'amount' => 0.0];
+        }
+
+        $rows = Quotation::query()
+            ->selectRaw('status, COUNT(*) as total, COALESCE(SUM(total_amount), 0) as amount')
+            ->groupBy('status')
+            ->get();
+
+        foreach ($rows as $row) {
+            $byStatus[$row->status] = [
+                'count' => (int) $row->total,
+                'amount' => (float) $row->amount,
+            ];
+        }
+
+        $today = now()->toDateString();
+        $horizon = now()->addDays(7)->toDateString();
+
+        $expiringSoon = Quotation::query()
+            ->whereIn('status', ['sent', 'viewed'])
+            ->whereBetween('valid_until', [$today, $horizon])
+            ->count();
+
+        $overdue = Quotation::query()
+            ->whereIn('status', ['sent', 'viewed'])
+            ->where('valid_until', '<', $today)
+            ->count();
+
+        $total = array_sum(array_column($byStatus, 'count'));
+
+        return [
+            'total' => $total,
+            'by_status' => $byStatus,
+            'pending' => $byStatus['sent']['count'] + $byStatus['viewed']['count'],
+            'approved_total' => $byStatus['approved']['amount'],
+            'expiring_soon' => $expiringSoon,
+            'overdue' => $overdue,
+        ];
     }
 }

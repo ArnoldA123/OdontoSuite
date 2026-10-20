@@ -1,224 +1,248 @@
 <template>
-  <div class="modal-overlay" @click="$emit('close')">
-    <div class="modal-container" @click.stop>
-      <!-- Header -->
-      <div class="modal-header">
-        <div class="header-content">
-          <h2 class="modal-title">
-            <CpuChipIcon class="w-6 h-6 text-primary-600 mr-2" />
+  <UiModal model-value size="xl" @close="emit('close')">
+    <template #header>
+      <div class="flex w-full items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p
+            class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-theme-secondary"
+          >
+            <CpuChipIcon class="h-4 w-4" aria-hidden="true" />
             Análisis de IA
-          </h2>
-          <p class="modal-subtitle">
-            {{ analysis.patient?.full_name || 'Paciente' }} - {{ formatDate(analysis.created_at) }}
           </p>
+          <h2 data-ai-detail-patient class="mt-2 truncate text-2xl font-semibold text-label">
+            {{ patientName }}
+          </h2>
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              data-ai-detail-category
+              class="inline-flex items-center rounded-full bg-theme-surface px-2.5 py-0.5 text-xs font-medium text-theme-secondary"
+            >
+              {{ categoryLabel }}
+            </span>
+            <UiStatusPill
+              :status="analysis.status"
+              :variant="statusVariant"
+              size="sm"
+              data-ai-detail-status
+            >
+              {{ statusLabel }}
+            </UiStatusPill>
+          </div>
         </div>
-        <button class="close-btn" @click="$emit('close')">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
+        <UiButton
+          variant="ghost"
+          size="sm"
+          aria-label="Cerrar"
+          data-ai-detail-close
+          @click="emit('close')"
+        >
+          <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+        </UiButton>
+      </div>
+    </template>
+
+    <div data-ai-detail class="space-y-6">
+      <figure
+        class="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--color-hairline)]"
+      >
+        <img
+          v-if="hasImage"
+          data-ai-image
+          :src="imageUrl"
+          :alt="imageAlt"
+          class="max-h-[55vh] w-full bg-theme-surface object-contain"
+        />
+        <div
+          v-else
+          data-ai-image-fallback
+          class="flex min-h-[14rem] flex-col items-center justify-center gap-3 bg-theme-surface"
+        >
+          <PhotoIcon class="h-10 w-10 text-theme-secondary" aria-hidden="true" />
+          <p class="text-sm text-theme-secondary">Imagen no disponible</p>
+        </div>
+      </figure>
+
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section
+          data-ai-section="findings"
+          class="rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-theme-surface-elevated p-5 shadow-[var(--elevation-2)]"
+        >
+          <h3 class="text-lg font-semibold text-label">Hallazgos</h3>
+          <ul
+            v-if="findings.length"
+            class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-theme-primary"
+          >
+            <li v-for="(finding, index) in findings" :key="`finding-${index}`">
+              {{ finding }}
+            </li>
+          </ul>
+          <p v-else class="mt-3 text-sm text-theme-secondary">Sin hallazgos reportados.</p>
+        </section>
+
+        <section
+          data-ai-section="recommendations"
+          class="rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-theme-surface-elevated p-5 shadow-[var(--elevation-2)]"
+        >
+          <h3 class="text-lg font-semibold text-label">Recomendaciones</h3>
+          <ul
+            v-if="recommendations.length"
+            class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-theme-primary"
+          >
+            <li v-for="(recommendation, index) in recommendations" :key="`recommendation-${index}`">
+              {{ recommendation }}
+            </li>
+          </ul>
+          <p v-else class="mt-3 text-sm text-theme-secondary">Sin recomendaciones registradas.</p>
+        </section>
       </div>
 
-      <!-- Content -->
-      <div class="modal-content">
-        <div class="content-grid">
-          <!-- Image Section -->
-          <div class="image-section">
-            <div class="image-container">
-              <img
-                v-if="analysis.clinical_attachment?.file_path"
-                :src="getImageUrl(analysis.clinical_attachment.file_path)"
-                :alt="analysis.clinical_attachment.original_name"
-                class="analysis-image"
-              />
-              <div v-else class="no-image">
-                <PhotoIcon class="w-16 h-16 text-theme-secondary" />
-                <p class="no-image-text">Imagen no disponible</p>
-              </div>
-            </div>
-
-            <div class="image-info">
-              <h4 class="info-title">Información de la Imagen</h4>
-              <div class="info-grid">
-                <div class="info-item">
-                  <span class="info-label">Archivo:</span>
-                  <span class="info-value">
-                    {{ analysis.clinical_attachment?.original_name || 'N/A' }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Tipo:</span>
-                  <span class="info-value">
-                    {{ analysis.clinical_attachment?.category || 'N/A' }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Modelo IA:</span>
-                  <span class="info-value">{{ analysis.model_used }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Confianza General:</span>
-                  <span
-                    class="confidence-score"
-                    :class="getConfidenceClass(analysis.confidence_score)"
-                  >
-                    {{ analysis.confidence_score }}%
-                  </span>
-                </div>
-              </div>
-            </div>
+      <section
+        data-ai-section="metadata"
+        class="rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-theme-surface-elevated p-5 shadow-[var(--elevation-2)]"
+      >
+        <h3 class="text-lg font-semibold text-label">Metadatos</h3>
+        <dl class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Confianza
+            </dt>
+            <dd data-ai-confidence class="mt-1 text-sm font-medium text-theme-primary tabular-nums">
+              <template v-if="hasConfidence">
+                {{ confidenceScore }}%
+                <span class="font-normal text-theme-secondary">· {{ confidenceLabel }}</span>
+              </template>
+              <template v-else>—</template>
+            </dd>
           </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Modelo</dt>
+            <dd data-ai-meta="model" class="mt-1 text-sm text-theme-primary">{{ modelUsed }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Tokens</dt>
+            <dd data-ai-meta="tokens" class="mt-1 text-sm text-theme-primary tabular-nums">
+              {{ tokensUsed }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Fecha</dt>
+            <dd data-ai-meta="date" class="mt-1 text-sm text-theme-primary tabular-nums">
+              {{ createdAt }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Solicitado por
+            </dt>
+            <dd data-ai-meta="requested-by" class="mt-1 text-sm text-theme-primary">
+              {{ requestedByName }}
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-          <!-- Analysis Section -->
-          <div class="analysis-section">
-            <!-- Status -->
-            <div class="status-section">
-              <div class="status-header">
-                <h3 class="section-title">Estado del Análisis</h3>
-                <span class="status-badge" :class="getStatusClass(analysis.status)">
-                  {{ getStatusLabel(analysis.status) }}
-                </span>
-              </div>
+      <section
+        data-ai-review
+        class="rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-theme-surface-elevated p-5 shadow-[var(--elevation-2)]"
+      >
+        <h3 class="text-lg font-semibold text-label">Revisión</h3>
 
-              <div v-if="analysis.status === 'processing'" class="processing-info">
-                <div class="processing-spinner" />
-                <p class="processing-text">Procesando imagen con IA...</p>
-              </div>
-            </div>
-
-            <!-- Findings -->
-            <div v-if="analysis.findings && analysis.findings.length > 0" class="findings-section">
-              <h3 class="section-title">Hallazgos Clínicos</h3>
-              <div class="findings-list">
-                <div
-                  v-for="(finding, index) in analysis.findings"
-                  :key="index"
-                  class="finding-card"
-                >
-                  <div class="finding-header">
-                    <h4 class="finding-diagnosis">
-                      {{ finding.diagnosis }}
-                    </h4>
-                    <div class="finding-meta">
-                      <span
-                        class="confidence-badge"
-                        :class="getConfidenceClass(finding.confidence)"
-                      >
-                        {{ finding.confidence }}%
-                      </span>
-                      <span class="severity-badge" :class="getSeverityClass(finding.severity)">
-                        {{ getSeverityLabel(finding.severity) }}
-                      </span>
-                    </div>
-                  </div>
-                  <div class="finding-details">
-                    <p class="finding-location">
-                      <MapPinIcon class="w-4 h-4 mr-1" />
-                      {{ finding.location }}
-                    </p>
-                    <p class="finding-description">
-                      {{ finding.description }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Recommendations -->
-            <div
-              v-if="analysis.recommendations && analysis.recommendations.length > 0"
-              class="recommendations-section"
+        <div
+          v-if="analysis.reviewed"
+          data-ai-review-outcome
+          class="mt-3 rounded-[var(--radius-control)] bg-theme-surface p-4"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-theme-primary">Decisión</span>
+            <span
+              data-ai-review-decision-label
+              class="inline-flex items-center rounded-full bg-theme-surface-elevated px-2.5 py-0.5 text-xs font-medium text-theme-primary"
             >
-              <h3 class="section-title">Recomendaciones de Tratamiento</h3>
-              <ul class="recommendations-list">
-                <li
-                  v-for="(recommendation, index) in analysis.recommendations"
-                  :key="index"
-                  class="recommendation-item"
-                >
-                  <CheckCircleIcon class="w-5 h-5 text-green-600 mr-2 flex-shrink-0" />
-                  {{ recommendation }}
-                </li>
-              </ul>
-            </div>
-
-            <!-- Review Section -->
-            <div v-if="analysis.reviewed" class="review-section">
-              <h3 class="section-title">Revisión del Odontólogo</h3>
-              <div class="review-content">
-                <div class="review-decision">
-                  <span class="decision-label">Decisión:</span>
-                  <span
-                    class="decision-badge"
-                    :class="getReviewDecisionClass(analysis.review_decision)"
-                  >
-                    {{ getReviewDecisionLabel(analysis.review_decision) }}
-                  </span>
-                </div>
-                <div class="review-meta">
-                  <span class="reviewer">
-                    Revisado por: {{ analysis.reviewed_by?.name || 'N/A' }}
-                  </span>
-                  <span class="review-date">{{ formatDate(analysis.reviewed_at) }}</span>
-                </div>
-                <div v-if="analysis.review_notes" class="review-notes">
-                  <h4 class="notes-title">Notas del Odontólogo:</h4>
-                  <p class="notes-content">
-                    {{ analysis.review_notes }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Review Form (if not reviewed) -->
-            <div v-if="!analysis.reviewed && analysis.status === 'completed'" class="review-form">
-              <h3 class="section-title">Revisar Análisis</h3>
-              <form class="form" @submit.prevent="submitReview">
-                <div class="form-group">
-                  <label class="form-label">Decisión</label>
-                  <select v-model="reviewForm.decision" class="form-select" required>
-                    <option value="">Seleccionar decisión</option>
-                    <option value="accepted">Aceptar hallazgos</option>
-                    <option value="rejected">Rechazar hallazgos</option>
-                    <option value="partial">Aceptar parcialmente</option>
-                  </select>
-                </div>
-
-                <div class="form-group">
-                  <label class="form-label">Notas (opcional)</label>
-                  <textarea
-                    v-model="reviewForm.notes"
-                    class="form-textarea"
-                    rows="3"
-                    placeholder="Agregar comentarios sobre el análisis..."
-                  />
-                </div>
-
-                <div class="form-actions">
-                  <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                    Cancelar
-                  </button>
-                  <button type="submit" class="btn btn-primary" :disabled="!reviewForm.decision">
-                    Guardar Revisión
-                  </button>
-                </div>
-              </form>
-            </div>
+              {{ reviewDecisionLabel }}
+            </span>
+          </div>
+          <p data-ai-review-notes-value class="mt-3 text-sm text-theme-primary">
+            {{ reviewNotesText }}
+          </p>
+          <div
+            class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-theme-secondary"
+          >
+            <span data-ai-review-reviewer>{{ reviewerName }}</span>
+            <span data-ai-review-date class="tabular-nums">{{ reviewedAt }}</span>
           </div>
         </div>
+
+        <form
+          v-else-if="canReview"
+          data-ai-review-form
+          class="mt-3 space-y-4"
+          @submit.prevent="submitReview"
+        >
+          <div>
+            <label class="mb-1 block text-sm font-medium text-theme-primary">Decisión</label>
+            <UiSelect
+              v-model="reviewForm.decision"
+              :options="decisionOptions"
+              label="Decisión"
+              placeholder="Selecciona una decisión"
+              data-ai-review-decision
+            />
+          </div>
+          <div>
+            <div class="mb-1 flex items-center justify-between">
+              <label class="text-sm font-medium text-theme-primary">Notas de revisión</label>
+              <span data-ai-review-notes-count class="text-xs text-theme-secondary tabular-nums">
+                {{ reviewForm.notes.length }} / 1000
+              </span>
+            </div>
+            <UiTextarea
+              v-model="reviewForm.notes"
+              :rows="3"
+              maxlength="1000"
+              placeholder="Observaciones sobre el análisis"
+              data-ai-review-notes
+            />
+          </div>
+          <div class="flex justify-end">
+            <UiButton
+              type="submit"
+              variant="primary"
+              size="md"
+              :disabled="!reviewForm.decision"
+              data-ai-review-submit
+            >
+              Guardar revisión
+            </UiButton>
+          </div>
+        </form>
+
+        <p v-else data-ai-review-denied class="mt-3 text-sm text-theme-secondary">
+          No tienes permiso para revisar este análisis.
+        </p>
+      </section>
+
+      <div v-if="showDelete" class="flex justify-end">
+        <UiButton variant="danger" size="sm" data-ai-delete @click="requestDelete">
+          <template #icon-left>
+            <TrashIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Eliminar
+        </UiButton>
       </div>
     </div>
-  </div>
+  </UiModal>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
-import { useAiAnalysis } from '@/composables/useAiAnalysis'
-import {
-  CpuChipIcon,
-  XMarkIcon,
-  PhotoIcon,
-  MapPinIcon,
-  CheckCircleIcon
-} from '@heroicons/vue/24/outline'
+import { computed, reactive } from 'vue'
+import { CpuChipIcon, PhotoIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { useConfirm } from '../../../composables/useConfirm'
+import { usePermissions } from '../../../composables/usePermissions'
+import UiButton from '../../../components/ui/Button.vue'
+import UiModal from '../../../components/ui/Modal.vue'
+import UiSelect from '../../../components/ui/Select.vue'
+import UiStatusPill from '../../../components/ui/StatusPill.vue'
+import UiTextarea from '../../../components/ui/UiTextarea.vue'
 
 const props = defineProps({
   analysis: {
@@ -227,303 +251,142 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'review'])
+const emit = defineEmits(['close', 'review', 'delete'])
 
-const { getStatusLabel, getReviewDecisionLabel, formatDate } = useAiAnalysis()
+const { can } = usePermissions()
+const { confirm } = useConfirm()
 
-// Review form
+const CATEGORY_LABELS = {
+  radiografia: 'Radiografía',
+  foto_clinica: 'Foto clínica'
+}
+
+const STATUS_LABELS = {
+  pending: 'Pendiente',
+  processing: 'Procesando',
+  completed: 'Completado',
+  failed: 'Fallido'
+}
+
+const STATUS_VARIANTS = {
+  pending: 'warning',
+  processing: 'info',
+  completed: 'success',
+  failed: 'error'
+}
+
+const REVIEW_DECISION_LABELS = {
+  accepted: 'Aceptado',
+  rejected: 'Rechazado',
+  partial: 'Parcial'
+}
+
+const decisionOptions = [
+  { value: '', label: 'Selecciona una decisión' },
+  { value: 'accepted', label: 'Aceptado' },
+  { value: 'rejected', label: 'Rechazado' },
+  { value: 'partial', label: 'Parcial' }
+]
+
 const reviewForm = reactive({
   decision: '',
   notes: ''
 })
 
-// Methods
-const getImageUrl = filePath => {
-  return `/storage/${filePath}`
-}
+const canReview = computed(() => Boolean(can['ai-analysis.review']?.value))
+const canDelete = computed(() => Boolean(can['ai-analysis.delete']?.value))
 
-const getStatusClass = status => {
-  const classes = {
-    pending: 'bg-warning-100 text-warning-700',
-    processing: 'bg-primary-100 text-primary-800',
-    completed: 'bg-success-100 text-success-700',
-    failed: 'bg-error-100 text-error-700'
+const attachment = computed(() => props.analysis.clinical_attachment ?? null)
+const patientName = computed(() => {
+  const { patient } = props.analysis ?? {}
+
+  if (!patient) return 'Paciente no disponible'
+  if (patient.full_name) return patient.full_name
+
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ')
+
+  return composed || 'Paciente no disponible'
+})
+const categoryLabel = computed(() => CATEGORY_LABELS[attachment.value?.category] || '—')
+const hasImage = computed(() => Boolean(attachment.value?.file_path))
+const imageUrl = computed(() => `/storage/${attachment.value.file_path}`)
+const imageAlt = computed(() => attachment.value?.original_name || 'Imagen del análisis')
+
+const statusLabel = computed(
+  () => STATUS_LABELS[props.analysis.status] || props.analysis.status || '—'
+)
+const statusVariant = computed(() => STATUS_VARIANTS[props.analysis.status] || 'neutral')
+
+const toText = item => {
+  if (item === null || item === undefined) return ''
+  if (typeof item === 'string') return item.trim()
+  if (typeof item === 'object') {
+    return String(item.description || item.finding || item.text || '').trim()
   }
-  return classes[status] || 'bg-theme-surface text-theme-secondary'
+  return String(item).trim()
 }
 
-const getConfidenceClass = confidence => {
-  if (confidence >= 90) return 'bg-success-100 text-success-700'
-  if (confidence >= 70) return 'bg-warning-100 text-warning-700'
-  return 'bg-error-100 text-error-700'
+const toTextList = value => (Array.isArray(value) ? value.map(toText).filter(Boolean) : [])
+
+const findings = computed(() => toTextList(props.analysis.findings))
+const recommendations = computed(() => toTextList(props.analysis.recommendations))
+
+const hasConfidence = computed(() => {
+  const score = props.analysis.confidence_score
+  return score !== null && score !== undefined && score !== ''
+})
+const confidenceScore = computed(() => props.analysis.confidence_score)
+const confidenceLabel = computed(() => {
+  const score = Number(props.analysis.confidence_score)
+  if (Number.isNaN(score)) return ''
+  if (score >= 90) return 'Alta'
+  if (score >= 70) return 'Media'
+  return 'Baja'
+})
+
+const modelUsed = computed(() => props.analysis.model_used || '—')
+const tokensUsed = computed(() => {
+  const tokens = props.analysis.tokens_used
+  return tokens === null || tokens === undefined || tokens === '' ? '—' : tokens
+})
+const requestedByName = computed(() => props.analysis.requested_by?.name || '—')
+
+const dateFormatter = new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit'
+})
+
+const formatDate = value => {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
 }
 
-const getSeverityClass = severity => {
-  const classes = {
-    leve: 'bg-success-100 text-success-700',
-    moderado: 'bg-warning-100 text-warning-700',
-    severo: 'bg-error-100 text-error-700'
-  }
-  return classes[severity] || 'bg-theme-surface text-theme-secondary'
-}
+const createdAt = computed(() => formatDate(props.analysis.created_at))
+const reviewedAt = computed(() => formatDate(props.analysis.reviewed_at))
+const reviewDecisionLabel = computed(
+  () => REVIEW_DECISION_LABELS[props.analysis.review_decision] || '—'
+)
+const reviewNotesText = computed(() => props.analysis.review_notes || 'Sin notas')
+const reviewerName = computed(() => props.analysis.reviewed_by?.name || '—')
 
-const getSeverityLabel = severity => {
-  const labels = {
-    leve: 'Leve',
-    moderado: 'Moderado',
-    severo: 'Severo'
-  }
-  return labels[severity] || severity
-}
-
-const getReviewDecisionClass = decision => {
-  const classes = {
-    accepted: 'bg-success-100 text-success-700',
-    rejected: 'bg-error-100 text-error-700',
-    partial: 'bg-warning-100 text-warning-700'
-  }
-  return classes[decision] || 'bg-theme-surface text-theme-secondary'
-}
+const showDelete = computed(() => !props.analysis.reviewed && canDelete.value)
 
 const submitReview = () => {
+  if (!reviewForm.decision) return
   emit('review', props.analysis.id, reviewForm.decision, reviewForm.notes)
 }
+
+const requestDelete = async () => {
+  const confirmed = await confirm({
+    title: 'Eliminar análisis',
+    message: '¿Estás seguro de que quieres eliminar este análisis?',
+    confirmText: 'Eliminar',
+    variant: 'danger'
+  })
+  if (confirmed) emit('delete', props.analysis.id)
+}
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-container {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.header-content {
-  @apply flex-1;
-}
-
-.modal-title {
-  @apply text-xl font-bold text-theme-primary flex items-center;
-}
-
-.modal-subtitle {
-  @apply text-theme-secondary mt-1;
-}
-
-.close-btn {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-content {
-  @apply p-6 overflow-y-auto max-h-[calc(90vh-120px)];
-}
-
-.content-grid {
-  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
-}
-
-.image-section {
-  @apply space-y-4;
-}
-
-.image-container {
-  @apply w-full h-64 bg-theme-surface rounded-lg overflow-hidden;
-}
-
-.analysis-image {
-  @apply w-full h-full object-cover;
-}
-
-.no-image {
-  @apply w-full h-full flex flex-col items-center justify-center;
-}
-
-.no-image-text {
-  @apply text-theme-secondary mt-2;
-}
-
-.image-info {
-  @apply bg-theme-surface rounded-lg p-4;
-}
-
-.info-title {
-  @apply text-lg font-medium text-theme-primary mb-3;
-}
-
-.info-grid {
-  @apply grid grid-cols-1 gap-2;
-}
-
-.info-item {
-  @apply flex justify-between items-center;
-}
-
-.info-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.info-value {
-  @apply text-sm text-theme-primary;
-}
-
-.confidence-score {
-  @apply px-2 py-1 text-sm font-medium rounded-full;
-}
-
-.analysis-section {
-  @apply space-y-6;
-}
-
-.status-section {
-  @apply bg-theme-surface rounded-lg p-4;
-}
-
-.status-header {
-  @apply flex items-center justify-between mb-2;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary;
-}
-
-.status-badge {
-  @apply px-3 py-1 text-sm font-medium rounded-full;
-}
-
-.processing-info {
-  @apply flex items-center space-x-3 mt-3;
-}
-
-.processing-spinner {
-  @apply animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600;
-}
-
-.processing-text {
-  @apply text-sm text-theme-secondary;
-}
-
-.findings-section,
-.recommendations-section,
-.review-section {
-  @apply space-y-4;
-}
-
-.findings-list {
-  @apply space-y-3;
-}
-
-.finding-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4;
-}
-
-.finding-header {
-  @apply flex items-center justify-between mb-2;
-}
-
-.finding-diagnosis {
-  @apply text-base font-medium text-theme-primary;
-}
-
-.finding-meta {
-  @apply flex items-center space-x-2;
-}
-
-.confidence-badge,
-.severity-badge {
-  @apply px-2 py-1 text-xs font-medium rounded-full;
-}
-
-.finding-details {
-  @apply space-y-2;
-}
-
-.finding-location {
-  @apply flex items-center text-sm text-theme-secondary;
-}
-
-.finding-description {
-  @apply text-sm text-theme-primary;
-}
-
-.recommendations-list {
-  @apply space-y-2;
-}
-
-.recommendation-item {
-  @apply flex items-start text-sm text-theme-primary;
-}
-
-.review-content {
-  @apply bg-primary-50 rounded-lg p-4 space-y-3;
-}
-
-.review-decision {
-  @apply flex items-center space-x-2;
-}
-
-.decision-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.decision-badge {
-  @apply px-2 py-1 text-sm font-medium rounded-full;
-}
-
-.review-meta {
-  @apply flex items-center justify-between text-sm text-theme-secondary;
-}
-
-.review-notes {
-  @apply space-y-2;
-}
-
-.notes-title {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.notes-content {
-  @apply text-sm text-theme-primary italic;
-}
-
-.review-form {
-  @apply bg-warning-50 rounded-lg p-4;
-}
-
-.form {
-  @apply space-y-4;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.form-select,
-.form-textarea {
-  @apply w-full px-3 py-2 border border-theme rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-actions {
-  @apply flex items-center justify-end space-x-3;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50;
-}
-
-.btn-secondary {
-  @apply bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated;
-}
-</style>

@@ -23,7 +23,8 @@ use Tests\TestCase;
  *  - 403 for roles outside the appointments group, 401 unauthenticated
  *  - the moved appointment never conflicts with its own previous slot
  *
- * Requires the MySQL runner (phpunit.mysql.xml) — see AGENTS.md §6 (decision #79).
+ * Needs a real schema, so Tests\TestCase skips it on any non-MySQL runner
+ * (issue #170); run it with phpunit.mysql.xml — see AGENTS.md §6 (decision #79).
  */
 class AppointmentRescheduleTest extends TestCase
 {

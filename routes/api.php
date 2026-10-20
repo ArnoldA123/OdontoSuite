@@ -230,6 +230,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Planes de tratamiento (clínicos y admin)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
+        Route::get('treatment-plans/summary', [TreatmentPlanController::class, 'summary']);
         Route::apiResource('treatment-plans', TreatmentPlanController::class);
         Route::post('treatment-plans/{id}/change-status', [TreatmentPlanController::class, 'changeStatus']);
         Route::post('treatment-plans/{id}/duplicate', [TreatmentPlanController::class, 'duplicate']);
@@ -241,6 +242,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // escritura reservada a clinicos, admin y finanzas.
     Route::middleware('role:administrador,finanzas,odontologo,implantologo,recepcionista')->group(function () {
         Route::get('quotations', [QuotationController::class, 'index']);
+        Route::get('quotations/summary', [QuotationController::class, 'summary']);
         Route::get('quotations/patient/{patientId}', [QuotationController::class, 'byPatient']);
         Route::get('quotations/{id}/pdf', [QuotationController::class, 'downloadPDF']);
         Route::get('quotations/{id}', [QuotationController::class, 'show']);
