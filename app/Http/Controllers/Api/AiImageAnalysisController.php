@@ -46,9 +46,13 @@ class AiImageAnalysisController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('AI analysis request failed', [
+                'attachment_id' => $attachmentId,
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al solicitar análisis',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -64,16 +68,23 @@ class AiImageAnalysisController extends Controller
                 'patient',
                 'requestedBy',
                 'reviewedBy',
-            ])->findOrFail($id);
+            ])->find($id);
+
+            if (! $analysis) {
+                return response()->json([
+                    'message' => 'Análisis no encontrado',
+                ], 404);
+            }
 
             return response()->json([
                 'data' => $analysis,
             ]);
         } catch (\Exception $e) {
+            Log::error('AI analysis lookup failed', ['id' => $id, 'exception' => $e]);
+
             return response()->json([
-                'message' => 'Análisis no encontrado',
-                'error' => $e->getMessage(),
-            ], 404);
+                'message' => 'Error al obtener análisis',
+            ], 500);
         }
     }
 
@@ -98,9 +109,13 @@ class AiImageAnalysisController extends Controller
                 'data' => $analysis,
             ]);
         } catch (\Exception $e) {
+            Log::error('AI analysis lookup by attachment failed', [
+                'attachment_id' => $attachmentId,
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener análisis',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -116,9 +131,13 @@ class AiImageAnalysisController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('AI analysis lookup by patient failed', [
+                'patient_id' => $patientId,
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener análisis del paciente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -147,9 +166,10 @@ class AiImageAnalysisController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('AI analysis review failed', ['id' => $id, 'exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al revisar análisis',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -165,9 +185,10 @@ class AiImageAnalysisController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('AI analysis pending lookup failed', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener análisis pendientes',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -185,9 +206,10 @@ class AiImageAnalysisController extends Controller
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
+            Log::error('AI analysis stats failed', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -205,32 +227,47 @@ class AiImageAnalysisController extends Controller
                 'reviewedBy',
             ]);
 
-            // Filtros
-            if ($request->has('status')) {
-                $query->where('status', $request->get('status'));
+            $status = $request->input('status');
+            if (is_string($status) && $status !== '') {
+                $query->where('status', $status);
             }
 
-            if ($request->has('reviewed')) {
+            if ($request->filled('reviewed')) {
                 $query->where('reviewed', $request->boolean('reviewed'));
             }
 
-            if ($request->has('patient_id')) {
-                $query->where('patient_id', $request->get('patient_id'));
+            if ($request->filled('patient_id')) {
+                $query->where('patient_id', (int) $request->input('patient_id'));
             }
 
-            if ($request->has('requested_by')) {
-                $query->where('requested_by', $request->get('requested_by'));
+            if ($request->filled('requested_by')) {
+                $query->where('requested_by', (int) $request->input('requested_by'));
             }
 
-            if ($request->has('date_from')) {
-                $query->whereDate('created_at', '>=', $request->get('date_from'));
+            $dateFrom = $request->input('date_from');
+            if (is_string($dateFrom) && $dateFrom !== '') {
+                $query->whereDate('created_at', '>=', $dateFrom);
             }
 
-            if ($request->has('date_to')) {
-                $query->whereDate('created_at', '<=', $request->get('date_to'));
+            $dateTo = $request->input('date_to');
+            if (is_string($dateTo) && $dateTo !== '') {
+                $query->whereDate('created_at', '<=', $dateTo);
             }
 
-            $analyses = $query->orderBy('created_at', 'desc')->paginate(15);
+            $search = $request->input('search');
+            if (is_string($search) && trim($search) !== '') {
+                $term = '%'.mb_substr(trim($search), 0, 100).'%';
+                $query->whereHas('patient', function ($patientQuery) use ($term) {
+                    $patientQuery->where('first_name', 'like', $term)
+                        ->orWhere('last_name', 'like', $term)
+                        ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", [$term]);
+                });
+            }
+
+            $perPage = $request->filled('per_page') ? (int) $request->input('per_page') : 15;
+            $perPage = max(1, min(100, $perPage));
+
+            $analyses = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
             return response()->json([
                 'data' => $analyses->items(),
@@ -242,9 +279,10 @@ class AiImageAnalysisController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('AI analysis index failed', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener análisis',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -255,7 +293,13 @@ class AiImageAnalysisController extends Controller
     public function destroy(int $id): JsonResponse
     {
         try {
-            $analysis = AiImageAnalysis::findOrFail($id);
+            $analysis = AiImageAnalysis::find($id);
+
+            if (! $analysis) {
+                return response()->json([
+                    'message' => 'Análisis no encontrado',
+                ], 404);
+            }
 
             // Solo permitir eliminar si no ha sido revisado
             if ($analysis->reviewed) {
@@ -272,9 +316,10 @@ class AiImageAnalysisController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('AI analysis delete failed', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al eliminar análisis',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -323,7 +368,6 @@ class AiImageAnalysisController extends Controller
 
             return response()->json([
                 'message' => 'Error al analizar la imagen.',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
