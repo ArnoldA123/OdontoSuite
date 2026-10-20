@@ -231,6 +231,34 @@ describe('ready-to-bill: list', () => {
     expect(lastListParams()).toMatchObject({ from: '2026-10-01', page: 1 })
   })
 
+  it('filters by patient through the patient lookup and clears it', async () => {
+    const FakeSelector = {
+      name: 'PatientSelector',
+      props: ['modelValue'],
+      emits: ['update:modelValue'],
+      template:
+        "<button data-fake-patient @click=\"$emit('update:modelValue', { id: 9, first_name: 'Ana', last_name: 'Torres' })\">Elegir paciente</button>"
+    }
+
+    await mountPage({
+      global: { stubs: { teleport: true, PatientSelector: FakeSelector } }
+    })
+
+    await wrapper.find('[data-filter-patient]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-fake-patient]').trigger('click')
+    await wrapper.find('[data-patient-apply]').trigger('click')
+    await flushPromises()
+
+    expect(lastListParams()).toMatchObject({ patient_id: 9, page: 1 })
+    expect(wrapper.find('[data-filter-patient]').text()).toContain('Ana Torres')
+
+    await wrapper.find('[data-filter-patient-clear]').trigger('click')
+    await flushPromises()
+
+    expect(lastListParams()).not.toHaveProperty('patient_id')
+  })
+
   it('replaces stale rows with an alert that retries the request', async () => {
     await mountPage()
     expect(wrapper.text()).toContain('Ana Torres')

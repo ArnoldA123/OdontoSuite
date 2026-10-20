@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, ExclamationTriangleIcon, UserIcon } from '@heroicons/vue/24/outline'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiDataTable from '@/components/ui/DataTable.vue'
@@ -9,6 +9,7 @@ import UiInput from '@/components/ui/Input.vue'
 import UiModal from '@/components/ui/Modal.vue'
 import UiPagination from '@/components/ui/Pagination.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import PatientSelector from '@/components/ui/PatientSelector.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import { useApi } from '@/composables/useApi'
 import { useToast } from '@/composables/useToast'
@@ -35,6 +36,9 @@ const error = ref('')
 const meta = ref({ ...DEFAULT_META })
 const currentPage = ref(1)
 const filters = ref({ from: '', to: '' })
+const patientFilter = ref(null)
+const patientDraft = ref(null)
+const patientPickerOpen = ref(false)
 
 const previewOpen = ref(false)
 const previewAppointmentId = ref(null)
@@ -57,6 +61,7 @@ const fetchRows = async () => {
   const params = { page: currentPage.value }
   if (filters.value.from) params.from = filters.value.from
   if (filters.value.to) params.to = filters.value.to
+  if (patientFilter.value?.id) params.patient_id = patientFilter.value.id
 
   try {
     const response = await get('/api/appointments/ready-to-bill', { params })
@@ -81,6 +86,38 @@ const handlePageChange = page => {
 
 const clearFilters = () => {
   filters.value = { from: '', to: '' }
+  patientFilter.value = null
+  currentPage.value = 1
+  fetchRows()
+}
+
+const patientFilterLabel = computed(() => {
+  const patient = patientFilter.value
+  if (!patient) return 'Todos los pacientes'
+
+  return (
+    [patient.first_name, patient.last_name].filter(Boolean).join(' ') ||
+    patient.name ||
+    'Paciente seleccionado'
+  )
+})
+
+const openPatientPicker = () => {
+  patientDraft.value = patientFilter.value
+  patientPickerOpen.value = true
+}
+
+const applyPatientFilter = () => {
+  patientFilter.value = patientDraft.value
+  patientPickerOpen.value = false
+  currentPage.value = 1
+  fetchRows()
+}
+
+const clearPatientFilter = () => {
+  patientFilter.value = null
+  currentPage.value = 1
+  fetchRows()
 }
 
 const loadPreview = async () => {
@@ -215,9 +252,31 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
-      <UiFilterBar :columns="3" data-rtb-filters>
+      <UiFilterBar :columns="4" data-rtb-filters>
         <UiInput v-model="filters.from" type="date" label="Desde" data-filter="from" />
         <UiInput v-model="filters.to" type="date" label="Hasta" data-filter="to" />
+        <div class="flex items-end gap-2">
+          <UiButton
+            variant="secondary"
+            class="w-full"
+            data-filter-patient
+            @click="openPatientPicker"
+          >
+            <template #icon-left>
+              <UserIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            {{ patientFilterLabel }}
+          </UiButton>
+          <UiButton
+            v-if="patientFilter"
+            variant="ghost"
+            size="sm"
+            data-filter-patient-clear
+            @click="clearPatientFilter"
+          >
+            Quitar
+          </UiButton>
+        </div>
         <div class="flex items-end">
           <UiButton variant="secondary" class="w-full" data-filter-clear @click="clearFilters">
             Limpiar filtros
@@ -434,5 +493,17 @@ onBeforeUnmount(() => {
         </ul>
       </div>
     </div>
+  </UiModal>
+
+  <UiModal v-model="patientPickerOpen" title="Filtrar por paciente" size="md">
+    <PatientSelector v-model="patientDraft" />
+    <template #footer>
+      <UiButton variant="secondary" data-patient-cancel @click="patientPickerOpen = false">
+        Cancelar
+      </UiButton>
+      <UiButton variant="primary" data-patient-apply @click="applyPatientFilter">
+        Aplicar filtro
+      </UiButton>
+    </template>
   </UiModal>
 </template>
