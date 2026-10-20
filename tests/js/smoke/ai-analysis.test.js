@@ -130,7 +130,15 @@ describe('ai-analysis page shell', () => {
       if (String(url).startsWith('/api/ai-analysis/stats')) {
         return { data: STATS }
       }
-      return listResponse([row(), row({ id: 2, reviewed: true, status: 'failed' })])
+      return listResponse([
+        row(),
+        row({
+          id: 2,
+          reviewed: true,
+          status: 'failed',
+          patient: { id: 8, first_name: 'Beto', last_name: 'Ruiz' }
+        })
+      ])
     })
 
     const wrapper = await mountPage()
@@ -138,6 +146,7 @@ describe('ai-analysis page shell', () => {
     const table = wrapper.find('[data-ai-table]')
     expect(table.exists()).toBe(true)
     expect(table.text()).toContain('Ana Torres')
+    expect(table.text()).toContain('Beto Ruiz')
     expect(table.text()).toContain('Radiografía')
     expect(table.text()).toContain('Completado')
     expect(table.text()).toContain('Sin revisar')

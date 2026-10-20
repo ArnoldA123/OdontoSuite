@@ -268,7 +268,7 @@
             </template>
             <template #cell-patient="{ row }">
               <span class="font-medium text-theme-primary">
-                {{ row.patient?.full_name || 'Paciente' }}
+                {{ patientName(row) }}
               </span>
             </template>
             <template #cell-category="{ row }">
@@ -520,6 +520,17 @@ const isPresetActive = presetId => {
   const preset = presets.find(item => item.id === presetId)
   if (!preset) return false
   return filters.value.status === preset.status && filters.value.reviewed === preset.reviewed
+}
+
+const patientName = row => {
+  const patient = row?.patient
+
+  if (!patient) return 'Paciente no disponible'
+  if (patient.full_name) return patient.full_name
+
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ')
+
+  return composed || 'Paciente no disponible'
 }
 
 const categoryLabel = row => {

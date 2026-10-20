@@ -306,4 +306,14 @@ describe('ai analysis detail hygiene', () => {
     expect(source).not.toContain('text-[11px]')
     expect(source).not.toContain('border-theme')
   })
+
+  it('composes the patient name when the payload omits full_name', () => {
+    const wrapper = mountModal({
+      patient: { id: 7, first_name: 'Ana', last_name: 'Torres' }
+    })
+
+    expect(wrapper.find('[data-ai-detail-patient]').text()).toBe('Ana Torres')
+
+    wrapper.unmount()
+  })
 })

@@ -1,5 +1,5 @@
 <template>
-  <UiModal model-value size="xl" data-ai-detail @close="emit('close')">
+  <UiModal model-value size="xl" @close="emit('close')">
     <template #header>
       <div class="flex w-full items-start justify-between gap-4">
         <div class="min-w-0">
@@ -41,7 +41,7 @@
       </div>
     </template>
 
-    <div class="space-y-6">
+    <div data-ai-detail class="space-y-6">
       <figure
         class="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--color-hairline)]"
       >
@@ -297,7 +297,16 @@ const canReview = computed(() => Boolean(can['ai-analysis.review']?.value))
 const canDelete = computed(() => Boolean(can['ai-analysis.delete']?.value))
 
 const attachment = computed(() => props.analysis.clinical_attachment ?? null)
-const patientName = computed(() => props.analysis.patient?.full_name || 'Paciente no disponible')
+const patientName = computed(() => {
+  const { patient } = props.analysis ?? {}
+
+  if (!patient) return 'Paciente no disponible'
+  if (patient.full_name) return patient.full_name
+
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ')
+
+  return composed || 'Paciente no disponible'
+})
 const categoryLabel = computed(() => CATEGORY_LABELS[attachment.value?.category] || '—')
 const hasImage = computed(() => Boolean(attachment.value?.file_path))
 const imageUrl = computed(() => `/storage/${attachment.value.file_path}`)
