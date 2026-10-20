@@ -100,6 +100,7 @@ class AppointmentService
                 $endsAt = $scheduledAt->copy()->addMinutes($duration);
 
                 $appointmentData = array_merge($data, [
+                    'scheduled_at' => $scheduledAt,
                     'created_by' => Auth::id(),
                     'updated_by' => Auth::id(),
                     'ends_at' => $endsAt,
@@ -223,6 +224,11 @@ class AppointmentService
             if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
                 $scheduledAt = Carbon::parse($data['scheduled_at'] ?? $appointment->scheduled_at)->setTimezone(config('app.timezone'));
                 $duration = $data['duration_minutes'] ?? $appointment->duration_minutes ?? 60;
+
+                if (isset($data['scheduled_at'])) {
+                    $data['scheduled_at'] = $scheduledAt;
+                }
+
                 $data['ends_at'] = $scheduledAt->copy()->addMinutes($duration);
             }
 
@@ -509,15 +515,21 @@ class AppointmentService
      */
     public function notifyWaitingList(Appointment $cancelledAppointment): void
     {
+        $slot = $cancelledAppointment->scheduled_at;
+
         $waitingListEntries = WaitingList::where('appointment_type_id', $cancelledAppointment->appointment_type_id)
             ->where('status', 'active')
             ->where(function ($query) use ($cancelledAppointment) {
                 $query->whereNull('preferred_user_id')
                     ->orWhere('preferred_user_id', $cancelledAppointment->user_id);
             })
-            ->where(function ($query) use ($cancelledAppointment) {
-                $query->whereNull('preferred_date')
-                    ->orWhere('preferred_date', $cancelledAppointment->scheduled_at->toDateString());
+            ->where(function ($query) use ($slot) {
+                $query->whereNull('preferred_start_date')
+                    ->orWhere('preferred_start_date', '<=', $slot);
+            })
+            ->where(function ($query) use ($slot) {
+                $query->whereNull('preferred_end_date')
+                    ->orWhere('preferred_end_date', '>=', $slot);
             })
             ->orderBy('priority')
             ->orderBy('created_at')
