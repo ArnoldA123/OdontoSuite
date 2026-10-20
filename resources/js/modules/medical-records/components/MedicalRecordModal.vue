@@ -1,159 +1,251 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2 class="modal-title">
-          {{ isEdit ? 'Editar Historia Clínica' : 'Nueva Historia Clínica' }}
-        </h2>
-        <button class="modal-close" @click="closeModal">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
-      </div>
+  <UiModal model-value :title="modalTitle" size="lg" @close="emit('close')">
+    <form
+      id="medical-record-form"
+      novalidate
+      class="space-y-6 text-theme-primary"
+      data-medical-record-form
+      @submit.prevent="onSubmit"
+    >
+      <fieldset class="space-y-3" data-form-section="patient-date">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Paciente y fecha
+        </legend>
 
-      <form class="modal-body" @submit.prevent="handleSubmit">
-        <div class="form-grid">
-          <!-- Información básica -->
-          <div class="form-section">
-            <h3 class="section-title">Información Básica</h3>
-
-            <div class="form-group">
-              <label class="form-label">Paciente *</label>
-              <PatientSelector
-                v-model="selectedPatient"
-                :error="errors.patient_id"
-                @patient-selected="handlePatientChange"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Título *</label>
-              <input
-                v-model="form.title"
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.title }"
-                placeholder="Ej: Historia clínica inicial"
-                required
-              />
-              <p v-if="errors.title" class="form-error">
-                {{ errors.title }}
-              </p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Descripción</label>
-              <textarea
-                v-model="form.description"
-                class="form-textarea"
-                rows="3"
-                placeholder="Descripción de la historia clínica..."
-              />
-            </div>
+        <div data-field="patient_id">
+          <div
+            v-if="patientLocked"
+            class="rounded-ios px-3 py-2"
+            style="border: 1px solid var(--color-hairline); background: var(--color-canvas)"
+            data-selected-patient
+          >
+            <p class="text-xs text-theme-secondary">Paciente</p>
+            <p class="text-sm font-semibold text-label">{{ selectedPatientLabel }}</p>
+            <p v-if="selectedPatientDocument" class="text-xs text-theme-secondary tabular-nums">
+              {{ selectedPatientDocument }}
+            </p>
           </div>
+          <PatientSelector v-else v-model="selectedPatient" @patient-selected="onPatientSelected" />
+          <p v-if="fieldError('patient_id')" class="mt-1 text-xs text-systemRed-700">
+            {{ fieldError('patient_id') }}
+          </p>
+        </div>
 
-          <!-- Información clínica -->
-          <div class="form-section">
-            <h3 class="section-title">Información Clínica</h3>
-
-            <div class="form-group">
-              <label class="form-label">Diagnóstico Principal</label>
-              <input
-                v-model="form.primary_diagnosis"
-                type="text"
-                class="form-input"
-                placeholder="Diagnóstico principal..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Diagnósticos Secundarios</label>
-              <textarea
-                v-model="form.secondary_diagnoses"
-                class="form-textarea"
-                rows="2"
-                placeholder="Diagnósticos secundarios..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Tratamiento</label>
-              <textarea
-                v-model="form.treatment"
-                class="form-textarea"
-                rows="3"
-                placeholder="Plan de tratamiento..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Medicamentos</label>
-              <textarea
-                v-model="form.medications"
-                class="form-textarea"
-                rows="2"
-                placeholder="Medicamentos prescritos..."
-              />
-            </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div data-field="first_visit_date">
+            <UiInput
+              v-model="form.first_visit_date"
+              type="date"
+              label="Primera visita"
+              :max="today"
+              :error="fieldError('first_visit_date')"
+              hint="La fecha no puede ser futura."
+            />
           </div>
+          <div data-field="record_number">
+            <UiInput
+              :model-value="recordNumberLabel"
+              label="Número de historia"
+              readonly
+              hint="El número lo genera el sistema al guardar."
+            />
+          </div>
+        </div>
 
-          <!-- Información adicional -->
-          <div class="form-section">
-            <h3 class="section-title">Información Adicional</h3>
+        <div data-field="chief_complaint">
+          <div class="flex items-baseline justify-between gap-3">
+            <label
+              for="medical-record-chief-complaint"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              Motivo de consulta
+            </label>
+            <span class="text-xs text-theme-secondary tabular-nums">
+              {{ fieldLength('chief_complaint') }}/{{ chiefComplaintField.max }}
+            </span>
+          </div>
+          <UiTextarea
+            id="medical-record-chief-complaint"
+            v-model="form.chief_complaint"
+            :rows="2"
+            :maxlength="chiefComplaintField.max"
+            :error="!!fieldError('chief_complaint')"
+            placeholder="Dolor, control, urgencia..."
+            aria-label="Motivo de consulta"
+          />
+          <p v-if="fieldError('chief_complaint')" class="mt-1 text-xs text-systemRed-700">
+            {{ fieldError('chief_complaint') }}
+          </p>
+        </div>
+      </fieldset>
 
-            <div class="form-group">
-              <label class="form-label">Alergias</label>
-              <input
-                v-model="form.allergies"
-                type="text"
-                class="form-input"
-                placeholder="Alergias conocidas..."
+      <fieldset class="space-y-3" data-form-section="history">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Antecedentes
+        </legend>
+        <div
+          v-for="field in antecedentFields"
+          :key="field.key"
+          :data-field="field.key"
+          class="space-y-1"
+        >
+          <div class="flex items-baseline justify-between gap-3">
+            <label
+              :for="`medical-record-${field.key}`"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              {{ field.label }}
+            </label>
+            <span class="text-xs text-theme-secondary tabular-nums">
+              {{ fieldLength(field.key) }}/{{ field.max }}
+            </span>
+          </div>
+          <UiTextarea
+            :id="`medical-record-${field.key}`"
+            v-model="form[field.key]"
+            :rows="field.rows"
+            :maxlength="field.max"
+            :error="!!fieldError(field.key)"
+            :placeholder="field.placeholder"
+            :aria-label="field.label"
+          />
+          <p v-if="fieldError(field.key)" class="text-xs text-systemRed-700">
+            {{ fieldError(field.key) }}
+          </p>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3" data-form-section="examination">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Examen y diagnóstico
+        </legend>
+
+        <div class="space-y-2" data-field-group="vital-signs">
+          <p class="text-sm font-medium text-theme-primary">Signos vitales</p>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div v-for="field in vitalSignFields" :key="field.key" :data-field="field.key">
+              <UiInput
+                v-model="form.vital_signs[field.key]"
+                :type="field.type"
+                :label="field.label"
+                :placeholder="field.placeholder"
+                :min="field.min"
+                :max="field.max"
+                :step="field.step"
+                :error="fieldError(`vital_signs.${field.key}`)"
               />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Antecedentes Médicos</label>
-              <textarea
-                v-model="form.medical_history"
-                class="form-textarea"
-                rows="2"
-                placeholder="Antecedentes médicos relevantes..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Notas Adicionales</label>
-              <textarea
-                v-model="form.notes"
-                class="form-textarea"
-                rows="3"
-                placeholder="Notas adicionales..."
-              />
+              <p v-if="field.suffix" class="text-xs text-theme-secondary">{{ field.suffix }}</p>
             </div>
           </div>
         </div>
-      </form>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
-          Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
-          <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Historia' }}
-        </button>
-      </div>
-    </div>
-  </div>
+        <div
+          v-for="field in examinationFields"
+          :key="field.key"
+          :data-field="field.key"
+          class="space-y-1"
+        >
+          <div class="flex items-baseline justify-between gap-3">
+            <label
+              :for="`medical-record-${field.key}`"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              {{ field.label }}
+            </label>
+            <span class="text-xs text-theme-secondary tabular-nums">
+              {{ fieldLength(field.key) }}/{{ field.max }}
+            </span>
+          </div>
+          <UiTextarea
+            :id="`medical-record-${field.key}`"
+            v-model="form[field.key]"
+            :rows="field.rows"
+            :maxlength="field.max"
+            :error="!!fieldError(field.key)"
+            :placeholder="field.placeholder"
+            :aria-label="field.label"
+          />
+          <p v-if="fieldError(field.key)" class="text-xs text-systemRed-700">
+            {{ fieldError(field.key) }}
+          </p>
+        </div>
+      </fieldset>
+
+      <fieldset class="space-y-3" data-form-section="notes">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Notas
+        </legend>
+        <div v-for="field in noteFields" :key="field.key" :data-field="field.key" class="space-y-1">
+          <div class="flex items-baseline justify-between gap-3">
+            <label
+              :for="`medical-record-${field.key}`"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              {{ field.label }}
+            </label>
+            <span class="text-xs text-theme-secondary tabular-nums">
+              {{ fieldLength(field.key) }}/{{ field.max }}
+            </span>
+          </div>
+          <UiTextarea
+            :id="`medical-record-${field.key}`"
+            v-model="form[field.key]"
+            :rows="field.rows"
+            :maxlength="field.max"
+            :error="!!fieldError(field.key)"
+            :placeholder="field.placeholder"
+            :aria-label="field.label"
+          />
+          <p v-if="fieldError(field.key)" class="text-xs text-systemRed-700">
+            {{ fieldError(field.key) }}
+          </p>
+        </div>
+      </fieldset>
+
+      <p
+        v-if="generalError"
+        role="alert"
+        data-modal-error
+        class="rounded-[var(--radius-panel)] p-3 text-sm text-systemRed-700 bg-systemRed-50"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        {{ generalError }}
+      </p>
+    </form>
+
+    <template #footer>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="saving"
+        data-modal-cancel
+        @click="emit('close')"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
+        {{ isEdit ? 'Actualizar' : 'Crear historia' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useMedicalRecords } from '@/composables/useMedicalRecords'
+import { computed, ref } from 'vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiButton from '@/components/ui/Button.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
-import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { useMedicalRecords } from '@/composables/useMedicalRecords'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   record: {
+    type: Object,
+    default: null
+  },
+  patient: {
     type: Object,
     default: null
   },
@@ -166,153 +258,362 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const { createRecord, updateRecord, loading } = useMedicalRecords()
+const toast = useToast()
 
-const selectedPatient = ref(null)
+const chiefComplaintField = {
+  key: 'chief_complaint',
+  max: 1000
+}
 
-const form = ref({
-  patient_id: '',
-  title: '',
-  description: '',
-  primary_diagnosis: '',
-  secondary_diagnoses: '',
-  treatment: '',
-  medications: '',
-  allergies: '',
-  medical_history: '',
-  notes: ''
+const antecedentFields = [
+  {
+    key: 'medical_history',
+    label: 'Antecedentes médicos',
+    max: 2000,
+    rows: 3,
+    placeholder: 'Enfermedades previas, hospitalizaciones, cirugías'
+  },
+  {
+    key: 'dental_history',
+    label: 'Antecedentes dentales',
+    max: 2000,
+    rows: 3,
+    placeholder: 'Tratamientos odontológicos previos'
+  },
+  {
+    key: 'allergies',
+    label: 'Alergias',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Medicamentos, materiales, látex'
+  },
+  {
+    key: 'medications',
+    label: 'Medicamentos',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Fármacos de uso actual'
+  },
+  {
+    key: 'systemic_conditions',
+    label: 'Condiciones sistémicas',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Diabetes, hipertensión, anticoagulación'
+  },
+  {
+    key: 'family_history',
+    label: 'Antecedentes familiares',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Enfermedades hereditarias relevantes'
+  },
+  {
+    key: 'social_history',
+    label: 'Antecedentes sociales',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Hábitos, ocupación, tabaquismo'
+  }
+]
+
+const examinationFields = [
+  {
+    key: 'clinical_examination',
+    label: 'Examen clínico',
+    max: 2000,
+    rows: 3,
+    placeholder: 'Hallazgos extraorales e intraorales'
+  },
+  {
+    key: 'diagnosis',
+    label: 'Diagnóstico',
+    max: 1000,
+    rows: 2,
+    placeholder: 'Diagnóstico presuntivo o definitivo'
+  },
+  {
+    key: 'treatment_plan',
+    label: 'Plan de tratamiento',
+    max: 2000,
+    rows: 3,
+    placeholder: 'Secuencia de tratamiento acordada'
+  }
+]
+
+const noteFields = [
+  {
+    key: 'notes',
+    label: 'Notas',
+    max: 1000,
+    rows: 3,
+    placeholder: 'Indicaciones y observaciones del equipo'
+  }
+]
+
+const vitalSignFields = [
+  { key: 'blood_pressure', label: 'Presión arterial', type: 'text', placeholder: '120/80' },
+  {
+    key: 'heart_rate',
+    label: 'Frecuencia cardíaca',
+    type: 'number',
+    placeholder: '72',
+    min: 30,
+    max: 200,
+    step: 1,
+    suffix: 'lpm'
+  },
+  {
+    key: 'temperature',
+    label: 'Temperatura',
+    type: 'number',
+    placeholder: '36.5',
+    min: 30,
+    max: 45,
+    step: 0.1,
+    suffix: '°C'
+  },
+  {
+    key: 'respiratory_rate',
+    label: 'Frecuencia respiratoria',
+    type: 'number',
+    placeholder: '16',
+    min: 8,
+    max: 40,
+    step: 1,
+    suffix: 'rpm'
+  }
+]
+
+const vitalSignRanges = [
+  { key: 'heart_rate', min: 30, max: 200, message: 'Entre 30 y 200 lpm' },
+  { key: 'temperature', min: 30, max: 45, message: 'Entre 30 y 45 °C' },
+  { key: 'respiratory_rate', min: 8, max: 40, message: 'Entre 8 y 40 rpm' }
+]
+
+const textFields = [chiefComplaintField, ...antecedentFields, ...examinationFields, ...noteFields]
+
+const localToday = () => {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+const today = localToday()
+
+const toDateInput = value => {
+  if (!value) return ''
+
+  const match = String(value).match(/^(\d{4}-\d{2}-\d{2})/)
+
+  return match ? match[1] : ''
+}
+
+const text = value => (value === null || value === undefined ? '' : String(value))
+
+const emptyVitalSigns = () => ({
+  blood_pressure: '',
+  heart_rate: '',
+  temperature: '',
+  respiratory_rate: ''
 })
 
+const toForm = record => ({
+  first_visit_date: toDateInput(record?.first_visit_date),
+  chief_complaint: text(record?.chief_complaint),
+  medical_history: text(record?.medical_history),
+  dental_history: text(record?.dental_history),
+  allergies: text(record?.allergies),
+  medications: text(record?.medications),
+  systemic_conditions: text(record?.systemic_conditions),
+  family_history: text(record?.family_history),
+  social_history: text(record?.social_history),
+  clinical_examination: text(record?.clinical_examination),
+  diagnosis: text(record?.diagnosis),
+  treatment_plan: text(record?.treatment_plan),
+  notes: text(record?.notes),
+  vital_signs: {
+    ...emptyVitalSigns(),
+    ...Object.fromEntries(
+      Object.entries(record?.vital_signs || {}).map(([key, value]) => [key, text(value)])
+    )
+  }
+})
+
+const form = ref(toForm(props.record))
+const selectedPatient = ref(props.patient || props.record?.patient || null)
 const errors = ref({})
+const generalError = ref('')
+const saving = ref(false)
 
-const handlePatientChange = patient => {
-  selectedPatient.value = patient
-  form.value.patient_id = patient?.id || ''
-}
+const modalTitle = computed(() =>
+  props.isEdit ? 'Editar historia clínica' : 'Nueva historia clínica'
+)
 
-const handleSubmit = async () => {
-  try {
-    errors.value = {}
+// Editing never re-assigns the patient (PUT does not accept `patient_id`), and
+// a create opened from the workspace already carries the selected patient.
+const patientLocked = computed(() => props.isEdit || !!props.patient)
 
-    // Validaciones básicas
-    if (!form.value.patient_id || form.value.patient_id === '') {
-      errors.value.patient_id = 'El paciente es obligatorio'
-      return
-    }
-    if (!form.value.title || form.value.title.trim() === '') {
-      errors.value.title = 'El título es obligatorio'
-      return
-    }
+const patientId = computed(
+  () => selectedPatient.value?.id ?? props.record?.patient_id ?? props.patient?.id ?? null
+)
 
-    if (props.isEdit) {
-      await updateRecord(props.record.id, form.value)
-    } else {
-      await createRecord(form.value)
-    }
+const selectedPatientLabel = computed(() => {
+  const patient = selectedPatient.value
 
-    emit('saved')
-  } catch (err) {
-    if (err.response?.data?.errors) {
-      errors.value = err.response.data.errors
-    }
-  }
-}
+  if (!patient) return 'Sin paciente'
 
-const closeModal = () => {
-  emit('close')
-}
-
-const initializeForm = () => {
-  if (props.record) {
-    form.value = {
-      patient_id: props.record.patient_id || '',
-      title: props.record.title || '',
-      description: props.record.description || '',
-      primary_diagnosis: props.record.primary_diagnosis || '',
-      secondary_diagnoses: props.record.secondary_diagnoses || '',
-      treatment: props.record.treatment || '',
-      medications: props.record.medications || '',
-      allergies: props.record.allergies || '',
-      medical_history: props.record.medical_history || '',
-      notes: props.record.notes || ''
-    }
-  }
-}
-
-onMounted(() => {
-  initializeForm()
+  return `${patient.first_name ?? ''} ${patient.last_name ?? ''}`.trim()
 })
+
+const selectedPatientDocument = computed(() => {
+  const document = selectedPatient.value?.document_number
+
+  return document ? `DNI ${document}` : ''
+})
+
+const recordNumberLabel = computed(() =>
+  props.record?.record_number ? props.record.record_number : 'Se asignará al guardar'
+)
+
+const fieldError = key => errors.value[key] || ''
+const fieldLength = key => text(form.value[key]).trim().length
+
+const onPatientSelected = patient => {
+  selectedPatient.value = patient
+
+  if (patient?.id) {
+    const next = { ...errors.value }
+    delete next.patient_id
+    errors.value = next
+  }
+}
+
+const validate = () => {
+  const next = {}
+
+  if (!props.isEdit && !patientId.value) {
+    next.patient_id = 'Selecciona un paciente'
+  }
+
+  if (form.value.first_visit_date && form.value.first_visit_date > today) {
+    next.first_visit_date = 'La fecha de primera visita no puede ser futura'
+  }
+
+  textFields.forEach(field => {
+    if (fieldLength(field.key) > field.max) {
+      next[field.key] = `Máximo ${field.max} caracteres`
+    }
+  })
+
+  if (text(form.value.vital_signs.blood_pressure).trim().length > 20) {
+    next['vital_signs.blood_pressure'] = 'Máximo 20 caracteres'
+  }
+
+  vitalSignRanges.forEach(field => {
+    const raw = form.value.vital_signs[field.key]
+
+    if (text(raw).trim() === '') return
+
+    const value = Number(raw)
+
+    if (!Number.isFinite(value) || value < field.min || value > field.max) {
+      next[`vital_signs.${field.key}`] = field.message
+    }
+  })
+
+  errors.value = next
+
+  return Object.keys(next).length === 0
+}
+
+const toNumberOrNull = value => {
+  if (text(value).trim() === '') return null
+
+  const parsed = Number(value)
+
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const buildVitalSigns = () => {
+  const signs = {
+    blood_pressure: text(form.value.vital_signs.blood_pressure).trim(),
+    heart_rate: toNumberOrNull(form.value.vital_signs.heart_rate),
+    temperature: toNumberOrNull(form.value.vital_signs.temperature),
+    respiratory_rate: toNumberOrNull(form.value.vital_signs.respiratory_rate)
+  }
+
+  const filled = Object.values(signs).some(value => value !== null && value !== '')
+
+  return filled ? signs : null
+}
+
+const trimmed = key => text(form.value[key]).trim()
+
+const buildPayload = () => {
+  const payload = {
+    first_visit_date: form.value.first_visit_date || null,
+    chief_complaint: trimmed('chief_complaint'),
+    medical_history: trimmed('medical_history'),
+    dental_history: trimmed('dental_history'),
+    allergies: trimmed('allergies'),
+    medications: trimmed('medications'),
+    systemic_conditions: trimmed('systemic_conditions'),
+    family_history: trimmed('family_history'),
+    social_history: trimmed('social_history'),
+    vital_signs: buildVitalSigns(),
+    clinical_examination: trimmed('clinical_examination'),
+    diagnosis: trimmed('diagnosis'),
+    treatment_plan: trimmed('treatment_plan'),
+    notes: trimmed('notes')
+  }
+
+  // `patient_id` belongs to the create contract only: PUT rejects it.
+  if (!props.isEdit) {
+    payload.patient_id = patientId.value
+  }
+
+  return payload
+}
+
+const applyServerErrors = bag => {
+  errors.value = Object.fromEntries(
+    Object.entries(bag).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value[0] : String(value)
+    ])
+  )
+}
+
+const onSubmit = async () => {
+  if (saving.value || loading.value) return
+
+  generalError.value = ''
+
+  if (!validate()) return
+
+  saving.value = true
+
+  try {
+    const saved = props.isEdit
+      ? await updateRecord(props.record.id, buildPayload())
+      : await createRecord(buildPayload())
+
+    toast.success(props.isEdit ? 'Historia clínica actualizada' : 'Historia clínica creada')
+    emit('saved', saved)
+  } catch (error) {
+    const serverErrors = error?.response?.data?.errors
+
+    if (serverErrors) {
+      applyServerErrors(serverErrors)
+    } else {
+      generalError.value =
+        error?.response?.data?.message || 'No se pudo guardar la historia clínica.'
+    }
+  } finally {
+    saving.value = false
+  }
+}
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.modal-close {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-body {
-  @apply p-6;
-}
-
-.form-grid {
-  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
-}
-
-.form-section {
-  @apply space-y-4;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary border-b border-theme pb-2;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-theme-primary;
-}
-
-.form-input {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-textarea {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-error {
-  @apply text-sm text-red-600;
-}
-
-.modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-</style>

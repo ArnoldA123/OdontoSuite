@@ -579,6 +579,13 @@ function matchesCanvasRoute(path) {
 
 const isCanvasRoute = computed(() => matchesCanvasRoute(route.path))
 
+// Detail routes (`/medical-records/12`) keep the module's nav item active and
+// the module's topbar title; an exact-match test left both on the shell
+// defaults. Same prefix rule as `matchesCanvasRoute`, without its frozen list.
+function isActiveNavPath(path, target) {
+  return path === target || path.startsWith(`${target}/`)
+}
+
 // Notifications
 const { getUnreadCount } = useNotifications()
 const unreadNotificationCount = computed(() => getUnreadCount.value)
@@ -965,10 +972,9 @@ const getNavItemClasses = item => {
     'hover:bg-theme-surface'
   ]
 
-  const active =
-    route.path === item.to
-      ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200', 'shadow-subtle']
-      : []
+  const active = isActiveNavPath(route.path, item.to)
+    ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200', 'shadow-subtle']
+    : []
 
   return [...base, ...active].join(' ')
 }
@@ -981,10 +987,9 @@ const getMobileNavItemClasses = item => {
     'hover:bg-theme-surface'
   ]
 
-  const active =
-    route.path === item.to
-      ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200']
-      : []
+  const active = isActiveNavPath(route.path, item.to)
+    ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200']
+    : []
 
   return [...base, ...active].join(' ')
 }
@@ -1014,7 +1019,7 @@ const getRoleLabel = role => {
 }
 
 const getPageTitle = () => {
-  const currentItem = navigation.value.find(item => item.to === route.path)
+  const currentItem = navigation.value.find(item => isActiveNavPath(route.path, item.to))
   return currentItem ? currentItem.name : 'OdontoSuite'
 }
 
@@ -1035,9 +1040,20 @@ const getPageDescription = () => {
     '/treatment-plans': 'Gestión de planes de tratamiento',
     '/quotations': 'Presupuestos y cotizaciones',
     '/medical-records': 'Historias clínicas de pacientes',
+    '/medical-records/': 'Historia clínica del paciente',
     '/specialty-records': 'Registros de especialidades odontológicas'
   }
-  return descriptions[route.path] || null
+  const exact = descriptions[route.path]
+
+  if (exact) return exact
+
+  // Keys ending in `/` describe a detail route (`/medical-records/12`); an
+  // exact-match lookup left the topbar subtitle empty there.
+  const prefix = Object.keys(descriptions).find(
+    key => key.endsWith('/') && route.path.startsWith(key)
+  )
+
+  return prefix ? descriptions[prefix] : null
 }
 
 // Sidebar functions

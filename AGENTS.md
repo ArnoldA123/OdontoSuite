@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 200 rutas API (medido con php artisan route:list --json: uris api/…; 213 totales con web)
+  api.php                  # 202 rutas API (medido con php artisan route:list --json: uris api/…; 215 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -375,6 +375,18 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
+  rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero
+  band con «Historias recientes» y deep links (`?patient_id=`,
+  `/medical-records/{id}`), workspace del paciente con KPI strip, `UiTabs` y las
+  cuatro superficies (historia general, evoluciones SOAP, adjuntos,
+  estadísticas) reconstruidas sobre los campos que el backend valida. §4
+  sincronizado: 202 rutas API (añadidas `PUT` y
+  `DELETE /medical-records/evolutions/{evolution}`), 215 totales con web. Sin
+  migraciones, modelos ni primitivas UI nuevas; `MedicalRecord::attachments()`
+  declara el `HasManyThrough` que ya devolvía (el desajuste producía un 500 en
+  `/stats`). Guard `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-20 (rediseño de la interfaz de Análisis IA)** — `/ai-analysis` pasa
   al lenguaje de superficie del dashboard: hero band con el título en `<h2>`,

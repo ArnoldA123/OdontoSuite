@@ -1,320 +1,229 @@
 <template>
-  <div class="medical-record-stats">
-    <div class="stats-header">
-      <h3 class="stats-title">Estadísticas de Historia Clínica</h3>
-    </div>
+  <div data-medical-record-stats class="space-y-6">
+    <LoadingSpinner v-if="loading" class="p-8" size="md" text="Cargando estadísticas..." />
 
-    <div class="stats-grid">
-      <!-- Total de evoluciones -->
-      <div class="stat-card">
-        <div class="stat-icon">
-          <ClockIcon class="w-8 h-8 text-accent" />
+    <UiSectionEmpty
+      v-else-if="!hasAnyData"
+      data-state="empty-stats"
+      motif
+      title="Sin actividad en esta historia"
+      description="Cuando se registren evoluciones, adjuntos o seguimientos, su detalle aparecerá aquí."
+    />
+
+    <template v-else>
+      <!-- Last evolution: the newest entry the backend aggregates by date. -->
+      <section data-stats-block="last-evolution" class="space-y-3">
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-lg font-semibold text-label">Última evolución</h2>
+          <p class="text-sm text-theme-secondary">La entrada más reciente de la historia</p>
         </div>
-        <div class="stat-content">
-          <div class="stat-value">
-            {{ stats.total_evolutions || 0 }}
+
+        <div v-if="lastEvolution" class="flex flex-col gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <p class="text-sm font-medium text-label" data-last-evolution-date>
+              {{ formatDate(lastEvolution.evolution_date) }}
+            </p>
+            <UiBadge
+              v-if="lastEvolution.specialty"
+              variant="neutral"
+              size="sm"
+              shape="pill"
+              data-last-evolution-specialty
+            >
+              {{ specialtyLabel(lastEvolution.specialty) }}
+            </UiBadge>
           </div>
-          <div class="stat-label">Evoluciones</div>
-        </div>
-      </div>
-
-      <!-- Archivos adjuntos -->
-      <div class="stat-card">
-        <div class="stat-icon">
-          <DocumentIcon class="w-8 h-8 text-green-600" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">
-            {{ stats.total_attachments || 0 }}
-          </div>
-          <div class="stat-label">Archivos</div>
-        </div>
-      </div>
-
-      <!-- Última actualización -->
-      <div class="stat-card">
-        <div class="stat-icon">
-          <CalendarIcon class="w-8 h-8 text-accent" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">
-            {{ formatLastUpdate(stats.last_updated) }}
-          </div>
-          <div class="stat-label">Última actualización</div>
-        </div>
-      </div>
-
-      <!-- Días desde creación -->
-      <div class="stat-card">
-        <div class="stat-icon">
-          <CalendarDaysIcon class="w-8 h-8 text-warning-600" />
-        </div>
-        <div class="stat-content">
-          <div class="stat-value">
-            {{ stats.days_since_creation || 0 }}
-          </div>
-          <div class="stat-label">Días activo</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráfico simple de evoluciones por mes -->
-    <div
-      v-if="stats.evolutions_by_month && stats.evolutions_by_month.length > 0"
-      class="chart-section"
-    >
-      <h4 class="chart-title">Evoluciones por Mes</h4>
-      <div class="chart-container">
-        <div class="chart-bars">
-          <div
-            v-for="(month, index) in stats.evolutions_by_month"
-            :key="index"
-            class="chart-bar"
-            :style="{ height: `${(month.count / maxEvolutions) * 100}%` }"
+          <p
+            v-if="assessmentExcerpt"
+            class="text-sm leading-relaxed text-theme-secondary"
+            data-last-evolution-assessment
           >
-            <div class="bar-value">
-              {{ month.count }}
-            </div>
-            <div class="bar-label">
-              {{ month.month }}
-            </div>
-          </div>
+            {{ assessmentExcerpt }}
+          </p>
+          <p v-else class="text-sm text-theme-secondary">
+            La evolución más reciente no registra evaluación.
+          </p>
         </div>
-      </div>
-    </div>
 
-    <!-- Resumen de archivos por tipo -->
-    <div
-      v-if="stats.attachments_by_type && stats.attachments_by_type.length > 0"
-      class="files-summary"
-    >
-      <h4 class="summary-title">Archivos por Tipo</h4>
-      <div class="files-grid">
-        <div v-for="type in stats.attachments_by_type" :key="type.type" class="file-type-item">
-          <div class="file-type-icon">
-            <DocumentIcon v-if="type.type === 'document'" class="w-5 h-5" />
-            <PhotoIcon v-else-if="type.type === 'image'" class="w-5 h-5" />
-            <DocumentTextIcon v-else-if="type.type === 'xray'" class="w-5 h-5" />
-            <DocumentIcon v-else class="w-5 h-5" />
-          </div>
-          <div class="file-type-info">
-            <div class="file-type-name">
-              {{ getFileTypeLabel(type.type) }}
-            </div>
-            <div class="file-type-count">{{ type.count }} archivos</div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <p v-else class="text-sm text-theme-secondary" data-last-evolution-empty>
+          Sin evoluciones registradas en esta historia.
+        </p>
+      </section>
 
-    <!-- Actividad reciente -->
-    <div v-if="stats.recent_activity && stats.recent_activity.length > 0" class="recent-activity">
-      <h4 class="activity-title">Actividad Reciente</h4>
-      <div class="activity-list">
-        <div v-for="activity in stats.recent_activity" :key="activity.id" class="activity-item">
-          <div class="activity-icon">
-            <ClockIcon v-if="activity.type === 'evolution'" class="w-4 h-4" />
-            <DocumentIcon v-else-if="activity.type === 'attachment'" class="w-4 h-4" />
-            <PencilIcon v-else class="w-4 h-4" />
-          </div>
-          <div class="activity-content">
-            <div class="activity-description">
-              {{ activity.description }}
-            </div>
-            <div class="activity-date">
-              {{ formatDate(activity.created_at) }}
-            </div>
-          </div>
+      <!-- Specialties: codes from the payload, never a count next to the chip. -->
+      <section data-stats-block="specialties" class="space-y-3 border-t border-hairline pt-5">
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-lg font-semibold text-label">Especialidades</h2>
+          <p class="text-sm text-theme-secondary">Las que aparecen en las evoluciones</p>
         </div>
-      </div>
-    </div>
+
+        <div v-if="specialtyChips.length > 0" class="flex flex-wrap gap-2" data-specialty-chips>
+          <UiBadge
+            v-for="specialty in specialtyChips"
+            :key="specialty.code"
+            variant="neutral"
+            size="sm"
+            shape="pill"
+            :data-specialty-chip="specialty.code"
+          >
+            {{ specialty.label }}
+          </UiBadge>
+        </div>
+        <p v-else class="text-sm text-theme-secondary">
+          Sin especialidades registradas en las evoluciones.
+        </p>
+      </section>
+
+      <!-- Attachment distribution: proportional bars, one per real category. -->
+      <section
+        data-stats-block="attachment-categories"
+        class="space-y-3 border-t border-hairline pt-5"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-lg font-semibold text-label">Distribución de adjuntos</h2>
+          <p class="text-sm text-theme-secondary">Cuántos archivos hay por categoría</p>
+        </div>
+
+        <ul v-if="attachmentBars.length > 0" class="flex flex-col gap-3" data-attachment-bars>
+          <li
+            v-for="bar in attachmentBars"
+            :key="bar.category"
+            class="flex flex-col gap-1.5"
+            :data-attachment-category="bar.category"
+          >
+            <div class="flex items-baseline justify-between gap-3">
+              <span class="text-sm font-medium text-label">{{ bar.label }}</span>
+              <span class="text-xs text-theme-secondary tabular-nums">{{ bar.count }}</span>
+            </div>
+            <div
+              class="h-2 w-full overflow-hidden rounded-full bg-theme-surface"
+              aria-hidden="true"
+            >
+              <div class="h-2 rounded-full bg-accent-500" :style="{ width: bar.width }" />
+            </div>
+          </li>
+        </ul>
+        <p v-else class="text-sm text-theme-secondary">
+          Sin adjuntos registrados en esta historia.
+        </p>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import {
-  ClockIcon,
-  DocumentIcon,
-  CalendarIcon,
-  CalendarDaysIcon,
-  PhotoIcon,
-  DocumentTextIcon,
-  PencilIcon
-} from '@heroicons/vue/24/outline'
+import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
+import UiBadge from '../../../components/ui/Badge.vue'
+import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
 
 const props = defineProps({
   stats: {
     type: Object,
-    default: () => ({})
+    default: null
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
-const maxEvolutions = computed(() => {
-  if (!props.stats.evolutions_by_month) return 1
-  return Math.max(...props.stats.evolutions_by_month.map(m => m.count), 1)
-})
-
-const getFileTypeLabel = type => {
-  const labels = {
-    image: 'Imágenes',
-    document: 'Documentos',
-    xray: 'Radiografías',
-    other: 'Otros'
-  }
-  return labels[type] || 'Archivos'
+const SPECIALTY_LABELS = {
+  odontologia_general: 'Odontología general',
+  implantologia: 'Implantología',
+  ortodoncia: 'Ortodoncia',
+  endodoncia: 'Endodoncia',
+  periodoncia: 'Periodoncia',
+  cirugia_oral: 'Cirugía oral',
+  rehabilitacion: 'Rehabilitación',
+  odontopediatria: 'Odontopediatría'
 }
 
-const formatDate = date => {
-  if (!date) return 'N/A'
-  return new Date(date).toLocaleDateString('es-ES', {
-    year: 'numeric',
+const CATEGORY_LABELS = {
+  radiografia: 'Radiografía',
+  foto_clinica: 'Foto clínica',
+  documento: 'Documento',
+  otro: 'Otro'
+}
+
+const totalRecords = computed(() => Number(props.stats?.total_records) || 0)
+const totalEvolutions = computed(() => Number(props.stats?.total_evolutions) || 0)
+const totalAttachments = computed(() => Number(props.stats?.total_attachments) || 0)
+const pendingFollowUps = computed(() => Number(props.stats?.pending_follow_ups) || 0)
+
+const hasAnyData = computed(
+  () =>
+    totalRecords.value > 0 ||
+    totalEvolutions.value > 0 ||
+    totalAttachments.value > 0 ||
+    pendingFollowUps.value > 0
+)
+
+const lastEvolution = computed(() => props.stats?.last_evolution || null)
+
+const assessmentExcerpt = computed(() => {
+  const assessment = String(lastEvolution.value?.assessment || '').trim()
+
+  if (!assessment) return ''
+
+  return assessment.length > 160 ? `${assessment.slice(0, 157).trimEnd()}...` : assessment
+})
+
+const specialtyLabel = code => SPECIALTY_LABELS[code] || String(code)
+
+const categoryLabel = category => CATEGORY_LABELS[category] || String(category)
+
+const specialtyChips = computed(() => {
+  const codes = Array.isArray(props.stats?.specialties_involved)
+    ? props.stats.specialties_involved
+    : []
+  const seen = new Set()
+
+  return codes
+    .filter(code => typeof code === 'string' && code.trim() !== '')
+    .filter(code => {
+      if (seen.has(code)) return false
+      seen.add(code)
+
+      return true
+    })
+    .map(code => ({ code, label: specialtyLabel(code) }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+})
+
+const attachmentBars = computed(() => {
+  const categories = props.stats?.attachment_categories
+
+  if (!categories || typeof categories !== 'object') return []
+
+  const entries = Object.entries(categories)
+    .map(([category, count]) => ({ category, count: Number(count) || 0 }))
+    .filter(entry => entry.count > 0)
+    .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category))
+  const max = entries.reduce((highest, entry) => Math.max(highest, entry.count), 0)
+
+  return entries.map(entry => ({
+    ...entry,
+    label: categoryLabel(entry.category),
+    width: max > 0 ? `${Math.round((entry.count / max) * 100)}%` : '0%'
+  }))
+})
+
+// Date-only payloads (YYYY-MM-DD) are read from their parts so a UTC parse
+// never shifts the day by one in a negative-offset timezone.
+const formatDate = value => {
+  if (!value) return 'Sin fecha'
+
+  const parts = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/)
+
+  if (!parts) return String(value)
+
+  const parsed = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]))
+
+  return parsed.toLocaleDateString('es-ES', {
+    day: '2-digit',
     month: 'short',
-    day: 'numeric'
+    year: 'numeric'
   })
 }
-
-const formatLastUpdate = date => {
-  if (!date) return 'N/A'
-  const now = new Date()
-  const lastUpdate = new Date(date)
-  const diffTime = Math.abs(now - lastUpdate)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 1) return 'Ayer'
-  if (diffDays < 7) return `${diffDays} días`
-  if (diffDays < 30) return `${Math.ceil(diffDays / 7)} semanas`
-  return `${Math.ceil(diffDays / 30)} meses`
-}
 </script>
-
-<style scoped>
-.medical-record-stats {
-  @apply space-y-6;
-}
-
-.stats-header {
-  @apply border-b border-theme pb-4;
-}
-
-.stats-title {
-  @apply text-lg font-medium text-theme-primary;
-}
-
-.stats-grid {
-  @apply grid grid-cols-2 lg:grid-cols-4 gap-4;
-}
-
-.stat-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4 flex items-center space-x-3;
-}
-
-.stat-icon {
-  @apply flex-shrink-0;
-}
-
-.stat-content {
-  @apply flex-1 min-w-0;
-}
-
-.stat-value {
-  @apply text-2xl font-bold text-theme-primary;
-}
-
-.stat-label {
-  @apply text-sm text-theme-secondary;
-}
-
-.chart-section {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-6;
-}
-
-.chart-title {
-  @apply text-lg font-medium text-theme-primary mb-4;
-}
-
-.chart-container {
-  @apply h-32;
-}
-
-.chart-bars {
-  @apply flex items-end justify-between h-full space-x-2;
-}
-
-.chart-bar {
-  @apply bg-primary-100 rounded-t flex-1 flex flex-col items-center justify-end relative;
-  min-height: 20px;
-}
-
-.bar-value {
-  @apply text-xs font-medium text-primary-700 mb-1;
-}
-
-.bar-label {
-  @apply text-xs text-theme-secondary;
-}
-
-.files-summary {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-6;
-}
-
-.summary-title {
-  @apply text-lg font-medium text-theme-primary mb-4;
-}
-
-.files-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
-}
-
-.file-type-item {
-  @apply flex items-center space-x-3 p-3 bg-theme-surface rounded-lg;
-}
-
-.file-type-icon {
-  @apply flex-shrink-0 text-theme-secondary;
-}
-
-.file-type-info {
-  @apply flex-1 min-w-0;
-}
-
-.file-type-name {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.file-type-count {
-  @apply text-xs text-theme-secondary;
-}
-
-.recent-activity {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-6;
-}
-
-.activity-title {
-  @apply text-lg font-medium text-theme-primary mb-4;
-}
-
-.activity-list {
-  @apply space-y-3;
-}
-
-.activity-item {
-  @apply flex items-start space-x-3 p-3 bg-theme-surface rounded-lg;
-}
-
-.activity-icon {
-  @apply flex-shrink-0 text-theme-secondary mt-0.5;
-}
-
-.activity-content {
-  @apply flex-1 min-w-0;
-}
-
-.activity-description {
-  @apply text-sm text-theme-primary;
-}
-
-.activity-date {
-  @apply text-xs text-theme-secondary mt-1;
-}
-</style>

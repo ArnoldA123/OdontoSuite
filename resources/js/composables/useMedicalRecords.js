@@ -1,298 +1,275 @@
-import { ref, computed } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { useApi } from './useApi'
+
+/**
+ * Data layer for the Historias clínicas module.
+ *
+ * Every read owns its own loading/error slot so one surface (evolutions, say)
+ * can fail without blanking the rest of the history, and every write keeps the
+ * lists in sync without a full refetch.
+ */
+const SURFACES = ['records', 'evolutions', 'attachments', 'stats']
+
+const EMPTY_ERRORS = () => ({ ...Object.fromEntries(SURFACES.map(s => [s, null])), write: null })
+const EMPTY_LOADING = () => Object.fromEntries(SURFACES.map(s => [s, false]))
+
+const messageFrom = (err, fallback) => err?.response?.data?.message || fallback
+
+const buildQuery = params => {
+  const search = new URLSearchParams()
+  const append = (key, value) => {
+    if (value === null || value === undefined) return
+    const text = String(value).trim()
+    if (text === '') return
+    search.set(key, text)
+  }
+
+  append('patient_id', params.patient_id)
+  append('search', params.search)
+  append('status', params.status)
+  append('branch_id', params.branch_id)
+  append('per_page', params.per_page)
+  append('page', params.page)
+
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
 
 export function useMedicalRecords() {
   const { get, post, put, delete: del } = useApi()
 
-  // Estado reactivo
   const records = ref([])
+  const meta = ref(null)
   const currentRecord = ref(null)
   const evolutions = ref([])
   const attachments = ref([])
+  const stats = ref(null)
+
   const loading = ref(false)
-  const error = ref(null)
+  const loadingBySurface = reactive(EMPTY_LOADING())
+  const errors = reactive(EMPTY_ERRORS())
 
-  // Computed
-  const hasRecords = computed(() => records.value && records.value.length > 0)
-  const hasEvolutions = computed(() => evolutions.value && evolutions.value.length > 0)
-  const hasAttachments = computed(() => attachments.value && attachments.value.length > 0)
+  const error = computed(() => Object.values(errors).find(Boolean) || null)
+  const hasRecords = computed(() => records.value.length > 0)
+  const hasEvolutions = computed(() => evolutions.value.length > 0)
+  const hasAttachments = computed(() => attachments.value.length > 0)
 
-  // Métodos
-  const getRecords = async patientId => {
+  const read = async (surface, operation, fallback) => {
+    loadingBySurface[surface] = true
+    errors[surface] = null
+
     try {
-      loading.value = true
-      error.value = null
-
-      const response = await get(`/api/medical-records?patient_id=${patientId}`)
-      records.value = response.data || []
-
-      return response.data || []
+      return await operation()
     } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener historias clínicas'
+      errors[surface] = messageFrom(err, fallback)
+      throw err
+    } finally {
+      loadingBySurface[surface] = false
+    }
+  }
+
+  const write = async (operation, fallback) => {
+    loading.value = true
+    errors.write = null
+
+    try {
+      return await operation()
+    } catch (err) {
+      errors.write = messageFrom(err, fallback)
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  const getRecord = async id => {
-    try {
-      loading.value = true
-      error.value = null
+  const getRecords = async (params = {}) =>
+    read(
+      'records',
+      async () => {
+        const response = await get(`/api/medical-records${buildQuery(params)}`)
+        records.value = response.data || []
+        meta.value = response.meta || null
 
-      const response = await get(`/api/medical-records/${id}`)
-      currentRecord.value = response.data
+        return records.value
+      },
+      'Error al obtener historias clínicas'
+    )
+
+  const getRecord = async id =>
+    read(
+      'records',
+      async () => {
+        const response = await get(`/api/medical-records/${id}`)
+        currentRecord.value = response.data || null
+
+        return currentRecord.value
+      },
+      'Error al obtener historia clínica'
+    )
+
+  const createRecord = async payload =>
+    write(async () => {
+      const response = await post('/api/medical-records', payload)
+      records.value.unshift(response.data)
 
       return response.data
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener historia clínica'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+    }, 'Error al crear historia clínica')
 
-  const createRecord = async data => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await post('/api/medical-records', data)
-      const newRecord = response.data
-
-      // Agregar al inicio de la lista
-      records.value.unshift(newRecord)
-
-      return newRecord
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al crear historia clínica'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const updateRecord = async (id, data) => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await put(`/api/medical-records/${id}`, data)
-      const updatedRecord = response.data
-
-      // Actualizar en la lista
+  const updateRecord = async (id, payload) =>
+    write(async () => {
+      const response = await put(`/api/medical-records/${id}`, payload)
+      const updated = response.data
       const index = records.value.findIndex(record => record.id === id)
-      if (index !== -1) {
-        records.value[index] = updatedRecord
-      }
 
-      // Actualizar registro actual si es el mismo
-      if (currentRecord.value?.id === id) {
-        currentRecord.value = updatedRecord
-      }
+      if (index !== -1) records.value[index] = updated
+      if (currentRecord.value?.id === id) currentRecord.value = updated
 
-      return updatedRecord
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al actualizar historia clínica'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+      return updated
+    }, 'Error al actualizar historia clínica')
 
-  const deleteRecord = async id => {
-    try {
-      loading.value = true
-      error.value = null
-
+  const deleteRecord = async id =>
+    write(async () => {
       await del(`/api/medical-records/${id}`)
-
-      // Remover de la lista
       records.value = records.value.filter(record => record.id !== id)
 
-      // Limpiar registro actual si es el mismo
-      if (currentRecord.value?.id === id) {
-        currentRecord.value = null
-      }
+      if (currentRecord.value?.id === id) currentRecord.value = null
 
       return true
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al eliminar historia clínica'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+    }, 'Error al eliminar historia clínica')
 
-  const addEvolution = async (recordId, data) => {
-    try {
-      loading.value = true
-      error.value = null
+  const getEvolutions = async recordId =>
+    read(
+      'evolutions',
+      async () => {
+        const response = await get(`/api/medical-records/${recordId}/evolutions`)
+        evolutions.value = response.data || []
 
-      const response = await post(`/api/medical-records/${recordId}/evolutions`, data)
-      const newEvolution = response.data
+        return evolutions.value
+      },
+      'Error al obtener evoluciones'
+    )
 
-      // Agregar al inicio de la lista de evoluciones
-      evolutions.value.unshift(newEvolution)
-
-      // Actualizar registro actual si es el mismo
-      if (currentRecord.value?.id === recordId) {
-        if (!currentRecord.value.evolutions) {
-          currentRecord.value.evolutions = []
-        }
-        currentRecord.value.evolutions.unshift(newEvolution)
-      }
-
-      return newEvolution
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al agregar evolución'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const getEvolutions = async recordId => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await get(`/api/medical-records/${recordId}/evolutions`)
-      evolutions.value = response.data
+  const addEvolution = async (recordId, payload) =>
+    write(async () => {
+      const response = await post(`/api/medical-records/${recordId}/evolutions`, payload)
+      evolutions.value.unshift(response.data)
 
       return response.data
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener evoluciones'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
+    }, 'Error al agregar evolución')
 
-  const uploadAttachment = async data => {
-    try {
-      loading.value = true
-      error.value = null
+  const updateEvolution = async (id, payload) =>
+    write(async () => {
+      const response = await put(`/api/medical-records/evolutions/${id}`, payload)
+      const updated = response.data
+      const index = evolutions.value.findIndex(evolution => evolution.id === id)
 
-      const formData = new FormData()
-      Object.keys(data).forEach(key => {
-        if (data[key] !== null && data[key] !== undefined) {
-          formData.append(key, data[key])
-        }
-      })
+      if (index !== -1) evolutions.value[index] = updated
 
-      const response = await post('/api/medical-records/attachments', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-      const newAttachment = response.data
+      return updated
+    }, 'Error al actualizar evolución')
 
-      // Agregar a la lista de adjuntos
-      attachments.value.unshift(newAttachment)
-
-      return newAttachment
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al subir archivo'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const getStats = async patientId => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await get(`/api/medical-records/patient/${patientId}/stats`)
-
-      return response.data
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener estadísticas'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const getAttachmentsByCategory = async (patientId, category = 'general') => {
-    try {
-      loading.value = true
-      error.value = null
-
-      const response = await get(
-        `/api/medical-records/patient/${patientId}/attachments?category=${category}`
-      )
-      attachments.value = response.data
-
-      return response.data
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al obtener archivos'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const deleteAttachment = async attachmentId => {
-    try {
-      loading.value = true
-      error.value = null
-
-      await del(`/api/medical-records/attachments/${attachmentId}`)
-
-      // Remover de la lista
-      attachments.value = attachments.value.filter(attachment => attachment.id !== attachmentId)
+  const deleteEvolution = async id =>
+    write(async () => {
+      await del(`/api/medical-records/evolutions/${id}`)
+      evolutions.value = evolutions.value.filter(evolution => evolution.id !== id)
 
       return true
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al eliminar archivo'
-      throw err
-    } finally {
-      loading.value = false
-    }
+    }, 'Error al eliminar evolución')
+
+  const getAttachments = async (patientId, category = null) => {
+    const query = category ? `?category=${encodeURIComponent(category)}` : ''
+
+    return read(
+      'attachments',
+      async () => {
+        const response = await get(`/api/medical-records/patient/${patientId}/attachments${query}`)
+        attachments.value = response.data || []
+
+        return attachments.value
+      },
+      'Error al obtener archivos'
+    )
   }
+
+  const uploadAttachment = async payload =>
+    write(async () => {
+      const response = await post('/api/medical-records/attachments', payload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      attachments.value.unshift(response.data)
+
+      return response.data
+    }, 'Error al subir archivo')
+
+  const deleteAttachment = async id =>
+    write(async () => {
+      await del(`/api/medical-records/attachments/${id}`)
+      attachments.value = attachments.value.filter(attachment => attachment.id !== id)
+
+      return true
+    }, 'Error al eliminar archivo')
+
+  const getStats = async patientId =>
+    read(
+      'stats',
+      async () => {
+        const response = await get(`/api/medical-records/patient/${patientId}/stats`)
+        stats.value = response.data || null
+
+        return stats.value
+      },
+      'Error al obtener estadísticas'
+    )
 
   const clearError = () => {
-    error.value = null
+    Object.assign(errors, EMPTY_ERRORS())
   }
 
   const reset = () => {
     records.value = []
+    meta.value = null
     currentRecord.value = null
     evolutions.value = []
     attachments.value = []
+    stats.value = null
     loading.value = false
-    error.value = null
+    Object.assign(loadingBySurface, EMPTY_LOADING())
+    Object.assign(errors, EMPTY_ERRORS())
   }
 
   return {
-    // Estado
     records,
+    meta,
     currentRecord,
     evolutions,
     attachments,
+    stats,
+
     loading,
+    loadingBySurface,
+    errors,
     error,
 
-    // Computed
     hasRecords,
     hasEvolutions,
     hasAttachments,
 
-    // Métodos
     getRecords,
     getRecord,
     createRecord,
     updateRecord,
     deleteRecord,
-    addEvolution,
+
     getEvolutions,
+    addEvolution,
+    updateEvolution,
+    deleteEvolution,
+
+    getAttachments,
     uploadAttachment,
-    getStats,
-    getAttachmentsByCategory,
     deleteAttachment,
+
+    getStats,
     clearError,
     reset
   }

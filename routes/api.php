@@ -266,6 +266,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // by `{medical_record}` model binding.
         Route::delete('medical-records/attachments/{attachment}', [MedicalRecordController::class, 'deleteAttachment']);
         Route::post('medical-records/attachments', [MedicalRecordController::class, 'uploadAttachment']);
+        // Evolution writes share the fixed `evolutions` segment, so they are
+        // declared before apiResource for the same reason.
+        Route::put('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'updateEvolution']);
+        Route::delete('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'deleteEvolution']);
         Route::get('medical-records/patient/{patientId}/stats', [MedicalRecordController::class, 'getStats']);
         Route::get('medical-records/patient/{patientId}/attachments', [MedicalRecordController::class, 'getAttachmentsByCategory']);
     });
