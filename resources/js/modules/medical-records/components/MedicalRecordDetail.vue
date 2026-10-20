@@ -1,5 +1,5 @@
 <template>
-  <UiModal model-value size="lg" @close="emit('close')">
+  <UiModal model-value size="lg" title="Historia clínica" @close="emit('close')">
     <template #header>
       <div class="min-w-0" data-detail-header>
         <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">

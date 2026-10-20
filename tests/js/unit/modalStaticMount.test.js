@@ -51,4 +51,34 @@ describe('Modal static mount', () => {
     document.body.style.overflow = ''
     wrapper.unmount()
   })
+
+  it('names the dialog from the title when it renders its own header', () => {
+    const wrapper = mount(Modal, {
+      props: { modelValue: true, title: 'Nueva historia' },
+      attachTo: document.body
+    })
+
+    const dialog = document.querySelector('[role="dialog"]')
+    const labelledBy = dialog.getAttribute('aria-labelledby')
+
+    expect(labelledBy).toBeTruthy()
+    expect(document.getElementById(labelledBy)?.textContent).toContain('Nueva historia')
+
+    wrapper.unmount()
+  })
+
+  it('falls back to aria-label when a consumer replaces the header', () => {
+    const wrapper = mount(Modal, {
+      props: { modelValue: true, title: 'Historia clínica' },
+      slots: { header: '<div data-custom-header>custom</div>' },
+      attachTo: document.body
+    })
+
+    const dialog = document.querySelector('[role="dialog"]')
+
+    expect(dialog.getAttribute('aria-labelledby')).toBeNull()
+    expect(dialog.getAttribute('aria-label')).toBe('Historia clínica')
+
+    wrapper.unmount()
+  })
 })

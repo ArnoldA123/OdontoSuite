@@ -25,7 +25,8 @@
             :class="modalClasses"
             :role="role"
             tabindex="-1"
-            :aria-labelledby="titleId"
+            :aria-labelledby="hasDefaultHeader ? titleId : undefined"
+            :aria-label="!hasDefaultHeader && title ? title : undefined"
             :aria-describedby="descriptionId"
             :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
@@ -72,7 +73,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount, useId } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, useId, useSlots } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
 
 const props = defineProps({
@@ -102,6 +103,13 @@ const emit = defineEmits(['update:modelValue', 'close', 'open'])
 const _id = useId ? useId() : `modal-${Math.random().toString(36).slice(2, 10)}`
 const titleId = computed(() => `modal-title-${_id}`)
 const descriptionId = computed(() => `modal-description-${_id}`)
+
+// A consumer that supplies its own `#header` replaces the default <h2>, so
+// `aria-labelledby` would point at an id that never renders. Name the dialog
+// from the `title` prop instead; consumers with a custom header should pass
+// one for the accessible name.
+const slots = useSlots()
+const hasDefaultHeader = computed(() => !slots.header && Boolean(props.title))
 
 const closeLabel = computed(() => 'Cerrar modal')
 
