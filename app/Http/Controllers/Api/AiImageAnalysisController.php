@@ -38,9 +38,13 @@ class AiImageAnalysisController extends Controller
     {
         $attachment = ClinicalAttachment::find($attachmentId);
 
-        if ($attachment) {
-            Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $attachment->patient_id]);
+        if (! $attachment) {
+            return response()->json([
+                'message' => 'Adjunto no encontrado',
+            ], 404);
         }
+
+        Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $attachment->patient_id]);
 
         try {
             $analysis = $this->aiAnalysisService->analyzeImage($attachmentId);

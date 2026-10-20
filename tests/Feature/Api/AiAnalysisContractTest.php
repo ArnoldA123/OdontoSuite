@@ -612,6 +612,42 @@ class AiAnalysisContractTest extends TestCase
         $this->assertDatabaseCount('clinical_attachments', 0);
     }
 
+    public function test_a_soft_deleted_appointment_does_not_grant_access(): void
+    {
+        $doctor = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $this->clinician());
+
+        $appointment = Appointment::factory()->create([
+            'user_id' => $doctor->id,
+            'patient_id' => $analysis->patient_id,
+        ]);
+        $appointment->delete();
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertForbidden();
+    }
+
+    public function test_requesting_an_analysis_requires_access_to_the_attachment_patient(): void
+    {
+        $outsider = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $this->clinician());
+
+        $this->actingAs($outsider)
+            ->postJson('/api/ai-analysis/analyze/'.$analysis->clinical_attachment_id)
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('ai_image_analyses', 1);
+    }
+
+    public function test_requesting_an_analysis_for_an_unknown_attachment_answers_not_found(): void
+    {
+        $this->actingAs($this->clinician())
+            ->postJson('/api/ai-analysis/analyze/999999')
+            ->assertNotFound()
+            ->assertJsonPath('message', 'Adjunto no encontrado');
+    }
+
     public function test_usage_stats_propagates_a_query_failure_instead_of_zeroing_the_metrics(): void
     {
         $default = config('database.default');

@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
  * The author's rule for the AI surface (issue #214) is: an administrator sees
  * everything; a clinical user reaches a patient when she is the professional of
  * one of that patient's appointments or the author of one of its clinical
- * evolutions. The analysis rows add their own two exceptions (requester and
+ * evolutions. Soft-deleted rows are not a relationship in either table: a
+ * cancelled appointment must not keep the clinical history reachable. The analysis rows add their own two exceptions (requester and
  * reviewer) on top of this set, which is why the predicate lives here and not
  * inside a single model.
  */
@@ -26,6 +27,7 @@ final class ClinicalAccess
         return DB::table('appointments')
             ->select('patient_id')
             ->where('user_id', $user->id)
+            ->whereNull('deleted_at')
             ->union(
                 DB::table('clinical_evolutions')
                     ->select('patient_id')
@@ -43,6 +45,7 @@ final class ClinicalAccess
         $hasAppointment = DB::table('appointments')
             ->where('user_id', $user->id)
             ->where('patient_id', $patientId)
+            ->whereNull('deleted_at')
             ->exists();
 
         if ($hasAppointment) {
