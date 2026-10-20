@@ -388,7 +388,12 @@ describe('useApi download contract (T9)', () => {
     expect(url).toContain('start_date=2026-09-20')
     expect(init.headers.Authorization).toBe('Bearer token-123')
     expect(result.filename).toBe('revenue.csv')
-    expect(result.blob).toBeInstanceOf(Blob)
+    // Assert the shape, not constructor identity or helpers: CI's fetch
+    // polyfill and jsdom expose different Blob implementations for the same
+    // bytes, and jsdom's Blob lacks .text().
+    expect(typeof result.blob.size).toBe('number')
+    expect(result.blob.size).toBeGreaterThan(0)
+    expect(typeof result.blob.type).toBe('string')
   })
 
   it('rejects with the normalized error shape on a failed download', async () => {
