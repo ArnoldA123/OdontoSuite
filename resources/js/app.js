@@ -180,6 +180,12 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    path: '/medical-records/:id(\\d+)',
+    name: 'medical-record-detail',
+    component: () => import('./modules/medical-records/MedicalRecordsPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
     path: '/specialty-records',
     name: 'specialty-records',
     component: () => import('./modules/specialty-records/SpecialtyRecordsPage.vue'),

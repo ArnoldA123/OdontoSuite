@@ -182,9 +182,7 @@ export function useMedicalRecords() {
     return read(
       'attachments',
       async () => {
-        const response = await get(
-          `/api/medical-records/patient/${patientId}/attachments${query}`
-        )
+        const response = await get(`/api/medical-records/patient/${patientId}/attachments${query}`)
         attachments.value = response.data || []
 
         return attachments.value
