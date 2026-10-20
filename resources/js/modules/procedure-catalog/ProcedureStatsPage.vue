@@ -554,10 +554,24 @@ const truncateChartLabel = (label, limit = CHART_LABEL_MAX) => {
 // A narrow canvas cannot reserve room for a long axis label: Chart.js draws it
 // past the left edge and the browser clips the text instead of shortening it,
 // so the label budget follows the rendered width.
-const chartLabelLimit = canvas =>
-  canvas.clientWidth > 0 && canvas.clientWidth < CHART_NARROW_WIDTH
-    ? CHART_LABEL_MAX_NARROW
-    : CHART_LABEL_MAX
+const chartLabelLimitForWidth = width =>
+  width > 0 && width < CHART_NARROW_WIDTH ? CHART_LABEL_MAX_NARROW : CHART_LABEL_MAX
+
+const usageChartLabels = width =>
+  topProcedures.value.map(row => truncateChartLabel(row.name, chartLabelLimitForWidth(width)))
+
+// Chart.js measures the canvas once when it builds the axis, so a resize that
+// crosses the threshold must re-derive the labels from the new width instead of
+// keeping the budget of the first paint. Redrawing only on a band change keeps
+// the callback from repainting on every resize frame.
+const syncUsageChartLabels = (chart, width) => {
+  const labels = usageChartLabels(width)
+  if (labels.every((label, index) => chart.data.labels[index] === label)) {
+    return
+  }
+  chart.data.labels = labels
+  chart.update()
+}
 
 const destroyCharts = () => {
   for (const chart of [usageChart, specialtyChart]) {
@@ -609,9 +623,7 @@ const renderCharts = async () => {
     usageChart = new Chart(usageCanvas, {
       type: 'bar',
       data: {
-        labels: topProcedures.value.map(row =>
-          truncateChartLabel(row.name, chartLabelLimit(usageCanvas))
-        ),
+        labels: usageChartLabels(usageCanvas.clientWidth),
         datasets: [
           {
             label: 'Usos',
@@ -627,6 +639,7 @@ const renderCharts = async () => {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        onResize: (chart, size) => syncUsageChartLabels(chart, size.width),
         plugins: { legend: { display: false } },
         scales: {
           x: { beginAtZero: true, ticks: { precision: 0 } },
