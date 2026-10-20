@@ -8,6 +8,7 @@ export function useQuotations() {
   const quotations = ref([])
   const currentQuotation = ref(null)
   const loading = ref(false)
+  const downloading = ref(false)
   const error = ref(null)
   const pagination = ref({
     current_page: 1,
@@ -197,24 +198,32 @@ export function useQuotations() {
     }
   }
 
-  const downloadPDF = async id => {
+  const downloadPDF = async (id, filename) => {
     try {
-      loading.value = true
+      downloading.value = true
       error.value = null
 
-      const response = await get(`/api/quotations/${id}/pdf`, {
-        responseType: 'blob'
+      const token = localStorage.getItem('auth_token')
+      const response = await fetch(`/api/quotations/${id}/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/pdf'
+        }
       })
 
-      // Crear URL del blob y descargar
-      const blob = new Blob([response.data], { type: 'application/pdf' })
+      if (!response.ok) {
+        throw { response: { data: { message: 'No pudimos descargar el presupuesto.' } } }
+      }
+
+      const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `presupuesto_${id}.pdf`
+      link.download = filename || `presupuesto_${id}.pdf`
       document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      link.remove()
       window.URL.revokeObjectURL(url)
 
       return true
@@ -222,7 +231,7 @@ export function useQuotations() {
       error.value = err.response?.data?.message || 'Error al descargar PDF'
       throw err
     } finally {
-      loading.value = false
+      downloading.value = false
     }
   }
 
@@ -265,6 +274,7 @@ export function useQuotations() {
     quotations,
     currentQuotation,
     loading,
+    downloading,
     error,
     pagination,
 

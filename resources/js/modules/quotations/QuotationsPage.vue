@@ -1,308 +1,720 @@
 <template>
   <AppLayout>
-    <div class="quotations-page bg-canvas">
-      <!-- Header -->
-      <PageHeader
-        title="Presupuestos"
-        subtitle="Gestiona los presupuestos de tus pacientes"
-        class="mb-6"
-      >
-        <template #actions>
-          <UiButton :disabled="loading" @click="openCreateModal">
-            <template #icon-left>
-              <PlusIcon class="w-5 h-5" />
-            </template>
-            Nuevo Presupuesto
-          </UiButton>
-        </template>
-      </PageHeader>
-
-      <!-- Filtros -->
-      <UiCard variant="flat" padding="md" class="mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <UiInput
-              v-model="filters.patient_name"
-              type="text"
-              placeholder="Buscar por nombre..."
-              label="Paciente"
-            />
-          </div>
-
-          <div>
-            <UiSelect
-              v-model="filters.status"
-              label="Estado"
-              :options="statusOptions"
-              placeholder="Todos los estados"
-            />
-          </div>
-
-          <div>
-            <UiInput v-model="filters.date_from" type="date" label="Fecha desde" />
-          </div>
-
-          <div>
-            <UiInput v-model="filters.date_to" type="date" label="Fecha hasta" />
-          </div>
-
-          <div class="flex items-end gap-2">
-            <UiButton variant="secondary" :disabled="loading" @click="applyFilters">
-              <template #icon-left>
-                <MagnifyingGlassIcon class="w-4 h-4" />
-              </template>
-              Buscar
-            </UiButton>
-            <UiButton variant="ghost" :disabled="loading" @click="clearFilters">Limpiar</UiButton>
-          </div>
+    <header
+      data-quotations-hero
+      class="mb-6 border border-hairline p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p
+            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            data-hero-eyebrow
+          >
+            Operación
+          </p>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Presupuestos</h2>
+          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+            Emite, envía y da seguimiento a los presupuestos de tus pacientes
+          </p>
         </div>
+        <div class="flex flex-shrink-0 items-center gap-3">
+          <UiButton variant="secondary" @click="goBack">
+            <template #icon-left>
+              <ArrowLeftIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Volver
+          </UiButton>
+          <UiButton variant="primary" data-hero-action="create" @click="openCreate">
+            <template #icon-left>
+              <PlusIcon class="h-4 w-4" aria-hidden="true" />
+            </template>
+            Nuevo presupuesto
+          </UiButton>
+        </div>
+      </div>
+    </header>
+
+    <section
+      aria-label="Resumen de presupuestos"
+      class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+    >
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="total"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Total</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="total"
+        >
+          {{ kpiTotal }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Presupuestos registrados</p>
       </UiCard>
 
-      <!-- Lista de presupuestos -->
-      <div class="quotations-section">
-        <div v-if="loading" class="flex justify-center py-8">
-          <UiLoadingSpinner size="md" variant="primary" text="Cargando presupuestos..." />
-        </div>
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="pending"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Pendientes</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="pending"
+        >
+          {{ kpiPending }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="pending">
+          {{ pendingCaption }}
+        </p>
+      </UiCard>
 
-        <div v-else-if="!hasQuotations" class="empty-state border border-hairline rounded-xl">
-          <DocumentTextIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-          <h3 class="text-lg font-medium text-theme-primary mb-2">No hay presupuestos</h3>
-          <p class="text-theme-secondary mb-4">Comienza creando tu primer presupuesto</p>
-          <UiButton @click="openCreateModal">Crear Presupuesto</UiButton>
-        </div>
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="approved"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Aprobados</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="approved"
+        >
+          {{ kpiApproved }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Con decisión del paciente</p>
+      </UiCard>
 
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          <QuotationCard
-            v-for="quotation in quotations"
-            :key="quotation.id"
-            :quotation="quotation"
-            @view="viewQuotation"
-            @edit="editQuotation"
-            @approve="approveQuotation"
-            @reject="rejectQuotation"
-            @download="downloadPDF"
-            @delete="deleteQuotation"
-          />
+      <UiCard
+        variant="glass"
+        padding="sm"
+        data-kpi-card="approved-total"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">Monto aprobado</p>
+        <p
+          class="mt-2 text-2xl font-bold text-label tabular-nums leading-none"
+          data-kpi-value="approved-total"
+        >
+          {{ kpiApprovedTotal }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">Total aceptado por pacientes</p>
+      </UiCard>
+    </section>
+
+    <UiCard variant="glass" class="mb-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="lg:col-span-2">
+          <UiInput
+            v-model="filters.q"
+            data-quotations-search
+            label="Buscar"
+            placeholder="Número, paciente o documento..."
+            class="w-full"
+            @input="onSearchInput"
+          >
+            <template #prefix>
+              <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+            </template>
+          </UiInput>
+        </div>
+        <UiSelect
+          v-model="filters.status"
+          data-status-filter
+          label="Estado"
+          :options="STATUS_FILTER_OPTIONS"
+          placeholder="Todos los estados"
+          @change="applyFilters"
+        />
+        <div class="flex items-end gap-3">
+          <UiInput v-model="filters.date_from" type="date" label="Desde" data-date-from />
+          <UiInput v-model="filters.date_to" type="date" label="Hasta" data-date-to />
         </div>
       </div>
 
-      <!-- Paginación -->
-      <div v-if="hasQuotations && totalPages > 1" class="pagination-section">
+      <div
+        v-if="hasActiveFilters || patientFilter"
+        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4"
+      >
+        <p class="text-sm text-theme-secondary" data-filters-summary>
+          <span v-if="patientFilter">Mostrando los presupuestos de un paciente.</span>
+          <span v-else>Filtros aplicados sobre la lista.</span>
+        </p>
+        <UiButton variant="ghost" size="sm" data-filters-clear @click="clearFilters">
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiCard>
+
+    <section aria-label="Presupuestos" class="space-y-4">
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+        <h2 class="text-2xl font-semibold text-label">Todos los presupuestos</h2>
+        <p class="text-sm text-theme-secondary">Consulta, filtra y gestiona cada presupuesto</p>
+      </div>
+
+      <div data-quotations-list>
+        <div v-if="loading" data-quotations-loading>
+          <UiSkeleton variant="table" animation="wave" aria-label="Cargando presupuestos..." />
+        </div>
+
+        <div
+          v-else-if="loadError"
+          data-quotations-error
+          role="alert"
+          class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] border border-hairline bg-systemRed-50 p-5"
+        >
+          <div class="flex min-w-0 items-center gap-3">
+            <ExclamationTriangleIcon
+              class="h-6 w-6 flex-shrink-0 text-systemRed-600"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">
+                No pudimos cargar los presupuestos
+              </p>
+              <p class="text-sm text-theme-secondary">Revisa tu conexión y vuelve a intentarlo.</p>
+            </div>
+          </div>
+          <UiButton variant="primary" size="sm" data-quotations-retry @click="refresh">
+            Reintentar
+          </UiButton>
+        </div>
+
+        <div v-else-if="quotations.length === 0" data-quotations-empty>
+          <UiEmptyState
+            :title="emptyStateTitle"
+            :description="emptyStateDescription"
+            :icon="DocumentTextIcon"
+          >
+            <template #action>
+              <UiButton v-if="hasActiveFilters" variant="secondary" @click="clearFilters">
+                Limpiar filtros
+              </UiButton>
+              <UiButton v-else @click="openCreate">Nuevo presupuesto</UiButton>
+            </template>
+          </UiEmptyState>
+        </div>
+
+        <UiDataTable
+          v-else
+          :data="quotations"
+          :columns="columns"
+          :searchable="false"
+          :show-header="false"
+          :pagination="false"
+          data-quotations-table
+        >
+          <template #cell-number="{ row }">
+            <div class="min-w-0">
+              <p class="font-mono text-sm font-medium text-theme-primary" data-row-number>
+                {{ row.quotation_number }}
+              </p>
+              <p class="text-xs text-theme-secondary" data-row-date>
+                {{ formatQuotationDate(row.quotation_date) }}
+              </p>
+            </div>
+          </template>
+
+          <template #cell-patient="{ row }">
+            <div class="min-w-0">
+              <p class="text-sm text-theme-primary" data-row-patient>
+                {{ row.patient?.first_name }} {{ row.patient?.last_name }}
+              </p>
+              <p v-if="row.patient?.document_number" class="font-mono text-xs text-theme-secondary">
+                {{ row.patient.document_number }}
+              </p>
+            </div>
+          </template>
+
+          <template #cell-valid_until="{ row }">
+            <div class="flex flex-col gap-1">
+              <span class="text-sm text-theme-primary">
+                {{ formatQuotationDate(row.valid_until) }}
+              </span>
+              <UiStatusBadge
+                v-if="expiryBadge(row)"
+                :variant="expiryBadge(row).variant"
+                :label="expiryBadge(row).label"
+                size="sm"
+                data-row-expiry
+              />
+            </div>
+          </template>
+
+          <template #cell-total="{ row }">
+            <span class="tabular-nums text-sm font-medium text-label" data-row-total>
+              {{ formatCurrency(row.total_amount) }}
+            </span>
+          </template>
+
+          <template #cell-status="{ row }">
+            <UiStatusBadge
+              :variant="getStatusMeta(row.status).variant"
+              :label="getStatusMeta(row.status).label"
+              size="sm"
+              data-row-status
+            />
+          </template>
+
+          <template #actions="{ row }">
+            <UiButton
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="view"
+              @click="openDetail(row)"
+            >
+              Ver
+            </UiButton>
+            <UiButton
+              v-if="canEditQuotation(row, role)"
+              variant="ghost"
+              size="sm"
+              class="text-systemBlue-600 hover:text-systemBlue-700"
+              data-row-action="edit"
+              @click="openEdit(row)"
+            >
+              Editar
+            </UiButton>
+            <UiButton
+              v-if="canApproveQuotation(row, role)"
+              variant="ghost"
+              size="sm"
+              class="text-systemGreen-700"
+              data-row-action="approve"
+              @click="openApproval(row)"
+            >
+              Aprobar
+            </UiButton>
+            <UiButton
+              v-if="canRejectQuotation(row, role)"
+              variant="ghost"
+              size="sm"
+              class="text-systemRed-700"
+              data-row-action="reject"
+              @click="openReject(row)"
+            >
+              Rechazar
+            </UiButton>
+            <UiButton
+              v-if="canDownloadQuotation(role)"
+              variant="ghost"
+              size="sm"
+              :disabled="downloading"
+              data-row-action="pdf"
+              @click="downloadQuotation(row)"
+            >
+              PDF
+            </UiButton>
+            <UiButton
+              v-if="canDeleteQuotation(row, role)"
+              variant="ghost"
+              size="sm"
+              class="text-systemRed-700"
+              data-row-action="delete"
+              @click="removeQuotation(row)"
+            >
+              Eliminar
+            </UiButton>
+          </template>
+        </UiDataTable>
+      </div>
+
+      <div v-if="quotations.length > 0 && totalPages > 1" class="pagination-section">
         <Pagination
           :current-page="currentPage"
           :total-pages="totalPages"
           @page-change="handlePageChange"
         />
       </div>
-
-      <!-- Modales -->
-      <QuotationModal
-        v-if="showModal"
-        :quotation="selectedQuotation"
-        :is-edit="isEdit"
-        @close="closeModal"
-        @saved="handleQuotationSaved"
-      />
-
-      <QuotationDetail
-        v-if="showDetailModal"
-        :quotation="selectedQuotation"
-        @close="closeDetailModal"
-        @edit="editQuotation"
-        @approve="approveQuotation"
-        @reject="rejectQuotation"
-        @download="downloadPDF"
-      />
-
-      <QuotationApprovalModal
-        v-if="showApprovalModal"
-        :quotation="selectedQuotation"
-        @close="closeApprovalModal"
-        @approved="handleQuotationApproved"
-      />
-    </div>
+    </section>
   </AppLayout>
+
+  <QuotationModal
+    v-if="showForm"
+    :quotation="editingQuotation"
+    :is-edit="isEdit"
+    @close="closeForm"
+    @saved="handleSaved"
+  />
+
+  <QuotationDetail
+    v-if="showDetail && detailQuotation"
+    :quotation="detailQuotation"
+    @close="closeDetail"
+    @edit="startEditFromDetail"
+    @approve="startApprovalFromDetail"
+    @reject="startRejectFromDetail"
+    @download="downloadQuotation"
+  />
+
+  <QuotationApprovalModal
+    v-if="showApproval && actionQuotation"
+    :quotation="actionQuotation"
+    @close="showApproval = false"
+    @approved="handleApproved"
+  />
+
+  <QuotationRejectModal
+    v-if="showReject && actionQuotation"
+    :quotation="actionQuotation"
+    @close="showReject = false"
+    @rejected="handleRejected"
+  />
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useQuotations } from '@/composables/useQuotations'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  ArrowLeftIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
+  MagnifyingGlassIcon,
+  PlusIcon
+} from '@heroicons/vue/24/outline'
+import { formatCurrency } from '@/composables/useFormatters'
+import { useApi } from '@/composables/useApi'
+import { useAuth } from '@/composables/useAuth'
+import { useConfirm } from '@/composables/useConfirm'
 import { useEcho } from '@/composables/useEcho'
+import { useQuotations } from '@/composables/useQuotations'
 import { useToast } from '@/composables/useToast'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import Pagination from '@/components/ui/Pagination.vue'
+import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiEmptyState from '@/components/ui/EmptyState.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiSelect from '@/components/ui/Select.vue'
-import UiButton from '@/components/ui/Button.vue'
-import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import QuotationCard from './components/QuotationCard.vue'
-import QuotationModal from './components/QuotationModal.vue'
-import QuotationDetail from './components/QuotationDetail.vue'
+import UiSkeleton from '@/components/ui/Skeleton.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import QuotationApprovalModal from './components/QuotationApprovalModal.vue'
-import Pagination from '@/components/ui/Pagination.vue'
-import { PlusIcon, MagnifyingGlassIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
+import QuotationDetail from './components/QuotationDetail.vue'
+import QuotationModal from './components/QuotationModal.vue'
+import QuotationRejectModal from './components/QuotationRejectModal.vue'
+import {
+  STATUS_FILTER_OPTIONS,
+  canApproveQuotation,
+  canDeleteQuotation,
+  canDownloadQuotation,
+  canEditQuotation,
+  canRejectQuotation,
+  expiryBadge,
+  formatQuotationDate,
+  getStatusMeta
+} from './quotationMeta'
 
-// Composables
-const { channel, echo } = useEcho()
+const route = useRoute()
+const router = useRouter()
+const api = useApi()
 const toast = useToast()
+const { confirm } = useConfirm()
+const { user } = useAuth()
+const { channel, echo } = useEcho()
 const {
   quotations,
   loading,
-  hasQuotations,
+  downloading,
   totalPages,
   currentPage,
   getQuotations,
   deleteQuotation,
-  approveQuotation,
-  rejectQuotation,
   downloadPDF
 } = useQuotations()
 
-// Estado reactivo
-const showModal = ref(false)
-const showDetailModal = ref(false)
-const showApprovalModal = ref(false)
-const selectedQuotation = ref(null)
-const isEdit = ref(false)
+const role = computed(() => user.value?.role)
+
+const columns = [
+  { key: 'number', label: 'Presupuesto' },
+  { key: 'patient', label: 'Paciente' },
+  { key: 'valid_until', label: 'Vigencia' },
+  { key: 'total', label: 'Total' },
+  { key: 'status', label: 'Estado' }
+]
+
 const filters = ref({
-  patient_name: '',
+  q: '',
   status: '',
   date_from: '',
   date_to: ''
 })
 
-const statusOptions = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'draft', label: 'Borrador' },
-  { value: 'sent', label: 'Enviado' },
-  { value: 'approved', label: 'Aprobado' },
-  { value: 'rejected', label: 'Rechazado' }
-]
+const patientFilter = ref(route.query.patient_id ? String(route.query.patient_id) : '')
 
-// Métodos
-const openCreateModal = () => {
-  selectedQuotation.value = null
-  isEdit.value = false
-  showModal.value = true
-}
+const loadError = ref(false)
+const summary = ref(null)
+const summaryLoading = ref(false)
+const summaryError = ref(false)
 
-const editQuotation = quotation => {
-  selectedQuotation.value = quotation
-  isEdit.value = true
-  showModal.value = true
-}
+const showForm = ref(false)
+const isEdit = ref(false)
+const editingQuotation = ref(null)
 
-const viewQuotation = quotation => {
-  selectedQuotation.value = quotation
-  showDetailModal.value = true
-}
+const showDetail = ref(false)
+const detailQuotation = ref(null)
 
-// approveQuotation, rejectQuotation y downloadPDF ya están importados de useQuotations()
+const showApproval = ref(false)
+const showReject = ref(false)
+const actionQuotation = ref(null)
 
-const closeModal = () => {
-  showModal.value = false
-  selectedQuotation.value = null
-  isEdit.value = false
-}
-
-const closeDetailModal = () => {
-  showDetailModal.value = false
-  selectedQuotation.value = null
-}
-
-const closeApprovalModal = () => {
-  showApprovalModal.value = false
-  selectedQuotation.value = null
-}
-
-const handleQuotationSaved = () => {
-  closeModal()
-  loadQuotations()
-}
-
-const handleQuotationApproved = () => {
-  closeApprovalModal()
-  loadQuotations()
-}
-
-const applyFilters = () => {
-  loadQuotations()
-}
-
-const clearFilters = () => {
-  filters.value = {
-    patient_name: '',
-    status: '',
-    date_from: '',
-    date_to: ''
-  }
-  loadQuotations()
-}
-
-const handlePageChange = page => {
-  loadQuotations({ page })
-}
-
-const loadQuotations = async (additionalFilters = {}) => {
-  try {
-    const allFilters = { ...filters.value, ...additionalFilters }
-    await getQuotations(allFilters)
-  } catch (err) {
-    // La lista conserva los presupuestos ya cargados si falla la recarga
-  }
-}
-
-// WebSocket subscriptions
+let searchTimer = null
 let quotationsChannel = null
 
-// Lifecycle
-onMounted(() => {
-  loadQuotations()
+const hasActiveFilters = computed(
+  () =>
+    filters.value.q.trim() !== '' ||
+    filters.value.status !== '' ||
+    filters.value.date_from !== '' ||
+    filters.value.date_to !== ''
+)
 
-  // Suscribirse a canales WebSocket para actualizaciones en tiempo real
+const kpisUnavailable = computed(() => summaryLoading.value || summaryError.value)
+
+const kpiTotal = computed(() =>
+  kpisUnavailable.value || !summary.value ? 'N/D' : String(summary.value.total)
+)
+
+const kpiPending = computed(() =>
+  kpisUnavailable.value || !summary.value ? 'N/D' : String(summary.value.pending)
+)
+
+const kpiApproved = computed(() =>
+  kpisUnavailable.value || !summary.value
+    ? 'N/D'
+    : String(summary.value.by_status?.approved?.count ?? 0)
+)
+
+const kpiApprovedTotal = computed(() =>
+  kpisUnavailable.value || !summary.value ? 'N/D' : formatCurrency(summary.value.approved_total)
+)
+
+const pendingCaption = computed(() => {
+  if (kpisUnavailable.value || !summary.value) return 'Esperando decisión del paciente'
+  if (summary.value.expiring_soon > 0) {
+    return `${summary.value.expiring_soon} por vencer esta semana`
+  }
+
+  return 'Esperando decisión del paciente'
+})
+
+const emptyStateTitle = computed(() =>
+  hasActiveFilters.value || patientFilter.value
+    ? 'No se encontraron presupuestos'
+    : 'Aún no hay presupuestos'
+)
+
+const emptyStateDescription = computed(() =>
+  hasActiveFilters.value || patientFilter.value
+    ? 'Prueba con otro término de búsqueda o quita los filtros aplicados.'
+    : 'Crea el primer presupuesto para empezar a cotizar tratamientos.'
+)
+
+const activeFilters = () => {
+  const params = { ...filters.value }
+  if (patientFilter.value) params.patient_id = patientFilter.value
+
+  return params
+}
+
+const loadQuotations = async (additional = {}) => {
+  loadError.value = false
+  try {
+    await getQuotations({ ...activeFilters(), ...additional })
+  } catch {
+    loadError.value = true
+  }
+}
+
+const loadSummary = async () => {
+  summaryLoading.value = true
+  summaryError.value = false
+  try {
+    const response = await api.get('/api/quotations/summary')
+    summary.value = response?.data || null
+  } catch {
+    summary.value = null
+    summaryError.value = true
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+const refresh = () => Promise.all([loadQuotations(), loadSummary()])
+
+const onSearchInput = () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => loadQuotations(), 350)
+}
+
+const applyFilters = () => loadQuotations()
+
+const clearFilters = () => {
+  filters.value = { q: '', status: '', date_from: '', date_to: '' }
+  if (patientFilter.value) {
+    patientFilter.value = ''
+    router.replace({ query: {} })
+  }
+  loadQuotations()
+}
+
+const handlePageChange = page => loadQuotations({ page })
+
+const openCreate = () => {
+  editingQuotation.value = null
+  isEdit.value = false
+  showForm.value = true
+}
+
+const openEdit = quotation => {
+  editingQuotation.value = quotation
+  isEdit.value = true
+  showForm.value = true
+}
+
+const closeForm = () => {
+  showForm.value = false
+  isEdit.value = false
+  editingQuotation.value = null
+}
+
+const handleSaved = async persisted => {
+  const wasEditing = isEdit.value
+  const number = persisted?.quotation_number
+  closeForm()
+  await refresh()
+  toast.success(
+    number
+      ? `Presupuesto ${number} ${wasEditing ? 'actualizado' : 'creado'}`
+      : `Presupuesto ${wasEditing ? 'actualizado' : 'creado'}`
+  )
+}
+
+const openDetail = async quotation => {
+  detailQuotation.value = quotation
+  showDetail.value = true
+
+  try {
+    const response = await api.get(`/api/quotations/${quotation.id}`)
+    detailQuotation.value = response?.data || detailQuotation.value
+  } catch {
+    // The list payload already carries patient, items and totals.
+  }
+}
+
+const closeDetail = () => {
+  showDetail.value = false
+  detailQuotation.value = null
+}
+
+const openApproval = quotation => {
+  actionQuotation.value = quotation
+  showApproval.value = true
+}
+
+const openReject = quotation => {
+  actionQuotation.value = quotation
+  showReject.value = true
+}
+
+const startEditFromDetail = quotation => {
+  closeDetail()
+  openEdit(quotation)
+}
+
+const startApprovalFromDetail = quotation => {
+  closeDetail()
+  openApproval(quotation)
+}
+
+const startRejectFromDetail = quotation => {
+  closeDetail()
+  openReject(quotation)
+}
+
+const handleApproved = async () => {
+  showApproval.value = false
+  actionQuotation.value = null
+  await refresh()
+  toast.success('Presupuesto aprobado')
+}
+
+const handleRejected = async () => {
+  showReject.value = false
+  actionQuotation.value = null
+  await refresh()
+  toast.success('Presupuesto rechazado')
+}
+
+const downloadQuotation = async quotation => {
+  try {
+    await downloadPDF(quotation.id, `presupuesto_${quotation.quotation_number}.pdf`)
+  } catch {
+    toast.error('No pudimos descargar el presupuesto')
+  }
+}
+
+const removeQuotation = async quotation => {
+  const ok = await confirm({
+    title: 'Eliminar presupuesto',
+    message: `¿Eliminar el presupuesto ${quotation.quotation_number}? Esta acción no se puede deshacer.`,
+    confirmText: 'Eliminar',
+    variant: 'danger'
+  })
+  if (!ok) return
+
+  try {
+    await deleteQuotation(quotation.id)
+    await refresh()
+    toast.success(`Presupuesto ${quotation.quotation_number} eliminado`)
+  } catch {
+    toast.error('No pudimos eliminar el presupuesto')
+  }
+}
+
+const goBack = () => router.back()
+
+onMounted(() => {
+  refresh()
+
   try {
     quotationsChannel = channel('quotations')
     if (quotationsChannel) {
       quotationsChannel
         .listen('.quotation.created', async () => {
-          // Recargar lista para incluir el nuevo presupuesto
-          await loadQuotations()
+          await refresh()
           toast.success('Nuevo presupuesto creado')
         })
-        .listen('.quotation.updated', async e => {
-          // Actualizar el presupuesto en la lista si existe
-          const index = quotations.value.findIndex(q => q.id === e.quotation.id)
-          if (index !== -1) {
-            quotations.value[index] = e.quotation
-          } else {
-            // Si no existe, recargar todo
-            await loadQuotations()
-          }
-          toast.success('Presupuesto actualizado')
+        .listen('.quotation.updated', async () => {
+          await refresh()
         })
-        .listen('.quotation.approved', async e => {
-          // Actualizar el presupuesto en la lista
-          const index = quotations.value.findIndex(q => q.id === e.quotation.id)
-          if (index !== -1) {
-            quotations.value[index] = e.quotation
-          } else {
-            await loadQuotations()
-          }
+        .listen('.quotation.approved', async () => {
+          await refresh()
           toast.success('Presupuesto aprobado', { duration: 6000 })
         })
     }
-  } catch (error) {
-    // Sin WebSocket la lista sigue operativa vía fetch inicial
+  } catch {
+    // Without WebSocket the list still works through the initial fetch.
   }
 })
 
-onUnmounted(() => {
-  // Limpiar suscripciones WebSocket
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
+
   if (echo) {
     try {
       echo.leave('quotations')
-    } catch (e) {
-      // El canal ya estaba cerrado, nada que limpiar
+    } catch {
+      // The channel was already closed; nothing to clean up.
     }
   }
 })
