@@ -116,3 +116,12 @@ cada uno se pueda revisar por muestreo sin leer el diff entero.
   Quedó excluido con ese motivo.
 - **L10** (verificación final): ver §Evidencia. Sin regresiones observadas en
   la suite MySQL ni en los guards estructurales.
+- **L11** (review nativo): `assess` devolvió `reviewDue: true` (native risk
+  high, 457 paths). `inspect` preparó un target base-diff contra `main`
+  (`33a6a06`, committed-only) y `start` fue rechazado antes de crear autoridad
+  con `lens_context_budget_exceeded`: el candidato completo excede el budget de
+  contexto de las lentes. `mutation_outcome: none`, así que no hay linaje que
+  abandonar ni autoridad que quemar. El provider pide dividir en candidatos
+  más pequeños; los 10 commits ya están cortados por superficie para eso.
+  La entrega sigue la política ordinaria del repositorio; el review nativo no
+  es un gate de delivery.
