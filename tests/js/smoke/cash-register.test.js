@@ -30,10 +30,16 @@ const router = createRouter({
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
 })
 describe('cash-register smoke', () => {
-  it('mounts CashRegisterPage.vue and renders content', async () => {
+  it('mounts the Caja shell with its hero and KPI strip', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
-    expect(wrapper.text()).toContain('Gestión de Caja')
+
+    expect(wrapper.find('[data-caja-hero]').exists()).toBe(true)
+    expect(wrapper.find('[data-hero-title]').text()).toBe('Caja')
+    expect(wrapper.findAll('[data-kpi-card]')).toHaveLength(4)
+    expect(wrapper.text()).toContain('Saldo esperado')
+    expect(wrapper.find('[data-kpi-caption="expected"]').text()).toBe('Apertura + movimientos')
+    expect(wrapper.text()).not.toContain('Gestión de Caja')
     wrapper.unmount()
   })
 })
