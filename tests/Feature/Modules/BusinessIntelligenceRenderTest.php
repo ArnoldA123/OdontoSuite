@@ -7,6 +7,8 @@ use App\Models\AppointmentType;
 use App\Models\Branch;
 use App\Models\DentalChair;
 use App\Models\Patient;
+use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,9 +17,11 @@ use Tests\TestCase;
 /**
  * full-user-browser-audit-2026-08-05 / PR6 / Phase 4b — Business Intelligence Render.
  *
- * Validation-first Feature test for the BI report contract documented in
- * `openspec/changes/full-user-browser-audit-2026-08-05/specs/module-validation-tests/spec.md`.
- * Exercises the EXISTING `GET /api/reports/revenue` endpoint (auth:sanctum).
+ * Validation-first Feature test for the BI report contract v2 documented in
+ * `odd/tasks/business-intelligence-ui-redesign.md`. Exercises the
+ * `GET /api/reports/revenue` endpoint (auth:sanctum): collected payments drive
+ * the rows, the retired `Resumen` row is gone, and `meta.summary` carries the
+ * period totals.
  * Must run against MySQL harness (AGENTS.md §6 — SQLite transactions.type tech debt).
  */
 class BusinessIntelligenceRenderTest extends TestCase
@@ -97,70 +101,118 @@ class BusinessIntelligenceRenderTest extends TestCase
         ]);
     }
 
-    public function test_revenue_report_renders_with_required_sections_on_dataset(): void
+    private function payment(Appointment $appointment, float $amount, Carbon $createdAt): Transaction
     {
+        $method = PaymentMethod::create([
+            'name' => 'BI Cash',
+            'code' => 'BIPM'.strtoupper(substr(uniqid(), -8)),
+            'is_active' => true,
+        ]);
+
+        $transaction = Transaction::create([
+            'patient_id' => $appointment->patient_id,
+            'appointment_id' => $appointment->id,
+            'payment_method_id' => $method->id,
+            'created_by' => $appointment->user_id,
+            'transaction_number' => 'TXN-'.strtoupper(substr(uniqid(), -10)),
+            'type' => 'payment',
+            'amount' => $amount,
+            'status' => 'completed',
+            'processed_at' => $createdAt,
+        ]);
+
+        $transaction->timestamps = false;
+        $transaction->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+
+        return $transaction;
+    }
+
+    public function test_revenue_report_renders_contract_v2_groups_and_summary(): void
+    {
+        // The endpoint reports the whole clinic: a payment another suite test
+        // left behind would land in this period. Pin an empty ledger first.
+        Transaction::query()->forceDelete();
+        Appointment::query()->forceDelete();
+
         $admin = $this->admin();
         $branch = $this->branch();
         $type = $this->appointmentType(25000);
         $chair = $this->chair();
 
-        $this->completedAppointment($admin, $branch, $type, $chair, Carbon::now()->subDays(2));
-        $this->completedAppointment($admin, $branch, $type, $chair, Carbon::now()->subDays(1));
+        $appointment = $this->completedAppointment($admin, $branch, $type, $chair, Carbon::now()->subDays(2));
+        $this->payment($appointment, 300.00, Carbon::now()->subDays(2)->addHour());
 
         $response = $this->actingAs($admin, 'sanctum')->getJson('/api/reports/revenue');
 
         $response->assertOk();
 
         $rows = $response->json('data');
+        $summary = $response->json('meta.summary');
+
         $this->assertIsArray($rows);
-        $this->assertNotEmpty($rows, 'Revenue report MUST contain at least one row when completed appointments exist.');
+        $this->assertNotEmpty($rows, 'Revenue report MUST contain at least one row when completed payments exist.');
 
-        // Spec names branch/total/period. Production emits category/total_revenue/period;
-        // any of those branches/totals satisfy the contract semantics.
-        $first = $rows[0];
-        $this->assertIsArray($first);
+        $types = array_values(array_unique(array_column($rows, 'type')));
+        $expectedTypes = ['Por Tipo de Cita', 'Por Profesional', 'Por Ambiente', 'Por Día'];
 
-        $this->assertTrue(
-            array_key_exists('branch', $first)
-                || array_key_exists('category', $first)
-                || array_key_exists('environment_name', $first),
-            'Revenue report rows MUST expose a branch / category / environment_name key.'
+        sort($types);
+        sort($expectedTypes);
+
+        $this->assertSame(
+            $expectedTypes,
+            $types,
+            'Contract v2: revenue rows carry only the exclusive cuts; the retired Resumen row must be gone.'
         );
-        $this->assertTrue(
-            array_key_exists('total', $first)
-                || array_key_exists('total_revenue', $first)
-                || array_key_exists('revenue', $first),
-            'Revenue report rows MUST expose a total / total_revenue / revenue key.'
+        $this->assertNotContains('Total General', array_column($rows, 'category'));
+
+        foreach ($rows as $row) {
+            $this->assertArrayHasKey('category', $row);
+            $this->assertArrayHasKey('total_revenue', $row);
+            $this->assertNotSame('Resumen', $row['type']);
+        }
+
+        $this->assertIsArray($summary);
+        $this->assertEqualsCanonicalizing(
+            ['appointments_count', 'total_revenue', 'average_per_appointment', 'period'],
+            array_keys($summary)
         );
-        $this->assertArrayHasKey('period', $first, 'Revenue report rows MUST expose a period key (per spec).');
+        $this->assertSame(1, $summary['appointments_count']);
+        $this->assertEqualsWithDelta(300.00, (float) $summary['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(300.00, (float) $summary['average_per_appointment'], 0.001);
+        $this->assertMatchesRegularExpression(
+            '#^\d{2}/\d{2}/\d{4} - \d{2}/\d{2}/\d{4}$#',
+            $summary['period']
+        );
+
+        $dayRows = array_values(array_filter($rows, fn (array $row) => $row['type'] === 'Por Día'));
+
+        $this->assertNotEmpty($dayRows);
+        $this->assertEqualsWithDelta(300.00, (float) array_sum(array_column($dayRows, 'total_revenue')), 0.001);
     }
 
     public function test_empty_dataset_renders_200_with_zero_summaries(): void
     {
+        Transaction::query()->forceDelete();
+        Appointment::query()->forceDelete();
+
         $admin = $this->admin();
 
         $response = $this->actingAs($admin, 'sanctum')->getJson('/api/reports/revenue');
 
         $response->assertOk();
 
-        // The service emits a single "Resumen / Total General" summary row even
-        // when no completed appointments exist. Aggregate counters MUST read zero
-        // and no Por Tipo / Por Profesional / Por Ambiente grouped rows may leak.
-        $rows = $response->json('data');
-        $this->assertIsArray($rows, 'Empty dataset MUST return a `data` array.');
+        // Contract v2: no synthetic Resumen row. An empty period is an empty
+        // `data` array plus zeroed totals in `meta.summary`.
+        $this->assertSame([], $response->json('data'));
 
-        $summary = collect($rows)->firstWhere('category', 'Total General');
-        $this->assertNotNull($summary, 'Empty dataset MUST include the Total General summary row.');
-        $this->assertSame(0, (int) ($summary['appointments_count'] ?? -1));
-        $this->assertEqualsWithDelta(0, (float) ($summary['total_revenue'] ?? -1), 0.001);
-        $this->assertEqualsWithDelta(0, (float) ($summary['average_per_appointment'] ?? -1), 0.001);
+        $summary = $response->json('meta.summary');
 
-        $groupedTypes = collect($rows)->pluck('type')->unique()->values()->all();
-        $this->assertSame(
-            ['Resumen'],
-            $groupedTypes,
-            'Empty dataset MUST NOT emit Por Tipo / Por Profesional / Por Ambiente grouped rows.'
-        );
+        $this->assertIsArray($summary);
+        $this->assertSame(0, $summary['appointments_count']);
+        $this->assertEqualsWithDelta(0.0, (float) $summary['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $summary['average_per_appointment'], 0.001);
+        $this->assertNotSame('', $summary['period']);
+        $this->assertArrayNotHasKey('error', $response->json());
     }
 
     public function test_unauthenticated_request_is_rejected_with_401_envelope(): void

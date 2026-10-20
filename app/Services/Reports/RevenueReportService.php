@@ -3,230 +3,196 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
+use App\Models\Transaction;
+use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class RevenueReportService
 {
+    use ResolvesReportPeriod;
+
+    private const SUMMARY_GROUP = 'Sin cita asociada';
+
     /**
-     * Get revenue report data.
+     * Revenue report.
+     *
+     * Money means collected payments (D1) and each payment lands in exactly one
+     * row of every cut, so the column adds up to the summary instead of double
+     * counting the clinic total (D8).
      */
     public function getReportData(array $filters = []): array
     {
-        $startDate = $filters['start_date'] ?? Carbon::now()->subDays(30)->toDateString();
-        $endDate = $filters['end_date'] ?? Carbon::now()->toDateString();
+        [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
 
-        // Get revenue by appointment type
-        $revenueByType = $this->getRevenueByAppointmentType($startDate, $endDate, $professionalId, $environmentId);
+        $totalRevenue = (float) $this->revenueQuery($startDate, $endDate, $professionalId, $environmentId)->sum('transactions.amount');
+        $completedAppointments = $this->completedAppointments($startDate, $endDate, $professionalId, $environmentId);
 
-        // Get revenue by professional
-        $revenueByProfessional = $this->getRevenueByProfessional($startDate, $endDate, $professionalId, $environmentId);
+        $data = [];
 
-        // Get revenue by environment
-        $revenueByEnvironment = $this->getRevenueByEnvironment($startDate, $endDate, $professionalId, $environmentId);
+        $cuts = [
+            'Por Tipo de Cita' => $this->revenueByAppointmentType($startDate, $endDate, $professionalId, $environmentId),
+            'Por Profesional' => $this->revenueByProfessional($startDate, $endDate, $professionalId, $environmentId),
+            'Por Ambiente' => $this->revenueByEnvironment($startDate, $endDate, $professionalId, $environmentId),
+            'Por Día' => $this->revenueByDay($startDate, $endDate, $professionalId, $environmentId),
+        ];
 
-        // Get daily revenue
-        $dailyRevenue = $this->getDailyRevenue($startDate, $endDate, $professionalId, $environmentId);
-
-        $data = collect();
-
-        // Add summary data
-        $data->push([
-            'type' => 'Resumen',
-            'category' => 'Total General',
-            'appointments_count' => $this->getTotalAppointments($startDate, $endDate, $professionalId, $environmentId),
-            'total_revenue' => $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId),
-            'average_per_appointment' => $this->getAveragePerAppointment($startDate, $endDate, $professionalId, $environmentId),
-            'period' => Carbon::parse($startDate)->format('d/m/Y').' - '.Carbon::parse($endDate)->format('d/m/Y'),
-        ]);
-
-        // Add revenue by type
-        foreach ($revenueByType as $item) {
-            $data->push([
-                'type' => 'Por Tipo de Cita',
-                'category' => $item['appointment_type'],
-                'appointments_count' => $item['count'],
-                'total_revenue' => $item['revenue'],
-                'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => '',
-            ]);
+        foreach ($cuts as $type => $rows) {
+            foreach ($rows as $row) {
+                $data[] = [
+                    'type' => $type,
+                    'category' => $row->category,
+                    'appointments_count' => (int) $row->appointments_count,
+                    'total_revenue' => round((float) $row->total_revenue, 2),
+                    'average_per_appointment' => $row->appointments_count > 0
+                        ? round((float) $row->total_revenue / (int) $row->appointments_count, 2)
+                        : 0,
+                ];
+            }
         }
 
-        // Add revenue by professional
-        foreach ($revenueByProfessional as $item) {
-            $data->push([
-                'type' => 'Por Profesional',
-                'category' => $item['professional_name'],
-                'appointments_count' => $item['count'],
-                'total_revenue' => $item['revenue'],
-                'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => '',
-            ]);
-        }
+        // Residual: payments whose appointment no longer resolves (missing or
+        // soft-deleted). Each cut above adds up to the attributed total on its
+        // own, so the unlinked money is one extra group, never subtracted from a
+        // cut that already balances.
+        $attributed = (float) $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
+            ->sum('transactions.amount');
+        $residual = round($totalRevenue - $attributed, 2);
 
-        // Add revenue by environment
-        foreach ($revenueByEnvironment as $item) {
-            $data->push([
-                'type' => 'Por Ambiente',
-                'category' => $item['environment_name'],
-                'appointments_count' => $item['count'],
-                'total_revenue' => $item['revenue'],
-                'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => '',
-            ]);
+        if (abs($residual) >= 0.01) {
+            $data[] = [
+                'type' => self::SUMMARY_GROUP,
+                'category' => 'Pagos sin cita resoluble',
+                'appointments_count' => 0,
+                'total_revenue' => $residual,
+                'average_per_appointment' => 0,
+            ];
         }
 
         return [
-            'data' => $data->toArray(),
+            'data' => $data,
             'columns' => [
                 ['key' => 'type', 'label' => 'Tipo'],
                 ['key' => 'category', 'label' => 'Categoría'],
                 ['key' => 'appointments_count', 'label' => 'Número de Citas'],
-                ['key' => 'total_revenue', 'label' => 'Ingresos Totales (S/)'],
+                ['key' => 'total_revenue', 'label' => 'Ingresos Cobrados (S/)'],
                 ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
-                ['key' => 'period', 'label' => 'Período'],
+            ],
+            'summary' => [
+                'appointments_count' => $completedAppointments,
+                'total_revenue' => round($totalRevenue, 2),
+                'average_per_appointment' => $completedAppointments > 0
+                    ? round($totalRevenue / $completedAppointments, 2)
+                    : 0,
+                'period' => $this->periodLabel($startDate, $endDate),
             ],
         ];
     }
 
     /**
-     * Get revenue by appointment type.
+     * Completed payments inside the period.
      */
-    private function getRevenueByAppointmentType(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
+    private function baseRevenueQuery(Carbon $startDate, Carbon $endDate): Builder
     {
-        $query = Appointment::with('appointmentType')
+        return Transaction::query()
+            ->where('transactions.type', 'payment')
+            ->where('transactions.status', 'completed')
+            ->whereBetween('transactions.created_at', [$startDate, $endDate]);
+    }
+
+    private function revenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
+    {
+        $query = $this->baseRevenueQuery($startDate, $endDate);
+
+        if ($professionalId || $environmentId) {
+            $query->whereHas('appointment', function ($subQ) use ($professionalId, $environmentId) {
+                if ($professionalId) {
+                    $subQ->where('user_id', $professionalId);
+                }
+
+                if ($environmentId) {
+                    $subQ->where('dental_chair_id', $environmentId);
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    private function joinedRevenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
+    {
+        return $this->baseRevenueQuery($startDate, $endDate)
+            ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
+            ->when($professionalId, fn (Builder $q) => $q->where('appointments.user_id', $professionalId))
+            ->when($environmentId, fn (Builder $q) => $q->where('appointments.dental_chair_id', $environmentId));
+    }
+
+    private function revenueByAppointmentType(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
+    {
+        return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
+            ->join('appointment_types', 'appointment_types.id', '=', 'appointments.appointment_type_id')
+            ->groupBy('appointment_types.name')
+            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
             ->select(
-                'appointment_type_id',
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(appointment_types.price) as revenue')
+                'appointment_types.name as category',
+                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
+                DB::raw('SUM(transactions.amount) as total_revenue')
             )
-            ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
-            ->whereBetween('scheduled_at', [$startDate, $endDate])
-            ->where('appointments.status', 'completed')
-            ->groupBy('appointment_type_id');
-
-        if ($professionalId) {
-            $query->where('appointments.user_id', $professionalId);
-        }
-
-        if ($environmentId) {
-            $query->where('appointments.dental_chair_id', $environmentId);
-        }
-
-        $results = $query->get();
-
-        return $results->map(function ($item) {
-            return [
-                'appointment_type' => $item->appointmentType->name,
-                'count' => $item->count,
-                'revenue' => round($item->revenue, 2),
-            ];
-        })->toArray();
+            ->get()
+            ->all();
     }
 
-    /**
-     * Get revenue by professional.
-     */
-    private function getRevenueByProfessional(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
+    private function revenueByProfessional(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
-        $query = Appointment::with('user')
+        return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
+            ->join('users', 'users.id', '=', 'appointments.user_id')
+            ->groupBy('users.name')
+            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
             ->select(
-                'user_id',
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(appointment_types.price) as revenue')
+                'users.name as category',
+                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
+                DB::raw('SUM(transactions.amount) as total_revenue')
             )
-            ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
-            ->whereBetween('scheduled_at', [$startDate, $endDate])
-            ->where('appointments.status', 'completed')
-            ->groupBy('user_id');
-
-        if ($professionalId) {
-            $query->where('appointments.user_id', $professionalId);
-        }
-
-        if ($environmentId) {
-            $query->where('appointments.dental_chair_id', $environmentId);
-        }
-
-        $results = $query->get();
-
-        return $results->map(function ($item) {
-            return [
-                'professional_name' => $item->user->name,
-                'count' => $item->count,
-                'revenue' => round($item->revenue, 2),
-            ];
-        })->toArray();
+            ->get()
+            ->all();
     }
 
-    /**
-     * Get revenue by environment.
-     */
-    private function getRevenueByEnvironment(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
+    private function revenueByEnvironment(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
-        $query = Appointment::with('dentalChair')
+        return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
+            ->join('dental_chairs', 'dental_chairs.id', '=', 'appointments.dental_chair_id')
+            ->groupBy('dental_chairs.name')
+            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
             ->select(
-                'dental_chair_id',
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(appointment_types.price) as revenue')
+                'dental_chairs.name as category',
+                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
+                DB::raw('SUM(transactions.amount) as total_revenue')
             )
-            ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
-            ->whereBetween('scheduled_at', [$startDate, $endDate])
-            ->where('appointments.status', 'completed')
-            ->groupBy('dental_chair_id');
-
-        if ($professionalId) {
-            $query->where('appointments.user_id', $professionalId);
-        }
-
-        if ($environmentId) {
-            $query->where('appointments.dental_chair_id', $environmentId);
-        }
-
-        $results = $query->get();
-
-        return $results->map(function ($item) {
-            return [
-                'environment_name' => $item->dentalChair->name,
-                'count' => $item->count,
-                'revenue' => round($item->revenue, 2),
-            ];
-        })->toArray();
+            ->get()
+            ->all();
     }
 
-    /**
-     * Get daily revenue.
-     */
-    private function getDailyRevenue(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
+    private function revenueByDay(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
-        $query = Appointment::select(
-            DB::raw('DATE(scheduled_at) as date'),
-            DB::raw('COUNT(*) as count'),
-            DB::raw('SUM(appointment_types.price) as revenue')
-        )
-            ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
-            ->whereBetween('scheduled_at', [$startDate, $endDate])
-            ->where('appointments.status', 'completed')
-            ->groupBy(DB::raw('DATE(scheduled_at)'))
-            ->orderBy('date');
-
-        if ($professionalId) {
-            $query->where('appointments.user_id', $professionalId);
-        }
-
-        if ($environmentId) {
-            $query->where('appointments.dental_chair_id', $environmentId);
-        }
-
-        return $query->get()->toArray();
+        return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
+            ->groupBy(DB::raw('DATE(transactions.created_at)'))
+            ->orderBy(DB::raw('DATE(transactions.created_at)'))
+            ->select(
+                DB::raw('DATE(transactions.created_at) as category'),
+                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
+                DB::raw('SUM(transactions.amount) as total_revenue')
+            )
+            ->get()
+            ->all();
     }
 
     /**
-     * Get total appointments.
+     * Completed appointments inside the period, the denominator of the average.
      */
-    private function getTotalAppointments(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): int
+    private function completedAppointments(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): int
     {
         $query = Appointment::whereBetween('scheduled_at', [$startDate, $endDate])
             ->where('status', 'completed');
@@ -240,40 +206,5 @@ class RevenueReportService
         }
 
         return $query->count();
-    }
-
-    /**
-     * Get total revenue.
-     */
-    private function getTotalRevenue(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
-    {
-        $query = Appointment::with('appointmentType')
-            ->whereBetween('scheduled_at', [$startDate, $endDate])
-            ->where('status', 'completed');
-
-        if ($professionalId) {
-            $query->where('user_id', $professionalId);
-        }
-
-        if ($environmentId) {
-            $query->where('dental_chair_id', $environmentId);
-        }
-
-        $appointments = $query->get();
-
-        return $appointments->sum(function ($appointment) {
-            return $appointment->appointmentType->price ?? 0;
-        });
-    }
-
-    /**
-     * Get average per appointment.
-     */
-    private function getAveragePerAppointment(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
-    {
-        $totalAppointments = $this->getTotalAppointments($startDate, $endDate, $professionalId, $environmentId);
-        $totalRevenue = $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId);
-
-        return $totalAppointments > 0 ? round($totalRevenue / $totalAppointments, 2) : 0;
     }
 }
