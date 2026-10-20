@@ -368,7 +368,7 @@ const canCreateTransaction = computed(() => can.createTransaction.value)
 const canCreateMovement = computed(() => can.createMovement.value)
 const canVoid = computed(() => can.voidTransaction.value)
 const canViewReports = computed(() => can.viewCashReports.value)
-const canViewPendingPayments = computed(() => can.manageCashRegister.value)
+const canViewPendingPayments = computed(() => can.collectPendingPayments.value)
 
 const tabs = computed(() => {
   const items = []

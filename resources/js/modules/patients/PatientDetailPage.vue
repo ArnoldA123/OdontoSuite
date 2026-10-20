@@ -348,11 +348,13 @@
                         {{ quotation.notes }}
                       </p>
                       <div class="flex items-center gap-4 mt-2 text-sm text-theme-secondary">
-                        <span>
+                        <span class="inline-flex items-center gap-2">
                           Estado:
-                          <UiBadge :variant="getQuotationStatusVariant(quotation.status)">
-                            {{ quotation.status }}
-                          </UiBadge>
+                          <UiStatusBadge
+                            :variant="getStatusMeta(quotation.status).variant"
+                            :label="getStatusMeta(quotation.status).label"
+                            size="sm"
+                          />
                         </span>
                         <span>Total: S/ {{ quotation.total_amount }}</span>
                         <span>Fecha: {{ formatDate(quotation.quotation_date) }}</span>
@@ -666,9 +668,11 @@ import { useAuditLogs } from '../../composables/useAuditLogs'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
 import { formatDateOnly } from '../../utils/formatters'
+import { getStatusMeta } from '../quotations/quotationMeta'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import Breadcrumbs from '../../components/ui/Breadcrumbs.vue'
 import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import UiStatusBadge from '../../components/ui/StatusBadge.vue'
 import UiCard from '../../components/ui/Card.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiBadge from '../../components/ui/Badge.vue'
@@ -688,6 +692,7 @@ export default {
     UiCard,
     UiButton,
     UiBadge,
+    UiStatusBadge,
     UiTabs,
     PatientFormModal,
     PatientTabPanel
@@ -695,7 +700,7 @@ export default {
   setup() {
     const route = useRoute()
     const router = useRouter()
-    const { get } = useApi()
+    const { get, download, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
     const { channel, privateChannel, echo } = useEcho()
@@ -874,16 +879,6 @@ export default {
       return variants[status] || 'secondary'
     }
 
-    const getQuotationStatusVariant = status => {
-      const variants = {
-        pending: 'warning',
-        approved: 'success',
-        rejected: 'error',
-        expired: 'secondary'
-      }
-      return variants[status] || 'secondary'
-    }
-
     const getSpecialtyName = specialty => {
       const names = {
         implantology: 'Implantología',
@@ -984,41 +979,24 @@ export default {
     }
 
     const viewQuotation = id => {
-      router.push(`/quotations/${id}`)
+      router.push({ path: '/quotations', query: { open: String(id) } })
     }
 
     const downloadQuotationPDF = async id => {
       try {
-        // Slice 01 / T-01.4 (API-012): window.open strips the Authorization
-        // header in Sanctum cookie/session hybrid, causing a 401 on PDF
-        // downloads. Use fetch + blob + temporary anchor click instead.
-        const token = localStorage.getItem('auth_token')
-        const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin
-        const url = `${baseUrl}/api/quotations/${id}/pdf`
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/pdf'
-          }
+        const { blob, filename } = await download(`/api/quotations/${id}/pdf`, {
+          fallbackFilename: `presupuesto_${id}.pdf`
         })
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status} al descargar el PDF`)
-        }
-
-        const blob = await response.blob()
         const downloadUrl = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = downloadUrl
-        link.download = `presupuesto_${id}_${new Date().toISOString().split('T')[0]}.pdf`
+        link.download = filename
         document.body.appendChild(link)
         link.click()
-        document.body.removeChild(link)
+        link.remove()
         window.URL.revokeObjectURL(downloadUrl)
       } catch (error) {
-        toast.error('Error al descargar el PDF del presupuesto')
+        toast.error(normalizeError(error, 'No pudimos descargar el presupuesto'))
       }
     }
 
@@ -1169,7 +1147,7 @@ export default {
           }
 
           // Canal de presupuestos
-          quotationsChannel = channel('quotations')
+          quotationsChannel = privateChannel('quotations')
           if (quotationsChannel) {
             quotationsChannel
               .listen('.quotation.created', async e => {
@@ -1200,6 +1178,19 @@ export default {
                   }
                   if (activeTab.value === 'quotations') {
                     toast.success('Presupuesto aprobado')
+                  }
+                }
+              })
+              .listen('.quotation.rejected', async e => {
+                if (e.quotation.patient_id === patientId) {
+                  const index = quotations.value.findIndex(q => q.id === e.quotation.id)
+                  if (index !== -1) {
+                    quotations.value[index] = e.quotation
+                  } else {
+                    await loadQuotations()
+                  }
+                  if (activeTab.value === 'quotations') {
+                    toast.warning('Presupuesto rechazado')
                   }
                 }
               })
@@ -1321,7 +1312,7 @@ export default {
       formatDate,
       genderLabel,
       getStatusVariant,
-      getQuotationStatusVariant,
+      getStatusMeta,
       getSpecialtyName,
       getAuditActionVariant,
       editPatient,

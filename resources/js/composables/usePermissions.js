@@ -68,6 +68,10 @@ export function usePermissions() {
     manageCashRegister: computed(() =>
       ['administrador', 'finanzas'].includes(safeUser.value?.role)
     ),
+    // Issue #191: recepcion cobra los pagos pendientes en el mostrador.
+    collectPendingPayments: computed(() =>
+      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
+    ),
     createTransaction: computed(() =>
       ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
     ),

@@ -133,6 +133,15 @@ export class NotificationService {
         type: 'success',
         category: 'quotations',
         sound: true
+      },
+      'quotation.rejected': {
+        title: 'Presupuesto rechazado',
+        message: data.reason
+          ? `${patientName} ha rechazado el presupuesto de ${amount}. Motivo: ${data.reason}`
+          : `${patientName} ha rechazado el presupuesto de ${amount}`,
+        type: 'warning',
+        category: 'quotations',
+        sound: true
       }
     }
 

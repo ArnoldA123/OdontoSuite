@@ -23,7 +23,12 @@ export function useWebSocketNotifications() {
     const currentPath = route.path
 
     // Siempre mostrar notificaciones importantes
-    const importantEvents = ['quotation.approved', 'cash-session.closed', 'payment.registered']
+    const importantEvents = [
+      'quotation.approved',
+      'quotation.rejected',
+      'cash-session.closed',
+      'payment.registered'
+    ]
 
     if (importantEvents.includes(eventName)) {
       return true
@@ -118,12 +123,13 @@ export function useWebSocketNotifications() {
       }
 
       // Canal de presupuestos
-      const quotationsChannel = channel('quotations')
+      const quotationsChannel = privateChannel('quotations')
       if (quotationsChannel) {
         quotationsChannel
           .listen('.quotation.created', e => handleEvent('quotation.created', e))
           .listen('.quotation.updated', e => handleEvent('quotation.updated', e))
           .listen('.quotation.approved', e => handleEvent('quotation.approved', e))
+          .listen('.quotation.rejected', e => handleEvent('quotation.rejected', e))
         channels.quotations = quotationsChannel
       }
 

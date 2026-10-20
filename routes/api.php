@@ -284,8 +284,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Sistema de caja. Issue #55: recepcion opera caja (sesiones y
     // transacciones, CRED-cash-recep / CRED-tx-recep) porque es el rol que
-    // cobra en recepcion; movimientos, reportes, pagos pendientes y Mercado
-    // Pago quedan en administrador/finanzas como promete CREDENTIALS.md.
+    // cobra en recepcion. Issue #191: los pagos pendientes se cobran en el
+    // mismo mostrador, asi que tambien viven aqui; movimientos, reportes de
+    // caja y Mercado Pago siguen en administrador/finanzas.
     Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
         // Transacciones requieren sesion de caja abierta.
         // Slice 01 / T-01.1: register `transactions/list` BEFORE apiResource so
@@ -306,9 +307,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // GET /cash-register-sessions/{cash_register_session} -> show($id).
         Route::get('cash-register-sessions/active', [CashRegisterController::class, 'current']);
         Route::get('cash-register-sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
-        Route::apiResource('cash-register-sessions', CashRegisterController::class);
-        Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'open']);
-        Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'close']);
+        Route::apiResource('cash-register-sessions', CashRegisterController::class)->only(['index', 'show']);
+        // Cash follow-up S1: `{id}/close` ignoraba su `{id}` y delegaba en el
+        // cierre generico (`POST cash-register/close` con `session_id`), mismo
+        // caso que el `{id}/open` retirado en #194. No se repone.
 
         // Rutas alias para compatibilidad con frontend
         Route::get('cash-register/current', [CashRegisterController::class, 'current']);
@@ -321,6 +323,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('cash-register/summary', [CashRegisterController::class, 'summary']);
         Route::get('cash-register/sessions/{id}', [CashRegisterController::class, 'show']);
         Route::get('cash-register/sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
+
+        // Pagos pendientes (issue #191). El alias es el que consume la tab
+        // Cobros del frontend.
+        Route::get('pending-payments', [PendingPaymentsController::class, 'index']);
+        Route::post('pending-payments/{id}/pay', [PendingPaymentsController::class, 'pay']);
+        Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index']);
     });
 
     Route::middleware('role:administrador,finanzas')->group(function () {
@@ -337,15 +345,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('cash-register/reports/export/{format}', [CashReportController::class, 'export'])
             ->where('format', 'excel|pdf|csv');
 
-        // Pagos pendientes
-        Route::get('pending-payments', [PendingPaymentsController::class, 'index']);
-        Route::post('pending-payments/{id}/pay', [PendingPaymentsController::class, 'pay']);
-
         // Mercado Pago (Sprint 3, plan #11)
         Route::post('payments/mercadopago/preference', [MercadoPagoController::class, 'createPreference']);
-
-        // Rutas alias para compatibilidad con frontend
-        Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index']);
     });
 
     // IA Asistiva (solo odontólogos y especialistas)

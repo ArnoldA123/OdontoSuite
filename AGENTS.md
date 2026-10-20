@@ -101,7 +101,7 @@ app/
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 50 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 33 eventos (10 con listener cableado + 21 con consumer WS, 2 sin dispatch)
+  Events/                  # 34 eventos (10 con listener cableado + 22 con consumer WS, 2 sin dispatch)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 202 rutas API (medido con php artisan route:list --json: uris api/…; 215 totales con web)
+  api.php                  # 197 rutas API (medido con php artisan route:list --json: uris api/…; 210 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -181,7 +181,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 32 controllers API, 33 eventos (10 listener classes / 13 cableos
+- 50 modelos, 32 controllers API, 34 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -389,6 +389,77 @@ documentada y no bloquea producción.
   lecturas y la subida (el Sheet pinta el error en línea) y conserva el toast
   solo en las acciones sin superficie de error propia. Sin rutas, modelos,
   migraciones ni primitivas UI nuevas: los conteos de §4 no cambian.
+
+- **2026-10-20 (caja: rutas honestas, sesión actual y fugas de los 500)** —
+  Cierra los cuatro defectos vecinos detectados al entregar
+  #191/#193/#194/#196/#198. Se retira `POST /cash-register-sessions/{id}/close`
+  (ignoraba su `{id}`, gemelo del `{id}/open` que quitó #194) y
+  `apiResource('cash-register-sessions')` publica sólo `index` y `show`:
+  `store`, `update` y `destroy` no existen en el controlador y respondían 500
+  por método inexistente (ahora 405). `CashRegisterService::getCurrentSession()`
+  acota por usuario salvo `administrador` —regla de `CashRegisterPolicy::view`—
+  porque el guard anterior usaba `userCanManageCashRegister()`, que admite los
+  tres roles de caja y nunca acotaba nada; `GET /cash-register/current` ya no
+  devuelve la caja de otro usuario. El mensaje de `OpenCashRegisterRequest`
+  nombra la regla real (usuario y sucursal). Los cinco `catch` de
+  `CashRegisterController` (`current`, `index`, `show`, `movements`, `summary`)
+  dejan de devolver el mensaje de la excepción: mensaje genérico y `Log::error`,
+  con `ModelNotFoundException` reenviada para conservar el 404. §4 sincronizado
+  con valores medidos: 197 rutas API, 210 totales con web. Tests nuevos:
+  `CashRegisterPhantomRoutesTest` (4), `CashRegisterCurrentSessionScopeTest` (4)
+  y `CashRegisterErrorEnvelopeTest` (5). Guard `scripts/audit/doc-drift.mjs` en
+  verde.
+
+- **2026-10-20 (caja: dureza del backend y cobro en recepción)** — Cierra las
+  issues #191, #193, #194, #196 y #198 en dos slices: `fix/caja-hardening`
+  (contrato y dureza) y `fix/caja-hardening-rbac` (#194, #191).
+  `CashRegisterController@show`, `@movements` y `@closureReport` aplican ahora
+  `CashRegisterPolicy::view` (dueño o administrador), regla que era código
+  muerto porque el auto-descubrimiento busca `CashRegisterSessionPolicy`;
+  `AppServiceProvider` la registra explícitamente y un id inexistente responde
+  404 en vez de 500. `GET /api/pending-payments` pagina con `per_page` (1..100,
+  default 15) y devuelve `current_page`, `last_page`, `per_page` y `total`; sus
+  500 dejan de exponer el mensaje de la excepción y el trace y pasan al log.
+  `GET /api/cash-register/summary` se acota al usuario autenticado salvo para
+  administrador/finanzas (que pueden filtrar por `user_id`) y hereda el filtro
+  de sucursal de `CashRegisterService::getCurrentSession()`; se retira
+  `POST /cash-register-sessions/{id}/open` (ignoraba `{id}`) y el método muerto
+  `currentView()`. Los pagos pendientes pasan al grupo de caja: `recepcionista`
+  cobra desde la tab Cobros (permiso `collectPendingPayments`), documentado en
+  la matriz de `CREDENTIALS.md`. §4 sincronizado con valores medidos: 201 rutas
+  API, 214 totales con web (la ruta `{id}/open` se retiró). Tests nuevos:
+  `CashSessionOwnershipTest` (8), `PendingPaymentsErrorEnvelopeTest` (2),
+  `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
+  `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
+  verde.
+- **2026-10-20 (endurecimiento del contrato de presupuestos, #200-#204)** — Los
+  tres eventos de presupuesto y el nuevo `QuotationRejected` viajan solo por
+  `PrivateChannel('quotations')`: `BroadcastingAuthController` autoriza
+  exactamente a administrador, finanzas, odontologo, implantologo y
+  recepcionista, y esos eventos dejan de publicarse por el canal público
+  `dashboard-updates` porque su payload lleva datos del paciente y montos (el
+  resto de eventos de ese canal queda para #183). `QuotationService` respeta la
+  máquina de estados: aprobar y rechazar solo desde `sent`/`viewed` (422 con
+  mensaje explícito), una sola fila de aprobación vigente, la descarga del PDF
+  escribe `viewed` y el nuevo comando diario `quotations:expire` escribe
+  `expired`; `index?expired=` y el resumen leen el estado en vez de derivarlo de
+  `valid_until`, mientras el badge de vigencia del front sigue avisando por
+  fecha. El rechazo emite `quotation.rejected` (no `QuotationUpdated`, para no
+  duplicar la notificación) y `NotificationService` lo mapea. El detalle de
+  paciente abre el presupuesto con `/quotations?open=<id>`, usa el vocabulario
+  de estado compartido y descarga con `useApi().download`. `store` y `update`
+  comparten el saneo de texto libre (`App\Support\QuotationText`: sin HTML,
+  topes 2000/1000) y el motivo de rechazo ya no desborda `notes`. Sin rutas,
+  migraciones, modelos ni primitivas UI nuevas: solo el conteo de eventos sube
+  a 34. Tests: `QuotationTextTest`, `QuotationTextHygieneTest`,
+  `QuotationStatusMachineTest`, `QuotationViewedOnPdfTest`,
+  `ExpireQuotationsCommandTest`, `QuotationBroadcastChannelsTest`,
+  `QuotationRejectedEventTest`, `BroadcastingAuthChannelsTest` extendido y los
+  smokes JS del canal privado, del deep link y de las acciones del paciente.
+  Follow-up de #196/#236: los nueve handlers de `QuotationController` registran
+  la excepción y responden un mensaje genérico (ya no exponen `error`), y un id
+  inexistente responde 404 en vez de 500 (`QuotationErrorEnvelopeTest`). Guard
+  `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero

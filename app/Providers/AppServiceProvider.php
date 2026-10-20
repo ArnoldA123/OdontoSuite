@@ -96,5 +96,14 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\AppointmentCheckedIn::class,
             \App\Listeners\LogAppointmentCheckedIn::class
         );
+
+        // Issue #193: CashRegisterPolicy never resolved because auto-discovery
+        // looks for `CashRegisterSessionPolicy`, so the session ownership rule
+        // the controller now enforces was dead code. Registered explicitly so
+        // `$user->can('view', $session)` is the single source of that rule.
+        \Illuminate\Support\Facades\Gate::policy(
+            \App\Models\CashRegisterSession::class,
+            \App\Policies\CashRegisterPolicy::class
+        );
     }
 }

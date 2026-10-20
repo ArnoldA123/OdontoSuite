@@ -8,8 +8,10 @@ use App\Http\Requests\OpenCashRegisterRequest;
 use App\Models\CashRegisterSession;
 use App\Services\CashRegisterService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CashRegisterController extends Controller
 {
@@ -91,37 +93,12 @@ class CashRegisterController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Get current session for viewing (read-only).
-     */
-    public function currentView(): JsonResponse
-    {
-        try {
-            $session = $this->cashRegisterService->getCurrentSession();
-
-            if (! $session) {
-                return response()->json([
-                    'data' => null,
-                    'meta' => [
-                        'message' => 'No hay sesión de caja abierta',
-                    ],
-                ]);
-            }
-
-            return response()->json([
-                'data' => $session,
+            Log::error('No se pudo obtener la sesión de caja actual', [
+                'exception' => $e,
             ]);
-        } catch (\Exception $e) {
+
             return response()->json([
                 'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -140,43 +117,67 @@ class CashRegisterController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener las sesiones de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener las sesiones de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Get specific session details.
+     *
+     * Issue #193: the session detail is scoped to its owner (or an
+     * administrador) through CashRegisterPolicy::view, the same rule
+     * CashMovementPolicy already applied.
+     *
+     * Cash follow-up S4: the lookup stays inside the try so any failure is
+     * logged and answered with the generic envelope, while a missing id is
+     * rethrown as a 404 before the catch-all.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $session = \App\Models\CashRegisterSession::with([
+            $session = CashRegisterSession::with([
                 'user', 'branch', 'movements', 'transactions',
             ])->findOrFail($id);
+
+            if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+                return $denied;
+            }
 
             $summary = $this->cashRegisterService->getSessionSummary($session);
 
             return response()->json([
                 'data' => $summary,
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener la sesión de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener la sesión de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get movements for a specific session.
+     * Get movements for a specific session (issue #193: owner or administrador).
      */
-    public function movements($sessionId): JsonResponse
+    public function movements(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $session = \App\Models\CashRegisterSession::findOrFail($sessionId);
+            $session = CashRegisterSession::findOrFail($sessionId);
+
+            if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+                return $denied;
+            }
 
             $movements = \App\Models\CashMovement::where('cash_register_session_id', $sessionId)
                 ->with(['createdBy', 'transaction'])
@@ -192,12 +193,34 @@ class CashRegisterController extends Controller
                     'total' => $movements->total(),
                 ],
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los movimientos de la sesión de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener los movimientos de la sesión',
-                'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Enforce the session ownership rule (issue #193).
+     *
+     * The rule itself lives in CashRegisterPolicy::view; this only shapes the
+     * 403 envelope the cash surfaces answer with.
+     */
+    private function denyUnlessSessionViewable(Request $request, CashRegisterSession $session): ?JsonResponse
+    {
+        if ($request->user()->can('view', $session)) {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'No tienes permisos para ver esta sesión de caja',
+        ], 403);
     }
 
     /**
@@ -208,22 +231,35 @@ class CashRegisterController extends Controller
      * CashRegisterService::getSessionSummary(), producing a TypeError 500.
      * Without a session there is nothing to summarize, so a 200 envelope
      * with an empty summary is returned instead of an exception.
+     *
+     * Issue #194: the lookup took the latest session of the day without a
+     * user scope, so a recepcionista could be answered with another user's
+     * drawer. Administrador/finanzas may summarize any drawer and pass
+     * user_id to scope it; every other role is always scoped to itself and
+     * an explicit user_id is ignored. The branch default mirrors
+     * CashRegisterService::getCurrentSession().
      */
     public function summary(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
             $date = $request->input('date', now()->toDateString());
             $branchId = $request->input('branch_id');
             $userId = $request->input('user_id');
+            $isCashManager = in_array($user->role, ['administrador', 'finanzas'], true);
 
             $query = \App\Models\CashRegisterSession::whereDate('opened_at', $date);
 
-            if ($branchId) {
-                $query->where('branch_id', $branchId);
+            if (! $isCashManager) {
+                $query->where('user_id', $user->id);
+            } elseif ($userId) {
+                $query->where('user_id', $userId);
             }
 
-            if ($userId) {
-                $query->where('user_id', $userId);
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            } elseif ($user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
             }
 
             $session = $query->latest('opened_at')->first();
@@ -242,20 +278,28 @@ class CashRegisterController extends Controller
                 'meta' => ['message' => 'Resumen de caja generado exitosamente'],
             ]);
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener el resumen de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener el resumen de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Generate closure report for a specific session.
+     * Generate closure report for a specific session (issue #193: owner or
+     * administrador, same rule as the session detail).
      */
-    public function closureReport(int $sessionId)
+    public function closureReport(Request $request, int $sessionId)
     {
         $session = CashRegisterSession::with(['user', 'branch', 'transactions', 'movements'])
             ->findOrFail($sessionId);
+
+        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+            return $denied;
+        }
 
         $summary = $this->cashRegisterService->getSessionSummary($session);
 
