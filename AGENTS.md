@@ -113,7 +113,7 @@ resources/js/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
-  modules/                 # 17 módulos de dominio (ver §5)
+  modules/                 # 18 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
@@ -142,29 +142,30 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (17 módulos, 19 páginas)
+## 5. Módulos del frontend (18 módulos, 20 páginas)
 
-| Módulo                   | Ruta                        | Roles                            |
-| ------------------------ | --------------------------- | -------------------------------- |
-| Dashboard                | `/dashboard`                | todos                            |
-| Calendario               | `/calendar`                 | todos los clínicos               |
-| Pacientes                | `/patients`                 | todos                            |
-| Profesionales            | `/professionals`            | admin                            |
-| Ambientes                | `/environments`             | admin                            |
-| Tipos de cita            | `/appointment-types`        | admin                            |
-| Sucursales               | `/settings/branches`        | admin                            |
-| Métodos de pago          | `/settings/payment-methods` | admin                            |
-| Caja                     | `/cash-register`            | admin, finanzas, recep           |
-| BI                       | `/business-intelligence`    | admin, finanzas                  |
-| Planes de tratamiento    | `/treatment-plans`          | clínicos                         |
-| Presupuestos             | `/quotations`               | admin, finanzas, odonto, implant |
-| Historias clínicas       | `/medical-records`          | clínicos                         |
-| Registros especialidad   | `/specialty-records`        | clínicos                         |
-| Análisis IA              | `/ai-analysis`              | clínicos                         |
-| Catálogo procedimientos  | `/procedure-catalog`        | admin                            |
-| Mis procedimientos       | `/my-procedures`            | clínicos (favoritos)             |
-| Recepción procedimientos | `/reception-procedures`     | recep                            |
-| Estadísticas catálogo    | `/procedure-stats`          | admin, finanzas                  |
+| Módulo                    | Ruta                        | Roles                            |
+| ------------------------- | --------------------------- | -------------------------------- |
+| Dashboard                 | `/dashboard`                | todos                            |
+| Calendario                | `/calendar`                 | todos los clínicos               |
+| Pacientes                 | `/patients`                 | todos                            |
+| Profesionales             | `/professionals`            | admin                            |
+| Ambientes                 | `/environments`             | admin                            |
+| Tipos de cita             | `/appointment-types`        | admin                            |
+| Especialidades (catálogo) | `/specialties`              | admin                            |
+| Sucursales                | `/settings/branches`        | admin                            |
+| Métodos de pago           | `/settings/payment-methods` | admin                            |
+| Caja                      | `/cash-register`            | admin, finanzas, recep           |
+| BI                        | `/business-intelligence`    | admin, finanzas                  |
+| Planes de tratamiento     | `/treatment-plans`          | clínicos                         |
+| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
+| Historias clínicas        | `/medical-records`          | clínicos                         |
+| Registros especialidad    | `/specialty-records`        | clínicos                         |
+| Análisis IA               | `/ai-analysis`              | clínicos                         |
+| Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
+| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
+| Recepción procedimientos  | `/reception-procedures`     | recep                            |
+| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                  |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
@@ -375,6 +376,20 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (especialidades — catálogo maestro)** — Nueva interfaz admin en
+  `/specialties` para el maestro de especialidades, con el lenguaje del
+  dashboard (hero band, KPI strip, búsqueda y filtro de estado, `UiDataTable`,
+  estados de carga/error/vacío y modal de alta/edición). El backend suma de
+  forma aditiva `q`, `is_active`, `procedures_count`, `professionals_count` y
+  `meta.kpis` (población sin filtros) a `GET /api/specialties`, y conteos a
+  `GET /api/specialties/{id}`; sin rutas, migraciones, modelos ni controllers
+  nuevos. El `code` es inmutable en `PUT` (se descarta del payload, igual que en
+  métodos de pago). Las especialidades no se eliminan: se desactivan, porque
+  `procedure_catalog.specialty_id` y `user_specialties` las referencian. La
+  entrada clínica "Especialidades" (`/specialty-records`) no cambia; la nueva
+  entrada del sidebar se llama "Catálogo de Especialidades". §4 y §5
+  sincronizados: 18 módulos de dominio y 20 páginas; la feature no agrega rutas
+  API.
 - **2026-10-20 (presupuestos interface redesign)** — `/quotations` pasa a la
   superficie del dashboard: hero band, KPI strip de cuatro tarjetas alimentado
   por `GET /api/quotations/summary`, búsqueda `q` server-side (número, paciente,
