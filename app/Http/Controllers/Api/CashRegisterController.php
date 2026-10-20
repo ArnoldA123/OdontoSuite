@@ -149,14 +149,23 @@ class CashRegisterController extends Controller
 
     /**
      * Get specific session details.
+     *
+     * Issue #193: the session detail is scoped to its owner (or an
+     * administrador) through CashRegisterPolicy::view, the same rule
+     * CashMovementPolicy already applied. The lookup moved out of the try
+     * block so a missing id answers 404 instead of the catch-all 500.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        try {
-            $session = \App\Models\CashRegisterSession::with([
-                'user', 'branch', 'movements', 'transactions',
-            ])->findOrFail($id);
+        $session = CashRegisterSession::with([
+            'user', 'branch', 'movements', 'transactions',
+        ])->findOrFail($id);
 
+        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+            return $denied;
+        }
+
+        try {
             $summary = $this->cashRegisterService->getSessionSummary($session);
 
             return response()->json([
@@ -171,13 +180,17 @@ class CashRegisterController extends Controller
     }
 
     /**
-     * Get movements for a specific session.
+     * Get movements for a specific session (issue #193: owner or administrador).
      */
-    public function movements($sessionId): JsonResponse
+    public function movements(Request $request, int $sessionId): JsonResponse
     {
-        try {
-            $session = \App\Models\CashRegisterSession::findOrFail($sessionId);
+        $session = CashRegisterSession::findOrFail($sessionId);
 
+        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+            return $denied;
+        }
+
+        try {
             $movements = \App\Models\CashMovement::where('cash_register_session_id', $sessionId)
                 ->with(['createdBy', 'transaction'])
                 ->orderBy('created_at', 'desc')
@@ -198,6 +211,23 @@ class CashRegisterController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Enforce the session ownership rule (issue #193).
+     *
+     * The rule itself lives in CashRegisterPolicy::view; this only shapes the
+     * 403 envelope the cash surfaces answer with.
+     */
+    private function denyUnlessSessionViewable(Request $request, CashRegisterSession $session): ?JsonResponse
+    {
+        if ($request->user()->can('view', $session)) {
+            return null;
+        }
+
+        return response()->json([
+            'message' => 'No tienes permisos para ver esta sesión de caja',
+        ], 403);
     }
 
     /**
@@ -250,12 +280,17 @@ class CashRegisterController extends Controller
     }
 
     /**
-     * Generate closure report for a specific session.
+     * Generate closure report for a specific session (issue #193: owner or
+     * administrador, same rule as the session detail).
      */
-    public function closureReport(int $sessionId)
+    public function closureReport(Request $request, int $sessionId)
     {
         $session = CashRegisterSession::with(['user', 'branch', 'transactions', 'movements'])
             ->findOrFail($sessionId);
+
+        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+            return $denied;
+        }
 
         $summary = $this->cashRegisterService->getSessionSummary($session);
 
