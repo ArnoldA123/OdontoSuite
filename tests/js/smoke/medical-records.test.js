@@ -7,7 +7,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 // strip over the real stats keys, the landing index of recent histories, the
 // patient workspace with the `UiTabs` primitive, and both deep links
 // (`?patient_id=` and `/medical-records/:id`).
-const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
+const harness = vi.hoisted(() => ({ apiGet: vi.fn(), listeners: {} }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -24,7 +24,12 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
   useEcho: () => ({
     echo: { leave: () => {} },
     channel: () => {
-      const channel = { listen: () => channel }
+      const channel = {
+        listen: (name, handler) => {
+          harness.listeners[name] = handler
+          return channel
+        }
+      }
       return channel
     },
     privateChannel: () => {
@@ -146,6 +151,7 @@ describe('medical-records shell', () => {
       JSON.stringify({ id: 1, name: 'Ana Admin', role: 'administrador' })
     )
     harness.apiGet.mockReset()
+    harness.listeners = {}
     installApi()
   })
 
@@ -283,6 +289,58 @@ describe('medical-records shell', () => {
     expect(wrapper.find('[data-patient-context]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Historias recientes')
     expect(wrapper.get('[data-stat="records"]').text()).toBe('—')
+
+    wrapper.unmount()
+  })
+
+  it('refreshes the timeline when another tab updates an evolution', async () => {
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-evolution-id="5"]').text()).toContain('Dolor')
+
+    await harness.listeners['.clinical-evolution.updated']({
+      evolution: {
+        ...evolution,
+        subjective: 'Dolor agudo al masticar',
+        medical_record_id: 21,
+        medical_record: { id: 21, patient_id: 7 }
+      }
+    })
+    await flushPromises()
+
+    expect(wrapper.get('[data-evolution-id="5"]').text()).toContain('Dolor agudo al masticar')
+
+    wrapper.unmount()
+  })
+
+  it('drops a deleted evolution only when the event belongs to the selected patient', async () => {
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+
+    const callsBefore = calls().length
+
+    await harness.listeners['.clinical-evolution.deleted']({
+      evolution_id: 5,
+      medical_record_id: 21,
+      patient_id: 8
+    })
+    await flushPromises()
+
+    expect(calls().length).toBe(callsBefore)
+    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(true)
+
+    await harness.listeners['.clinical-evolution.deleted']({
+      evolution_id: 5,
+      medical_record_id: 21,
+      patient_id: 7
+    })
+    await flushPromises()
+
+    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(false)
+    expect(calls().some(url => url.includes('/api/medical-records/patient/7/stats'))).toBe(true)
 
     wrapper.unmount()
   })

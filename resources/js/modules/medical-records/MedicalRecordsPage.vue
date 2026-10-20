@@ -1106,6 +1106,41 @@ const subscribeToMedicalRecords = () => {
         await loadStats()
         toast.success('Nueva evolución clínica agregada')
       })
+      .listen('.clinical-evolution.updated', async event => {
+        const patientId =
+          event?.evolution?.medical_record?.patient_id ?? event?.evolution?.patient_id
+
+        if (!belongsToSelection(patientId)) return
+
+        const updated = event.evolution
+        const index = evolutions.value.findIndex(evolution => evolution.id === updated.id)
+
+        if (index !== -1) {
+          evolutions.value[index] = updated
+        } else if (Number(updated.medical_record_id) === Number(currentRecord.value?.id)) {
+          await loadEvolutions()
+        }
+
+        await loadStats()
+        toast.success('Evolución clínica actualizada')
+      })
+      .listen('.clinical-evolution.deleted', async event => {
+        const patientId = event?.patient_id ?? event?.evolution?.patient_id
+
+        if (!belongsToSelection(patientId)) return
+
+        const evolutionId = event?.evolution_id ?? event?.evolution?.id
+        const recordId = event?.medical_record_id ?? event?.evolution?.medical_record_id
+
+        if (recordId !== undefined && Number(recordId) === Number(currentRecord.value?.id)) {
+          evolutions.value = evolutions.value.filter(evolution => evolution.id !== evolutionId)
+        } else if (recordId === undefined) {
+          await loadEvolutions()
+        }
+
+        await loadStats()
+        toast.success('Evolución clínica eliminada')
+      })
       .listen('.clinical-attachment.created', async event => {
         const patientId =
           event?.attachment?.patient_id ?? event?.attachment?.medical_record?.patient_id
