@@ -567,6 +567,8 @@
       :record="selectedRecord"
       @close="closeDetailModal"
       @edit="editRecord"
+      @add-evolution="handleDetailAddEvolution"
+      @upload-attachment="handleDetailUpload"
     />
 
     <EvolutionModal
@@ -973,6 +975,9 @@ const openCreateRecord = () => {
 }
 
 const editRecord = record => {
+  // The detail modal and the form are two surfaces of the same record; leaving
+  // both mounted stacks one dialog on top of the other.
+  showDetailModal.value = false
   selectedRecord.value = record
   recordModalMode.value = 'edit'
   showRecordModal.value = true
@@ -1013,6 +1018,23 @@ const closeEvolutionModal = () => {
 
 const openUploadModal = () => {
   showUploadModal.value = true
+}
+
+// The detail modal forwards its footer actions; the record it shows is the one
+// the evolution modal must attach to.
+const handleDetailAddEvolution = record => {
+  closeDetailModal()
+
+  // The evolution belongs to the record the detail was showing, which is not
+  // necessarily the one the tab had selected.
+  if (record?.id) currentRecord.value = record
+
+  openEvolutionModal()
+}
+
+const handleDetailUpload = () => {
+  closeDetailModal()
+  openUploadModal()
 }
 
 const closeUploadModal = () => {
