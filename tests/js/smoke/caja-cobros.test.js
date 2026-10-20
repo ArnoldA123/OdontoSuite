@@ -235,7 +235,7 @@ describe('PendingPaymentsList', () => {
 
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
-    expect(alert.text()).toMatch(/perfil administrativo/)
+    expect(alert.text()).toMatch(/perfil de caja/)
     expect(wrapper.find('[data-pending-payments-table]').exists()).toBe(false)
     expect(wrapper.emitted('paymentsLoaded')[0][0]).toEqual([])
 
@@ -258,7 +258,7 @@ describe('PendingPaymentsList', () => {
 
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
-    expect(alert.text()).toMatch(/perfil administrativo/)
+    expect(alert.text()).toMatch(/perfil de caja/)
     expect(alert.text()).not.toContain('Unauthenticated.')
   })
 })

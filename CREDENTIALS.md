@@ -85,6 +85,7 @@ del login es el `username`** (no el email, no el nombre).
 | **Finanzas/Caja**          |
 | Abrir/cerrar caja          | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Registrar transacciones    | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Cobrar pagos pendientes    | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Ver presupuestos           | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
 | **Configuración**          |
 | Tipos de cita              | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
