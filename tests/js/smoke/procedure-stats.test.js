@@ -138,6 +138,15 @@ describe('procedure stats page (T2)', () => {
     expect(wrapper.text()).toContain('Odontología general')
     expect(wrapper.text()).toContain('Sin especialidad')
     expect(specialtyRows[0].find('[data-specialty-share]').text()).toBe('90%')
+    // The bar and the badge must express the same number: a bar normalised to
+    // the largest specialty would read 100% next to a 90% share badge.
+    expect(specialtyRows[0].find('[role="presentation"] > div').attributes('style')).toContain(
+      '90%'
+    )
+    expect(specialtyRows[1].find('[data-specialty-share]').text()).toBe('10%')
+    expect(specialtyRows[1].find('[role="presentation"] > div').attributes('style')).toContain(
+      '10%'
+    )
 
     wrapper.unmount()
   })
