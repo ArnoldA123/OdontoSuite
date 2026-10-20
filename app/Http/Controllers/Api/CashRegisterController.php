@@ -99,34 +99,6 @@ class CashRegisterController extends Controller
     }
 
     /**
-     * Get current session for viewing (read-only).
-     */
-    public function currentView(): JsonResponse
-    {
-        try {
-            $session = $this->cashRegisterService->getCurrentSession();
-
-            if (! $session) {
-                return response()->json([
-                    'data' => null,
-                    'meta' => [
-                        'message' => 'No hay sesión de caja abierta',
-                    ],
-                ]);
-            }
-
-            return response()->json([
-                'data' => $session,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
      * Get sessions list.
      */
     public function index(Request $request): JsonResponse
@@ -238,22 +210,35 @@ class CashRegisterController extends Controller
      * CashRegisterService::getSessionSummary(), producing a TypeError 500.
      * Without a session there is nothing to summarize, so a 200 envelope
      * with an empty summary is returned instead of an exception.
+     *
+     * Issue #194: the lookup took the latest session of the day without a
+     * user scope, so a recepcionista could be answered with another user's
+     * drawer. Administrador/finanzas may summarize any drawer and pass
+     * user_id to scope it; every other role is always scoped to itself and
+     * an explicit user_id is ignored. The branch default mirrors
+     * CashRegisterService::getCurrentSession().
      */
     public function summary(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
             $date = $request->input('date', now()->toDateString());
             $branchId = $request->input('branch_id');
             $userId = $request->input('user_id');
+            $isCashManager = in_array($user->role, ['administrador', 'finanzas'], true);
 
             $query = \App\Models\CashRegisterSession::whereDate('opened_at', $date);
 
-            if ($branchId) {
-                $query->where('branch_id', $branchId);
+            if (! $isCashManager) {
+                $query->where('user_id', $user->id);
+            } elseif ($userId) {
+                $query->where('user_id', $userId);
             }
 
-            if ($userId) {
-                $query->where('user_id', $userId);
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            } elseif ($user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
             }
 
             $session = $query->latest('opened_at')->first();

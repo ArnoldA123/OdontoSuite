@@ -307,7 +307,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('cash-register-sessions/active', [CashRegisterController::class, 'current']);
         Route::get('cash-register-sessions/{id}/closure-report', [CashRegisterController::class, 'closureReport']);
         Route::apiResource('cash-register-sessions', CashRegisterController::class);
-        Route::post('cash-register-sessions/{id}/open', [CashRegisterController::class, 'open']);
         Route::post('cash-register-sessions/{id}/close', [CashRegisterController::class, 'close']);
 
         // Rutas alias para compatibilidad con frontend
