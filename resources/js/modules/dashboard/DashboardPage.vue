@@ -1475,7 +1475,9 @@ onMounted(async () => {
   // connection errors here are expected and harmless - error handling is
   // inside useEcho).
   try {
-    dashboardChannel = channel('dashboard-updates')
+    // Canal privado: el handshake de /api/broadcasting/auth verifica el rol
+    // antes de entregar citas, pacientes y transacciones (#183).
+    dashboardChannel = privateChannel('dashboard-updates')
     if (dashboardChannel) {
       dashboardChannel
         .listen('.dashboard.stats-updated', () => debouncedLoadDashboardData())
@@ -1552,8 +1554,10 @@ onMounted(async () => {
 onUnmounted(() => {
   if (echo) {
     try {
-      echo.leave('dashboard-updates')
-      echo.leave('patients')
+      // Private channels are registered with the `private-` prefix on the wire,
+      // so the leave must name the wire channel.
+      echo.leave('private-dashboard-updates')
+      echo.leave('private-patients')
       echo.leave('appointments')
       echo.leave('cash-register')
     } catch (e) {

@@ -128,4 +128,35 @@ class BroadcastingAuthChannelsTest extends TestCase
         $this->assertSame('private-cash-register.2', $paymentChannel->name);
         $this->assertStringNotContainsString('private-private-', $paymentChannel->name);
     }
+
+    /**
+     * Issue #183: the dashboard fan-out carries domain data, so every clinical
+     * and administrative role with dashboard access must pass the handshake.
+     */
+    public function test_every_dashboard_role_is_authorized_on_the_private_dashboard_channel(): void
+    {
+        foreach ([
+            'administrador', 'recepcionista', 'odontologo',
+            'implantologo', 'tecnico_dental', 'asistente', 'finanzas',
+        ] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-dashboard-updates')
+                ->assertOk()
+                ->assertJsonStructure(['auth']);
+        }
+    }
+
+    public function test_private_dashboard_channel_rejects_a_role_without_dashboard_access(): void
+    {
+        $user = $this->userWithRole('auditor');
+
+        $this->authRequest($user, 'private-dashboard-updates')->assertForbidden();
+    }
+
+    public function test_private_dashboard_channel_rejects_an_unauthenticated_request(): void
+    {
+        $this->postJson('/api/broadcasting/auth', [
+            'socket_id' => '1.1',
+            'channel_name' => 'private-dashboard-updates',
+        ])->assertUnauthorized();
+    }
 }

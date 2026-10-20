@@ -49,6 +49,15 @@ class BroadcastingAuthController extends Controller
                 ], true);
             } elseif (preg_match('/^cash-register\.(\d+|global)$/', $cleanChannelName)) {
                 $authorized = in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
+            } elseif ($cleanChannelName === 'dashboard-updates') {
+                // Canal del panel de operaciones (#183): publicaba citas,
+                // pacientes, transacciones y estadísticas sin verificar
+                // identidad. Toda la clínica con acceso al dashboard entra;
+                // un rol nuevo queda fuera hasta que se agregue explícitamente.
+                $authorized = in_array($user->role ?? null, [
+                    'administrador', 'recepcionista', 'odontologo', 'implantologo',
+                    'tecnico_dental', 'asistente', 'finanzas',
+                ], true);
             } elseif ($cleanChannelName === 'patients') {
                 // Canal con datos clínicos del paciente: solo roles con
                 // acceso a la ficha (PatientPolicy::viewAny). Cualquier rol

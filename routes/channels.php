@@ -16,6 +16,22 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
+// Canal privado del panel de operaciones: emite citas, pacientes,
+// transacciones y estadísticas de todo el dominio, así que la suscripción
+// exige el handshake de /api/broadcasting/auth y un rol con acceso al
+// dashboard. Un rol nuevo queda fuera hasta que se agregue explícitamente
+// (issue #183).
+Broadcast::channel('dashboard-updates', function ($user) {
+    if ($user === null) {
+        return false;
+    }
+
+    return in_array($user->role ?? null, [
+        'administrador', 'recepcionista', 'odontologo', 'implantologo',
+        'tecnico_dental', 'asistente', 'finanzas',
+    ], true);
+});
+
 // Canal privado del paciente: la lista, la ficha, el modal de cita y las
 // notificaciones globales reciben aquí datos clínicos (medical_history,
 // allergies), por eso el payload viaja solo por un canal privado y la

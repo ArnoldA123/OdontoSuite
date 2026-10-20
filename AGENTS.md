@@ -398,6 +398,14 @@ documentada y no bloquea producción.
   `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
   `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
   verde.
+- **2026-10-20 (canal privado del dashboard #183)** — `dashboard-updates` deja
+  de ser un canal público de Reverb: los 21 eventos que publicaban en él usan
+  `PrivateChannel`, `POST /api/broadcasting/auth` autoriza el canal solo para
+  los 7 roles con acceso al dashboard (y rechaza roles nuevos o anónimos), y el
+  consumidor del panel se suscribe con `privateChannel` y libera
+  `private-dashboard-updates`. Caja conserva sus canales (`cash-register`,
+  `cash-session.*`). `sdd:check-events` sigue en 0 huérfanos. Sin rutas,
+  migraciones ni conteos nuevos.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero
