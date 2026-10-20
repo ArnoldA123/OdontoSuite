@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 199 rutas API (medido con php artisan route:list --json: uris api/…; 212 totales con web)
+  api.php                  # 200 rutas API (medido con php artisan route:list --json: uris api/…; 213 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -388,9 +388,9 @@ documentada y no bloquea producción.
   descarga del PDF deja de pedir un blob a `useApi.get`. Se retira
   `QuotationCard.vue` (la tabla lo reemplaza) y se conserva
   `QuotationStatusBadge.vue` para el detalle de planes de tratamiento. §4
-  sincronizado con valores medidos: 199 rutas API (nueva
-  `GET quotations/summary`) y 212 totales con web; 114 migraciones. Tests:
-  `QuotationIndexSummaryTest` (7, MySQL), `QuotationsRedesignContractTest` (9),
+  sincronizado con valores medidos: 200 rutas API (nueva
+  `GET quotations/summary`) y 213 totales con web; 114 migraciones. Tests:
+  `QuotationIndexSummaryTest` (7, MySQL), `QuotationsRedesignContractTest` (10),
   `quotationMeta.test.js` (8), `quotations-list.test.js` (4) y
   `quotations-form.test.js` (2). Guard `scripts/audit/doc-drift.mjs` en verde.
 - **2026-10-20 (caja interface redesign)** — `/cash-register` pasa al lenguaje
