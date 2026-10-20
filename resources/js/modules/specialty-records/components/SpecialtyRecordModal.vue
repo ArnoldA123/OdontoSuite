@@ -80,9 +80,7 @@
             <div v-if="form.specialty === 'implantology'" class="specialty-fields">
               <div class="form-group">
                 <label class="form-label">Número de Implantes</label>
-                <input v-model="form.implant_count" type="number"
-class="form-input" min="1"
-/>
+                <input v-model="form.implant_count" type="number" class="form-input" min="1" />
               </div>
               <div class="form-group">
                 <label class="form-label">Tipo de Implante</label>
@@ -117,9 +115,7 @@ class="form-input" min="1"
               </div>
               <div class="form-group">
                 <label class="form-label">Duración Estimada (meses)</label>
-                <input v-model="form.estimated_duration" type="number"
-class="form-input" min="1"
-/>
+                <input v-model="form.estimated_duration" type="number" class="form-input" min="1" />
               </div>
               <div class="form-group">
                 <label class="form-label">Problema Principal</label>
@@ -145,9 +141,7 @@ class="form-input" min="1"
               </div>
               <div class="form-group">
                 <label class="form-label">Número de Conductos</label>
-                <input v-model="form.canal_count" type="number"
-class="form-input" min="1"
-/>
+                <input v-model="form.canal_count" type="number" class="form-input" min="1" />
               </div>
               <div class="form-group">
                 <label class="form-label">Material de Obturación</label>
@@ -231,7 +225,7 @@ class="form-input" min="1"
 
             <div class="form-group">
               <label class="form-label">Fecha del Procedimiento</label>
-              <input v-model="form.procedure_date" type="date" class="form-input" >
+              <input v-model="form.procedure_date" type="date" class="form-input" />
             </div>
 
             <div class="form-group">
@@ -256,19 +250,17 @@ class="form-input" min="1"
 
             <div class="form-group">
               <label class="form-label">Próxima Cita</label>
-              <input v-model="form.next_appointment" type="datetime-local" class="form-input" >
+              <input v-model="form.next_appointment" type="datetime-local" class="form-input" />
             </div>
           </div>
         </div>
       </form>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading"
-@click="closeModal">
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading"
-@click="handleSubmit">
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Registro' }}
         </button>

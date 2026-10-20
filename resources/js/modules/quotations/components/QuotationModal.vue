@@ -37,12 +37,12 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Fecha del presupuesto</label>
-                <input v-model="form.quotation_date" type="date" class="form-input" >
+                <input v-model="form.quotation_date" type="date" class="form-input" />
               </div>
 
               <div class="form-group">
                 <label class="form-label">Válido hasta</label>
-                <input v-model="form.valid_until" type="date" class="form-input" >
+                <input v-model="form.valid_until" type="date" class="form-input" />
               </div>
             </div>
           </div>
@@ -208,12 +208,10 @@
       </form>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading"
-@click="closeModal">
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading"
-@click="handleSubmit">
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
           <span
             v-if="loading"
             class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"

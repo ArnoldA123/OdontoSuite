@@ -28,7 +28,7 @@
               placeholder="Buscar paciente por nombre, DNI o email..."
               @input="searchPatients"
               @focus="showPatientResults = true"
-            >
+            />
             <div v-if="searchingPatients" class="absolute inset-y-0 right-0 pr-3 flex items-center">
               <UiLoadingSpinner
                 size="xs"
@@ -51,11 +51,11 @@
               @click="selectPatient(patient)"
             >
               <div class="font-medium text-theme-primary">
-{{ patient.name }} {{ patient.last_name }}
-</div>
+                {{ patient.name }} {{ patient.last_name }}
+              </div>
               <div class="text-sm text-theme-secondary">
-{{ patient.document_number || patient.dni }} - {{ patient.email }}
-</div>
+                {{ patient.document_number || patient.dni }} - {{ patient.email }}
+              </div>
             </div>
           </div>
 
@@ -64,11 +64,12 @@
             <div v-if="selectedPatient" class="flex justify-between items-center">
               <div>
                 <div class="font-medium text-theme-primary">
-{{ selectedPatient.name }} {{ selectedPatient.last_name }}
-</div>
+                  {{ selectedPatient.name }} {{ selectedPatient.last_name }}
+                </div>
                 <div class="text-sm text-theme-secondary">
-{{ selectedPatient.document_number || selectedPatient.dni }} - {{ selectedPatient.email }}
-</div>
+                  {{ selectedPatient.document_number || selectedPatient.dni }} -
+                  {{ selectedPatient.email }}
+                </div>
               </div>
               <button
                 type="button"
@@ -88,12 +89,8 @@
             <span class="text-red-500">*</span>
           </label>
           <select v-model="formData.type" :class="inputClasses" :disabled="loading">
-            <option value="payment">
-Ingreso
-</option>
-            <option value="refund">
-Egreso
-</option>
+            <option value="payment">Ingreso</option>
+            <option value="refund">Egreso</option>
           </select>
         </div>
 
@@ -108,9 +105,7 @@ Egreso
             v-if="formData.type === 'payment'"
             :disabled="loading"
           >
-            <option value="">
-Seleccionar cita
-</option>
+            <option value="">Seleccionar cita</option>
             <option
               v-for="appointment in patientAppointments"
               :key="appointment.id"
@@ -126,7 +121,7 @@ Seleccionar cita
             :class="inputClasses"
             :disabled="loading"
             placeholder="Descripción del egreso..."
-          >
+          />
         </div>
 
         <!-- Método de Pago -->
@@ -136,9 +131,7 @@ Seleccionar cita
             <span class="text-red-500">*</span>
           </label>
           <select v-model="formData.payment_method_id" :class="inputClasses" :disabled="loading">
-            <option value="">
-Seleccionar método de pago
-</option>
+            <option value="">Seleccionar método de pago</option>
             <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
               {{ method.name }}
             </option>
@@ -165,7 +158,7 @@ Seleccionar método de pago
               v-model="applyDiscount"
               type="checkbox"
               class="h-4 w-4 text-systemBlue-500 border-hairline rounded"
-            >
+            />
             <label class="ml-2 text-sm font-medium text-theme-primary">Aplicar descuento</label>
           </div>
 
@@ -175,12 +168,8 @@ Seleccionar método de pago
                 Tipo de Descuento
               </label>
               <select v-model="formData.discount_type" :class="inputClasses" :disabled="loading">
-                <option value="percentage">
-Porcentaje
-</option>
-                <option value="fixed">
-Monto fijo
-</option>
+                <option value="percentage">Porcentaje</option>
+                <option value="fixed">Monto fijo</option>
               </select>
             </div>
 
@@ -220,7 +209,7 @@ Monto fijo
             :class="inputClasses"
             :disabled="loading"
             placeholder="Número de operación, voucher, etc."
-          >
+          />
         </div>
 
         <!-- Notas -->
@@ -241,9 +230,7 @@ Monto fijo
 
         <!-- Resumen -->
         <div class="bg-theme-surface border border-hairline rounded-lg p-4">
-          <h3 class="text-sm font-semibold text-theme-primary mb-2">
-Resumen de la Transacción
-</h3>
+          <h3 class="text-sm font-semibold text-theme-primary mb-2">Resumen de la Transacción</h3>
           <div class="space-y-1 text-sm">
             <div class="flex justify-between">
               <span class="text-theme-secondary">Subtotal:</span>
@@ -407,10 +394,12 @@ const totalAmount = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return selectedPatient.value &&
-         formData.value.payment_method_id &&
-         formData.value.amount > 0 &&
-         !loading.value
+  return (
+    selectedPatient.value &&
+    formData.value.payment_method_id &&
+    formData.value.amount > 0 &&
+    !loading.value
+  )
 })
 
 const inputClasses = computed(() => {

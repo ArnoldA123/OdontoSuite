@@ -175,7 +175,9 @@ const rows = events.map(event => {
   const matches = consumedBy(event)
   const dispatched = sites.length > 0
   const consumed = matches.length > 0
-  const privateNeedsAuth = event.channels.some(c => c.type === 'PrivateChannel' || c.type === 'PresenceChannel')
+  const privateNeedsAuth = event.channels.some(
+    c => c.type === 'PrivateChannel' || c.type === 'PresenceChannel'
+  )
   const flags = [
     dispatched ? 'dispatched' : 'no-dispatch',
     consumed ? 'consumed' : 'unconsumed',
@@ -191,7 +193,9 @@ const rows = events.map(event => {
     privateNeedsAuth,
     dispatchSites: sites,
     consumedBy: matches,
-    unconsumedChannels: event.channels.filter(ch => !matches.some(m => m.channel === ch.name)).map(ch => ch.name),
+    unconsumedChannels: event.channels
+      .filter(ch => !matches.some(m => m.channel === ch.name))
+      .map(ch => ch.name),
     flags
   }
 })
@@ -270,5 +274,7 @@ else {
   }
 }
 if (rows.length === 0) {
-  console.error('WARN: parsed zero events from app/Events/*.php; the parser and the tree have drifted.')
+  console.error(
+    'WARN: parsed zero events from app/Events/*.php; the parser and the tree have drifted.'
+  )
 }

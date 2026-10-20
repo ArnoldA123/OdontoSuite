@@ -7,7 +7,7 @@ import { useApi } from './useApi'
  * Endpoint: /api/payment-methods (admin CRUD) o /api/payment-methods/active
  * (publico para dropdowns).
  */
-export function usePaymentMethods (endpoint = '/api/payment-methods') {
+export function usePaymentMethods(endpoint = '/api/payment-methods') {
   const { get, post, put, delete: del } = useApi()
 
   const methods = ref([])

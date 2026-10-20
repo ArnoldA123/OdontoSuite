@@ -43,9 +43,7 @@
 
             <div class="form-group">
               <label class="form-label">Fecha de Aprobación</label>
-              <input v-model="form.approved_at" type="datetime-local"
-class="form-input" required
-/>
+              <input v-model="form.approved_at" type="datetime-local" class="form-input" required />
             </div>
 
             <div class="form-group">
@@ -73,12 +71,10 @@ class="form-input" required
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading"
-@click="closeModal">
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading"
-@click="handleSubmit">
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Aprobando...' : 'Aprobar Presupuesto' }}
         </button>

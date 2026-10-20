@@ -115,9 +115,7 @@
         <UiButton v-if="!success" type="submit" :loading="loading" :disabled="loading">
           Enviar enlace
         </UiButton>
-        <UiButton v-if="success" type="button" @click="handleClose">
-Cerrar
-</UiButton>
+        <UiButton v-if="success" type="button" @click="handleClose">Cerrar</UiButton>
       </div>
     </form>
   </UiModal>

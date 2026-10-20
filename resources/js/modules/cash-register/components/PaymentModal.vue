@@ -30,8 +30,8 @@
       <!-- Información del Paciente -->
       <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
         <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
-Información del Paciente
-</h3>
+          Información del Paciente
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
             <label class="block text-xs md:text-sm font-medium text-theme-primary mb-1">
@@ -45,9 +45,7 @@ Información del Paciente
               required
               size="5"
             >
-              <option value="">
-Seleccionar paciente
-</option>
+              <option value="">Seleccionar paciente</option>
               <option v-for="patient in pendingPatients" :key="patient.id" :value="patient.id">
                 {{ patient.name }} - {{ patient.document_number }}
               </option>
@@ -69,9 +67,7 @@ Seleccionar paciente
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.appointment_id }"
             >
-              <option value="">
-Seleccionar cita (opcional)
-</option>
+              <option value="">Seleccionar cita (opcional)</option>
               <option
                 v-for="appointment in patientAppointments"
                 :key="appointment.id"
@@ -89,9 +85,7 @@ Seleccionar cita (opcional)
 
       <!-- Detalles del Pago -->
       <div class="space-y-3 md:space-y-4">
-        <h3 class="text-base md:text-lg font-medium text-theme-primary">
-Detalles del Pago
-</h3>
+        <h3 class="text-base md:text-lg font-medium text-theme-primary">Detalles del Pago</h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div>
@@ -105,7 +99,7 @@ Detalles del Pago
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.concept }"
               required
-            >
+            />
             <p v-if="errors.concept" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.concept[0] }}
             </p>
@@ -157,7 +151,7 @@ Detalles del Pago
               placeholder="Número de operación, voucher, etc."
               class="block w-full px-2 md:px-3 py-2 text-sm md:text-base border rounded-md shadow-sm bg-canvas text-theme-primary border-hairline placeholder-theme-secondary"
               :class="{ 'border-systemRed-500 ring-1 ring-systemRed-200': errors.reference }"
-            >
+            />
             <p v-if="errors.reference" class="mt-1 text-xs md:text-sm text-systemRed-600">
               {{ errors.reference[0] }}
             </p>
@@ -183,9 +177,7 @@ Detalles del Pago
 
       <!-- Resumen del Pago -->
       <div class="bg-canvas border border-hairline rounded-lg p-3 md:p-4">
-        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">
-Resumen del Pago
-</h3>
+        <h3 class="text-sm md:text-base font-semibold text-theme-primary mb-3">Resumen del Pago</h3>
         <div class="space-y-2 text-xs md:text-sm">
           <div class="flex justify-between">
             <span class="text-theme-secondary">Paciente:</span>
@@ -422,10 +414,12 @@ const selectedPaymentMethod = computed(() =>
 )
 
 const canSubmit = computed(() => {
-  return formData.value.patient_id &&
-         formData.value.concept &&
-         formData.value.payment_method_id &&
-         formData.value.amount > 0
+  return (
+    formData.value.patient_id &&
+    formData.value.concept &&
+    formData.value.payment_method_id &&
+    formData.value.amount > 0
+  )
 })
 
 // Sprint 3 fix: la tab MP solo se muestra cuando el metodo seleccionado

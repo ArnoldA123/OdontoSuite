@@ -18,11 +18,7 @@
       fill="none"
       viewBox="0 0 24 24"
     >
-      <circle
-class="opacity-25"
-cx="12" cy="12" r="10"
-stroke="currentColor" stroke-width="4"
-/>
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
       <path
         class="opacity-75"
         fill="currentColor"
@@ -39,10 +35,7 @@ stroke="currentColor" stroke-width="4"
     </span>
 
     <!-- Icon (right) -->
-    <component
-:is="iconRight"
-v-if="iconRight && !loading" class="ml-2" :class="[iconClasses]"
-/>
+    <component :is="iconRight" v-if="iconRight && !loading" class="ml-2" :class="[iconClasses]" />
   </button>
 </template>
 

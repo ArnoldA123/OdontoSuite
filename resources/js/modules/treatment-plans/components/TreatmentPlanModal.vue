@@ -80,14 +80,14 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Fecha de inicio</label>
-                <input v-model="form.start_date" type="date" class="form-input">
+                <input v-model="form.start_date" type="date" class="form-input" />
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Fecha de fin</label>
-                <input v-model="form.end_date" type="date" class="form-input">
+                <input v-model="form.end_date" type="date" class="form-input" />
               </div>
               <div class="form-group">
                 <label class="form-label">N° de fases</label>
@@ -103,11 +103,11 @@
 
             <div class="form-row">
               <label class="check-pill">
-                <input v-model="form.requires_anesthesia" type="checkbox">
+                <input v-model="form.requires_anesthesia" type="checkbox" />
                 <span>Requiere anestesia</span>
               </label>
               <label class="check-pill">
-                <input v-model="form.is_urgent" type="checkbox">
+                <input v-model="form.is_urgent" type="checkbox" />
                 <span class="urgent">Urgente</span>
               </label>
             </div>
@@ -484,16 +484,16 @@ const initializeForm = () => {
   if (props.plan) {
     const items =
       props.plan.items?.length > 0
-        ? props.plan.items.map((i) => ({
-          procedure_name: i.procedure_name || '',
-          description: i.procedure_description || '',
+        ? props.plan.items.map(i => ({
+            procedure_name: i.procedure_name || '',
+            description: i.procedure_description || '',
             quantity: i.quantity || 1,
-          unit_cost: i.unit_cost || 0,
-          phase_number: i.phase_number || 1,
-          specialty: i.specialty,
-          procedure_catalog_id: i.procedure_catalog_id,
+            unit_cost: i.unit_cost || 0,
+            phase_number: i.phase_number || 1,
+            specialty: i.specialty,
+            procedure_catalog_id: i.procedure_catalog_id,
             dental_piece_id: i.dental_piece_id,
-          category: i.category
+            category: i.category
           }))
         : [emptyItem()]
 

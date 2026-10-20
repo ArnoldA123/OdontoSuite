@@ -140,9 +140,7 @@
 
             <tr v-for="session in sessions" v-else :key="session.id" class="hover:bg-theme-surface">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-theme-primary">
-#{{ session.id }}
-</div>
+                <div class="text-sm font-medium text-theme-primary">#{{ session.id }}</div>
                 <div class="text-sm text-theme-secondary">
                   {{ formatDate(session.opened_at) }}
                 </div>
@@ -179,9 +177,7 @@
                 <div v-if="session.closed_at" class="text-sm text-theme-primary">
                   {{ formatTime(session.closed_at) }}
                 </div>
-                <div v-else class="text-sm text-theme-secondary">
--
-</div>
+                <div v-else class="text-sm text-theme-secondary">-</div>
                 <div
                   v-if="session.closing_amount"
                   class="text-sm text-theme-secondary tabular-nums"
@@ -201,20 +197,24 @@
                 <div v-if="session.difference_amount !== null">
                   <span
                     class="text-sm font-medium tabular-nums"
-                    :class="session.difference_amount === 0 ? 'text-systemGreen-600' : (session.difference_amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600')"
+                    :class="
+                      session.difference_amount === 0
+                        ? 'text-systemGreen-600'
+                        : session.difference_amount > 0
+                          ? 'text-systemBlue-600'
+                          : 'text-systemRed-600'
+                    "
                   >
                     {{
                       session.difference_amount === 0
                         ? 'Conforme'
-                        : (session.difference_amount > 0 ? '+' : '')
-
-
+                        : session.difference_amount > 0
+                          ? '+'
+                          : ''
                     }}{{ formatPENLabel(session.difference_amount) }}
                   </span>
                 </div>
-                <div v-else class="text-sm text-theme-secondary">
--
-</div>
+                <div v-else class="text-sm text-theme-secondary">-</div>
               </td>
 
               <td class="px-6 py-4 whitespace-nowrap">

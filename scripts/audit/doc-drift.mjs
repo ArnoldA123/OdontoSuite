@@ -27,7 +27,9 @@ const args = Object.fromEntries(
   })
 )
 if (args.h || args.help) {
-  console.error('Usage: node scripts/audit/doc-drift.mjs [--fail-on-divergence] [--no-fail] [--json]')
+  console.error(
+    'Usage: node scripts/audit/doc-drift.mjs [--fail-on-divergence] [--no-fail] [--json]'
+  )
   process.exit(2)
 }
 const JSON_OUT = !!args.json
@@ -50,7 +52,7 @@ function apiRouteCount() {
   return routes.filter(r => (r.uri ?? '').replace(/^\/+/, '').startsWith('api/')).length
 }
 
-const allOccurrences = (re) => {
+const allOccurrences = re => {
   const out = []
   const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g')
   let m
@@ -82,10 +84,14 @@ try {
       .filter(f => read(`app/Models/${f}`).includes('SoftDeletes')).length,
     apiRoutes: apiRouteCount(),
     reminderCrud:
-      ['index', 'store', 'show', 'update', 'destroy'].every(m =>
-        reminderSrc.includes(`function ${m}`) && reminderTplSrc.includes(`function ${m}`)) &&
-      !reminderSrc.includes('abort(501)') && !reminderTplSrc.includes('abort(501)'),
-    waitingListRemoved: !existsSync(resolve(ROOT, 'app/Http/Controllers/Api/WaitingListController.php')),
+      ['index', 'store', 'show', 'update', 'destroy'].every(
+        m => reminderSrc.includes(`function ${m}`) && reminderTplSrc.includes(`function ${m}`)
+      ) &&
+      !reminderSrc.includes('abort(501)') &&
+      !reminderTplSrc.includes('abort(501)'),
+    waitingListRemoved: !existsSync(
+      resolve(ROOT, 'app/Http/Controllers/Api/WaitingListController.php')
+    )
   }
 } catch (err) {
   console.error(`ERROR: cannot measure source of truth: ${err.message}`)
@@ -98,37 +104,102 @@ const numeric = (id, label, documented, expected, source) => {
   rows.push({ id, label, documented, measured: expected, source, ok })
 }
 const structural = (id, label, pass, evidence) => {
-  rows.push({ id, label, documented: null, measured: pass ? 'holds' : 'broken', source: evidence, ok: pass })
+  rows.push({
+    id,
+    label,
+    documented: null,
+    measured: pass ? 'holds' : 'broken',
+    source: evidence,
+    ok: pass
+  })
 }
 
-numeric('seeders', 'active seeders (§4 "N activos")',
-  allOccurrences(/(\d+)\s+activos/), measured.seeders, 'grep -c "::class," database/seeders/DatabaseSeeder.php')
+numeric(
+  'seeders',
+  'active seeders (§4 "N activos")',
+  allOccurrences(/(\d+)\s+activos/),
+  measured.seeders,
+  'grep -c "::class," database/seeders/DatabaseSeeder.php'
+)
 // §4 writes "N legacy" and §8 writes "Legacy: N"; both are counting lines, so
 // the pattern accepts either order and allOccurrences reads the first defined group.
-numeric('legacy-seeders', 'legacy seeders (§4/§8 "N legacy")',
-  allOccurrences(/(\d+)\s+legacy\b|legacy:\s*(\d+)/i), measured.legacySeeders, 'ls database/seeders/_legacy/*.php')
-numeric('controllers', 'API controllers (§4/§6/§11 "N controllers API")',
-  allOccurrences(/(\d+)\s+controllers?\s+API/), measured.controllers, 'ls app/Http/Controllers/Api/*.php + Api/Reports/*.php')
-numeric('models', 'Eloquent models (§4/§6/§11 "N modelos")',
-  allOccurrences(/(\d+)\s+modelos(?! con)/), measured.models, 'ls app/Models/*.php')
-numeric('soft-deletes', 'models with SoftDeletes (§6 "N modelos con SoftDeletes")',
-  allOccurrences(/(\d+)\s+modelos?\s+con\s+SoftDeletes/), measured.softDeletes, 'grep -rl SoftDeletes app/Models')
-numeric('migrations', 'migrations (§4 "N migraciones")',
-  allOccurrences(/(\d+)\s+migraciones/), measured.migrations, 'ls database/migrations/*.php')
-numeric('deprecated-events', 'orphan @deprecated events (§6)',
-  allOccurrences(/\*\*(\d+)\s+eventos?\s+`@deprecated`\s+huérfanos\*\*/), measured.deprecatedEvents, "grep -rl '@deprecated' app/Events | wc -l")
-numeric('listener-classes', 'listener classes (§4/§6 "N listener classes")',
-  allOccurrences(/(\d+)\s+listener\s+classes/), measured.listenerClasses, 'ls app/Listeners/*.php')
-numeric('cableos', 'Event::listen wires (§4/§6 "N cableos")',
-  allOccurrences(/(\d+)\s+cableos/), measured.cableos, 'grep -c "Event::listen" app/Providers/AppServiceProvider.php')
-numeric('api-routes', 'API routes (§4 "api.php # N rutas")',
-  allOccurrences(/api\.php\s*#\s*(\d+)\s+rutas/), measured.apiRoutes, 'php artisan route:list --json (uris api/…)')
-structural('reminder-crud', 'ReminderController + ReminderTemplateController ship full CRUD, no 501',
+numeric(
+  'legacy-seeders',
+  'legacy seeders (§4/§8 "N legacy")',
+  allOccurrences(/(\d+)\s+legacy\b|legacy:\s*(\d+)/i),
+  measured.legacySeeders,
+  'ls database/seeders/_legacy/*.php'
+)
+numeric(
+  'controllers',
+  'API controllers (§4/§6/§11 "N controllers API")',
+  allOccurrences(/(\d+)\s+controllers?\s+API/),
+  measured.controllers,
+  'ls app/Http/Controllers/Api/*.php + Api/Reports/*.php'
+)
+numeric(
+  'models',
+  'Eloquent models (§4/§6/§11 "N modelos")',
+  allOccurrences(/(\d+)\s+modelos(?! con)/),
+  measured.models,
+  'ls app/Models/*.php'
+)
+numeric(
+  'soft-deletes',
+  'models with SoftDeletes (§6 "N modelos con SoftDeletes")',
+  allOccurrences(/(\d+)\s+modelos?\s+con\s+SoftDeletes/),
+  measured.softDeletes,
+  'grep -rl SoftDeletes app/Models'
+)
+numeric(
+  'migrations',
+  'migrations (§4 "N migraciones")',
+  allOccurrences(/(\d+)\s+migraciones/),
+  measured.migrations,
+  'ls database/migrations/*.php'
+)
+numeric(
+  'deprecated-events',
+  'orphan @deprecated events (§6)',
+  allOccurrences(/\*\*(\d+)\s+eventos?\s+`@deprecated`\s+huérfanos\*\*/),
+  measured.deprecatedEvents,
+  "grep -rl '@deprecated' app/Events | wc -l"
+)
+numeric(
+  'listener-classes',
+  'listener classes (§4/§6 "N listener classes")',
+  allOccurrences(/(\d+)\s+listener\s+classes/),
+  measured.listenerClasses,
+  'ls app/Listeners/*.php'
+)
+numeric(
+  'cableos',
+  'Event::listen wires (§4/§6 "N cableos")',
+  allOccurrences(/(\d+)\s+cableos/),
+  measured.cableos,
+  'grep -c "Event::listen" app/Providers/AppServiceProvider.php'
+)
+numeric(
+  'api-routes',
+  'API routes (§4 "api.php # N rutas")',
+  allOccurrences(/api\.php\s*#\s*(\d+)\s+rutas/),
+  measured.apiRoutes,
+  'php artisan route:list --json (uris api/…)'
+)
+structural(
+  'reminder-crud',
+  'ReminderController + ReminderTemplateController ship full CRUD, no 501',
   measured.reminderCrud && !/\\b501\\b/.test(docs),
-  'public function index/store/show/update/destroy in both controllers; no abort(501)')
-structural('waiting-list', 'WaitingListController absent; docs record removal, not a 501 stub',
-  measured.waitingListRemoved && /WaitingListController/.test(docs) && !/WaitingListController.*501/.test(docs),
-  'controller file absent (removed slice 04); StubsRemovedEndpointsTest guards the 404s')
+  'public function index/store/show/update/destroy in both controllers; no abort(501)'
+)
+structural(
+  'waiting-list',
+  'WaitingListController absent; docs record removal, not a 501 stub',
+  measured.waitingListRemoved &&
+    /WaitingListController/.test(docs) &&
+    !/WaitingListController.*501/.test(docs),
+  'controller file absent (removed slice 04); StubsRemovedEndpointsTest guards the 404s'
+)
 
 const failed = rows.filter(r => !r.ok)
 
@@ -136,11 +207,22 @@ if (JSON_OUT) {
   console.log(JSON.stringify({ ok: failed.length === 0, checks: rows }, null, 2))
 } else {
   for (const r of rows) {
-    const doc = r.documented === null ? 'structural' : (r.documented.length ? r.documented.join(',') : (r.ok ? 'none' : 'NOT-FOUND'))
-    console.log(`${r.ok ? 'OK   ' : 'DRIFT'} ${r.id}: documented=${doc} measured=${r.measured} [${r.source}]`)
+    const doc =
+      r.documented === null
+        ? 'structural'
+        : r.documented.length
+          ? r.documented.join(',')
+          : r.ok
+            ? 'none'
+            : 'NOT-FOUND'
+    console.log(
+      `${r.ok ? 'OK   ' : 'DRIFT'} ${r.id}: documented=${doc} measured=${r.measured} [${r.source}]`
+    )
   }
-  console.log(failed.length === 0
-    ? `All ${rows.length} doc-drift checks hold.`
-    : `\nFAIL: ${failed.length} drifted claim(s). Fix AGENTS.md §4/§6/§11 to the measured values above.`)
+  console.log(
+    failed.length === 0
+      ? `All ${rows.length} doc-drift checks hold.`
+      : `\nFAIL: ${failed.length} drifted claim(s). Fix AGENTS.md §4/§6/§11 to the measured values above.`
+  )
 }
 if (failed.length > 0 && !NO_FAIL) process.exit(1)

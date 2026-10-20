@@ -241,9 +241,12 @@
                       :style="{ backgroundColor: type.color }"
                       aria-hidden="true"
                     />
-                    <span class="truncate text-sm font-medium text-theme-primary" :title="type.name">{{
-                      type.name
-                    }}</span>
+                    <span
+                      class="truncate text-sm font-medium text-theme-primary"
+                      :title="type.name"
+                    >
+                      {{ type.name }}
+                    </span>
                   </div>
                 </td>
                 <td class="hidden px-4 py-4 lg:table-cell">

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useApi } from './useApi'
 
-export function useSpecialties () {
+export function useSpecialties() {
   const { get } = useApi()
   const specialties = ref([])
   const loading = ref(false)

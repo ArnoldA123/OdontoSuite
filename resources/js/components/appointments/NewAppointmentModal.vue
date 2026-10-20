@@ -7,12 +7,10 @@
     @close="closeModal"
   >
     <!-- Loading State -->
-    <LoadingSpinner v-if="loadingData" class="py-8" size="md"
-text="Cargando datos..." />
+    <LoadingSpinner v-if="loadingData" class="py-8" size="md" text="Cargando datos..." />
 
     <!-- Form -->
-    <form v-else class="space-y-4 bg-canvas" @submit.prevent
-@keydown.enter.prevent>
+    <form v-else class="space-y-4 bg-canvas" @submit.prevent @keydown.enter.prevent>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UiSelect
           v-model="form.patient_id"
@@ -34,10 +32,7 @@ text="Cargando datos..." />
         />
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UiInput
-v-model="form.scheduled_at"
-label="Fecha y Hora" type="datetime-local" required
-/>
+        <UiInput v-model="form.scheduled_at" label="Fecha y Hora" type="datetime-local" required />
         <UiInput
           v-model.number="form.duration_minutes"
           label="Duración (minutos)"
@@ -89,10 +84,7 @@ label="Fecha y Hora" type="datetime-local" required
           searchable
           clearable
         />
-        <UiSelect
-v-model="form.status"
-:options="statusOptions" label="Estado" required
-/>
+        <UiSelect v-model="form.status" :options="statusOptions" label="Estado" required />
       </div>
       <UiInput
         v-model="form.notes"

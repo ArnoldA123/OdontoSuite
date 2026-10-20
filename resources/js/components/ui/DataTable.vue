@@ -160,8 +160,7 @@
             @click="goToPage(currentPage - 1)"
           >
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -193,8 +192,7 @@ viewBox="0 0 24 24">
           >
             Siguiente
             <template #icon-right>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"

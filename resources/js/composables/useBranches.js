@@ -8,7 +8,7 @@ import { useApi } from './useApi'
  * operaciones tipicas del CRUD. Usado por BranchesPage (admin) y por
  * OpenCashModal (solo listar para el dropdown de Abrir Caja).
  */
-export function useBranches () {
+export function useBranches() {
   const { get, post, put, delete: del } = useApi()
 
   const branches = ref([])

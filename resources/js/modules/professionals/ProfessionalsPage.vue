@@ -128,7 +128,10 @@
           >
             {{ teamKpis.inactive }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-inactive">
+          <p
+            class="mt-1 text-xs text-theme-secondary line-clamp-2"
+            data-kpi-caption="team-inactive"
+          >
             Sin cuenta habilitada
           </p>
         </div>
@@ -151,7 +154,10 @@
           >
             {{ teamKpis.specialties }}
           </p>
-          <p class="mt-1 text-xs text-theme-secondary line-clamp-2" data-kpi-caption="team-specialties">
+          <p
+            class="mt-1 text-xs text-theme-secondary line-clamp-2"
+            data-kpi-caption="team-specialties"
+          >
             Distintas con al menos un clínico
           </p>
         </div>

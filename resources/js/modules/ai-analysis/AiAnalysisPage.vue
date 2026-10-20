@@ -90,15 +90,11 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">
-              Total Análisis
-            </p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">Total Análisis</p>
             <p class="text-3xl font-bold text-theme-primary">
               {{ stats.total_analyses }}
             </p>
-            <p class="text-xs text-theme-secondary mt-1">
-              Realizados
-            </p>
+            <p class="text-xs text-theme-secondary mt-1">Realizados</p>
           </div>
           <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
             <CpuChipIcon class="w-6 h-6 text-accent" />
@@ -110,15 +106,11 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">
-              Completados
-            </p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">Completados</p>
             <p class="text-3xl font-bold text-theme-primary">
               {{ stats.completed_analyses }}
             </p>
-            <p class="text-xs text-theme-secondary mt-1">
-              Listos para revisar
-            </p>
+            <p class="text-xs text-theme-secondary mt-1">Listos para revisar</p>
           </div>
           <div class="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
             <CheckCircleIcon class="w-6 h-6 text-green-600" />
@@ -130,15 +122,11 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">
-              Pendientes
-            </p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">Pendientes</p>
             <p class="text-3xl font-bold text-theme-primary">
               {{ stats.pending_review }}
             </p>
-            <p class="text-xs text-theme-secondary mt-1">
-              Por revisar
-            </p>
+            <p class="text-xs text-theme-secondary mt-1">Por revisar</p>
           </div>
           <div class="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
             <ClockIcon class="w-6 h-6 text-yellow-600" />
@@ -150,15 +138,9 @@
       <UiCard variant="glass" hover>
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">
-              Tasa Completado
-            </p>
-            <p class="text-3xl font-bold text-theme-primary">
-              {{ stats.completion_rate }}%
-            </p>
-            <p class="text-xs text-theme-secondary mt-1">
-              Eficiencia
-            </p>
+            <p class="text-sm font-medium text-theme-secondary mb-1">Tasa Completado</p>
+            <p class="text-3xl font-bold text-theme-primary">{{ stats.completion_rate }}%</p>
+            <p class="text-xs text-theme-secondary mt-1">Eficiencia</p>
           </div>
           <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
             <ChartBarIcon class="w-6 h-6 text-accent" />
@@ -206,18 +188,8 @@
             size="sm"
             class="min-w-[140px]"
           />
-          <UiButton
-            v-if="hasActiveFilters"
-            variant="secondary"
-            class="px-3"
-            @click="clearFilters"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+          <UiButton v-if="hasActiveFilters" variant="secondary" class="px-3" @click="clearFilters">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -267,9 +239,7 @@
       <!-- Empty State -->
       <div v-else-if="filteredAnalyses.length === 0" class="empty-state">
         <CpuChipIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-        <h3 class="empty-title">
-          No hay análisis disponibles
-        </h3>
+        <h3 class="empty-title">No hay análisis disponibles</h3>
         <p class="empty-description">
           {{
             hasActiveFilters

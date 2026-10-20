@@ -101,7 +101,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   aria-live="polite"
                   data-stat="total-patients"
                 >
@@ -131,7 +135,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   aria-live="polite"
                   data-stat="active-patients"
                 >
@@ -161,7 +169,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   aria-live="polite"
                   data-stat="inactive-patients"
                 >
@@ -191,7 +203,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   aria-live="polite"
                   data-stat="filtered-patients"
                 >
@@ -337,7 +353,9 @@
                   </th>
                 </tr>
               </thead>
-              <tbody class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]">
+              <tbody
+                class="bg-theme-surface-elevated divide-y divide-[color:var(--color-hairline)]"
+              >
                 <PatientListRow
                   v-for="patient in filteredPatients"
                   :key="patient.id"
@@ -651,7 +669,7 @@ export default {
       loadPatients(1)
     }
 
-    const handlePageChange = (page) => {
+    const handlePageChange = page => {
       loadPatients(page)
     }
 
@@ -741,8 +759,8 @@ export default {
 
       toast.success(
         `Paciente registrado: ${patient.first_name} ${patient.last_name}\n` +
-        `Email: ${patient.email}\n` +
-        `Teléfono: ${patient.phone}`,
+          `Email: ${patient.email}\n` +
+          `Teléfono: ${patient.phone}`,
         {
           duration: 5000,
           title: '✓ Paciente Creado'
@@ -754,16 +772,16 @@ export default {
       openPatientForm('edit', patient)
     }
 
-    const viewPatient = (patient) => {
+    const viewPatient = patient => {
       router.push(`/patients/${patient.id}`)
     }
 
-    const deletePatient = async (patient) => {
+    const deletePatient = async patient => {
       const ok = await confirm({
         title: 'Eliminar paciente',
         message: `¿Estás seguro de que quieres eliminar a ${patient.first_name} ${patient.last_name}?`,
         confirmText: 'Eliminar',
-        variant: 'danger',
+        variant: 'danger'
       })
       if (ok) {
         try {
@@ -777,30 +795,25 @@ export default {
           await loadPatients(paginationMeta.value.current_page)
 
           // Notificación de éxito
-          toast.success(
-            `Paciente eliminado: ${patient.first_name} ${patient.last_name}`,
-            {
-              duration: 4000,
-              title: '✓ Paciente Eliminado'
-            }
-          )
+          toast.success(`Paciente eliminado: ${patient.first_name} ${patient.last_name}`, {
+            duration: 4000,
+            title: '✓ Paciente Eliminado'
+          })
         } catch (error) {
           // Notificación de error
-          const errorMessage = error.response?.data?.message
-            || error.response?.data?.errors?.patient?.[0]
-            || 'No se pudo eliminar el paciente. Puede tener citas asociadas.'
-          toast.error(
-            errorMessage,
-            {
-              duration: 8000,
-              title: '✗ Error al Eliminar'
-            }
-          )
+          const errorMessage =
+            error.response?.data?.message ||
+            error.response?.data?.errors?.patient?.[0] ||
+            'No se pudo eliminar el paciente. Puede tener citas asociadas.'
+          toast.error(errorMessage, {
+            duration: 8000,
+            title: '✗ Error al Eliminar'
+          })
         }
       }
     }
 
-    const formatDate = (date) => {
+    const formatDate = date => {
       if (!date) return 'N/A'
       return new Date(date).toLocaleDateString('es-ES')
     }
@@ -864,7 +877,7 @@ export default {
         patientsChannel = privateChannel('patients')
         if (patientsChannel) {
           patientsChannel
-            .listen('.patient.created', async (e) => {
+            .listen('.patient.created', async e => {
               const newPatient = e.patient
 
               if (newPatient) {
@@ -873,7 +886,7 @@ export default {
 
               toast.success('Nuevo paciente agregado')
             })
-            .listen('.patient.updated', async (e) => {
+            .listen('.patient.updated', async e => {
               // Actualizar el paciente en la lista si existe
               const index = patients.value.findIndex(p => p.id === e.patient.id)
               if (index !== -1) {
@@ -884,7 +897,7 @@ export default {
               }
               toast.success('Paciente actualizado')
             })
-            .listen('.patient.deleted', async (e) => {
+            .listen('.patient.deleted', async e => {
               // Remover el paciente de la lista
               patients.value = patients.value.filter(p => p.id !== e.patient_id)
               filteredPatients.value = filteredPatients.value.filter(p => p.id !== e.patient_id)
@@ -954,4 +967,3 @@ export default {
   }
 }
 </script>
-

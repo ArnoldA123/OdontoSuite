@@ -6,7 +6,7 @@ import { useApi } from './useApi'
  * Gestiona la carga del SDK JS de MP (desde CDN, no bundle) y la
  * creacion de preferencias de pago via backend.
  */
-export function useMercadoPago () {
+export function useMercadoPago() {
   const { post } = useApi()
 
   const loading = ref(false)

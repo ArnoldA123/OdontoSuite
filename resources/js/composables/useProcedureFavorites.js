@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
-export function useProcedureFavorites () {
+export function useProcedureFavorites() {
   const { get, post, delete: del, put } = useApi()
 
   const favorites = ref([])

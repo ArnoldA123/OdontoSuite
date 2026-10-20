@@ -1,6 +1,8 @@
 # OdontoSuite
 
-Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. OdontoSuite facilita la administración de clínicas dentales, incluyendo gestión de pacientes, citas, historiales clínicos, finanzas y reportes.
+Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js.
+OdontoSuite facilita la administración de clínicas dentales, incluyendo gestión
+de pacientes, citas, historiales clínicos, finanzas y reportes.
 
 ![Laravel](https://img.shields.io/badge/Laravel-12.0-FF2D20?style=flat&logo=laravel&logoColor=white)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.3-4FC08D?style=flat&logo=vue.js&logoColor=white)
@@ -22,6 +24,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 ## ✨ Características
 
 ### Gestión de Pacientes
+
 - Registro completo de información del paciente
 - Historial médico y alergias
 - Odontograma interactivo con sistema FDI
@@ -30,6 +33,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Exportación de expedientes en PDF y ZIP
 
 ### Sistema de Citas
+
 - Calendario interactivo con vista semanal y mensual
 - Gestión de tipos de citas personalizables
 - Asignación de profesionales y ambientes
@@ -38,6 +42,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Lista de espera
 
 ### Gestión Financiera
+
 - Sistema de caja con apertura y cierre de sesiones
 - Múltiples métodos de pago (Efectivo, Tarjetas, Yape, Plin, Transferencias)
 - Transacciones y movimientos de caja
@@ -46,6 +51,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Reportes financieros y cierres de caja
 
 ### Historiales Clínicos
+
 - Registros médicos completos
 - Especialidades:
   - Ortodoncia
@@ -58,6 +64,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Planes de tratamiento
 
 ### Business Intelligence
+
 - Dashboard con métricas en tiempo real
 - Reportes de productividad por profesional
 - Análisis de ingresos y citas
@@ -65,11 +72,13 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Gráficos y visualizaciones interactivas
 
 ### Multi-sede
+
 - Gestión de múltiples sucursales
 - Configuración independiente por sede
 - Reportes consolidados
 
 ### Sistema de Roles
+
 - **Administrador**: Acceso completo al sistema
 - **Recepcionista**: Gestión de pacientes y citas
 - **Odontólogo**: Gestión clínica y pacientes
@@ -81,6 +90,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 ## 🛠️ Tecnologías
 
 ### Backend
+
 - **Laravel 12.0** - Framework PHP
 - **PHP 8.2+** - Lenguaje de programación
 - **MySQL 8.0+** - Base de datos
@@ -90,6 +100,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - **Maatwebsite Excel** - Exportación a Excel
 
 ### Frontend
+
 - **Vue.js 3.3** - Framework JavaScript
 - **Vue Router 4.2** - Enrutamiento
 - **Vite 5.4** - Build tool y dev server
@@ -100,6 +111,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - **Fetch API** (a través del composable `useApi`) - Cliente HTTP
 
 ### Herramientas de Desarrollo
+
 - **ESLint** - Linter JavaScript
 - **Prettier** - Formateador de código
 - **Laravel Pint** - Formateador PHP
@@ -108,6 +120,7 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - **pnpm** - Gestor de paquetes Node.js (versión fijada en `package.json`)
 
 ### Integraciones
+
 - **OpenAI API** - Análisis de imágenes con IA
 - **WebSockets** - Comunicación en tiempo real
 - **PDF Generation** - Exportación de documentos
@@ -119,7 +132,8 @@ Sistema de gestión odontológica completo desarrollado con Laravel y Vue.js. Od
 - Node.js >= 22 (versión fijada en `.nvmrc`)
 - pnpm >= 11 (gestor de paquetes; el proyecto no usa npm)
 - MySQL >= 8.0 (o MariaDB >= 10.3)
-- Extensiones PHP: OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath, Fileinfo, GD
+- Extensiones PHP: OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath,
+  Fileinfo, GD
 
 ## 🚀 Instalación Rápida
 
@@ -197,16 +211,20 @@ pnpm dev
 
 Abre tu navegador en: `http://localhost:8000`
 
-**Credenciales demo** (el campo de login es el **usuario**, no el email; todas usan la contraseña `password123`):
+**Credenciales demo** (el campo de login es el **usuario**, no el email; todas
+usan la contraseña `password123`):
+
 - Administrador: `elizabet` / `password123`
 - Recepcionista: `recepcionista_test` / `password123`
 - Odontólogo: `ever_odontologo` / `password123`
 
 Lista completa de usuarios demo en [CREDENTIALS.md](CREDENTIALS.md).
 
-⚠️ **Importante:** Son cuentas de desarrollo creadas por los seeders. No las uses en producción.
+⚠️ **Importante:** Son cuentas de desarrollo creadas por los seeders. No las
+uses en producción.
 
-Para una guía de instalación detallada, consulta [INSTALACION.md](INSTALACION.md).
+Para una guía de instalación detallada, consulta
+[INSTALACION.md](INSTALACION.md).
 
 ## 📁 Estructura del Proyecto
 
@@ -244,35 +262,42 @@ OdontoSuite/
 ## 🎯 Características Principales
 
 ### Dashboard Personalizado
+
 Cada rol tiene un dashboard adaptado a sus necesidades:
+
 - **Administrador**: Vista general con todas las métricas
 - **Recepcionista**: Gestión de citas y pacientes
 - **Clínico**: Agenda personal y pacientes
 - **Finanzas**: Reportes y gestión de caja
 
 ### Sistema de Notificaciones en Tiempo Real
+
 - Actualizaciones instantáneas usando WebSockets
 - Notificaciones de nuevas citas
 - Alertas de pagos pendientes
 - Recordatorios de citas
 
 ### Exportación de Datos
+
 - Expedientes de pacientes en PDF
 - Reportes financieros en Excel
 - Cierres de caja en PDF
 - Cotizaciones y recibos
 
 ### Análisis de Imágenes con IA
+
 - Integración con OpenAI para análisis de radiografías
 - Detección de problemas dentales
 - Sugerencias de tratamiento
 
 ### Sistema de Auditoría
+
 - Registro de todos los cambios importantes
 - Historial de acciones por usuario
 - Trazabilidad completa
 
 ## 📚 Documentación
 
-- [Guía de Instalación Completa](INSTALACION.md) - Instrucciones detalladas paso a paso
+- [Guía de Instalación Completa](INSTALACION.md) - Instrucciones detalladas paso
+  a paso
 - [Seguridad](SEGURIDAD.md) - Checklist de seguridad antes de subir a producción

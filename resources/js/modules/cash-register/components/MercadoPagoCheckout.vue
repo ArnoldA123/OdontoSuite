@@ -17,8 +17,7 @@
           text="Preparando pago con Mercado Pago..."
           aria-label="Preparando pago con Mercado Pago"
         />
-        <UiStatusBadge variant="info" size="sm" label="Procesando"
-class="mt-3" />
+        <UiStatusBadge variant="info" size="sm" label="Procesando" class="mt-3" />
       </div>
 
       <!-- Error (Apple motion wash) -->
@@ -28,18 +27,14 @@ class="mt-3" />
           :label="errorMessage || 'Error al procesar el pago'"
           class="mb-3"
         />
-        <UiButton variant="secondary" size="sm" @click="$emit('close')">
-Volver
-</UiButton>
+        <UiButton variant="secondary" size="sm" @click="$emit('close')">Volver</UiButton>
       </div>
 
       <!-- Payment brick container (no transition — brick owns its mount) -->
       <div v-else-if="step === 'ready'" key="ready">
         <div :id="containerId" class="min-h-[300px]" />
         <div class="flex justify-center mt-4">
-          <UiButton variant="ghost" size="sm" @click="handleCancel">
-Cancelar y volver
-</UiButton>
+          <UiButton variant="ghost" size="sm" @click="handleCancel">Cancelar y volver</UiButton>
         </div>
       </div>
 
@@ -51,8 +46,7 @@ Cancelar y volver
           text="Procesando pago..."
           aria-label="Procesando pago con Mercado Pago"
         />
-        <UiStatusBadge variant="info" size="md" label="Procesando"
-class="mt-3" />
+        <UiStatusBadge variant="info" size="md" label="Procesando" class="mt-3" />
       </div>
 
       <!-- Success (Apple motion wash) -->
@@ -78,9 +72,7 @@ class="mt-3" />
         <p class="text-sm text-theme-secondary mb-4">
           {{ formatCurrency(amount) }} - {{ description }}
         </p>
-        <UiButton @click="handleDone">
-Continuar
-</UiButton>
+        <UiButton @click="handleDone">Continuar</UiButton>
       </div>
     </Transition>
   </div>

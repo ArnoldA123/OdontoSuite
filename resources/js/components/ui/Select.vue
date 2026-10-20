@@ -200,8 +200,7 @@
         <div v-if="clearable && hasSelection" class="p-3 border-t border-theme">
           <UiButton type="button" variant="ghost" size="sm" class="w-full" @click="clearSelection">
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"

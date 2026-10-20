@@ -46,7 +46,18 @@ const projectRoot = resolve(__dirname, '..')
 const tokensModulePath = resolve(projectRoot, 'resources/js/design-system/tokens.js')
 const outputCssPath = resolve(projectRoot, 'resources/css/tokens.generated.css')
 
-const { default: tokens, colors, spacing, radius, shadow, motion, focusRing, fontFeatures, elevation, topbar } = await import(pathToFileURL(tokensModulePath).href)
+const {
+  default: tokens,
+  colors,
+  spacing,
+  radius,
+  shadow,
+  motion,
+  focusRing,
+  fontFeatures,
+  elevation,
+  topbar
+} = await import(pathToFileURL(tokensModulePath).href)
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                            */
@@ -74,7 +85,7 @@ push(':root {')
 // Color ramps. Token keys are camelCase in JS (`systemBlue`) but CSS
 // custom properties are kebab-case by convention (`--color-system-blue-500`).
 // Convert once, here, so the two can never disagree.
-const toKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+const toKebab = s => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 
 for (const rampName of Object.keys(colors)) {
   // PR1 (ui-premium-microdetail-2026-08): the `border` ramp is not a real
@@ -228,7 +239,9 @@ push('')
 push('')
 
 push('  /* font stacks (system font only) */')
-push('  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;')
+push(
+  '  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;'
+)
 push('')
 
 // Spacing aliases — kept for the few surviving consumers (Card.vue, etc.)
@@ -329,9 +342,11 @@ const focusRingRgb = (() => {
       `[build-tokens-css] tokens.focusRing.color must be a 6-digit hex to compose --focus-ring-default; got "${focusRing.color}"`
     )
   }
-  return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(', ')
+  return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')
 })()
-push(`  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(${focusRingRgb}, var(--focus-ring-alpha));`)
+push(
+  `  --focus-ring-default: 0 0 0 var(--focus-ring-width) rgba(${focusRingRgb}, var(--focus-ring-alpha));`
+)
 push('')
 
 // PR1 (ui-premium-microdetail-2026-08) — font features for tabular nums.

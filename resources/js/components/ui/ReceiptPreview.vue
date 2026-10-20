@@ -149,9 +149,7 @@
       <!-- Actions -->
       <template #footer>
         <div class="flex justify-end space-x-3">
-          <Button variant="secondary" @click="$emit('close')">
-Cerrar
-</Button>
+          <Button variant="secondary" @click="$emit('close')">Cerrar</Button>
           <Button variant="primary" :loading="printing" @click="handlePrint">
             <PrinterIcon class="w-4 h-4 mr-2" />
             Imprimir

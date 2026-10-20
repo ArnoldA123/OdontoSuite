@@ -136,9 +136,9 @@ const filteredPlans = computed(() => {
   return plans.value.filter(plan => {
     const title = plan.title?.toLowerCase() || ''
     const description = plan.description?.toLowerCase() || ''
-    const patientName = plan.patient ?
-      `${plan.patient.first_name} ${plan.patient.last_name}`.toLowerCase() :
-      ''
+    const patientName = plan.patient
+      ? `${plan.patient.first_name} ${plan.patient.last_name}`.toLowerCase()
+      : ''
 
     return title.includes(query) || description.includes(query) || patientName.includes(query)
   })

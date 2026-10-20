@@ -18,10 +18,7 @@
 const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/
 
 // Files allowed to ship hex literals (design-token surface).
-const ALLOW_FILES = [
-  'resources/js/design-system/tokens.js',
-  'resources/css/themes.css'
-]
+const ALLOW_FILES = ['resources/js/design-system/tokens.js', 'resources/css/themes.css']
 
 module.exports = {
   meta: {

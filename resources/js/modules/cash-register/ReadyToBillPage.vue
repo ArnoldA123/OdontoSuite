@@ -168,15 +168,11 @@ watch(filters, () => fetchList(1), { deep: true })
               {{ formatCurrency(row.balance) }}
             </td>
             <td class="p-3">
-              <UiStatusBadge v-if="row.has_quotation" variant="success" label="Sí"
-size="sm" />
-              <UiStatusBadge v-else variant="neutral" label="No"
-size="sm" />
+              <UiStatusBadge v-if="row.has_quotation" variant="success" label="Sí" size="sm" />
+              <UiStatusBadge v-else variant="neutral" label="No" size="sm" />
             </td>
             <td class="p-3 space-x-1 whitespace-nowrap">
-              <UiButton variant="secondary" size="xs" @click="openPreview(row)">
-Desglose
-</UiButton>
+              <UiButton variant="secondary" size="xs" @click="openPreview(row)">Desglose</UiButton>
               <UiButton
                 v-if="!row.has_quotation"
                 variant="primary"

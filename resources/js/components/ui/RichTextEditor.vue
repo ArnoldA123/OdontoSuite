@@ -54,27 +54,13 @@
 
       <div class="toolbar-group">
         <select @change="changeFontSize" class="toolbar-select" title="Tamaño de fuente">
-          <option value="">
-Tamaño
-</option>
-          <option value="1">
-Muy pequeño
-</option>
-          <option value="2">
-Pequeño
-</option>
-          <option value="3">
-Normal
-</option>
-          <option value="4">
-Grande
-</option>
-          <option value="5">
-Muy grande
-</option>
-          <option value="6">
-Enorme
-</option>
+          <option value="">Tamaño</option>
+          <option value="1">Muy pequeño</option>
+          <option value="2">Pequeño</option>
+          <option value="3">Normal</option>
+          <option value="4">Grande</option>
+          <option value="5">Muy grande</option>
+          <option value="6">Enorme</option>
         </select>
       </div>
 
@@ -120,9 +106,8 @@ Enorme
 
     <div
       ref="editor"
-      class="editor-content" :class="[
-        disabled ? 'disabled' : ''
-      ]"
+      class="editor-content"
+      :class="[disabled ? 'disabled' : '']"
       :contenteditable="!disabled"
       @input="handleInput"
       @paste="handlePaste"

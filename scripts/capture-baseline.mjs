@@ -47,7 +47,7 @@ if (authCookieJson) {
 }
 
 const child = spawn(chrome, args, { stdio: 'inherit' })
-child.on('exit', (code) => {
+child.on('exit', code => {
   if (code === 0) {
     console.log(`Captured ${url} -> ${outPath}`)
   } else {

@@ -82,7 +82,7 @@
 
           <div class="form-group col-span-2">
             <label class="form-label">Fecha de nacimiento</label>
-            <input v-model="form.birth_date" type="date" class="form-input" >
+            <input v-model="form.birth_date" type="date" class="form-input" />
           </div>
         </div>
 
@@ -93,14 +93,10 @@
       </form>
 
       <div class="inline-footer">
-        <button
-type="button"
-class="btn btn-outline" :disabled="loading" @click="handleClose"
->
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="handleClose">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading"
-@click="handleSubmit">
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
           <span v-if="loading" class="spinner" />
           Crear paciente
         </button>

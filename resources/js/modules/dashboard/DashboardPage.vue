@@ -115,29 +115,29 @@
             <span class="text-sm font-semibold tracking-tight text-label">OdontoSuite</span>
           </p>
           <div class="flex items-center gap-3" data-hero-actions>
-          <!--
+            <!--
             T3 manual refresh. Ghost icon-button in the compact header so a
             stale view can be re-fetched without a page reload. While the
             request is in flight the icon spins (gated by reduced-motion) and
             the page root reports aria-busy; the current content stays mounted
             and is replaced only when the new payload lands.
           -->
-          <UiButton
-            variant="ghost"
-            size="sm"
-            aria-label="Actualizar"
-            data-refresh-button
-            :disabled="refreshing"
-            @click="loadDashboardData"
-          >
-            <template #icon-left>
-              <ArrowPathIcon
-                class="w-4 h-4"
-                :class="{ 'animate-spin motion-reduce:animate-none': refreshing }"
-                aria-hidden="true"
-              />
-            </template>
-          </UiButton>
+            <UiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Actualizar"
+              data-refresh-button
+              :disabled="refreshing"
+              @click="loadDashboardData"
+            >
+              <template #icon-left>
+                <ArrowPathIcon
+                  class="w-4 h-4"
+                  :class="{ 'animate-spin motion-reduce:animate-none': refreshing }"
+                  aria-hidden="true"
+                />
+              </template>
+            </UiButton>
           </div>
         </div>
         <p class="relative mt-3 text-4xl font-semibold text-label">
@@ -145,7 +145,11 @@
         </p>
         <!-- date interpolation marker for HOTFIX-DASH-008 anchor: {{ getTodayDate() }} -->
         <p
-          style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+          style="
+            font-feature-settings:
+              'tnum' 1,
+              'lnum' 1;
+          "
           class="relative mt-2 text-base leading-relaxed text-theme-secondary"
         >
           {{ getTodayDate() }}
@@ -238,7 +242,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   aria-live="polite"
                   data-stat="appointments-today"
                 >
@@ -270,7 +278,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   data-stat="completed-today"
                 >
                   {{ completedKpiDisplay }}
@@ -305,7 +317,11 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   data-stat="pending-today"
                 >
                   {{ pendingKpiDisplay }}
@@ -349,12 +365,19 @@
                 </p>
                 <p
                   class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
+                  style="
+                    font-feature-settings:
+                      'tnum' 1,
+                      'lnum' 1;
+                  "
                   data-stat="cash-balance"
                 >
                   {{ cashKpiBalance }}
                 </p>
-                <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="cash-balance">
+                <p
+                  class="mt-1 text-xs text-theme-secondary truncate"
+                  data-kpi-caption="cash-balance"
+                >
                   {{ cashKpiCaption }}
                 </p>
                 <div class="mt-3">
@@ -374,39 +397,39 @@
           HOTFIX-DASH-007 line-art SVG through the shared
           DashboardSectionEmpty pattern (T5).
         -->
-      <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
-        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <h3 class="text-base font-semibold text-label">Agenda de hoy</h3>
-          <div class="flex items-center gap-2">
-            <UiButton
-              v-if="can.createAppointment?.value"
-              variant="primary"
-              size="sm"
-              @click="goToNewAppointment"
-            >
-              Nueva cita
-            </UiButton>
+        <section v-if="can.viewAppointment?.value" aria-label="Agenda de hoy">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h3 class="text-base font-semibold text-label">Agenda de hoy</h3>
+            <div class="flex items-center gap-2">
+              <UiButton
+                v-if="can.createAppointment?.value"
+                variant="primary"
+                size="sm"
+                @click="goToNewAppointment"
+              >
+                Nueva cita
+              </UiButton>
+            </div>
           </div>
-        </div>
 
-        <!--
+          <!--
           Agenda inline error (T5). Only the today resource failed: the
           section keeps its header and the rest of the page stays usable, so
           the retry affordance lives here and re-fetches ONLY
           /api/dashboard/appointments-today through the shared section-error
           component.
         -->
-        <DashboardSectionError
-          v-if="todayError"
-          data-state="error-appointments"
-          role="alert"
-          title="No pudimos cargar la agenda de hoy"
-          description="Reintenta para ver las citas programadas para el día."
-          :retry-attrs="{ 'data-retry-appointments': '' }"
-          @retry="retryTodayAppointments"
-        />
+          <DashboardSectionError
+            v-if="todayError"
+            data-state="error-appointments"
+            role="alert"
+            title="No pudimos cargar la agenda de hoy"
+            description="Reintenta para ver las citas programadas para el día."
+            :retry-attrs="{ 'data-retry-appointments': '' }"
+            @retry="retryTodayAppointments"
+          />
 
-        <!--
+          <!--
           Empty state for the today-appointments case, rendered through the
           shared compact DashboardSectionEmpty pattern (T5, WU3 / D9).
 
@@ -420,77 +443,81 @@
           appointment modal, so the copy stays informational and never points
           users at the calendar section.
         -->
-        <DashboardSectionEmpty
-          v-else-if="todayAppointments.length === 0"
-          ref="emptyStateSection"
-          data-state="empty-appointments"
-          data-reveal="empty-state"
-          title="Sin citas para hoy"
-          description="Cuando registres citas, aparecerán aquí."
-          :style="revealStyle('--spring-dash-empty-o')"
-        >
-          <template #icon>
-            <!--
+          <DashboardSectionEmpty
+            v-else-if="todayAppointments.length === 0"
+            ref="emptyStateSection"
+            data-state="empty-appointments"
+            data-reveal="empty-state"
+            title="Sin citas para hoy"
+            description="Cuando registres citas, aparecerán aquí."
+            :style="revealStyle('--spring-dash-empty-o')"
+          >
+            <template #icon>
+              <!--
               HOTFIX-DASH-007 - inline line-art calendar SVG.
               stroke-width="1.5" (apple-design §16 baseline).
               Color: var(--color-label-tertiary-label) - the iOS
               tertiaryLabel token so the icon recedes.
             -->
-            <svg
-              class="mx-auto h-8 w-8 mb-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              style="color: var(--color-label-tertiary-label)"
-              aria-hidden="true"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </template>
-        </DashboardSectionEmpty>
+              <svg
+                class="mx-auto h-8 w-8 mb-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                style="color: var(--color-label-tertiary-label)"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </template>
+          </DashboardSectionEmpty>
 
-        <div v-else class="grid gap-3">
-          <UiCard
-            v-for="appointment in todayAppointments"
-            :key="appointment.id"
-            variant="flat"
-            hover
-            data-appointment-row
-          >
-            <div class="flex items-center gap-4">
-              <!--
+          <div v-else class="grid gap-3">
+            <UiCard
+              v-for="appointment in todayAppointments"
+              :key="appointment.id"
+              variant="flat"
+              hover
+              data-appointment-row
+            >
+              <div class="flex items-center gap-4">
+                <!--
                 Time column: tabular numerals so the minute column stays
                 aligned down the agenda (apple-design §15).
               -->
-              <div class="flex-shrink-0 w-14">
-                <p
-                  class="text-sm font-semibold text-label tabular-nums"
-                  style="font-feature-settings: 'tnum' 1, 'lnum' 1"
-                >
-                  {{ formatTime(appointment.scheduled_at) }}
-                </p>
+                <div class="flex-shrink-0 w-14">
+                  <p
+                    class="text-sm font-semibold text-label tabular-nums"
+                    style="
+                      font-feature-settings:
+                        'tnum' 1,
+                        'lnum' 1;
+                    "
+                  >
+                    {{ formatTime(appointment.scheduled_at) }}
+                  </p>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="font-medium text-label truncate">
+                    {{ getPatientName(appointment) }}
+                  </p>
+                  <p class="text-sm text-theme-secondary truncate">
+                    {{ appointment.appointment_type?.name || 'Consulta' }}
+                    <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
+                  </p>
+                </div>
+                <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
+                  {{ getStatusText(appointment.status) }}
+                </UiBadge>
               </div>
-              <div class="min-w-0 flex-1">
-                <p class="font-medium text-label truncate">
-                  {{ getPatientName(appointment) }}
-                </p>
-                <p class="text-sm text-theme-secondary truncate">
-                  {{ appointment.appointment_type?.name || 'Consulta' }}
-                  <span v-if="appointment.user?.name">· {{ appointment.user.name }}</span>
-                </p>
-              </div>
-              <UiBadge :variant="getStatusVariant(appointment.status)" size="sm">
-                {{ getStatusText(appointment.status) }}
-              </UiBadge>
-            </div>
-          </UiCard>
-        </div>
-      </section>
+            </UiCard>
+          </div>
+        </section>
       </section>
 
       <!--
@@ -688,7 +715,6 @@
           </div>
         </div>
       </section>
-
     </div>
 
     <!-- New Appointment Modal -->
@@ -699,10 +725,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import {
-  ArrowPathIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import NewAppointmentModal from '../../components/appointments/NewAppointmentModal.vue'
 import DashboardSectionError from './DashboardSectionError.vue'
 import DashboardSectionEmpty from './DashboardSectionEmpty.vue'

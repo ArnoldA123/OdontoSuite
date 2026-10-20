@@ -369,9 +369,12 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         $listSection = self::stripInlinedModals($src);
 
         // 1) The 4 KPI value cells (Total / Activos / Inactivos /
-        // Filtrados) carry the dashboard's literal font-feature form.
+        // Filtrados) carry the dashboard's literal font-feature form. The
+        // pattern tolerates the line breaks and padding Prettier adds when it
+        // formats the inline `style` attribute: the rule is the declaration,
+        // not the whitespace around it.
         $kpiCount = preg_match_all(
-            "/font-feature-settings: 'tnum' 1, 'lnum' 1/",
+            "/font-feature-settings:\s*'tnum'\s+1,\s*'lnum'\s+1/",
             $listSection
         );
         $this->assertGreaterThanOrEqual(

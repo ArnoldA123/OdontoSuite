@@ -53,7 +53,7 @@
             aria-controls="primary-sidebar"
             @click="toggleSidebar"
           >
-            <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
+            <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
           </button>
           <button
             v-if="!sidebarCollapsed"
@@ -63,8 +63,7 @@
             aria-controls="primary-sidebar"
             @click="toggleSidebar"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -153,8 +152,7 @@ viewBox="0 0 24 24">
             @click="handleLogout"
           >
             <template #icon-left>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -176,7 +174,7 @@ viewBox="0 0 24 24">
     >
       <div class="flex items-center justify-between px-4 h-16">
         <div class="flex items-center gap-3">
-          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
+          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
           <span class="text-lg font-semibold text-theme-primary">OdontoSuite</span>
         </div>
         <button
@@ -186,8 +184,7 @@ viewBox="0 0 24 24">
           aria-expanded="mobileMenuOpen"
           @click="mobileMenuOpen = true"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -200,16 +197,10 @@ viewBox="0 0 24 24">
     </div>
 
     <!-- Mobile Menu -->
-    <UiSheet
-      v-model="mobileMenuOpen"
-      position="right"
-      size="md"
-      title="Navegación"
-      closable
-    >
+    <UiSheet v-model="mobileMenuOpen" position="right" size="md" title="Navegación" closable>
       <template #header>
         <div class="flex items-center gap-3">
-          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" >
+          <img src="/images/easy_dent.png" alt="OdontoSuite" class="h-8 w-8" />
           <span class="text-lg font-semibold text-theme-primary">OdontoSuite</span>
         </div>
       </template>
@@ -242,9 +233,7 @@ viewBox="0 0 24 24">
               {{ getRoleLabel(safeUser.role) }}
             </p>
           </div>
-          <UiButton variant="ghost" size="sm" @click="handleLogout">
-Cerrar Sesión
-</UiButton>
+          <UiButton variant="ghost" size="sm" @click="handleLogout">Cerrar Sesión</UiButton>
         </div>
       </template>
     </UiSheet>
@@ -448,9 +437,7 @@ Cerrar Sesión
                       not as an eyebrow.
                     -->
                     <div class="border-t border-theme px-4 py-3">
-                      <p class="text-xs text-theme-secondary mb-2">
-                        Apariencia
-                      </p>
+                      <p class="text-xs text-theme-secondary mb-2">Apariencia</p>
                     </div>
 
                     <div class="border-t border-theme py-2">
@@ -586,9 +573,7 @@ const canvasRoutes = [
 // load-bearing cross-cutting fix for the entire rollout — subsequent
 // category PRs MUST NOT touch `canvasRoutes` again.
 function matchesCanvasRoute(path) {
-  return canvasRoutes.some(
-    route => path === route || path.startsWith(`${route}/`)
-  )
+  return canvasRoutes.some(route => path === route || path.startsWith(`${route}/`))
 }
 
 const isCanvasRoute = computed(() => matchesCanvasRoute(route.path))
@@ -961,9 +946,9 @@ const getNavItemClasses = item => {
   ]
 
   const active =
-    route.path === item.to ?
-      ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200', 'shadow-subtle'] :
-      []
+    route.path === item.to
+      ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200', 'shadow-subtle']
+      : []
 
   return [...base, ...active].join(' ')
 }
@@ -977,9 +962,9 @@ const getMobileNavItemClasses = item => {
   ]
 
   const active =
-    route.path === item.to ?
-      ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200'] :
-      []
+    route.path === item.to
+      ? ['bg-systemBlue-50 text-systemBlue-700', 'border border-systemBlue-200']
+      : []
 
   return [...base, ...active].join(' ')
 }
