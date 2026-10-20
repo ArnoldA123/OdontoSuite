@@ -15,3 +15,19 @@ coverage/
 package-lock.json
 yarn.lock
 composer.lock
+
+# Vendored and historical artifacts (issue #15 follow-up). These trees are not
+# repository code, so formatting them adds review noise without protecting
+# anything the project authors:
+#   .agents/      installed skill references, reinstalled from a package
+#   openspec/     archived change records, kept as the history of each change
+#   odd/          task notes, written and read by the workflow itself
+#   docs/mejoras/ closed plans, kept as the record of what was true then
+.agents/
+openspec/
+odd/
+docs/mejoras/
+
+# pnpm owns this file: rewriting it here makes the next install rewrite it
+# back, and that churn hides real lockfile changes.
+pnpm-lock.yaml
