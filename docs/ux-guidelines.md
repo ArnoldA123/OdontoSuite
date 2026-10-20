@@ -127,7 +127,7 @@ antes de sobreescribir):
 | `text-lg`   | 17px / 24px      | Subtitulos, titulo de card                     |
 | `text-xl`   | 20px / 28px      | h3, titulo de dialog                           |
 | `text-2xl`  | 24px / 32px      | h2, titulo de modal grande                     |
-| `text-3xl`  | 30px / 36px      | h1, titulo de pagina                           |
+| `text-3xl`  | 30px / 36px      | h2, titulo de pagina                           |
 | `text-4xl`  | 36px / 40px      | Display (hero, splash)                         |
 
 ### Letter spacing
