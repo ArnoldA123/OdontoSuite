@@ -17,3 +17,12 @@ Schedule::call(function () {
     ->hourly()
     ->name('reminders-dispatch')
     ->withoutOverlapping(5); // 5-min lock window (provider also self-gates at 60s)
+
+// Issue #154: the creation half runs inside the appointment transaction, so
+// this hourly pass only repairs what is missing (appointments created before
+// the wiring, windows lost to a failed write) and cancels reminders left
+// pending by a cancellation that skipped the service.
+Schedule::command('reminders:reconcile')
+    ->hourly()
+    ->name('reminders-reconcile')
+    ->withoutOverlapping(5);
