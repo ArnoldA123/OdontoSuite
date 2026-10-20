@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CashReportController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
+use App\Http\Controllers\Api\DentalPieceController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
@@ -280,6 +281,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
         Route::get('specialty-records/patient/{patientId}/all', [SpecialtyRecordController::class, 'getAllByPatient']);
         Route::get('specialty-records/patient/{patientId}/{specialty}/stats', [SpecialtyRecordController::class, 'getStats']);
+        Route::get('dental-pieces', [DentalPieceController::class, 'index']);
     });
 
     // Sistema de caja. Issue #55: recepcion opera caja (sesiones y

@@ -59,7 +59,6 @@ class SpecialtyRecordService
     public function createOralSurgeryRecord(array $data): OralSurgeryRecord
     {
         $data['created_by'] = Auth::id();
-        $data['surgery_date'] = $data['surgery_date'] ?? now()->toDateString();
 
         return OralSurgeryRecord::create($data);
     }

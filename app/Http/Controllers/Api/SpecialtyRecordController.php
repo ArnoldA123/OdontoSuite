@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\SpecialtyRecordCreated;
 use App\Events\SpecialtyRecordUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateSpecialtyRecordRequest;
 use App\Services\SpecialtyRecordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -142,31 +143,10 @@ class SpecialtyRecordController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateSpecialtyRecordRequest $request, int $id): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'specialty' => 'required|in:implantologia,ortodoncia,endodoncia,rehabilitacion,cirugia_oral',
-                // Campos específicos por especialidad (mismos que en store)
-                'implant_brand' => 'nullable|string',
-                'implant_model' => 'nullable|string',
-                'implant_diameter' => 'nullable|string',
-                'implant_length' => 'nullable|string',
-                'batch_number' => 'nullable|string',
-                'placement_date' => 'nullable|date',
-                'treatment_type' => 'nullable|string',
-                'treatment_start_date' => 'nullable|date',
-                'tooth_number' => 'nullable|string',
-                'canal_count' => 'nullable|integer',
-                'restoration_type' => 'nullable|string',
-                'material_type' => 'nullable|string',
-                'procedure_type' => 'nullable|string',
-                'surgery_date' => 'nullable|date',
-                // Campos comunes
-                'notes' => 'nullable|string',
-                'complications' => 'nullable|string',
-                'follow_up_notes' => 'nullable|string',
-            ]);
+            $validated = $request->validated();
 
             $specialty = $validated['specialty'];
             unset($validated['specialty']);
