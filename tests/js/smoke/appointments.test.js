@@ -107,6 +107,26 @@ describe('appointments smoke', () => {
     expect(modal.props('initialDate')).toBe(`${dateStr}T${String(hour).padStart(2, '0')}:00`)
     wrapper.unmount()
   })
+
+  it('renders the appointment notes as a textarea instead of an invalid input type', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mount(NewAppointmentModal, {
+      props: { modelValue: true },
+      global: { plugins: [uiComponents], stubs: { teleport: true } }
+    })
+    await flushPromises()
+
+    expect(wrapper.find('textarea').exists()).toBe(true)
+    expect(
+      warnSpy.mock.calls
+        .map(args => String(args[0]))
+        .filter(message => message.includes('custom validator check failed for prop "type"'))
+    ).toEqual([])
+
+    warnSpy.mockRestore()
+    wrapper.unmount()
+  })
 })
 
 // T8b defect 1 — click-to-create prefill race: clicking an empty slot must

@@ -308,12 +308,22 @@ describe('ai analysis detail hygiene', () => {
   })
 
   it('composes the patient name when the payload omits full_name', () => {
-    const wrapper = mountModal({
-      patient: { id: 7, first_name: 'Ana', last_name: 'Torres' }
-    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const wrapper = mountModal(
+      analysisFixture({
+        patient: { id: 7, first_name: 'Ana', last_name: 'Torres' }
+      })
+    )
 
     expect(wrapper.find('[data-ai-detail-patient]').text()).toBe('Ana Torres')
+    expect(
+      warnSpy.mock.calls
+        .map(args => String(args[0]))
+        .filter(message => message.includes('type check failed for prop "status"'))
+    ).toEqual([])
 
+    warnSpy.mockRestore()
     wrapper.unmount()
   })
 })

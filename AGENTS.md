@@ -376,6 +376,20 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (deuda del design system: #218/#219/#221/#205)** — El plugin de
+  Tailwind registra las utilidades token que los módulos ya hablaban
+  (`text-label`, `border-hairline`, `bg-canvas`, `bg-systemBackground`,
+  `text-systemBackground`, `border-separator`, `divide-hairline`, `ring-accent`,
+  `text-accent-hover`); un guard estático en
+  `tests/js/unit/design-token-utilities.test.js` falla si aparece una clase
+  token que Tailwind no puede generar. `UiEmptyState.icon` acepta componentes
+  funcionales de heroicons. `AiAnalysisButton` pasa a `UiButton`/`UiStatusPill`
+  sin `<style scoped>` ni alias legacy, y el guard de app-shell suma el grupo
+  `embeddedFiles` para componentes embebidos. `useAiAnalysis` deja de tostar las
+  lecturas y la subida (el Sheet pinta el error en línea) y conserva el toast
+  solo en las acciones sin superficie de error propia. Sin rutas, modelos,
+  migraciones ni primitivas UI nuevas: los conteos de §4 no cambian.
+
 - **2026-10-20 (caja: rutas honestas, sesión actual y fugas de los 500)** —
   Cierra los cuatro defectos vecinos detectados al entregar
   #191/#193/#194/#196/#198. Se retira `POST /cash-register-sessions/{id}/close`

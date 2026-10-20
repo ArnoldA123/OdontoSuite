@@ -56,6 +56,19 @@ abstract class ModuleAppShellTestCase extends TestCase
      */
     abstract protected static function polishedFiles(): array;
 
+    /**
+     * Subclasses MAY return absolute paths to components embedded inside the
+     * module (buttons, badges, tiles). Embedded components obey the
+     * style-discipline rules of `test_embedded_component_style_discipline()`
+     * but NOT DLR-R-001: a button never paints the page canvas.
+     *
+     * @return array<int, string>
+     */
+    protected static function embeddedFiles(): array
+    {
+        return [];
+    }
+
     protected function projectRoot(): string
     {
         return dirname(__DIR__, 3);
@@ -72,6 +85,21 @@ abstract class ModuleAppShellTestCase extends TestCase
         }
 
         return $cases;
+    }
+
+    /**
+     * @return array<string, array{0: ?string}>
+     */
+    public static function embeddedFileProvider(): array
+    {
+        $cases = [];
+        foreach (static::embeddedFiles() as $path) {
+            $cases[$path] = [$path];
+        }
+
+        // PHPUnit rejects an empty data set. The placeholder keeps every
+        // subclass that declares no embedded components on a passing no-op row.
+        return $cases === [] ? ['no embedded components declared' => [null]] : $cases;
     }
 
     private static function readFile(string $path): ?string
@@ -224,6 +252,69 @@ abstract class ModuleAppShellTestCase extends TestCase
             sprintf(
                 '%s must not contain a `<style scoped>` block (DLR-R-021). '
                 .'Tailwind utility classes + scoped transitions (focus ring + reduced-motion fallback) live in the global token CSS.',
+                $path
+            )
+        );
+    }
+
+    /**
+     * Embedded components (buttons, badges, tiles) share the style-discipline
+     * rules of the page shell, minus the canvas-surface rule: a component
+     * embedded in a surface never paints the page canvas.
+     *
+     * @dataProvider embeddedFileProvider
+     */
+    public function test_embedded_component_style_discipline(?string $path): void
+    {
+        if ($path === null) {
+            $this->assertTrue(true, 'No embedded components declared — nothing to assert.');
+
+            return;
+        }
+
+        $src = self::readFile($path);
+        $this->assertNotNull($src, sprintf('%s must exist and be readable.', $path));
+
+        $cleaned = self::stripStringsAndComments($src);
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?<![\w-])border-theme(?![\w-])/',
+            $cleaned,
+            sprintf(
+                '%s must not contain the legacy `border-theme` literal (DLR-R-002). '
+                .'Use the `border-hairline` / `--color-hairline` token instead.',
+                $path
+            )
+        );
+
+        if (preg_match('/:focus(?:-visible)?/', $cleaned) === 1) {
+            $this->assertMatchesRegularExpression(
+                '/var\(--focus-ring-default\)/',
+                $cleaned,
+                sprintf(
+                    '%s contains a `:focus` selector and must therefore consume the `var(--focus-ring-default)` token (DLR-R-004).',
+                    $path
+                )
+            );
+        } else {
+            $this->assertTrue(true, sprintf('%s has no focus selectors — nothing to assert.', $path));
+        }
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?<![\w-])focus:ring-primary-500(?![\w-])|(?<![\w-])focus:border-accent(?![\w-])/',
+            $cleaned,
+            sprintf(
+                '%s must not contain legacy focus-ring aliases (`focus:ring-primary-500` or `focus:border-accent`) per DLR-R-004.',
+                $path
+            )
+        );
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/<style\s+scoped\s*>/',
+            $cleaned,
+            sprintf(
+                '%s must not contain a `<style scoped>` block (DLR-R-021). '
+                .'Embedded components consume Tailwind utilities and the global token CSS.',
                 $path
             )
         );
