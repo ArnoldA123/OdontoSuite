@@ -52,7 +52,7 @@
                 </p>
                 <span class="text-theme-secondary" aria-hidden="true">·</span>
                 <p class="text-sm text-theme-secondary" data-evolution-specialty>
-                  {{ evolution.specialty || 'Sin especialidad' }}
+                  {{ specialtyLabel(evolution) }}
                 </p>
                 <StatusBadge
                   v-if="evolution.requires_follow_up"
@@ -263,8 +263,12 @@ import UiSectionEmpty from '@/components/ui/UiSectionEmpty.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
-defineProps({
+const props = defineProps({
   evolutions: {
+    type: Array,
+    default: () => []
+  },
+  specialties: {
     type: Array,
     default: () => []
   },
@@ -282,6 +286,16 @@ const { can } = usePermissions()
 // The surface names the four SOAP blocks after the payload columns, so a
 // reader can map every block back to `clinical_evolutions`.
 const formatEvolutionDate = value => formatDateOnly(value) || 'Sin fecha'
+
+// The row stores the catalog code; the timeline shows the human name and
+// falls back to the code for historical values the catalog no longer has.
+const specialtyLabel = evolution => {
+  const code = evolution.specialty
+
+  if (!code) return 'Sin especialidad'
+
+  return props.specialties.find(specialty => specialty.code === code)?.name || code
+}
 
 const authorLabel = evolution => {
   const name = evolution.created_by?.name || evolution.createdBy?.name

@@ -31,8 +31,9 @@ use PHPUnit\Framework\TestCase;
  *   - EVO-R-003  delete is confirmed through `useConfirm()`, never a bare
  *                global `confirm()`.
  *   - EVO-R-004  no invented payload key reaches the API (decision D4): the
- *                modal writes the real SOAP columns and nothing else, and it
- *                does not expose `specialty` (the backend infers it).
+ *                modal writes the real SOAP columns and nothing else. The
+ *                specialty moved from "inferred, never exposed" to a catalog
+ *                selector in issue #225 (see EVO-R-013).
  *   - EVO-R-005  the timeline renders the four SOAP blocks from the real
  *                columns, plus the real clinical rows and vital signs.
  *   - EVO-R-006  loading uses `LoadingSpinner`, empty uses `UiSectionEmpty`
@@ -48,6 +49,13 @@ use PHPUnit\Framework\TestCase;
  *                confirmation on success.
  *   - EVO-R-010  neither surface owns the page `<h1>` and neither paints a
  *                gradient (the shell keeps the single page title).
+ *   - EVO-R-011  the modal captures the `clinical_measurements` contract
+ *                (issue #222): five unit-bearing keys with their own hooks.
+ *   - EVO-R-012  the timeline renders every recorded measurement, units
+ *                included, and keeps a `false` bleeding finding.
+ *   - EVO-R-013  the specialty is editable from the `specialties` catalog
+ *                (issue #225), never as a free string, and the timeline labels
+ *                the stored code with the catalog name.
  *
  * DOM behavior lives in `tests/js/smoke/medical-records.test.js`; this file
  * pins the contract statically so a regression fails without a browser.
@@ -228,20 +236,45 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     }
 
     /**
-     * EVO-R-004 (edit mode) — `specialty` is filled by the backend from the
-     * authenticated user, so the form must not offer it.
+     * EVO-R-013 — issue #225: the specialty is editable, but only from the
+     * catalog the page loads (`GET /api/specialties/active`). The form omits
+     * the key when it has no value so an unrelated edit preserves the stored
+     * code, and the timeline labels that code with the catalog name.
      */
-    public function test_modal_does_not_expose_the_specialty_field(): void
+    public function test_modal_exposes_the_specialty_catalog_selector(): void
     {
         $source = $this->modal();
+        $template = $this->templateOf($source, 'EvolutionModal.vue');
 
-        $this->assertStringNotContainsString('data-evolution-field="specialty"', $source);
-        $this->assertStringNotContainsString('form.specialty', $source);
-        $this->assertStringContainsString(
-            'evolution.specialty',
-            $this->timeline(),
-            'The timeline reads the specialty the backend inferred (EVO-R-004).'
+        $this->assertStringContainsString('data-evolution-field="specialty"', $template);
+        $this->assertStringContainsString('form.specialty', $template);
+        $this->assertStringContainsString(':options="specialtyOptions"', $template);
+        $this->assertMatchesRegularExpression(
+            '/specialties:\s*\{[^}]*type:\s*Array[^}]*\}/s',
+            $source,
+            'The modal declares the `specialties` prop the page passes (EVO-R-013).'
         );
+        $this->assertStringContainsString('specialtyOptions', $source);
+        $this->assertStringContainsString('payload.specialty = specialty', $source);
+        $this->assertStringContainsString('isCatalogValue', $source);
+
+        $page = $this->source('/resources/js/modules/medical-records/MedicalRecordsPage.vue');
+        $this->assertStringContainsString('getSpecialties()', $page);
+        $this->assertStringContainsString(':specialties="specialties"', $page);
+    }
+
+    /**
+     * EVO-R-013 — the timeline shows the catalog name and keeps the raw code
+     * for historical values the catalog no longer has.
+     */
+    public function test_timeline_labels_the_specialty_from_the_catalog(): void
+    {
+        $source = $this->timeline();
+
+        $this->assertStringContainsString('specialtyLabel(evolution)', $source);
+        $this->assertStringContainsString('props.specialties.find', $source);
+        $this->assertStringContainsString("'Sin especialidad'", $source);
+        $this->assertStringContainsString('data-evolution-specialty', $source);
     }
 
     /**

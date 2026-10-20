@@ -17,6 +17,15 @@
           :error="fieldError('evolution_date')"
         />
 
+        <UiSelect
+          v-model="form.specialty"
+          data-evolution-field="specialty"
+          label="Especialidad"
+          :options="specialtyOptions"
+          :hint="specialtyHint"
+          :error="fieldError('specialty')"
+        />
+
         <div
           data-evolution-field="requires_follow_up"
           class="flex items-start gap-3 rounded-ios border border-[color:var(--color-hairline)] p-4"
@@ -368,6 +377,10 @@ const props = defineProps({
   evolution: {
     type: Object,
     default: null
+  },
+  specialties: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -417,6 +430,7 @@ const bleedingOptions = [
 
 const emptyForm = () => ({
   evolution_date: today,
+  specialty: '',
   subjective: '',
   objective: '',
   assessment: '',
@@ -446,6 +460,7 @@ const emptyForm = () => ({
 const evolutionToForm = evolution => ({
   ...emptyForm(),
   evolution_date: dateOnly(evolution.evolution_date) || today,
+  specialty: evolution.specialty || '',
   subjective: evolution.subjective || '',
   objective: evolution.objective || '',
   assessment: evolution.assessment || '',
@@ -493,6 +508,28 @@ watch(
 )
 
 const followUpMin = computed(() => addDays(form.value.evolution_date || today, 1))
+
+// The stored code travels as-is: the catalog labels it when it is there and
+// an unmapped historical value keeps its own entry instead of being dropped.
+const specialtyOptions = computed(() => {
+  const options = [
+    { value: '', label: 'Automática (según el usuario)' },
+    ...props.specialties.map(specialty => ({ value: specialty.code, label: specialty.name }))
+  ]
+  const current = form.value.specialty
+
+  if (current && !options.some(option => option.value === current)) {
+    options.splice(1, 0, { value: current, label: `${current} (actual)` })
+  }
+
+  return options
+})
+
+const specialtyHint = computed(() =>
+  props.specialties.length === 0
+    ? 'El catálogo no está disponible; se conserva la especialidad guardada.'
+    : 'Sólo se aceptan especialidades del catálogo activo.'
+)
 
 const fieldError = key => {
   const messages = errors.value?.[key]
@@ -551,22 +588,36 @@ const buildClinicalMeasurements = () => {
   return Object.keys(payload).length > 0 ? payload : null
 }
 
-const buildPayload = () => ({
-  evolution_date: form.value.evolution_date || today,
-  subjective: text(form.value.subjective),
-  objective: text(form.value.objective),
-  assessment: text(form.value.assessment),
-  plan: text(form.value.plan),
-  procedures_performed: text(form.value.procedures_performed),
-  materials_used: text(form.value.materials_used),
-  prescriptions: text(form.value.prescriptions),
-  recommendations: text(form.value.recommendations),
-  next_appointment_notes: text(form.value.next_appointment_notes),
-  requires_follow_up: form.value.requires_follow_up,
-  follow_up_date: form.value.requires_follow_up ? form.value.follow_up_date || null : null,
-  vital_signs: buildVitalSigns(),
-  clinical_measurements: buildClinicalMeasurements()
-})
+const buildPayload = () => {
+  const payload = {
+    evolution_date: form.value.evolution_date || today,
+    subjective: text(form.value.subjective),
+    objective: text(form.value.objective),
+    assessment: text(form.value.assessment),
+    plan: text(form.value.plan),
+    procedures_performed: text(form.value.procedures_performed),
+    materials_used: text(form.value.materials_used),
+    prescriptions: text(form.value.prescriptions),
+    recommendations: text(form.value.recommendations),
+    next_appointment_notes: text(form.value.next_appointment_notes),
+    requires_follow_up: form.value.requires_follow_up,
+    follow_up_date: form.value.requires_follow_up ? form.value.follow_up_date || null : null,
+    vital_signs: buildVitalSigns(),
+    clinical_measurements: buildClinicalMeasurements()
+  }
+
+  // Omitting the key preserves whatever the row already had: an edit that does
+  // not touch the specialty must not rewrite it, and an unmapped historical
+  // code must not be re-sent (the catalog validation would reject it). Only a
+  // catalog value or an explicit correction travels.
+  const specialty = text(form.value.specialty)
+  const stored = text(props.evolution?.specialty)
+  const isCatalogValue = props.specialties.some(entry => entry.code === specialty)
+
+  if (specialty && (isCatalogValue || specialty !== stored)) payload.specialty = specialty
+
+  return payload
+}
 
 const submitEvolution = async () => {
   if (submitting.value) return

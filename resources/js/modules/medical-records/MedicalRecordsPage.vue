@@ -502,6 +502,7 @@
                 <EvolutionTimeline
                   v-else
                   :evolutions="evolutions"
+                  :specialties="specialties"
                   :loading="loadingBySurface.evolutions"
                   @add="openEvolutionModal"
                   @edit="editEvolution"
@@ -575,6 +576,7 @@
       v-if="showEvolutionModal && currentRecord"
       :record="currentRecord"
       :evolution="selectedEvolution"
+      :specialties="specialties"
       @close="closeEvolutionModal"
       @saved="handleEvolutionSaved"
     />
@@ -633,12 +635,14 @@ const {
   evolutions,
   attachments,
   stats,
+  specialties,
   loadingBySurface,
   errors,
   getRecords,
   getRecord,
   getEvolutions,
   getAttachments,
+  getSpecialties,
   getStats,
   deleteRecord,
   deleteEvolution,
@@ -787,7 +791,8 @@ const loadWorkspace = async (patient, record = null) => {
   const surfaces = [
     getRecords({ patient_id: patient.id, status: 'all', per_page: 50 }),
     getAttachments(patient.id),
-    getStats(patient.id)
+    getStats(patient.id),
+    getSpecialties()
   ]
 
   // The deep link already knows which record it opened; the landing path

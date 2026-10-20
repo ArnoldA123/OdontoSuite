@@ -8,7 +8,7 @@ import { useApi } from './useApi'
  * can fail without blanking the rest of the history, and every write keeps the
  * lists in sync without a full refetch.
  */
-const SURFACES = ['records', 'evolutions', 'attachments', 'stats']
+const SURFACES = ['records', 'evolutions', 'attachments', 'stats', 'specialties']
 
 const EMPTY_ERRORS = () => ({ ...Object.fromEntries(SURFACES.map(s => [s, null])), write: null })
 const EMPTY_LOADING = () => Object.fromEntries(SURFACES.map(s => [s, false]))
@@ -44,6 +44,7 @@ export function useMedicalRecords() {
   const evolutions = ref([])
   const attachments = ref([])
   const stats = ref(null)
+  const specialties = ref([])
 
   const loading = ref(false)
   const loadingBySurface = reactive(EMPTY_LOADING())
@@ -209,6 +210,20 @@ export function useMedicalRecords() {
       return true
     }, 'Error al eliminar archivo')
 
+  // Catalog the evolution forms validate against (issue #225). It is an
+  // auxiliary read: a failure keeps the surfaces working with the stored code.
+  const getSpecialties = async () =>
+    read(
+      'specialties',
+      async () => {
+        const response = await get('/api/specialties/active')
+        specialties.value = response.data || []
+
+        return specialties.value
+      },
+      'Error al obtener el catálogo de especialidades'
+    )
+
   const getStats = async patientId =>
     read(
       'stats',
@@ -232,6 +247,7 @@ export function useMedicalRecords() {
     evolutions.value = []
     attachments.value = []
     stats.value = null
+    specialties.value = []
     loading.value = false
     Object.assign(loadingBySurface, EMPTY_LOADING())
     Object.assign(errors, EMPTY_ERRORS())
@@ -244,6 +260,7 @@ export function useMedicalRecords() {
     evolutions,
     attachments,
     stats,
+    specialties,
 
     loading,
     loadingBySurface,
@@ -269,6 +286,7 @@ export function useMedicalRecords() {
     uploadAttachment,
     deleteAttachment,
 
+    getSpecialties,
     getStats,
     clearError,
     reset

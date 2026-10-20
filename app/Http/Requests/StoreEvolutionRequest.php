@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StoreEvolutionRequest extends FormRequest
 {
@@ -50,7 +51,13 @@ class StoreEvolutionRequest extends FormRequest
         return [
             'appointment_id' => 'sometimes|nullable|exists:appointments,id',
             'evolution_date' => 'sometimes|nullable|date|before_or_equal:today',
-            'specialty' => 'sometimes|nullable|string|max:50',
+            'specialty' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+                Rule::exists('specialties', 'code'),
+            ],
             'subjective' => 'sometimes|nullable|string|max:2000',
             'objective' => 'sometimes|nullable|string|max:2000',
             'assessment' => 'sometimes|nullable|string|max:2000',
@@ -90,6 +97,7 @@ class StoreEvolutionRequest extends FormRequest
     {
         return [
             'appointment_id.exists' => 'La cita seleccionada no existe',
+            'specialty.exists' => 'La especialidad seleccionada no existe en el catálogo',
             'evolution_date.before_or_equal' => 'La fecha de evolución no puede ser futura',
             'follow_up_date.after' => 'La fecha de seguimiento debe ser posterior a la fecha de evolución',
             'vital_signs.heart_rate.min' => 'La frecuencia cardíaca mínima es 30 bpm',
