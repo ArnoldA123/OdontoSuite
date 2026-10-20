@@ -371,6 +371,23 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (caja interface redesign)** — `/cash-register` pasa al lenguaje
+  del dashboard: hero band con estado de sesión, KPI strip permanente (Apertura
+  / Cobros / Egresos / Saldo esperado) y las cinco tabs sobre `UiDataTable`,
+  `UiFilterBar` y `UiPagination`, con estados de carga, error con retry y vacío.
+  `/cash-register/ready-to-bill` entra en `AppLayout` y usa las mismas
+  primitivas. Se arreglan los controles que no funcionaban: los cuatro modales
+  de sesión/transacción/movimiento pasan a `v-model`, "Nuevo movimiento" envía
+  el `concept` obligatorio, el Historial pagina y filtra contra el API, Cobros
+  paga con `pending-payments/{id}/pay` (actualiza el saldo de la cita) y
+  Reportes consume su propio payload de período. La aritmética de caja deja de
+  mezclar poblaciones: el ledger de movimientos es la fuente única de flujos
+  (`cash_in`, `cash_out`, `expected_amount`), las filas espejo de apertura y
+  cierre quedan fuera de la ecuación y el reporte de período suma
+  `total_income`/`total_expenses` y calcula el porcentaje de cada método sobre
+  el total del mix. Sin rutas, controladores, modelos ni migraciones nuevas: los
+  conteos de §4 no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+
 - **2026-10-19 (recordatorios #154)** — `ReminderService::scheduleReminders()`
   deja de ser código muerto: `AppointmentService` agenda los recordatorios de
   confirmación (24h/48h/72h) dentro de la transacción de crear, actualizar y
