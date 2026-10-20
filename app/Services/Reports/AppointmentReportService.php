@@ -3,17 +3,19 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
+use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
 
 class AppointmentReportService
 {
+    use ResolvesReportPeriod;
+
     /**
      * Get appointment report data.
      */
     public function getReportData(array $filters = []): array
     {
-        $startDate = $filters['start_date'] ?? Carbon::now()->subDays(30)->toDateString();
-        $endDate = $filters['end_date'] ?? Carbon::now()->toDateString();
+        [$startDate, $endDate] = $this->resolvePeriod($filters);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
 
@@ -65,7 +67,7 @@ class AppointmentReportService
                 ['key' => 'scheduled_time', 'label' => 'Hora'],
                 ['key' => 'duration_minutes', 'label' => 'Duración (min)'],
                 ['key' => 'status', 'label' => 'Estado'],
-                ['key' => 'price', 'label' => 'Precio (S/)'],
+                ['key' => 'price', 'label' => 'Precio de Lista (S/)'],
                 ['key' => 'notes', 'label' => 'Observaciones'],
                 ['key' => 'created_at', 'label' => 'Fecha de Creación'],
             ],
@@ -80,7 +82,7 @@ class AppointmentReportService
         $statuses = [
             'scheduled' => 'Programada',
             'confirmed' => 'Confirmada',
-            'in_consultation' => 'En Consulta',
+            'in_progress' => 'En Consulta',
             'completed' => 'Completada',
             'cancelled' => 'Cancelada',
             'no_show' => 'No se presentó',
