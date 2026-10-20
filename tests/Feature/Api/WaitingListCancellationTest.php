@@ -141,23 +141,43 @@ class WaitingListCancellationTest extends TestCase
         }
     }
 
-    public function test_preferred_end_date_at_midnight_covers_that_whole_day(): void
+    /**
+     * The cancelled slot used by the day-boundary tests.
+     */
+    private function futureSlot(): Carbon
+    {
+        return Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+    }
+
+    /**
+     * Cancel a slot covered by one waiting-list entry with the given window.
+     *
+     * @return object the stored waiting-list row right after the cancellation
+     */
+    private function cancelWithWindow(Carbon $slot, Carbon $windowStart, Carbon $windowEnd): object
     {
         $actor = $this->actor();
         $this->actingAs($actor, 'sanctum');
 
         $type = AppointmentType::factory()->create();
-        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
         $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
 
         $entry = $this->waitingEntry($actor->id, $type, [
-            'preferred_start_date' => $slot->copy()->startOfDay(),
-            'preferred_end_date' => $slot->copy()->startOfDay(),
+            'preferred_start_date' => $windowStart,
+            'preferred_end_date' => $windowEnd,
         ]);
 
         app(AppointmentService::class)->cancelAppointment($appointment);
 
-        $row = DB::table('waiting_lists')->find($entry->id);
+        return DB::table('waiting_lists')->find($entry->id);
+    }
+
+    public function test_preferred_end_date_at_midnight_covers_that_whole_day(): void
+    {
+        $slot = $this->futureSlot();
+
+        $row = $this->cancelWithWindow($slot, $slot->copy()->startOfDay(), $slot->copy()->startOfDay());
+
         $this->assertSame(
             'notified',
             $row->status,
@@ -168,42 +188,20 @@ class WaitingListCancellationTest extends TestCase
 
     public function test_preferred_end_date_at_the_cancelled_instant_still_notifies(): void
     {
-        $actor = $this->actor();
-        $this->actingAs($actor, 'sanctum');
+        $slot = $this->futureSlot();
 
-        $type = AppointmentType::factory()->create();
-        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
-        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+        $row = $this->cancelWithWindow($slot, $slot->copy()->startOfDay(), $slot->copy());
 
-        $entry = $this->waitingEntry($actor->id, $type, [
-            'preferred_start_date' => $slot->copy()->startOfDay(),
-            'preferred_end_date' => $slot->copy(),
-        ]);
-
-        app(AppointmentService::class)->cancelAppointment($appointment);
-
-        $row = DB::table('waiting_lists')->find($entry->id);
         $this->assertSame('notified', $row->status, 'The exact upper boundary must stay inside the window.');
         $this->assertNotNull($row->notified_at);
     }
 
     public function test_preferred_start_date_later_on_the_same_day_still_covers_the_slot(): void
     {
-        $actor = $this->actor();
-        $this->actingAs($actor, 'sanctum');
+        $slot = $this->futureSlot();
 
-        $type = AppointmentType::factory()->create();
-        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
-        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+        $row = $this->cancelWithWindow($slot, $slot->copy()->endOfDay(), $slot->copy()->endOfDay());
 
-        $entry = $this->waitingEntry($actor->id, $type, [
-            'preferred_start_date' => $slot->copy()->endOfDay(),
-            'preferred_end_date' => $slot->copy()->endOfDay(),
-        ]);
-
-        app(AppointmentService::class)->cancelAppointment($appointment);
-
-        $row = DB::table('waiting_lists')->find($entry->id);
         $this->assertSame(
             'notified',
             $row->status,
@@ -214,21 +212,10 @@ class WaitingListCancellationTest extends TestCase
 
     public function test_preferred_window_ending_before_the_cancelled_day_is_not_notified(): void
     {
-        $actor = $this->actor();
-        $this->actingAs($actor, 'sanctum');
+        $slot = $this->futureSlot();
 
-        $type = AppointmentType::factory()->create();
-        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
-        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+        $row = $this->cancelWithWindow($slot, $slot->copy()->subDays(2)->startOfDay(), $slot->copy()->subDay()->endOfDay());
 
-        $entry = $this->waitingEntry($actor->id, $type, [
-            'preferred_start_date' => $slot->copy()->subDays(2)->startOfDay(),
-            'preferred_end_date' => $slot->copy()->subDay()->endOfDay(),
-        ]);
-
-        app(AppointmentService::class)->cancelAppointment($appointment);
-
-        $row = DB::table('waiting_lists')->find($entry->id);
         $this->assertSame('active', $row->status, 'A window that ended the previous day must stay out.');
         $this->assertNull($row->notified_at);
     }

@@ -516,13 +516,15 @@ class AppointmentService
      * The preferred window is expressed in whole days: `preferred_start_date`
      * covers its day from the first minute and `preferred_end_date` covers its
      * day to the last one, whether the stored time is midnight or any other
-     * instant of that day. Both bounds are compared by date, never by instant
-     * (issue #169).
+     * instant of that day. Both bounds are compared as plain column ranges
+     * against the day boundaries, never through a date function, so the rule
+     * stays index-friendly (issues #169, review R3-DateIndexWrap).
      */
     public function notifyWaitingList(Appointment $cancelledAppointment): void
     {
         $slot = $cancelledAppointment->scheduled_at;
-        $slotDate = $slot->toDateString();
+        $slotDayStart = $slot->copy()->startOfDay();
+        $slotDayEnd = $slotDayStart->copy()->addDay();
 
         $waitingListEntries = WaitingList::where('appointment_type_id', $cancelledAppointment->appointment_type_id)
             ->where('status', 'active')
@@ -530,13 +532,13 @@ class AppointmentService
                 $query->whereNull('preferred_user_id')
                     ->orWhere('preferred_user_id', $cancelledAppointment->user_id);
             })
-            ->where(function ($query) use ($slotDate) {
+            ->where(function ($query) use ($slotDayEnd) {
                 $query->whereNull('preferred_start_date')
-                    ->orWhereDate('preferred_start_date', '<=', $slotDate);
+                    ->orWhere('preferred_start_date', '<', $slotDayEnd);
             })
-            ->where(function ($query) use ($slotDate) {
+            ->where(function ($query) use ($slotDayStart) {
                 $query->whereNull('preferred_end_date')
-                    ->orWhereDate('preferred_end_date', '>=', $slotDate);
+                    ->orWhere('preferred_end_date', '>=', $slotDayStart);
             })
             ->orderBy('priority')
             ->orderBy('created_at')

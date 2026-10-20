@@ -96,6 +96,8 @@ class MysqlRunnerGateTest extends TestCase
 
         $process->run();
 
-        return [(int) $process->getExitCode(), $process->getOutput().$process->getErrorOutput()];
+        // A process that never finished normally reports null; failing the
+        // assertion beats letting the cast turn it into a passing 0.
+        return [$process->getExitCode() ?? -1, $process->getOutput().$process->getErrorOutput()];
     }
 }
