@@ -65,7 +65,19 @@ class StoreEvolutionRequest extends FormRequest
             'vital_signs.heart_rate' => 'sometimes|nullable|integer|min:30|max:200',
             'vital_signs.temperature' => 'sometimes|nullable|numeric|min:30|max:45',
             'vital_signs.respiratory_rate' => 'sometimes|nullable|integer|min:8|max:40',
-            'clinical_measurements' => 'sometimes|nullable|array',
+            // Contract (issue #222): flat, unit-bearing periodontal measures.
+            // The `array:` rule rejects undeclared keys so the shape cannot
+            // drift key by key the way it did before the interface exposed it.
+            'clinical_measurements' => [
+                'sometimes',
+                'nullable',
+                'array:bleeding_on_probing,gingival_recession_mm,plaque_index_percent,pocket_depth_mm,tooth_mobility',
+            ],
+            'clinical_measurements.pocket_depth_mm' => 'sometimes|nullable|numeric|min:0|max:20',
+            'clinical_measurements.gingival_recession_mm' => 'sometimes|nullable|numeric|min:0|max:20',
+            'clinical_measurements.plaque_index_percent' => 'sometimes|nullable|numeric|min:0|max:100',
+            'clinical_measurements.bleeding_on_probing' => 'sometimes|nullable|boolean',
+            'clinical_measurements.tooth_mobility' => 'sometimes|nullable|integer|min:0|max:3',
             'requires_follow_up' => 'boolean',
             'follow_up_date' => 'sometimes|nullable|date|after:evolution_date',
         ];
@@ -86,6 +98,16 @@ class StoreEvolutionRequest extends FormRequest
             'vital_signs.temperature.max' => 'La temperatura máxima es 45°C',
             'vital_signs.respiratory_rate.min' => 'La frecuencia respiratoria mínima es 8 rpm',
             'vital_signs.respiratory_rate.max' => 'La frecuencia respiratoria máxima es 40 rpm',
+            'clinical_measurements.array' => 'Las mediciones clínicas contienen una clave que no pertenece al contrato',
+            'clinical_measurements.pocket_depth_mm.min' => 'La profundidad de sondaje mínima es 0 mm',
+            'clinical_measurements.pocket_depth_mm.max' => 'La profundidad de sondaje máxima es 20 mm',
+            'clinical_measurements.gingival_recession_mm.min' => 'La recesión gingival mínima es 0 mm',
+            'clinical_measurements.gingival_recession_mm.max' => 'La recesión gingival máxima es 20 mm',
+            'clinical_measurements.plaque_index_percent.min' => 'El índice de placa mínimo es 0%',
+            'clinical_measurements.plaque_index_percent.max' => 'El índice de placa máximo es 100%',
+            'clinical_measurements.bleeding_on_probing.boolean' => 'El sangrado al sondaje debe ser verdadero o falso',
+            'clinical_measurements.tooth_mobility.min' => 'La movilidad dental mínima es el grado 0',
+            'clinical_measurements.tooth_mobility.max' => 'La movilidad dental máxima es el grado 3',
         ];
     }
 }
