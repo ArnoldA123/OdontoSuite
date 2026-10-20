@@ -350,7 +350,7 @@
                   </p>
                 </div>
                 <UiBadge variant="neutral" size="sm" shape="pill" data-specialty-share>
-                  {{ row.share }}%
+                  {{ row.shareLabel }}
                 </UiBadge>
               </div>
               <div
@@ -358,7 +358,12 @@
                 style="background: var(--color-hairline)"
                 role="presentation"
               >
-                <div class="h-full rounded-full bg-accent" :style="{ width: `${row.barWidth}%` }" />
+                <div
+                  class="h-full rounded-full bg-accent"
+                  data-specialty-bar
+                  :data-specialty-bar-percent="row.barWidth"
+                  :style="{ width: `${row.barWidth}%` }"
+                />
               </div>
             </li>
           </ul>
@@ -411,6 +416,7 @@ const CHART_PALETTE = [
 const CHART_LABEL_MAX = 28
 const CHART_LABEL_MAX_NARROW = 16
 const CHART_NARROW_WIDTH = 420
+const MIN_VISIBLE_BAR_PERCENT = 2
 
 const presets = [
   { id: '7d', label: '7 días', days: 7 },
@@ -503,15 +509,25 @@ const topRows = computed(() =>
   }))
 )
 
+// A bar too small to see is still a datum, so a nonzero participation keeps a
+// visible floor. The badge reads that same number: a rounded 0 % next to a
+// drawn bar would make the two surfaces disagree about one specialty.
+const barWidthFor = (sharePct, usage) =>
+  usage > 0 ? Math.max(MIN_VISIBLE_BAR_PERCENT, sharePct) : 0
+
+const shareLabelFor = (sharePct, usage) => (usage > 0 && sharePct === 0 ? '<1%' : `${sharePct}%`)
+
 const specialtyRows = computed(() =>
   bySpecialty.value.map(row => {
     const usage = Number(row.usage_count || 0)
     const share = periodUsage.value > 0 ? (usage / periodUsage.value) * 100 : 0
+    const sharePct = Math.round(share)
     return {
       ...row,
       key: row.specialty_id ?? 'sin-especialidad',
-      share: Math.round(share),
-      barWidth: usage > 0 ? Math.max(2, Math.round(share)) : 0
+      sharePct,
+      shareLabel: shareLabelFor(sharePct, usage),
+      barWidth: barWidthFor(sharePct, usage)
     }
   })
 )

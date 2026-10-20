@@ -137,15 +137,52 @@ describe('procedure stats page (T2)', () => {
     expect(specialtyRows).toHaveLength(2)
     expect(wrapper.text()).toContain('Odontología general')
     expect(wrapper.text()).toContain('Sin especialidad')
-    expect(specialtyRows[0].find('[data-specialty-share]').text()).toBe('90%')
+    const shareBadge = row => Number(row.find('[data-specialty-share]').text().replace('%', ''))
+    const barPercent = row =>
+      Number(row.find('[data-specialty-bar]').attributes('data-specialty-bar-percent'))
     // The bar and the badge must express the same number: a bar normalised to
-    // the largest specialty would read 100% next to a 90% share badge.
-    expect(specialtyRows[0].find('[role="presentation"] > div').attributes('style')).toContain(
-      '90%'
-    )
-    expect(specialtyRows[1].find('[data-specialty-share]').text()).toBe('10%')
-    expect(specialtyRows[1].find('[role="presentation"] > div').attributes('style')).toContain(
-      '10%'
+    // the largest specialty would read 100 next to a 90 share badge.
+    expect(shareBadge(specialtyRows[0])).toBe(90)
+    expect(barPercent(specialtyRows[0])).toBe(90)
+    expect(shareBadge(specialtyRows[1])).toBe(10)
+    expect(barPercent(specialtyRows[1])).toBe(10)
+
+    wrapper.unmount()
+  })
+
+  it('never shows a 0% badge next to a drawn bar for a sub-1% share', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        ...payload,
+        by_specialty: [
+          {
+            specialty_id: 1,
+            specialty_code: 'ODON',
+            specialty_name: 'Odontología general',
+            usage_count: 1,
+            total_revenue: 50
+          },
+          {
+            specialty_id: 2,
+            specialty_code: 'ORT',
+            specialty_name: 'Ortodoncia',
+            usage_count: 249,
+            total_revenue: 1000
+          }
+        ]
+      }
+    })
+
+    const { wrapper } = await mountPage()
+    const rows = wrapper.findAll('[data-specialty-row]')
+
+    // 1 of 250 uses is 0.4 %: the bar keeps its 2 % visible floor, so the
+    // badge must report a sub-1 % share instead of rounding down to 0 %.
+    expect(rows[0].find('[data-specialty-share]').text()).toBe('<1%')
+    expect(rows[0].find('[data-specialty-bar]').attributes('data-specialty-bar-percent')).toBe('2')
+    expect(rows[1].find('[data-specialty-share]').text()).toBe('100%')
+    expect(rows[1].find('[data-specialty-bar]').attributes('data-specialty-bar-percent')).toBe(
+      '100'
     )
 
     wrapper.unmount()
