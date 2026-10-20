@@ -96,19 +96,21 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/quotations/QuotationsPage.vue'
 
-const mountPage = async () => {
+const mountPageAt = async path => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
   })
-  await router.push('/quotations')
+  await router.push(path)
   await router.isReady()
 
   const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
   await flushPromises()
 
-  return wrapper
+  return { wrapper, router }
 }
+
+const mountPage = async () => (await mountPageAt('/quotations')).wrapper
 
 describe('quotations list redesign', () => {
   beforeEach(() => {
@@ -170,5 +172,22 @@ describe('quotations list redesign', () => {
     expect(wrapper.findAll('[data-row-action="pdf"]')).toHaveLength(3)
 
     wrapper.unmount()
+  })
+
+  it('opens the detail named by the open query and drops it on close', async () => {
+    const { wrapper, router } = await mountPageAt('/quotations?open=1')
+
+    const detail = document.body.querySelector('[data-quotation-detail]')
+    expect(detail).not.toBeNull()
+    expect(detail.textContent).toContain('Ana Torres')
+
+    document.body.querySelector('[aria-label="Cerrar modal"]').click()
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/quotations')
+    expect(router.currentRoute.value.query.open).toBeUndefined()
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 })

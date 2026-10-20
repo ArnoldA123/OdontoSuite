@@ -628,6 +628,32 @@ const openDetail = async quotation => {
 const closeDetail = () => {
   showDetail.value = false
   detailQuotation.value = null
+
+  // Drop the deep link so a reload does not reopen a detail the user closed.
+  if (route.query.open) {
+    const query = { ...route.query }
+    delete query.open
+    router.replace({ query })
+  }
+}
+
+/**
+ * Deep link from the patient sheet: `/quotations?open=<id>` opens that
+ * quotation's detail instead of inventing a child route.
+ */
+const openQuotationFromQuery = async () => {
+  const id = route.query.open
+  if (!id) return
+
+  try {
+    const response = await api.get(`/api/quotations/${id}`)
+    if (response?.data) {
+      detailQuotation.value = response.data
+      showDetail.value = true
+    }
+  } catch {
+    toast.error('No pudimos abrir el presupuesto')
+  }
 }
 
 const openApproval = quotation => {
@@ -699,6 +725,7 @@ const goBack = () => router.back()
 
 onMounted(() => {
   refresh()
+  openQuotationFromQuery()
 
   try {
     quotationsChannel = privateChannel('quotations')
