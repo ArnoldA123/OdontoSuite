@@ -3,7 +3,10 @@
 namespace Tests\Feature\Api;
 
 use App\Models\AiImageAnalysis;
+use App\Models\Appointment;
 use App\Models\ClinicalAttachment;
+use App\Models\ClinicalEvolution;
+use App\Models\MedicalRecord;
 use App\Models\Patient;
 use App\Models\User;
 use App\Services\AiImageAnalysisService;
@@ -307,6 +310,11 @@ class AiAnalysisContractTest extends TestCase
         $user = $this->clinician();
         $patient = $this->patient();
 
+        Appointment::factory()->create([
+            'user_id' => $user->id,
+            'patient_id' => $patient->id,
+        ]);
+
         for ($i = 0; $i < 18; $i++) {
             $this->analysis($patient, $user);
         }
@@ -332,6 +340,11 @@ class AiAnalysisContractTest extends TestCase
         $patient = $this->patient();
         $analysis = $this->analysis($patient, $user);
 
+        Appointment::factory()->create([
+            'user_id' => $user->id,
+            'patient_id' => $patient->id,
+        ]);
+
         $this->actingAs($user)
             ->getJson('/api/ai-analysis?date_from=abc&date_to=zzz')
             ->assertOk()
@@ -353,6 +366,11 @@ class AiAnalysisContractTest extends TestCase
             'created_by' => $user->id,
         ]);
         $analysis = $this->analysis($patient, $user, ['clinical_attachment_id' => $attachment->id]);
+
+        Appointment::factory()->create([
+            'user_id' => $user->id,
+            'patient_id' => $patient->id,
+        ]);
 
         $this->mock(ClinicalAttachmentService::class)
             ->shouldReceive('store')
@@ -377,6 +395,221 @@ class AiAnalysisContractTest extends TestCase
             ->assertJsonPath('meta.message', 'Análisis completado exitosamente.')
             ->assertJsonPath('message', 'Análisis completado exitosamente.')
             ->assertJsonPath('data.id', $analysis->id);
+    }
+
+    public function test_index_and_show_keep_the_prompt_and_raw_response_out_of_the_payload(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user, [
+            'tokens_used' => 4321,
+            'findings' => ['Lesión radiolúcida en pieza 36'],
+            'recommendations' => ['Derivar a endodoncia'],
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis')
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.prompt_sent')
+            ->assertJsonMissingPath('data.0.raw_response')
+            ->assertJsonMissingPath('data.0.requested_by.email')
+            ->assertJsonMissingPath('data.0.requested_by.password')
+            ->assertJsonPath('data.0.requested_by.name', $user->name)
+            ->assertJsonPath('data.0.tokens_used', 4321)
+            ->assertJsonPath('data.0.findings.0', 'Lesión radiolúcida en pieza 36')
+            ->assertJsonPath('data.0.recommendations.0', 'Derivar a endodoncia')
+            ->assertJsonPath('data.0.confidence_score', '72.50')
+            ->assertJsonPath('data.0.model_used', 'gpt-4o');
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertOk()
+            ->assertJsonMissingPath('data.prompt_sent')
+            ->assertJsonMissingPath('data.raw_response')
+            ->assertJsonMissingPath('data.requested_by.email')
+            ->assertJsonPath('data.requested_by.name', $user->name)
+            ->assertJsonPath('data.patient.id', $analysis->patient_id)
+            ->assertJsonPath('data.patient.full_name', $analysis->patient->full_name)
+            ->assertJsonPath('data.clinical_attachment.id', $analysis->clinical_attachment_id)
+            ->assertJsonPath('data.clinical_attachment.file_path', $analysis->clinicalAttachment->file_path)
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.tokens_used', 4321);
+    }
+
+    public function test_a_clinician_without_a_clinical_relationship_is_forbidden(): void
+    {
+        $requestedBy = $this->clinician();
+        $outsider = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $requestedBy);
+
+        $this->actingAs($outsider)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertForbidden();
+
+        $this->actingAs($outsider)
+            ->getJson('/api/ai-analysis/patient/'.$analysis->patient_id)
+            ->assertForbidden();
+
+        $this->actingAs($outsider)
+            ->getJson('/api/ai-analysis/attachment/'.$analysis->clinical_attachment_id)
+            ->assertForbidden();
+
+        $this->actingAs($outsider)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/review', ['decision' => 'accepted'])
+            ->assertForbidden();
+
+        $this->actingAs($outsider)
+            ->deleteJson('/api/ai-analysis/'.$analysis->id)
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'reviewed' => false,
+        ]);
+    }
+
+    public function test_a_clinician_reaches_the_analyses_of_a_patient_with_her_own_appointment(): void
+    {
+        $doctor = $this->clinician();
+        $requestedBy = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $requestedBy);
+
+        Appointment::factory()->create([
+            'user_id' => $doctor->id,
+            'patient_id' => $analysis->patient_id,
+        ]);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $analysis->id);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/patient/'.$analysis->patient_id)
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/attachment/'.$analysis->clinical_attachment_id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $analysis->id);
+    }
+
+    public function test_a_clinician_reaches_the_analyses_of_a_patient_with_her_own_evolution(): void
+    {
+        $doctor = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $this->clinician());
+
+        ClinicalEvolution::factory()->create([
+            'patient_id' => $analysis->patient_id,
+            'medical_record_id' => MedicalRecord::factory()->create(['patient_id' => $analysis->patient_id])->id,
+            'created_by' => $doctor->id,
+        ]);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertOk();
+    }
+
+    public function test_a_requester_and_a_reviewer_reach_their_own_analysis(): void
+    {
+        $requester = $this->clinician();
+        $reviewer = $this->clinician();
+        $ownRequest = $this->analysis($this->patient(), $requester);
+        $ownReview = $this->analysis($this->patient(), $this->clinician(), [
+            'reviewed' => true,
+            'reviewed_by' => $reviewer->id,
+        ]);
+
+        $this->actingAs($requester)
+            ->getJson('/api/ai-analysis/'.$ownRequest->id)
+            ->assertOk();
+
+        $this->actingAs($reviewer)
+            ->getJson('/api/ai-analysis/'.$ownReview->id)
+            ->assertOk();
+    }
+
+    public function test_an_administrator_reaches_every_analysis(): void
+    {
+        $admin = User::factory()->create(['role' => 'administrador', 'is_active' => true]);
+        $colleague = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $colleague);
+
+        $this->actingAs($admin)
+            ->getJson('/api/ai-analysis')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+
+        $this->actingAs($admin)
+            ->getJson('/api/ai-analysis/'.$analysis->id)
+            ->assertOk();
+
+        $this->actingAs($admin)
+            ->getJson('/api/ai-analysis/stats')
+            ->assertOk()
+            ->assertJsonPath('data.total_analyses', 1);
+    }
+
+    public function test_index_pending_and_stats_are_scoped_to_the_viewer(): void
+    {
+        $doctor = $this->clinician();
+        $colleague = $this->clinician();
+        $relatedPatient = $this->patient('Ana', 'Torres');
+        $hiddenPatient = $this->patient('Beto', 'Ruiz');
+
+        Appointment::factory()->create([
+            'user_id' => $doctor->id,
+            'patient_id' => $relatedPatient->id,
+        ]);
+
+        $relatedAnalysis = $this->analysis($relatedPatient, $colleague);
+        $ownRequest = $this->analysis($hiddenPatient, $doctor, ['status' => 'pending']);
+        $hiddenAnalysis = $this->analysis($hiddenPatient, $colleague);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonMissingPath('data.0.prompt_sent');
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/pending')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $relatedAnalysis->id);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/stats')
+            ->assertOk()
+            ->assertJsonPath('data.total_analyses', 2)
+            ->assertJsonPath('data.completed_analyses', 1);
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/'.$ownRequest->id)
+            ->assertOk();
+
+        $this->actingAs($doctor)
+            ->getJson('/api/ai-analysis/'.$hiddenAnalysis->id)
+            ->assertForbidden();
+    }
+
+    public function test_uploading_an_analysis_requires_access_to_the_patient(): void
+    {
+        $doctor = $this->clinician();
+        $patient = $this->patient();
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+        $this->actingAs($doctor)
+            ->post('/api/ai-analysis/upload-and-analyze', [
+                'patient_id' => $patient->id,
+                'category' => 'radiografia',
+                'image' => UploadedFile::fake()->createWithContent('xray.png', $png),
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('ai_image_analyses', 0);
+        $this->assertDatabaseCount('clinical_attachments', 0);
     }
 
     public function test_usage_stats_propagates_a_query_failure_instead_of_zeroing_the_metrics(): void

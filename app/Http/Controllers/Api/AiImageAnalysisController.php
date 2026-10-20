@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewAiAnalysisRequest;
+use App\Http\Resources\AiImageAnalysisResource;
 use App\Models\AiImageAnalysis;
+use App\Models\ClinicalAttachment;
 use App\Services\AiImageAnalysisService;
 use App\Services\ClinicalAttachmentService;
 use App\Support\DateFilter;
@@ -12,6 +14,7 @@ use App\Support\PerPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 
 class AiImageAnalysisController extends Controller
@@ -33,11 +36,22 @@ class AiImageAnalysisController extends Controller
      */
     public function analyze(int $attachmentId): JsonResponse
     {
+        $attachment = ClinicalAttachment::find($attachmentId);
+
+        if ($attachment) {
+            Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $attachment->patient_id]);
+        }
+
         try {
             $analysis = $this->aiAnalysisService->analyzeImage($attachmentId);
 
             return response()->json([
-                'data' => $analysis,
+                'data' => new AiImageAnalysisResource($analysis->load([
+                    'clinicalAttachment',
+                    'patient',
+                    'requestedBy',
+                    'reviewedBy',
+                ])),
                 'meta' => [
                     'message' => 'Análisis solicitado exitosamente',
                 ],
@@ -71,16 +85,6 @@ class AiImageAnalysisController extends Controller
                 'requestedBy',
                 'reviewedBy',
             ])->find($id);
-
-            if (! $analysis) {
-                return response()->json([
-                    'message' => 'Análisis no encontrado',
-                ], 404);
-            }
-
-            return response()->json([
-                'data' => $analysis,
-            ]);
         } catch (\Exception $e) {
             Log::error('AI analysis lookup failed', ['id' => $id, 'exception' => $e]);
 
@@ -88,6 +92,18 @@ class AiImageAnalysisController extends Controller
                 'message' => 'Error al obtener análisis',
             ], 500);
         }
+
+        if (! $analysis) {
+            return response()->json([
+                'message' => 'Análisis no encontrado',
+            ], 404);
+        }
+
+        Gate::authorize('view', $analysis);
+
+        return response()->json([
+            'data' => new AiImageAnalysisResource($analysis),
+        ]);
     }
 
     /**
@@ -107,9 +123,6 @@ class AiImageAnalysisController extends Controller
                 ]);
             }
 
-            return response()->json([
-                'data' => $analysis,
-            ]);
         } catch (\Exception $e) {
             Log::error('AI analysis lookup by attachment failed', [
                 'attachment_id' => $attachmentId,
@@ -120,6 +133,12 @@ class AiImageAnalysisController extends Controller
                 'message' => 'Error al obtener análisis',
             ], 500);
         }
+
+        Gate::authorize('view', $analysis);
+
+        return response()->json([
+            'data' => new AiImageAnalysisResource($analysis),
+        ]);
     }
 
     /**
@@ -127,9 +146,11 @@ class AiImageAnalysisController extends Controller
      */
     public function byPatient(Request $request, int $patientId): JsonResponse
     {
+        Gate::authorize('accessPatient', [AiImageAnalysis::class, $patientId]);
+
         try {
             $filters = $request->only(['status', 'reviewed', 'date_from', 'date_to', 'per_page']);
-            $result = $this->aiAnalysisService->getAnalysisByPatient($patientId, $filters);
+            $result = $this->aiAnalysisService->getAnalysisByPatient($patientId, $filters, $request->user());
 
             return response()->json($result);
         } catch (\Exception $e) {
@@ -149,6 +170,16 @@ class AiImageAnalysisController extends Controller
      */
     public function review(ReviewAiAnalysisRequest $request, int $id): JsonResponse
     {
+        $analysis = AiImageAnalysis::find($id);
+
+        if (! $analysis) {
+            return response()->json([
+                'message' => 'Análisis no encontrado',
+            ], 404);
+        }
+
+        Gate::authorize('update', $analysis);
+
         try {
             $analysis = $this->aiAnalysisService->reviewAnalysis(
                 $id,
@@ -157,7 +188,12 @@ class AiImageAnalysisController extends Controller
             );
 
             return response()->json([
-                'data' => $analysis,
+                'data' => new AiImageAnalysisResource($analysis->load([
+                    'clinicalAttachment',
+                    'patient',
+                    'requestedBy',
+                    'reviewedBy',
+                ])),
                 'meta' => [
                     'message' => 'Análisis revisado exitosamente',
                 ],
@@ -181,9 +217,11 @@ class AiImageAnalysisController extends Controller
      */
     public function pending(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', AiImageAnalysis::class);
+
         try {
             $filters = $request->only(['requested_by', 'patient_id', 'per_page']);
-            $result = $this->aiAnalysisService->getPendingAnalyses($filters);
+            $result = $this->aiAnalysisService->getPendingAnalyses($filters, $request->user());
 
             return response()->json($result);
         } catch (\Exception $e) {
@@ -202,7 +240,7 @@ class AiImageAnalysisController extends Controller
     {
         try {
             $filters = $request->only(['date_from', 'date_to']);
-            $stats = $this->aiAnalysisService->getUsageStats($filters);
+            $stats = $this->aiAnalysisService->getUsageStats($filters, $request->user());
 
             return response()->json([
                 'data' => $stats,
@@ -221,13 +259,15 @@ class AiImageAnalysisController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', AiImageAnalysis::class);
+
         try {
             $query = AiImageAnalysis::with([
                 'clinicalAttachment',
                 'patient',
                 'requestedBy',
                 'reviewedBy',
-            ]);
+            ])->visibleTo($request->user());
 
             $status = $request->input('status');
             if (is_string($status) && $status !== '') {
@@ -271,7 +311,7 @@ class AiImageAnalysisController extends Controller
             $analyses = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
             return response()->json([
-                'data' => $analyses->items(),
+                'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
                 'meta' => [
                     'current_page' => $analyses->currentPage(),
                     'last_page' => $analyses->lastPage(),
@@ -295,13 +335,23 @@ class AiImageAnalysisController extends Controller
     {
         try {
             $analysis = AiImageAnalysis::find($id);
+        } catch (\Exception $e) {
+            Log::error('AI analysis delete failed', ['exception' => $e]);
 
-            if (! $analysis) {
-                return response()->json([
-                    'message' => 'Análisis no encontrado',
-                ], 404);
-            }
+            return response()->json([
+                'message' => 'Error al eliminar análisis',
+            ], 500);
+        }
 
+        if (! $analysis) {
+            return response()->json([
+                'message' => 'Análisis no encontrado',
+            ], 404);
+        }
+
+        Gate::authorize('delete', $analysis);
+
+        try {
             // Solo permitir eliminar si no ha sido revisado
             if ($analysis->reviewed) {
                 return response()->json([
@@ -337,6 +387,8 @@ class AiImageAnalysisController extends Controller
             'category' => 'required|in:radiografia,foto_clinica',
         ]);
 
+        Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $request->patient_id]);
+
         try {
             // 1. Guardar imagen como ClinicalAttachment
             $attachment = $this->clinicalAttachmentService->store([
@@ -351,7 +403,12 @@ class AiImageAnalysisController extends Controller
             $analysis = $this->aiAnalysisService->analyzeImage($attachment->id);
 
             return response()->json([
-                'data' => $analysis,
+                'data' => new AiImageAnalysisResource($analysis->load([
+                    'clinicalAttachment',
+                    'patient',
+                    'requestedBy',
+                    'reviewedBy',
+                ])),
                 'message' => 'Análisis completado exitosamente.',
                 'meta' => [
                     'message' => 'Análisis completado exitosamente.',

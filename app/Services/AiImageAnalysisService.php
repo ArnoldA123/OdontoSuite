@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Http\Resources\AiImageAnalysisResource;
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
+use App\Models\User;
 use App\Support\DateFilter;
 use App\Support\PerPage;
 use Illuminate\Support\Facades\Auth;
@@ -407,10 +409,14 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener análisis por paciente.
      */
-    public function getAnalysisByPatient(int $patientId, array $filters = []): array
+    public function getAnalysisByPatient(int $patientId, array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'requestedBy', 'reviewedBy'])
             ->where('patient_id', $patientId);
+
+        if ($viewer) {
+            $query->visibleTo($viewer);
+        }
 
         if (isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
@@ -434,7 +440,7 @@ Responde únicamente en formato JSON válido.';
             ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
-            'data' => $analyses->items(),
+            'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
             'meta' => [
                 'current_page' => $analyses->currentPage(),
                 'last_page' => $analyses->lastPage(),
@@ -447,11 +453,15 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener análisis pendientes de revisión.
      */
-    public function getPendingAnalyses(array $filters = []): array
+    public function getPendingAnalyses(array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy'])
             ->where('status', 'completed')
             ->where('reviewed', false);
+
+        if ($viewer) {
+            $query->visibleTo($viewer);
+        }
 
         if (isset($filters['requested_by'])) {
             $query->where('requested_by', $filters['requested_by']);
@@ -465,7 +475,7 @@ Responde únicamente en formato JSON válido.';
             ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
-            'data' => $analyses->items(),
+            'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
             'meta' => [
                 'current_page' => $analyses->currentPage(),
                 'last_page' => $analyses->lastPage(),
@@ -478,12 +488,16 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener estadísticas de uso de IA.
      */
-    public function getUsageStats(array $filters = []): array
+    public function getUsageStats(array $filters = [], ?User $viewer = null): array
     {
         // A failing metrics query must surface as a 500, never as a zeroed
         // dashboard: "0 analyses" and "the query broke" are different facts and
         // the surface already distinguishes empty from error.
         $query = AiImageAnalysis::query();
+
+        if ($viewer) {
+            $query->visibleTo($viewer);
+        }
 
         if ($dateFrom = DateFilter::normalize($filters['date_from'] ?? null)) {
             $query->whereDate('created_at', '>=', $dateFrom);
