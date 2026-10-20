@@ -4,7 +4,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 // Create/edit treatment-plan modal contract: the dialog root hook and
 // accessibility wiring, local validation that stops before the API, the live
 // total rendered through the shared currency formatter, and Escape honouring
-// the dirty guard instead of discarding edits silently.
+// the dirty guard instead of discarding edits silently. UiModal teleports the
+// dialog to <body>, so every assertion queries the document.
 const harness = vi.hoisted(() => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
@@ -64,6 +65,19 @@ const pressEscape = () => {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 }
 
+// The dialog lives under <body> through UiModal's Teleport, outside the
+// wrapper's tree, so the helpers below read the rendered document.
+const root = () => document.querySelector('[data-plan-modal]')
+const dialog = () => root().querySelector('[role="dialog"]')
+const planTitle = () => document.querySelector('[data-plan-title]')
+
+const setValue = async (element, value) => {
+  expect(element, 'the target input must render').toBeTruthy()
+  element.value = value
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+  await flushPromises()
+}
+
 const mountModal = async (props = {}) => {
   const wrapper = mount(TreatmentPlanModal, {
     props: { plan: null, isEdit: false, ...props },
@@ -87,20 +101,19 @@ describe('treatment plan modal smoke', () => {
 
   afterEach(() => {
     document.body.innerHTML = ''
+    document.body.style.overflow = ''
   })
 
   it('mounts in create mode behind the data-plan-modal root hook', async () => {
     const wrapper = await mountModal()
 
-    expect(wrapper.find('[data-plan-modal]').exists()).toBe(true)
-    expect(wrapper.find('[data-plan-title]').text()).toContain('Nuevo Plan')
+    expect(root()).toBeTruthy()
+    expect(document.body.contains(root())).toBe(true)
+    expect(planTitle().textContent).toContain('Nuevo Plan')
 
-    const dialog = wrapper.find('[role="dialog"]')
-    expect(dialog.exists()).toBe(true)
-    expect(dialog.attributes('aria-modal')).toBe('true')
-    expect(dialog.attributes('aria-labelledby')).toBe(
-      wrapper.find('[data-plan-title]').attributes('id')
-    )
+    const target = dialog()
+    expect(target.getAttribute('aria-modal')).toBe('true')
+    expect(target.getAttribute('aria-labelledby')).toBe(planTitle().getAttribute('id'))
 
     wrapper.unmount()
   })
@@ -108,12 +121,12 @@ describe('treatment plan modal smoke', () => {
   it('blocks submission without a patient and emits nothing', async () => {
     const wrapper = await mountModal()
 
-    expect(wrapper.find('[data-plan-error="patient_id"]').exists()).toBe(false)
+    expect(root().querySelector('[data-plan-error="patient_id"]')).toBeNull()
 
-    await wrapper.find('[data-plan-submit]').trigger('click')
+    root().querySelector('[data-plan-submit]').click()
     await flushPromises()
 
-    expect(wrapper.find('[data-plan-error="patient_id"]').text()).toContain(
+    expect(root().querySelector('[data-plan-error="patient_id"]').textContent).toContain(
       'Selecciona un paciente'
     )
     expect(harness.apiPost).not.toHaveBeenCalled()
@@ -124,18 +137,17 @@ describe('treatment plan modal smoke', () => {
 
   it('keeps data-plan-total in sync through the shared formatter', async () => {
     const wrapper = await mountModal()
-    const total = () => normalize(wrapper.find('[data-plan-total]').text())
+    const total = () => normalize(document.querySelector('[data-plan-total]').textContent)
 
     expect(total()).toContain(normalize(formatCurrency(0)))
 
-    const item = wrapper.find('[data-plan-item]')
-    await item.find('[data-plan-item-field="name"] input').setValue('Limpieza dental')
-    await item.find('[data-plan-item-field="quantity"] input').setValue('2')
-    await item.find('[data-plan-item-field="unit_cost"] input').setValue('50')
-    await flushPromises()
+    const item = root().querySelector('[data-plan-item]')
+    await setValue(item.querySelector('[data-plan-item-field="name"] input'), 'Limpieza dental')
+    await setValue(item.querySelector('[data-plan-item-field="quantity"] input'), '2')
+    await setValue(item.querySelector('[data-plan-item-field="unit_cost"] input'), '50')
 
     expect(total()).toContain(normalize(formatCurrency(100)))
-    expect(normalize(item.find('[data-plan-item-total]').text())).toContain(
+    expect(normalize(item.querySelector('[data-plan-item-total]').textContent)).toContain(
       normalize(formatCurrency(100))
     )
 
@@ -145,7 +157,10 @@ describe('treatment plan modal smoke', () => {
   it('asks the dirty guard before Escape discards edits', async () => {
     const wrapper = await mountModal()
 
-    await wrapper.find('[data-plan-field="title"] input').setValue('Rehabilitación superior')
+    await setValue(
+      root().querySelector('[data-plan-field="title"] input'),
+      'Rehabilitación superior'
+    )
 
     pressEscape()
     await flushPromises()

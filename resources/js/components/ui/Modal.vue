@@ -9,7 +9,7 @@
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" :class="backdropClasses" @click="handleBackdropClick">
+      <div v-if="modelValue" v-bind="$attrs" :class="backdropClasses" @click="handleBackdropClick">
         <Transition
           name="modal-content"
           enter-active-class="transition-all duration-300 ease-out"
@@ -25,8 +25,8 @@
             :class="modalClasses"
             :role="role"
             tabindex="-1"
-            :aria-labelledby="hasDefaultHeader ? titleId : undefined"
-            :aria-label="!hasDefaultHeader && title ? title : undefined"
+            :aria-labelledby="labelledby || (hasDefaultHeader ? titleId : undefined)"
+            :aria-label="!labelledby && !hasDefaultHeader && title ? title : undefined"
             :aria-describedby="descriptionId"
             :aria-modal="role === 'dialog' ? 'true' : undefined"
             @click.stop
@@ -72,6 +72,34 @@
   </Teleport>
 </template>
 
+<script>
+// Module-level so every instance shares one stack. Nested modals (a patient form
+// opened from a treatment plan) must answer Escape and Tab only on the top
+// instance, and releasing the page scroll needs a counter so the inner unmount
+// does not unlock the page an outer modal still owns.
+const openModals = []
+let scrollLocks = 0
+
+const mountModal = token => {
+  if (!openModals.includes(token)) openModals.push(token)
+}
+
+const unmountModal = token => {
+  const index = openModals.indexOf(token)
+  if (index !== -1) openModals.splice(index, 1)
+}
+
+const acquireScrollLock = () => {
+  if (scrollLocks === 0) document.body.style.overflow = 'hidden'
+  scrollLocks += 1
+}
+
+const releaseScrollLock = () => {
+  scrollLocks = Math.max(0, scrollLocks - 1)
+  if (scrollLocks === 0) document.body.style.overflow = ''
+}
+</script>
+
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount, useId, useSlots } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
@@ -82,7 +110,7 @@ const props = defineProps({
   size: {
     type: String,
     default: 'md',
-    validator: value => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
+    validator: value => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', 'full'].includes(value)
   },
   variant: {
     type: String,
@@ -93,10 +121,16 @@ const props = defineProps({
   closeOnBackdrop: { type: Boolean, default: true },
   closeOnEscape: { type: Boolean, default: true },
   persistent: { type: Boolean, default: false },
-  role: { type: String, default: 'dialog' }
+  role: { type: String, default: 'dialog' },
+  beforeClose: { type: Function, default: null },
+  labelledby: { type: String, default: undefined }
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'open'])
+
+// Consumer hooks (data attributes, z-index overrides) belong on the teleported
+// backdrop, which is the node the component actually renders into <body>.
+defineOptions({ inheritAttrs: false })
 
 // Stable IDs across re-renders (Vue 3.5+ useId); fallback to a per-instance ref
 // so SSR / older toolchains still produce deterministic values.
@@ -134,6 +168,9 @@ const modalClasses = computed(() => {
     md: 'w-full max-w-md',
     lg: 'w-full max-w-lg',
     xl: 'w-full max-w-xl',
+    '2xl': 'w-full max-w-2xl',
+    '3xl': 'w-full max-w-3xl',
+    '4xl': 'w-full max-w-4xl',
     full: 'w-full max-w-full h-full max-h-full rounded-none'
   }
 
@@ -151,15 +188,34 @@ const closeButtonClasses = computed(() => [
 const modalRef = ref(null)
 const focusTrap = useFocusTrap()
 
+const modalToken = Symbol('modal')
+let scrollLocked = false
+let closePending = false
+
+const isTopModal = () => openModals[openModals.length - 1] === modalToken
+
+const lockScroll = () => {
+  if (scrollLocked) return
+  scrollLocked = true
+  acquireScrollLock()
+}
+
+const unlockScroll = () => {
+  if (!scrollLocked) return
+  scrollLocked = false
+  releaseScrollLock()
+}
+
 // Event handlers
 const handleBackdropClick = () => {
+  if (!isTopModal()) return
   if (props.closeOnBackdrop && !props.persistent) {
     handleClose()
   }
 }
 
 const handleEscape = event => {
-  if (!props.modelValue) return
+  if (!props.modelValue || !isTopModal()) return
   if (props.closeOnEscape && !props.persistent) {
     event.preventDefault()
     event.stopPropagation()
@@ -167,7 +223,25 @@ const handleEscape = event => {
   }
 }
 
-const handleClose = () => {
+// The consumer guard runs before the modal reports the close, so a dirty-form
+// guard can veto it. Only one guard run is in flight at a time: while it is
+// pending, repeated clicks and Escape presses are ignored instead of queueing
+// a second close. A throwing guard counts as a veto.
+const handleClose = async () => {
+  if (closePending) return
+
+  if (props.beforeClose) {
+    closePending = true
+    try {
+      const allowed = await props.beforeClose()
+      if (allowed === false) return
+    } catch {
+      return
+    } finally {
+      closePending = false
+    }
+  }
+
   emit('update:modelValue', false)
   emit('close')
 }
@@ -187,8 +261,9 @@ onMounted(() => {
   // the open branch runs here: locking twice is harmless, while running the
   // closed branch on mount would release a lock owned by a parent modal.
   if (props.modelValue) {
+    mountModal(modalToken)
+    lockScroll()
     emit('open')
-    document.body.style.overflow = 'hidden'
     focusTrap.activate(modalRef.value)
   }
 })
@@ -198,11 +273,13 @@ watch(
   () => props.modelValue,
   newValue => {
     if (newValue) {
+      mountModal(modalToken)
+      lockScroll()
       emit('open')
-      document.body.style.overflow = 'hidden'
       focusTrap.activate(modalRef.value)
     } else {
-      document.body.style.overflow = ''
+      unmountModal(modalToken)
+      unlockScroll()
       focusTrap.release()
     }
   }
@@ -219,7 +296,8 @@ function handleDocumentEscape(event) {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleDocumentEscape)
-  document.body.style.overflow = ''
+  unmountModal(modalToken)
+  unlockScroll()
   focusTrap.release()
 })
 </script>

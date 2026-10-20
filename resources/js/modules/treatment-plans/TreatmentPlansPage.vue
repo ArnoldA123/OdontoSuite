@@ -681,16 +681,15 @@ watch(
   () => loadPlans()
 )
 
-// Keyboard: N opens the create modal, Escape closes the open overlay.
+// Keyboard: N opens the create modal. Escape belongs to each overlay: the plan
+// modal guards its dirty form through UiModal's before-close and the detail
+// dialog owns its own dismissal, so the page must not close them behind their
+// back (that bypassed the unsaved-changes prompt).
 const onKeydown = e => {
   if (e.target.matches('input, select, textarea')) return
   if (e.key === 'n' || e.key === 'N') {
     e.preventDefault()
     openCreateModal()
-  }
-  if (e.key === 'Escape') {
-    if (showModal.value) closeModal()
-    else if (showDetailModal.value) closeDetailModal()
   }
 }
 

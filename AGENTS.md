@@ -376,6 +376,21 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (UiModal: hooks de raíz y cierre cancelable)** — `Modal.vue`
+  reenvía `$attrs` al nodo raíz teleportado (`inheritAttrs: false` +
+  `v-bind="$attrs"`), acepta `beforeClose` (al devolver `false` veta el cierre y
+  solo corre una vez mientras está pendiente) y `labelledby` para que un
+  consumidor con header propio conserve `aria-labelledby`. Los modales anidados
+  comparten una pila: solo el superior responde a Escape y al backdrop, el
+  bloqueo de scroll usa un contador y `useFocusTrap` deja que solo la trampa
+  superior mueva el foco. `TreatmentPlanModal` y `CreatePatientInline` dejan de
+  duplicar overlay, backdrop y foco, y `TreatmentPlansPage` deja de cerrar el
+  modal con su atajo de Escape para no saltarse la guardia de cambios. Sin
+  rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `modalPrimitiveGuards.test.js` (10),
+  `treatment-plan-modal.test.js` (4), `create-patient-inline.test.js` (3) y el
+  guard de Escape de página en `treatment-plans.test.js`.
+
 - **2026-10-20 (topbar sin título duplicado)** — En las rutas cuya página ya
   renderiza su propio título (hero band de las superficies rediseñadas o
   `PageHeader`), el topbar de `AppLayout` deja de pintar el título visible:
