@@ -91,12 +91,8 @@
             <h3 class="text-lg font-medium text-theme-primary mb-2">
               No hay registros de {{ getSpecialtyLabel(activeSpecialty) }}
             </h3>
-            <p class="text-theme-secondary mb-4">
-              Comienza creando el primer registro
-            </p>
-            <button class="btn btn-primary" @click="openCreateModal">
-              Crear Registro
-            </button>
+            <p class="text-theme-secondary mb-4">Comienza creando el primer registro</p>
+            <button class="btn btn-primary" @click="openCreateModal">Crear Registro</button>
           </div>
 
           <div v-else class="records-list">
@@ -116,9 +112,7 @@
       <!-- Estado sin paciente seleccionado -->
       <div v-else class="no-patient-state">
         <UserIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-theme-primary mb-2">
-          Selecciona un paciente
-        </h3>
+        <h3 class="text-lg font-medium text-theme-primary mb-2">Selecciona un paciente</h3>
         <p class="text-theme-secondary">
           Para ver los registros de especialidades, primero selecciona un paciente
         </p>
@@ -173,13 +167,7 @@ import {
 const { user } = useAuth()
 const { channel, echo } = useEcho()
 const toast = useToast()
-const {
-  records,
-  loading,
-  hasRecords,
-  getAllRecords,
-  deleteRecord
-} = useSpecialtyRecords()
+const { records, loading, hasRecords, getAllRecords, deleteRecord } = useSpecialtyRecords()
 
 // Estado reactivo
 const selectedPatient = ref(null)

@@ -252,7 +252,10 @@ describe('patients KPI strip (dashboard anatomy)', () => {
 
       const number = card.find('[data-stat]')
       expect(number.exists()).toBe(true)
-      expect(number.attributes('style')).toContain("font-feature-settings: 'tnum' 1, 'lnum' 1")
+      // Prettier formats the inline style attribute across lines; the rule is
+      // the declaration, so compare with whitespace collapsed.
+      const numberStyle = (number.attributes('style') || '').replace(/\s+/g, ' ')
+      expect(numberStyle).toContain("font-feature-settings: 'tnum' 1, 'lnum' 1")
       expect(number.classes()).toEqual(
         expect.arrayContaining([
           'text-2xl',

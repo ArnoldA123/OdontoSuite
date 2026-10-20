@@ -4,9 +4,7 @@
       <div ref="pageRef" class="not-found-grid">
         <div class="not-found-content">
           <p class="not-found-eyebrow">Error 404</p>
-          <h1 class="not-found-headline">
-Página no encontrada
-</h1>
+          <h1 class="not-found-headline">Página no encontrada</h1>
           <p class="not-found-subhead">
             La ruta que buscabas no existe o fue movida. Verifica la URL o vuelve al panel
             principal.
@@ -31,9 +29,7 @@ Página no encontrada
               </template>
               Volver
             </UiButton>
-            <UiButton variant="primary" @click="goHome">
-Ir al inicio
-</UiButton>
+            <UiButton variant="primary" @click="goHome">Ir al inicio</UiButton>
           </div>
         </div>
 

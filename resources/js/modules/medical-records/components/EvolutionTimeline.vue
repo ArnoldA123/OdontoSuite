@@ -18,9 +18,7 @@
       <ClockIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
       <h3 class="text-lg font-medium text-theme-primary mb-2">No hay evoluciones</h3>
       <p class="text-theme-secondary mb-4">Comienza agregando la primera evolución</p>
-      <button class="btn btn-primary" @click="$emit('add')">
-Agregar Evolución
-</button>
+      <button class="btn btn-primary" @click="$emit('add')">Agregar Evolución</button>
     </div>
 
     <div v-else class="timeline-content">
@@ -71,9 +69,9 @@ Agregar Evolución
             <div
               v-if="
                 evolution.subjective ||
-                  evolution.objective ||
-                  evolution.assessment ||
-                  evolution.plan
+                evolution.objective ||
+                evolution.assessment ||
+                evolution.plan
               "
               class="soap-section"
             >

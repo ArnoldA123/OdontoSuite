@@ -92,7 +92,7 @@
 
           <div class="form-group">
             <label class="form-label">Fecha del Archivo</label>
-            <input v-model="form.file_date" type="date" class="form-input" >
+            <input v-model="form.file_date" type="date" class="form-input" />
           </div>
 
           <div class="form-group">
@@ -108,8 +108,7 @@
       </form>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading"
-@click="closeModal">
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
           Cancelar
         </button>
         <button

@@ -8,7 +8,8 @@ import { useAuditLogs } from '../../../resources/js/composables/useAuditLogs'
 // instead of the raw snake_case key and `true` / `false`.
 const { getChangesSummary } = useAuditLogs()
 
-const summary = (oldValues, newValues) => getChangesSummary({ old_values: oldValues, new_values: newValues })
+const summary = (oldValues, newValues) =>
+  getChangesSummary({ old_values: oldValues, new_values: newValues })
 
 describe('useAuditLogs.getChangesSummary appointment-type fields', () => {
   it('labels and localizes the catalog flags', () => {
@@ -36,10 +37,8 @@ describe('useAuditLogs.getChangesSummary appointment-type fields', () => {
 
   it('labels the default procedure reference', () => {
     expect(
-      summary(
-        { default_procedure_catalog_id: null },
-        { default_procedure_catalog_id: 12 }
-      ).default_procedure_catalog_id
+      summary({ default_procedure_catalog_id: null }, { default_procedure_catalog_id: 12 })
+        .default_procedure_catalog_id
     ).toEqual({
       field: 'Procedimiento por defecto',
       old: '(vacío)',

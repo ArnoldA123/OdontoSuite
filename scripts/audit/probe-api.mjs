@@ -45,7 +45,11 @@ const RESOURCE_METHODS = [
 function parseRoutes(src) {
   const stack = []
   const routes = []
-  const prefix = () => stack.map(f => f.prefix).filter(Boolean).join('/')
+  const prefix = () =>
+    stack
+      .map(f => f.prefix)
+      .filter(Boolean)
+      .join('/')
   const full = uri => [prefix(), uri.replace(/^\/+/, '')].filter(Boolean).join('/')
   const lines = src.split('\n')
   lines.forEach((raw, i) => {
@@ -76,7 +80,10 @@ function parseRoutes(src) {
 }
 
 const norm = p => {
-  const cut = p.split('?')[0].replace(/\$\{[^}`]*\}?/g, '{}').replace(/\{[^}]*\}/g, '{}')
+  const cut = p
+    .split('?')[0]
+    .replace(/\$\{[^}`]*\}?/g, '{}')
+    .replace(/\{[^}]*\}/g, '{}')
   const segs = cut.split('/').map(s => (/[{}$]/.test(s) ? '{}' : s))
   return segs.join('/').replace(/\/+$/, '') || '/'
 }
@@ -89,7 +96,19 @@ const segMatch = (a, b) => {
 
 const isComment = line => /^\s*(\/\/|\*|<!--)/.test(line)
 
-const VERB = { get: 'GET', post: 'POST', put: 'PUT', patch: 'PATCH', del: 'DELETE', delete: 'DELETE', apiGet: 'GET', apiPost: 'POST', apiPut: 'PUT', apiPatch: 'PATCH', apiDelete: 'DELETE' }
+const VERB = {
+  get: 'GET',
+  post: 'POST',
+  put: 'PUT',
+  patch: 'PATCH',
+  del: 'DELETE',
+  delete: 'DELETE',
+  apiGet: 'GET',
+  apiPost: 'POST',
+  apiPut: 'PUT',
+  apiPatch: 'PATCH',
+  apiDelete: 'DELETE'
+}
 
 function walk(dir, out = []) {
   for (const e of readdirSync(dir)) {
@@ -105,15 +124,26 @@ function parseConsumers() {
   for (const file of walk(resolve(ROOT, 'resources/js'))) {
     const src = readFileSync(file, 'utf8')
     const rel = file.slice(ROOT.length + 1)
-    const callRe = /(get|post|put|patch|del|delete|apiGet|apiPost|apiPut|apiPatch|apiDelete)\(\s*(['"`])\/api([^'"`\s?]*)\2?/g
+    const callRe =
+      /(get|post|put|patch|del|delete|apiGet|apiPost|apiPut|apiPatch|apiDelete)\(\s*(['"`])\/api([^'"`\s?]*)\2?/g
     let m
     while ((m = callRe.exec(src)) !== null) {
-      sites.push({ method: VERB[m[1]], path: norm(m[3].replace(/^\/+/, '')), file: rel, kind: m[1] })
+      sites.push({
+        method: VERB[m[1]],
+        path: norm(m[3].replace(/^\/+/, '')),
+        file: rel,
+        kind: m[1]
+      })
     }
     const fetchRe = /fetch\(\s*(['"`])\/api([^'"`\s?]*)\1?/g
     while ((m = fetchRe.exec(src)) !== null) {
       const mm = src.slice(m.index, m.index + 600).match(/method:\s*['"]([A-Z]+)['"]/)
-      sites.push({ method: mm ? mm[1] : 'ANY', path: norm(m[2].replace(/^\/+/, '')), file: rel, kind: 'fetch' })
+      sites.push({
+        method: mm ? mm[1] : 'ANY',
+        path: norm(m[2].replace(/^\/+/, '')),
+        file: rel,
+        kind: 'fetch'
+      })
     }
     const lines = src.split('\n')
     const litRe = /['"`]\/api([^'"`\s?]*?)['"`]/g
@@ -128,10 +158,19 @@ function parseConsumers() {
     const tmplRe = /\$\{\w*baseurl\}\/api([^'"`\s?]*)/gi
     while ((m = tmplRe.exec(src)) !== null) {
       const before = src.slice(Math.max(0, m.index - 200), m.index)
-      if (/fetch\(\s*[$\w]+\s*,/.test(before) || /fetch\(\s*[`'"]$/.test(before) || /const url =/.test(src.slice(Math.max(0, m.index - 120), m.index))) {
+      if (
+        /fetch\(\s*[$\w]+\s*,/.test(before) ||
+        /fetch\(\s*[`'"]$/.test(before) ||
+        /const url =/.test(src.slice(Math.max(0, m.index - 120), m.index))
+      ) {
         const mm = src.slice(m.index, m.index + 800).match(/method:\s*['"]([A-Z]+)['"]/)
         if (!sites.some(s => s.file === rel && s.path === norm(m[1].replace(/^\/+/, '')))) {
-          sites.push({ method: mm ? mm[1] : 'ANY', path: norm(m[1].replace(/^\/+/, '')), file: rel, kind: 'fetch-url' })
+          sites.push({
+            method: mm ? mm[1] : 'ANY',
+            path: norm(m[1].replace(/^\/+/, '')),
+            file: rel,
+            kind: 'fetch-url'
+          })
         }
       }
     }
@@ -140,9 +179,12 @@ function parseConsumers() {
 }
 
 const EXCLUSIONS = {
-  'POST payments/webhooks/mercadopago': 'inbound webhook called by MercadoPago servers (HMAC in controller), never by the SPA',
-  'POST broadcasting/auth': 'consumed by the Laravel Echo client config (resources/js/composables/useEcho.js authEndpoint), not via a useApi/fetch callsite',
-  'POST login': 'root compat alias for POST auth/login; the SPA posts /api/auth/login only (resources/js/composables/useAuth.js)'
+  'POST payments/webhooks/mercadopago':
+    'inbound webhook called by MercadoPago servers (HMAC in controller), never by the SPA',
+  'POST broadcasting/auth':
+    'consumed by the Laravel Echo client config (resources/js/composables/useEcho.js authEndpoint), not via a useApi/fetch callsite',
+  'POST login':
+    'root compat alias for POST auth/login; the SPA posts /api/auth/login only (resources/js/composables/useAuth.js)'
 }
 
 const routes = parseRoutes(read('routes/api.php'))
@@ -155,11 +197,18 @@ const inventory = routes.map(r => {
   const key = `${r.method} ${r.path}`
   const hits = consumers.filter(s => match(r, s))
   const cls = key in EXCLUSIONS ? 'excluded' : hits.length > 0 ? 'matched' : 'unmatched'
-  return { ...r, key, class: cls, reason: EXCLUSIONS[key] ?? '', consumers: hits.map(h => `${h.method} ${h.file}`) }
+  return {
+    ...r,
+    key,
+    class: cls,
+    reason: EXCLUSIONS[key] ?? '',
+    consumers: hits.map(h => `${h.method} ${h.file}`)
+  }
 })
 
 const orphans = consumers.filter(
-  s => s.method !== 'ANY' && !routes.some(r => r.method === s.method && segMatch(norm(r.path), s.path))
+  s =>
+    s.method !== 'ANY' && !routes.some(r => r.method === s.method && segMatch(norm(r.path), s.path))
 )
 
 let acceptances = {}
@@ -171,7 +220,9 @@ mkdirSync(OUT, { recursive: true })
 let revision = 'unknown'
 try {
   revision = execSync('git rev-parse HEAD', { cwd: ROOT, encoding: 'utf8' }).trim()
-} catch { /* detached tree or no git */ }
+} catch {
+  /* detached tree or no git */
+}
 const rev = { revision, measured: new Date().toISOString().slice(0, 10) }
 const counts = {
   routes: routes.length,
@@ -207,15 +258,22 @@ const md = [
   ...inventory.map(r => `| ${r.method} | ${r.path} | ${r.class} | ${r.consumers.length} |`)
 ]
 writeFileSync(resolve(OUT, 'inventory.md'), `${md.join('\n')}\n`)
-writeFileSync(resolve(OUT, 'result.json'), JSON.stringify({ ...rev, counts, inventory, orphans }, null, 2))
+writeFileSync(
+  resolve(OUT, 'result.json'),
+  JSON.stringify({ ...rev, counts, inventory, orphans }, null, 2)
+)
 
 if (args.json) console.log(JSON.stringify({ counts, open: open.map(r => r.key), orphans }, null, 2))
 else {
-  console.log(`Routes: ${counts.routes} | matched: ${counts.matched} | unmatched: ${counts.unmatched} | excluded: ${counts.excluded} | orphan consumers: ${counts.orphanConsumers}`)
+  console.log(
+    `Routes: ${counts.routes} | matched: ${counts.matched} | unmatched: ${counts.unmatched} | excluded: ${counts.excluded} | orphan consumers: ${counts.orphanConsumers}`
+  )
   for (const r of open) console.log(`- UNMATCHED ${r.key} (routes/api.php:${r.line})`)
   for (const s of orphans) console.log(`- ORPHAN ${s.method} /api/${s.path} (${s.file})`)
 }
 if (args['fail-on-mismatch'] && open.length > 0) {
-  console.error(`\nFAIL: ${open.length} unmatched route(s). Each needs a follow-up issue or a written acceptance in ${OUT}/acceptances.json.`)
+  console.error(
+    `\nFAIL: ${open.length} unmatched route(s). Each needs a follow-up issue or a written acceptance in ${OUT}/acceptances.json.`
+  )
   process.exit(1)
 }

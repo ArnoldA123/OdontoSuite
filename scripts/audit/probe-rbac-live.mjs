@@ -76,10 +76,17 @@ const ROLE_USERS = [
 const CALLABLE = ROLE_USERS.map(r => r.role)
 const PASSWORD = 'password123'
 
-const wanted = args.roles ? String(args.roles).split(',').map(s => s.trim()).filter(Boolean) : CALLABLE
+const wanted = args.roles
+  ? String(args.roles)
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+  : CALLABLE
 for (const role of wanted) {
   if (!CALLABLE.includes(role)) {
-    console.error(`Unknown or unavailable role ${role}. Callable roles (seeded demo users): ${CALLABLE.join(',')}`)
+    console.error(
+      `Unknown or unavailable role ${role}. Callable roles (seeded demo users): ${CALLABLE.join(',')}`
+    )
     process.exit(2)
   }
 }
@@ -100,7 +107,10 @@ async function request(path, { method = 'GET', token, body } = {}) {
       signal: AbortSignal.timeout(TIMEOUT_MS)
     })
   } catch (err) {
-    if (err?.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(err?.cause?.message ?? '')))
+    if (
+      err?.cause?.code === 'ECONNREFUSED' ||
+      /ECONNREFUSED/.test(String(err?.cause?.message ?? ''))
+    )
       throw new ConnectionError(`cannot connect to ${BASE}`)
     if (err?.name === 'TimeoutError' || err?.name === 'AbortError') throw new Error('timeout')
     throw err
@@ -110,7 +120,10 @@ async function request(path, { method = 'GET', token, body } = {}) {
 }
 
 async function login(username) {
-  const res = await request('/api/login', { method: 'POST', body: { username, password: PASSWORD } })
+  const res = await request('/api/login', {
+    method: 'POST',
+    body: { username, password: PASSWORD }
+  })
   let json = null
   try {
     json = JSON.parse(res.text)
@@ -135,7 +148,11 @@ const RESOURCE_GET = '' // apiResource GET routes: index ({uri}) and show ({uri}
 function parseApiRoutes(src) {
   const stack = []
   const routes = []
-  const prefix = () => stack.map(f => f.prefix).filter(Boolean).join('/')
+  const prefix = () =>
+    stack
+      .map(f => f.prefix)
+      .filter(Boolean)
+      .join('/')
   const full = uri => [prefix(), uri.replace(/^\/+/, '')].filter(Boolean).join('/')
   const lineMods = chain => {
     const pm = chain.match(/prefix\((['"])(.*?)\1\)/)
@@ -166,7 +183,10 @@ function parseApiRoutes(src) {
     const { mods } = lineMods(def[1])
     const trail = [...raw.matchAll(/->middleware\((['"])(.*?)\1\)/g)].map(m => m[2]).join(',')
     const own = `${mods},${trail}`
-    const sets = [...stack.filter(f => f.roles).map(f => f.roles), ...(rolesOf(own) ? [rolesOf(own)] : [])]
+    const sets = [
+      ...stack.filter(f => f.roles).map(f => f.roles),
+      ...(rolesOf(own) ? [rolesOf(own)] : [])
+    ]
     const effective = sets.length === 0 ? null : sets.reduce((a, b) => a.filter(r => b.includes(r)))
     const cash = stack.some(f => f.cash) || own.includes('cash.session')
     if (def[2] === 'get')
@@ -186,7 +206,9 @@ const targets = allRoutes
   .sort((a, b) => a.uri.localeCompare(b.uri))
 
 if (targets.length === 0) {
-  console.error('FAIL: routes/api.php parsed to zero GET routes; the parser and the file have drifted.')
+  console.error(
+    'FAIL: routes/api.php parsed to zero GET routes; the parser and the file have drifted.'
+  )
   process.exit(1)
 }
 
@@ -242,15 +264,27 @@ for (const target of targets) {
       status = 'error'
       note = err.message
     }
-    const observed = typeof status === 'number' && status >= 200 && status < 300 ? 'allow' : status === 401 || status === 403 ? 'deny' : 'unknown'
+    const observed =
+      typeof status === 'number' && status >= 200 && status < 300
+        ? 'allow'
+        : status === 401 || status === 403
+          ? 'deny'
+          : 'unknown'
     const expected = allows(target.roles, role.role) ? 'allow' : 'deny'
-    const isDivergence = (expected === 'allow' && observed === 'deny') || (expected === 'deny' && observed === 'allow')
+    const isDivergence =
+      (expected === 'allow' && observed === 'deny') || (expected === 'deny' && observed === 'allow')
     const cell = {
       role: role.role,
       status,
       observed,
       expected,
-      class: isDivergence ? (target.cash ? 'cash-session-note' : 'divergence') : observed === 'unknown' ? 'note' : 'match',
+      class: isDivergence
+        ? target.cash
+          ? 'cash-session-note'
+          : 'divergence'
+        : observed === 'unknown'
+          ? 'note'
+          : 'match',
       note
     }
     row.cells.push(cell)
@@ -271,9 +305,23 @@ for (const target of targets) {
         evidence: `routes/api.php:${target.line} expected ${fmtRoles(target.roles)} | live GET /${row.path} -> ${status}`
       })
     else if (cell.class === 'cash-session-note')
-      notes.push({ id, kind: 'cash-session-note', path: row.path, role: role.role, status, title: `${id}: divergence on a cash.session route, recorded as informational` })
+      notes.push({
+        id,
+        kind: 'cash-session-note',
+        path: row.path,
+        role: role.role,
+        status,
+        title: `${id}: divergence on a cash.session route, recorded as informational`
+      })
     else if (observed === 'unknown')
-      notes.push({ id, kind: 'unclassified-status', path: row.path, role: role.role, status, title: `${id}: HTTP ${status}${note ? ` (${note})` : ''}, neither allow nor deny` })
+      notes.push({
+        id,
+        kind: 'unclassified-status',
+        path: row.path,
+        role: role.role,
+        status,
+        title: `${id}: HTTP ${status}${note ? ` (${note})` : ''}, neither allow nor deny`
+      })
   }
   routes.push(row)
 }
@@ -309,7 +357,16 @@ const rev = { revision, measured: new Date().toISOString().slice(0, 10) }
 writeFileSync(
   resolve(OUT, 'matrix.json'),
   JSON.stringify(
-    { ...rev, base: BASE, roles: roleTokens.map(r => r.role), counts, routes, divergences, notes, open },
+    {
+      ...rev,
+      base: BASE,
+      roles: roleTokens.map(r => r.role),
+      counts,
+      routes,
+      divergences,
+      notes,
+      open
+    },
     null,
     2
   )
@@ -328,7 +385,8 @@ const md = [
   ...(divergences.length === 0
     ? ['- none']
     : divergences.map(
-        d => `- ${d.id in acceptances ? '[accepted] ' : ''}\`${d.id}\`: ${d.title}\n\n  Evidence: ${d.evidence}`
+        d =>
+          `- ${d.id in acceptances ? '[accepted] ' : ''}\`${d.id}\`: ${d.title}\n\n  Evidence: ${d.evidence}`
       )),
   ``,
   `## Informational notes (never fail the run)`,

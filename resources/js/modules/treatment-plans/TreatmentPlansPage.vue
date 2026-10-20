@@ -58,12 +58,12 @@
 
           <div class="filter-field">
             <label class="filter-label">Desde</label>
-            <input v-model="filters.date_from" type="date" class="filter-input" >
+            <input v-model="filters.date_from" type="date" class="filter-input" />
           </div>
 
           <div class="filter-field">
             <label class="filter-label">Hasta</label>
-            <input v-model="filters.date_to" type="date" class="filter-input" >
+            <input v-model="filters.date_to" type="date" class="filter-input" />
           </div>
 
           <div class="filter-actions">
@@ -132,9 +132,7 @@
           <button v-if="!hasActiveFilters" class="btn btn-primary" @click="openCreateModal">
             Crear Plan
           </button>
-          <button v-else class="btn btn-outline" @click="clearFilters">
-Limpiar filtros
-</button>
+          <button v-else class="btn btn-outline" @click="clearFilters">Limpiar filtros</button>
         </div>
 
         <div v-else class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">

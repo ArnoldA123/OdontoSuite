@@ -186,9 +186,7 @@
               <DocumentDuplicateIcon class="w-4 h-4 mr-1" />
               Duplicar
             </button>
-            <button class="btn btn-primary" @click="closeModal">
-Cerrar
-</button>
+            <button class="btn btn-primary" @click="closeModal">Cerrar</button>
           </div>
         </div>
       </div>

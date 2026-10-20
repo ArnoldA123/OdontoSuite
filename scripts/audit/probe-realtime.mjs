@@ -80,7 +80,11 @@ function dotenv() {
   const out = {}
   for (const line of readFileSync(path, 'utf8').split('\n')) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
-    if (m) out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '').trim()
+    if (m)
+      out[m[1]] = m[2]
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .trim()
   }
   return out
 }
@@ -121,13 +125,22 @@ async function request(path, { method = 'GET', token, body, form } = {}) {
     res = await fetch(`${BASE}${path}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : form !== undefined ? new URLSearchParams(form).toString() : undefined,
+      body:
+        body !== undefined
+          ? JSON.stringify(body)
+          : form !== undefined
+            ? new URLSearchParams(form).toString()
+            : undefined,
       signal: AbortSignal.timeout(TIMEOUT_MS)
     })
   } catch (err) {
-    if (err?.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(err?.cause?.message ?? '')))
+    if (
+      err?.cause?.code === 'ECONNREFUSED' ||
+      /ECONNREFUSED/.test(String(err?.cause?.message ?? ''))
+    )
       throw new ConnectionError(apiHint())
-    if (err?.name === 'TimeoutError' || err?.name === 'AbortError') throw new Error(`timeout calling ${path}`)
+    if (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+      throw new Error(`timeout calling ${path}`)
     throw err
   }
   const text = await res.text()
@@ -141,7 +154,10 @@ async function request(path, { method = 'GET', token, body, form } = {}) {
 }
 
 async function login(username) {
-  const res = await request('/api/login', { method: 'POST', body: { username, password: PASSWORD } })
+  const res = await request('/api/login', {
+    method: 'POST',
+    body: { username, password: PASSWORD }
+  })
   if (res.status < 200 || res.status >= 300 || !res.json?.data?.token)
     throw new Error(`login failed for ${username}: HTTP ${res.status} ${res.text.slice(0, 200)}`)
   return res.json.data.token
@@ -210,14 +226,19 @@ class PusherClient {
 
   subscribe(channel, auth, timeoutMs = 10000) {
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(`subscribe timeout on ${channel}`)), timeoutMs)
+      const timer = setTimeout(
+        () => reject(new Error(`subscribe timeout on ${channel}`)),
+        timeoutMs
+      )
       this.waiters.push({
         predicate: m =>
-          (m.event === 'pusher_internal:subscription_succeeded' || m.event === 'pusher_internal:subscription_error') &&
+          (m.event === 'pusher_internal:subscription_succeeded' ||
+            m.event === 'pusher_internal:subscription_error') &&
           m.channel === channel,
         resolve: m => {
           clearTimeout(timer)
-          if (m.event === 'pusher_internal:subscription_error') reject(new Error(`subscription_error on ${channel}`))
+          if (m.event === 'pusher_internal:subscription_error')
+            reject(new Error(`subscription_error on ${channel}`))
           else resolve(m)
         }
       })
@@ -264,8 +285,20 @@ const record = (id, channel, expected, status, detail) => {
 }
 
 async function publicCases(tokenA, tokenB) {
-  const appt = record('public-appointments', 'appointments', 'appointment.created', 'failed', 'not run')
-  const dash = record('public-dashboard-updates', 'dashboard-updates', 'appointment.created', 'failed', 'not run')
+  const appt = record(
+    'public-appointments',
+    'appointments',
+    'appointment.created',
+    'failed',
+    'not run'
+  )
+  const dash = record(
+    'public-dashboard-updates',
+    'dashboard-updates',
+    'appointment.created',
+    'failed',
+    'not run'
+  )
 
   let client = null
   let createdId = null
@@ -278,9 +311,16 @@ async function publicCases(tokenA, tokenB) {
     await client.connect()
     await client.subscribe('appointments')
     await client.subscribe('dashboard-updates')
-    waits = [client.waitFor('appointments', 'appointment.created'), client.waitFor('dashboard-updates', 'appointment.created')]
+    waits = [
+      client.waitFor('appointments', 'appointment.created'),
+      client.waitFor('dashboard-updates', 'appointment.created')
+    ]
 
-    const create = await request('/api/appointments', { method: 'POST', token: tokenA, body: fixture.payload })
+    const create = await request('/api/appointments', {
+      method: 'POST',
+      token: tokenA,
+      body: fixture.payload
+    })
     if (create.status < 200 || create.status >= 300) {
       const detail = `trigger POST /api/appointments -> HTTP ${create.status}: ${create.text.slice(0, 200)}`
       for (const c of [appt, dash]) {
@@ -324,8 +364,12 @@ async function publicCases(tokenA, tokenB) {
     if (waits.length) await Promise.allSettled(waits)
     if (createdId !== null) {
       try {
-        const del = await request(`/api/appointments/${createdId}`, { method: 'DELETE', token: tokenA })
-        if (del.status >= 400) console.error(`WARN: cleanup DELETE /api/appointments/${createdId} -> HTTP ${del.status}`)
+        const del = await request(`/api/appointments/${createdId}`, {
+          method: 'DELETE',
+          token: tokenA
+        })
+        if (del.status >= 400)
+          console.error(`WARN: cleanup DELETE /api/appointments/${createdId} -> HTTP ${del.status}`)
       } catch (err) {
         console.error(`WARN: cleanup failed for appointment ${createdId}: ${err.message}`)
       }
@@ -347,13 +391,20 @@ async function loadFixture(token) {
   const type = await first('/api/appointment-types/active')
   const chair = await first('/api/dental-chairs/active')
   const scheduledAt = new Date(
-    Date.now() + (3 + Math.floor(Math.random() * 20)) * 86400000 + Math.floor(Math.random() * 1440) * 60000
+    Date.now() +
+      (3 + Math.floor(Math.random() * 20)) * 86400000 +
+      Math.floor(Math.random() * 1440) * 60000
   )
     .toISOString()
     .slice(0, 19)
     .replace('T', ' ')
   return {
-    ids: { patient_id: patient.id, user_id: users.id, appointment_type_id: type.id, dental_chair_id: chair.id },
+    ids: {
+      patient_id: patient.id,
+      user_id: users.id,
+      appointment_type_id: type.id,
+      dental_chair_id: chair.id
+    },
     payload: {
       patient_id: patient.id,
       user_id: users.id,
@@ -373,7 +424,8 @@ async function privateCase(tokenA, tokenB) {
     const sessionId = current.json?.data?.session?.id ?? null
     if (!sessionId) {
       c.status = 'skipped-no-open-session'
-      c.detail = 'GET /api/cash-register/current returned no open session; no private channel to test'
+      c.detail =
+        'GET /api/cash-register/current returned no open session; no private channel to test'
       return
     }
     c.channel = `private-cash-session.${sessionId}`
@@ -426,7 +478,9 @@ async function main() {
   await privateCase(tokenA, tokenB)
 
   // A WS connection failure surfaces as a failed case; keep the hint prominent.
-  const connectionFailure = cases.find(c => c.status === 'failed' && /Cannot reach Reverb|Cannot reach the API/.test(c.detail))
+  const connectionFailure = cases.find(
+    c => c.status === 'failed' && /Cannot reach Reverb|Cannot reach the API/.test(c.detail)
+  )
   if (connectionFailure) console.error(connectionFailure.detail)
   return 0
 }
@@ -471,12 +525,15 @@ writeFileSync(
     '',
     `| Case | Channel | Expected | Status | Detail |`,
     `| --- | --- | --- | --- | --- |`,
-    ...cases.map(c => `| ${c.id} | ${c.channel ?? '—'} | ${c.expected ?? '—'} | ${c.status} | ${c.detail} |`),
+    ...cases.map(
+      c => `| ${c.id} | ${c.channel ?? '—'} | ${c.expected ?? '—'} | ${c.status} | ${c.detail} |`
+    ),
     ''
   ].join('\n')
 )
 
-if (args.json) console.log(JSON.stringify({ ...rev, base: BASE, ws: WS_BASE, counts, cases }, null, 2))
+if (args.json)
+  console.log(JSON.stringify({ ...rev, base: BASE, ws: WS_BASE, counts, cases }, null, 2))
 else {
   console.log(
     `Cases: ${counts.cases} | live-verified: ${counts.liveVerified} | skipped: ${counts.skipped} | failed: ${counts.failed} | unproven: ${counts.unproven}`
@@ -484,10 +541,14 @@ else {
   for (const c of cases) console.log(`- [${c.status}] ${c.id}: ${c.detail}`)
 }
 
-const hardFailure = cases.some(c => c.status === 'failed' && /Cannot reach Reverb|Cannot reach the API/.test(c.detail))
+const hardFailure = cases.some(
+  c => c.status === 'failed' && /Cannot reach Reverb|Cannot reach the API/.test(c.detail)
+)
 if (hardFailure) process.exit(1)
 if (args['fail-on-unproven'] && counts.unproven > 0) {
-  console.error(`\nFAIL: ${counts.unproven} required case(s) not live-verified. See ${OUT}/probe.md.`)
+  console.error(
+    `\nFAIL: ${counts.unproven} required case(s) not live-verified. See ${OUT}/probe.md.`
+  )
   process.exit(1)
 }
 process.exit(exitCode)

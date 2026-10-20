@@ -208,7 +208,6 @@ const getStatusLabel = status => {
   }
   return labels[status] || 'Desconocido'
 }
-
 </script>
 
 <style scoped>

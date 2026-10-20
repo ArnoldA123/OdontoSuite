@@ -22,8 +22,7 @@
             aria-label="Cerrar"
             @click="handleClose"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -131,7 +130,7 @@ viewBox="0 0 24 24">
             <div
               v-if="
                 payload.mode === 'execution' ||
-                  (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
+                (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
               "
               class="mt-4 p-4 bg-theme-surface rounded-xl space-y-3"
             >
@@ -268,7 +267,7 @@ viewBox="0 0 24 24">
             <div
               v-if="
                 payload.mode === 'execution' ||
-                  (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
+                (payload.mode === 'consultation' && payload.treatment_plan.as_proposed)
               "
             >
               <div class="space-y-2">
@@ -348,7 +347,7 @@ viewBox="0 0 24 24">
                   </div>
                   <div class="flex items-center justify-between">
                     <label class="flex items-center gap-2 text-xs text-theme-secondary">
-                      <input v-model="item.requires_anesthesia" type="checkbox" class="w-3 h-3" >
+                      <input v-model="item.requires_anesthesia" type="checkbox" class="w-3 h-3" />
                       Requiere anestesia
                     </label>
                     <button
@@ -385,7 +384,7 @@ viewBox="0 0 24 24">
             </div>
 
             <label class="flex items-center gap-2 text-sm text-theme-primary">
-              <input v-model="payload.skip_materials" type="checkbox" class="w-4 h-4" >
+              <input v-model="payload.skip_materials" type="checkbox" class="w-4 h-4" />
               No se usaron materiales en esta cita
             </label>
 
@@ -562,14 +561,12 @@ viewBox="0 0 24 24">
 
         <!-- Footer -->
         <div class="p-4 border-t border-hairline flex items-center justify-between">
-          <UiButton variant="ghost" size="sm" :disabled="currentStepIndex === 0"
-@click="prevStep">
+          <UiButton variant="ghost" size="sm" :disabled="currentStepIndex === 0" @click="prevStep">
             ← Anterior
           </UiButton>
           <div class="flex items-center gap-2">
             <UiButton variant="ghost" size="sm" @click="handleClose">Cancelar</UiButton>
-            <UiButton v-if="!isLastStep" variant="secondary" size="sm"
-@click="nextStep">
+            <UiButton v-if="!isLastStep" variant="secondary" size="sm" @click="nextStep">
               Siguiente →
             </UiButton>
             <UiButton

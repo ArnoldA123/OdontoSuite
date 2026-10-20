@@ -7,7 +7,11 @@
   -->
   <AppLayout>
     <!-- Header Section -->
-    <PageHeader title="Ambientes" subtitle="Gestiona los ambientes y consultorios" class="bg-canvas mb-6">
+    <PageHeader
+      title="Ambientes"
+      subtitle="Gestiona los ambientes y consultorios"
+      class="bg-canvas mb-6"
+    >
       <template #actions>
         <UiButton variant="secondary" @click="goBack">
           <template #icon-left>

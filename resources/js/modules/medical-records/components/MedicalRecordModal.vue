@@ -134,12 +134,10 @@
       </form>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading"
-@click="closeModal">
+        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading"
-@click="handleSubmit">
+        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
           <CheckIcon class="w-4 h-4 mr-2" />
           {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Historia' }}
         </button>

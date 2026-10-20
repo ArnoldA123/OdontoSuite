@@ -22,9 +22,7 @@ module.exports = {
     ecmaVersion: 2021,
     sourceType: 'module'
   },
-  plugins: [
-    'vue'
-  ],
+  plugins: ['vue'],
   rules: {
     // Vue specific rules — correctness only. Formatting rules that Prettier
     // already enforces (html-indent, max-attributes-per-line,
@@ -35,9 +33,12 @@ module.exports = {
     'vue/component-definition-name-casing': ['error', 'PascalCase'],
     'vue/component-name-in-template-casing': ['error', 'PascalCase'],
     'vue/custom-event-name-casing': ['error', 'camelCase'],
-    'vue/define-macros-order': ['error', {
-      'order': ['defineProps', 'defineEmits']
-    }],
+    'vue/define-macros-order': [
+      'error',
+      {
+        order: ['defineProps', 'defineEmits']
+      }
+    ],
     'vue/no-unused-refs': 'error',
     'vue/no-useless-v-bind': 'error',
     'vue/prefer-separate-static-class': 'error',
@@ -55,8 +56,8 @@ module.exports = {
     'no-var': 'error',
     'object-shorthand': 'error',
     'prefer-template': 'error',
-    'camelcase': ['error', { 'properties': 'never' }],
-    'new-cap': ['error', { 'newIsCap': true, 'capIsNew': false }],
+    camelcase: ['error', { properties: 'never' }],
+    'new-cap': ['error', { newIsCap: true, capIsNew: false }],
     'no-array-constructor': 'error',
     'no-new-object': 'error',
     'no-new-wrappers': 'error',
@@ -64,10 +65,13 @@ module.exports = {
     'one-var': ['error', 'never'],
     'operator-assignment': ['error', 'always'],
     'prefer-arrow-callback': 'error',
-    'prefer-destructuring': ['error', {
-      'array': false,
-      'object': true
-    }],
+    'prefer-destructuring': [
+      'error',
+      {
+        array: false,
+        object: true
+      }
+    ],
     'prefer-rest-params': 'error',
     'prefer-spread': 'error',
     'symbol-description': 'error'

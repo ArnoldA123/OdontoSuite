@@ -29,7 +29,7 @@
  *     shape (no `currency` key) for in-field display — that is
  *     consumed as-is, no formatting fork.
  */
-export function useFormatters () {
+export function useFormatters() {
   return {
     formatPENLabel,
     formatCurrency,
@@ -65,7 +65,7 @@ const PEN_FORMATTER = new Intl.NumberFormat('es-PE', {
  * @param {object} [options] Reserved for future use (ignored today).
  * @returns {string}
  */
-export function formatCurrency (amount, options) {
+export function formatCurrency(amount, options) {
   void options // Reservado para uso futuro (PAGOS-SCP-001), se ignora hoy
   const numeric = Number(amount)
   const safe = Number.isFinite(numeric) ? numeric : 0

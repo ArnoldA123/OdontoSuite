@@ -278,9 +278,7 @@
         <UiButton v-if="!success" type="submit" :loading="loading" :disabled="loading">
           Restablecer contraseña
         </UiButton>
-        <UiButton v-if="success" type="button" @click="handleClose">
-Cerrar
-</UiButton>
+        <UiButton v-if="success" type="button" @click="handleClose">Cerrar</UiButton>
       </div>
     </form>
   </UiModal>
@@ -444,9 +442,9 @@ const handleSubmit = async () => {
     if (err.response?.data?.errors) {
       const serverErrors = err.response.data.errors
       if (serverErrors.email) {
-        errors.email = Array.isArray(serverErrors.email) ?
-          serverErrors.email[0] :
-          serverErrors.email
+        errors.email = Array.isArray(serverErrors.email)
+          ? serverErrors.email[0]
+          : serverErrors.email
       }
       if (serverErrors.token) {
         errors.token = Array.isArray(serverErrors.token)
@@ -454,9 +452,9 @@ const handleSubmit = async () => {
           : serverErrors.token
       }
       if (serverErrors.password) {
-        errors.password = Array.isArray(serverErrors.password) ?
-          serverErrors.password[0] :
-          serverErrors.password
+        errors.password = Array.isArray(serverErrors.password)
+          ? serverErrors.password[0]
+          : serverErrors.password
       }
     } else if (err.response?.data?.message) {
       error.value = err.response.data.message

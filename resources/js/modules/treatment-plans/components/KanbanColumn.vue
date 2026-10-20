@@ -33,9 +33,7 @@
         <div v-if="plan.is_overdue" class="kc-overdue">Vencido</div>
       </div>
 
-      <div v-if="plans.length === 0" class="kanban-empty">
-Arrastra planes aquí
-</div>
+      <div v-if="plans.length === 0" class="kanban-empty">Arrastra planes aquí</div>
     </div>
   </div>
 </template>

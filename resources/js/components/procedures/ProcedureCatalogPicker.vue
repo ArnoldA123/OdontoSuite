@@ -11,7 +11,7 @@
           type="text"
           placeholder="Buscar por nombre o código..."
           class="w-full px-3 py-2 pl-9 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-        >
+        />
         <svg
           class="w-4 h-4 absolute left-3 top-3 text-theme-secondary"
           fill="none"

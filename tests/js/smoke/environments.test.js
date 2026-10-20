@@ -699,7 +699,7 @@ describe('environments archive management (S9)', () => {
     getMock.mockResolvedValue({ data: [rowActive] })
     putMock.mockResolvedValue({ data: {} })
     const wrapper = await mountPage()
-        await clickRowAction(wrapper, 'Archivar')
+    await clickRowAction(wrapper, 'Archivar')
     await flushPromises()
 
     const dialog = findConfirmDialog()

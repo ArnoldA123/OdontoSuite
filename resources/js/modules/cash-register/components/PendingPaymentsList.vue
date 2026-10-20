@@ -1,12 +1,8 @@
 <template>
   <div class="pending-payments-list bg-canvas">
     <div class="mb-4">
-      <h3 class="text-lg font-medium text-theme-primary mb-2">
-Pagos Pendientes
-</h3>
-      <p class="text-sm text-theme-secondary">
-Pacientes con citas completadas que requieren pago
-</p>
+      <h3 class="text-lg font-medium text-theme-primary mb-2">Pagos Pendientes</h3>
+      <p class="text-sm text-theme-secondary">Pacientes con citas completadas que requieren pago</p>
     </div>
 
     <!-- Filtros -->
@@ -41,9 +37,7 @@ Pacientes con citas completadas que requieren pago
         </div>
 
         <div class="flex items-end">
-          <Button variant="secondary" class="w-full" @click="clearFilters">
-Limpiar
-</Button>
+          <Button variant="secondary" class="w-full" @click="clearFilters">Limpiar</Button>
         </div>
       </div>
     </div>
@@ -273,8 +267,12 @@ const filteredPayments = computed(() => {
     const search = filters.value.search.toLowerCase()
     filtered = filtered.filter(
       payment =>
-        String(payment.patient?.name ?? '').toLowerCase().includes(search) ||
-        String(payment.patient?.document_number ?? '').toLowerCase().includes(search)
+        String(payment.patient?.name ?? '')
+          .toLowerCase()
+          .includes(search) ||
+        String(payment.patient?.document_number ?? '')
+          .toLowerCase()
+          .includes(search)
     )
   }
 

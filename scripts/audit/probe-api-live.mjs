@@ -132,7 +132,10 @@ async function request(path, { method = 'GET', token, body } = {}) {
       signal: AbortSignal.timeout(TIMEOUT_MS)
     })
   } catch (err) {
-    if (err?.cause?.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(err?.cause?.message ?? '')))
+    if (
+      err?.cause?.code === 'ECONNREFUSED' ||
+      /ECONNREFUSED/.test(String(err?.cause?.message ?? ''))
+    )
       throw new ConnectionError(`cannot connect to ${BASE}`)
     if (err?.name === 'TimeoutError' || err?.name === 'AbortError') throw new Error('timeout')
     throw err
@@ -148,7 +151,10 @@ async function request(path, { method = 'GET', token, body } = {}) {
 }
 
 async function login(username) {
-  const res = await request('/api/login', { method: 'POST', body: { username, password: PASSWORD } })
+  const res = await request('/api/login', {
+    method: 'POST',
+    body: { username, password: PASSWORD }
+  })
   if (res.status < 200 || res.status >= 300 || !res.json?.data?.token)
     throw new Error(`login failed for ${username}: HTTP ${res.status} ${res.text.slice(0, 200)}`)
   return res.json.data.token
@@ -206,7 +212,9 @@ try {
     execSync('php artisan route:list --json', { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
   )
 } catch (err) {
-  console.error(`FAIL: could not enumerate routes with \`php artisan route:list --json\` in ${ROOT}: ${err.message}`)
+  console.error(
+    `FAIL: could not enumerate routes with \`php artisan route:list --json\` in ${ROOT}: ${err.message}`
+  )
   process.exit(1)
 }
 const seen = new Set()
@@ -310,7 +318,14 @@ for (const target of targets) {
         console.error(reachError())
         process.exit(1)
       }
-      cell = { role: role.role, status: 'error', class: 'unclassified', note: err.message, topKeys: null, contentType: '' }
+      cell = {
+        role: role.role,
+        status: 'error',
+        class: 'unclassified',
+        note: err.message,
+        topKeys: null,
+        contentType: ''
+      }
     }
     cells.push(cell)
   }
@@ -327,7 +342,9 @@ const acceptances = existsSync(acceptancesPath)
   : {}
 
 const failures = routes.filter(
-  r => r.class === 'server-error' || r.cells.some(c => c.class === 'server-error' || c.class === 'unclassified')
+  r =>
+    r.class === 'server-error' ||
+    r.cells.some(c => c.class === 'server-error' || c.class === 'unclassified')
 )
 const open = failures.filter(r => !(`${r.method} ${r.path}` in acceptances))
 
@@ -365,8 +382,7 @@ writeFileSync(
     2
   )
 )
-if (!existsSync(acceptancesPath))
-  writeFileSync(acceptancesPath, '{}\n')
+if (!existsSync(acceptancesPath)) writeFileSync(acceptancesPath, '{}\n')
 
 const md = [
   `# API live matrix — GET api/* with one token per role`,
@@ -375,7 +391,9 @@ const md = [
   ``,
   `Routes: ${counts.routes} | ok: ${counts.ok} | auth-gated: ${counts.authGated} | server-error: ${counts.serverError} | skipped-needs-fixture: ${counts.skipped} | unclassified: ${counts.unclassified}`,
   ``,
-  `Cells: ${counts.cells} | ${Object.entries(cellCounts).map(([k, v]) => `${k}: ${v}`).join(' | ')}`,
+  `Cells: ${counts.cells} | ${Object.entries(cellCounts)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(' | ')}`,
   ``,
   `## Failures (${open.length} open, ${failures.length - open.length} accepted)`,
   ``,
@@ -384,14 +402,19 @@ const md = [
     : failures.map(
         r =>
           `- ${`${r.method} ${r.path}` in acceptances ? '[accepted] ' : ''}\`${r.method} ${r.path}\` (${r.class}) — ` +
-          r.cells.filter(c => c.class === 'server-error' || c.class === 'unclassified').map(c => `${c.role}: ${c.status}`).join(', ')
+          r.cells
+            .filter(c => c.class === 'server-error' || c.class === 'unclassified')
+            .map(c => `${c.role}: ${c.status}`)
+            .join(', ')
       )),
   ``,
   `## Skipped (needs fixture)`,
   ``,
   ...(counts.skipped === 0
     ? ['- none']
-    : routes.filter(r => r.class === 'skipped-needs-fixture').map(r => `- \`${r.method} ${r.path}\`: ${r.reason}`)),
+    : routes
+        .filter(r => r.class === 'skipped-needs-fixture')
+        .map(r => `- \`${r.method} ${r.path}\`: ${r.reason}`)),
   ``,
   `## Full matrix`,
   ``,
@@ -414,7 +437,12 @@ writeFileSync(resolve(OUT, 'matrix.md'), `${md.join('\n')}\n`)
 if (args.json)
   console.log(
     JSON.stringify(
-      { ...rev, base: BASE, counts, open: open.map(r => ({ key: `${r.method} ${r.path}`, class: r.class })) },
+      {
+        ...rev,
+        base: BASE,
+        counts,
+        open: open.map(r => ({ key: `${r.method} ${r.path}`, class: r.class }))
+      },
       null,
       2
     )
@@ -423,7 +451,11 @@ else {
   console.log(
     `Routes: ${counts.routes} | ok: ${counts.ok} | auth-gated: ${counts.authGated} | server-error: ${counts.serverError} | skipped-needs-fixture: ${counts.skipped} | unclassified: ${counts.unclassified}`
   )
-  console.log(`Cells: ${counts.cells} | ${Object.entries(cellCounts).map(([k, v]) => `${k}: ${v}`).join(' | ')}`)
+  console.log(
+    `Cells: ${counts.cells} | ${Object.entries(cellCounts)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(' | ')}`
+  )
   for (const r of failures) {
     const tag = `${r.method} ${r.path}` in acceptances ? '[accepted] ' : ''
     console.log(`- ${tag}${r.class.toUpperCase()} ${r.method} ${r.path}`)

@@ -18,8 +18,7 @@
 
       <!-- Default icon if none provided -->
       <div v-else class="empty-state-icon-container">
-        <svg class="w-16 h-16" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"

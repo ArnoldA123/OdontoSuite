@@ -10,7 +10,7 @@
     >
       <!-- Vista Previa si hay imagen -->
       <div v-if="previewUrl" class="preview-container">
-        <img :src="previewUrl" class="preview-image" >
+        <img :src="previewUrl" class="preview-image" />
         <button class="clear-btn" @click="clearFile">
           <XMarkIcon class="w-5 h-5" />
         </button>
@@ -19,12 +19,8 @@
       <!-- Área de Upload -->
       <div v-else class="upload-prompt">
         <PhotoIcon class="w-12 h-12 text-theme-secondary mx-auto mb-3" />
-        <p class="text-lg font-medium mb-2">
-Arrastra tu imagen aquí o haz clic para seleccionar
-</p>
-        <p class="text-sm text-theme-secondary mb-4">
-Formatos: JPG, PNG, DICOM (Max 20MB)
-</p>
+        <p class="text-lg font-medium mb-2">Arrastra tu imagen aquí o haz clic para seleccionar</p>
+        <p class="text-sm text-theme-secondary mb-4">Formatos: JPG, PNG, DICOM (Max 20MB)</p>
         <input
           ref="fileInput"
           type="file"

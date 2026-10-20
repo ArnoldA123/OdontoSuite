@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
-export function useProcedureCatalog () {
+export function useProcedureCatalog() {
   const { get, post, put, delete: del } = useApi()
 
   const procedures = ref([])

@@ -114,8 +114,7 @@
           <div class="flex space-x-3">
             <UiButton variant="primary" @click="applyFilters">
               <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -138,8 +137,7 @@ viewBox="0 0 24 24">
               @click="exportReport('excel')"
             >
               <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -152,8 +150,7 @@ viewBox="0 0 24 24">
             </UiButton>
             <UiButton :disabled="loading" variant="primary" size="sm" @click="exportReport('csv')">
               <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -166,8 +163,7 @@ viewBox="0 0 24 24">
             </UiButton>
             <UiButton :disabled="loading" variant="danger" size="sm" @click="exportReport('pdf')">
               <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"

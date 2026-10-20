@@ -40,7 +40,7 @@ export function useReducedMotion(initial = false) {
     }
     mql = window.matchMedia('(prefers-reduced-motion: reduce)')
     reduced.value = mql.matches
-    handler = (e) => {
+    handler = e => {
       reduced.value = e.matches
     }
     if (typeof mql.addEventListener === 'function') {

@@ -106,10 +106,7 @@
 
     <template #footer>
       <div class="flex justify-end space-x-3">
-        <Button
-type="button"
-variant="secondary" :disabled="loading" @click="$emit('close')"
->
+        <Button type="button" variant="secondary" :disabled="loading" @click="$emit('close')">
           Cancelar
         </Button>
         <Button

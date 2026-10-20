@@ -187,9 +187,7 @@
 
           <!-- Resumen de Cierre -->
           <UiCard variant="flat" padding="md">
-            <h4 class="text-sm font-semibold text-theme-primary mb-3">
-Resumen de Cierre
-</h4>
+            <h4 class="text-sm font-semibold text-theme-primary mb-3">Resumen de Cierre</h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-theme-secondary">Total Transacciones:</span>
@@ -236,10 +234,7 @@ Resumen de Cierre
 
     <template #footer>
       <div class="flex justify-end space-x-3">
-        <Button
-type="button"
-variant="secondary" :disabled="loading" @click="$emit('close')"
->
+        <Button type="button" variant="secondary" :disabled="loading" @click="$emit('close')">
           Cancelar
         </Button>
         <Button
