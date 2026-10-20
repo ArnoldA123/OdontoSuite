@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,23 +14,21 @@ class WaitingList extends Model
         'patient_id',
         'appointment_type_id',
         'preferred_user_id',
-        'preferred_date',
-        'preferred_time_start',
-        'preferred_time_end',
+        'preferred_dental_chair_id',
+        'preferences',
         'priority',
         'notes',
         'status',
+        'preferred_start_date',
+        'preferred_end_date',
         'notified_at',
-        'expires_at',
         'created_by',
     ];
 
     protected $casts = [
-        'preferred_date' => 'date',
-        'preferred_time_start' => 'datetime:H:i',
-        'preferred_time_end' => 'datetime:H:i',
+        'preferred_start_date' => 'datetime',
+        'preferred_end_date' => 'datetime',
         'notified_at' => 'datetime',
-        'expires_at' => 'datetime',
     ];
 
     /**
@@ -75,26 +72,13 @@ class WaitingList extends Model
     }
 
     /**
-     * Scope a query to only include waiting list entries for a specific date.
-     */
-    public function scopeForDate($query, Carbon $date)
-    {
-        return $query->where('preferred_date', $date);
-    }
-
-    /**
-     * Check if the waiting list entry is expired.
-     */
-    public function isExpired(): bool
-    {
-        return $this->expires_at && $this->expires_at->isPast();
-    }
-
-    /**
      * Mark as notified.
      */
     public function markAsNotified(): void
     {
-        $this->update(['notified_at' => now()]);
+        $this->update([
+            'status' => 'notified',
+            'notified_at' => now(),
+        ]);
     }
 }
