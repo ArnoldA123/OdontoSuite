@@ -21,7 +21,8 @@ use Tests\TestCase;
  * inputs must keep their wall clock, which is the regression case these tests
  * pin alongside the offset case.
  *
- * Requires the MySQL runner (phpunit.mysql.xml) — see AGENTS.md §6 (decision #79).
+ * Needs a real schema, so Tests\TestCase skips it on any non-MySQL runner
+ * (issue #170); run it with phpunit.mysql.xml — see AGENTS.md §6 (decision #79).
  */
 class AppointmentTimezonePersistenceTest extends TestCase
 {

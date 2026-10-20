@@ -216,10 +216,14 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `php artisan test --configuration=phpunit.mysql.xml` contra un motor real
   (local: MySQL/MariaDB de XAMPP por socket; CI: service MySQL 8.0).
   `php artisan test` a secas (SQLite `:memory:`) no puede construir el esquema:
-  los tests con BD fallan ahí por diseño, no por regresión. **El número de
-  fallos no se cita aquí a propósito** (deriva con cada migración). Lo
-  ejecutable que fija esta declaración:
-  `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest`.
+  todo test que usa `RefreshDatabase`, `DatabaseMigrations`,
+  `DatabaseTruncation` o `DatabaseTransactions` se reporta como **skipped**, no
+  como failed, por `Tests\TestCase::setUpTraits()` vía
+  `Tests\Support\MysqlRunner` (#170), así que ese runner solo muestra
+  regresiones reales. **El número de fallos no se cita aquí a propósito**
+  (deriva con cada migración). Lo ejecutable que fija esta declaración:
+  `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest` y
+  `tests/Unit/Tooling/MysqlRunnerGateTest`.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con
   `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del
   dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007)
@@ -302,20 +306,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 8. Troubleshooting
 
-| Problema                                                | Solución                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                         |
-| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                        |
-| Tests fallan por DDL de SQLite                          | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6). Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql.                  |
-| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo). |
-| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                               |
-| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                     |
-| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                               |
-| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 14.                                                                                                                                                                                                                          |
-| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                            |
-| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                         |
-| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                              |
-| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                     |
+| Problema                                                | Solución                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                                                               |
+| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                                                              |
+| Tests fallan por DDL de SQLite                          | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6) y los tests con BD se reportan como skipped desde #170. Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql. |
+| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo).                                       |
+| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                     |
+| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                           |
+| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                     |
+| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 14.                                                                                                                                                                                                                                                                |
+| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                  |
+| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                               |
+| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                    |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                           |
 
 ---
 
@@ -370,6 +374,17 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-20 (follow-ups #169/#170/#171 de citas)** — La ventana de lista de
+  espera se compara por fecha completa (`whereDate` en ambos bordes): un
+  `preferred_end_date` a medianoche cubre su día y el día de inicio cuenta
+  entero, sin migraciones (#169). Los tests que poseen o unen el esquema
+  (`RefreshDatabase`, `DatabaseMigrations`, `DatabaseTruncation`,
+  `DatabaseTransactions`) se saltan explícitamente con driver no-MySQL, vía
+  `Tests\TestCase::setUpTraits()` y `Tests\Support\MysqlRunner` (#170).
+  `AppointmentTimezonePersistenceTest` completa su matriz con el caso
+  naive-local de reprogramación (#171). Sin rutas, modelos, migraciones ni
+  primitivas UI nuevas: los conteos de §4 no cambian.
 
 - **2026-10-19 (recordatorios #154)** — `ReminderService::scheduleReminders()`
   deja de ser código muerto: `AppointmentService` agenda los recordatorios de

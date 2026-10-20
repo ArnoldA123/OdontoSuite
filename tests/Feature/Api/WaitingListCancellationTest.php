@@ -20,7 +20,8 @@ use Tests\TestCase;
  * complete against the real `waiting_lists` schema, and `WaitingList` must not
  * reference columns its table does not have.
  *
- * Requires the MySQL runner (phpunit.mysql.xml) — see AGENTS.md §6 (decision #79).
+ * Needs a real schema, so Tests\TestCase skips it on any non-MySQL runner
+ * (issue #170); run it with phpunit.mysql.xml — see AGENTS.md §6 (decision #79).
  */
 class WaitingListCancellationTest extends TestCase
 {
