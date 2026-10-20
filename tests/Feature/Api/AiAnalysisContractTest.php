@@ -10,6 +10,7 @@ use App\Services\AiImageAnalysisService;
 use App\Services\ClinicalAttachmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -376,6 +377,31 @@ class AiAnalysisContractTest extends TestCase
             ->assertJsonPath('meta.message', 'Análisis completado exitosamente.')
             ->assertJsonPath('message', 'Análisis completado exitosamente.')
             ->assertJsonPath('data.id', $analysis->id);
+    }
+
+    public function test_usage_stats_propagates_a_query_failure_instead_of_zeroing_the_metrics(): void
+    {
+        $default = config('database.default');
+
+        config([
+            'database.default' => 'unreachable',
+            'database.connections.unreachable' => [
+                'driver' => 'sqlite',
+                'database' => '/nonexistent/odontosuite/ai-stats.sqlite',
+                'prefix' => '',
+            ],
+        ]);
+
+        DB::purge('unreachable');
+
+        try {
+            $this->expectException(\Throwable::class);
+
+            app(AiImageAnalysisService::class)->getUsageStats();
+        } finally {
+            config(['database.default' => $default]);
+            DB::purge('unreachable');
+        }
     }
 
     public function test_analysis_factory_builds_a_coherent_attachment_patient_and_requester(): void

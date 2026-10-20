@@ -480,41 +480,31 @@ Responde únicamente en formato JSON válido.';
      */
     public function getUsageStats(array $filters = []): array
     {
-        try {
-            $query = AiImageAnalysis::query();
+        // A failing metrics query must surface as a 500, never as a zeroed
+        // dashboard: "0 analyses" and "the query broke" are different facts and
+        // the surface already distinguishes empty from error.
+        $query = AiImageAnalysis::query();
 
-            if ($dateFrom = DateFilter::normalize($filters['date_from'] ?? null)) {
-                $query->whereDate('created_at', '>=', $dateFrom);
-            }
-
-            if ($dateTo = DateFilter::normalize($filters['date_to'] ?? null)) {
-                $query->whereDate('created_at', '<=', $dateTo);
-            }
-
-            $totalAnalyses = $query->count();
-            $completedAnalyses = $query->clone()->where('status', 'completed')->count();
-            $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
-            $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
-
-            return [
-                'total_analyses' => $totalAnalyses,
-                'completed_analyses' => $completedAnalyses,
-                'reviewed_analyses' => $reviewedAnalyses,
-                'pending_review' => $pendingReview,
-                'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
-                'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error in getUsageStats: '.$e->getMessage());
-
-            return [
-                'total_analyses' => 0,
-                'completed_analyses' => 0,
-                'reviewed_analyses' => 0,
-                'pending_review' => 0,
-                'completion_rate' => 0,
-                'review_rate' => 0,
-            ];
+        if ($dateFrom = DateFilter::normalize($filters['date_from'] ?? null)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
+
+        if ($dateTo = DateFilter::normalize($filters['date_to'] ?? null)) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $totalAnalyses = $query->count();
+        $completedAnalyses = $query->clone()->where('status', 'completed')->count();
+        $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
+        $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
+
+        return [
+            'total_analyses' => $totalAnalyses,
+            'completed_analyses' => $completedAnalyses,
+            'reviewed_analyses' => $reviewedAnalyses,
+            'pending_review' => $pendingReview,
+            'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
+            'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
+        ];
     }
 }
