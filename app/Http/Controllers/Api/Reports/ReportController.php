@@ -12,10 +12,25 @@ use App\Services\Reports\UtilizationReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class ReportController extends Controller
 {
+    /**
+     * Report types the export endpoint accepts.
+     */
+    private const REPORT_TYPES = [
+        'dashboard',
+        'appointments',
+        'patients',
+        'professionals',
+        'revenue',
+        'utilization',
+    ];
+
     protected $dashboardService;
 
     protected $appointmentReportService;
@@ -45,26 +60,16 @@ class ReportController extends Controller
     }
 
     /**
-     * Get dashboard data.
+     * Get dashboard data. The BI report always reads the applied period fresh.
      */
     public function dashboard(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+        if ($invalid = $this->validateFilters($request)) {
+            return $invalid;
         }
 
         try {
-            $data = $this->dashboardService->getDashboardData($request->all());
+            $data = $this->dashboardService->getDashboardData($request->all(), false);
 
             return response()->json([
                 'data' => $data,
@@ -72,11 +77,8 @@ class ReportController extends Controller
                     'message' => 'Dashboard data retrieved successfully',
                 ],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving dashboard data',
-                'error' => $e->getMessage(),
-            ], 500);
+        } catch (Throwable $e) {
+            return $this->serverError($e, 'dashboard');
         }
     }
 
@@ -85,36 +87,7 @@ class ReportController extends Controller
      */
     public function appointments(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        try {
-            $data = $this->appointmentReportService->getReportData($request->all());
-
-            return response()->json([
-                'data' => $data['data'],
-                'columns' => $data['columns'],
-                'meta' => [
-                    'message' => 'Appointments report retrieved successfully',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving appointments report',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return $this->tabularReport($request, $this->appointmentReportService, 'appointments');
     }
 
     /**
@@ -122,36 +95,7 @@ class ReportController extends Controller
      */
     public function patients(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        try {
-            $data = $this->patientReportService->getReportData($request->all());
-
-            return response()->json([
-                'data' => $data['data'],
-                'columns' => $data['columns'],
-                'meta' => [
-                    'message' => 'Patients report retrieved successfully',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving patients report',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return $this->tabularReport($request, $this->patientReportService, 'patients');
     }
 
     /**
@@ -159,36 +103,7 @@ class ReportController extends Controller
      */
     public function professionals(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        try {
-            $data = $this->professionalReportService->getReportData($request->all());
-
-            return response()->json([
-                'data' => $data['data'],
-                'columns' => $data['columns'],
-                'meta' => [
-                    'message' => 'Professionals report retrieved successfully',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving professionals report',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return $this->tabularReport($request, $this->professionalReportService, 'professionals');
     }
 
     /**
@@ -196,18 +111,8 @@ class ReportController extends Controller
      */
     public function revenue(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+        if ($invalid = $this->validateFilters($request)) {
+            return $invalid;
         }
 
         try {
@@ -218,13 +123,11 @@ class ReportController extends Controller
                 'columns' => $data['columns'],
                 'meta' => [
                     'message' => 'Revenue report retrieved successfully',
+                    'summary' => $data['summary'],
                 ],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving revenue report',
-                'error' => $e->getMessage(),
-            ], 500);
+        } catch (Throwable $e) {
+            return $this->serverError($e, 'revenue');
         }
     }
 
@@ -233,36 +136,7 @@ class ReportController extends Controller
      */
     public function utilization(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'professional_id' => 'nullable|exists:users,id',
-            'environment_id' => 'nullable|exists:dental_chairs,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        try {
-            $data = $this->utilizationReportService->getReportData($request->all());
-
-            return response()->json([
-                'data' => $data['data'],
-                'columns' => $data['columns'],
-                'meta' => [
-                    'message' => 'Utilization report retrieved successfully',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error retrieving utilization report',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return $this->tabularReport($request, $this->utilizationReportService, 'utilization');
     }
 
     /**
@@ -270,6 +144,13 @@ class ReportController extends Controller
      */
     public function export(Request $request, string $reportType)
     {
+        if (! in_array($reportType, self::REPORT_TYPES, true)) {
+            return response()->json([
+                'message' => 'Tipo de reporte no soportado.',
+                'allowed' => self::REPORT_TYPES,
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'format' => 'required|in:excel,csv,pdf',
             'start_date' => 'nullable|date',
@@ -288,30 +169,79 @@ class ReportController extends Controller
         try {
             $format = $request->input('format');
             $filters = $request->only(['start_date', 'end_date', 'professional_id', 'environment_id']);
+            $data = $this->getServiceByReportType($reportType)->getReportData($filters);
 
-            // Get the appropriate service based on report type
-            $service = $this->getServiceByReportType($reportType);
-            $data = $service->getReportData($filters);
+            $filename = $reportType.'_report_'.now()->format('Y-m-d_H-i-s');
 
-            // Export based on format
-            switch ($format) {
-                case 'excel':
-                    return $this->exportToExcel($data, $reportType);
-                case 'csv':
-                    return $this->exportToCsv($data, $reportType);
-                case 'pdf':
-                    return $this->exportToPdf($data, $reportType);
-                default:
-                    return response()->json([
-                        'message' => 'Unsupported export format',
-                    ], 400);
-            }
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error exporting report',
-                'error' => $e->getMessage(),
-            ], 500);
+            return match ($format) {
+                'excel' => $this->exportToSpreadsheet($data, $filename),
+                'csv' => $this->exportToCsv($data, $filename),
+                'pdf' => $this->exportToPdf($data, $reportType, $filename),
+                default => response()->json(['message' => 'Formato no soportado.'], 422),
+            };
+        } catch (Throwable $e) {
+            return $this->serverError($e, 'export:'.$reportType);
         }
+    }
+
+    /**
+     * Shared tabular report handler.
+     */
+    private function tabularReport(Request $request, $service, string $type): JsonResponse
+    {
+        if ($invalid = $this->validateFilters($request)) {
+            return $invalid;
+        }
+
+        try {
+            $data = $service->getReportData($request->all());
+
+            return response()->json([
+                'data' => $data['data'],
+                'columns' => $data['columns'],
+                'meta' => [
+                    'message' => ucfirst($type).' report retrieved successfully',
+                ],
+            ]);
+        } catch (Throwable $e) {
+            return $this->serverError($e, $type);
+        }
+    }
+
+    /**
+     * Validate the shared filter block.
+     */
+    private function validateFilters(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'professional_id' => 'nullable|exists:users,id',
+            'environment_id' => 'nullable|exists:dental_chairs,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+    }
+
+    /**
+     * Generic 500: the exception text goes to the log, never to the client (D10).
+     */
+    private function serverError(Throwable $e, string $scope): JsonResponse
+    {
+        Log::error('Business Intelligence report failed', [
+            'report' => $scope,
+            'exception' => $e,
+        ]);
+
+        return response()->json([
+            'message' => 'No se pudo generar el reporte. Intenta nuevamente.',
+        ], 500);
     }
 
     /**
@@ -319,65 +249,74 @@ class ReportController extends Controller
      */
     private function getServiceByReportType(string $reportType)
     {
-        switch ($reportType) {
-            case 'dashboard':
-                return $this->dashboardService;
-            case 'appointments':
-                return $this->appointmentReportService;
-            case 'patients':
-                return $this->patientReportService;
-            case 'professionals':
-                return $this->professionalReportService;
-            case 'revenue':
-                return $this->revenueReportService;
-            case 'utilization':
-                return $this->utilizationReportService;
-            default:
-                throw new \InvalidArgumentException("Unsupported report type: {$reportType}");
+        return match ($reportType) {
+            'dashboard' => $this->dashboardService,
+            'appointments' => $this->appointmentReportService,
+            'patients' => $this->patientReportService,
+            'professionals' => $this->professionalReportService,
+            'revenue' => $this->revenueReportService,
+            'utilization' => $this->utilizationReportService,
+            default => throw new \InvalidArgumentException("Unsupported report type: {$reportType}"),
+        };
+    }
+
+    /**
+     * Excel export: a SpreadsheetML-compatible HTML table, the same decision
+     * taken in App\Exports\CashReportExport for the cash module.
+     */
+    private function exportToSpreadsheet(array $data, string $filename)
+    {
+        $cells = '';
+
+        foreach ($this->exportMatrix($data) as $row) {
+            $cells .= '<tr>';
+            foreach ($row as $cell) {
+                $cells .= '<td>'.e($cell).'</td>';
+            }
+            $cells .= '</tr>';
         }
-    }
 
-    /**
-     * Export to Excel.
-     */
-    private function exportToExcel(array $data, string $reportType)
-    {
-        // For now, return a simple CSV response as Excel
-        $filename = $reportType.'_report_'.now()->format('Y-m-d_H-i-s');
-        $csv = $this->generateCsv($data);
+        $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office"'
+            .' xmlns:x="urn:schemas-microsoft-com:office:excel"'
+            .' xmlns="http://www.w3.org/TR/REC-html40">'
+            .'<head><meta charset="UTF-8"></head>'
+            .'<body><table border="1">'.$cells.'</table></body></html>';
 
-        return response($csv, 200, [
-            'Content-Type' => 'application/vnd.ms-excel',
-            'Content-Disposition' => "attachment; filename=\"{$filename}.xls\"",
+        return response($html, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'.xls"',
         ]);
     }
 
     /**
-     * Export to CSV.
+     * CSV export.
      */
-    private function exportToCsv(array $data, string $reportType)
+    private function exportToCsv(array $data, string $filename): StreamedResponse
     {
-        $csv = $this->generateCsv($data);
+        $matrix = $this->exportMatrix($data);
 
-        return response($csv, 200, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$reportType}_report.csv\"",
+        return response()->streamDownload(function () use ($matrix) {
+            $handle = fopen('php://output', 'w');
+            foreach ($matrix as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, $filename.'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 
     /**
-     * Export to PDF.
+     * PDF export.
      */
-    private function exportToPdf(array $data, string $reportType)
+    private function exportToPdf(array $data, string $reportType, string $filename)
     {
-        $filename = $reportType.'_report_'.now()->format('Y-m-d_H-i-s');
         $headings = array_column($data['columns'], 'label');
-        $exportData = $data['data'];
 
         $pdf = Pdf::loadView('reports.pdf', [
             'title' => $this->getReportTitle($reportType),
             'headings' => $headings,
-            'data' => $exportData,
+            'data' => $this->exportRows($data),
             'generatedAt' => now()->format('d/m/Y H:i'),
         ]);
 
@@ -385,29 +324,50 @@ class ReportController extends Controller
     }
 
     /**
-     * Generate CSV content.
+     * Rows as printed: report rows plus the period summary when the service
+     * provides one (revenue), so exports and the screen tell the same story.
      */
-    private function generateCsv(array $data): string
+    private function exportRows(array $data): array
     {
-        $output = fopen('php://temp', 'r+');
+        $rows = $data['data'];
+        $summary = $data['summary'] ?? null;
 
-        // Write headers
+        if (! is_array($summary) || empty($data['columns'])) {
+            return $rows;
+        }
+
+        $keys = array_column($data['columns'], 'key');
+        $summaryRow = array_fill_keys($keys, '');
+
+        $summaryRow[$keys[0]] = 'Resumen del período';
+        $summaryRow[$keys[1]] = $summary['period'] ?? '';
+        $summaryRow[$keys[2]] = $summary['appointments_count'] ?? 0;
+        $summaryRow[$keys[3]] = $summary['total_revenue'] ?? 0;
+        $summaryRow[$keys[4]] = $summary['average_per_appointment'] ?? 0;
+
+        $rows[] = $summaryRow;
+
+        return $rows;
+    }
+
+    /**
+     * Export as a matrix of label header plus positional values.
+     *
+     * @return array<int, array<int, mixed>>
+     */
+    private function exportMatrix(array $data): array
+    {
+        $matrix = [];
+
         if (! empty($data['columns'])) {
-            fputcsv($output, array_column($data['columns'], 'label'));
+            $matrix[] = array_column($data['columns'], 'label');
         }
 
-        // Write data
-        if (! empty($data['data'])) {
-            foreach ($data['data'] as $row) {
-                fputcsv($output, array_values($row));
-            }
+        foreach ($this->exportRows($data) as $row) {
+            $matrix[] = array_values($row);
         }
 
-        rewind($output);
-        $csv = stream_get_contents($output);
-        fclose($output);
-
-        return $csv;
+        return $matrix;
     }
 
     /**

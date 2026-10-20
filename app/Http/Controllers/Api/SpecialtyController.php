@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
+use App\Models\ProcedureCatalog;
 use App\Models\Specialty;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,10 +29,18 @@ class SpecialtyController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Specialty::query();
+        $query = $this->queryWithUsageCounts();
 
         if ($request->boolean('active_only')) {
             $query->active();
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if ($request->filled('q')) {
+            $this->applySearch($query, trim((string) $request->input('q')));
         }
 
         $specialties = $query->orderBy('name')->get();
@@ -40,6 +50,7 @@ class SpecialtyController extends Controller
             'meta' => [
                 'message' => 'Especialidades cargadas exitosamente',
                 'total' => $specialties->count(),
+                'kpis' => $this->kpis(),
             ],
         ]);
     }
@@ -59,7 +70,7 @@ class SpecialtyController extends Controller
 
     public function show(string $id): JsonResponse
     {
-        $specialty = Specialty::findOrFail($id);
+        $specialty = $this->queryWithUsageCounts()->findOrFail($id);
 
         return response()->json([
             'data' => $specialty,
@@ -83,9 +94,7 @@ class SpecialtyController extends Controller
     {
         $specialty = Specialty::findOrFail($id);
 
-        $validated = $request->validate($this->updateRules($this->storeRules(), [], [
-            'code' => "sometimes|string|max:50|unique:specialties,code,{$id}",
-        ]));
+        $validated = $request->validate($this->updateRules($this->storeRules(), ['code']));
 
         $specialty->update($validated);
 
@@ -93,5 +102,47 @@ class SpecialtyController extends Controller
             'data' => $specialty,
             'meta' => ['message' => 'Especialidad actualizada exitosamente'],
         ]);
+    }
+
+    /**
+     * Base query for the admin surfaces: every response carries the usage
+     * counts the interface renders, so a row never shows a fabricated zero.
+     *
+     * @return Builder<Specialty>
+     */
+    private function queryWithUsageCounts(): Builder
+    {
+        return Specialty::query()->withCount([
+            'procedureCatalog as procedures_count',
+            'users as professionals_count',
+        ]);
+    }
+
+    /**
+     * @param Builder<Specialty> $query
+     */
+    private function applySearch(Builder $query, string $term): void
+    {
+        $query->where(function (Builder $nested) use ($term) {
+            $nested->where('name', 'like', "%{$term}%")
+                ->orWhere('code', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
+        });
+    }
+
+    /**
+     * KPI population. It is computed over the whole catalog on purpose: the
+     * page filters the list server-side, and totals must not shrink with it.
+     *
+     * @return array<string, int>
+     */
+    private function kpis(): array
+    {
+        return [
+            'total' => Specialty::query()->count(),
+            'active' => Specialty::query()->active()->count(),
+            'inactive' => Specialty::query()->where('is_active', false)->count(),
+            'procedures' => ProcedureCatalog::query()->whereNotNull('specialty_id')->count(),
+        ];
     }
 }

@@ -29,6 +29,14 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
 
     private const QUOTATIONS_PAGE = '/resources/js/modules/quotations/QuotationsPage.vue';
 
+    private const QUOTATIONS_DETAIL = '/resources/js/modules/quotations/components/QuotationDetail.vue';
+
+    private const QUOTATIONS_FORM = '/resources/js/modules/quotations/components/QuotationModal.vue';
+
+    private const QUOTATIONS_APPROVAL = '/resources/js/modules/quotations/components/QuotationApprovalModal.vue';
+
+    private const QUOTATIONS_REJECT = '/resources/js/modules/quotations/components/QuotationRejectModal.vue';
+
     private const PAYMENT_METHODS_PAGE = '/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
 
     private const PAYMENT_METHOD_FORM_MODAL = '/resources/js/modules/settings/payment-methods/PaymentMethodFormModal.vue';
@@ -42,6 +50,10 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
             $root.self::CASH_REGISTER_PAGE,
             $root.self::READY_TO_BILL_PAGE,
             $root.self::QUOTATIONS_PAGE,
+            $root.self::QUOTATIONS_DETAIL,
+            $root.self::QUOTATIONS_FORM,
+            $root.self::QUOTATIONS_APPROVAL,
+            $root.self::QUOTATIONS_REJECT,
             $root.self::PAYMENT_METHODS_PAGE,
             $root.self::PAYMENT_METHOD_FORM_MODAL,
         ];

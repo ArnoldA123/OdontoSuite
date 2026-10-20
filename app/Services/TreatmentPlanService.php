@@ -237,6 +237,41 @@ class TreatmentPlanService
         }
     }
 
+    /**
+     * Resumen exacto del módulo para la tira de KPIs.
+     * No depende de la página visible ni de los filtros activos.
+     *
+     * @return array<string, mixed>
+     */
+    public function summary(): array
+    {
+        $statuses = ['draft', 'proposed', 'approved', 'in_progress', 'completed', 'cancelled'];
+
+        $countsByStatus = TreatmentPlan::query()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $byStatus = [];
+        foreach ($statuses as $status) {
+            $byStatus[$status] = (int) ($countsByStatus[$status] ?? 0);
+        }
+
+        $activeStatuses = ['draft', 'proposed', 'approved', 'in_progress'];
+
+        return [
+            'total' => TreatmentPlan::query()->count(),
+            'by_status' => $byStatus,
+            'active' => TreatmentPlan::query()->whereIn('status', $activeStatuses)->count(),
+            'overdue' => TreatmentPlan::query()->overdue()->count(),
+            'pending_approval' => $byStatus['proposed'],
+            'pending_cost' => round(
+                (float) TreatmentPlan::query()->whereIn('status', $activeStatuses)->sum('final_cost'),
+                2
+            ),
+        ];
+    }
+
     public function getPlans(array $filters = [])
     {
         $query = TreatmentPlan::with(['patient', 'createdBy']);
@@ -247,6 +282,25 @@ class TreatmentPlanService
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
+        }
+
+        if (! empty($filters['statuses'])) {
+            $rawStatuses = is_array($filters['statuses'])
+                ? $filters['statuses']
+                : explode(',', (string) $filters['statuses']);
+
+            $statuses = array_values(array_intersect(
+                array_map('trim', $rawStatuses),
+                ['draft', 'proposed', 'approved', 'in_progress', 'completed', 'cancelled']
+            ));
+
+            // A present-but-unknown list filters to nothing instead of silently
+            // falling back to every plan: an applied filter must never widen.
+            $query->whereIn('status', $statuses);
+        }
+
+        if (filter_var($filters['overdue'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            $query->overdue();
         }
 
         if (isset($filters['created_by'])) {

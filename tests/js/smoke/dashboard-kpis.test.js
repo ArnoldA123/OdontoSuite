@@ -293,13 +293,30 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
 // and the single "Ir a Caja" CTA. State AND balance derive from the
 // useCashRegister composable; stats.cash_session never paints visible state.
 describe('dashboard single cash surface (WU2)', () => {
+  // expected_amount (280) deliberately differs from opening + income - expenses
+  // (300): the dashboard balance must read the position the drawer will be
+  // counted against, not a formula recomputed in the browser.
   const openCurrent = {
     session: { id: 7, status: 'open', opened_at: '2026-10-05T08:30:00' },
-    summary: { opening_amount: 100, total_income: 250, total_expenses: 50 }
+    summary: {
+      opening_amount: 100,
+      total_income: 250,
+      total_expenses: 50,
+      cash_in: 260,
+      cash_out: 80,
+      expected_amount: 280
+    }
   }
   const closedCurrent = {
     session: { id: 6, status: 'closed', opened_at: '2026-10-04T09:15:00' },
-    summary: { opening_amount: 100, total_income: 250, total_expenses: 50 }
+    summary: {
+      opening_amount: 100,
+      total_income: 250,
+      total_expenses: 50,
+      cash_in: 260,
+      cash_out: 80,
+      expected_amount: 280
+    }
   }
 
   beforeEach(() => {
@@ -352,7 +369,7 @@ describe('dashboard single cash surface (WU2)', () => {
     expect(state.text()).toBe('Cerrada')
     expect(card.text()).not.toContain('Abierta')
     expect(card.text()).not.toContain('Apertura 09:15')
-    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 300.00')
+    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 280.00')
 
     wrapper.unmount()
   })
@@ -366,7 +383,7 @@ describe('dashboard single cash surface (WU2)', () => {
     expect(card.text()).toContain('Saldo de Caja')
     expect(card.find('[data-cash-state]').attributes('data-cash-state')).toBe('open')
     expect(card.find('[data-kpi-caption="cash-balance"]').text()).toBe('Apertura 08:30')
-    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 300.00')
+    expect(normalize(card.find('[data-stat="cash-balance"]').text())).toBe('S/ 280.00')
 
     wrapper.unmount()
   })

@@ -25,8 +25,12 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
 
     /**
      * PAGOS-MOD-001 + PAGOS-MNY-002 + PAGOS-CON-001 combined: no Teleport,
-     * <UiModal>/<UiButton>/<UiStatusBadge> present, formatCurrency imported,
-     * defineEmits(['close','success']) preserved.
+     * <UiModal>/<UiButton> present, formatCurrency imported, and the v-model
+     * contract (`defineEmits(['update:modelValue','success'])`) preserved.
+     *
+     * The Caja redesign (2026-10) replaced the bespoke `show`/`close` pair with
+     * the shared `<UiModal>` contract; the status pill these modals used to
+     * paint now lives in the page hero band.
      *
      * @dataProvider polishedFileProvider
      */
@@ -54,12 +58,6 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertTrue(
-            (bool) preg_match('/<UiStatusBadge\b/', $src)
-                || (bool) preg_match("/import\s+\w*[Bb]adge\w*\s+from\s+['\"]@\/components\/ui\/StatusBadge\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiStatusBadge>` (PAGOS-MOD-001).', $path)
-        );
-
-        $this->assertTrue(
             (bool) preg_match(
                 "/import\s*\{[^}]*formatCurrency[^}]*\}\s*from\s*['\"](?:@\/composables\/useFormatters|\.\.\/\.\.\/composables\/useFormatters|\.\.\/composables\/useFormatters)['\"]/",
                 $src
@@ -68,8 +66,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertTrue(
-            (bool) preg_match("/defineEmits\\s*\\(\\s*\\[\\s*['\"]close['\"]\\s*,\\s*['\"]success['\"]\\s*\\]\\s*\\)/", $src),
-            sprintf('%s MUST keep `defineEmits([\'close\',\'success\'])` byte-for-byte (PAGOS-CON-001).', $path)
+            (bool) preg_match("/defineEmits\\s*\\(\\s*\\[\\s*['\"]update:modelValue['\"]\\s*,\\s*['\"]success['\"]\\s*\\]\\s*\\)/", $src),
+            sprintf('%s MUST keep `defineEmits([\'update:modelValue\',\'success\'])` byte-for-byte (PAGOS-CON-001).', $path)
         );
     }
 

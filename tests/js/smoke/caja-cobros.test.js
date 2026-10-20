@@ -1,0 +1,361 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
+
+// Cobros tab (cash-register-interface-redesign T5). Pins the contract at the
+// component boundary: both surfaces render through UI primitives (no
+// hand-written table, no native select), the list reads the server meta for
+// its pagination, a rejected request becomes a visible alert with a retry
+// instead of an empty list, and the modal posts the pending appointment to
+// its own pay endpoint while surfacing the API error message.
+const harness = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+
+vi.mock('../../../resources/js/composables/useApi', () => ({
+  useApi: () => ({
+    get: harness.apiGet,
+    post: harness.apiPost,
+    put: async () => ({ data: {} }),
+    patch: async () => ({ data: {} }),
+    delete: async () => ({ data: {} }),
+    setToken: () => {},
+    normalizeError: () => ''
+  })
+}))
+vi.mock('../../../resources/js/composables/useEcho', () => ({
+  useEcho: () => ({
+    echo: {},
+    channel: () => ({}),
+    privateChannel: () => ({}),
+    connectionStatus: { value: 'connected' }
+  })
+}))
+vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
+  useWebSocketNotifications: () => ({})
+}))
+
+import uiComponents from '../../../resources/js/plugins/ui-components'
+import UiDataTable from '../../../resources/js/components/ui/DataTable.vue'
+import PendingPaymentsList from '../../../resources/js/modules/cash-register/components/PendingPaymentsList.vue'
+import PaymentModal from '../../../resources/js/modules/cash-register/components/PaymentModal.vue'
+import { formatCurrency } from '../../../resources/js/composables/useFormatters'
+
+const componentSource = name =>
+  readFileSync(resolve('resources/js/modules/cash-register/components', name), 'utf8')
+
+const pendingPayment = {
+  id: 7,
+  patient: {
+    id: 5,
+    name: 'Ana Torres',
+    document_number: '45123456',
+    email: 'ana@test.com',
+    phone: '999888777'
+  },
+  appointment: {
+    id: 7,
+    date: '2026-10-01T10:00:00',
+    appointment_type: { id: 2, name: 'Consulta' },
+    professional: { id: 3, name: 'Dr. Rojas' }
+  },
+  concept: 'Consulta',
+  amount: 120,
+  status: 'pending'
+}
+
+const paymentMethod = {
+  id: 1,
+  name: 'Efectivo',
+  description: 'Pago en efectivo',
+  gateway_type: null,
+  commission_percentage: 0
+}
+
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+})
+
+let wrapper = null
+
+const mountList = async () => {
+  wrapper = mount(PendingPaymentsList, { global: { plugins: [uiComponents] } })
+  await flushPromises()
+  return wrapper
+}
+
+const mountPaymentModal = async (props = {}) => {
+  wrapper = mount(PaymentModal, {
+    props: {
+      modelValue: true,
+      selectedPatient: {
+        id: 5,
+        name: 'Ana Torres',
+        document_number: '45123456',
+        email: 'ana@test.com',
+        phone: '999888777',
+        concept: 'Consulta',
+        amount: 120
+      },
+      selectedAppointment: {
+        id: 7,
+        date: '2026-10-01T10:00:00',
+        appointment_type: { name: 'Consulta' }
+      },
+      pendingPatients: [pendingPayment.patient],
+      ...props
+    },
+    global: { plugins: [uiComponents, router] },
+    attachTo: document.body
+  })
+  await flushPromises()
+  return wrapper
+}
+
+const chooseOption = async (field, label) => {
+  document.querySelector(`[data-payment-${field}] button`).click()
+  await flushPromises()
+  const option = Array.from(document.querySelectorAll('[role="listbox"] button')).find(button =>
+    button.textContent.includes(label)
+  )
+  expect(option, `option "${label}" must be listed for ${field}`).toBeTruthy()
+  option.click()
+  await flushPromises()
+}
+
+const submitPayment = async () => {
+  document.querySelector('[data-payment-submit]').click()
+  await flushPromises()
+  await flushPromises()
+}
+
+beforeEach(() => {
+  harness.apiGet.mockReset()
+  harness.apiPost.mockReset()
+  harness.apiGet.mockImplementation(url => {
+    if (url === '/api/payment-methods/active') {
+      return Promise.resolve({ data: [paymentMethod] })
+    }
+    return Promise.resolve({ data: [], meta: { total: 0 } })
+  })
+  harness.apiPost.mockResolvedValue({
+    data: { id: 91, transaction_number: 'TX-91' },
+    meta: {}
+  })
+})
+
+afterEach(() => {
+  wrapper?.unmount()
+  wrapper = null
+  document.body.innerHTML = ''
+})
+
+describe('Cobros: primitives', () => {
+  it('drops the hand-written table and the native selects', () => {
+    for (const name of ['PendingPaymentsList.vue', 'PaymentModal.vue']) {
+      const source = componentSource(name)
+      expect(source, `${name} must not hand-write a <table>`).not.toMatch(/<table\b/)
+      expect(source, `${name} must not render a native <select>`).not.toMatch(/<select\b/)
+    }
+  })
+})
+
+describe('PendingPaymentsList', () => {
+  it('renders the pending rows through UiDataTable and emits the payment to collect', async () => {
+    harness.apiGet.mockResolvedValue({ data: [pendingPayment], meta: { total: 1 } })
+    await mountList()
+
+    expect(wrapper.findComponent(UiDataTable).exists()).toBe(true)
+    const table = wrapper.find('[data-pending-payments-table]')
+    expect(table.exists()).toBe(true)
+    expect(table.text()).toContain('Ana Torres')
+    expect(table.text()).toContain('45123456')
+    expect(table.text()).toContain('Consulta')
+    expect(table.text()).toContain('Dr. Rojas')
+    expect(table.text()).toContain(formatCurrency(pendingPayment.amount))
+    expect(wrapper.html()).not.toContain('<select')
+
+    const payButton = wrapper.find('[data-pay-pending="7"]')
+    expect(payButton.exists()).toBe(true)
+    await payButton.trigger('click')
+
+    expect(wrapper.emitted('payment')).toHaveLength(1)
+    expect(wrapper.emitted('payment')[0][0]).toMatchObject({
+      id: 7,
+      amount: 120,
+      concept: 'Consulta',
+      patient: { id: 5, name: 'Ana Torres' },
+      appointment: { id: 7 }
+    })
+
+    const loaded = wrapper.emitted('paymentsLoaded')
+    expect(loaded.at(-1)[0]).toEqual([pendingPayment])
+  })
+
+  it('sends the server filters instead of filtering the loaded rows', async () => {
+    harness.apiGet.mockResolvedValue({ data: [pendingPayment], meta: { total: 1 } })
+    await mountList()
+
+    const search = wrapper.find('[data-filter="search"] input')
+    await search.setValue('Ana')
+    await new Promise(resolve => setTimeout(resolve, 350))
+    await flushPromises()
+
+    const call = harness.apiGet.mock.calls.at(-1)
+    expect(call[0]).toBe('/api/cash-register/pending-payments')
+    expect(call[1].params.search).toBe('Ana')
+    expect(wrapper.find('[data-pending-payments-table]').text()).toContain('Ana Torres')
+  })
+
+  it('pages with the meta returned by the API', async () => {
+    harness.apiGet.mockResolvedValue({
+      data: [pendingPayment],
+      meta: { current_page: 2, last_page: 3, per_page: 10, total: 25 }
+    })
+    await mountList()
+
+    const pager = wrapper.find('[data-pending-payments-pagination]')
+    expect(pager.exists()).toBe(true)
+    expect(pager.text()).toContain('25')
+
+    await pager.find('[aria-label="Ir a la página 3"]').trigger('click')
+    await flushPromises()
+
+    const { params } = harness.apiGet.mock.calls.at(-1)[1]
+    expect(params.page).toBe(3)
+    expect(params.per_page).toBe(10)
+  })
+
+  it('turns a 403 into a visible alert with a retry instead of an empty list', async () => {
+    harness.apiGet.mockRejectedValue({
+      response: { status: 403, data: { message: 'This action is unauthorized.' } }
+    })
+    await mountList()
+
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toMatch(/perfil administrativo/)
+    expect(wrapper.find('[data-pending-payments-table]').exists()).toBe(false)
+    expect(wrapper.emitted('paymentsLoaded')[0][0]).toEqual([])
+
+    const retry = wrapper.find('[data-pending-payments-retry]')
+    expect(retry.exists()).toBe(true)
+
+    harness.apiGet.mockResolvedValue({ data: [pendingPayment], meta: { total: 1 } })
+    await retry.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.find('[data-pending-payments-table]').text()).toContain('Ana Torres')
+  })
+
+  it('gates an expired session with the same administrative profile message', async () => {
+    harness.apiGet.mockRejectedValue({
+      response: { status: 401, data: { message: 'Unauthenticated.' } }
+    })
+    await mountList()
+
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toMatch(/perfil administrativo/)
+    expect(alert.text()).not.toContain('Unauthenticated.')
+  })
+})
+
+describe('PaymentModal', () => {
+  it('reads the active payment methods and never the admin-only catalog', async () => {
+    await mountPaymentModal()
+
+    const urls = harness.apiGet.mock.calls.map(call => call[0])
+    expect(urls).toContain('/api/payment-methods/active')
+    expect(urls).not.toContain('/api/payment-methods')
+    expect(document.querySelector('[data-payment-form]')).not.toBeNull()
+    expect(document.body.innerHTML).not.toContain('<select')
+    expect(document.querySelector('[data-payment-error]')).toBeNull()
+  })
+
+  it('renders the API message when the payment is rejected', async () => {
+    harness.apiPost.mockRejectedValue({
+      response: { status: 422, data: { message: 'La cita ya tiene una transacción activa.' } }
+    })
+    await mountPaymentModal()
+
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    const error = document.querySelector('[data-payment-error]')
+    expect(error).not.toBeNull()
+    expect(error.textContent).toContain('La cita ya tiene una transacción activa.')
+    expect(wrapper.emitted('success')).toBeUndefined()
+  })
+
+  it('pays the pending appointment through its own endpoint', async () => {
+    await mountPaymentModal()
+
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(harness.apiPost).toHaveBeenCalledWith('/api/pending-payments/7/pay', {
+      payment_method_id: 1,
+      amount: 120,
+      description: 'Consulta'
+    })
+
+    const success = wrapper.emitted('success')
+    expect(success).toHaveLength(1)
+    expect(success[0][0]).toMatchObject({
+      amount: 120,
+      concept: 'Consulta',
+      transactionNumber: 'TX-91',
+      patient: { id: 5, name: 'Ana Torres' },
+      paymentMethod: { name: 'Efectivo' }
+    })
+  })
+
+  it('falls back to the transactions endpoint for an ad-hoc charge', async () => {
+    await mountPaymentModal({ selectedPatient: null, selectedAppointment: null })
+
+    await chooseOption('patient', 'Ana Torres')
+    const concept = document.querySelector('[data-payment-concept] input')
+    concept.value = 'Limpieza'
+    concept.dispatchEvent(new Event('input'))
+    await flushPromises()
+    const amount = document.querySelector('[data-payment-amount] input')
+    amount.value = '80'
+    amount.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    const [url, payload] = harness.apiPost.mock.calls[0]
+    expect(url).toBe('/api/transactions')
+    expect(payload).toMatchObject({
+      patient_id: 5,
+      amount: 80,
+      description: 'Limpieza',
+      payment_method_id: 1
+    })
+    const success = wrapper.emitted('success')
+    expect(success).toHaveLength(1)
+    expect(success[0][0]).toMatchObject({
+      amount: 80,
+      concept: 'Limpieza',
+      transactionNumber: 'TX-91',
+      patient: { id: 5, name: 'Ana Torres' },
+      paymentMethod: { name: 'Efectivo' }
+    })
+  })
+
+  it('never posts while the form is incomplete', async () => {
+    await mountPaymentModal({ selectedPatient: null, selectedAppointment: null })
+
+    await submitPayment()
+
+    expect(harness.apiPost).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-payment-error]')).toBeNull()
+  })
+})

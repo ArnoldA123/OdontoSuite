@@ -1,154 +1,291 @@
 <template>
-  <div class="quotation-detail">
-    <div class="detail-header">
-      <div class="detail-title">
-        <h2 class="text-xl font-semibold text-theme-primary">
-          Presupuesto #{{ quotation.quotation_number }}
-        </h2>
-        <div class="detail-meta">
-          <span class="status-badge" :class="getStatusClass(quotation.status)">
-            {{ getStatusLabel(quotation.status) }}
+  <!-- Static model-value: the parent owns visibility through its v-if. -->
+  <UiModal model-value size="xl" :title="modalTitle" @close="emit('close')">
+    <div class="space-y-5 bg-canvas" data-quotation-detail>
+      <div class="flex flex-wrap items-center justify-between gap-3" data-detail-section="status">
+        <UiStatusBadge :variant="statusMeta.variant" :label="statusMeta.label" show-dot />
+        <p class="text-sm text-theme-secondary">
+          Emitido el
+          <span class="font-medium text-label tabular-nums">
+            {{ formatQuotationDate(quotation.quotation_date) }}
           </span>
-          <span class="text-sm text-theme-secondary">
-            {{ formatDate(quotation.created_at) }}
-          </span>
-        </div>
+        </p>
       </div>
-      <button class="close-button" @click="$emit('close')">
-        <XMarkIcon class="w-6 h-6" />
-      </button>
-    </div>
 
-    <div class="detail-content">
-      <!-- Información del paciente -->
-      <div class="detail-section">
-        <h3 class="section-title">Información del Paciente</h3>
-        <div class="patient-info">
-          <div class="info-item">
-            <span class="info-label">Nombre:</span>
-            <span class="info-value">
-              {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
-            </span>
+      <fieldset
+        class="space-y-3 rounded-[var(--radius-panel)] border border-hairline p-4"
+        data-detail-section="patient"
+      >
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Paciente
+        </legend>
+        <dl class="space-y-2 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Nombre</dt>
+            <dd class="min-w-0 text-right font-medium text-label">{{ patientName }}</dd>
           </div>
-          <div
-            v-if="quotation.patient?.document_number || quotation.patient?.dni"
-            class="info-item"
+          <div v-if="patientDocument" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Documento</dt>
+            <dd class="min-w-0 text-right font-medium text-theme-primary tabular-nums">
+              {{ patientDocument }}
+            </dd>
+          </div>
+          <div v-if="patientPhone" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Teléfono</dt>
+            <dd class="min-w-0 text-right font-medium text-theme-primary tabular-nums">
+              {{ patientPhone }}
+            </dd>
+          </div>
+        </dl>
+      </fieldset>
+
+      <fieldset
+        class="space-y-3 rounded-[var(--radius-panel)] border border-hairline p-4"
+        data-detail-section="validity"
+      >
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Vigencia
+        </legend>
+        <dl class="space-y-2 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Válido hasta</dt>
+            <dd class="flex items-center justify-end gap-2">
+              <span class="font-medium text-label tabular-nums">
+                {{ formatQuotationDate(quotation.valid_until) }}
+              </span>
+              <UiStatusBadge
+                v-if="validityBadge"
+                :variant="validityBadge.variant"
+                :label="validityBadge.label"
+                size="sm"
+              />
+            </dd>
+          </div>
+          <div v-if="originPlan" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Tratamiento de origen</dt>
+            <dd class="min-w-0 text-right font-medium text-theme-primary">{{ originPlan }}</dd>
+          </div>
+        </dl>
+      </fieldset>
+
+      <fieldset class="space-y-3" data-detail-section="items">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Procedimientos
+        </legend>
+        <UiDataTable
+          v-if="items.length"
+          :data="items"
+          :columns="itemColumns"
+          :show-header="false"
+          :searchable="false"
+          :pagination="false"
+        >
+          <template #cell-procedure="{ row }">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary">{{ resolveItemTitle(row) }}</p>
+              <p v-if="resolveItemDescription(row)" class="mt-0.5 text-xs text-theme-secondary">
+                {{ resolveItemDescription(row) }}
+              </p>
+              <p
+                v-if="row.specialty"
+                class="mt-0.5 text-xs font-medium uppercase tracking-wide text-theme-secondary"
+              >
+                {{ row.specialty }}
+              </p>
+            </div>
+          </template>
+          <template #cell-quantity="{ row }">
+            <span class="text-sm text-theme-primary tabular-nums">{{ row.quantity }}</span>
+          </template>
+          <template #cell-unit_price="{ row }">
+            <span class="block text-right text-sm text-theme-primary tabular-nums">
+              {{ formatCurrency(row.unit_price) }}
+            </span>
+          </template>
+          <template #cell-total_price="{ row }">
+            <span class="block text-right text-sm font-medium text-theme-primary tabular-nums">
+              {{ formatCurrency(row.total_price) }}
+            </span>
+          </template>
+        </UiDataTable>
+        <UiEmptyState
+          v-else
+          title="Sin procedimientos"
+          description="Este presupuesto no tiene procedimientos registrados."
+        />
+      </fieldset>
+
+      <fieldset
+        class="rounded-[var(--radius-panel)] border p-4"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        data-detail-section="costs"
+      >
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Costos
+        </legend>
+        <dl class="space-y-2 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Subtotal</dt>
+            <dd class="font-medium text-theme-primary tabular-nums">
+              {{ formatCurrency(quotation.subtotal) }}
+            </dd>
+          </div>
+          <div v-if="discountAmount > 0" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">
+              Descuento
+              <span v-if="discountPercentage > 0" class="text-theme-tertiary">
+                ({{ discountPercentage }}%)
+              </span>
+            </dt>
+            <dd class="font-medium text-theme-primary tabular-nums">
+              {{ formatCurrency(-discountAmount) }}
+            </dd>
+          </div>
+          <div v-if="taxAmount > 0" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">IGV</dt>
+            <dd class="font-medium text-theme-primary tabular-nums">
+              {{ formatCurrency(taxAmount) }}
+            </dd>
+          </div>
+          <div class="mt-2 flex items-baseline justify-between gap-3 border-t border-hairline pt-3">
+            <dt class="font-semibold text-label">Total</dt>
+            <dd class="text-lg font-semibold text-label tabular-nums">
+              {{ formatCurrency(quotation.total_amount) }}
+            </dd>
+          </div>
+        </dl>
+      </fieldset>
+
+      <fieldset
+        v-if="hasTerms"
+        class="space-y-3 rounded-[var(--radius-panel)] border border-hairline p-4"
+        data-detail-section="conditions"
+      >
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Condiciones
+        </legend>
+        <p class="whitespace-pre-line text-sm text-theme-primary">
+          {{ quotation.terms_conditions }}
+        </p>
+      </fieldset>
+
+      <fieldset
+        v-if="hasNotes"
+        class="space-y-3 rounded-[var(--radius-panel)] border border-hairline p-4"
+        data-detail-section="notes"
+      >
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Notas
+        </legend>
+        <p class="whitespace-pre-line text-sm text-theme-primary">{{ quotation.notes }}</p>
+      </fieldset>
+
+      <fieldset v-if="approvals.length" class="space-y-3" data-detail-section="approvals">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Aprobación
+        </legend>
+        <ul class="space-y-2">
+          <li
+            v-for="(approval, index) in approvals"
+            :key="approval.id ?? index"
+            class="rounded-[var(--radius-panel)] border border-hairline p-4"
           >
-            <span class="info-label">DNI:</span>
-            <span class="info-value">
-              {{ quotation.patient.document_number || quotation.patient.dni }}
-            </span>
-          </div>
-          <div v-if="quotation.patient?.phone" class="info-item">
-            <span class="info-label">Teléfono:</span>
-            <span class="info-value">{{ quotation.patient.phone }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Información del presupuesto -->
-      <div class="detail-section">
-        <h3 class="section-title">Detalles del Presupuesto</h3>
-        <div class="quotation-info">
-          <div class="info-item">
-            <span class="info-label">Título:</span>
-            <span class="info-value">{{ quotation.title }}</span>
-          </div>
-          <div v-if="quotation.description" class="info-item">
-            <span class="info-label">Descripción:</span>
-            <span class="info-value">{{ quotation.description }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Válido hasta:</span>
-            <span class="info-value">{{ formatDate(quotation.valid_until) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Items del presupuesto -->
-      <div v-if="quotation.items && quotation.items.length > 0" class="detail-section">
-        <h3 class="section-title">Procedimientos</h3>
-        <div class="items-list">
-          <div v-for="item in quotation.items" :key="item.id" class="item-row">
-            <div class="item-description">
-              <span class="item-name">{{ item.description }}</span>
-              <span v-if="item.category" class="item-category">{{ item.category }}</span>
-            </div>
-            <div class="item-quantity">
-              {{ item.quantity }}
-            </div>
-            <div class="item-price">S/ {{ formatPrice(item.unit_price) }}</div>
-            <div class="item-total">S/ {{ formatPrice(item.quantity * item.unit_price) }}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resumen de costos -->
-      <div class="detail-section">
-        <h3 class="section-title">Resumen de Costos</h3>
-        <div class="cost-summary">
-          <div class="cost-row">
-            <span>Subtotal:</span>
-            <span>S/ {{ formatPrice(quotation.subtotal || 0) }}</span>
-          </div>
-          <div v-if="quotation.discount_amount > 0" class="cost-row">
-            <span>Descuento:</span>
-            <span>- S/ {{ formatPrice(quotation.discount_amount) }}</span>
-          </div>
-          <div class="cost-row total">
-            <span>Total:</span>
-            <span>S/ {{ formatPrice(quotation.total_amount || 0) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Notas -->
-      <div v-if="quotation.notes" class="detail-section">
-        <h3 class="section-title">Notas</h3>
-        <div class="notes-content">
-          {{ quotation.notes }}
-        </div>
-      </div>
+            <p class="text-sm font-medium text-label tabular-nums">
+              {{ formatQuotationDate(approval.approval_date) }}
+            </p>
+            <p
+              v-if="approval.patient_notes"
+              class="mt-1 whitespace-pre-line text-sm text-theme-secondary"
+            >
+              {{ approval.patient_notes }}
+            </p>
+          </li>
+        </ul>
+      </fieldset>
     </div>
 
-    <div class="detail-footer">
-      <div class="footer-actions">
-        <button v-if="canEdit" class="btn btn-outline" @click="$emit('edit', quotation)">
-          <PencilIcon class="w-4 h-4 mr-2" />
-          Editar
-        </button>
-        <button class="btn btn-primary" :disabled="loading" @click="downloadPDF">
-          <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-          Descargar PDF
-        </button>
-        <button
-          v-if="canApprove"
-          class="btn btn-success"
-          :disabled="loading || quotation.status === 'approved'"
-          @click="approveQuotation"
-        >
-          <CheckIcon class="w-4 h-4 mr-2" />
-          Aprobar
-        </button>
-        <button
-          v-if="canReject"
-          class="btn btn-danger"
-          :disabled="loading || quotation.status === 'rejected'"
-          @click="rejectQuotation"
-        >
-          <XMarkIcon class="w-4 h-4 mr-2" />
-          Rechazar
-        </button>
-      </div>
-    </div>
-  </div>
+    <template #footer>
+      <UiButton type="button" variant="secondary" data-detail-action="close" @click="emit('close')">
+        Cerrar
+      </UiButton>
+      <UiButton
+        v-if="canDownload"
+        type="button"
+        variant="secondary"
+        data-detail-action="pdf"
+        @click="emit('download', props.quotation)"
+      >
+        <template #icon-left>
+          <ArrowDownTrayIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Descargar PDF
+      </UiButton>
+      <UiButton
+        v-if="canEdit"
+        type="button"
+        variant="primary"
+        data-detail-action="edit"
+        @click="emit('edit', props.quotation)"
+      >
+        <template #icon-left>
+          <PencilSquareIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Editar
+      </UiButton>
+      <UiButton
+        v-if="canApprove"
+        type="button"
+        variant="success"
+        data-detail-action="approve"
+        @click="emit('approve', props.quotation)"
+      >
+        <template #icon-left>
+          <CheckIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Aprobar
+      </UiButton>
+      <UiButton
+        v-if="canReject"
+        type="button"
+        variant="danger"
+        data-detail-action="reject"
+        @click="emit('reject', props.quotation)"
+      >
+        <template #icon-left>
+          <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Rechazar
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { useQuotations } from '@/composables/useQuotations'
-import { usePermissions } from '@/composables/usePermissions'
-import { XMarkIcon, PencilIcon, DocumentArrowDownIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowDownTrayIcon,
+  CheckIcon,
+  PencilSquareIcon,
+  XMarkIcon
+} from '@heroicons/vue/24/outline'
+import { useAuth } from '@/composables/useAuth'
+import { formatCurrency } from '../../../composables/useFormatters'
+import UiButton from '@/components/ui/Button.vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiEmptyState from '@/components/ui/EmptyState.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import {
+  canApproveQuotation,
+  canDownloadQuotation,
+  canEditQuotation,
+  canRejectQuotation,
+  expiryBadge,
+  formatQuotationDate,
+  getStatusMeta,
+  resolveItemDescription,
+  resolveItemTitle
+} from '../quotationMeta.js'
 
 const props = defineProps({
   quotation: {
@@ -157,196 +294,59 @@ const props = defineProps({
   }
 })
 
-defineEmits(['close', 'edit'])
+const emit = defineEmits(['close', 'edit', 'approve', 'reject', 'download'])
 
-const { downloadPDF, approveQuotation, rejectQuotation, loading } = useQuotations()
-const { can } = usePermissions()
+const { user } = useAuth()
 
-// Computed
-const canEdit = computed(() => {
-  return can('quotations.update') && ['draft', 'sent'].includes(props.quotation.status)
+const role = computed(() => user.value?.role)
+
+const modalTitle = computed(() => `Presupuesto ${props.quotation.quotation_number}`)
+const statusMeta = computed(() => getStatusMeta(props.quotation.status))
+const validityBadge = computed(() => expiryBadge(props.quotation))
+
+const patientName = computed(() => {
+  const { patient } = props.quotation
+  if (!patient) return '—'
+
+  const name = [patient.first_name, patient.last_name].filter(Boolean).join(' ').trim()
+
+  return name || '—'
+})
+const patientDocument = computed(() => props.quotation.patient?.document_number || '')
+const patientPhone = computed(() => props.quotation.patient?.phone || '')
+
+const originPlan = computed(() => {
+  const { treatment_plan: plan } = props.quotation
+  if (!plan) return ''
+
+  return plan.title || plan.plan_number || ''
 })
 
-const canApprove = computed(() => {
-  return can('quotations.approve') && props.quotation.status === 'sent'
-})
+const items = computed(() => props.quotation.items ?? [])
+const approvals = computed(() => props.quotation.approvals ?? [])
 
-const canReject = computed(() => {
-  return can('quotations.reject') && props.quotation.status === 'sent'
-})
+const itemColumns = [
+  { key: 'procedure', label: 'Procedimiento' },
+  { key: 'quantity', label: 'Cantidad' },
+  { key: 'unit_price', label: 'P. unitario' },
+  { key: 'total_price', label: 'Total' }
+]
 
-// Métodos
-const formatDate = date => {
-  if (!date) return 'N/A'
-  return new Date(date).toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+const positiveAmount = value => {
+  const amount = Number(value)
+
+  return Number.isFinite(amount) && amount > 0 ? amount : 0
 }
 
-const formatPrice = price => {
-  return Number(price).toFixed(2)
-}
+const discountAmount = computed(() => positiveAmount(props.quotation.discount_amount))
+const discountPercentage = computed(() => positiveAmount(props.quotation.discount_percentage))
+const taxAmount = computed(() => positiveAmount(props.quotation.tax_amount))
 
-const getStatusClass = status => {
-  const classes = {
-    draft: 'status-draft',
-    sent: 'status-sent',
-    approved: 'status-approved',
-    rejected: 'status-rejected'
-  }
-  return classes[status] || 'status-draft'
-}
+const hasTerms = computed(() => Boolean(String(props.quotation.terms_conditions || '').trim()))
+const hasNotes = computed(() => Boolean(String(props.quotation.notes || '').trim()))
 
-const getStatusLabel = status => {
-  const labels = {
-    draft: 'Borrador',
-    sent: 'Enviado',
-    approved: 'Aprobado',
-    rejected: 'Rechazado'
-  }
-  return labels[status] || 'Desconocido'
-}
+const canDownload = computed(() => canDownloadQuotation(role.value))
+const canEdit = computed(() => canEditQuotation(props.quotation, role.value))
+const canApprove = computed(() => canApproveQuotation(props.quotation, role.value))
+const canReject = computed(() => canRejectQuotation(props.quotation, role.value))
 </script>
-
-<style scoped>
-.quotation-detail {
-  @apply bg-theme-surface-elevated rounded-lg shadow-lg max-w-4xl mx-auto;
-}
-
-.detail-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.detail-title h2 {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.detail-meta {
-  @apply flex items-center space-x-3 mt-2;
-}
-
-.status-badge {
-  @apply px-2 py-1 text-xs font-medium rounded-full;
-}
-
-.status-draft {
-  @apply bg-theme-surface text-theme-secondary;
-}
-
-.status-sent {
-  @apply bg-primary-50 text-primary-700;
-}
-
-.status-approved {
-  @apply bg-success-badge;
-}
-
-.status-rejected {
-  @apply bg-danger-badge;
-}
-
-.close-button {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.detail-content {
-  @apply p-6 space-y-6;
-}
-
-.detail-section {
-  @apply space-y-3;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary;
-}
-
-.patient-info,
-.quotation-info {
-  @apply space-y-2;
-}
-
-.info-item {
-  @apply flex justify-between items-center py-1;
-}
-
-.info-label {
-  @apply text-sm font-medium text-theme-secondary;
-}
-
-.info-value {
-  @apply text-sm text-theme-primary;
-}
-
-.items-list {
-  @apply space-y-2;
-}
-
-.item-row {
-  @apply flex items-center py-2 px-3 bg-theme-surface rounded-lg;
-}
-
-.item-description {
-  @apply flex-1;
-}
-
-.item-name {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.item-category {
-  @apply text-xs text-theme-secondary ml-2;
-}
-
-.item-quantity,
-.item-price,
-.item-total {
-  @apply text-sm text-theme-primary w-20 text-center;
-}
-
-.cost-summary {
-  @apply space-y-2;
-}
-
-.cost-row {
-  @apply flex justify-between items-center py-1;
-}
-
-.cost-row.total {
-  @apply font-semibold text-lg border-t border-theme pt-2;
-}
-
-.notes-content {
-  @apply text-sm text-theme-primary bg-theme-surface p-3 rounded-lg;
-}
-
-.detail-footer {
-  @apply p-6 border-t border-theme;
-}
-
-.footer-actions {
-  @apply flex items-center justify-end space-x-3;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-
-.btn-success {
-  @apply bg-success-600 text-white hover:bg-success-700;
-}
-
-.btn-danger {
-  @apply bg-error-600 text-white hover:bg-error-700;
-}
-</style>

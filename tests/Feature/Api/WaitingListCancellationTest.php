@@ -20,7 +20,8 @@ use Tests\TestCase;
  * complete against the real `waiting_lists` schema, and `WaitingList` must not
  * reference columns its table does not have.
  *
- * Requires the MySQL runner (phpunit.mysql.xml) — see AGENTS.md §6 (decision #79).
+ * Needs a real schema, so Tests\TestCase skips it on any non-MySQL runner
+ * (issue #170); run it with phpunit.mysql.xml — see AGENTS.md §6 (decision #79).
  */
 class WaitingListCancellationTest extends TestCase
 {
@@ -138,6 +139,85 @@ class WaitingListCancellationTest extends TestCase
             );
             $this->assertNull($row->notified_at, "Waiting list entry {$untouched->id} must not be notified.");
         }
+    }
+
+    /**
+     * The cancelled slot used by the day-boundary tests.
+     */
+    private function futureSlot(): Carbon
+    {
+        return Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+    }
+
+    /**
+     * Cancel a slot covered by one waiting-list entry with the given window.
+     *
+     * @return object the stored waiting-list row right after the cancellation
+     */
+    private function cancelWithWindow(Carbon $slot, Carbon $windowStart, Carbon $windowEnd): object
+    {
+        $actor = $this->actor();
+        $this->actingAs($actor, 'sanctum');
+
+        $type = AppointmentType::factory()->create();
+        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+
+        $entry = $this->waitingEntry($actor->id, $type, [
+            'preferred_start_date' => $windowStart,
+            'preferred_end_date' => $windowEnd,
+        ]);
+
+        app(AppointmentService::class)->cancelAppointment($appointment);
+
+        return DB::table('waiting_lists')->find($entry->id);
+    }
+
+    public function test_preferred_end_date_at_midnight_covers_that_whole_day(): void
+    {
+        $slot = $this->futureSlot();
+
+        $row = $this->cancelWithWindow($slot, $slot->copy()->startOfDay(), $slot->copy()->startOfDay());
+
+        $this->assertSame(
+            'notified',
+            $row->status,
+            'An end date stored at midnight means "until this day included", so the cancelled slot belongs to the window.'
+        );
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_end_date_at_the_cancelled_instant_still_notifies(): void
+    {
+        $slot = $this->futureSlot();
+
+        $row = $this->cancelWithWindow($slot, $slot->copy()->startOfDay(), $slot->copy());
+
+        $this->assertSame('notified', $row->status, 'The exact upper boundary must stay inside the window.');
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_start_date_later_on_the_same_day_still_covers_the_slot(): void
+    {
+        $slot = $this->futureSlot();
+
+        $row = $this->cancelWithWindow($slot, $slot->copy()->endOfDay(), $slot->copy()->endOfDay());
+
+        $this->assertSame(
+            'notified',
+            $row->status,
+            'A start date only marks the first day of the window, so any time on that day is covered.'
+        );
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_window_ending_before_the_cancelled_day_is_not_notified(): void
+    {
+        $slot = $this->futureSlot();
+
+        $row = $this->cancelWithWindow($slot, $slot->copy()->subDays(2)->startOfDay(), $slot->copy()->subDay()->endOfDay());
+
+        $this->assertSame('active', $row->status, 'A window that ended the previous day must stay out.');
+        $this->assertNull($row->notified_at);
     }
 
     public function test_waiting_list_fillable_and_casts_reference_columns_that_exist(): void

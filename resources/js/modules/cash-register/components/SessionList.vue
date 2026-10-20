@@ -1,319 +1,126 @@
 <template>
-  <div class="session-list bg-canvas">
-    <!-- Filtros -->
-    <div class="mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
-          <input
-            v-model="filters.date_from"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
+  <div class="session-list space-y-6 bg-canvas" data-session-list>
+    <UiFilterBar :columns="filterColumns" title="Filtros" data-session-filters>
+      <UiSelect
+        v-model="filters.status"
+        :options="statusOptions"
+        label="Estado"
+        placeholder="Todas"
+        data-session-filter="status"
+        @update:model-value="applyFilters"
+      />
+
+      <UiInput
+        v-model="filters.date_from"
+        type="date"
+        label="Fecha desde"
+        data-session-filter="date-from"
+        @update:model-value="applyFilters"
+      />
+
+      <UiInput
+        v-model="filters.date_to"
+        type="date"
+        label="Fecha hasta"
+        data-session-filter="date-to"
+        @update:model-value="applyFilters"
+      />
+
+      <UiSelect
+        v-if="userOptions.length > 0"
+        v-model="filters.user_id"
+        :options="userOptions"
+        label="Usuario"
+        placeholder="Todos"
+        data-session-filter="user"
+        @update:model-value="applyFilters"
+      />
+    </UiFilterBar>
+
+    <UiDataTable
+      :data="sessions"
+      :columns="columns"
+      :loading="loading"
+      :pagination="false"
+      :searchable="false"
+      :show-header="false"
+      row-key="id"
+      empty-title="Sin sesiones registradas"
+      empty-description="Ajusta los filtros o abre una caja para iniciar el turno."
+      data-session-table
+    >
+      <template #cell-session="{ row }">
+        <div class="text-sm font-medium text-theme-primary tabular-nums">#{{ row.id }}</div>
+        <div class="text-xs text-theme-secondary">{{ formatDate(row.opened_at) }}</div>
+      </template>
+
+      <template #cell-user="{ row }">
+        <span class="text-sm text-theme-primary">{{ row.user?.name || 'Sin usuario' }}</span>
+      </template>
+
+      <template #cell-branch="{ row }">
+        <span class="text-sm text-theme-primary">{{ row.branch?.name || 'Sin sucursal' }}</span>
+      </template>
+
+      <template #cell-opened="{ row }">
+        <div class="text-sm text-theme-primary">{{ formatTime(row.opened_at) }}</div>
+        <div class="text-sm text-theme-secondary tabular-nums">
+          {{ formatPENLabel(row.opening_amount) }}
         </div>
+      </template>
 
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
-          <input
-            v-model="filters.date_to"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
+      <template #cell-closed="{ row }">
+        <div class="text-sm text-theme-primary">
+          {{ row.closed_at ? formatTime(row.closed_at) : '—' }}
         </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Estado</label>
-          <select
-            v-model="filters.status"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          >
-            <option value="">Todos</option>
-            <option value="open">Abierta</option>
-            <option value="closed">Cerrada</option>
-          </select>
+        <div class="text-sm text-theme-secondary tabular-nums">
+          {{ formatAmount(row.closing_amount) }}
         </div>
+      </template>
 
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Usuario</label>
-          <select
-            v-model="filters.user_id"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          >
-            <option value="">Todos</option>
-            <option v-for="user in users" :key="user.id" :value="user.id">
-              {{ user.name }}
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex justify-between items-center mt-4">
-        <Button variant="secondary" :loading="loading" @click="applyFilters">
-          <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
-          Filtrar
-        </Button>
-
-        <div class="flex space-x-2">
-          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            Excel
-          </Button>
-
-          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            PDF
-          </Button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla de Sesiones -->
-    <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Sesión
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Usuario
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Sucursal
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Apertura
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Cierre
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Diferencia
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr v-if="loading" class="animate-pulse">
-              <td colspan="8" class="px-6 py-4 text-center">
-                <div class="flex justify-center">
-                  <UiLoadingSpinner size="md" variant="primary" text="Cargando sesiones..." />
-                </div>
-              </td>
-            </tr>
-
-            <tr v-else-if="sessions.length === 0">
-              <td colspan="8" class="px-6 py-4 text-center text-theme-secondary">
-                No hay sesiones registradas
-              </td>
-            </tr>
-
-            <tr v-for="session in sessions" v-else :key="session.id" class="hover:bg-theme-surface">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-theme-primary">#{{ session.id }}</div>
-                <div class="text-sm text-theme-secondary">
-                  {{ formatDate(session.opened_at) }}
-                </div>
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ session.user?.name }}
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ session.branch?.name }}
-              </td>
-
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right"
-                :aria-label="`Monto apertura ${formatPENLabel(session.opening_amount)} soles`"
-              >
-                <div class="text-sm text-theme-primary">
-                  {{ formatTime(session.opened_at) }}
-                </div>
-                <div class="text-sm text-theme-secondary tabular-nums">
-                  {{ formatPENLabel(session.opening_amount) }}
-                </div>
-              </td>
-
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right"
-                :aria-label="
-                  session.closing_amount
-                    ? `Monto cierre ${formatPENLabel(session.closing_amount)} soles`
-                    : 'Sin monto de cierre'
-                "
-              >
-                <div v-if="session.closed_at" class="text-sm text-theme-primary">
-                  {{ formatTime(session.closed_at) }}
-                </div>
-                <div v-else class="text-sm text-theme-secondary">-</div>
-                <div
-                  v-if="session.closing_amount"
-                  class="text-sm text-theme-secondary tabular-nums"
-                >
-                  {{ formatPENLabel(session.closing_amount) }}
-                </div>
-              </td>
-
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right"
-                :aria-label="
-                  session.difference_amount !== null
-                    ? `Diferencia ${formatPENLabel(session.difference_amount)} soles`
-                    : 'Sin diferencia'
-                "
-              >
-                <div v-if="session.difference_amount !== null">
-                  <span
-                    class="text-sm font-medium tabular-nums"
-                    :class="
-                      session.difference_amount === 0
-                        ? 'text-systemGreen-600'
-                        : session.difference_amount > 0
-                          ? 'text-systemBlue-600'
-                          : 'text-systemRed-600'
-                    "
-                  >
-                    {{
-                      session.difference_amount === 0
-                        ? 'Conforme'
-                        : session.difference_amount > 0
-                          ? '+'
-                          : ''
-                    }}{{ formatPENLabel(session.difference_amount) }}
-                  </span>
-                </div>
-                <div v-else class="text-sm text-theme-secondary">-</div>
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="session.status === 'open' ? 'success' : 'neutral'"
-                  :label="getStatusText(session.status)"
-                />
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <button
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
-                    title="Ver detalle"
-                    @click="viewSession(session)"
-                  >
-                    <EyeIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    v-if="session.status === 'closed'"
-                    class="text-systemGreen-600 hover:text-systemGreen-700"
-                    title="Generar reporte"
-                    @click="generateReport(session)"
-                  >
-                    <DocumentTextIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    v-if="canReopen(session)"
-                    class="text-systemYellow-600 hover:text-systemYellow-700"
-                    title="Reabrir sesión"
-                    @click="reopenSession(session)"
-                  >
-                    <ArrowPathIcon class="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Paginación -->
-    <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-theme-primary">
-        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
-        <span class="tabular-nums">
-          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
-        </span>
-        de
-        <span class="tabular-nums">{{ pagination.total }}</span>
-        resultados
-      </div>
-
-      <div class="flex space-x-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          :disabled="pagination.current_page <= 1"
-          @click="loadPage(pagination.current_page - 1)"
+      <template #cell-difference="{ row }">
+        <span
+          v-if="hasAmount(row.difference_amount)"
+          class="text-sm font-medium tabular-nums"
+          :class="differenceClass(row.difference_amount)"
         >
-          Anterior
-        </Button>
-
-        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
-          Página {{ pagination.current_page }} de {{ pagination.last_page }}
+          {{ formatDifference(row.difference_amount) }}
         </span>
+        <span v-else class="text-sm text-theme-secondary">—</span>
+      </template>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          :disabled="pagination.current_page >= pagination.last_page"
-          @click="loadPage(pagination.current_page + 1)"
-        >
-          Siguiente
-        </Button>
-      </div>
+      <template #cell-status="{ row }">
+        <UiStatusBadge
+          :variant="row.status === 'open' ? 'success' : 'neutral'"
+          :label="getStatusText(row.status)"
+        />
+      </template>
+    </UiDataTable>
+
+    <div v-if="pagination && totalPages > 1" data-session-pagination>
+      <UiPagination
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total="totalItems"
+        :per-page="perPage"
+        @page-change="onPageChange"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import Button from '@/components/ui/Button.vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiFilterBar from '@/components/ui/FilterBar.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiPagination from '@/components/ui/Pagination.vue'
+import UiSelect from '@/components/ui/Select.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import { usePermissions } from '@/composables/usePermissions'
+import { useApi } from '@/composables/useApi'
 import { formatPENLabel } from '@/composables/useFormatters'
-import {
-  MagnifyingGlassIcon,
-  DocumentArrowDownIcon,
-  EyeIcon,
-  DocumentTextIcon,
-  ArrowPathIcon
-} from '@heroicons/vue/24/outline'
 
-defineProps({
+const props = defineProps({
   sessions: {
     type: Array,
     default: () => []
@@ -328,51 +135,85 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['refresh', 'view', 'reopen'])
+const emit = defineEmits(['refresh'])
 
-const { manageCashRegister } = usePermissions()
+const { get } = useApi()
 
-// Estado
-const filters = ref({
+const filters = reactive({
+  status: '',
   date_from: '',
   date_to: '',
-  status: '',
   user_id: ''
 })
 
-const users = ref([])
-const exporting = ref(false)
+const userOptions = ref([])
 
-// Métodos
+const statusOptions = [
+  { value: '', label: 'Todas' },
+  { value: 'open', label: 'Abierta' },
+  { value: 'closed', label: 'Cerrada' }
+]
+
+const columns = [
+  { key: 'session', label: 'Sesión' },
+  { key: 'user', label: 'Usuario' },
+  { key: 'branch', label: 'Sucursal' },
+  { key: 'opened', label: 'Apertura', align: 'right' },
+  { key: 'closed', label: 'Cierre', align: 'right' },
+  { key: 'difference', label: 'Diferencia', align: 'right' },
+  { key: 'status', label: 'Estado' }
+]
+
+const filterColumns = computed(() => (userOptions.value.length > 0 ? 4 : 3))
+
+const currentPage = computed(() => Number(props.pagination?.current_page) || 1)
+const totalPages = computed(() => Number(props.pagination?.last_page) || 1)
+const totalItems = computed(() => Number(props.pagination?.total) || props.sessions.length)
+const perPage = computed(() => Number(props.pagination?.per_page) || props.sessions.length || 15)
+
+const activeFilters = computed(() => {
+  const payload = {}
+
+  if (filters.status) payload.status = filters.status
+  if (filters.date_from) payload.date_from = filters.date_from
+  if (filters.date_to) payload.date_to = filters.date_to
+  if (filters.user_id) payload.user_id = filters.user_id
+
+  return payload
+})
+
+const loadUsers = async () => {
+  try {
+    const response = await get('/api/users')
+    userOptions.value = (response?.data || []).map(user => ({
+      value: String(user.id),
+      label: user.name
+    }))
+  } catch {
+    userOptions.value = []
+  }
+}
+
 const applyFilters = () => {
-  emit('refresh', filters.value)
+  emit('refresh', { ...activeFilters.value, page: 1 })
 }
 
-const loadPage = page => {
-  emit('refresh', { ...filters.value, page })
+const onPageChange = page => {
+  emit('refresh', { ...activeFilters.value, page })
 }
 
-const viewSession = session => {
-  emit('view', session)
+const hasAmount = value => value !== null && value !== undefined
+
+const formatAmount = value => (hasAmount(value) ? formatPENLabel(value) : '—')
+
+const formatDifference = amount => {
+  if (amount === 0) return 'Conforme'
+  return `${amount > 0 ? '+' : ''}${formatPENLabel(amount)}`
 }
 
-const generateReport = () => {
-  // Implementar generación de reporte
-}
-
-const reopenSession = async session => {
-  const ok = await confirm({
-    title: 'Reabrir sesión de caja',
-    message: '¿Está seguro de reabrir esta sesión de caja?',
-    confirmText: 'Reabrir',
-    variant: 'danger'
-  })
-  if (!ok) return
-  emit('reopen', session)
-}
-
-const canReopen = session => {
-  return session.status === 'closed' && manageCashRegister.value
+const differenceClass = amount => {
+  if (amount === 0) return 'text-systemGreen-600'
+  return amount > 0 ? 'text-systemBlue-600' : 'text-systemRed-600'
 }
 
 const formatDate = dateTime => {
@@ -390,8 +231,6 @@ const formatTime = dateTime => {
   })
 }
 
-// formatPENLabel is imported from useFormatters (PAGOS-MNY-002 canonicalization).
-
 const getStatusText = status => {
   const texts = {
     open: 'Abierta',
@@ -400,25 +239,5 @@ const getStatusText = status => {
   return texts[status] || status
 }
 
-const exportToExcel = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a Excel
-  } catch (error) {
-    // La exportación a Excel aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
-
-const exportToPDF = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a PDF
-  } catch (error) {
-    // La exportación a PDF aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
+onMounted(loadUsers)
 </script>

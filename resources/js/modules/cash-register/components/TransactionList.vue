@@ -1,285 +1,177 @@
 <template>
-  <div class="transaction-list bg-canvas">
-    <!-- Filtros -->
-    <div class="mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+  <div class="space-y-4 bg-canvas" data-transaction-list>
+    <UiFilterBar :columns="4" data-transaction-filters>
+      <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
-          <input
+          <label
+            for="transaction-date-from"
+            class="mb-1 block text-sm font-medium text-theme-primary"
+          >
+            Desde
+          </label>
+          <UiInput
+            id="transaction-date-from"
             v-model="filters.date_from"
             type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
+            data-filter="date_from"
           />
         </div>
-
         <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
-          <input
+          <label
+            for="transaction-date-to"
+            class="mb-1 block text-sm font-medium text-theme-primary"
+          >
+            Hasta
+          </label>
+          <UiInput
+            id="transaction-date-to"
             v-model="filters.date_to"
             type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
+            data-filter="date_to"
           />
         </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Tipo</label>
-          <select
-            v-model="filters.type"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          >
-            <option value="">Todos</option>
-            <option value="payment">Ingreso</option>
-            <option value="refund">Egreso</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Método de Pago</label>
-          <select
-            v-model="filters.payment_method_id"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          >
-            <option value="">Todos</option>
-            <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
-              {{ method.name }}
-            </option>
-          </select>
-        </div>
       </div>
 
-      <div class="flex justify-between items-center mt-4">
-        <Button variant="secondary" :loading="loading" @click="applyFilters">
-          <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
+      <div>
+        <label for="transaction-type" class="mb-1 block text-sm font-medium text-theme-primary">
+          Tipo
+        </label>
+        <UiSelect
+          id="transaction-type"
+          v-model="filters.type"
+          :options="typeOptions"
+          placeholder="Todos"
+          data-filter="type"
+        />
+      </div>
+
+      <div>
+        <label
+          for="transaction-payment-method"
+          class="mb-1 block text-sm font-medium text-theme-primary"
+        >
+          Método de pago
+        </label>
+        <UiSelect
+          id="transaction-payment-method"
+          v-model="filters.payment_method_id"
+          :options="paymentMethodOptions"
+          placeholder="Todos"
+          data-filter="payment_method_id"
+        />
+      </div>
+
+      <div class="flex items-end">
+        <UiButton variant="secondary" data-filter-apply @click="applyFilters">
+          <template #icon-left>
+            <MagnifyingGlassIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
           Filtrar
-        </Button>
+        </UiButton>
+      </div>
+    </UiFilterBar>
 
-        <div class="flex space-x-2">
-          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            Excel
-          </Button>
+    <UiDataTable
+      :data="transactions"
+      :columns="columns"
+      :loading="loading"
+      :pagination="false"
+      :searchable="false"
+      :show-header="false"
+      row-key="id"
+      empty-title="Sin transacciones"
+      empty-description="No hay transacciones registradas para los filtros aplicados"
+      data-transaction-table
+    >
+      <template #cell-time="{ row }">
+        <span class="tabular-nums">{{ formatTime(row.created_at) }}</span>
+      </template>
 
-          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            PDF
-          </Button>
+      <template #cell-patient="{ row }">
+        <div class="text-sm font-medium text-theme-primary">{{ patientName(row) }}</div>
+        <div class="text-sm text-theme-secondary">
+          {{ row.patient?.document_number || row.patient?.dni || '—' }}
         </div>
-      </div>
-    </div>
+      </template>
 
-    <!-- Tabla de Transacciones -->
-    <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Hora
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Paciente
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Descripción
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Método
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Monto
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Estado
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr v-if="loading" class="animate-pulse">
-              <td colspan="7" class="px-6 py-4 text-center">
-                <div class="flex justify-center">
-                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent" />
-                </div>
-              </td>
-            </tr>
+      <template #cell-description="{ row }">
+        <div class="text-sm text-theme-primary">{{ row.description }}</div>
+        <div v-if="row.reference_number" class="text-sm text-theme-secondary">
+          Ref: {{ row.reference_number }}
+        </div>
+      </template>
 
-            <tr v-else-if="transactions.length === 0">
-              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">
-                No hay transacciones registradas
-              </td>
-            </tr>
+      <template #cell-payment_method="{ row }">
+        {{ row.payment_method?.name || '—' }}
+      </template>
 
-            <tr
-              v-for="transaction in transactions"
-              v-else
-              :key="transaction.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ formatTime(transaction.created_at) }}
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-theme-primary">
-                  {{ transaction.patient?.name }} {{ transaction.patient?.last_name }}
-                </div>
-                <div class="text-sm text-theme-secondary">
-                  {{ transaction.patient?.document_number || transaction.patient?.dni }}
-                </div>
-              </td>
-
-              <td class="px-6 py-4">
-                <div class="text-sm text-theme-primary">
-                  {{ transaction.description }}
-                </div>
-                <div v-if="transaction.reference_number" class="text-sm text-theme-secondary">
-                  Ref: {{ transaction.reference_number }}
-                </div>
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ transaction.payment_method?.name }}
-              </td>
-
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right"
-                :aria-label="`${isIncomeType(transaction.type) ? '+' : '-'}${formatCurrency(transaction.amount)} soles`"
-              >
-                <div
-                  class="text-sm font-medium tabular-nums"
-                  :class="
-                    isIncomeType(transaction.type) ? 'text-systemGreen-600' : 'text-systemRed-600'
-                  "
-                >
-                  {{ isIncomeType(transaction.type) ? '+' : '-'
-                  }}{{ formatCurrency(transaction.amount) }}
-                </div>
-                <div
-                  v-if="transaction.discount_amount > 0"
-                  class="text-xs text-theme-secondary tabular-nums"
-                >
-                  Descuento: -{{ formatCurrency(transaction.discount_amount) }}
-                </div>
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="getStatusVariant(transaction.status)"
-                  :label="getStatusText(transaction.status)"
-                />
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <button
-                    class="text-systemBlue-600 hover:text-systemBlue-700"
-                    title="Ver detalle"
-                    @click="viewTransaction(transaction)"
-                  >
-                    <EyeIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    class="text-systemGreen-600 hover:text-systemGreen-700"
-                    title="Generar comprobante"
-                    @click="generateReceipt(transaction)"
-                  >
-                    <DocumentTextIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    v-if="canVoid && transaction.status === 'completed'"
-                    class="text-systemRed-600 hover:text-systemRed-700"
-                    title="Anular transacción"
-                    @click="voidTransaction(transaction)"
-                  >
-                    <XMarkIcon class="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Paginación -->
-    <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-theme-primary">
-        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
-        <span class="tabular-nums">
-          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
-        </span>
-        de
-        <span class="tabular-nums">{{ pagination.total }}</span>
-        resultados
-      </div>
-
-      <div class="flex space-x-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          :disabled="pagination.current_page <= 1"
-          @click="loadPage(pagination.current_page - 1)"
+      <template #cell-amount="{ row }">
+        <div
+          class="text-right text-sm font-medium tabular-nums"
+          :class="isIncomeType(row.type) ? 'text-systemGreen-600' : 'text-systemRed-600'"
         >
-          Anterior
-        </Button>
+          {{ isIncomeType(row.type) ? '+' : '-' }}{{ formatCurrency(row.amount) }}
+        </div>
+        <div v-if="hasDiscount(row)" class="text-right text-xs text-theme-secondary tabular-nums">
+          Descuento: -{{ formatCurrency(row.discount_amount) }}
+        </div>
+      </template>
 
-        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
-          Página {{ pagination.current_page }} de {{ pagination.last_page }}
-        </span>
+      <template #cell-status="{ row }">
+        <UiStatusBadge :variant="getStatusVariant(row.status)" :label="getStatusText(row.status)" />
+      </template>
 
-        <Button
-          variant="secondary"
+      <template #actions="{ row }">
+        <UiButton
+          variant="ghost"
           size="sm"
-          :disabled="pagination.current_page >= pagination.last_page"
-          @click="loadPage(pagination.current_page + 1)"
+          data-row-action="receipt"
+          @click.stop="emitReceipt(row)"
         >
-          Siguiente
-        </Button>
-      </div>
-    </div>
+          <template #icon-left>
+            <DocumentTextIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Comprobante
+        </UiButton>
+        <UiButton
+          v-if="canVoid && row.status === 'completed'"
+          variant="ghost"
+          size="sm"
+          class="text-systemRed-700"
+          data-row-action="void"
+          @click.stop="emitVoid(row)"
+        >
+          <template #icon-left>
+            <XMarkIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Anular
+        </UiButton>
+      </template>
+    </UiDataTable>
+
+    <UiPagination
+      v-if="pagination && pagination.last_page > 1"
+      :current-page="pagination.current_page"
+      :total-pages="pagination.last_page"
+      :total="pagination.total"
+      :per-page="pagination.per_page"
+      @page-change="loadPage"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import Button from '@/components/ui/Button.vue'
-import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import { useTransactions } from '@/composables/useTransactions'
-import { usePermissions } from '@/composables/usePermissions'
+import { ref, computed, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { formatCurrency } from '@/composables/useFormatters'
-import {
-  MagnifyingGlassIcon,
-  DocumentArrowDownIcon,
-  EyeIcon,
-  DocumentTextIcon,
-  XMarkIcon
-} from '@heroicons/vue/24/outline'
+import UiButton from '@/components/ui/Button.vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiFilterBar from '@/components/ui/FilterBar.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiPagination from '@/components/ui/Pagination.vue'
+import UiSelect from '@/components/ui/Select.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import { DocumentTextIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 defineProps({
   transactions: {
@@ -293,16 +185,17 @@ defineProps({
   pagination: {
     type: Object,
     default: null
+  },
+  canVoid: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['refresh', 'edit', 'void', 'receipt'])
+const emit = defineEmits(['refresh', 'void', 'receipt'])
 
 const { get } = useApi()
-const { canVoid } = usePermissions()
-const { voidTransaction: voidTransactionApi } = useTransactions()
 
-// Estado
 const filters = ref({
   date_from: '',
   date_to: '',
@@ -311,72 +204,71 @@ const filters = ref({
 })
 
 const paymentMethods = ref([])
-const exporting = ref(false)
 
-// Métodos
+const typeOptions = [
+  { label: 'Todos', value: '' },
+  { label: 'Ingreso', value: 'payment' },
+  { label: 'Egreso', value: 'refund' }
+]
+
+const paymentMethodOptions = computed(() => [
+  { label: 'Todos', value: '' },
+  ...paymentMethods.value.map(method => ({ label: method.name, value: method.id }))
+])
+
+const columns = [
+  { key: 'time', label: 'Hora' },
+  { key: 'patient', label: 'Paciente' },
+  { key: 'description', label: 'Descripción' },
+  { key: 'payment_method', label: 'Método' },
+  { key: 'amount', label: 'Monto' },
+  { key: 'status', label: 'Estado' }
+]
+
 const loadPaymentMethods = async () => {
   try {
-    const response = await get('/api/payment-methods')
+    const response = await get('/api/payment-methods/active')
     paymentMethods.value = response.data || []
-  } catch (error) {
-    // Los métodos de pago se cargan vía catálogo local si falla la API
+  } catch {
+    paymentMethods.value = []
   }
+}
+
+const appliedFilters = () => {
+  const applied = {}
+  if (filters.value.date_from) applied.date_from = filters.value.date_from
+  if (filters.value.date_to) applied.date_to = filters.value.date_to
+  if (filters.value.type) applied.type = filters.value.type
+  if (filters.value.payment_method_id !== '' && filters.value.payment_method_id !== null) {
+    applied.payment_method_id = filters.value.payment_method_id
+  }
+  return applied
 }
 
 const applyFilters = () => {
-  emit('refresh', filters.value)
+  emit('refresh', appliedFilters())
 }
 
 const loadPage = page => {
-  emit('refresh', { ...filters.value, page })
+  emit('refresh', { ...appliedFilters(), page })
 }
 
-const viewTransaction = () => {
-  // Implementar vista de detalle
+const emitVoid = row => {
+  emit('void', row)
 }
 
-const generateReceipt = transaction => {
-  emit('receipt', transaction)
+const emitReceipt = row => {
+  emit('receipt', row)
 }
 
-const voidTransaction = async transaction => {
-  const ok = await confirm({
-    title: 'Anular transacción',
-    message: '¿Está seguro de anular esta transacción?',
-    confirmText: 'Anular',
-    variant: 'danger'
-  })
-  if (!ok) return
-
-  try {
-    await voidTransactionApi(transaction.id, 'Anulación manual')
-    emit('refresh')
-  } catch (error) {
-    // La transacción se conserva si falla la anulación
-  }
+const patientName = row => {
+  const name = [row.patient?.name, row.patient?.last_name].filter(Boolean).join(' ')
+  return name || '—'
 }
 
-const exportToExcel = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a Excel
-  } catch (error) {
-    // La exportación a Excel aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
+const hasDiscount = row => Number(row.discount_amount) > 0
 
-const exportToPDF = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a PDF
-  } catch (error) {
-    // La exportación a PDF aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
+const isIncomeType = type => type === 'payment'
 
 const formatTime = dateTime => {
   return new Date(dateTime).toLocaleTimeString('es-PE', {
@@ -384,8 +276,6 @@ const formatTime = dateTime => {
     minute: '2-digit'
   })
 }
-
-// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
 
 const getStatusText = status => {
   const texts = {
@@ -409,13 +299,6 @@ const getStatusVariant = status => {
   return variants[status] || 'neutral'
 }
 
-// Helper para determinar si un tipo de transacción es ingreso
-const isIncomeType = type => {
-  // 'payment' = ingreso, 'refund' = egreso, otros = egreso
-  return type === 'payment'
-}
-
-// Lifecycle
 onMounted(() => {
   loadPaymentMethods()
 })
