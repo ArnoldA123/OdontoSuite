@@ -38,111 +38,150 @@
     </div>
 
     <!-- Table -->
-    <div class="data-table-wrapper">
-      <table class="data-table">
-        <!-- Header -->
-        <thead class="data-table-header">
-          <tr>
-            <th v-if="selectable" scope="col" class="data-table-cell-select">
-              <UiInput
-                v-model="selectAll"
-                type="checkbox"
-                :indeterminate="isIndeterminate"
-                @change="toggleSelectAll"
-              />
-            </th>
-            <th
-              v-for="column in columns"
-              :key="column.key"
-              scope="col"
-              :class="getHeaderCellClasses(column)"
-              @click="handleSort(column)"
-            >
-              <div class="flex items-center gap-2">
-                <span>{{ column.label }}</span>
-                <svg
-                  v-if="column.sortable"
-                  class="w-4 h-4 transition-transform duration-200"
-                  :class="getSortIconClasses(column)"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+    <div class="data-table-scroll" :data-table-scroll="scrollState">
+      <div class="data-table-scroll-frame">
+        <span
+          v-if="canScrollLeft"
+          class="data-table-scroll-edge data-table-scroll-edge-left"
+          data-table-scroll-edge="left"
+          aria-hidden="true"
+        />
+        <span
+          v-if="canScrollRight"
+          class="data-table-scroll-edge data-table-scroll-edge-right"
+          data-table-scroll-edge="right"
+          aria-hidden="true"
+        />
+        <div
+          ref="scrollViewport"
+          class="data-table-wrapper"
+          data-table-scroll-viewport
+          @scroll.passive="readScrollState"
+        >
+          <table class="data-table">
+            <!-- Header -->
+            <thead class="data-table-header">
+              <tr>
+                <th v-if="selectable" scope="col" class="data-table-cell-select">
+                  <UiInput
+                    v-model="selectAll"
+                    type="checkbox"
+                    :indeterminate="isIndeterminate"
+                    @change="toggleSelectAll"
                   />
-                </svg>
-              </div>
-            </th>
-            <th v-if="$slots.actions" scope="col" class="data-table-header-cell w-32">Acciones</th>
-          </tr>
-        </thead>
+                </th>
+                <th
+                  v-for="column in columns"
+                  :key="column.key"
+                  scope="col"
+                  :class="getHeaderCellClasses(column)"
+                  @click="handleSort(column)"
+                >
+                  <div class="flex items-center gap-2">
+                    <span>{{ column.label }}</span>
+                    <svg
+                      v-if="column.sortable"
+                      class="w-4 h-4 transition-transform duration-200"
+                      :class="getSortIconClasses(column)"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                      />
+                    </svg>
+                  </div>
+                </th>
+                <th v-if="$slots.actions" scope="col" class="data-table-header-cell w-32">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
 
-        <!-- Body -->
-        <tbody class="data-table-body">
-          <!-- Loading state -->
-          <tr v-if="loading">
-            <td :colspan="totalColumns" class="data-table-cell-loading">
-              <div class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
-                <span class="ml-3 text-theme-secondary">Cargando...</span>
-              </div>
-            </td>
-          </tr>
+            <!-- Body -->
+            <tbody class="data-table-body">
+              <!-- Loading state -->
+              <tr v-if="loading">
+                <td :colspan="totalColumns" class="data-table-cell-loading">
+                  <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+                    <span class="ml-3 text-theme-secondary">Cargando...</span>
+                  </div>
+                </td>
+              </tr>
 
-          <!-- Empty state -->
-          <tr v-else-if="filteredData.length === 0">
-            <td :colspan="totalColumns" class="data-table-cell-empty">
-              <UiEmptyState :title="emptyTitle" :description="emptyDescription" :icon="emptyIcon">
-                <template #action>
-                  <slot name="empty-action" />
-                </template>
-              </UiEmptyState>
-            </td>
-          </tr>
+              <!-- Empty state -->
+              <tr v-else-if="filteredData.length === 0">
+                <td :colspan="totalColumns" class="data-table-cell-empty">
+                  <UiEmptyState
+                    :title="emptyTitle"
+                    :description="emptyDescription"
+                    :icon="emptyIcon"
+                  >
+                    <template #action>
+                      <slot name="empty-action" />
+                    </template>
+                  </UiEmptyState>
+                </td>
+              </tr>
 
-          <!-- Data rows -->
-          <tr
-            v-for="(row, index) in paginatedData"
-            v-else
-            :key="getRowKey(row, index)"
-            :class="getRowClasses(row, index)"
-            @click="handleRowClick(row, index)"
-          >
-            <!-- Selection checkbox -->
-            <td v-if="selectable" class="data-table-cell-select">
-              <UiInput
-                v-model="selectedRows"
-                :value="getRowKey(row, index)"
-                type="checkbox"
-                @change="handleRowSelect(row, index)"
-              />
-            </td>
-
-            <!-- Data cells -->
-            <td v-for="column in columns" :key="column.key" :class="getCellClasses(column)">
-              <slot
-                :name="`cell-${column.key}`"
-                :row="row"
-                :value="getCellValue(row, column)"
-                :column="column"
+              <!-- Data rows -->
+              <tr
+                v-for="(row, index) in paginatedData"
+                v-else
+                :key="getRowKey(row, index)"
+                :class="getRowClasses(row, index)"
+                @click="handleRowClick(row, index)"
               >
-                {{ formatCellValue(row, column) }}
-              </slot>
-            </td>
+                <!-- Selection checkbox -->
+                <td v-if="selectable" class="data-table-cell-select">
+                  <UiInput
+                    v-model="selectedRows"
+                    :value="getRowKey(row, index)"
+                    type="checkbox"
+                    @change="handleRowSelect(row, index)"
+                  />
+                </td>
 
-            <!-- Actions cell -->
-            <td v-if="$slots.actions" class="data-table-cell-actions">
-              <div class="flex items-center gap-2">
-                <slot name="actions" :row="row" :index="index" />
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                <!-- Data cells -->
+                <td v-for="column in columns" :key="column.key" :class="getCellClasses(column)">
+                  <slot
+                    :name="`cell-${column.key}`"
+                    :row="row"
+                    :value="getCellValue(row, column)"
+                    :column="column"
+                  >
+                    {{ formatCellValue(row, column) }}
+                  </slot>
+                </td>
+
+                <!-- Actions cell -->
+                <td v-if="$slots.actions" class="data-table-cell-actions">
+                  <div class="flex items-center gap-2">
+                    <slot name="actions" :row="row" :index="index" />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p
+        v-if="canScrollRight"
+        class="data-table-scroll-hint"
+        data-table-scroll-affordance
+        aria-hidden="true"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+        Desliza para ver más columnas
+      </p>
     </div>
 
     <!-- Pagination -->
@@ -209,7 +248,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount, onMounted } from 'vue'
 import UiInput from './Input.vue'
 import UiButton from './Button.vue'
 import UiEmptyState from './EmptyState.vue'
@@ -278,6 +317,22 @@ const sortField = ref('')
 const sortDirection = ref('asc')
 const selectedRows = ref([])
 const selectAll = ref(false)
+
+// Horizontal scroll affordance (issue #209). On narrow screens the table
+// overflows inside its own viewport; the overflowing edge stays visible and
+// the hint states that more columns live to the right. Document-level scroll
+// never changes.
+const scrollViewport = ref(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(false)
+let viewportObserver = null
+
+const scrollState = computed(() => {
+  if (canScrollLeft.value && canScrollRight.value) return 'both'
+  if (canScrollLeft.value) return 'left'
+  if (canScrollRight.value) return 'right'
+  return 'none'
+})
 
 // Computed
 const totalColumns = computed(() => {
@@ -366,6 +421,17 @@ const isIndeterminate = computed(() => {
 })
 
 // Methods
+const readScrollState = () => {
+  const element = scrollViewport.value
+  if (!element) return
+
+  const maxScroll = Math.max(0, element.scrollWidth - element.clientWidth)
+  const hasOverflow = maxScroll > 1
+
+  canScrollLeft.value = hasOverflow && element.scrollLeft > 1
+  canScrollRight.value = hasOverflow && element.scrollLeft < maxScroll - 1
+}
+
 const getRowKey = (row, index) => {
   return row[props.rowKey] || index
 }
@@ -461,12 +527,32 @@ watch(
     currentPage.value = 1
     selectedRows.value = []
     selectAll.value = false
+    nextTick(readScrollState)
   }
 )
 
 watch(selectedRows, newSelection => {
   selectAll.value =
     newSelection.length === filteredData.value.length && filteredData.value.length > 0
+})
+
+onMounted(() => {
+  readScrollState()
+  window.addEventListener('resize', readScrollState, { passive: true })
+
+  if (typeof ResizeObserver !== 'undefined' && scrollViewport.value) {
+    viewportObserver = new ResizeObserver(readScrollState)
+    viewportObserver.observe(scrollViewport.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', readScrollState)
+
+  if (viewportObserver) {
+    viewportObserver.disconnect()
+    viewportObserver = null
+  }
 })
 </script>
 
@@ -479,8 +565,30 @@ watch(selectedRows, newSelection => {
   @apply px-6 py-4 border-b border-theme;
 }
 
+.data-table-scroll-frame {
+  @apply relative;
+}
+
 .data-table-wrapper {
   @apply overflow-x-auto;
+}
+
+.data-table-scroll-edge {
+  @apply pointer-events-none absolute inset-y-0 z-10 w-10;
+}
+
+.data-table-scroll-edge-left {
+  left: 0;
+  background: linear-gradient(to right, var(--color-surface-elevated), transparent);
+}
+
+.data-table-scroll-edge-right {
+  right: 0;
+  background: linear-gradient(to left, var(--color-surface-elevated), transparent);
+}
+
+.data-table-scroll-hint {
+  @apply flex items-center justify-end gap-1 px-4 py-2 text-xs font-medium text-theme-secondary;
 }
 
 .data-table {

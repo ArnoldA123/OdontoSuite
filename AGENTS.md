@@ -376,6 +376,16 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (UiDataTable: affordance de scroll horizontal)** —
+  `DataTable.vue` mide el overflow de su viewport interno y, cuando la tabla
+  excede el ancho, pinta un degradado en el borde oculto y el aviso «Desliza
+  para ver más columnas» (`data-table-scroll`, `data-table-scroll-edge`,
+  `data-table-scroll-affordance`); al llegar al final el aviso desaparece y el
+  degradado cambia de lado. El scroll sigue siendo interno al primitivo (un
+  único `overflow-x-auto`), así que ninguna página gana overflow de documento.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `data-table-scroll-affordance.test.js` (5).
+
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero
   band con «Historias recientes» y deep links (`?patient_id=`,
