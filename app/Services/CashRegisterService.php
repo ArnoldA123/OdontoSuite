@@ -285,7 +285,7 @@ class CashRegisterService
      */
     private function openingReference(CashRegisterSession $session): string
     {
-        return 'OPEN-'.str_pad((string) $session->id, 6, '0', STR_PAD_LEFT);
+        return CashMovement::openingReference((int) $session->id);
     }
 
     /**
@@ -293,7 +293,7 @@ class CashRegisterService
      */
     private function closingReference(CashRegisterSession $session): string
     {
-        return 'CLOSE-'.$session->id;
+        return CashMovement::closingReference((int) $session->id);
     }
 
     /**
