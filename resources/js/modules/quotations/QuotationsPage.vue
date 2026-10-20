@@ -434,7 +434,7 @@ const api = useApi()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { user } = useAuth()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 const {
   quotations,
   loading,
@@ -628,6 +628,32 @@ const openDetail = async quotation => {
 const closeDetail = () => {
   showDetail.value = false
   detailQuotation.value = null
+
+  // Drop the deep link so a reload does not reopen a detail the user closed.
+  if (route.query.open) {
+    const query = { ...route.query }
+    delete query.open
+    router.replace({ query })
+  }
+}
+
+/**
+ * Deep link from the patient sheet: `/quotations?open=<id>` opens that
+ * quotation's detail instead of inventing a child route.
+ */
+const openQuotationFromQuery = async () => {
+  const id = route.query.open
+  if (!id) return
+
+  try {
+    const response = await api.get(`/api/quotations/${id}`)
+    if (response?.data) {
+      detailQuotation.value = response.data
+      showDetail.value = true
+    }
+  } catch {
+    toast.error('No pudimos abrir el presupuesto')
+  }
 }
 
 const openApproval = quotation => {
@@ -699,9 +725,10 @@ const goBack = () => router.back()
 
 onMounted(() => {
   refresh()
+  openQuotationFromQuery()
 
   try {
-    quotationsChannel = channel('quotations')
+    quotationsChannel = privateChannel('quotations')
     if (quotationsChannel) {
       quotationsChannel
         .listen('.quotation.created', async () => {
@@ -714,6 +741,10 @@ onMounted(() => {
         .listen('.quotation.approved', async () => {
           await refresh()
           toast.success('Presupuesto aprobado', { duration: 6000 })
+        })
+        .listen('.quotation.rejected', async () => {
+          await refresh()
+          toast.warning('Presupuesto rechazado', { duration: 6000 })
         })
     }
   } catch {

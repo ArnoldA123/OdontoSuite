@@ -286,10 +286,10 @@ class PacientesNegativeSpaceRulesTest extends TestCase
 
         // 4 cross-category channels: must be present in PatientDetailPage.vue
         // (the list page does NOT need them — its detail-tab create buttons
-        // live on the detail page).
+        // live on the detail page). `quotations` is private because its payload
+        // carries patient data and amounts (#200); the other three stay public.
         $crossCategoryChannels = [
             'treatment-plans',
-            'quotations',
             'medical-records',
             'specialty-records',
         ];
@@ -307,6 +307,18 @@ class PacientesNegativeSpaceRulesTest extends TestCase
                 )
             );
         }
+
+        // `quotations` is private since #200: the payload carries patient data
+        // and amounts, so the subscription MUST ride the private variant.
+        $this->assertMatchesRegularExpression(
+            "#privateChannel\\s*\\(\\s*['\"]quotations['\"]\\s*\\)#",
+            $detailSrc,
+            sprintf(
+                '%s MUST keep the PRIVATE `quotations` subscription (PAC-RT-001 + issue #200): '
+                    .'the payload carries patient data and amounts.',
+                self::PATIENT_DETAIL_PATH
+            )
+        );
     }
 
     /**

@@ -324,7 +324,6 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
 
         $channels = [
             'treatment-plans',
-            'quotations',
             'medical-records',
             'specialty-records',
         ];
@@ -336,6 +335,17 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             sprintf(
                 '%s MUST keep the PRIVATE `patients` subscription (PAC-RT-001 + patients-module-audit): '
                     .'the payload carries medical_history and allergies.',
+                $path
+            )
+        );
+
+        // `quotations` carries patient data and amounts (#200).
+        $this->assertMatchesRegularExpression(
+            "/privateChannel\\s*\\(\\s*['\"]quotations['\"]\\s*\\)/",
+            $src,
+            sprintf(
+                '%s MUST keep the PRIVATE `quotations` subscription (PAC-RT-001 + issue #200): '
+                    .'the payload carries patient data and amounts.',
                 $path
             )
         );
