@@ -1,200 +1,245 @@
 <template>
-  <div class="evolution-timeline">
-    <div class="timeline-header">
-      <div class="flex justify-between items-center">
-        <h3 class="timeline-title">Evoluciones Clínicas</h3>
-        <button class="btn btn-primary btn-sm" @click="$emit('add')">
-          <PlusIcon class="w-4 h-4 mr-1" />
-          Nueva Evolución
-        </button>
+  <section data-evolution-timeline class="space-y-4">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="text-xl font-semibold text-label">Evoluciones</h2>
+        <p class="mt-1 text-sm text-theme-secondary">
+          El registro SOAP de cada consulta, de la más reciente a la más antigua
+        </p>
       </div>
+      <UiButton variant="secondary" size="sm" data-add-evolution @click="emit('add')">
+        <template #icon-left>
+          <PlusIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        Nueva evolución
+      </UiButton>
     </div>
 
-    <div v-if="loading" class="flex justify-center py-8">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
-    </div>
+    <LoadingSpinner v-if="loading" class="p-12" size="lg" text="Cargando evoluciones..." />
 
-    <div v-else-if="evolutions.length === 0" class="empty-state">
-      <ClockIcon class="w-12 h-12 text-theme-secondary mx-auto mb-4" />
-      <h3 class="text-lg font-medium text-theme-primary mb-2">No hay evoluciones</h3>
-      <p class="text-theme-secondary mb-4">Comienza agregando la primera evolución</p>
-      <button class="btn btn-primary" @click="$emit('add')">Agregar Evolución</button>
-    </div>
+    <UiSectionEmpty
+      v-else-if="evolutions.length === 0"
+      data-state="empty-evolutions"
+      title="Sin evoluciones registradas"
+      description="Registra la primera evolución para dejar constancia del subjetivo, objetivo, evaluación y plan de la consulta."
+      motif
+    >
+      <UiButton variant="primary" size="sm" data-add-evolution-empty @click="emit('add')">
+        <template #icon-left>
+          <PlusIcon class="w-4 h-4" aria-hidden="true" />
+        </template>
+        Nueva evolución
+      </UiButton>
+    </UiSectionEmpty>
 
-    <div v-else class="timeline-content">
-      <div class="timeline-line" />
-
-      <div
-        v-for="(evolution, index) in evolutions"
+    <ol
+      v-else
+      data-evolution-rail
+      class="space-y-4 border-l border-[color:var(--color-hairline)] pl-5 md:pl-6"
+    >
+      <li
+        v-for="evolution in evolutions"
         :key="evolution.id"
-        class="timeline-item"
-        :class="{ 'timeline-item-left': index % 2 === 0, 'timeline-item-right': index % 2 === 1 }"
+        :data-evolution-id="evolution.id"
+        data-evolution-card
       >
-        <div class="timeline-marker">
-          <div class="marker-dot" />
-        </div>
-
-        <div class="timeline-card">
-          <div class="card-header">
-            <div class="flex justify-between items-start">
-              <div>
-                <h4 class="evolution-title">
-                  {{ formatDate(evolution.evolution_date) }}
-                </h4>
-                <p class="evolution-specialty">
-                  {{ evolution.specialty || 'General' }}
+        <UiCard variant="glass">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <p class="text-sm font-semibold text-label tabular-nums" data-evolution-date>
+                  {{ formatEvolutionDate(evolution.evolution_date) }}
                 </p>
+                <span class="text-theme-secondary" aria-hidden="true">·</span>
+                <p class="text-sm text-theme-secondary" data-evolution-specialty>
+                  {{ evolution.specialty || 'Sin especialidad' }}
+                </p>
+                <StatusBadge
+                  v-if="evolution.requires_follow_up"
+                  variant="warning"
+                  size="sm"
+                  show-dot
+                  label="Requiere seguimiento"
+                  data-evolution-follow-up
+                />
               </div>
-              <div class="evolution-actions">
-                <button
-                  class="btn btn-sm btn-outline"
-                  title="Editar"
-                  @click="$emit('edit', evolution)"
-                >
-                  <PencilIcon class="w-4 h-4" />
-                </button>
-                <button
-                  class="btn btn-sm btn-danger"
-                  title="Eliminar"
-                  @click="confirmDelete(evolution)"
-                >
-                  <TrashIcon class="w-4 h-4" />
-                </button>
-              </div>
+              <p class="mt-1 text-xs text-theme-secondary" data-evolution-author>
+                <span>{{ authorLabel(evolution) }}</span>
+                <template v-if="evolution.requires_follow_up && evolution.follow_up_date">
+                  <span aria-hidden="true">·</span>
+                  <span data-evolution-follow-up-date class="tabular-nums">
+                    Seguimiento {{ formatEvolutionDate(evolution.follow_up_date) }}
+                  </span>
+                </template>
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <UiButton
+                v-if="can.editEvolution?.value"
+                variant="ghost"
+                size="sm"
+                data-evolution-edit
+                @click="emit('edit', evolution)"
+              >
+                <template #icon-left>
+                  <PencilIcon class="w-4 h-4" aria-hidden="true" />
+                </template>
+                Editar
+              </UiButton>
+              <UiButton
+                v-if="can.deleteEvolution?.value"
+                variant="ghost"
+                size="sm"
+                data-evolution-delete
+                @click="confirmDelete(evolution)"
+              >
+                <template #icon-left>
+                  <TrashIcon class="w-4 h-4" aria-hidden="true" />
+                </template>
+                Eliminar
+              </UiButton>
             </div>
           </div>
 
-          <div class="card-body">
-            <!-- SOAP -->
+          <!-- SOAP: four labelled blocks, each rendered only with content. -->
+          <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
             <div
-              v-if="
-                evolution.subjective ||
-                evolution.objective ||
-                evolution.assessment ||
-                evolution.plan
-              "
-              class="soap-section"
+              v-if="evolution.subjective"
+              data-soap-block="subjective"
+              class="rounded-ios border border-[color:var(--color-hairline)] p-3"
             >
-              <div v-if="evolution.subjective" class="soap-item">
-                <h5 class="soap-label">Subjetivo:</h5>
-                <p class="soap-content">
-                  {{ evolution.subjective }}
-                </p>
-              </div>
-
-              <div v-if="evolution.objective" class="soap-item">
-                <h5 class="soap-label">Objetivo:</h5>
-                <p class="soap-content">
-                  {{ evolution.objective }}
-                </p>
-              </div>
-
-              <div v-if="evolution.assessment" class="soap-item">
-                <h5 class="soap-label">Evaluación:</h5>
-                <p class="soap-content">
-                  {{ evolution.assessment }}
-                </p>
-              </div>
-
-              <div v-if="evolution.plan" class="soap-item">
-                <h5 class="soap-label">Plan:</h5>
-                <p class="soap-content">
-                  {{ evolution.plan }}
-                </p>
-              </div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Subjetivo
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
+                {{ evolution.subjective }}
+              </p>
             </div>
 
-            <!-- Procedimientos realizados -->
-            <div v-if="evolution.procedures_performed" class="procedures-section">
-              <h5 class="section-label">Procedimientos realizados:</h5>
-              <p class="section-content">
+            <div
+              v-if="evolution.objective"
+              data-soap-block="objective"
+              class="rounded-ios border border-[color:var(--color-hairline)] p-3"
+            >
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Objetivo
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
+                {{ evolution.objective }}
+              </p>
+            </div>
+
+            <div
+              v-if="evolution.assessment"
+              data-soap-block="assessment"
+              class="rounded-ios border border-[color:var(--color-hairline)] p-3"
+            >
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Evaluación
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
+                {{ evolution.assessment }}
+              </p>
+            </div>
+
+            <div
+              v-if="evolution.plan"
+              data-soap-block="plan"
+              class="rounded-ios border border-[color:var(--color-hairline)] p-3"
+            >
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Plan</p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
+                {{ evolution.plan }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Clinical rows: the course of the session and its instructions. -->
+          <div v-if="hasClinicalDetail(evolution)" class="mt-4 space-y-3">
+            <div v-if="evolution.procedures_performed" data-evolution-row="procedures">
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Procedimientos realizados
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
                 {{ evolution.procedures_performed }}
               </p>
             </div>
 
-            <!-- Materiales utilizados -->
-            <div v-if="evolution.materials_used" class="materials-section">
-              <h5 class="section-label">Materiales utilizados:</h5>
-              <p class="section-content">
+            <div v-if="evolution.materials_used" data-evolution-row="materials">
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Materiales utilizados
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
                 {{ evolution.materials_used }}
               </p>
             </div>
 
-            <!-- Prescripciones -->
-            <div v-if="evolution.prescriptions" class="prescriptions-section">
-              <h5 class="section-label">Prescripciones:</h5>
-              <p class="section-content">
+            <div v-if="evolution.prescriptions" data-evolution-row="prescriptions">
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Prescripciones
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
                 {{ evolution.prescriptions }}
               </p>
             </div>
 
-            <!-- Recomendaciones -->
-            <div v-if="evolution.recommendations" class="recommendations-section">
-              <h5 class="section-label">Recomendaciones:</h5>
-              <p class="section-content">
+            <div v-if="evolution.recommendations" data-evolution-row="recommendations">
+              <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+                Recomendaciones
+              </p>
+              <p class="mt-1 text-sm text-theme-primary whitespace-pre-line">
                 {{ evolution.recommendations }}
               </p>
             </div>
-
-            <!-- Signos vitales -->
-            <div v-if="evolution.vital_signs" class="vital-signs-section">
-              <h5 class="section-label">Signos vitales:</h5>
-              <div class="vital-signs-grid">
-                <div v-if="evolution.vital_signs.blood_pressure" class="vital-sign">
-                  <span class="vital-label">PA:</span>
-                  <span class="vital-value">{{ evolution.vital_signs.blood_pressure }}</span>
-                </div>
-                <div v-if="evolution.vital_signs.heart_rate" class="vital-sign">
-                  <span class="vital-label">FC:</span>
-                  <span class="vital-value">{{ evolution.vital_signs.heart_rate }} bpm</span>
-                </div>
-                <div v-if="evolution.vital_signs.temperature" class="vital-sign">
-                  <span class="vital-label">T°:</span>
-                  <span class="vital-value">{{ evolution.vital_signs.temperature }}°C</span>
-                </div>
-                <div v-if="evolution.vital_signs.respiratory_rate" class="vital-sign">
-                  <span class="vital-label">FR:</span>
-                  <span class="vital-value">{{ evolution.vital_signs.respiratory_rate }} rpm</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Seguimiento -->
-            <div v-if="evolution.requires_follow_up" class="follow-up-section">
-              <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 bg-yellow-500 rounded-full" />
-                <span class="text-sm font-medium text-yellow-700">Requiere seguimiento</span>
-                <span v-if="evolution.follow_up_date" class="text-sm text-theme-secondary">
-                  - {{ formatDate(evolution.follow_up_date) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Notas de próxima cita -->
-            <div v-if="evolution.next_appointment_notes" class="next-appointment-section">
-              <h5 class="section-label">Notas para próxima cita:</h5>
-              <p class="section-content">
-                {{ evolution.next_appointment_notes }}
-              </p>
-            </div>
           </div>
 
-          <div class="card-footer">
-            <div class="flex justify-between items-center text-xs text-theme-secondary">
-              <span>
-                Por {{ evolution.created_by?.first_name }} {{ evolution.created_by?.last_name }}
+          <!-- Vital signs: a chip grid, one chip per recorded measure. -->
+          <div v-if="vitalSigns(evolution).length > 0" data-evolution-vitals class="mt-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+              Signos vitales
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span
+                v-for="sign in vitalSigns(evolution)"
+                :key="sign.key"
+                class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--color-hairline)] px-2.5 py-1 text-xs tabular-nums"
+              >
+                <span class="text-theme-secondary">{{ sign.label }}</span>
+                <span class="font-semibold text-theme-primary">{{ sign.value }}</span>
               </span>
-              <span>{{ formatDateTime(evolution.created_at) }}</span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
+
+          <!-- Next appointment: instructions that outlive this session. -->
+          <div
+            v-if="evolution.next_appointment_notes"
+            data-evolution-notes
+            class="mt-4 rounded-ios bg-systemGray-50 p-3"
+          >
+            <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+              Notas para la próxima cita
+            </p>
+            <p class="mt-1 text-sm text-theme-secondary whitespace-pre-line">
+              {{ evolution.next_appointment_notes }}
+            </p>
+          </div>
+        </UiCard>
+      </li>
+    </ol>
+  </section>
 </template>
 
 <script setup>
-import { PlusIcon, ClockIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { useConfirm } from '@/composables/useConfirm'
+import { usePermissions } from '@/composables/usePermissions'
+import { formatDateOnly } from '@/utils/formatters'
+import UiButton from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiSectionEmpty from '@/components/ui/UiSectionEmpty.vue'
+import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import StatusBadge from '@/components/ui/StatusBadge.vue'
 
 defineProps({
   evolutions: {
@@ -209,184 +254,60 @@ defineProps({
 
 const emit = defineEmits(['add', 'edit', 'delete'])
 
-// Métodos
-const formatDate = date => {
-  return new Date(date).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+const { confirm } = useConfirm()
+const { can } = usePermissions()
+
+// The surface names the four SOAP blocks after the payload columns, so a
+// reader can map every block back to `clinical_evolutions`.
+const formatEvolutionDate = value => formatDateOnly(value) || 'Sin fecha'
+
+const authorLabel = evolution => {
+  const name = evolution.created_by?.name || evolution.createdBy?.name
+
+  return name ? `Registrada por ${name}` : 'Registro clínico'
 }
 
-const formatDateTime = date => {
-  return new Date(date).toLocaleDateString('es-PE', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const hasText = value => typeof value === 'string' && value.trim() !== ''
+
+const hasClinicalDetail = evolution =>
+  [
+    evolution.procedures_performed,
+    evolution.materials_used,
+    evolution.prescriptions,
+    evolution.recommendations
+  ].some(hasText)
+
+const VITAL_SIGN_SLOTS = [
+  { key: 'blood_pressure', label: 'PA', suffix: '' },
+  { key: 'heart_rate', label: 'FC', suffix: ' bpm' },
+  { key: 'temperature', label: 'T°', suffix: ' °C' },
+  { key: 'respiratory_rate', label: 'FR', suffix: ' rpm' }
+]
+
+const vitalSigns = evolution => {
+  const signs = evolution.vital_signs || {}
+
+  return VITAL_SIGN_SLOTS.map(slot => ({ ...slot, value: signs[slot.key] }))
+    .filter(
+      sign => sign.value !== null && sign.value !== undefined && String(sign.value).trim() !== ''
+    )
+    .map(sign => ({
+      key: sign.key,
+      label: sign.label,
+      value: `${sign.value}${sign.suffix}`
+    }))
 }
 
 const confirmDelete = async evolution => {
-  const ok = await confirm({
+  const confirmed = await confirm({
     title: 'Eliminar evolución',
-    message: '¿Estás seguro de que quieres eliminar esta evolución?',
+    message: `La evolución del ${formatEvolutionDate(evolution.evolution_date)} se moverá al archivo clínico.`,
     confirmText: 'Eliminar',
     variant: 'danger'
   })
-  if (ok) {
+
+  if (confirmed) {
     emit('delete', evolution.id)
   }
 }
 </script>
-
-<style scoped>
-.evolution-timeline {
-  @apply space-y-6;
-}
-
-.timeline-header {
-  @apply flex justify-between items-center;
-}
-
-.timeline-title {
-  @apply text-lg font-semibold text-theme-primary;
-}
-
-.timeline-content {
-  @apply relative;
-}
-
-.timeline-line {
-  @apply absolute left-8 top-0 bottom-0 w-0.5 bg-theme;
-}
-
-.timeline-item {
-  @apply relative flex items-start space-x-4 mb-8;
-}
-
-.timeline-item-left {
-  @apply flex-row;
-}
-
-.timeline-item-right {
-  @apply flex-row-reverse space-x-reverse;
-}
-
-.timeline-marker {
-  @apply flex-shrink-0 w-16 flex justify-center;
-}
-
-.marker-dot {
-  @apply w-4 h-4 bg-primary-500 rounded-full border-4 border-white shadow-lg;
-}
-
-.timeline-card {
-  @apply flex-1 bg-theme-surface-elevated rounded-lg border border-theme shadow-sm;
-}
-
-.card-header {
-  @apply p-4 border-b border-theme;
-}
-
-.evolution-title {
-  @apply text-lg font-semibold text-theme-primary;
-}
-
-.evolution-specialty {
-  @apply text-sm text-theme-secondary;
-}
-
-.evolution-actions {
-  @apply flex space-x-2;
-}
-
-.card-body {
-  @apply p-4 space-y-4;
-}
-
-.soap-section {
-  @apply space-y-3;
-}
-
-.soap-item {
-  @apply space-y-1;
-}
-
-.soap-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.soap-content {
-  @apply text-sm text-theme-secondary;
-}
-
-.procedures-section,
-.materials-section,
-.prescriptions-section,
-.recommendations-section,
-.next-appointment-section {
-  @apply space-y-1;
-}
-
-.section-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.section-content {
-  @apply text-sm text-theme-secondary;
-}
-
-.vital-signs-section {
-  @apply space-y-2;
-}
-
-.vital-signs-grid {
-  @apply grid grid-cols-2 md:grid-cols-4 gap-2;
-}
-
-.vital-sign {
-  @apply flex justify-between items-center p-2 bg-theme-surface rounded;
-}
-
-.vital-label {
-  @apply text-xs font-medium text-theme-secondary;
-}
-
-.vital-value {
-  @apply text-xs font-semibold text-theme-primary;
-}
-
-.follow-up-section {
-  @apply p-3 bg-yellow-50 border border-yellow-200 rounded-lg;
-}
-
-.card-footer {
-  @apply p-4 border-t border-theme bg-theme-surface;
-}
-
-.empty-state {
-  @apply text-center py-12;
-}
-
-.btn {
-  @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md transition-colors;
-}
-
-.btn-sm {
-  @apply px-3 py-1 text-xs;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-
-.btn-outline {
-  @apply border-theme text-theme-primary bg-theme-surface-elevated hover:bg-theme-surface;
-}
-
-.btn-danger {
-  @apply bg-error-100 text-red-700 hover:bg-red-200;
-}
-</style>

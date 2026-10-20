@@ -1,285 +1,485 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2 class="modal-title">Agregar Evolución Clínica</h2>
-        <button class="modal-close" @click="closeModal">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
+  <UiModal
+    model-value
+    :title="isEdit ? 'Editar evolución' : 'Nueva evolución'"
+    size="xl"
+    @close="emit('close')"
+  >
+    <form data-evolution-form class="space-y-5" @submit.prevent="submitEvolution">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <UiInput
+          v-model="form.evolution_date"
+          data-evolution-field="evolution_date"
+          label="Fecha de la evolución"
+          type="date"
+          :max="today"
+          required
+          :error="fieldError('evolution_date')"
+        />
+
+        <div
+          data-evolution-field="requires_follow_up"
+          class="flex items-start gap-3 rounded-ios border border-[color:var(--color-hairline)] p-4"
+        >
+          <input
+            id="evolution-requires-follow-up"
+            v-model="form.requires_follow_up"
+            data-evolution-follow-up-toggle
+            type="checkbox"
+            class="mt-0.5 h-4 w-4 rounded border-[color:var(--color-hairline)] text-systemBlue-600"
+          />
+          <label for="evolution-requires-follow-up" class="text-sm font-medium text-theme-primary">
+            Requiere seguimiento
+            <span class="mt-1 block text-xs font-normal text-theme-secondary">
+              Agenda una fecha de control posterior a esta evolución.
+            </span>
+          </label>
+        </div>
       </div>
 
-      <form class="modal-body" @submit.prevent="handleSubmit">
-        <div class="form-grid">
-          <!-- Información básica -->
-          <div class="form-section">
-            <h3 class="section-title">Información de la Evolución</h3>
+      <UiInput
+        v-model="form.follow_up_date"
+        data-evolution-field="follow_up_date"
+        label="Fecha de seguimiento"
+        type="date"
+        :min="followUpMin"
+        :disabled="!form.requires_follow_up"
+        :hint="
+          form.requires_follow_up
+            ? 'Debe ser posterior a la fecha de la evolución.'
+            : 'Activa «Requiere seguimiento» para elegir la fecha.'
+        "
+        :error="fieldError('follow_up_date')"
+      />
 
-            <div class="form-group">
-              <label class="form-label">Fecha y Hora *</label>
-              <input
-                v-model="form.evolution_date"
-                type="datetime-local"
-                class="form-input"
-                :class="{ 'border-red-500': errors.evolution_date }"
-                required
-              />
-              <p v-if="errors.evolution_date" class="form-error">
-                {{ errors.evolution_date }}
-              </p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Tipo de Evolución</label>
-              <select v-model="form.evolution_type" class="form-input">
-                <option value="consultation">Consulta</option>
-                <option value="treatment">Tratamiento</option>
-                <option value="follow_up">Seguimiento</option>
-                <option value="emergency">Emergencia</option>
-                <option value="other">Otro</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Profesional Responsable</label>
-              <input
-                v-model="form.professional_name"
-                type="text"
-                class="form-input"
-                placeholder="Nombre del profesional"
-              />
-            </div>
+      <fieldset data-evolution-section="soap" class="space-y-3">
+        <legend class="text-sm font-semibold text-label">Registro SOAP</legend>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div data-evolution-field="subjective">
+            <label
+              for="evolution-subjective"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              Subjetivo
+            </label>
+            <UiTextarea
+              id="evolution-subjective"
+              v-model="form.subjective"
+              :rows="3"
+              placeholder="Relato del paciente"
+            />
+            <p v-if="fieldError('subjective')" class="mt-1 text-xs text-error-500">
+              {{ fieldError('subjective') }}
+            </p>
           </div>
 
-          <!-- Descripción de la evolución -->
-          <div class="form-section">
-            <h3 class="section-title">Descripción de la Evolución</h3>
-
-            <div class="form-group">
-              <label class="form-label">Motivo de Consulta</label>
-              <textarea
-                v-model="form.consultation_reason"
-                class="form-textarea"
-                rows="2"
-                placeholder="Motivo de la consulta o evolución..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Examen Clínico</label>
-              <textarea
-                v-model="form.clinical_examination"
-                class="form-textarea"
-                rows="3"
-                placeholder="Resultados del examen clínico..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Observaciones *</label>
-              <textarea
-                v-model="form.observations"
-                class="form-textarea"
-                rows="4"
-                :class="{ 'border-red-500': errors.observations }"
-                placeholder="Observaciones detalladas de la evolución..."
-                required
-              />
-              <p v-if="errors.observations" class="form-error">
-                {{ errors.observations }}
-              </p>
-            </div>
+          <div data-evolution-field="objective">
+            <label
+              for="evolution-objective"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              Objetivo
+            </label>
+            <UiTextarea
+              id="evolution-objective"
+              v-model="form.objective"
+              :rows="3"
+              placeholder="Hallazgos del examen clínico"
+            />
+            <p v-if="fieldError('objective')" class="mt-1 text-xs text-error-500">
+              {{ fieldError('objective') }}
+            </p>
           </div>
 
-          <!-- Tratamiento y seguimiento -->
-          <div class="form-section">
-            <h3 class="section-title">Tratamiento y Seguimiento</h3>
+          <div data-evolution-field="assessment">
+            <label
+              for="evolution-assessment"
+              class="mb-2 block text-sm font-medium text-theme-primary"
+            >
+              Evaluación
+            </label>
+            <UiTextarea
+              id="evolution-assessment"
+              v-model="form.assessment"
+              :rows="3"
+              placeholder="Diagnóstico o impresión clínica"
+            />
+            <p v-if="fieldError('assessment')" class="mt-1 text-xs text-error-500">
+              {{ fieldError('assessment') }}
+            </p>
+          </div>
 
-            <div class="form-group">
-              <label class="form-label">Tratamiento Realizado</label>
-              <textarea
-                v-model="form.treatment_performed"
-                class="form-textarea"
-                rows="3"
-                placeholder="Tratamiento realizado en esta sesión..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Medicamentos Prescritos</label>
-              <textarea
-                v-model="form.prescribed_medications"
-                class="form-textarea"
-                rows="2"
-                placeholder="Medicamentos prescritos..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Recomendaciones</label>
-              <textarea
-                v-model="form.recommendations"
-                class="form-textarea"
-                rows="2"
-                placeholder="Recomendaciones para el paciente..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Próxima Cita</label>
-              <input v-model="form.next_appointment" type="datetime-local" class="form-input" />
-            </div>
+          <div data-evolution-field="plan">
+            <label for="evolution-plan" class="mb-2 block text-sm font-medium text-theme-primary">
+              Plan
+            </label>
+            <UiTextarea
+              id="evolution-plan"
+              v-model="form.plan"
+              :rows="3"
+              placeholder="Conducta y próximos pasos"
+            />
+            <p v-if="fieldError('plan')" class="mt-1 text-xs text-error-500">
+              {{ fieldError('plan') }}
+            </p>
           </div>
         </div>
-      </form>
+      </fieldset>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
+      <fieldset data-evolution-section="clinical-detail" class="space-y-4">
+        <legend class="text-sm font-semibold text-label">Detalle de la sesión</legend>
+
+        <div data-evolution-field="procedures_performed">
+          <label
+            for="evolution-procedures"
+            class="mb-2 block text-sm font-medium text-theme-primary"
+          >
+            Procedimientos realizados
+          </label>
+          <UiTextarea
+            id="evolution-procedures"
+            v-model="form.procedures_performed"
+            :rows="2"
+            placeholder="Procedimientos ejecutados en esta consulta"
+          />
+          <p v-if="fieldError('procedures_performed')" class="mt-1 text-xs text-error-500">
+            {{ fieldError('procedures_performed') }}
+          </p>
+        </div>
+
+        <div data-evolution-field="materials_used">
+          <label
+            for="evolution-materials"
+            class="mb-2 block text-sm font-medium text-theme-primary"
+          >
+            Materiales utilizados
+          </label>
+          <UiTextarea
+            id="evolution-materials"
+            v-model="form.materials_used"
+            :rows="2"
+            placeholder="Materiales e insumos empleados"
+          />
+          <p v-if="fieldError('materials_used')" class="mt-1 text-xs text-error-500">
+            {{ fieldError('materials_used') }}
+          </p>
+        </div>
+
+        <div data-evolution-field="prescriptions">
+          <label
+            for="evolution-prescriptions"
+            class="mb-2 block text-sm font-medium text-theme-primary"
+          >
+            Prescripciones
+          </label>
+          <UiTextarea
+            id="evolution-prescriptions"
+            v-model="form.prescriptions"
+            :rows="2"
+            placeholder="Medicamentos y dosis indicadas"
+          />
+          <p v-if="fieldError('prescriptions')" class="mt-1 text-xs text-error-500">
+            {{ fieldError('prescriptions') }}
+          </p>
+        </div>
+
+        <div data-evolution-field="recommendations">
+          <label
+            for="evolution-recommendations"
+            class="mb-2 block text-sm font-medium text-theme-primary"
+          >
+            Recomendaciones
+          </label>
+          <UiTextarea
+            id="evolution-recommendations"
+            v-model="form.recommendations"
+            :rows="2"
+            placeholder="Indicaciones para el paciente"
+          />
+          <p v-if="fieldError('recommendations')" class="mt-1 text-xs text-error-500">
+            {{ fieldError('recommendations') }}
+          </p>
+        </div>
+
+        <div data-evolution-field="next_appointment_notes">
+          <label
+            for="evolution-next-notes"
+            class="mb-2 block text-sm font-medium text-theme-primary"
+          >
+            Notas para la próxima cita
+          </label>
+          <UiTextarea
+            id="evolution-next-notes"
+            v-model="form.next_appointment_notes"
+            :rows="2"
+            placeholder="Pendientes y avisos para la siguiente sesión"
+          />
+          <p v-if="fieldError('next_appointment_notes')" class="mt-1 text-xs text-error-500">
+            {{ fieldError('next_appointment_notes') }}
+          </p>
+        </div>
+      </fieldset>
+
+      <fieldset
+        data-evolution-section="vital-signs"
+        class="space-y-3 rounded-ios border border-[color:var(--color-hairline)] p-4"
+      >
+        <legend class="px-1 text-sm font-semibold text-label">Signos vitales</legend>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <UiInput
+            v-model="form.vital_signs.blood_pressure"
+            data-evolution-field="blood_pressure"
+            label="Presión arterial"
+            placeholder="120/80"
+            :error="fieldError('vital_signs.blood_pressure')"
+          />
+          <UiInput
+            v-model="form.vital_signs.heart_rate"
+            data-evolution-field="heart_rate"
+            label="Frecuencia cardíaca"
+            type="number"
+            min="30"
+            max="200"
+            placeholder="72"
+            hint="bpm"
+            :error="fieldError('vital_signs.heart_rate')"
+          />
+          <UiInput
+            v-model="form.vital_signs.temperature"
+            data-evolution-field="temperature"
+            label="Temperatura"
+            type="number"
+            step="0.1"
+            min="30"
+            max="45"
+            placeholder="36.5"
+            hint="°C"
+            :error="fieldError('vital_signs.temperature')"
+          />
+          <UiInput
+            v-model="form.vital_signs.respiratory_rate"
+            data-evolution-field="respiratory_rate"
+            label="Frecuencia respiratoria"
+            type="number"
+            min="8"
+            max="40"
+            placeholder="18"
+            hint="rpm"
+            :error="fieldError('vital_signs.respiratory_rate')"
+          />
+        </div>
+      </fieldset>
+
+      <div
+        class="flex flex-wrap items-center justify-end gap-3 border-t border-[color:var(--color-hairline)] pt-4"
+      >
+        <UiButton type="button" variant="secondary" :disabled="submitting" @click="emit('close')">
           Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
-          <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Guardando...' : 'Agregar Evolución' }}
-        </button>
+        </UiButton>
+        <UiButton type="submit" :loading="submitting" data-evolution-submit>
+          {{ isEdit ? 'Guardar cambios' : 'Registrar evolución' }}
+        </UiButton>
       </div>
-    </div>
-  </div>
+    </form>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMedicalRecords } from '@/composables/useMedicalRecords'
-import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { useToast } from '@/composables/useToast'
+import UiButton from '@/components/ui/Button.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 const props = defineProps({
   record: {
     type: Object,
     required: true
+  },
+  evolution: {
+    type: Object,
+    default: null
   }
 })
 
 const emit = defineEmits(['close', 'saved'])
 
-const { addEvolution, loading } = useMedicalRecords()
+const { addEvolution, updateEvolution } = useMedicalRecords()
+const toast = useToast()
 
-const form = ref({
-  evolution_date: '',
-  evolution_type: 'consultation',
-  professional_name: '',
-  consultation_reason: '',
-  clinical_examination: '',
-  observations: '',
-  treatment_performed: '',
-  prescribed_medications: '',
+const isEdit = computed(() => Boolean(props.evolution?.id))
+
+const pad = value => String(value).padStart(2, '0')
+
+const toIsoDate = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+
+const today = toIsoDate(new Date())
+
+const addDays = (isoDate, days) => {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const base = new Date(year, month - 1, day)
+
+  return toIsoDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + days))
+}
+
+const dateOnly = value => {
+  if (value instanceof Date) return toIsoDate(value)
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10)
+
+  return ''
+}
+
+const vitalSignValue = value => (value === null || value === undefined ? '' : String(value))
+
+const emptyForm = () => ({
+  evolution_date: today,
+  subjective: '',
+  objective: '',
+  assessment: '',
+  plan: '',
+  procedures_performed: '',
+  materials_used: '',
+  prescriptions: '',
   recommendations: '',
-  next_appointment: ''
+  next_appointment_notes: '',
+  requires_follow_up: false,
+  follow_up_date: '',
+  vital_signs: {
+    blood_pressure: '',
+    heart_rate: '',
+    temperature: '',
+    respiratory_rate: ''
+  }
 })
 
+const evolutionToForm = evolution => ({
+  ...emptyForm(),
+  evolution_date: dateOnly(evolution.evolution_date) || today,
+  subjective: evolution.subjective || '',
+  objective: evolution.objective || '',
+  assessment: evolution.assessment || '',
+  plan: evolution.plan || '',
+  procedures_performed: evolution.procedures_performed || '',
+  materials_used: evolution.materials_used || '',
+  prescriptions: evolution.prescriptions || '',
+  recommendations: evolution.recommendations || '',
+  next_appointment_notes: evolution.next_appointment_notes || '',
+  requires_follow_up: Boolean(evolution.requires_follow_up),
+  follow_up_date: dateOnly(evolution.follow_up_date),
+  vital_signs: {
+    blood_pressure: vitalSignValue(evolution.vital_signs?.blood_pressure),
+    heart_rate: vitalSignValue(evolution.vital_signs?.heart_rate),
+    temperature: vitalSignValue(evolution.vital_signs?.temperature),
+    respiratory_rate: vitalSignValue(evolution.vital_signs?.respiratory_rate)
+  }
+})
+
+const form = ref(emptyForm())
 const errors = ref({})
+const submitting = ref(false)
 
-const handleSubmit = async () => {
-  try {
+watch(
+  () => props.evolution,
+  evolution => {
+    form.value = evolution ? evolutionToForm(evolution) : emptyForm()
     errors.value = {}
+  },
+  { immediate: true }
+)
 
-    // Validaciones básicas
-    if (!form.value.evolution_date) {
-      errors.value.evolution_date = 'La fecha es obligatoria'
-      return
-    }
-    if (!form.value.observations || form.value.observations.trim() === '') {
-      errors.value.observations = 'Las observaciones son obligatorias'
-      return
+watch(
+  () => form.value.requires_follow_up,
+  enabled => {
+    if (!enabled) form.value.follow_up_date = ''
+  }
+)
+
+const followUpMin = computed(() => addDays(form.value.evolution_date || today, 1))
+
+const fieldError = key => {
+  const messages = errors.value?.[key]
+
+  if (!messages) return ''
+
+  return Array.isArray(messages) ? messages[0] || '' : String(messages)
+}
+
+const text = value => {
+  const trimmed = typeof value === 'string' ? value.trim() : ''
+
+  return trimmed === '' ? null : trimmed
+}
+
+const numericSign = value => {
+  if (value === '' || value === null || value === undefined) return null
+
+  const parsed = Number(value)
+
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const buildVitalSigns = () => {
+  const signs = form.value.vital_signs
+  const payload = {}
+  const bloodPressure = text(signs.blood_pressure)
+  const heartRate = numericSign(signs.heart_rate)
+  const temperature = numericSign(signs.temperature)
+  const respiratoryRate = numericSign(signs.respiratory_rate)
+
+  if (bloodPressure) payload.blood_pressure = bloodPressure
+  if (heartRate !== null) payload.heart_rate = heartRate
+  if (temperature !== null) payload.temperature = temperature
+  if (respiratoryRate !== null) payload.respiratory_rate = respiratoryRate
+
+  return Object.keys(payload).length > 0 ? payload : null
+}
+
+const buildPayload = () => ({
+  evolution_date: form.value.evolution_date || today,
+  subjective: text(form.value.subjective),
+  objective: text(form.value.objective),
+  assessment: text(form.value.assessment),
+  plan: text(form.value.plan),
+  procedures_performed: text(form.value.procedures_performed),
+  materials_used: text(form.value.materials_used),
+  prescriptions: text(form.value.prescriptions),
+  recommendations: text(form.value.recommendations),
+  next_appointment_notes: text(form.value.next_appointment_notes),
+  requires_follow_up: form.value.requires_follow_up,
+  follow_up_date: form.value.requires_follow_up ? form.value.follow_up_date || null : null,
+  vital_signs: buildVitalSigns()
+})
+
+const submitEvolution = async () => {
+  if (submitting.value) return
+
+  submitting.value = true
+  errors.value = {}
+
+  try {
+    const payload = buildPayload()
+
+    if (isEdit.value) {
+      await updateEvolution(props.evolution.id, payload)
+      toast.success('Evolución actualizada')
+    } else {
+      await addEvolution(props.record.id, payload)
+      toast.success('Evolución registrada')
     }
 
-    await addEvolution(props.record.id, form.value)
     emit('saved')
   } catch (err) {
-    if (err.response?.data?.errors) {
-      errors.value = err.response.data.errors
+    const serverErrors = err?.response?.data?.errors
+
+    if (serverErrors) {
+      errors.value = serverErrors
     }
+
+    toast.error(err?.response?.data?.message || 'No pudimos guardar la evolución')
+  } finally {
+    submitting.value = false
   }
 }
-
-const closeModal = () => {
-  emit('close')
-}
-
-onMounted(() => {
-  // Set default values
-  form.value.evolution_date = new Date().toISOString().slice(0, 16)
-  form.value.professional_name = 'Usuario Actual' // This should come from auth context
-})
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.modal-close {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-body {
-  @apply p-6;
-}
-
-.form-grid {
-  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
-}
-
-.form-section {
-  @apply space-y-4;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary border-b border-theme pb-2;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-theme-primary;
-}
-
-.form-input {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-textarea {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-error {
-  @apply text-sm text-red-600;
-}
-
-.modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-</style>
