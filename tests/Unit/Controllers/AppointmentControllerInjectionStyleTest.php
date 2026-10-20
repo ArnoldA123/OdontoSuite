@@ -39,9 +39,11 @@ class AppointmentControllerInjectionStyleTest extends TestCase
         // Either: constructor promotion present OR no service injection.
         // After the refactor, the controller should declare
         // `private readonly AppointmentService $appointmentService,` in the
-        // constructor signature.
+        // constructor signature. Additional promoted readonly collaborators
+        // are allowed (issue #154 added ReminderService), so the match stops
+        // at the service parameter instead of requiring it to be the last one.
         $hasConstructorPromotion = (bool) preg_match(
-            '/public function __construct\(\s*(?:public|private|protected)\s+readonly\s+AppointmentService\s+\$appointmentService\s*,?\s*\)/',
+            '/public function __construct\([^)]*(?:public|private|protected)\s+readonly\s+AppointmentService\s+\$appointmentService[^)]*\)/',
             $source
         );
         $hasNoServiceAtAll = ! str_contains($source, 'AppointmentService');
