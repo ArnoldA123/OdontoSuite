@@ -66,17 +66,19 @@ for (const ramp of Object.values(colors)) {
 }
 const RADIUS_KEYS = Object.keys(radius)
 
-function collectPluginClasses() {
-  const classes = new Set()
+function collectPluginUtilities() {
+  const utilities = new Map()
   for (const plugin of tailwindConfig.plugins ?? []) {
     if (typeof plugin !== 'function') continue
     plugin({
-      addUtilities: utilities => {
-        for (const selector of Object.keys(utilities)) classes.add(normalizeSelector(selector))
+      addUtilities: declarations => {
+        for (const [selector, rules] of Object.entries(declarations)) {
+          utilities.set(normalizeSelector(selector), rules)
+        }
       }
     })
   }
-  return classes
+  return utilities
 }
 
 // `.hover\:bg-theme-surface:hover` -> `hover:bg-theme-surface`; then the
@@ -92,7 +94,8 @@ function normalizeSelector(selector) {
     .replace(/\\/g, '')
 }
 
-const PLUGIN_CLASSES = collectPluginClasses()
+const PLUGIN_UTILITIES = collectPluginUtilities()
+const PLUGIN_CLASSES = new Set(PLUGIN_UTILITIES.keys())
 
 function themeUtilities() {
   const classes = new Set()
@@ -196,6 +199,26 @@ describe('design-token utilities', () => {
       expect(PLUGIN_CLASSES.has(utility), `plugin must declare .${utility}`).toBe(true)
     }
     expect(THEME_CLASSES.has('rounded-ios'), 'theme must derive .rounded-ios').toBe(true)
+  })
+
+  it('maps every canonical token utility to the generated CSS variable', () => {
+    const expected = {
+      'bg-canvas': { 'background-color': 'var(--color-canvas)' },
+      'text-label': { color: 'var(--color-label-label)' },
+      'border-hairline': { 'border-color': 'var(--color-hairline)' },
+      'divide-hairline': { 'border-color': 'var(--color-hairline)' },
+      'bg-systemBackground': {
+        'background-color': 'var(--color-background-system-background)'
+      },
+      'text-systemBackground': { color: 'var(--color-background-system-background)' },
+      'border-separator': { 'border-color': 'var(--color-separator-separator)' },
+      'ring-accent': { '--tw-ring-color': 'var(--color-accent)' },
+      'text-accent-hover': { color: 'var(--color-accent-hover)' }
+    }
+
+    for (const [utility, declaration] of Object.entries(expected)) {
+      expect(PLUGIN_UTILITIES.get(utility), `.${utility} must be declared`).toEqual(declaration)
+    }
   })
 
   it('every token-shaped class used by the UI surface is generable', () => {
