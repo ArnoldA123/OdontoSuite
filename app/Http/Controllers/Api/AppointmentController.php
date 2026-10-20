@@ -12,6 +12,7 @@ use App\Listeners\ClearDashboardCache;
 use App\Models\Appointment;
 use App\Models\AuditLog;
 use App\Services\AppointmentService;
+use App\Services\ReminderService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class AppointmentController extends Controller
     // ProcedureCatalogController, CashMovementController, etc.
     public function __construct(
         private readonly AppointmentService $appointmentService,
+        private readonly ReminderService $reminderService,
     ) {}
 
     /**
@@ -454,6 +456,7 @@ class AppointmentController extends Controller
         ]);
 
         $oldValues = $appointment->toArray();
+        $previousStatus = $appointment->status;
 
         DB::beginTransaction();
 
@@ -463,6 +466,15 @@ class AppointmentController extends Controller
                 'notes' => $validated['notes'] ?? $appointment->notes,
                 'updated_by' => Auth::id(),
             ]);
+
+            // Issue #154: this is the live cancellation path used by the UI,
+            // so the pending reminders are cancelled in the same transaction;
+            // reactivating the appointment puts them back on the pipeline.
+            if ($validated['status'] === 'cancelled') {
+                $this->reminderService->cancelReminders($appointment);
+            } elseif ($previousStatus === 'cancelled') {
+                $this->reminderService->rescheduleReminders($appointment);
+            }
 
             // Log audit
             AuditLog::log(

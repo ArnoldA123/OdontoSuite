@@ -22,8 +22,10 @@ class AppointmentService
 {
     protected AppointmentRepository $repository;
 
-    public function __construct(AppointmentRepository $repository)
-    {
+    public function __construct(
+        AppointmentRepository $repository,
+        private readonly ReminderService $reminderService
+    ) {
         $this->repository = $repository;
     }
 
@@ -129,6 +131,11 @@ class AppointmentService
                     ]);
                 }
 
+                // Issue #154: the confirmation pipeline starts with the
+                // reminder rows, so they commit or roll back with the
+                // appointment instead of being scheduled after the fact.
+                $this->reminderService->scheduleReminders($appointment);
+
                 DB::commit();
 
                 Log::info('AppointmentService::createAppointment - Loading relationships');
@@ -173,6 +180,11 @@ class AppointmentService
         $this->validateAppointmentData($data, $appointment);
         $this->assertParticipantsAreActive($data, $appointment);
         $oldValues = $appointment->toArray();
+        // Snapshot the reminder-relevant state before the update mutates the
+        // model: the loaded relations stay untouched by `update()`.
+        $previousScheduledAt = $appointment->scheduled_at?->copy();
+        $previousTypeId = (int) $appointment->appointment_type_id;
+        $previousStatus = $appointment->status;
 
         // Check for conflicts if time is being changed
         if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
@@ -224,6 +236,13 @@ class AppointmentService
                 $appointment,
                 $oldValues,
                 $appointment->fresh()->toArray()
+            );
+
+            $this->syncRemindersAfterUpdate(
+                $appointment,
+                $previousScheduledAt,
+                $previousTypeId,
+                $previousStatus
             );
 
             DB::commit();
@@ -331,6 +350,10 @@ class AppointmentService
                 $appointment->fresh()->toArray(),
                 ['new_datetime' => $newDateTime->toISOString()]
             );
+
+            // Issue #154: cancel the pending rows and recreate them for the
+            // new time, inside the same transaction.
+            $this->reminderService->rescheduleReminders($appointment);
 
             DB::commit();
 
@@ -567,6 +590,34 @@ class AppointmentService
         }
 
         return $slots;
+    }
+
+    /**
+     * Keep the reminder rows in sync after an appointment update: a cancelled
+     * appointment keeps no pending reminder, and a moved, retyped or
+     * reactivated one gets its windows rebuilt for the current time.
+     */
+    private function syncRemindersAfterUpdate(
+        Appointment $appointment,
+        ?Carbon $previousScheduledAt,
+        int $previousTypeId,
+        ?string $previousStatus
+    ): void {
+        if ($appointment->status === 'cancelled') {
+            if ($previousStatus !== 'cancelled') {
+                $this->reminderService->cancelReminders($appointment);
+            }
+
+            return;
+        }
+
+        $timeChanged = $previousScheduledAt === null
+            || ! $appointment->scheduled_at->equalTo($previousScheduledAt);
+        $typeChanged = (int) $appointment->appointment_type_id !== $previousTypeId;
+
+        if ($previousStatus === 'cancelled' || $timeChanged || $typeChanged) {
+            $this->reminderService->rescheduleReminders($appointment);
+        }
     }
 
     /**

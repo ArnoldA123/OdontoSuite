@@ -198,6 +198,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - `PendingPaymentsController@pay()` implementado (TransactionService + balance
   tracking)
 - Branding migrado de EasyDent a OdontoSuite
+- Recordatorios de confirmación agendados en el flujo real de citas (#154):
+  crear y reprogramar agendan 24h/48h/72h, cancelar cancela los pendientes y
+  `reminders:reconcile` (horario) repara huecos y cubre citas previas
 - AGENTS.md actualizado (236 líneas)
 - `composer dev` usa `pnpm dev`
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
@@ -367,6 +370,17 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-19 (recordatorios #154)** — `ReminderService::scheduleReminders()`
+  deja de ser código muerto: `AppointmentService` agenda los recordatorios de
+  confirmación (24h/48h/72h) dentro de la transacción de crear, actualizar y
+  reprogramar, y `PATCH /api/appointments/{appointment}/status` cancela los
+  pendientes al cancelar la cita. Nuevo comando horario `reminders:reconcile`
+  (`app/Console/Commands/ReconcileReminders.php`; sin rutas HTTP nuevas) que
+  repara huecos y cubre el backfill de citas previas sin duplicar ni resucitar
+  recordatorios. Corrige de paso la ventana 48h/72h, inerte con Carbon 3 porque
+  `diffInHours(now())` es negativo para citas futuras. Sin migraciones, sin
+  cambios de UI ni de entrega de correo; los conteos de §4 no cambian.
 
 - **2026-10-20 (cierre de la deuda de formato)** — Pint y Prettier pasan a
   bloqueantes en el job `quality`: se formateó el código propio (369 archivos
