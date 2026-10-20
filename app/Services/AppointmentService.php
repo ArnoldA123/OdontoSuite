@@ -512,10 +512,17 @@ class AppointmentService
 
     /**
      * Notify waiting list when an appointment is cancelled.
+     *
+     * The preferred window is expressed in whole days: `preferred_start_date`
+     * covers its day from the first minute and `preferred_end_date` covers its
+     * day to the last one, whether the stored time is midnight or any other
+     * instant of that day. Both bounds are compared by date, never by instant
+     * (issue #169).
      */
     public function notifyWaitingList(Appointment $cancelledAppointment): void
     {
         $slot = $cancelledAppointment->scheduled_at;
+        $slotDate = $slot->toDateString();
 
         $waitingListEntries = WaitingList::where('appointment_type_id', $cancelledAppointment->appointment_type_id)
             ->where('status', 'active')
@@ -523,13 +530,13 @@ class AppointmentService
                 $query->whereNull('preferred_user_id')
                     ->orWhere('preferred_user_id', $cancelledAppointment->user_id);
             })
-            ->where(function ($query) use ($slot) {
+            ->where(function ($query) use ($slotDate) {
                 $query->whereNull('preferred_start_date')
-                    ->orWhere('preferred_start_date', '<=', $slot);
+                    ->orWhereDate('preferred_start_date', '<=', $slotDate);
             })
-            ->where(function ($query) use ($slot) {
+            ->where(function ($query) use ($slotDate) {
                 $query->whereNull('preferred_end_date')
-                    ->orWhere('preferred_end_date', '>=', $slot);
+                    ->orWhereDate('preferred_end_date', '>=', $slotDate);
             })
             ->orderBy('priority')
             ->orderBy('created_at')

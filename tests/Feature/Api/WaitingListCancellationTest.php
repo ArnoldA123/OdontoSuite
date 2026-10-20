@@ -140,6 +140,98 @@ class WaitingListCancellationTest extends TestCase
         }
     }
 
+    public function test_preferred_end_date_at_midnight_covers_that_whole_day(): void
+    {
+        $actor = $this->actor();
+        $this->actingAs($actor, 'sanctum');
+
+        $type = AppointmentType::factory()->create();
+        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+
+        $entry = $this->waitingEntry($actor->id, $type, [
+            'preferred_start_date' => $slot->copy()->startOfDay(),
+            'preferred_end_date' => $slot->copy()->startOfDay(),
+        ]);
+
+        app(AppointmentService::class)->cancelAppointment($appointment);
+
+        $row = DB::table('waiting_lists')->find($entry->id);
+        $this->assertSame(
+            'notified',
+            $row->status,
+            'An end date stored at midnight means "until this day included", so the cancelled slot belongs to the window.'
+        );
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_end_date_at_the_cancelled_instant_still_notifies(): void
+    {
+        $actor = $this->actor();
+        $this->actingAs($actor, 'sanctum');
+
+        $type = AppointmentType::factory()->create();
+        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+
+        $entry = $this->waitingEntry($actor->id, $type, [
+            'preferred_start_date' => $slot->copy()->startOfDay(),
+            'preferred_end_date' => $slot->copy(),
+        ]);
+
+        app(AppointmentService::class)->cancelAppointment($appointment);
+
+        $row = DB::table('waiting_lists')->find($entry->id);
+        $this->assertSame('notified', $row->status, 'The exact upper boundary must stay inside the window.');
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_start_date_later_on_the_same_day_still_covers_the_slot(): void
+    {
+        $actor = $this->actor();
+        $this->actingAs($actor, 'sanctum');
+
+        $type = AppointmentType::factory()->create();
+        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+
+        $entry = $this->waitingEntry($actor->id, $type, [
+            'preferred_start_date' => $slot->copy()->endOfDay(),
+            'preferred_end_date' => $slot->copy()->endOfDay(),
+        ]);
+
+        app(AppointmentService::class)->cancelAppointment($appointment);
+
+        $row = DB::table('waiting_lists')->find($entry->id);
+        $this->assertSame(
+            'notified',
+            $row->status,
+            'A start date only marks the first day of the window, so any time on that day is covered.'
+        );
+        $this->assertNotNull($row->notified_at);
+    }
+
+    public function test_preferred_window_ending_before_the_cancelled_day_is_not_notified(): void
+    {
+        $actor = $this->actor();
+        $this->actingAs($actor, 'sanctum');
+
+        $type = AppointmentType::factory()->create();
+        $slot = Carbon::now(config('app.timezone'))->addDays(2)->setTime(15, 0);
+        $appointment = $this->appointmentFor($this->dentist(), $type, $slot);
+
+        $entry = $this->waitingEntry($actor->id, $type, [
+            'preferred_start_date' => $slot->copy()->subDays(2)->startOfDay(),
+            'preferred_end_date' => $slot->copy()->subDay()->endOfDay(),
+        ]);
+
+        app(AppointmentService::class)->cancelAppointment($appointment);
+
+        $row = DB::table('waiting_lists')->find($entry->id);
+        $this->assertSame('active', $row->status, 'A window that ended the previous day must stay out.');
+        $this->assertNull($row->notified_at);
+    }
+
     public function test_waiting_list_fillable_and_casts_reference_columns_that_exist(): void
     {
         $columns = Schema::getColumnListing('waiting_lists');
