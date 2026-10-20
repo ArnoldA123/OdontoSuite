@@ -269,15 +269,37 @@
                 </UiButton>
               </div>
             </div>
-            <div>
-              <p class="text-xs font-medium text-theme-secondary uppercase mb-2">
+            <div data-landing-picker>
+              <UiButton
+                v-if="!showPatientPicker"
+                variant="secondary"
+                size="sm"
+                data-open-patient-picker
+                @click="showPatientPicker = true"
+              >
+                <template #icon-left>
+                  <UserIcon class="w-4 h-4" aria-hidden="true" />
+                </template>
                 Ir a un paciente
-              </p>
-              <PatientSelector
-                v-model="landingPatient"
-                placeholder="Buscar paciente..."
-                @patient-selected="openPatient"
-              />
+              </UiButton>
+              <div v-else class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <p class="text-xs font-medium text-theme-secondary uppercase">Ir a un paciente</p>
+                  <UiButton
+                    variant="ghost"
+                    size="xs"
+                    data-close-patient-picker
+                    @click="showPatientPicker = false"
+                  >
+                    Cerrar
+                  </UiButton>
+                </div>
+                <PatientSelector
+                  v-model="landingPatient"
+                  placeholder="Buscar paciente..."
+                  @patient-selected="openPatient"
+                />
+              </div>
             </div>
           </div>
         </UiCard>
@@ -334,9 +356,11 @@
                     </div>
                     <div class="flex items-center gap-4 text-xs text-theme-secondary tabular-nums">
                       <span data-row-evolutions>
-                        {{ record.evolutions_count ?? 0 }} evoluciones
+                        {{ pluralize(record.evolutions_count, 'evolución', 'evoluciones') }}
                       </span>
-                      <span data-row-attachments>{{ record.attachments_count ?? 0 }} adjuntos</span>
+                      <span data-row-attachments>
+                        {{ pluralize(record.attachments_count, 'adjunto', 'adjuntos') }}
+                      </span>
                       <span class="text-systemBlue-700 font-medium">Abrir</span>
                     </div>
                   </div>
@@ -570,6 +594,7 @@ import {
   ArrowPathIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  UserIcon,
   XMarkIcon
 } from '@heroicons/vue/24/outline'
 import { useApi } from '@/composables/useApi'
@@ -628,6 +653,7 @@ const { channel, echo } = useEcho()
 // Landing state.
 const searchTerm = ref('')
 const statusFilter = ref('active')
+const showPatientPicker = ref(false)
 const statusOptions = [
   { value: 'active', label: 'Activas' },
   { value: 'inactive', label: 'Inactivas' },
@@ -668,6 +694,12 @@ const recordNumbersLabel = computed(() => {
 })
 
 const formatDate = value => formatDateOnly(value) || 'Sin fecha'
+
+const pluralize = (count, singular, plural) => {
+  const total = Number(count) || 0
+
+  return `${total} ${total === 1 ? singular : plural}`
+}
 
 const goBack = () => {
   router.back()
