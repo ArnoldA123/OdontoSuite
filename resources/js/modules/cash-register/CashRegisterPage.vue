@@ -36,7 +36,6 @@
               v-if="canOpen"
               variant="primary"
               data-hero-action="open"
-              :loading="openingBusy"
               @click="showOpenModal = true"
             >
               <template #icon-left>
@@ -48,7 +47,6 @@
               v-if="canClose"
               variant="danger"
               data-hero-action="close"
-              :loading="closingBusy"
               @click="showCloseModal = true"
             >
               <template #icon-left>
@@ -354,8 +352,6 @@ const showCloseModal = ref(false)
 const showPaymentModal = ref(false)
 const showTransactionModal = ref(false)
 const showMovementModal = ref(false)
-const openingBusy = ref(false)
-const closingBusy = ref(false)
 const transactionsLoading = ref(false)
 const movementsLoading = ref(false)
 const sessionsLoading = ref(false)
