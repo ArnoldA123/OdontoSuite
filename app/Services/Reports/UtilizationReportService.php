@@ -4,21 +4,22 @@ namespace App\Services\Reports;
 
 use App\Models\Appointment;
 use App\Models\DentalChair;
-use App\Models\Transaction;
+use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class UtilizationReportService
 {
+    use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
     /**
      * Chair utilization report.
      *
      * Availability is the chair's real working days (D4), the numerator counts
-     * reservations that actually occupied the chair (D5), and revenue is money
-     * collected against that chair's appointments (D1).
+     * reservations that actually occupied the chair (D5), and revenue is the net
+     * money collected against that chair's appointments (D1, S4).
      */
     public function getReportData(array $filters = []): array
     {
@@ -55,22 +56,25 @@ class UtilizationReportService
             ->get()
             ->keyBy('dental_chair_id');
 
-        $revenueByChair = Transaction::query()
+        $moneyByChair = $this->moneyTransactions($startDate, $endDate)
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
-            ->where('transactions.type', 'payment')
-            ->where('transactions.status', 'completed')
-            ->whereBetween('transactions.created_at', [$startDate, $endDate])
             ->whereIn('appointments.dental_chair_id', $ids)
             ->when($professionalId, fn ($q) => $q->where('appointments.user_id', $professionalId))
             ->groupBy('appointments.dental_chair_id')
-            ->select('appointments.dental_chair_id', DB::raw('SUM(transactions.amount) as total_revenue'))
-            ->pluck('total_revenue', 'dental_chair_id');
+            ->select(
+                'appointments.dental_chair_id',
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
+            )
+            ->get()
+            ->keyBy('dental_chair_id');
 
-        $data = $environments->map(function ($environment) use ($counters, $revenueByChair, $startDate, $endDate) {
+        $data = $environments->map(function ($environment) use ($counters, $moneyByChair, $startDate, $endDate) {
             $row = $counters[$environment->id] ?? null;
             $usedHours = (int) ($row->used_minutes ?? 0) / 60;
             $completed = (int) ($row->completed_appointments ?? 0);
-            $totalRevenue = (float) ($revenueByChair[$environment->id] ?? 0);
+            $money = $moneyByChair[$environment->id] ?? null;
+            $totalRevenue = round((float) ($money->total_revenue ?? 0), 2);
             // D4: a chair that is not active contributes no physical
             // availability, even if it still has historical appointments.
             $availableHours = $environment->is_active
@@ -90,7 +94,8 @@ class UtilizationReportService
                 'total_hours_used' => round($usedHours, 2),
                 'total_hours_available' => round($availableHours, 2),
                 'utilization_rate' => $availableHours > 0 ? round(($usedHours / $availableHours) * 100, 2) : 0,
-                'total_revenue' => round($totalRevenue, 2),
+                'total_revenue' => $totalRevenue,
+                'refunds' => round((float) ($money->refunds ?? 0), 2),
                 'average_per_appointment' => $completed > 0 ? round($totalRevenue / $completed, 2) : 0,
                 'is_active' => $environment->is_active ? 'Activo' : 'Inactivo',
                 'created_at' => Carbon::parse($environment->created_at)->format('d/m/Y H:i'),
@@ -121,7 +126,8 @@ class UtilizationReportService
             ['key' => 'total_hours_used', 'label' => 'Horas Utilizadas'],
             ['key' => 'total_hours_available', 'label' => 'Horas Disponibles'],
             ['key' => 'utilization_rate', 'label' => 'Tasa de Utilización (%)'],
-            ['key' => 'total_revenue', 'label' => 'Ingresos Cobrados (S/)'],
+            ['key' => 'total_revenue', 'label' => 'Ingresos netos (S/)'],
+            ['key' => 'refunds', 'label' => 'Devoluciones (S/)'],
             ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
             ['key' => 'is_active', 'label' => 'Activo'],
             ['key' => 'created_at', 'label' => 'Fecha de Creación'],

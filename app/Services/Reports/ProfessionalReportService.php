@@ -3,23 +3,26 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
-use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ProfessionalReportService
 {
+    use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
     /**
      * Professional report.
      *
      * Population and money match the dashboard (D2, D7): the same five roles
-     * and payments attributed through `appointment_id`. Status counters come
-     * from their own aggregate, never from a collection pre-filtered to
-     * `completed`.
+     * and money attributed through `appointment_id`. Status counters come from
+     * their own aggregate, never from a collection pre-filtered to `completed`.
+     *
+     * Money is net (S4): `total_revenue` is payments minus refunds and
+     * `refunds` reports the positive refunded amount for the same professional.
      */
     public function getReportData(array $filters = []): array
     {
@@ -55,24 +58,27 @@ class ProfessionalReportService
             ->get()
             ->keyBy('user_id');
 
-        $revenue = Transaction::query()
+        $moneyByProfessional = $this->moneyTransactions($startDate, $endDate)
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
-            ->where('transactions.type', 'payment')
-            ->where('transactions.status', 'completed')
-            ->whereBetween('transactions.created_at', [$startDate, $endDate])
             ->whereIn('appointments.user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('appointments.dental_chair_id', $environmentId))
             ->groupBy('appointments.user_id')
-            ->select('appointments.user_id', DB::raw('SUM(transactions.amount) as total_revenue'))
-            ->pluck('total_revenue', 'user_id');
+            ->select(
+                'appointments.user_id',
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
+            )
+            ->get()
+            ->keyBy('user_id');
 
-        $data = $professionals->map(function ($professional) use ($counters, $revenue) {
+        $data = $professionals->map(function ($professional) use ($counters, $moneyByProfessional) {
             $row = $counters[$professional->id] ?? null;
             $total = (int) ($row->total_appointments ?? 0);
             $completed = (int) ($row->completed_appointments ?? 0);
             $cancelled = (int) ($row->cancelled_appointments ?? 0);
             $noShow = (int) ($row->no_show_appointments ?? 0);
-            $totalRevenue = (float) ($revenue[$professional->id] ?? 0);
+            $money = $moneyByProfessional[$professional->id] ?? null;
+            $totalRevenue = round((float) ($money->total_revenue ?? 0), 2);
 
             return [
                 'id' => $professional->id,
@@ -85,7 +91,8 @@ class ProfessionalReportService
                 'completed_appointments' => $completed,
                 'cancelled_appointments' => $cancelled,
                 'no_show_appointments' => $noShow,
-                'total_revenue' => round($totalRevenue, 2),
+                'total_revenue' => $totalRevenue,
+                'refunds' => round((float) ($money->refunds ?? 0), 2),
                 'average_per_appointment' => $completed > 0 ? round($totalRevenue / $completed, 2) : 0,
                 'completion_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
                 'is_active' => $professional->is_active ? 'Activo' : 'Inactivo',
@@ -115,7 +122,8 @@ class ProfessionalReportService
             ['key' => 'completed_appointments', 'label' => 'Citas Completadas'],
             ['key' => 'cancelled_appointments', 'label' => 'Citas Canceladas'],
             ['key' => 'no_show_appointments', 'label' => 'No se Presentaron'],
-            ['key' => 'total_revenue', 'label' => 'Ingresos Cobrados (S/)'],
+            ['key' => 'total_revenue', 'label' => 'Ingresos netos (S/)'],
+            ['key' => 'refunds', 'label' => 'Devoluciones (S/)'],
             ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
             ['key' => 'completion_rate', 'label' => 'Tasa de Finalización (%)'],
             ['key' => 'is_active', 'label' => 'Estado'],

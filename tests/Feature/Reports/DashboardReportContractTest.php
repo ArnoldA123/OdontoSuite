@@ -11,6 +11,10 @@ use Carbon\Carbon;
  * Revenue is attributed exactly once, availability is physical (active chairs
  * times working days, never capped), occupancy excludes cancelled and no-show
  * appointments, and patients mean patients seen in the period.
+ *
+ * Money follows the net rule of odd/tasks/reports-net-refunds.md (S1-S4):
+ * `totalRevenue` is payments minus refunds, `totalRefunds` is the positive
+ * refunded amount, and both series report the same pair.
  */
 class DashboardReportContractTest extends ReportContractTestCase
 {
@@ -52,6 +56,13 @@ class DashboardReportContractTest extends ReportContractTestCase
         $this->payment($admin, $patientOne, 50.00, '2024-03-07 10:00:00');
         $this->payment($admin, $patientOne, 999.00, '2024-03-20 10:00:00');
 
+        // S4: completed refunds subtract from the same figure and travel on
+        // their own key, one attributed through the appointment and one not.
+        $this->payment($admin, $patientOne, 80.00, '2024-03-05 11:00:00', $firstAppointment, 'completed', 'refund');
+        $this->payment($admin, $patientOne, 25.00, '2024-03-07 11:00:00', null, 'completed', 'refund');
+        // Excluded: a refund collected after the period never moves the total.
+        $this->payment($admin, $patientOne, 99.00, '2024-03-20 11:00:00', $firstAppointment, 'completed', 'refund');
+
         $response = $this->report($admin, 'dashboard', [
             'start_date' => self::START,
             'end_date' => self::END,
@@ -62,15 +73,16 @@ class DashboardReportContractTest extends ReportContractTestCase
         $data = $response->json('data');
 
         $this->assertEqualsCanonicalizing(
-            ['totalAppointments', 'totalPatients', 'newPatients', 'totalRevenue', 'occupancyRate', 'usedHours', 'availableHours', 'appointmentsByDay', 'revenueByMonth', 'professionalPerformance'],
+            ['totalAppointments', 'totalPatients', 'newPatients', 'totalRevenue', 'totalRefunds', 'occupancyRate', 'usedHours', 'availableHours', 'appointmentsByDay', 'revenueByMonth', 'professionalPerformance'],
             array_keys($data),
-            'Contract v2: the dashboard payload must expose exactly these keys.'
+            'Contract v2 plus S4: the dashboard payload must expose exactly these keys, refunds included.'
         );
 
         $this->assertSame(4, $data['totalAppointments']);
         $this->assertSame(3, $data['totalPatients'], 'D6: patients seen in the period, including a deactivated patient.');
         $this->assertSame(4, $data['newPatients'], 'D6: patients registered in the period.');
-        $this->assertEqualsWithDelta(550.00, (float) $data['totalRevenue'], 0.001, 'D1: collected payments only, not the 25000 catalog price.');
+        $this->assertEqualsWithDelta(445.00, (float) $data['totalRevenue'], 0.001, 'D1 + S4: collected payments (550.00) minus refunds (105.00), never the 25000 catalog price.');
+        $this->assertEqualsWithDelta(105.00, (float) $data['totalRefunds'], 0.001, 'S4: refunds are a positive amount, never subtracted twice.');
         $this->assertEqualsWithDelta(1.5, (float) $data['usedHours'], 0.001, 'D5: cancelled and no-show appointment hours do not count.');
         $this->assertEqualsWithDelta(80.0, (float) $data['availableHours'], 0.001, 'D4: 2 active chairs x 5 working days x 8 hours.');
         $this->assertEqualsWithDelta(1.88, (float) $data['occupancyRate'], 0.001);
@@ -80,7 +92,8 @@ class DashboardReportContractTest extends ReportContractTestCase
 
         $this->assertCount(1, $data['revenueByMonth']);
         $this->assertSame('Mar 2024', $data['revenueByMonth'][0]['month']);
-        $this->assertEqualsWithDelta(550.00, (float) $data['revenueByMonth'][0]['revenue'], 0.001);
+        $this->assertEqualsWithDelta(445.00, (float) $data['revenueByMonth'][0]['revenue'], 0.001, 'S4: the month series is net.');
+        $this->assertEqualsWithDelta(105.00, (float) $data['revenueByMonth'][0]['refunds'], 0.001, 'S4: the month series reports its refunds.');
 
         $performance = collect($data['professionalPerformance'])->keyBy('id');
 
@@ -89,35 +102,46 @@ class DashboardReportContractTest extends ReportContractTestCase
 
         foreach ($performance as $row) {
             $this->assertEqualsCanonicalizing(
-                ['id', 'name', 'appointments', 'revenue', 'averagePerAppointment'],
-                array_keys($row)
+                ['id', 'name', 'appointments', 'revenue', 'refunds', 'averagePerAppointment'],
+                array_keys($row),
+                'S4: every professional row reports its refunds next to the net figure.'
             );
         }
 
         $doctorRow = $performance[$doctor->id];
 
         $this->assertSame(3, $doctorRow['appointments']);
-        $this->assertEqualsWithDelta(300.00, (float) $doctorRow['revenue'], 0.001);
-        $this->assertEqualsWithDelta(100.00, (float) $doctorRow['averagePerAppointment'], 0.001);
+        $this->assertEqualsWithDelta(220.00, (float) $doctorRow['revenue'], 0.001, 'S4: 300.00 collected minus 80.00 refunded.');
+        $this->assertEqualsWithDelta(80.00, (float) $doctorRow['refunds'], 0.001);
+        $this->assertEqualsWithDelta(73.33, (float) $doctorRow['averagePerAppointment'], 0.001);
 
         $otherRow = $performance[$otherDoctor->id];
 
         $this->assertSame(1, $otherRow['appointments']);
         $this->assertEqualsWithDelta(200.00, (float) $otherRow['revenue'], 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $otherRow['refunds'], 0.001);
 
         $professionalRevenue = (float) collect($data['professionalPerformance'])->sum('revenue');
+        $unlinkedNet = 50.00 - 25.00;
 
-        $this->assertEqualsWithDelta(500.00, $professionalRevenue, 0.001);
-        $this->assertLessThanOrEqual(
+        $this->assertEqualsWithDelta(420.00, $professionalRevenue, 0.001);
+        $this->assertEqualsWithDelta(
             (float) $data['totalRevenue'],
-            $professionalRevenue,
-            'D2: sum(professionalPerformance.revenue) can never exceed totalRevenue.'
+            $professionalRevenue + $unlinkedNet,
+            0.001,
+            'S4: totalRevenue is sum(professionalPerformance.revenue) plus the unlinked net.'
         );
         $this->assertNotEqualsWithDelta(
             (float) $data['totalRevenue'],
             (float) $doctorRow['revenue'],
             0.001,
             'D2: the appointment-less payment is never redistributed across professionals.'
+        );
+        $this->assertNotEqualsWithDelta(
+            (float) $data['totalRevenue'],
+            $professionalRevenue,
+            0.001,
+            'D2 + S4: unlinked money stays out of the professional breakdown.'
         );
     }
 
