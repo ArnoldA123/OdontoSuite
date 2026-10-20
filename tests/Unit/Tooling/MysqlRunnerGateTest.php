@@ -4,6 +4,7 @@ namespace Tests\Unit\Tooling;
 
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
+use Symfony\Component\Process\Process;
 use Tests\Feature\Api\WaitingListCancellationTest;
 use Tests\Feature\Modules\ProcedureCatalogSummaryVersionsTest;
 use Tests\Support\MysqlRunner;
@@ -77,22 +78,24 @@ class MysqlRunnerGateTest extends TestCase
     /**
      * Run one test file with the SQLite runner, whatever the parent run uses.
      *
+     * The environment goes through Process, not a shell prefix, and PHP runs
+     * the vendor proxy itself: `VAR=value cmd` and a shebang script are POSIX
+     * assumptions that break on the Windows environment AGENTS.md §8 documents.
+     *
      * @return array{0: int, 1: string}
      */
     private function runOnSqlite(string $filter, string $path): array
     {
-        $root = str_replace('\\', '/', dirname(__DIR__, 3));
+        $process = new Process(
+            [PHP_BINARY, 'vendor/bin/phpunit', '--configuration=phpunit.xml', '--display-skipped', '--filter', $filter, $path],
+            dirname(__DIR__, 3),
+            ['DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => ':memory:'],
+            null,
+            120
+        );
 
-        $command = 'cd '.escapeshellarg($root)
-            .' && DB_CONNECTION=sqlite DB_DATABASE='.escapeshellarg(':memory:')
-            .' vendor/bin/phpunit --configuration=phpunit.xml --display-skipped'
-            .' --filter '.escapeshellarg($filter)
-            .' '.escapeshellarg($path).' 2>&1';
+        $process->run();
 
-        $lines = [];
-        $status = 0;
-        exec($command, $lines, $status);
-
-        return [$status, implode("\n", $lines)];
+        return [(int) $process->getExitCode(), $process->getOutput().$process->getErrorOutput()];
     }
 }
