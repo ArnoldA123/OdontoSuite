@@ -463,12 +463,12 @@ Responde únicamente en formato JSON válido.';
             $query->visibleTo($viewer);
         }
 
-        if (isset($filters['requested_by'])) {
-            $query->where('requested_by', $filters['requested_by']);
+        if (isset($filters['requested_by']) && is_numeric($filters['requested_by'])) {
+            $query->where('requested_by', (int) $filters['requested_by']);
         }
 
-        if (isset($filters['patient_id'])) {
-            $query->where('patient_id', $filters['patient_id']);
+        if (isset($filters['patient_id']) && is_numeric($filters['patient_id'])) {
+            $query->where('patient_id', (int) $filters['patient_id']);
         }
 
         $analyses = $query->orderBy('created_at', 'desc')

@@ -648,6 +648,48 @@ class AiAnalysisContractTest extends TestCase
             ->assertJsonPath('message', 'Adjunto no encontrado');
     }
 
+    public function test_pending_ignores_blank_filters(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+        $this->analysis($patient, $user, ['status' => 'completed', 'reviewed' => false]);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending?requested_by=&patient_id=')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending?requested_by=abc&patient_id=abc')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1);
+    }
+
+    public function test_by_attachment_does_not_reveal_analyses_out_of_scope(): void
+    {
+        $outsider = $this->clinician();
+        $hiddenAttachment = ClinicalAttachment::factory()->create([
+            'patient_id' => $this->patient()->id,
+            'created_by' => $this->clinician()->id,
+        ]);
+
+        $this->actingAs($outsider)
+            ->getJson('/api/ai-analysis/attachment/'.$hiddenAttachment->id)
+            ->assertForbidden();
+    }
+
+    public function test_relative_date_expressions_are_ignored(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?date_from=next%20monday&date_to=tomorrow')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $analysis->id);
+    }
+
     public function test_usage_stats_propagates_a_query_failure_instead_of_zeroing_the_metrics(): void
     {
         $default = config('database.default');

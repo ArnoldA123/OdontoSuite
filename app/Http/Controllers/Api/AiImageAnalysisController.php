@@ -117,16 +117,6 @@ class AiImageAnalysisController extends Controller
     {
         try {
             $analysis = $this->aiAnalysisService->getAnalysisByAttachment($attachmentId);
-
-            if (! $analysis) {
-                return response()->json([
-                    'data' => null,
-                    'meta' => [
-                        'message' => 'No se encontró análisis para este adjunto',
-                    ],
-                ]);
-            }
-
         } catch (\Exception $e) {
             Log::error('AI analysis lookup by attachment failed', [
                 'attachment_id' => $attachmentId,
@@ -136,6 +126,24 @@ class AiImageAnalysisController extends Controller
             return response()->json([
                 'message' => 'Error al obtener análisis',
             ], 500);
+        }
+
+        if (! $analysis) {
+            // Answering "no analysis" before the patient check would let an
+            // unauthorized caller tell an attachment with an analysis apart
+            // from one without it.
+            $attachment = ClinicalAttachment::find($attachmentId);
+
+            if ($attachment) {
+                Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $attachment->patient_id]);
+            }
+
+            return response()->json([
+                'data' => null,
+                'meta' => [
+                    'message' => 'No se encontró análisis para este adjunto',
+                ],
+            ]);
         }
 
         Gate::authorize('view', $analysis);
@@ -242,6 +250,8 @@ class AiImageAnalysisController extends Controller
      */
     public function stats(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', AiImageAnalysis::class);
+
         try {
             $filters = $request->only(['date_from', 'date_to']);
             $stats = $this->aiAnalysisService->getUsageStats($filters, $request->user());

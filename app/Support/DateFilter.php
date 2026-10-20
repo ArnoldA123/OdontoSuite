@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use Carbon\Carbon;
-use Throwable;
 
 /**
  * Normalizes the `date_from`/`date_to` query filters.
@@ -15,16 +14,32 @@ use Throwable;
  */
 final class DateFilter
 {
+    /**
+     * Explicit formats only: `Carbon::parse` also accepts relative
+     * expressions ("next monday", "tomorrow"), which would silently move the
+     * window instead of being ignored like any other unusable value.
+     */
+    private const FORMATS = [
+        'Y-m-d',
+        'Y-m-d H:i:s',
+        'Y-m-d\TH:i:sP',
+        'Y-m-d\TH:i:s.uP',
+    ];
+
     public static function normalize(mixed $value): ?string
     {
         if (! is_string($value) || trim($value) === '') {
             return null;
         }
 
-        try {
-            return Carbon::parse(trim($value))->toDateString();
-        } catch (Throwable) {
-            return null;
+        $value = trim($value);
+
+        foreach (self::FORMATS as $format) {
+            if (Carbon::canBeCreatedFromFormat($value, $format)) {
+                return Carbon::createFromFormat($format, $value)->toDateString();
+            }
         }
+
+        return null;
     }
 }
