@@ -77,7 +77,7 @@ const hasAnalysis = ref(false)
 // Computed
 const canAnalyze = computed(() => {
   // Check if user can analyze with AI
-  if (!can('ai-analysis.analyze')) return false
+  if (!can['ai-analysis.analyze']?.value) return false
 
   // Check if attachment is a radiography
   if (props.attachment) {
