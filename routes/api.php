@@ -278,9 +278,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Registros de especialidades (solo especialistas)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
         Route::apiResource('specialty-records', SpecialtyRecordController::class); // Generic resource, specific methods handle specialty type
-        Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
+        // The aggregate route MUST be declared before `{specialty}`: the
+        // parameter matches the literal `all` and used to answer an empty list.
         Route::get('specialty-records/patient/{patientId}/all', [SpecialtyRecordController::class, 'getAllByPatient']);
         Route::get('specialty-records/patient/{patientId}/{specialty}/stats', [SpecialtyRecordController::class, 'getStats']);
+        Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
         Route::get('dental-pieces', [DentalPieceController::class, 'index']);
     });
 

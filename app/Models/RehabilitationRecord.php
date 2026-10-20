@@ -68,9 +68,9 @@ class RehabilitationRecord extends Model
         return $query->where('patient_id', $patientId);
     }
 
-    public function scopeByRestorationType($query, $type)
+    public function scopeByProsthesisType($query, $type)
     {
-        return $query->where('restoration_type', $type);
+        return $query->where('prosthesis_type', $type);
     }
 
     public function scopeByMaterialType($query, $material)
@@ -85,50 +85,49 @@ class RehabilitationRecord extends Model
 
     public function scopeInProgress($query)
     {
-        return $query->where('status', 'in_progress');
+        return $query->whereIn('status', ['impression', 'laboratory', 'try_in']);
     }
 
     public function scopeCompleted($query)
     {
-        return $query->where('status', 'completed');
+        return $query->whereIn('status', ['delivered', 'cemented']);
     }
 
     public function scopeInLaboratory($query)
     {
-        return $query->where('status', 'in_laboratory');
+        return $query->where('status', 'laboratory');
     }
 
     public function scopeReadyForTryIn($query)
     {
-        return $query->where('status', 'ready_for_try_in');
+        return $query->where('status', 'try_in');
     }
 
     // Accessors
     public function getStatusLabelAttribute()
     {
         $labels = [
-            'in_progress' => 'En Progreso',
-            'in_laboratory' => 'En Laboratorio',
-            'ready_for_try_in' => 'Listo para Prueba',
-            'try_in_scheduled' => 'Prueba Programada',
-            'completed' => 'Completado',
-            'failed' => 'Fallido',
+            'impression' => 'Impresión',
+            'laboratory' => 'En Laboratorio',
+            'try_in' => 'En Prueba',
+            'delivered' => 'Entregada',
+            'cemented' => 'Cementada',
+            'failed' => 'Fallida',
         ];
 
         return $labels[$this->status] ?? $this->status;
     }
 
-    public function getRestorationTypeLabelAttribute()
+    public function getProsthesisTypeLabelAttribute()
     {
         $labels = [
             'crown' => 'Corona',
             'bridge' => 'Puente',
-            'veneer' => 'Carilla',
-            'inlay' => 'Inlay',
-            'onlay' => 'Onlay',
-            'overlay' => 'Overlay',
+            'partial' => 'Prótesis parcial',
+            'complete' => 'Prótesis completa',
+            'implant_prosthesis' => 'Prótesis sobre implante',
         ];
 
-        return $labels[$this->restoration_type] ?? $this->restoration_type;
+        return $labels[$this->prosthesis_type] ?? $this->prosthesis_type;
     }
 }

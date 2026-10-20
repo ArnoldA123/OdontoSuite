@@ -90,9 +90,9 @@ class OralSurgeryRecord extends Model
         return $query->where('status', 'completed');
     }
 
-    public function scopeInRecovery($query)
+    public function scopeCancelled($query)
     {
-        return $query->where('status', 'in_recovery');
+        return $query->where('status', 'cancelled');
     }
 
     public function scopeWithComplications($query)
@@ -107,9 +107,8 @@ class OralSurgeryRecord extends Model
             'scheduled' => 'Programada',
             'in_progress' => 'En Progreso',
             'completed' => 'Completada',
-            'in_recovery' => 'En Recuperación',
-            'follow_up' => 'Seguimiento',
-            'healed' => 'Curada',
+            'cancelled' => 'Cancelada',
+            'complications' => 'Con Complicaciones',
         ];
 
         return $labels[$this->status] ?? $this->status;
