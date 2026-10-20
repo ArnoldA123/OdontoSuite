@@ -48,10 +48,14 @@ ganancia de foco. Carga de revisión: tres commits con sus tests al lado, ~430 l
 ## Verificación
 
 - Suite PHP completa con `phpunit.mysql.xml` contra la base dedicada
-  `odontosuite_caja_followups_test` (`DB_SOCKET=` fuerza el MySQL de Docker en 3307): las otras
-  sesiones de agente comparten `odontosuite_test` y una llegó a recrearla en vivo.
-- `pnpm test:js`, `pnpm lint:check`, Prettier, `vendor/bin/pint --test` y
-  `node scripts/audit/doc-drift.mjs` como guardas del repositorio.
+  `odontosuite_caja_followups_test` (`DB_SOCKET=` fuerza el MySQL de Docker en 3307): **1745
+  tests, 8309 aserciones, 0 fallos**. Las otras sesiones de agente comparten `odontosuite_test` y
+  una llegó a recrearla en vivo, así que la base de tests queda aislada por worktree.
+- Vitest completo 746 tests; ESLint 0 errores (34 avisos preexistentes); Prettier limpio;
+  `vendor/bin/pint --test` 589 archivos; `node scripts/audit/doc-drift.mjs` 12/12 (197 rutas API
+  / 210 totales).
+- PR #236, un solo slice (429 líneas propias, 29 sobre presupuesto; frontera y motivo en
+  «Slices de entrega»).
 
 ## Log
 
