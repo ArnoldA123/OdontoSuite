@@ -10,6 +10,11 @@ import { useApi } from './useApi'
  */
 const SURFACES = ['records', 'evolutions', 'attachments', 'stats', 'specialties']
 
+// The index caps `per_page` at 50. A patient can own more than one history
+// (the database does not forbid it), so the workspace walks the pages instead
+// of silently showing only the first 50.
+const MAX_RECORD_PAGES = 20
+
 const EMPTY_ERRORS = () => ({ ...Object.fromEntries(SURFACES.map(s => [s, null])), write: null })
 const EMPTY_LOADING = () => Object.fromEntries(SURFACES.map(s => [s, false]))
 
@@ -95,6 +100,33 @@ export function useMedicalRecords() {
       },
       'Error al obtener historias clínicas'
     )
+
+  const getAllRecords = async (params = {}) => {
+    const perPage = params.per_page || 50
+
+    return read(
+      'records',
+      async () => {
+        const first = await get(
+          `/api/medical-records${buildQuery({ ...params, page: 1, per_page: perPage })}`
+        )
+        records.value = first.data || []
+        meta.value = first.meta || null
+
+        const lastPage = Math.min(Number(first.meta?.last_page) || 1, MAX_RECORD_PAGES)
+
+        for (let page = 2; page <= lastPage; page += 1) {
+          const next = await get(
+            `/api/medical-records${buildQuery({ ...params, page, per_page: perPage })}`
+          )
+          records.value = records.value.concat(next.data || [])
+        }
+
+        return records.value
+      },
+      'Error al obtener historias clínicas'
+    )
+  }
 
   const getRecord = async id =>
     read(
@@ -272,6 +304,7 @@ export function useMedicalRecords() {
     hasAttachments,
 
     getRecords,
+    getAllRecords,
     getRecord,
     createRecord,
     updateRecord,

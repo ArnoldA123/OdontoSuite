@@ -6,6 +6,13 @@
         <p class="mt-1 text-sm text-theme-secondary">
           El registro SOAP de cada consulta, de la más reciente a la más antigua
         </p>
+        <p
+          v-if="record"
+          class="mt-1 text-xs text-theme-secondary tabular-nums"
+          data-evolution-record
+        >
+          Historia {{ record.record_number }}
+        </p>
       </div>
       <UiButton variant="secondary" size="sm" data-add-evolution @click="emit('add')">
         <template #icon-left>
@@ -271,6 +278,10 @@ const props = defineProps({
   specialties: {
     type: Array,
     default: () => []
+  },
+  record: {
+    type: Object,
+    default: null
   },
   loading: {
     type: Boolean,

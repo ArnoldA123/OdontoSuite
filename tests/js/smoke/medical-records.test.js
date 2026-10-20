@@ -69,6 +69,20 @@ const record = {
   attachments_count: 2
 }
 
+const secondRecord = {
+  id: 22,
+  record_number: 'HC-2026-000022',
+  first_visit_date: '2026-05-12',
+  chief_complaint: 'Control',
+  diagnosis: 'Sin hallazgos',
+  treatment_plan: null,
+  notes: null,
+  is_active: true,
+  patient,
+  evolutions_count: 0,
+  attachments_count: 0
+}
+
 const stats = {
   total_records: 1,
   total_evolutions: 3,
@@ -88,13 +102,29 @@ const evolution = {
   plan: 'Resina'
 }
 
-const installApi = ({ records = [record], failIndex = false } = {}) =>
+const installApi = ({ records = [record], failIndex = false, recordPages = null } = {}) =>
   harness.apiGet.mockImplementation(async url => {
     const parsed = new URL(url, 'http://localhost')
     const path = parsed.pathname
 
     if (path === '/api/medical-records') {
       if (failIndex) throw { response: { data: { message: 'Sin conexión con el servidor' } } }
+
+      if (recordPages) {
+        const page = Number(parsed.searchParams.get('page') || 1)
+        const data = recordPages[page - 1] || []
+
+        return {
+          data,
+          meta: {
+            total: recordPages.flat().length,
+            current_page: page,
+            per_page: 50,
+            last_page: recordPages.length
+          }
+        }
+      }
+
       return {
         data: records,
         meta: { total: records.length, current_page: 1, per_page: 10, last_page: 1 }
@@ -289,6 +319,66 @@ describe('medical-records shell', () => {
     expect(wrapper.find('[data-patient-context]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Historias recientes')
     expect(wrapper.get('[data-stat="records"]').text()).toBe('—')
+
+    wrapper.unmount()
+  })
+
+  it('paginates every history of the patient instead of truncating at 50', async () => {
+    installApi({ recordPages: [[record], [secondRecord]] })
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+
+    const requested = calls()
+    expect(
+      requested.some(url => url.includes('/api/medical-records?') && url.includes('page=1'))
+    ).toBe(true)
+    expect(
+      requested.some(url => url.includes('/api/medical-records?') && url.includes('page=2'))
+    ).toBe(true)
+
+    const numbers = wrapper.get('[data-patient-record-numbers]').text()
+    expect(numbers).toContain('HC-2026-000021')
+    expect(numbers).toContain('HC-2026-000022')
+
+    wrapper.unmount()
+  })
+
+  it('lets the chosen history feed the evolutions tab when the patient owns more than one', async () => {
+    installApi({ records: [record, secondRecord] })
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+
+    expect(wrapper.find('[data-record-selector]').exists()).toBe(true)
+    expect(wrapper.get('[data-active-record-label]').text()).toBe('HC-2026-000021')
+
+    await wrapper.get('[data-record-selector] button[aria-haspopup="true"]').trigger('click')
+    const option = wrapper
+      .findAll('button[aria-selected]')
+      .find(button => button.text().includes('HC-2026-000022'))
+    expect(option).toBeTruthy()
+    await option.trigger('click')
+    await flushPromises()
+
+    expect(calls()).toContain('/api/medical-records/22/evolutions')
+    expect(wrapper.get('[data-active-record-label]').text()).toBe('HC-2026-000022')
+
+    await wrapper.findAll('[role="tab"]')[1].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[data-evolution-record]').text()).toContain('HC-2026-000022')
+
+    wrapper.unmount()
+  })
+
+  it('labels attachments and stats as patient-scoped', async () => {
+    installApi({ records: [record, secondRecord] })
+    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
+
+    await wrapper.findAll('[role="tab"]')[2].trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-attachments-scope]').text()).toContain('expediente completo')
+
+    await wrapper.findAll('[role="tab"]')[3].trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-stats-scope]').text()).toContain('todo el expediente del paciente')
 
     wrapper.unmount()
   })

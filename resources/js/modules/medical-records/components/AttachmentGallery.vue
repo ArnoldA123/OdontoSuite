@@ -6,6 +6,10 @@
         <p class="mt-1 text-sm text-theme-secondary">
           Radiografías, fotos clínicas y documentos del expediente
         </p>
+        <p class="mt-1 text-xs text-theme-secondary" data-attachments-scope>
+          Los adjuntos pertenecen al expediente completo del paciente; no se limitan a la historia
+          activa.
+        </p>
       </div>
       <UiButton
         v-if="canUpload && attachments.length > 0"
@@ -236,6 +240,10 @@ const props = defineProps({
   attachments: {
     type: Array,
     default: () => []
+  },
+  record: {
+    type: Object,
+    default: null
   },
   loading: {
     type: Boolean,
