@@ -8,8 +8,10 @@ use App\Http\Requests\OpenCashRegisterRequest;
 use App\Models\CashRegisterSession;
 use App\Services\CashRegisterService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class CashRegisterController extends Controller
 {
@@ -91,9 +93,12 @@ class CashRegisterController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener la sesión de caja actual', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -112,9 +117,12 @@ class CashRegisterController extends Controller
 
             return response()->json($result);
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener las sesiones de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener las sesiones de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -124,29 +132,37 @@ class CashRegisterController extends Controller
      *
      * Issue #193: the session detail is scoped to its owner (or an
      * administrador) through CashRegisterPolicy::view, the same rule
-     * CashMovementPolicy already applied. The lookup moved out of the try
-     * block so a missing id answers 404 instead of the catch-all 500.
+     * CashMovementPolicy already applied.
+     *
+     * Cash follow-up S4: the lookup stays inside the try so any failure is
+     * logged and answered with the generic envelope, while a missing id is
+     * rethrown as a 404 before the catch-all.
      */
     public function show(Request $request, int $id): JsonResponse
     {
-        $session = CashRegisterSession::with([
-            'user', 'branch', 'movements', 'transactions',
-        ])->findOrFail($id);
-
-        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
-            return $denied;
-        }
-
         try {
+            $session = CashRegisterSession::with([
+                'user', 'branch', 'movements', 'transactions',
+            ])->findOrFail($id);
+
+            if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+                return $denied;
+            }
+
             $summary = $this->cashRegisterService->getSessionSummary($session);
 
             return response()->json([
                 'data' => $summary,
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener la sesión de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener la sesión de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -156,13 +172,13 @@ class CashRegisterController extends Controller
      */
     public function movements(Request $request, int $sessionId): JsonResponse
     {
-        $session = CashRegisterSession::findOrFail($sessionId);
-
-        if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
-            return $denied;
-        }
-
         try {
+            $session = CashRegisterSession::findOrFail($sessionId);
+
+            if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
+                return $denied;
+            }
+
             $movements = \App\Models\CashMovement::where('cash_register_session_id', $sessionId)
                 ->with(['createdBy', 'transaction'])
                 ->orderBy('created_at', 'desc')
@@ -177,10 +193,15 @@ class CashRegisterController extends Controller
                     'total' => $movements->total(),
                 ],
             ]);
+        } catch (ModelNotFoundException $e) {
+            throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los movimientos de la sesión de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener los movimientos de la sesión',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -257,9 +278,12 @@ class CashRegisterController extends Controller
                 'meta' => ['message' => 'Resumen de caja generado exitosamente'],
             ]);
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener el resumen de caja', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener el resumen de caja',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
