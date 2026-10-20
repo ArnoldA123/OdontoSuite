@@ -23,9 +23,9 @@
               Administrador · Finanzas
             </UiBadge>
           </div>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
             Estadísticas del Catálogo
-          </h1>
+          </h2>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
             Uso del catálogo por especialidad y procedimientos más frecuentes
           </p>
@@ -350,7 +350,7 @@
                   </p>
                 </div>
                 <UiBadge variant="neutral" size="sm" shape="pill" data-specialty-share>
-                  {{ row.share }}%
+                  {{ row.shareLabel }}
                 </UiBadge>
               </div>
               <div
@@ -358,7 +358,12 @@
                 style="background: var(--color-hairline)"
                 role="presentation"
               >
-                <div class="h-full rounded-full bg-accent" :style="{ width: `${row.barWidth}%` }" />
+                <div
+                  class="h-full rounded-full bg-accent"
+                  data-specialty-bar
+                  :data-specialty-bar-percent="row.barWidth"
+                  :style="{ width: `${row.barWidth}%` }"
+                />
               </div>
             </li>
           </ul>
@@ -411,6 +416,7 @@ const CHART_PALETTE = [
 const CHART_LABEL_MAX = 28
 const CHART_LABEL_MAX_NARROW = 16
 const CHART_NARROW_WIDTH = 420
+const MIN_VISIBLE_BAR_PERCENT = 2
 
 const presets = [
   { id: '7d', label: '7 días', days: 7 },
@@ -503,15 +509,25 @@ const topRows = computed(() =>
   }))
 )
 
+// A bar too small to see is still a datum, so a nonzero participation keeps a
+// visible floor. The badge reads that same number: a rounded 0 % next to a
+// drawn bar would make the two surfaces disagree about one specialty.
+const barWidthFor = (sharePct, usage) =>
+  usage > 0 ? Math.max(MIN_VISIBLE_BAR_PERCENT, sharePct) : 0
+
+const shareLabelFor = (sharePct, usage) => (usage > 0 && sharePct === 0 ? '<1%' : `${sharePct}%`)
+
 const specialtyRows = computed(() =>
   bySpecialty.value.map(row => {
     const usage = Number(row.usage_count || 0)
     const share = periodUsage.value > 0 ? (usage / periodUsage.value) * 100 : 0
+    const sharePct = Math.round(share)
     return {
       ...row,
       key: row.specialty_id ?? 'sin-especialidad',
-      share: Math.round(share),
-      barWidth: usage > 0 ? Math.max(2, Math.round(share)) : 0
+      sharePct,
+      shareLabel: shareLabelFor(sharePct, usage),
+      barWidth: barWidthFor(sharePct, usage)
     }
   })
 )
@@ -538,10 +554,24 @@ const truncateChartLabel = (label, limit = CHART_LABEL_MAX) => {
 // A narrow canvas cannot reserve room for a long axis label: Chart.js draws it
 // past the left edge and the browser clips the text instead of shortening it,
 // so the label budget follows the rendered width.
-const chartLabelLimit = canvas =>
-  canvas.clientWidth > 0 && canvas.clientWidth < CHART_NARROW_WIDTH
-    ? CHART_LABEL_MAX_NARROW
-    : CHART_LABEL_MAX
+const chartLabelLimitForWidth = width =>
+  width > 0 && width < CHART_NARROW_WIDTH ? CHART_LABEL_MAX_NARROW : CHART_LABEL_MAX
+
+const usageChartLabels = width =>
+  topProcedures.value.map(row => truncateChartLabel(row.name, chartLabelLimitForWidth(width)))
+
+// Chart.js measures the canvas once when it builds the axis, so a resize that
+// crosses the threshold must re-derive the labels from the new width instead of
+// keeping the budget of the first paint. Redrawing only on a band change keeps
+// the callback from repainting on every resize frame.
+const syncUsageChartLabels = (chart, width) => {
+  const labels = usageChartLabels(width)
+  if (labels.every((label, index) => chart.data.labels[index] === label)) {
+    return
+  }
+  chart.data.labels = labels
+  chart.update()
+}
 
 const destroyCharts = () => {
   for (const chart of [usageChart, specialtyChart]) {
@@ -593,9 +623,7 @@ const renderCharts = async () => {
     usageChart = new Chart(usageCanvas, {
       type: 'bar',
       data: {
-        labels: topProcedures.value.map(row =>
-          truncateChartLabel(row.name, chartLabelLimit(usageCanvas))
-        ),
+        labels: usageChartLabels(usageCanvas.clientWidth),
         datasets: [
           {
             label: 'Usos',
@@ -611,6 +639,7 @@ const renderCharts = async () => {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        onResize: (chart, size) => syncUsageChartLabels(chart, size.width),
         plugins: { legend: { display: false } },
         scales: {
           x: { beginAtZero: true, ticks: { precision: 0 } },

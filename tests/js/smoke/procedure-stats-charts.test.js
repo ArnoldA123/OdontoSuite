@@ -99,6 +99,20 @@ const emptyPayload = {
   by_specialty: []
 }
 
+const longNamePayload = {
+  ...payload,
+  top_procedures: [
+    {
+      procedure_id: 9,
+      code: 'P-009',
+      name: 'Brackets metálicos, control mensual',
+      usage_count: 2,
+      total_quantity: 2,
+      total_revenue: 360
+    }
+  ]
+}
+
 const signInAs = role => {
   localStorage.setItem('auth_token', 'test-token')
   localStorage.setItem('user', JSON.stringify({ id: 1, name: 'Ana Admin', role }))
@@ -210,19 +224,6 @@ describe('procedure stats charts (T3 / S5)', () => {
   })
 
   it('shortens the axis labels only when the rendered canvas is narrow', async () => {
-    const longNamePayload = {
-      ...payload,
-      top_procedures: [
-        {
-          procedure_id: 9,
-          code: 'P-009',
-          name: 'Brackets metálicos, control mensual',
-          usage_count: 2,
-          total_quantity: 2,
-          total_revenue: 360
-        }
-      ]
-    }
     getMock.mockResolvedValue({ data: longNamePayload })
 
     const setCanvasWidth = width =>
@@ -231,22 +232,53 @@ describe('procedure stats charts (T3 / S5)', () => {
         get: () => width
       })
 
-    try {
-      // jsdom has no layout: a canvas reads 0 without an explicit width, and
-      // 0 must fall back to the desktop budget instead of the narrow one.
-      setCanvasWidth(320)
-      let wrapper = await mountPage()
-      expect(chartMock.instances[0].config.data.labels).toEqual(['Brackets metáli…'])
-      wrapper.unmount()
+    // jsdom has no layout: a canvas reads 0 without an explicit width, and 0
+    // must fall back to the desktop budget instead of the narrow one. 419/421
+    // pin the threshold itself, not just values far away from it.
+    const cases = [
+      [320, 'Brackets metáli…'],
+      [419, 'Brackets metáli…'],
+      [421, 'Brackets metálicos, control…'],
+      [800, 'Brackets metálicos, control…']
+    ]
 
-      chartMock.instances.length = 0
-      setCanvasWidth(800)
-      wrapper = await mountPage()
-      expect(chartMock.instances[0].config.data.labels).toEqual(['Brackets metálicos, control…'])
-      wrapper.unmount()
+    try {
+      for (const [width, label] of cases) {
+        setCanvasWidth(width)
+        const wrapper = await mountPage()
+        expect(chartMock.instances[0].config.data.labels).toEqual([label])
+        wrapper.unmount()
+        chartMock.instances.length = 0
+      }
     } finally {
       delete HTMLCanvasElement.prototype.clientWidth
     }
+  })
+
+  it('re-derives the label budget when a resize crosses the threshold', async () => {
+    getMock.mockResolvedValue({ data: longNamePayload })
+
+    const wrapper = await mountPage()
+    const usageConfig = chartMock.instances[0].config
+    const chart = { data: { labels: [...usageConfig.data.labels] }, update: vi.fn() }
+    const resizeTo = width => usageConfig.options.onResize(chart, { width })
+
+    // jsdom has no layout, so the first paint keeps the desktop budget.
+    expect(chart.data.labels).toEqual(['Brackets metálicos, control…'])
+
+    resizeTo(419)
+    expect(chart.data.labels).toEqual(['Brackets metáli…'])
+    expect(chart.update).toHaveBeenCalledTimes(1)
+
+    resizeTo(500)
+    expect(chart.data.labels).toEqual(['Brackets metálicos, control…'])
+    expect(chart.update).toHaveBeenCalledTimes(2)
+
+    // Staying inside the same band must not redraw the chart.
+    resizeTo(600)
+    expect(chart.update).toHaveBeenCalledTimes(2)
+
+    wrapper.unmount()
   })
 
   it('creates no charts and no canvases when the period is empty', async () => {

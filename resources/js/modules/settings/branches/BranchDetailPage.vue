@@ -45,7 +45,7 @@
               Sucursal
             </p>
             <div class="mt-2 flex flex-wrap items-center gap-3">
-              <h1 class="text-4xl font-semibold text-label" data-hero-title>{{ branch.name }}</h1>
+              <h2 class="text-4xl font-semibold text-label" data-hero-title>{{ branch.name }}</h2>
               <UiStatusBadge
                 data-branch-status
                 :variant="getBranchStatusVariant(branch.is_active)"
