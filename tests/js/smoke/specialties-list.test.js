@@ -119,7 +119,9 @@ describe('specialties list smoke', () => {
     expect(hero.exists()).toBe(true)
     expect(hero.find('h2').text()).toBe('Especialidades')
     expect(hero.text()).toContain('Catálogo clínico')
-    expect(hero.text()).toContain('Administra la taxonomía que ordena procedimientos y profesionales')
+    expect(hero.text()).toContain(
+      'Administra la taxonomía que ordena procedimientos y profesionales'
+    )
     expect(hero.text()).toContain('Volver')
     expect(hero.text()).toContain('Nueva especialidad')
     expect(wrapper.findComponent({ name: 'PageHeader' }).exists()).toBe(false)
