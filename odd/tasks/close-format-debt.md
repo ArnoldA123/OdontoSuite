@@ -68,6 +68,12 @@ cada uno se pueda revisar por muestreo sin leer el diff entero.
 - ESLint: 0 errores (44 warnings de `vue/attributes-order`, preexistentes).
 - Vitest: 66 archivos, 540 tests, todos verdes.
 - `doc-drift.mjs`: 12/12 checks en verde. `AgentsDocsSyncTest`: 5/5.
+- Suite MySQL completa: 1418 tests, 6187 assertions, todos verdes
+  (`DB_SOCKET="" php artisan test --configuration=phpunit.mysql.xml`; la base
+  local escucha en 127.0.0.1:3307 y el `DB_SOCKET` de XAMPP desviaba la
+  conexión). El total coincide con la corrida previa a los cambios, así que
+  ningún test dejó de ejecutarse.
+- `pnpm build`: exit 0.
 - Guards ajustados por formato, no debilitados: `CredentialsDocumentationTest`
   (padding de tablas markdown), `PatientsListAppShellTest` y
   `patients-list-redesign.test.js` (reflow del atributo `style` inline).
