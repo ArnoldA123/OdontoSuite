@@ -4,8 +4,8 @@ namespace App\Events;
 
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -45,4 +45,3 @@ class PatientCreated implements ShouldBroadcast
         ];
     }
 }
-

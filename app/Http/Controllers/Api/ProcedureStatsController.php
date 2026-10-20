@@ -14,9 +14,7 @@ use Illuminate\Http\Request;
  */
 class ProcedureStatsController extends Controller
 {
-    public function __construct(private readonly ProcedureStatsService $service)
-    {
-    }
+    public function __construct(private readonly ProcedureStatsService $service) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -28,6 +26,7 @@ class ProcedureStatsController extends Controller
 
         try {
             $stats = $this->service->getStats($validated);
+
             return response()->json(['data' => $stats]);
         } catch (\Exception $e) {
             report($e);

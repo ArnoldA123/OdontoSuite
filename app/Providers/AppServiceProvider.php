@@ -16,9 +16,7 @@ class AppServiceProvider extends ServiceProvider
      * Service bindings with custom factories or scoped state still belong
      * here.
      */
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap any application services.

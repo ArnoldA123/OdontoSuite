@@ -16,13 +16,13 @@ class ProcedureCatalogTranslationTest extends TestCase
 {
     private static function projectRoot(): string
     {
-        return realpath(__DIR__ . '/../../..');
+        return realpath(__DIR__.'/../../..');
     }
 
     /** @test */
     public function translation_model_exists(): void
     {
-        $path = self::projectRoot() . '/app/Models/ProcedureCatalogTranslation.php';
+        $path = self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php';
         $this->assertFileExists($path);
         $content = file_get_contents($path);
         $this->assertStringContainsString('class ProcedureCatalogTranslation', $content);
@@ -32,7 +32,7 @@ class ProcedureCatalogTranslationTest extends TestCase
     /** @test */
     public function translation_model_has_correct_fillable(): void
     {
-        $content = file_get_contents(self::projectRoot() . '/app/Models/ProcedureCatalogTranslation.php');
+        $content = file_get_contents(self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php');
         $required = ['procedure_catalog_id', 'locale', 'name', 'description', 'requirements', 'materials_needed', 'contraindications', 'post_procedure_care'];
         foreach ($required as $field) {
             $this->assertStringContainsString("'{$field}'", $content, "ProcedureCatalogTranslation must have fillable: {$field}");
@@ -42,7 +42,7 @@ class ProcedureCatalogTranslationTest extends TestCase
     /** @test */
     public function migration_exists_for_translations_table(): void
     {
-        $path = self::projectRoot() . '/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php';
+        $path = self::projectRoot().'/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php';
         $this->assertFileExists($path);
         $content = file_get_contents($path);
         $this->assertStringContainsString('procedure_catalog_translations', $content);
@@ -53,7 +53,7 @@ class ProcedureCatalogTranslationTest extends TestCase
     /** @test */
     public function migration_has_unique_constraint_on_locale_per_procedure(): void
     {
-        $content = file_get_contents(self::projectRoot() . '/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php');
+        $content = file_get_contents(self::projectRoot().'/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php');
         $this->assertStringContainsString('unique', $content, 'Migration must have unique constraint on [procedure_catalog_id, locale]');
         $this->assertStringContainsString('pc_trans_unique', $content, 'Unique constraint should have explicit index name');
     }
@@ -90,9 +90,9 @@ class ProcedureCatalogTranslationTest extends TestCase
     }
 
     /** @test */
-    public function ProcedureCatalogTranslation_model_table_name_is_correct(): void
+    public function procedure_catalog_translation_model_table_name_is_correct(): void
     {
-        $path = self::projectRoot() . '/app/Models/ProcedureCatalogTranslation.php';
+        $path = self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php';
         $content = file_get_contents($path);
         $this->assertStringContainsString("protected \$table = 'procedure_catalog_translations'", $content);
     }

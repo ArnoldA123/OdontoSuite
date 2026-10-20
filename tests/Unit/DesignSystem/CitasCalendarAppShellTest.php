@@ -65,7 +65,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::CALENDAR_PATH,
+            dirname(__DIR__, 3).self::CALENDAR_PATH,
         ];
     }
 
@@ -87,8 +87,8 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_status_legend_renders_all_seven_enum_values(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
-        $registryPath = dirname(__DIR__, 3) . self::REGISTRY_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
+        $registryPath = dirname(__DIR__, 3).self::REGISTRY_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
         $registrySrc = self::readSource($registryPath);
@@ -108,12 +108,12 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach ($requiredEnumValues as $enum) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#\b' . preg_quote($enum, '#') . '\s*:\s*\{#',
+                    '#\b'.preg_quote($enum, '#').'\s*:\s*\{#',
                     $registrySrc
                 ),
                 sprintf(
                     '%s MUST define the status enum key `%s` in APPOINTMENT_STATUSES (CITAS-CAL-001). '
-                    . 'The 7-value legend is the load-bearing bug fix; the registry is its source of truth.',
+                    .'The 7-value legend is the load-bearing bug fix; the registry is its source of truth.',
                     $registryPath,
                     $enum
                 )
@@ -140,8 +140,8 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST derive `legendStatuses` from `APPOINTMENT_STATUS_KEYS` excluding only the '
-                . '`in_consultation` alias of `in_progress` (CITAS-CAL-001). The legend shows one pill '
-                . 'per pinned enum value; a different filter silently changes the 7-value legend.',
+                .'`in_consultation` alias of `in_progress` (CITAS-CAL-001). The legend shows one pill '
+                .'per pinned enum value; a different filter silently changes the 7-value legend.',
                 $path
             )
         );
@@ -180,7 +180,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_legend_pills_are_registry_driven(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -190,7 +190,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#<UiBadge\b[^>]*:variant\s*=\s*"statusBadgeVariant\(\w+\)"#', $src),
             sprintf(
                 '%s legend MUST render pills via `<UiBadge :variant="statusBadgeVariant(...)">` '
-                . '(CITAS-CAL-001). Variants come from the appointmentStatus registry, not the template.',
+                .'(CITAS-CAL-001). Variants come from the appointmentStatus registry, not the template.',
                 $path
             )
         );
@@ -201,7 +201,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#\{\{\s*statusLabel\(\w+\)\s*\}\}#', $src),
             sprintf(
                 '%s legend MUST render pill labels via `{{ statusLabel(...) }}` (CITAS-CAL-001). '
-                . 'Labels come from the appointmentStatus registry, not the template.',
+                .'Labels come from the appointmentStatus registry, not the template.',
                 $path
             )
         );
@@ -212,7 +212,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#<UiBadge\b[^>]*(?<!:)variant\s*=\s*["\']#', $src),
             sprintf(
                 '%s MUST NOT hardcode a variant literal on a legend pill (CITAS-CAL-001). '
-                . 'Bind `:variant` from the appointmentStatus registry instead.',
+                .'Bind `:variant` from the appointmentStatus registry instead.',
                 $path
             )
         );
@@ -226,7 +226,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_shell_hero_landmarks(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -242,7 +242,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach (['--color-canvas', '--color-hairline', '--radius-panel', '--elevation-2'] as $token) {
             $this->assertSame(
                 1,
-                preg_match('#var\(' . preg_quote($token, '#') . '\)#', $src),
+                preg_match('#var\('.preg_quote($token, '#').'\)#', $src),
                 sprintf(
                     '%s hero MUST consume the %s token (dashboard hero grammar).',
                     $path,
@@ -270,14 +270,14 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_shell_toolbar_wiring_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         foreach (['day', 'week', 'month'] as $view) {
             $this->assertSame(
                 1,
-                preg_match('#data-calendar-view\s*=\s*"' . $view . '"#', $src),
+                preg_match('#data-calendar-view\s*=\s*"'.$view.'"#', $src),
                 sprintf(
                     '%s MUST expose `data-calendar-view="%s"` on the %s segment (T3 shell contract).',
                     $path,
@@ -287,7 +287,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             );
             $this->assertSame(
                 1,
-                preg_match("#@click\s*=\s*\"changeView\\('" . $view . "'\\)\"#", $src),
+                preg_match("#@click\s*=\s*\"changeView\\('".$view."'\\)\"#", $src),
                 sprintf(
                     '%s segment `%s` MUST stay wired to `changeView` (T3 shell contract).',
                     $path,
@@ -299,7 +299,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach (['prev', 'today', 'next'] as $nav) {
             $this->assertSame(
                 1,
-                preg_match('#data-calendar-nav\s*=\s*"' . $nav . '"#', $src),
+                preg_match('#data-calendar-nav\s*=\s*"'.$nav.'"#', $src),
                 sprintf(
                     '%s MUST expose `data-calendar-nav="%s"` (T3 shell contract).',
                     $path,
@@ -311,7 +311,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach (['previousPeriod', 'goToToday', 'nextPeriod'] as $handler) {
             $this->assertSame(
                 1,
-                preg_match('#@click\s*=\s*"' . preg_quote($handler, '#') . '"#', $src),
+                preg_match('#@click\s*=\s*"'.preg_quote($handler, '#').'"#', $src),
                 sprintf(
                     '%s navigation MUST stay wired to `%s` (T3 shell contract).',
                     $path,
@@ -356,7 +356,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_no_border_theme(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -365,7 +365,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])border-theme(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `border-theme` literal anywhere in the template (CITAS-CAL-002 / DLR-R-002). '
-                . 'Use the `border-hairline` / `--color-hairline` token instead.',
+                .'Use the `border-hairline` / `--color-hairline` token instead.',
                 $path
             )
         );
@@ -379,7 +379,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_no_hover_lift(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -388,7 +388,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])hover-lift(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `hover-lift` affordance on appointment blocks (CITAS-CAL-002). '
-                . 'The token-aligned hover affordance is `<UiCard clickable>` (per design §3.2).',
+                .'The token-aligned hover affordance is `<UiCard clickable>` (per design §3.2).',
                 $path
             )
         );
@@ -404,7 +404,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_no_legacy_status_pills(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -425,10 +425,10 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach ($forbiddenAliases as $alias) {
             $this->assertSame(
                 0,
-                preg_match('#(?<![\w-])' . preg_quote($alias, '#') . '(?![\w-])#', $src),
+                preg_match('#(?<![\w-])'.preg_quote($alias, '#').'(?![\w-])#', $src),
                 sprintf(
                     '%s MUST NOT keep the legacy status-pill colour class `%s` (CITAS-CAL-002 / DLR-R-009). '
-                    . 'Replace it with `<UiStatusBadge variant="...">` or the tokenised system*-* ramp.',
+                    .'Replace it with `<UiStatusBadge variant="...">` or the tokenised system*-* ramp.',
                     $path,
                     $alias
                 )
@@ -445,7 +445,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_ws_pill_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -454,7 +454,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#>\s*En vivo\s*<#', $src),
             sprintf(
                 '%s MUST keep the "En vivo" WebSocket pill text verbatim (CITAS-RT-001). '
-                . 'The realtime subscription depends on the pill being visible to the receptionist.',
+                .'The realtime subscription depends on the pill being visible to the receptionist.',
                 $path
             )
         );
@@ -470,7 +470,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_use_echo_appointments_channel_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -479,7 +479,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match("#channel\s*\(\s*['\"]appointments['\"]\s*\)#", $src),
             sprintf(
                 '%s MUST keep `channel(\'appointments\')` subscription (CITAS-RT-001). '
-                . 'The Echo channel name is the canonical realtime pipe for appointment events.',
+                .'The Echo channel name is the canonical realtime pipe for appointment events.',
                 $path
             )
         );
@@ -493,12 +493,12 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         foreach ($requiredEvents as $event) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#\.listen\s*\(\s*[\'"]' . preg_quote($event, '#') . '[\'"]#',
+                    '#\.listen\s*\(\s*[\'"]'.preg_quote($event, '#').'[\'"]#',
                     $src
                 ),
                 sprintf(
                     '%s MUST keep the `.listen("%s")` event listener (CITAS-RT-001). '
-                    . 'Realtime sync depends on the three canonical appointment events.',
+                    .'Realtime sync depends on the three canonical appointment events.',
                     $path,
                     $event
                 )
@@ -513,7 +513,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep `echo.leave(\'appointments\')` in the `onUnmounted` hook (CITAS-RT-001). '
-                . 'Without the leave call, switching routes leaks an Echo subscription.',
+                .'Without the leave call, switching routes leaks an Echo subscription.',
                 $path
             )
         );
@@ -528,7 +528,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_day_week_grids_share_one_slot_lookup_helper(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -537,7 +537,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#getAppointmentsForHour|getAppointmentsForDayAndHour#', $src),
             sprintf(
                 '%s MUST NOT keep the duplicated `getAppointmentsForHour` / `getAppointmentsForDayAndHour` pair (T4). '
-                . 'Both grids share the single `appointmentsForSlot(dateStr, hour)` helper.',
+                .'Both grids share the single `appointmentsForSlot(dateStr, hour)` helper.',
                 $path
             )
         );
@@ -569,7 +569,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_click_to_create_slot_contract(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -583,7 +583,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s Day and Week slot hit areas MUST be real `<button>` elements gated by `can.createAppointment?.value` '
-                . '(T4 click-to-create; Enter/Space come from native button semantics).',
+                .'(T4 click-to-create; Enter/Space come from native button semantics).',
                 $path
             )
         );
@@ -621,7 +621,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#:initial-date\s*=\s*"newAppointmentPrefill"#', $src),
             sprintf(
                 '%s MUST pass the slot prefill to `NewAppointmentModal` via `:initial-date` (T4; '
-                . 'the modal already owns the `initialDate` prop).',
+                .'the modal already owns the `initialDate` prop).',
                 $path
             )
         );
@@ -642,7 +642,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_appointment_chips_hooked_and_registry_driven(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -669,7 +669,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match_all('#:class\s*=\s*"getAppointmentClasses\(appointment\)"#', $src),
             sprintf(
                 '%s chips MUST bind `:class="getAppointmentClasses(appointment)"` in all three grids — status styling comes '
-                . 'from the appointmentStatus registry, never from a template class map (T4 + T6).',
+                .'from the appointmentStatus registry, never from a template class map (T4 + T6).',
                 $path
             )
         );
@@ -693,7 +693,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
      */
     public function test_calendar_content_surface_drops_glass_chrome(): void
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -702,7 +702,7 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             preg_match('#variant\s*=\s*["\']glass["\']#', $src),
             sprintf(
                 '%s MUST NOT keep `UiCard variant="glass"` chrome over the calendar grids (T4 / D1). '
-                . 'The content surface uses the quiet canvas + hairline + --radius-panel grammar.',
+                .'The content surface uses the quiet canvas + hairline + --radius-panel grammar.',
                 $path
             )
         );
@@ -719,10 +719,11 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

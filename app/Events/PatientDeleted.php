@@ -2,8 +2,8 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -13,6 +13,7 @@ class PatientDeleted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $patientId;
+
     public $oldValues;
 
     public function __construct(int $patientId, array $oldValues = [])
@@ -44,4 +45,3 @@ class PatientDeleted implements ShouldBroadcast
         ];
     }
 }
-

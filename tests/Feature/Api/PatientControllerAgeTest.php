@@ -68,12 +68,12 @@ class PatientControllerAgeTest extends TestCase
         return Patient::create([
             'first_name' => $firstName,
             'last_name' => 'Pérez',
-            'email' => strtolower($firstName) . '.perez@example.com',
+            'email' => strtolower($firstName).'.perez@example.com',
             // uniqid() suffix prevents patients_phone_unique collisions when this
             // helper is invoked repeatedly (e.g. test_index_preserves_pagination_meta_envelope
             // bulk-seeds 20 rows). Format stays a valid phone string, length well
             // under varchar(255). Slice 07d (PR7d) — same defect class as PR7c.
-            'phone' => '+51 987 654 321-' . uniqid(),
+            'phone' => '+51 987 654 321-'.uniqid(),
             'birth_date' => '1990-04-15',
             'gender' => 'male',
             'is_active' => true,
@@ -85,8 +85,8 @@ class PatientControllerAgeTest extends TestCase
         return Patient::create([
             'first_name' => $firstName,
             'last_name' => 'Fecha',
-            'email' => strtolower($firstName) . '.sinfecha@example.com',
-            'phone' => '+51 987 111 222-' . uniqid(),
+            'email' => strtolower($firstName).'.sinfecha@example.com',
+            'phone' => '+51 987 111 222-'.uniqid(),
             'birth_date' => null,
             'gender' => 'other',
             'is_active' => true,
@@ -114,7 +114,7 @@ class PatientControllerAgeTest extends TestCase
         $matching = collect($rows)->firstWhere('id', $patient->id);
         $this->assertNotNull(
             $matching,
-            'GET /api/patients MUST include the seeded patient (id=' . $patient->id . ').'
+            'GET /api/patients MUST include the seeded patient (id='.$patient->id.').'
         );
         $this->assertArrayHasKey(
             'age',
@@ -162,7 +162,7 @@ class PatientControllerAgeTest extends TestCase
         $admin = $this->admin();
         // Seed more than per_page so pagination is exercised
         for ($i = 0; $i < 20; $i++) {
-            $this->seedAdultPatient('Bulk' . $i);
+            $this->seedAdultPatient('Bulk'.$i);
         }
 
         $response = $this->actingAs($admin, 'sanctum')
@@ -190,7 +190,7 @@ class PatientControllerAgeTest extends TestCase
         $patient = $this->seedAdultPatient('Maria');
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/patients/' . $patient->id);
+            ->getJson('/api/patients/'.$patient->id);
 
         $response->assertOk();
 
@@ -211,7 +211,7 @@ class PatientControllerAgeTest extends TestCase
         $patient = $this->seedPatientWithoutBirthDate();
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/patients/' . $patient->id);
+            ->getJson('/api/patients/'.$patient->id);
 
         $response->assertOk();
         $this->assertArrayHasKey('age', $response->json('data'));
@@ -260,7 +260,7 @@ class PatientControllerAgeTest extends TestCase
         $patient = $this->seedAdultPatient('Antes');
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->putJson('/api/patients/' . $patient->id, [
+            ->putJson('/api/patients/'.$patient->id, [
                 'first_name' => 'Despues',
                 'last_name' => 'Paciente',
                 'email' => 'despues.paciente@example.com',

@@ -24,7 +24,7 @@ class CashRegisterSession extends Model
         'opening_notes',
         'closing_notes',
         'arqueo_data',
-        'status'
+        'status',
     ];
 
     protected $casts = [

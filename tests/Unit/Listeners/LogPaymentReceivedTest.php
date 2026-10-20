@@ -4,7 +4,6 @@ namespace Tests\Unit\Listeners;
 
 use App\Events\PaymentReceived;
 use App\Listeners\LogPaymentReceived;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 

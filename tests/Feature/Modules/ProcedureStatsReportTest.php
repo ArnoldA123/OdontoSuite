@@ -38,7 +38,7 @@ class ProcedureStatsReportTest extends TestCase
         // Direct create: User::factory() is blocked against MySQL because the
         // default factory does not emit `username`.
         return User::create([
-            'name' => 'Stats ' . $suffix,
+            'name' => 'Stats '.$suffix,
             'email' => "stats.{$suffix}@example.com",
             'username' => "stats_{$suffix}",
             'password' => bcrypt('password'),
@@ -49,7 +49,7 @@ class ProcedureStatsReportTest extends TestCase
 
     private function admin(): User
     {
-        return $this->user('administrador', 'admin_' . uniqid());
+        return $this->user('administrador', 'admin_'.uniqid());
     }
 
     private function patient(): Patient
@@ -65,7 +65,7 @@ class ProcedureStatsReportTest extends TestCase
     {
         return Specialty::create([
             'code' => $code,
-            'name' => 'Especialidad ' . $code,
+            'name' => 'Especialidad '.$code,
             'is_active' => true,
         ]);
     }
@@ -74,7 +74,7 @@ class ProcedureStatsReportTest extends TestCase
     {
         return ProcedureCatalog::create([
             'code' => $code,
-            'name' => 'Procedimiento ' . $code,
+            'name' => 'Procedimiento '.$code,
             'specialty_id' => $specialty?->id,
             'default_cost' => 100,
             'default_duration_minutes' => 30,
@@ -89,8 +89,8 @@ class ProcedureStatsReportTest extends TestCase
         $plan = TreatmentPlan::create([
             'patient_id' => $this->patient()->id,
             'created_by' => $owner->id,
-            'plan_number' => 'TP-' . uniqid(),
-            'title' => 'Plan ' . uniqid(),
+            'plan_number' => 'TP-'.uniqid(),
+            'title' => 'Plan '.uniqid(),
             'status' => $status,
         ]);
 
@@ -109,7 +109,7 @@ class ProcedureStatsReportTest extends TestCase
         return TreatmentPlanItem::create([
             'treatment_plan_id' => $plan->id,
             'procedure_catalog_id' => $catalog?->id,
-            'procedure_name' => 'Item ' . uniqid(),
+            'procedure_name' => 'Item '.uniqid(),
             'quantity' => $quantity,
             'unit_cost' => $unitCost,
             'total_cost' => round($quantity * $unitCost, 2),
@@ -118,13 +118,13 @@ class ProcedureStatsReportTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $query
+     * @param  array<string, mixed> $query
      * @return array<string, mixed>
      */
     private function stats(User $actor, array $query = []): array
     {
         $response = $this->actingAs($actor, 'sanctum')
-            ->getJson(self::STATS_URL . '?' . http_build_query($query));
+            ->getJson(self::STATS_URL.'?'.http_build_query($query));
 
         $response->assertOk();
 
@@ -132,7 +132,7 @@ class ProcedureStatsReportTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $stats
+     * @param  array<string, mixed>      $stats
      * @return array<string, mixed>|null
      */
     private function topProcedure(array $stats, int $procedureId): ?array
@@ -147,7 +147,7 @@ class ProcedureStatsReportTest extends TestCase
     }
 
     /**
-     * @param  array<string, mixed>  $stats
+     * @param  array<string, mixed>      $stats
      * @return array<string, mixed>|null
      */
     private function specialtyRow(array $stats, ?int $specialtyId): ?array
@@ -366,12 +366,12 @@ class ProcedureStatsReportTest extends TestCase
         $admin = $this->admin();
 
         $this->actingAs($admin, 'sanctum')
-            ->getJson(self::STATS_URL . '?limit=0')
+            ->getJson(self::STATS_URL.'?limit=0')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['limit']);
 
         $this->actingAs($admin, 'sanctum')
-            ->getJson(self::STATS_URL . '?limit=51')
+            ->getJson(self::STATS_URL.'?limit=51')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['limit']);
     }
@@ -379,21 +379,21 @@ class ProcedureStatsReportTest extends TestCase
     public function test_to_before_from_returns_422(): void
     {
         $this->actingAs($this->admin(), 'sanctum')
-            ->getJson(self::STATS_URL . '?from=2026-10-31&to=2026-10-01')
+            ->getJson(self::STATS_URL.'?from=2026-10-31&to=2026-10-01')
             ->assertStatus(422)
             ->assertJsonValidationErrors(['to']);
     }
 
     public function test_finanzas_can_read_the_report(): void
     {
-        $this->actingAs($this->user('finanzas', 'fin_' . uniqid()), 'sanctum')
+        $this->actingAs($this->user('finanzas', 'fin_'.uniqid()), 'sanctum')
             ->getJson(self::STATS_URL)
             ->assertOk();
     }
 
     public function test_clinical_roles_are_forbidden(): void
     {
-        $this->actingAs($this->user('odontologo', 'odo_' . uniqid()), 'sanctum')
+        $this->actingAs($this->user('odontologo', 'odo_'.uniqid()), 'sanctum')
             ->getJson(self::STATS_URL)
             ->assertStatus(403);
     }

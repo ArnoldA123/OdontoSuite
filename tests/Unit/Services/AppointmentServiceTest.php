@@ -3,15 +3,15 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Appointment;
+use App\Models\AppointmentType;
+use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
-use App\Models\DentalChair;
-use App\Models\AppointmentType;
 use App\Services\AppointmentService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
-use Carbon\Carbon;
 
 class AppointmentServiceTest extends TestCase
 {
@@ -26,7 +26,7 @@ class AppointmentServiceTest extends TestCase
     }
 
     /**
-     * Test that appointment service creates appointment successfully
+     * Test that appointment service creates appointment successfully.
      */
     public function test_creates_appointment_successfully(): void
     {
@@ -59,7 +59,7 @@ class AppointmentServiceTest extends TestCase
     }
 
     /**
-     * Test that appointment service detects conflicts
+     * Test that appointment service detects conflicts.
      */
     public function test_detects_scheduling_conflicts(): void
     {

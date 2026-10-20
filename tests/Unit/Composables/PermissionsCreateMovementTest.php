@@ -21,17 +21,21 @@ use PHPUnit\Framework\TestCase;
 class PermissionsCreateMovementTest extends TestCase
 {
     /** Project root. */
-private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private function usePermissionsSource(): string
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/usePermissions.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/usePermissions.js');
         $this->assertNotFalse($source, 'usePermissions.js must exist');
+
         return $source;
     }
 
     /** @test FF-001 */
-    public function usePermissions_exposes_createMovement_in_can_object(): void
+    public function use_permissions_exposes_create_movement_in_can_object(): void
     {
         $source = $this->usePermissionsSource();
 
@@ -47,7 +51,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test FF-001 */
-    public function usePermissions_createMovement_does_not_include_clinical_roles(): void
+    public function use_permissions_create_movement_does_not_include_clinical_roles(): void
     {
         $source = $this->usePermissionsSource();
 
@@ -74,10 +78,10 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test FF-001 */
-    public function CashRegisterPage_consumes_createMovement_from_usePermissions(): void
+    public function cash_register_page_consumes_create_movement_from_use_permissions(): void
     {
         $page = file_get_contents(self::projectRootPath()
-            . '/resources/js/modules/cash-register/CashRegisterPage.vue');
+            .'/resources/js/modules/cash-register/CashRegisterPage.vue');
         $this->assertNotFalse($page, 'CashRegisterPage.vue must exist');
 
         // The "Nuevo Movimiento" button must be gated by `v-if="canCreateMovement"`.

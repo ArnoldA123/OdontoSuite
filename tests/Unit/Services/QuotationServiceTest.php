@@ -2,18 +2,12 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use Illuminate\Support\Facades\Event;
-use App\Events\QuotationCreated;
-use App\Services\QuotationService;
-use App\Models\Quotation;
 use App\Models\QuotationItem;
-use App\Models\TreatmentPlan;
-use App\Models\Patient;
-use App\Models\User;
 use App\Models\TreatmentPlanItem;
-use Carbon\Carbon;
+use App\Services\QuotationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Tests\TestCase;
 
 /**
  * Sprint 4 (M-6): tests para los paths de dinero.
@@ -36,7 +30,7 @@ class QuotationServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new QuotationService();
+        $this->service = new QuotationService;
     }
 
     /**
@@ -75,7 +69,7 @@ class QuotationServiceTest extends TestCase
 
     /**
      * Verifica que la firma de calculateAmounts existe y devuelve un array.
-     * (No la ejercitamos contra BD para evitar el problema SQLite.)
+     * (No la ejercitamos contra BD para evitar el problema SQLite.).
      */
     public function test_service_has_required_methods(): void
     {

@@ -22,7 +22,7 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     /**
@@ -32,13 +32,14 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
     private static function headlineLetterSpacingEm(string $source): ?float
     {
         // Capture only the .welcome-headline block until the closing brace.
-        if (!preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
+        if (! preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
             return null;
         }
         $block = $m[1];
-        if (!preg_match('/letter-spacing\s*:\s*(-?[0-9]*\.?[0-9]+)\s*em/i', $block, $lm)) {
+        if (! preg_match('/letter-spacing\s*:\s*(-?[0-9]*\.?[0-9]+)\s*em/i', $block, $lm)) {
             return null;
         }
+
         return (float) $lm[1];
     }
 
@@ -50,18 +51,19 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
      */
     private static function tokenFontSizePx(string $step): ?float
     {
-        $tokensPath = dirname(__DIR__, 3) . '/resources/js/design-system/tokens.js';
-        if (!is_file($tokensPath)) {
+        $tokensPath = dirname(__DIR__, 3).'/resources/js/design-system/tokens.js';
+        if (! is_file($tokensPath)) {
             return null;
         }
         $tokens = (string) file_get_contents($tokensPath);
-        if (!preg_match(
-            "/'" . preg_quote($step, '/') . "'\s*:\s*\[\s*'([0-9]*\.?[0-9]+)px'/",
+        if (! preg_match(
+            "/'".preg_quote($step, '/')."'\s*:\s*\[\s*'([0-9]*\.?[0-9]+)px'/",
             $tokens,
             $m
         )) {
             return null;
         }
+
         return (float) $m[1];
     }
 
@@ -81,7 +83,7 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
      */
     private static function headlineFontSizePx(string $source): ?float
     {
-        if (!preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
+        if (! preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
             return null;
         }
         $block = $m[1];
@@ -93,6 +95,7 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
             if ($unit === 'rem' || $unit === 'em') {
                 return $value * 16.0;
             }
+
             return $value;
         }
 
@@ -117,18 +120,19 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
      */
     private static function tokenDisplayLetterSpacingEm(): ?float
     {
-        $tokensPath = dirname(__DIR__, 3) . '/resources/js/design-system/tokens.js';
-        if (!is_file($tokensPath)) {
+        $tokensPath = dirname(__DIR__, 3).'/resources/js/design-system/tokens.js';
+        if (! is_file($tokensPath)) {
             return null;
         }
         $tokens = (string) file_get_contents($tokensPath);
-        if (!preg_match(
+        if (! preg_match(
             "/'4xl'\s*:\s*\[\s*'36px'\s*,\s*\{[^}]*letterSpacing\s*:\s*'(-?[0-9]*\.?[0-9]+)em'/s",
             $tokens,
             $m
         )) {
             return null;
         }
+
         return (float) $m[1];
     }
 
@@ -174,7 +178,7 @@ class HotfixLoginHeadlineTrackingTest extends TestCase
 
         $source = (string) file_get_contents(self::loginPagePath());
 
-        if (!preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
+        if (! preg_match('/\.welcome-headline\s*\{([^}]+)\}/s', $source, $m)) {
             $this->fail('LoginPage.vue must declare a .welcome-headline rule (HOTFIX-LOGIN-002)');
         }
 

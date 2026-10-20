@@ -14,12 +14,10 @@ use Illuminate\Support\Facades\Log;
 
 class ConsultationController extends Controller
 {
-    public function __construct(private readonly ConsultationService $consultations)
-    {
-    }
+    public function __construct(private readonly ConsultationService $consultations) {}
 
     /**
-     * GET /api/appointments/{id}/consultation-context
+     * GET /api/appointments/{id}/consultation-context.
      *
      * Devuelve el contexto que el wizard necesita para renderizarse:
      * la cita, la HC del paciente, planes activos, y datos auxiliares.
@@ -78,12 +76,13 @@ class ConsultationController extends Controller
     }
 
     /**
-     * POST /api/appointments/{id}/check-in
+     * POST /api/appointments/{id}/check-in.
      */
     public function checkIn(Appointment $appointment): JsonResponse
     {
         try {
             $appointment = $this->consultations->checkIn($appointment);
+
             return response()->json([
                 'data' => (new AppointmentResource($appointment->load([
                     'patient', 'user', 'appointmentType', 'dentalChair',
@@ -96,7 +95,7 @@ class ConsultationController extends Controller
     }
 
     /**
-     * POST /api/appointments/{id}/complete
+     * POST /api/appointments/{id}/complete.
      */
     public function complete(Request $request, Appointment $appointment): JsonResponse
     {
@@ -194,6 +193,7 @@ class ConsultationController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Error al completar la consulta.',
                 'error' => config('app.debug') ? $e->getMessage() : null,

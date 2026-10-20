@@ -75,7 +75,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::PATIENT_DETAIL_PATH,
+            dirname(__DIR__, 3).self::PATIENT_DETAIL_PATH,
         ];
     }
 
@@ -97,8 +97,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<AppLayout\b/', $src),
             sprintf(
                 '%s MUST reference `<AppLayout>` (canvas-surface wrapper per DLR-CORE-001). '
-                    . 'The pacientes design acknowledges the page file does not need a direct '
-                    . '`bg-canvas` reference — the AppLayout provides it.',
+                    .'The pacientes design acknowledges the page file does not need a direct '
+                    .'`bg-canvas` reference — the AppLayout provides it.',
                 $path
             )
         );
@@ -139,9 +139,9 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             $section,
             sprintf(
                 '%s polished sections (header + 5-tab drawer nav + audit tab content) '
-                    . 'MUST NOT contain the legacy `border-theme` literal (PAC-DET-001 / DLR-R-002). '
-                    . 'Use `border-hairline`. The other tab panels (treatment-plans / quotations '
-                    . '/ medical-records / specialties) are out of scope for this PR.',
+                    .'MUST NOT contain the legacy `border-theme` literal (PAC-DET-001 / DLR-R-002). '
+                    .'Use `border-hairline`. The other tab panels (treatment-plans / quotations '
+                    .'/ medical-records / specialties) are out of scope for this PR.',
                 $path
             )
         );
@@ -168,7 +168,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             preg_match('/(?<![\w-])focus:ring-primary-500(?![\w-])/', $section),
             sprintf(
                 '%s polished sections MUST NOT contain the legacy `focus:ring-primary-500` alias '
-                    . '(PAC-DET-001 / DLR-R-004). The focus ring lives in the `<UiTabs>` + `<UiCard>` primitives.',
+                    .'(PAC-DET-001 / DLR-R-004). The focus ring lives in the `<UiTabs>` + `<UiCard>` primitives.',
                 $path
             )
         );
@@ -193,7 +193,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             preg_match('/(?<![\w-])border-accent(?![\w-])/', $src),
             sprintf(
                 '%s MUST NOT contain the legacy `border-accent` literal (PAC-DET-001). '
-                    . '`<UiTabs>` owns the active indicator.',
+                    .'`<UiTabs>` owns the active indicator.',
                 $path
             )
         );
@@ -228,7 +228,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<UiTabs\b/', $src),
             sprintf(
                 '%s MUST consume `<UiTabs>` for the 5-tab drawer (PAC-DET-001). '
-                    . 'The raw `<button>` step strip is replaced by the primitive.',
+                    .'The raw `<button>` step strip is replaced by the primitive.',
                 $path
             )
         );
@@ -238,7 +238,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<UiTabs\b[^>]*\sv-model\s*=\s*["\']activeTab["\']/', $src),
             sprintf(
                 '%s MUST wire `<UiTabs v-model="activeTab">` (PAC-DET-001). '
-                    . 'The v-model binding is the sole contract for tab selection.',
+                    .'The v-model binding is the sole contract for tab selection.',
                 $path
             )
         );
@@ -249,8 +249,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             preg_match('/@click\s*=\s*["\']activeTab\s*=\s*tab\.id["\']/', $src),
             sprintf(
                 '%s MUST NOT carry the inline `@click="activeTab = tab.id"` handler (PAC-DET-001). '
-                    . 'The v-model binding is the sole contract — the inline handler would '
-                    . 'silently double-update the ref and bypass UiTabs\'s keyboard navigation.',
+                    .'The v-model binding is the sole contract — the inline handler would '
+                    .'silently double-update the ref and bypass UiTabs\'s keyboard navigation.',
                 $path
             )
         );
@@ -287,13 +287,13 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
         foreach ($targets as $target) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '/router\.push\s*\(\s*[`\'"][^`\'"]*' . preg_quote($target, '/') . '/',
+                    '/router\.push\s*\(\s*[`\'"][^`\'"]*'.preg_quote($target, '/').'/',
                     $src
                 ),
                 sprintf(
                     '%s MUST preserve `router.push(` to a target containing `%s…` (PAC-DEEP-001). '
-                        . 'The 4 deep-link navigations are the contract between this module and the '
-                        . '4 sibling modules; a UI refactor must not drop the `?patient_id=…` query param.',
+                        .'The 4 deep-link navigations are the contract between this module and the '
+                        .'4 sibling modules; a UI refactor must not drop the `?patient_id=…` query param.',
                     $path,
                     $target
                 )
@@ -335,7 +335,7 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST keep the PRIVATE `patients` subscription (PAC-RT-001 + patients-module-audit): '
-                    . 'the payload carries medical_history and allergies.',
+                    .'the payload carries medical_history and allergies.',
                 $path
             )
         );
@@ -343,14 +343,14 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
         foreach ($channels as $channelName) {
             $this->assertTrue(
                 (bool) preg_match(
-                    "/channel\\s*\\(\\s*['\"]" . preg_quote($channelName, '/') . "['\"]\\s*\\)/",
+                    "/channel\\s*\\(\\s*['\"]".preg_quote($channelName, '/')."['\"]\\s*\\)/",
                     $src
                 ),
                 sprintf(
                     '%s MUST keep `channel(\'%s\')` subscription (PAC-RT-001). '
-                        . 'The Echo channels are the realtime pipe for cross-module patient events; '
-                        . 'a `<script>` edit that accidentally removes a subscription silently breaks '
-                        . 'cross-tab realtime updates.',
+                        .'The Echo channels are the realtime pipe for cross-module patient events; '
+                        .'a `<script>` edit that accidentally removes a subscription silently breaks '
+                        .'cross-tab realtime updates.',
                     $path,
                     $channelName
                 )
@@ -360,10 +360,11 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 

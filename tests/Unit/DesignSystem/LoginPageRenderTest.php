@@ -3,7 +3,6 @@
 namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
-
 use Tests\Support\SourceGrep;
 
 /**
@@ -27,41 +26,45 @@ use Tests\Support\SourceGrep;
  */
 class LoginPageRenderTest extends TestCase
 {
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private const LOGIN_PAGE_REL = '/resources/js/modules/auth/LoginPage.vue';
+
     private const FORGOT_MODAL_REL = '/resources/js/modules/auth/ForgotPasswordModal.vue';
+
     private const RESET_MODAL_REL = '/resources/js/modules/auth/ResetPasswordModal.vue';
+
     private const NOT_FOUND_REL = '/resources/js/modules/errors/NotFoundPage.vue';
+
     private const AUTH_DIR_REL = '/resources/js/modules/auth';
+
     private const ERRORS_DIR_REL = '/resources/js/modules/errors';
 
     private static function loginPagePath(): string
     {
-        return self::projectRootPath() . self::LOGIN_PAGE_REL;
+        return self::projectRootPath().self::LOGIN_PAGE_REL;
     }
 
     private static function forgotModalPath(): string
     {
-        return self::projectRootPath() . self::FORGOT_MODAL_REL;
+        return self::projectRootPath().self::FORGOT_MODAL_REL;
     }
 
     private static function resetModalPath(): string
     {
-        return self::projectRootPath() . self::RESET_MODAL_REL;
+        return self::projectRootPath().self::RESET_MODAL_REL;
     }
 
     private static function notFoundPath(): string
     {
-        return self::projectRootPath() . self::NOT_FOUND_REL;
+        return self::projectRootPath().self::NOT_FOUND_REL;
     }
 
     /**
      * Sum ripgrep --count-matches results across one or more paths.
-     *
-     * @param string $pattern
-     * @param string ...$paths
-     * @return int
      */
     private static function grepCount(string $pattern, string ...$paths): int
     {
@@ -333,8 +336,8 @@ class LoginPageRenderTest extends TestCase
      */
     public function auth_and_errors_modules_have_no_hand_written_hex_literals(): void
     {
-        $authCount = self::grepCount('#[0-9a-fA-F]{6}', self::projectRootPath() . self::AUTH_DIR_REL);
-        $errorsCount = self::grepCount('#[0-9a-fA-F]{6}', self::projectRootPath() . self::ERRORS_DIR_REL);
+        $authCount = self::grepCount('#[0-9a-fA-F]{6}', self::projectRootPath().self::AUTH_DIR_REL);
+        $errorsCount = self::grepCount('#[0-9a-fA-F]{6}', self::projectRootPath().self::ERRORS_DIR_REL);
 
         $this->assertSame(
             0,
@@ -354,8 +357,8 @@ class LoginPageRenderTest extends TestCase
     public function auth_and_errors_modules_do_not_reference_gitignored_pexels_directory(): void
     {
         // Scope: the two module directories this PR3 slice owns.
-        $authCount = self::grepCount('images/pexels', self::projectRootPath() . self::AUTH_DIR_REL);
-        $errorsCount = self::grepCount('images/pexels', self::projectRootPath() . self::ERRORS_DIR_REL);
+        $authCount = self::grepCount('images/pexels', self::projectRootPath().self::AUTH_DIR_REL);
+        $errorsCount = self::grepCount('images/pexels', self::projectRootPath().self::ERRORS_DIR_REL);
 
         $this->assertSame(
             0,
@@ -369,7 +372,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    public function testPr5_login_inputs_have_no_placeholders(): void
+    public function test_pr5_login_inputs_have_no_placeholders(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         preg_match_all('/<input\\b[^>]*id="login-(?:username|password)"[^>]*>/i', $source, $inputs);
@@ -387,7 +390,7 @@ class LoginPageRenderTest extends TestCase
         }
     }
 
-    public function testPr5_login_has_no_redundant_helper_text(): void
+    public function test_pr5_login_has_no_redundant_helper_text(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         preg_match_all('/<p\\s+[^>]*class="field-hint"[^>]*>(.*?)<\\/p>/is', $source, $hints);
@@ -397,13 +400,13 @@ class LoginPageRenderTest extends TestCase
         }
     }
 
-    public function testPr5_login_password_reveal_is_inside_frame(): void
+    public function test_pr5_login_password_reveal_is_inside_frame(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         $this->assertMatchesRegularExpression('/\\.password-toggle\\s*\\{[^}]*right:\\s*12px/s', $source);
     }
 
-    public function testPr5_login_primary_button_has_elevation_and_highlight(): void
+    public function test_pr5_login_primary_button_has_elevation_and_highlight(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         // The inset highlight and the 1px ring were dropped by the subtractive
@@ -412,7 +415,7 @@ class LoginPageRenderTest extends TestCase
         $this->assertStringContainsString('var(--elevation-3)', $source);
     }
 
-    public function testPr5_login_card_keeps_neutral_panel_surface(): void
+    public function test_pr5_login_card_keeps_neutral_panel_surface(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
         // The floating card keeps the neutral system background and the
@@ -426,7 +429,7 @@ class LoginPageRenderTest extends TestCase
         $this->assertStringContainsString('border-radius: var(--login-radius-panel)', $source);
     }
 
-    public function testPr5_not_found_hero_uses_card_radius_hairline_and_scrim(): void
+    public function test_pr5_not_found_hero_uses_card_radius_hairline_and_scrim(): void
     {
         $source = (string) file_get_contents(self::notFoundPath());
         $this->assertStringContainsString('border-radius: var(--radius-card-lg)', $source);
@@ -460,435 +463,435 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-        // ====================================================================
-        // PR-apply / Phase 2 — editorial split + dental hero + shape-morph
-        // (`ui-login-refinement-dental-split-2026-09`).
-        //
-        // Each test pins a load-bearing source-inspection contract that the
-        // LoginPage rewrite must satisfy. The grep targets are intentionally
-        // liberal (substring or single-line matches) so future cosmetic
-        // refactors do not break the suite.
-        // ====================================================================
+    // ====================================================================
+    // PR-apply / Phase 2 — editorial split + dental hero + shape-morph
+    // (`ui-login-refinement-dental-split-2026-09`).
+    //
+    // Each test pins a load-bearing source-inspection contract that the
+    // LoginPage rewrite must satisfy. The grep targets are intentionally
+    // liberal (substring or single-line matches) so future cosmetic
+    // refactors do not break the suite.
+    // ====================================================================
 
-        /**
-         * @test
-         */
-        public function login_page_has_floating_login_card(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
+    /**
+     * @test
+     */
+    public function login_page_has_floating_login_card(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
 
-            $this->assertStringContainsString(
-                'login-card',
-                $source,
-                'LoginPage.vue must wrap the form in the floating .login-card surface over the backdrop'
-            );
-            // The card takes the panel rung of the radius ladder. Both the
-            // local alias and the shared token are valid spellings — pinning only the
-            // literal turned a cosmetic refactor into a false defect.
-            $this->assertMatchesRegularExpression(
-                '/border-radius:\s*var\(--(?:login-)?radius-panel\)/',
-                $source,
-                'LoginPage.vue must give the floating card the panel radius rung, by token reference or by value'
-            );
-            $this->assertStringContainsString(
-                'box-shadow: var(--elevation-4)',
-                $source,
-                'LoginPage.vue must float the card on the elevation-4 token'
-            );
-        }
+        $this->assertStringContainsString(
+            'login-card',
+            $source,
+            'LoginPage.vue must wrap the form in the floating .login-card surface over the backdrop'
+        );
+        // The card takes the panel rung of the radius ladder. Both the
+        // local alias and the shared token are valid spellings — pinning only the
+        // literal turned a cosmetic refactor into a false defect.
+        $this->assertMatchesRegularExpression(
+            '/border-radius:\s*var\(--(?:login-)?radius-panel\)/',
+            $source,
+            'LoginPage.vue must give the floating card the panel radius rung, by token reference or by value'
+        );
+        $this->assertStringContainsString(
+            'box-shadow: var(--elevation-4)',
+            $source,
+            'LoginPage.vue must float the card on the elevation-4 token'
+        );
+    }
 
-        /**
-         * @test
-         */
-        public function login_page_has_footer_with_terms_and_contact(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
+    /**
+     * @test
+     */
+    public function login_page_has_footer_with_terms_and_contact(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
 
-            $this->assertStringContainsString(
-                'Términos y Condiciones',
-                $source,
-                'LoginPage.vue must render the Términos y Condiciones link in the footer row (Phase 2.1)'
-            );
-            $this->assertStringContainsString(
-                'Contacta al administrador',
-                $source,
-                'LoginPage.vue must render the ¿No tienes cuenta? Contacta al administrador link in the footer row (Phase 2.1)'
-            );
-        }
+        $this->assertStringContainsString(
+            'Términos y Condiciones',
+            $source,
+            'LoginPage.vue must render the Términos y Condiciones link in the footer row (Phase 2.1)'
+        );
+        $this->assertStringContainsString(
+            'Contacta al administrador',
+            $source,
+            'LoginPage.vue must render the ¿No tienes cuenta? Contacta al administrador link in the footer row (Phase 2.1)'
+        );
+    }
 
-        /**
-         * @test
-         */
-        public function login_page_has_no_image_fallback_machinery(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
+    /**
+     * @test
+     */
+    public function login_page_has_no_image_fallback_machinery(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
 
-            // No stock photography means no @error fallback path either: the
-            // vector scene always renders.
-            foreach (['onImageError', 'imageFailed', 'login-hero-image', 'login-hero-fallback'] as $retired) {
-                $this->assertStringNotContainsString(
-                    $retired,
-                    $source,
-                    'LoginPage.vue must not carry hero image fallback machinery (' . $retired . ') now that the backdrop is vector'
-                );
-            }
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_overlays_do_not_fetch_dashboard_stats(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // Polarity inverted by the premium craft pass (2026-09). The
-            // login is a PUBLIC screen: the dashboard stats endpoint answers
-            // 401 for a guest, so fetching on mount rendered
-            // "PACIENTES ACTIVOS 0". The widget reads a curated sample now.
-            $this->assertSame(
-                0,
-                substr_count($source, '/api/dashboard/stats'),
-                'LoginPage.vue must NOT call /api/dashboard/stats: the hero widget renders the curated sample (Phase 2.3, premium craft pass)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_overlays_do_not_fetch_appointments_today(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertSame(
-                0,
-                substr_count($source, '/api/dashboard/appointments-today'),
-                'LoginPage.vue must NOT call /api/dashboard/appointments-today: the agenda widget renders the curated sample (Phase 2.3, premium craft pass)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_overlays_do_not_fetch_users_active(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertSame(
-                0,
-                substr_count($source, '/api/users/active'),
-                'LoginPage.vue must NOT call /api/users/active: the team widget renders the curated sample (Phase 2.3, premium craft pass)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_references_no_api_paths(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertSame(
-                0,
-                substr_count($source, '/api/'),
-                'LoginPage.vue must reference no API path: the login is a public screen and fetches nothing on mount'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_uses_shape_morph_composable(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                'useShapeMorph',
-                $source,
-                'LoginPage.vue must import and instantiate the useShapeMorph composable (Phase 2.4)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_submit_button_has_four_polymorphic_states(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // The submit button must carry 4 visible state labels (idle,
-            // validating, authenticating, success). The 5th (error) is
-            // handled by the magnetic composable's error branch.
-            foreach (['Iniciar sesión', 'Validando', 'Autenticando', 'Listo'] as $label) {
-                $this->assertStringContainsString(
-                    $label,
-                    $source,
-                    'LoginPage.vue must declare the polymorphic stage label ' . $label . ' (Phase 2.4)'
-                );
-            }
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_form_card_has_form_and_summary_states(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // The form Card must declare BOTH the <form> and the
-            // <TransitionGroup name="form-card-morph"> wrapper that
-            // crossfades between <form> and the <MiniSummary> on success.
-            $this->assertStringContainsString(
-                '<form',
-                $source,
-                'LoginPage.vue must render the login <form> (Phase 2.5)'
-            );
-            $this->assertStringContainsString(
-                'form-card-morph',
-                $source,
-                'LoginPage.vue must declare the form-card-morph TransitionGroup (Phase 2.5)'
-            );
-            $this->assertStringContainsString(
-                'login-mini-summary',
-                $source,
-                'LoginPage.vue must render the login-mini-summary block on success (Phase 2.5)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_prefers_reduced_motion_collapses_polymorphism(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // The polymorphic submit + form-card morph must be gated on
-            // a reactive reduced-motion detector. The composable is
-            // imported from resources/js/composables/useReducedMotion.js.
-            $this->assertStringContainsString(
-                'useReducedMotion',
-                $source,
-                'LoginPage.vue must import the useReducedMotion composable to gate motion paths (Phase 2.6)'
-            );
-            $this->assertStringContainsString(
-                'prefers-reduced-motion: reduce',
-                $source,
-                'LoginPage.vue must declare a @media (prefers-reduced-motion: reduce) block (Phase 2.6)'
-            );
-        }
-
-        /**
-         * @test (bonus)
-         */
-        public function login_page_prefers_reduced_transparency_flattens_outer_card(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                'prefers-reduced-transparency: reduce',
-                $source,
-                'LoginPage.vue must declare a @media (prefers-reduced-transparency: reduce) block (Phase 2.6)'
-            );
-    
-                    }
-
-            // ====================================================================
-        // Slice 12 / fix-viewport-fit (`ui-login-viewport-fit-2026-09`).
-        //
-        // The login overflowed 98px on 1440x900 because the card was
-        // content-sized rather than viewport-sized. These tests pin the
-        // four CSS rules that fix the overflow and guarantee the page does
-        // not regress into a vertically scrolling login.
-        // ====================================================================
-
-        /**
-         * @test
-         */
-        public function login_page_constrains_card_to_viewport_height(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                'max-height: calc(100dvh',
-                $source,
-                'LoginPage.vue must constrain the login card height to the viewport (max-height: calc(100dvh - ...))'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_card_scrolls_internally(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                '.login-card',
-                $source,
-                'LoginPage.vue must declare the floating .login-card rule'
-            );
-            $this->assertStringContainsString(
-                'overflow-y: auto',
-                $source,
-                '.login-card must scroll internally (overflow-y: auto) when the form is taller than the viewport'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_shell_uses_viewport_height(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                'min-h-[100dvh]',
-                $source,
-                '.login-page must declare min-h-[100dvh] (or equivalent viewport-height rule)'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_condenses_card_below_768(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                '@media (max-width: 767px)',
-                $source,
-                'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile card insets'
-            );
-            $this->assertMatchesRegularExpression(
-                '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-card\s*\{[^}]*max-height:\s*calc\(100dvh/s',
-                $source,
-                'Below 768px the card must condense to the viewport with reduced insets'
-            );
-            $this->assertMatchesRegularExpression(
-                '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-form-wrap\s*\{[^}]*gap:\s*16px/s',
-                $source,
-                'Below 768px the form gap must tighten to 16px'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_card_is_a_keyboard_reachable_labelled_scroll_region(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertMatchesRegularExpression(
-                '/<section\b[^>]*class\s*=\s*"login-card"[^>]*role\s*=\s*"region"[^>]*tabindex\s*=\s*"0"/is',
-                $source,
-                'the scrollable login card must be announced as a region and be keyboard-scrollable (role="region" + tabindex="0")'
-            );
-            $this->assertStringContainsString(
-                'aria-labelledby="login-headline"',
-                $source,
-                'the scrollable login card must keep its accessible name from the headline'
-            );
-            $this->assertMatchesRegularExpression(
-                '/\.login-card:focus-visible\s*\{[^}]*outline\s*:\s*var\(--focus-ring-width\)\s*solid\s*var\(--focus-ring-color\)/s',
-                $source,
-                'the focusable scroll region must show the tokenised focus ring on :focus-visible'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_announces_valid_state_through_a_polite_live_region(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertStringContainsString(
-                'id="login-username-success"',
-                $source,
-                'the username field must expose a screen-reader success text once valid'
-            );
-            $this->assertStringContainsString(
-                'id="login-password-success"',
-                $source,
-                'the password field must expose a screen-reader success text once valid'
-            );
-            $this->assertMatchesRegularExpression(
-                '/<p\b[^>]*class\s*=\s*"sr-only"[^>]*role\s*=\s*"status"[^>]*aria-live\s*=\s*"polite"[^>]*>\s*\{\{\s*validationAnnouncement\s*\}\}\s*<\/p>/s',
-                $source,
-                'the login must announce full-form validity through a single polite live region'
-            );
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_min_length_rules_admit_seeded_credentials(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            $this->assertSame(
-                1,
-                (int) preg_match('/MIN_USERNAME_LENGTH\s*=\s*(\d+)/', $source, $usernameMin),
-                'LoginPage.vue must declare the username minimum length as a named constant'
-            );
-            $this->assertSame(
-                1,
-                (int) preg_match('/MIN_PASSWORD_LENGTH\s*=\s*(\d+)/', $source, $passwordMin),
-                'LoginPage.vue must declare the password minimum length as a named constant'
-            );
-
-            $seeder = (string) file_get_contents(
-                self::projectRootPath() . '/database/seeders/RoleBasedUsersSeeder.php'
-            );
-
-            preg_match_all("/'username'\s*=>\s*'([^']+)'/", $seeder, $usernames);
-            $this->assertNotEmpty($usernames[1], 'RoleBasedUsersSeeder must declare demo usernames');
-
-            foreach ($usernames[1] as $username) {
-                $this->assertGreaterThanOrEqual(
-                    (int) $usernameMin[1],
-                    strlen($username),
-                    "Seeded username '{$username}' must satisfy the login minimum-length rule"
-                );
-            }
-
-            preg_match_all("/'password'\s*=>\s*Hash::make\('([^']+)'\)/", $seeder, $passwords);
-            $this->assertNotEmpty($passwords[1], 'RoleBasedUsersSeeder must declare demo passwords');
-
-            foreach (array_unique($passwords[1]) as $password) {
-                $this->assertGreaterThanOrEqual(
-                    (int) $passwordMin[1],
-                    strlen($password),
-                    'The seeded demo password must satisfy the login minimum-length rule'
-                );
-            }
-        }
-
-        /**
-         * @test
-         */
-        public function login_page_centers_the_card_on_desktop(): void
-        {
-            $source = (string) file_get_contents(self::loginPagePath());
-
-            // The centered layout is the design decision: the card no longer
-            // anchors left on wide viewports, and the decorative scene
-            // distributes around it. Both the old flex anchor and its
-            // padding escape hatch must stay gone.
-            $this->assertMatchesRegularExpression(
-                '/\.login-stage\s*\{[^}]*justify-center/s',
-                $source,
-                'LoginPage.vue must center the floating card at every viewport'
-            );
+        // No stock photography means no @error fallback path either: the
+        // vector scene always renders.
+        foreach (['onImageError', 'imageFailed', 'login-hero-image', 'login-hero-fallback'] as $retired) {
             $this->assertStringNotContainsString(
-                'justify-content: flex-start',
+                $retired,
                 $source,
-                'LoginPage.vue must not left-anchor the card on wide viewports'
-            );
-            $this->assertStringNotContainsString(
-                'padding-left: clamp(56px, 14vw, 220px)',
-                $source,
-                'the retired left-anchor padding must not come back'
+                'LoginPage.vue must not carry hero image fallback machinery ('.$retired.') now that the backdrop is vector'
             );
         }
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_overlays_do_not_fetch_dashboard_stats(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // Polarity inverted by the premium craft pass (2026-09). The
+        // login is a PUBLIC screen: the dashboard stats endpoint answers
+        // 401 for a guest, so fetching on mount rendered
+        // "PACIENTES ACTIVOS 0". The widget reads a curated sample now.
+        $this->assertSame(
+            0,
+            substr_count($source, '/api/dashboard/stats'),
+            'LoginPage.vue must NOT call /api/dashboard/stats: the hero widget renders the curated sample (Phase 2.3, premium craft pass)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_overlays_do_not_fetch_appointments_today(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertSame(
+            0,
+            substr_count($source, '/api/dashboard/appointments-today'),
+            'LoginPage.vue must NOT call /api/dashboard/appointments-today: the agenda widget renders the curated sample (Phase 2.3, premium craft pass)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_overlays_do_not_fetch_users_active(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertSame(
+            0,
+            substr_count($source, '/api/users/active'),
+            'LoginPage.vue must NOT call /api/users/active: the team widget renders the curated sample (Phase 2.3, premium craft pass)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_references_no_api_paths(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertSame(
+            0,
+            substr_count($source, '/api/'),
+            'LoginPage.vue must reference no API path: the login is a public screen and fetches nothing on mount'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_uses_shape_morph_composable(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            'useShapeMorph',
+            $source,
+            'LoginPage.vue must import and instantiate the useShapeMorph composable (Phase 2.4)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_submit_button_has_four_polymorphic_states(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // The submit button must carry 4 visible state labels (idle,
+        // validating, authenticating, success). The 5th (error) is
+        // handled by the magnetic composable's error branch.
+        foreach (['Iniciar sesión', 'Validando', 'Autenticando', 'Listo'] as $label) {
+            $this->assertStringContainsString(
+                $label,
+                $source,
+                'LoginPage.vue must declare the polymorphic stage label '.$label.' (Phase 2.4)'
+            );
+        }
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_form_card_has_form_and_summary_states(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // The form Card must declare BOTH the <form> and the
+        // <TransitionGroup name="form-card-morph"> wrapper that
+        // crossfades between <form> and the <MiniSummary> on success.
+        $this->assertStringContainsString(
+            '<form',
+            $source,
+            'LoginPage.vue must render the login <form> (Phase 2.5)'
+        );
+        $this->assertStringContainsString(
+            'form-card-morph',
+            $source,
+            'LoginPage.vue must declare the form-card-morph TransitionGroup (Phase 2.5)'
+        );
+        $this->assertStringContainsString(
+            'login-mini-summary',
+            $source,
+            'LoginPage.vue must render the login-mini-summary block on success (Phase 2.5)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_prefers_reduced_motion_collapses_polymorphism(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // The polymorphic submit + form-card morph must be gated on
+        // a reactive reduced-motion detector. The composable is
+        // imported from resources/js/composables/useReducedMotion.js.
+        $this->assertStringContainsString(
+            'useReducedMotion',
+            $source,
+            'LoginPage.vue must import the useReducedMotion composable to gate motion paths (Phase 2.6)'
+        );
+        $this->assertStringContainsString(
+            'prefers-reduced-motion: reduce',
+            $source,
+            'LoginPage.vue must declare a @media (prefers-reduced-motion: reduce) block (Phase 2.6)'
+        );
+    }
+
+    /**
+     * @test (bonus)
+     */
+    public function login_page_prefers_reduced_transparency_flattens_outer_card(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            'prefers-reduced-transparency: reduce',
+            $source,
+            'LoginPage.vue must declare a @media (prefers-reduced-transparency: reduce) block (Phase 2.6)'
+        );
+
+    }
+
+    // ====================================================================
+    // Slice 12 / fix-viewport-fit (`ui-login-viewport-fit-2026-09`).
+    //
+    // The login overflowed 98px on 1440x900 because the card was
+    // content-sized rather than viewport-sized. These tests pin the
+    // four CSS rules that fix the overflow and guarantee the page does
+    // not regress into a vertically scrolling login.
+    // ====================================================================
+
+    /**
+     * @test
+     */
+    public function login_page_constrains_card_to_viewport_height(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            'max-height: calc(100dvh',
+            $source,
+            'LoginPage.vue must constrain the login card height to the viewport (max-height: calc(100dvh - ...))'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_card_scrolls_internally(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            '.login-card',
+            $source,
+            'LoginPage.vue must declare the floating .login-card rule'
+        );
+        $this->assertStringContainsString(
+            'overflow-y: auto',
+            $source,
+            '.login-card must scroll internally (overflow-y: auto) when the form is taller than the viewport'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_shell_uses_viewport_height(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            'min-h-[100dvh]',
+            $source,
+            '.login-page must declare min-h-[100dvh] (or equivalent viewport-height rule)'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_condenses_card_below_768(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            '@media (max-width: 767px)',
+            $source,
+            'LoginPage.vue must declare a @media (max-width: 767px) block for the mobile card insets'
+        );
+        $this->assertMatchesRegularExpression(
+            '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-card\s*\{[^}]*max-height:\s*calc\(100dvh/s',
+            $source,
+            'Below 768px the card must condense to the viewport with reduced insets'
+        );
+        $this->assertMatchesRegularExpression(
+            '/@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?\.login-form-wrap\s*\{[^}]*gap:\s*16px/s',
+            $source,
+            'Below 768px the form gap must tighten to 16px'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_card_is_a_keyboard_reachable_labelled_scroll_region(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertMatchesRegularExpression(
+            '/<section\b[^>]*class\s*=\s*"login-card"[^>]*role\s*=\s*"region"[^>]*tabindex\s*=\s*"0"/is',
+            $source,
+            'the scrollable login card must be announced as a region and be keyboard-scrollable (role="region" + tabindex="0")'
+        );
+        $this->assertStringContainsString(
+            'aria-labelledby="login-headline"',
+            $source,
+            'the scrollable login card must keep its accessible name from the headline'
+        );
+        $this->assertMatchesRegularExpression(
+            '/\.login-card:focus-visible\s*\{[^}]*outline\s*:\s*var\(--focus-ring-width\)\s*solid\s*var\(--focus-ring-color\)/s',
+            $source,
+            'the focusable scroll region must show the tokenised focus ring on :focus-visible'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_announces_valid_state_through_a_polite_live_region(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertStringContainsString(
+            'id="login-username-success"',
+            $source,
+            'the username field must expose a screen-reader success text once valid'
+        );
+        $this->assertStringContainsString(
+            'id="login-password-success"',
+            $source,
+            'the password field must expose a screen-reader success text once valid'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<p\b[^>]*class\s*=\s*"sr-only"[^>]*role\s*=\s*"status"[^>]*aria-live\s*=\s*"polite"[^>]*>\s*\{\{\s*validationAnnouncement\s*\}\}\s*<\/p>/s',
+            $source,
+            'the login must announce full-form validity through a single polite live region'
+        );
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_min_length_rules_admit_seeded_credentials(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        $this->assertSame(
+            1,
+            (int) preg_match('/MIN_USERNAME_LENGTH\s*=\s*(\d+)/', $source, $usernameMin),
+            'LoginPage.vue must declare the username minimum length as a named constant'
+        );
+        $this->assertSame(
+            1,
+            (int) preg_match('/MIN_PASSWORD_LENGTH\s*=\s*(\d+)/', $source, $passwordMin),
+            'LoginPage.vue must declare the password minimum length as a named constant'
+        );
+
+        $seeder = (string) file_get_contents(
+            self::projectRootPath().'/database/seeders/RoleBasedUsersSeeder.php'
+        );
+
+        preg_match_all("/'username'\s*=>\s*'([^']+)'/", $seeder, $usernames);
+        $this->assertNotEmpty($usernames[1], 'RoleBasedUsersSeeder must declare demo usernames');
+
+        foreach ($usernames[1] as $username) {
+            $this->assertGreaterThanOrEqual(
+                (int) $usernameMin[1],
+                strlen($username),
+                "Seeded username '{$username}' must satisfy the login minimum-length rule"
+            );
+        }
+
+        preg_match_all("/'password'\s*=>\s*Hash::make\('([^']+)'\)/", $seeder, $passwords);
+        $this->assertNotEmpty($passwords[1], 'RoleBasedUsersSeeder must declare demo passwords');
+
+        foreach (array_unique($passwords[1]) as $password) {
+            $this->assertGreaterThanOrEqual(
+                (int) $passwordMin[1],
+                strlen($password),
+                'The seeded demo password must satisfy the login minimum-length rule'
+            );
+        }
+    }
+
+    /**
+     * @test
+     */
+    public function login_page_centers_the_card_on_desktop(): void
+    {
+        $source = (string) file_get_contents(self::loginPagePath());
+
+        // The centered layout is the design decision: the card no longer
+        // anchors left on wide viewports, and the decorative scene
+        // distributes around it. Both the old flex anchor and its
+        // padding escape hatch must stay gone.
+        $this->assertMatchesRegularExpression(
+            '/\.login-stage\s*\{[^}]*justify-center/s',
+            $source,
+            'LoginPage.vue must center the floating card at every viewport'
+        );
+        $this->assertStringNotContainsString(
+            'justify-content: flex-start',
+            $source,
+            'LoginPage.vue must not left-anchor the card on wide viewports'
+        );
+        $this->assertStringNotContainsString(
+            'padding-left: clamp(56px, 14vw, 220px)',
+            $source,
+            'the retired left-anchor padding must not come back'
+        );
+    }
 }

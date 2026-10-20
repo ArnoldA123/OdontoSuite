@@ -13,7 +13,7 @@ class QuotationValidationTest extends TestCase
 {
     public function test_store_quotation_rules_include_procedure_id_and_payment_method_id(): void
     {
-        $rules = (new StoreQuotationRequest())->rules();
+        $rules = (new StoreQuotationRequest)->rules();
 
         $this->assertArrayHasKey('procedure_id', $rules);
         $this->assertArrayHasKey('payment_method_id', $rules);
@@ -26,7 +26,7 @@ class QuotationValidationTest extends TestCase
 
     public function test_patient_id_messages_consistent_with_sometimes_nullable(): void
     {
-        $messages = (new StoreQuotationRequest())->messages();
+        $messages = (new StoreQuotationRequest)->messages();
 
         // per BF-009: patient_id is sometimes|nullable, so a "required" message
         // is inconsistent. After slice 02 that key must be removed.
@@ -39,7 +39,7 @@ class QuotationValidationTest extends TestCase
 
     public function test_patient_id_optional_when_absent(): void
     {
-        $rules = (new StoreQuotationRequest())->rules();
+        $rules = (new StoreQuotationRequest)->rules();
         $validator = Validator::make(
             ['subtotal' => 100],
             ['patient_id' => $rules['patient_id'], 'subtotal' => $rules['subtotal']]

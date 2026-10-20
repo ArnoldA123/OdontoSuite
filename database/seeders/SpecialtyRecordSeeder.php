@@ -40,12 +40,13 @@ class SpecialtyRecordSeeder extends Seeder
         $users = User::whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental'])->limit(3)->get();
         $dentalPieces = DentalPiece::limit(10)->get();
 
-        $this->command?->info('Pacientes: ' . $patients->count());
-        $this->command?->info('Usuarios: ' . $users->count());
-        $this->command?->info('Piezas dentales: ' . $dentalPieces->count());
+        $this->command?->info('Pacientes: '.$patients->count());
+        $this->command?->info('Usuarios: '.$users->count());
+        $this->command?->info('Piezas dentales: '.$dentalPieces->count());
 
         if ($patients->isEmpty() || $users->isEmpty() || $dentalPieces->isEmpty()) {
             $this->command?->info('No hay suficientes datos para crear registros de especialidades. Ejecute primero los seeders de pacientes, usuarios y piezas dentales.');
+
             return;
         }
 
@@ -64,8 +65,8 @@ class SpecialtyRecordSeeder extends Seeder
                 'implant_model' => 'Replace Select',
                 'implant_diameter' => '4.1',
                 'implant_length' => '10.0',
-                'batch_number' => 'NB' . rand(1000, 9999),
-                'serial_number' => 'SN' . rand(10000, 99999),
+                'batch_number' => 'NB'.rand(1000, 9999),
+                'serial_number' => 'SN'.rand(10000, 99999),
                 'placement_date' => now()->subDays(rand(1, 30)),
                 'healing_date' => now()->subDays(rand(1, 15)),
                 'loading_date' => now()->subDays(rand(1, 7)),

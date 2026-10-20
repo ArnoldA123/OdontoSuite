@@ -45,36 +45,36 @@ class CashReportExport
 
         foreach ($this->report['daily_summary'] ?? [] as $day) {
             $rows[] = [
-                'Diario ' . ($day['date'] ?? ''),
-                'Sesiones: ' . ($day['sessions_count'] ?? 0),
-                'Cierre S/ ' . $this->money($day['total_closing'] ?? 0)
-                . ' / Dif. S/ ' . $this->money($day['total_difference'] ?? 0),
+                'Diario '.($day['date'] ?? ''),
+                'Sesiones: '.($day['sessions_count'] ?? 0),
+                'Cierre S/ '.$this->money($day['total_closing'] ?? 0)
+                .' / Dif. S/ '.$this->money($day['total_difference'] ?? 0),
             ];
         }
 
         foreach ($this->report['summary_by_branch'] ?? [] as $branch) {
             $rows[] = [
                 'Por sucursal',
-                (string) ($branch['branch'] ?? 'N/A') . ' (' . ($branch['sessions_count'] ?? 0) . ' sesiones)',
-                'Cierre S/ ' . $this->money($branch['total_closing'] ?? 0)
-                . ' / Dif. S/ ' . $this->money($branch['total_difference'] ?? 0),
+                (string) ($branch['branch'] ?? 'N/A').' ('.($branch['sessions_count'] ?? 0).' sesiones)',
+                'Cierre S/ '.$this->money($branch['total_closing'] ?? 0)
+                .' / Dif. S/ '.$this->money($branch['total_difference'] ?? 0),
             ];
         }
 
         foreach ($this->report['summary_by_user'] ?? [] as $user) {
             $rows[] = [
                 'Por usuario',
-                (string) ($user['user'] ?? 'N/A') . ' (' . ($user['sessions_count'] ?? 0) . ' sesiones)',
-                'Cierre S/ ' . $this->money($user['total_closing'] ?? 0)
-                . ' / Dif. S/ ' . $this->money($user['total_difference'] ?? 0),
+                (string) ($user['user'] ?? 'N/A').' ('.($user['sessions_count'] ?? 0).' sesiones)',
+                'Cierre S/ '.$this->money($user['total_closing'] ?? 0)
+                .' / Dif. S/ '.$this->money($user['total_difference'] ?? 0),
             ];
         }
 
         foreach ($this->report['payment_methods_analysis'] ?? [] as $method) {
             $rows[] = [
                 'Por método de pago',
-                (string) ($method['payment_method'] ?? 'N/A') . ' x' . ($method['count'] ?? 0),
-                'Total S/ ' . $this->money($method['total'] ?? 0),
+                (string) ($method['payment_method'] ?? 'N/A').' x'.($method['count'] ?? 0),
+                'Total S/ '.$this->money($method['total'] ?? 0),
             ];
         }
 

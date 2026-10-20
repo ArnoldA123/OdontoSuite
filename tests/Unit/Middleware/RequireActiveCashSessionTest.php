@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Middleware;
 
-use Tests\TestCase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Tests\TestCase;
 
 /**
  * Sprint 4 (M-6) + I-4: tests para RequireActiveCashSession.
@@ -33,7 +33,7 @@ class RequireActiveCashSessionTest extends TestCase
         $this->assertStringContainsString(
             "'cash.session'",
             $bootstrap,
-            "cash.session debe estar aliasado en bootstrap/app.php"
+            'cash.session debe estar aliasado en bootstrap/app.php'
         );
     }
 
@@ -56,12 +56,12 @@ class RequireActiveCashSessionTest extends TestCase
      */
     public function test_middleware_bypasses_get_requests(): void
     {
-        $middleware = new \App\Http\Middleware\RequireActiveCashSession();
+        $middleware = new \App\Http\Middleware\RequireActiveCashSession;
         $request = Request::create('/api/transactions', 'GET');
 
         // Sin auth, el middleware no puede verificar la sesion. Pero como
         // es GET, debe bypasear inmediatamente sin tocar la BD.
-        $response = $middleware->handle($request, fn($r) => response('ok'));
+        $response = $middleware->handle($request, fn ($r) => response('ok'));
         $this->assertEquals('ok', $response->getContent());
     }
 }

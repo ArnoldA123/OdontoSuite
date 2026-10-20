@@ -29,12 +29,16 @@ use PHPUnit\Framework\TestCase;
  */
 class PatientControllerResourceWireUpTest extends TestCase
 {
-private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/PatientController.php'; }
+    private static function controllerFile(): string
+    {
+        return dirname(__DIR__, 3).'/app/Http/Controllers/Api/PatientController.php';
+    }
 
     private function controllerSource(): string
     {
         $source = file_get_contents(self::controllerFile());
         $this->assertNotFalse($source, 'PatientController source MUST be readable.');
+
         return $source;
     }
 
@@ -46,7 +50,7 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
      */
     private function extractMethodBody(string $source, string $methodName): ?string
     {
-        if (!preg_match('/function\s+' . preg_quote($methodName, '/') . '\s*\([^)]*\)\s*:[^{]*\{/', $source, $matches, PREG_OFFSET_CAPTURE)) {
+        if (! preg_match('/function\s+'.preg_quote($methodName, '/').'\s*\([^)]*\)\s*:[^{]*\{/', $source, $matches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
 
@@ -64,6 +68,7 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
                 }
             }
         }
+
         return null;
     }
 
@@ -90,8 +95,8 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
             'PatientResource',
             $body,
             'PatientController::index() MUST reference PatientResource (collection / make / new) '
-                . 'so the `age` key reaches the JSON contract. '
-                . 'Currently the controller returns raw $patients->items() and the SPA renders — / N/A años.'
+                .'so the `age` key reaches the JSON contract. '
+                .'Currently the controller returns raw $patients->items() and the SPA renders — / N/A años.'
         );
     }
 
@@ -106,7 +111,7 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
             'PatientResource',
             $body,
             'PatientController::show() MUST reference PatientResource so the `age` key reaches the '
-                . 'JSON contract. Currently the controller returns the raw Eloquent model.'
+                .'JSON contract. Currently the controller returns the raw Eloquent model.'
         );
     }
 
@@ -151,7 +156,7 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
             4,
             $count,
             'PatientController MUST reference PatientResource at least 4 times (index, show, store, update). '
-                . "Currently found {$count} reference(s)."
+                ."Currently found {$count} reference(s)."
         );
     }
 }

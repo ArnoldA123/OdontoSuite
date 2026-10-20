@@ -20,15 +20,14 @@ class ProcedureCatalogUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @param  array<string, mixed>  $changedFields
+     * @param array<string, mixed> $changedFields
      */
     public function __construct(
         public readonly ProcedureCatalog $procedure,
         public readonly string $changeType, // 'created' | 'updated' | 'deactivated'
         public readonly array $changedFields,
         public readonly ?User $changedBy,
-    ) {
-    }
+    ) {}
 
     public function broadcastOn(): array
     {

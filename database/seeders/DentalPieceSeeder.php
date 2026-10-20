@@ -75,6 +75,6 @@ class DentalPieceSeeder extends Seeder
             }
         }
 
-        $this->command->info("Piezas dentales: {$created} nuevas, " . (count($pieces) - $created) . " ya existentes.");
+        $this->command->info("Piezas dentales: {$created} nuevas, ".(count($pieces) - $created).' ya existentes.');
     }
 }

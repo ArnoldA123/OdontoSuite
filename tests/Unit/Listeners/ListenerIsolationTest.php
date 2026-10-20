@@ -14,11 +14,12 @@ class ListenerIsolationTest extends TestCase
 {
     /**
      * @dataProvider listenerClassProvider
+     *
      * @test
      */
     public function listener_handle_is_wrapped_in_try_catch(string $listenerClass): void
     {
-        if (!class_exists($listenerClass)) {
+        if (! class_exists($listenerClass)) {
             $this->markTestSkipped("Listener class {$listenerClass} not present");
         }
 
@@ -42,16 +43,16 @@ class ListenerIsolationTest extends TestCase
     public static function listenerClassProvider(): array
     {
         return [
-            'LogAppointmentActivity'        => [\App\Listeners\LogAppointmentActivity::class],
-            'LogPatientActivity'            => [\App\Listeners\LogPatientActivity::class],
+            'LogAppointmentActivity' => [\App\Listeners\LogAppointmentActivity::class],
+            'LogPatientActivity' => [\App\Listeners\LogPatientActivity::class],
             'CreateTransactionOnAppointmentCompleted' => [\App\Listeners\CreateTransactionOnAppointmentCompleted::class],
-            'NotifyPatientFileExported'     => [\App\Listeners\NotifyPatientFileExported::class],
-            'NotifyProcedureDeactivation'   => [\App\Listeners\NotifyProcedureDeactivation::class],
-            'TrackProcedureVersion'         => [\App\Listeners\TrackProcedureVersion::class],
-            'TrackReminderDelivery'         => [\App\Listeners\TrackReminderDelivery::class],
-            'ClearDashboardCache'           => [\App\Listeners\ClearDashboardCache::class],
-            'LogPaymentReceived'            => [\App\Listeners\LogPaymentReceived::class],
-            'LogAppointmentCheckedIn'       => [\App\Listeners\LogAppointmentCheckedIn::class],
+            'NotifyPatientFileExported' => [\App\Listeners\NotifyPatientFileExported::class],
+            'NotifyProcedureDeactivation' => [\App\Listeners\NotifyProcedureDeactivation::class],
+            'TrackProcedureVersion' => [\App\Listeners\TrackProcedureVersion::class],
+            'TrackReminderDelivery' => [\App\Listeners\TrackReminderDelivery::class],
+            'ClearDashboardCache' => [\App\Listeners\ClearDashboardCache::class],
+            'LogPaymentReceived' => [\App\Listeners\LogPaymentReceived::class],
+            'LogAppointmentCheckedIn' => [\App\Listeners\LogAppointmentCheckedIn::class],
         ];
     }
 }

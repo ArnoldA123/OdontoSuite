@@ -5,18 +5,16 @@ namespace App\Services;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
+use App\Models\AppointmentBlock;
+use App\Models\AuditLog;
 use App\Models\Patient;
 use App\Models\User;
-use App\Models\DentalChair;
-use App\Models\AppointmentType;
-use App\Models\AppointmentBlock;
-use App\Models\WorkSchedule;
-use App\Models\AuditLog;
 use App\Models\WaitingList;
+use App\Models\WorkSchedule;
 use App\Repositories\AppointmentRepository;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +26,7 @@ class AppointmentService
     {
         $this->repository = $repository;
     }
+
     /**
      * Create a new appointment with conflict validation.
      */
@@ -94,9 +93,10 @@ class AppointmentService
             Log::info('AppointmentService::createAppointment - All validations passed, creating appointment');
 
             DB::beginTransaction();
+
             try {
                 $endsAt = $scheduledAt->copy()->addMinutes($duration);
-                
+
                 $appointmentData = array_merge($data, [
                     'created_by' => Auth::id(),
                     'updated_by' => Auth::id(),
@@ -130,15 +130,15 @@ class AppointmentService
                 }
 
                 DB::commit();
-                
+
                 Log::info('AppointmentService::createAppointment - Loading relationships');
-                
+
                 $appointment->load(['patient', 'user', 'dentalChair', 'appointmentType']);
-                
+
                 Log::info('AppointmentService::createAppointment - Success', [
                     'appointment_id' => $appointment->id,
                 ]);
-                
+
                 return $appointment;
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -148,6 +148,7 @@ class AppointmentService
                     'line' => $e->getLine(),
                     'trace' => $e->getTraceAsString(),
                 ]);
+
                 throw $e;
             }
         } catch (ValidationException $e) {
@@ -159,6 +160,7 @@ class AppointmentService
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             throw $e;
         }
     }
@@ -203,6 +205,7 @@ class AppointmentService
         }
 
         DB::beginTransaction();
+
         try {
             // Update ends_at if scheduled_at or duration changed
             if (isset($data['scheduled_at']) || isset($data['duration_minutes'])) {
@@ -224,9 +227,11 @@ class AppointmentService
             );
 
             DB::commit();
+
             return $appointment->load(['patient', 'user', 'dentalChair', 'appointmentType']);
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
@@ -234,15 +239,16 @@ class AppointmentService
     /**
      * Cancel an appointment and notify waiting list.
      */
-    public function cancelAppointment(Appointment $appointment, string $reason = null): Appointment
+    public function cancelAppointment(Appointment $appointment, ?string $reason = null): Appointment
     {
         $oldValues = $appointment->toArray();
 
         DB::beginTransaction();
+
         try {
             $appointment->update([
                 'status' => 'cancelled',
-                'notes' => $reason ? ($appointment->notes . "\n\nCancelación: " . $reason) : $appointment->notes,
+                'notes' => $reason ? ($appointment->notes."\n\nCancelación: ".$reason) : $appointment->notes,
                 'updated_by' => Auth::id(),
             ]);
 
@@ -260,9 +266,11 @@ class AppointmentService
             $this->notifyWaitingList($appointment);
 
             DB::commit();
+
             return $appointment;
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
@@ -270,7 +278,7 @@ class AppointmentService
     /**
      * Reschedule an appointment.
      */
-    public function rescheduleAppointment(Appointment $appointment, Carbon $newDateTime, int $duration = null): Appointment
+    public function rescheduleAppointment(Appointment $appointment, Carbon $newDateTime, ?int $duration = null): Appointment
     {
         $oldValues = $appointment->toArray();
         $duration = $duration ?? $appointment->duration_minutes ?? 60;
@@ -305,6 +313,7 @@ class AppointmentService
         // }
 
         DB::beginTransaction();
+
         try {
             $appointment->update([
                 'scheduled_at' => $newDateTime,
@@ -324,9 +333,11 @@ class AppointmentService
             );
 
             DB::commit();
+
             return $appointment->load(['patient', 'user', 'dentalChair', 'appointmentType']);
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
@@ -349,7 +360,7 @@ class AppointmentService
         }
 
         $firstConflict = $conflicts->first();
-        
+
         // Determine conflict type
         if ($firstConflict->user_id === $userId) {
             return [
@@ -389,15 +400,16 @@ class AppointmentService
                 'day_of_week' => $dayOfWeek,
                 'time' => $time,
             ]);
+
             return true;
         }
 
         // Verificar si el horario está dentro de algún rango de trabajo
         foreach ($workSchedules as $workSchedule) {
-            $startTime = $workSchedule->start_time instanceof \Carbon\Carbon 
+            $startTime = $workSchedule->start_time instanceof \Carbon\Carbon
                 ? $workSchedule->start_time->format('H:i')
                 : \Carbon\Carbon::parse($workSchedule->start_time)->format('H:i');
-            
+
             $endTime = $workSchedule->end_time instanceof \Carbon\Carbon
                 ? $workSchedule->end_time->format('H:i')
                 : \Carbon\Carbon::parse($workSchedule->end_time)->format('H:i');
@@ -410,6 +422,7 @@ class AppointmentService
                     'work_schedule_start' => $startTime,
                     'work_schedule_end' => $endTime,
                 ]);
+
                 return true;
             }
         }
@@ -421,7 +434,7 @@ class AppointmentService
             'time' => $time,
             'work_schedules' => $workSchedules->map(function ($ws) {
                 return [
-                    'start' => $ws->start_time instanceof \Carbon\Carbon 
+                    'start' => $ws->start_time instanceof \Carbon\Carbon
                         ? $ws->start_time->format('H:i')
                         : \Carbon\Carbon::parse($ws->start_time)->format('H:i'),
                     'end' => $ws->end_time instanceof \Carbon\Carbon
@@ -442,7 +455,7 @@ class AppointmentService
     {
         // Deshabilitado temporalmente - permite crear citas sin restricciones de bloques
         return false;
-        
+
         // Código original comentado para referencia futura
         /*
         $endsAt = $dateTime->copy()->addMinutes($duration);
@@ -477,11 +490,11 @@ class AppointmentService
             ->where('status', 'active')
             ->where(function ($query) use ($cancelledAppointment) {
                 $query->whereNull('preferred_user_id')
-                      ->orWhere('preferred_user_id', $cancelledAppointment->user_id);
+                    ->orWhere('preferred_user_id', $cancelledAppointment->user_id);
             })
             ->where(function ($query) use ($cancelledAppointment) {
                 $query->whereNull('preferred_date')
-                      ->orWhere('preferred_date', $cancelledAppointment->scheduled_at->toDateString());
+                    ->orWhere('preferred_date', $cancelledAppointment->scheduled_at->toDateString());
             })
             ->orderBy('priority')
             ->orderBy('created_at')
@@ -505,7 +518,7 @@ class AppointmentService
             ->where('is_active', true)
             ->first();
 
-        if (!$workSchedule) {
+        if (! $workSchedule) {
             return $slots;
         }
 
@@ -542,11 +555,11 @@ class AppointmentService
                 return $block->conflictsWith($currentTime, $slotEnd);
             });
 
-            if (!$hasConflict && !$hasBlock) {
+            if (! $hasConflict && ! $hasBlock) {
                 $slots[] = [
                     'start' => $currentTime->copy()->subMinutes($duration)->toISOString(),
                     'end' => $currentTime->toISOString(),
-                    'formatted' => $currentTime->copy()->subMinutes($duration)->format('H:i') . ' - ' . $currentTime->format('H:i'),
+                    'formatted' => $currentTime->copy()->subMinutes($duration)->format('H:i').' - '.$currentTime->format('H:i'),
                 ];
             }
 
@@ -565,8 +578,8 @@ class AppointmentService
     private function validateAppointmentData(array $data, ?Appointment $appointment = null): void
     {
         $rules = $appointment
-            ? (new UpdateAppointmentRequest())->rules()
-            : (new StoreAppointmentRequest())->rules();
+            ? (new UpdateAppointmentRequest)->rules()
+            : (new StoreAppointmentRequest)->rules();
 
         $validator = validator($data, $rules);
 
@@ -587,7 +600,7 @@ class AppointmentService
         if (array_key_exists('patient_id', $data)
             && ($appointment === null || $data['patient_id'] != $appointment->patient_id)) {
             $patient = Patient::find($data['patient_id']);
-            if ($patient && !$patient->is_active) {
+            if ($patient && ! $patient->is_active) {
                 throw ValidationException::withMessages([
                     'patient_id' => ['El paciente seleccionado está inactivo.'],
                 ]);
@@ -597,7 +610,7 @@ class AppointmentService
         if (array_key_exists('user_id', $data)
             && ($appointment === null || $data['user_id'] != $appointment->user_id)) {
             $user = User::find($data['user_id']);
-            if ($user && !$user->is_active) {
+            if ($user && ! $user->is_active) {
                 throw ValidationException::withMessages([
                     'user_id' => ['El profesional seleccionado está inactivo.'],
                 ]);

@@ -2,24 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Events\AppointmentCreated;
-use App\Events\AppointmentUpdated;
 use App\Events\AppointmentDeleted;
-use App\Listeners\ClearDashboardCache;
-use App\Models\Appointment;
-use App\Models\DentalChair;
-use App\Models\AppointmentType;
-use App\Models\AuditLog;
-use App\Services\AppointmentService;
+use App\Events\AppointmentUpdated;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\RescheduleAppointmentRequest;
 use App\Http\Resources\AppointmentResource;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use App\Listeners\ClearDashboardCache;
+use App\Models\Appointment;
+use App\Models\AuditLog;
+use App\Services\AppointmentService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AppointmentController extends Controller
 {
@@ -28,8 +26,8 @@ class AppointmentController extends Controller
     // ProcedureCatalogController, CashMovementController, etc.
     public function __construct(
         private readonly AppointmentService $appointmentService,
-    ) {
-    }
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -57,12 +55,12 @@ class AppointmentController extends Controller
             'created_by',
             'updated_by',
             'created_at',
-            'updated_at'
+            'updated_at',
         ])->with([
             'patient:id,first_name,last_name,document_number,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
-            'appointmentType:id,name,default_duration_minutes,price,color'
+            'appointmentType:id,name,default_duration_minutes,price,color',
         ]);
 
         $totalBeforeFilter = $query->count();
@@ -76,16 +74,16 @@ class AppointmentController extends Controller
                 'start_date' => $startDate->toDateTimeString(),
                 'end_date' => $endDate->toDateTimeString(),
             ]);
-            $query->where(function($q) use ($startDate, $endDate) {
+            $query->where(function ($q) use ($startDate, $endDate) {
                 // Citas que empiezan dentro del rango
                 $q->whereBetween('scheduled_at', [$startDate, $endDate])
                   // O citas que terminan dentro del rango
-                  ->orWhereBetween('ends_at', [$startDate, $endDate])
+                    ->orWhereBetween('ends_at', [$startDate, $endDate])
                   // O citas que abarcan todo el rango
-                  ->orWhere(function($subQ) use ($startDate, $endDate) {
-                      $subQ->where('scheduled_at', '<=', $startDate)
-                           ->where('ends_at', '>=', $endDate);
-                  });
+                    ->orWhere(function ($subQ) use ($startDate, $endDate) {
+                        $subQ->where('scheduled_at', '<=', $startDate)
+                            ->where('ends_at', '>=', $endDate);
+                    });
             });
         }
 
@@ -135,7 +133,7 @@ class AppointmentController extends Controller
                 'ends_at' => $firstAppointment->ends_at?->toDateTimeString(),
                 'patient' => $firstAppointment->patient ? [
                     'id' => $firstAppointment->patient->id,
-                    'name' => $firstAppointment->patient->first_name . ' ' . $firstAppointment->patient->last_name,
+                    'name' => $firstAppointment->patient->first_name.' '.$firstAppointment->patient->last_name,
                 ] : null,
                 'user' => $firstAppointment->user ? [
                     'id' => $firstAppointment->user->id,
@@ -175,7 +173,7 @@ class AppointmentController extends Controller
                 'user_id' => Auth::id(),
                 'validated_data' => $validated,
             ]);
-            
+
             $appointment = $this->appointmentService->createAppointment($validated);
 
             Log::info('Appointment created successfully', [
@@ -191,7 +189,7 @@ class AppointmentController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
-            
+
             // Limpiar cache del dashboard
             try {
                 ClearDashboardCache::handle();
@@ -212,6 +210,7 @@ class AppointmentController extends Controller
                 'user_id' => Auth::id(),
                 'errors' => $e->errors(),
             ]);
+
             return response()->json([
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
@@ -227,11 +226,11 @@ class AppointmentController extends Controller
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
-                'message' => 'Error al crear la cita: ' . (config('app.debug') ? $e->getMessage() : 'Error interno del servidor'),
+                'message' => 'Error al crear la cita: '.(config('app.debug') ? $e->getMessage() : 'Error interno del servidor'),
                 'error' => config('app.debug') ? [
                     'message' => $e->getMessage(),
                     'file' => $e->getFile(),
@@ -270,7 +269,7 @@ class AppointmentController extends Controller
         try {
             Log::info('Update appointment request', [
                 'appointment_id' => $appointment->id,
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
             ]);
         } catch (\Exception $e) {
             // Ignore logging errors
@@ -285,7 +284,7 @@ class AppointmentController extends Controller
 
             // Emitir evento de WebSocket
             event(new AppointmentUpdated($appointment));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
 
@@ -307,7 +306,7 @@ class AppointmentController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -406,6 +405,7 @@ class AppointmentController extends Controller
     public function destroy(Request $request, Appointment $appointment): JsonResponse
     {
         DB::beginTransaction();
+
         try {
             $oldValues = $appointment->toArray();
             $appointmentId = $appointment->id;
@@ -415,7 +415,7 @@ class AppointmentController extends Controller
 
             // Emitir evento de WebSocket (el listener se encargará de la auditoría)
             event(new AppointmentDeleted($appointmentId, $oldValues, $appointment));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
 
@@ -433,16 +433,15 @@ class AppointmentController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'message' => 'Error al eliminar la cita',
                 'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
         }
     }
-
 
     /**
      * Update appointment status.
@@ -457,6 +456,7 @@ class AppointmentController extends Controller
         $oldValues = $appointment->toArray();
 
         DB::beginTransaction();
+
         try {
             $appointment->update([
                 'status' => $validated['status'],
@@ -491,9 +491,9 @@ class AppointmentController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'message' => 'Error al actualizar el estado de la cita',
                 'error' => config('app.debug') ? $e->getMessage() : null,

@@ -45,7 +45,7 @@ class LogAppointmentCheckedIn
         } catch (Throwable $e) {
             // AGENTS.md §7: swallow + log + report. Failure here MUST NOT
             // crash the consultation check-in flow.
-            Log::error('LogAppointmentCheckedIn failed: ' . $e->getMessage(), [
+            Log::error('LogAppointmentCheckedIn failed: '.$e->getMessage(), [
                 'appointment_id' => $event->appointment->id ?? null,
                 'exception' => $e,
             ]);

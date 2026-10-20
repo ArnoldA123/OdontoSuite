@@ -20,13 +20,13 @@ class ProcedureMaterial extends Model
         'total_cost',
         'batch_number',
         'expiry_date',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
-        'expiry_date' => 'date'
+        'expiry_date' => 'date',
     ];
 
     // Relaciones

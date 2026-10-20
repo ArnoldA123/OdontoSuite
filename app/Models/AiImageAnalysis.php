@@ -26,7 +26,7 @@ class AiImageAnalysis extends Model
         'reviewed_by',
         'reviewed_at',
         'review_decision',
-        'review_notes'
+        'review_notes',
     ];
 
     protected $casts = [
@@ -35,7 +35,7 @@ class AiImageAnalysis extends Model
         'confidence_score' => 'decimal:2',
         'reviewed' => 'boolean',
         'reviewed_at' => 'datetime',
-        'tokens_used' => 'integer'
+        'tokens_used' => 'integer',
     ];
 
     // Relaciones
@@ -78,7 +78,7 @@ class AiImageAnalysis extends Model
     public function scopePendingReview($query)
     {
         return $query->where('status', 'completed')
-                    ->where('reviewed', false);
+            ->where('reviewed', false);
     }
 
     public function scopeReviewed($query)
@@ -98,8 +98,9 @@ class AiImageAnalysis extends Model
             'pending' => 'Pendiente',
             'processing' => 'Procesando',
             'completed' => 'Completado',
-            'failed' => 'Fallido'
+            'failed' => 'Fallido',
         ];
+
         return $labels[$this->status] ?? $this->status;
     }
 
@@ -108,15 +109,21 @@ class AiImageAnalysis extends Model
         $labels = [
             'accepted' => 'Aceptado',
             'rejected' => 'Rechazado',
-            'partial' => 'Parcial'
+            'partial' => 'Parcial',
         ];
+
         return $labels[$this->review_decision] ?? 'Sin revisar';
     }
 
     public function getConfidenceLevelAttribute()
     {
-        if ($this->confidence_score >= 90) return 'high';
-        if ($this->confidence_score >= 70) return 'medium';
+        if ($this->confidence_score >= 90) {
+            return 'high';
+        }
+        if ($this->confidence_score >= 70) {
+            return 'medium';
+        }
+
         return 'low';
     }
 
@@ -126,8 +133,9 @@ class AiImageAnalysis extends Model
         $colors = [
             'high' => 'green',
             'medium' => 'yellow',
-            'low' => 'red'
+            'low' => 'red',
         ];
+
         return $colors[$level] ?? 'gray';
     }
 
@@ -139,7 +147,7 @@ class AiImageAnalysis extends Model
 
     public function isPendingReview(): bool
     {
-        return $this->isCompleted() && !$this->reviewed;
+        return $this->isCompleted() && ! $this->reviewed;
     }
 
     public function isReviewed(): bool
@@ -154,20 +162,24 @@ class AiImageAnalysis extends Model
             'reviewed_by' => $user->id,
             'reviewed_at' => now(),
             'review_decision' => $decision,
-            'review_notes' => $notes
+            'review_notes' => $notes,
         ]);
     }
 
     public function getMainFindings(): array
     {
-        if (!$this->findings) return [];
+        if (! $this->findings) {
+            return [];
+        }
 
         return array_slice($this->findings, 0, 3); // Primeros 3 hallazgos
     }
 
     public function getTopRecommendations(): array
     {
-        if (!$this->recommendations) return [];
+        if (! $this->recommendations) {
+            return [];
+        }
 
         return array_slice($this->recommendations, 0, 3); // Primeras 3 recomendaciones
     }

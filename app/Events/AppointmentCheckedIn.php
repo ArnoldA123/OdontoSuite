@@ -18,14 +18,12 @@ class AppointmentCheckedIn implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Appointment $appointment)
-    {
-    }
+    public function __construct(public Appointment $appointment) {}
 
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('appointment.' . $this->appointment->id),
+            new PrivateChannel('appointment.'.$this->appointment->id),
         ];
     }
 

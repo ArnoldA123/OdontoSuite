@@ -14,11 +14,12 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         $root = dirname(__DIR__, 3);
+
         return [
-            $root . '/resources/js/modules/cash-register/components/TransactionModal.vue',
-            $root . '/resources/js/modules/cash-register/components/MovementModal.vue',
-            $root . '/resources/js/modules/cash-register/components/OpenCashModal.vue',
-            $root . '/resources/js/modules/cash-register/components/CloseCashModal.vue',
+            $root.'/resources/js/modules/cash-register/components/TransactionModal.vue',
+            $root.'/resources/js/modules/cash-register/components/MovementModal.vue',
+            $root.'/resources/js/modules/cash-register/components/OpenCashModal.vue',
+            $root.'/resources/js/modules/cash-register/components/CloseCashModal.vue',
         ];
     }
 
@@ -34,34 +35,42 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $this->assertSame(0, preg_match('/<Teleport\b[^>]*\bto\s*=\s*["\']body["\']/i', $src),
-            sprintf('%s MUST NOT contain `<Teleport to="body">` (PAGOS-MOD-001).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/<Teleport\b[^>]*\bto\s*=\s*["\']body["\']/i', $src),
+            sprintf('%s MUST NOT contain `<Teleport to="body">` (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiModal\b/', $src)
                 || (bool) preg_match("/import\s+Modal\s+from\s+['\"]@\/components\/ui\/Modal\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiModal>` (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiModal>` (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiButton\b/', $src)
                 || (bool) preg_match("/import\s+(?:Ui)?Button\s+from\s+['\"]@\/components\/ui\/Button\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiButton>` (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiButton>` (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiStatusBadge\b/', $src)
                 || (bool) preg_match("/import\s+\w*[Bb]adge\w*\s+from\s+['\"]@\/components\/ui\/StatusBadge\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiStatusBadge>` (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiStatusBadge>` (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match(
                 "/import\s*\{[^}]*formatCurrency[^}]*\}\s*from\s*['\"](?:@\/composables\/useFormatters|\.\.\/\.\.\/composables\/useFormatters|\.\.\/composables\/useFormatters)['\"]/",
                 $src
             ),
-            sprintf('%s MUST import `formatCurrency` from `useFormatters` (PAGOS-MNY-002).', $path));
+            sprintf('%s MUST import `formatCurrency` from `useFormatters` (PAGOS-MNY-002).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match("/defineEmits\\s*\\(\\s*\\[\\s*['\"]close['\"]\\s*,\\s*['\"]success['\"]\\s*\\]\\s*\\)/", $src),
-            sprintf('%s MUST keep `defineEmits([\'close\',\'success\'])` byte-for-byte (PAGOS-CON-001).', $path));
+            sprintf('%s MUST keep `defineEmits([\'close\',\'success\'])` byte-for-byte (PAGOS-CON-001).', $path)
+        );
     }
 
     /**
@@ -74,15 +83,17 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
         $cleaned = self::stripScriptForClassScan($src);
-        $this->assertSame(0,
+        $this->assertSame(
+            0,
             preg_match("/Intl\\.NumberFormat\\s*\\(\\s*['\"]es-PE['\"]\\s*,\\s*\\{[^}]*currency:\\s*['\"]PEN['\"]/s", $cleaned),
-            sprintf('%s MUST NOT redeclare the canonical `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` (PAGOS-MNY-002).', $path));
+            sprintf('%s MUST NOT redeclare the canonical `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` (PAGOS-MNY-002).', $path)
+        );
     }
 
     /** PR-pagos-03 §3.2 — TransactionModal `type` prop (default `'payment'`, validator constrains to `['payment','refund']`). */
     public function test_transaction_modal_declares_type_prop(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/TransactionModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/TransactionModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
         $this->assertTrue(
@@ -90,7 +101,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
                 '/type\s*:\s*\{\s*type\s*:\s*String\s*,\s*default\s*:\s*[\'"]payment[\'"]\s*,\s*validator\s*:\s*v\s*=>\s*\[\s*[\'"]payment[\'"]\s*,\s*[\'"]refund[\'"]\s*\]\.includes\s*\(\s*v\s*\)/s',
                 $src
             ),
-            sprintf('%s MUST declare the additive `type` prop with default \'payment\' + validator (PR-pagos-03 §3.2).', $path));
+            sprintf('%s MUST declare the additive `type` prop with default \'payment\' + validator (PR-pagos-03 §3.2).', $path)
+        );
     }
 
     /**
@@ -101,44 +113,54 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_close_cash_modal_uses_tabular_nums_on_totals(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/CloseCashModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/CloseCashModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
         $this->assertTrue(
             (bool) preg_match('/tabular-nums|font-feature-settings:\s*var\(--font-features-tabular-nums\)/', $src),
-            sprintf('%s MUST use `tabular-nums` (or the token) on totals (DLR-R-007).', $path));
+            sprintf('%s MUST use `tabular-nums` (or the token) on totals (DLR-R-007).', $path)
+        );
     }
 
     /** PR-pagos-03 — TransactionModal consumes <UiCard> + <UiLoadingSpinner>; no legacy bg-primary-50 / animate-spin (PAGOS-MOD-001-1 / DLR-R-009). */
     public function test_transaction_modal_uses_ui_card_and_spinner(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/TransactionModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/TransactionModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $this->assertTrue(
             (bool) preg_match('/<UiCard\b/', $src)
                 || (bool) preg_match("/import\s+(?:Ui)?Card\s+from\s+['\"]@\/components\/ui\/Card\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiCard>` (PAGOS-MOD-001-1).', $path));
+            sprintf('%s MUST consume `<UiCard>` (PAGOS-MOD-001-1).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiLoadingSpinner\b/', $src)
                 || (bool) preg_match("/import\s+(?:Ui)?LoadingSpinner\s+from\s+['\"]@\/components\/ui\/LoadingSpinner\.vue['\"]/", $src),
-            sprintf('%s MUST consume `<UiLoadingSpinner>` (PAGOS-MOD-001-1).', $path));
+            sprintf('%s MUST consume `<UiLoadingSpinner>` (PAGOS-MOD-001-1).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/(?<![\w-])bg-primary-50(?![\w-])/', $src),
-            sprintf('%s MUST NOT contain `bg-primary-50` (DLR-R-009).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])bg-primary-50(?![\w-])/', $src),
+            sprintf('%s MUST NOT contain `bg-primary-50` (DLR-R-009).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/(?<![\w-])animate-spin(?![\w-])/', $src),
-            sprintf('%s MUST NOT contain `animate-spin` (DLR-R-009).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])animate-spin(?![\w-])/', $src),
+            sprintf('%s MUST NOT contain `animate-spin` (DLR-R-009).', $path)
+        );
     }
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -158,7 +180,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
                 $stripped = preg_replace("/'(?:\\\\.|[^'\\\\])*'/", "''", $stripped) ?? $stripped;
                 $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/', '""', $stripped) ?? $stripped;
                 $stripped = preg_replace('/`(?:\\\\.|[^`\\\\])*`/', '``', $stripped) ?? $stripped;
-                return '<script>' . $stripped . '</script>';
+
+                return '<script>'.$stripped.'</script>';
             },
             $src
         ) ?? $src;

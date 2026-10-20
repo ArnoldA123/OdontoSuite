@@ -15,7 +15,10 @@ use PHPUnit\Framework\TestCase;
  */
 class ApiDashboardRoutesTest extends TestCase
 {
-private static function routesFile(): string { return dirname(__DIR__, 3) . '/routes/api.php'; }
+    private static function routesFile(): string
+    {
+        return dirname(__DIR__, 3).'/routes/api.php';
+    }
 
     public function test_dashboard_today_alias_route_is_removed(): void
     {

@@ -2,18 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\ImplantologyRecord;
-use App\Models\OrthodonticsRecord;
 use App\Models\EndodonticsRecord;
-use App\Models\RehabilitationRecord;
+use App\Models\ImplantologyRecord;
 use App\Models\OralSurgeryRecord;
-use Illuminate\Support\Facades\DB;
+use App\Models\OrthodonticsRecord;
+use App\Models\RehabilitationRecord;
 use Illuminate\Support\Facades\Auth;
 
 class SpecialtyRecordService
 {
     /**
-     * Crear registro de implantología
+     * Crear registro de implantología.
      */
     public function createImplantologyRecord(array $data): ImplantologyRecord
     {
@@ -24,7 +23,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Crear registro de ortodoncia
+     * Crear registro de ortodoncia.
      */
     public function createOrthodonticsRecord(array $data): OrthodonticsRecord
     {
@@ -35,7 +34,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Crear registro de endodoncia
+     * Crear registro de endodoncia.
      */
     public function createEndodonticsRecord(array $data): EndodonticsRecord
     {
@@ -45,7 +44,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Crear registro de rehabilitación
+     * Crear registro de rehabilitación.
      */
     public function createRehabilitationRecord(array $data): RehabilitationRecord
     {
@@ -55,7 +54,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Crear registro de cirugía oral
+     * Crear registro de cirugía oral.
      */
     public function createOralSurgeryRecord(array $data): OralSurgeryRecord
     {
@@ -66,7 +65,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros por especialidad
+     * Obtener registros por especialidad.
      */
     public function getSpecialtyRecords(int $patientId, string $specialty)
     {
@@ -81,7 +80,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros de implantología
+     * Obtener registros de implantología.
      */
     private function getImplantologyRecords(int $patientId)
     {
@@ -92,7 +91,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros de ortodoncia
+     * Obtener registros de ortodoncia.
      */
     private function getOrthodonticsRecords(int $patientId)
     {
@@ -103,7 +102,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros de endodoncia
+     * Obtener registros de endodoncia.
      */
     private function getEndodonticsRecords(int $patientId)
     {
@@ -114,7 +113,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros de rehabilitación
+     * Obtener registros de rehabilitación.
      */
     private function getRehabilitationRecords(int $patientId)
     {
@@ -125,7 +124,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener registros de cirugía oral
+     * Obtener registros de cirugía oral.
      */
     private function getOralSurgeryRecords(int $patientId)
     {
@@ -136,7 +135,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Actualizar registro de especialidad
+     * Actualizar registro de especialidad.
      */
     public function updateRecord(string $specialty, int $id, array $data)
     {
@@ -151,57 +150,62 @@ class SpecialtyRecordService
     }
 
     /**
-     * Actualizar registro de implantología
+     * Actualizar registro de implantología.
      */
     private function updateImplantologyRecord(int $id, array $data): ImplantologyRecord
     {
         $record = ImplantologyRecord::findOrFail($id);
         $record->update($data);
+
         return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
     }
 
     /**
-     * Actualizar registro de ortodoncia
+     * Actualizar registro de ortodoncia.
      */
     private function updateOrthodonticsRecord(int $id, array $data): OrthodonticsRecord
     {
         $record = OrthodonticsRecord::findOrFail($id);
         $record->update($data);
+
         return $record->load(['patient', 'appointment', 'createdBy']);
     }
 
     /**
-     * Actualizar registro de endodoncia
+     * Actualizar registro de endodoncia.
      */
     private function updateEndodonticsRecord(int $id, array $data): EndodonticsRecord
     {
         $record = EndodonticsRecord::findOrFail($id);
         $record->update($data);
+
         return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
     }
 
     /**
-     * Actualizar registro de rehabilitación
+     * Actualizar registro de rehabilitación.
      */
     private function updateRehabilitationRecord(int $id, array $data): RehabilitationRecord
     {
         $record = RehabilitationRecord::findOrFail($id);
         $record->update($data);
+
         return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
     }
 
     /**
-     * Actualizar registro de cirugía oral
+     * Actualizar registro de cirugía oral.
      */
     private function updateOralSurgeryRecord(int $id, array $data): OralSurgeryRecord
     {
         $record = OralSurgeryRecord::findOrFail($id);
         $record->update($data);
+
         return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
     }
 
     /**
-     * Eliminar registro de especialidad
+     * Eliminar registro de especialidad.
      */
     public function deleteRecord(string $specialty, int $id): bool
     {
@@ -216,7 +220,7 @@ class SpecialtyRecordService
     }
 
     /**
-     * Obtener estadísticas por especialidad
+     * Obtener estadísticas por especialidad.
      */
     public function getSpecialtyStats(int $patientId, string $specialty): array
     {
@@ -227,12 +231,12 @@ class SpecialtyRecordService
             'active_treatments' => $records->where('status', 'in_progress')->count(),
             'completed_treatments' => $records->where('status', 'completed')->count(),
             'last_record' => $records->first(),
-            'treatment_types' => $records->pluck('treatment_type')->unique()->values()->toArray()
+            'treatment_types' => $records->pluck('treatment_type')->unique()->values()->toArray(),
         ];
     }
 
     /**
-     * Obtener todos los registros de especialidades de un paciente
+     * Obtener todos los registros de especialidades de un paciente.
      */
     public function getAllPatientSpecialtyRecords(int $patientId): array
     {
@@ -241,7 +245,7 @@ class SpecialtyRecordService
             'ortodoncia' => $this->getOrthodonticsRecords($patientId),
             'endodoncia' => $this->getEndodonticsRecords($patientId),
             'rehabilitacion' => $this->getRehabilitationRecords($patientId),
-            'cirugia_oral' => $this->getOralSurgeryRecords($patientId)
+            'cirugia_oral' => $this->getOralSurgeryRecords($patientId),
         ];
     }
 }

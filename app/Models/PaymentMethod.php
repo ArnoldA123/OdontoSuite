@@ -22,7 +22,7 @@ class PaymentMethod extends Model
         'allows_change',
         'commission_percentage',
         'is_active',
-        'is_system'
+        'is_system',
     ];
 
     protected $casts = [
@@ -30,7 +30,7 @@ class PaymentMethod extends Model
         'allows_change' => 'boolean',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
-        'is_system' => 'boolean'
+        'is_system' => 'boolean',
     ];
 
     // Relaciones
@@ -58,12 +58,14 @@ class PaymentMethod extends Model
     {
         if (is_null($value) || $value === '') {
             $this->attributes['gateway_config'] = null;
+
             return;
         }
 
         // Si ya viene encriptado (string largo), no encriptar de nuevo
         if (is_string($value) && str_starts_with($value, 'eyJ')) {
             $this->attributes['gateway_config'] = $value;
+
             return;
         }
 
@@ -80,12 +82,13 @@ class PaymentMethod extends Model
     public function getGatewayConfigAttribute($value)
     {
         if (is_null($value)) {
-            return null;
+            return;
         }
 
         try {
             $decrypted = Crypt::decryptString($value);
             $decoded = json_decode($decrypted, true);
+
             return is_array($decoded) ? $decoded : $decrypted;
         } catch (\Exception $e) {
             // Si falla la desencriptacion (dato corrupto o APP_KEY rotada),
@@ -100,6 +103,6 @@ class PaymentMethod extends Model
      */
     public function hasGateway(): bool
     {
-        return !is_null($this->gateway_type) && $this->gateway_type !== 'manual';
+        return ! is_null($this->gateway_type) && $this->gateway_type !== 'manual';
     }
 }

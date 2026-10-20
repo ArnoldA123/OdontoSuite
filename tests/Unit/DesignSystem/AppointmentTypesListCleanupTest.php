@@ -69,7 +69,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::LIST_PAGE_PATH,
+            dirname(__DIR__, 3).self::LIST_PAGE_PATH,
         ];
     }
 
@@ -89,7 +89,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_ui_input_for_modal_form_fields(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -105,7 +105,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $uiInputCount,
             sprintf(
                 '%s MUST consume <UiInput v-model="..."> for the 7 text/number modal form fields (TIPOS-01-001). '
-                . 'Found %d <UiInput> references.',
+                .'Found %d <UiInput> references.',
                 $path,
                 $uiInputCount
             )
@@ -123,7 +123,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $rawTextInputCount,
             sprintf(
                 '%s MUST NOT keep raw `<input type="text">` modal fields (TIPOS-01-001). '
-                . 'Replace with <UiInput v-model="...">. Found %d raw `<input type="text">` element(s).',
+                .'Replace with <UiInput v-model="...">. Found %d raw `<input type="text">` element(s).',
                 $path,
                 $rawTextInputCount
             )
@@ -138,7 +138,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $rawNumberInputCount,
             sprintf(
                 '%s MUST NOT keep raw `<input type="number">` modal fields (TIPOS-01-001). '
-                . 'Replace with <UiInput v-model="..." type="number">. Found %d raw `<input type="number">` element(s).',
+                .'Replace with <UiInput v-model="..." type="number">. Found %d raw `<input type="number">` element(s).',
                 $path,
                 $rawNumberInputCount
             )
@@ -157,7 +157,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_ui_textarea_for_description_fields(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -169,7 +169,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $uiTextareaCount,
             sprintf(
                 '%s MUST consume <UiTextarea v-model="..."> for the 2 description fields (TIPOS-01-002). '
-                . 'Found %d <UiTextarea> reference(s).',
+                .'Found %d <UiTextarea> reference(s).',
                 $path,
                 $uiTextareaCount
             )
@@ -184,7 +184,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $rawTextareaCount,
             sprintf(
                 '%s MUST NOT keep raw `<textarea>` modal fields (TIPOS-01-002). '
-                . 'Replace with <UiTextarea v-model="...">. Found %d raw `<textarea>` element(s).',
+                .'Replace with <UiTextarea v-model="...">. Found %d raw `<textarea>` element(s).',
                 $path,
                 $rawTextareaCount
             )
@@ -202,7 +202,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_loading_spinner(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -212,7 +212,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             (bool) preg_match('#<LoadingSpinner\b#', $src),
             sprintf(
                 '%s MUST consume <LoadingSpinner /> for the list loading state (TIPOS-01-003). '
-                . 'Found no <LoadingSpinner> reference.',
+                .'Found no <LoadingSpinner> reference.',
                 $path
             )
         );
@@ -227,7 +227,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $borderAccentCount,
             sprintf(
                 '%s MUST NOT keep the legacy `border-accent` spinner alias (TIPOS-01-003). '
-                . 'Found %d `border-accent` match(es).',
+                .'Found %d `border-accent` match(es).',
                 $path,
                 $borderAccentCount
             )
@@ -248,7 +248,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_ui_empty_state(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -261,7 +261,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $uiEmptyStateCount,
             sprintf(
                 '%s MUST consume <UiEmptyState title="..." description="..." /> for the list empty state (TIPOS-01-004). '
-                . 'Found %d <UiEmptyState> reference(s). The unused import at line 427 must be wired up.',
+                .'Found %d <UiEmptyState> reference(s). The unused import at line 427 must be wired up.',
                 $path,
                 $uiEmptyStateCount
             )
@@ -276,7 +276,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT keep the hand-rolled `<svg class="mx-auto h-12 ...">` empty-state container (TIPOS-01-004). '
-                . 'Replace with <UiEmptyState title="..." description="..." />.',
+                .'Replace with <UiEmptyState title="..." description="..." />.',
                 $path
             )
         );
@@ -290,7 +290,7 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT keep the hand-rolled `<p>No se encontraron tipos de cita</p>` empty-state paragraph (TIPOS-01-004). '
-                . 'The title MUST live on the <UiEmptyState title="..."> prop.',
+                .'The title MUST live on the <UiEmptyState title="..."> prop.',
                 $path
             )
         );
@@ -305,10 +305,11 @@ class AppointmentTypesListCleanupTest extends ModuleAppShellTestCase
      */
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

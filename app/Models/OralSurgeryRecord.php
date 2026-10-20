@@ -42,7 +42,7 @@ class OralSurgeryRecord extends Model
         'recovery_notes',
         'vital_signs',
         'follow_up_date',
-        'status'
+        'status',
     ];
 
     protected $casts = [
@@ -52,7 +52,7 @@ class OralSurgeryRecord extends Model
         'surgery_end_time' => 'string',
         'surgery_duration_minutes' => 'integer',
         'anesthesia_duration_minutes' => 'integer',
-        'suture_count' => 'integer'
+        'suture_count' => 'integer',
     ];
 
     // Relaciones
@@ -116,7 +116,7 @@ class OralSurgeryRecord extends Model
             'completed' => 'Completada',
             'in_recovery' => 'En Recuperación',
             'follow_up' => 'Seguimiento',
-            'healed' => 'Curada'
+            'healed' => 'Curada',
         ];
 
         return $labels[$this->status] ?? $this->status;
@@ -131,7 +131,7 @@ class OralSurgeryRecord extends Model
             'cyst_removal' => 'Remoción de Quiste',
             'apicectomy' => 'Apicectomía',
             'gum_surgery' => 'Cirugía de Encía',
-            'bone_graft' => 'Injerto Óseo'
+            'bone_graft' => 'Injerto Óseo',
         ];
 
         return $labels[$this->procedure_type] ?? $this->procedure_type;
@@ -143,9 +143,9 @@ class OralSurgeryRecord extends Model
         $minutes = $this->surgery_duration_minutes % 60;
 
         if ($hours > 0) {
-            return $hours . 'h ' . $minutes . 'm';
+            return $hours.'h '.$minutes.'m';
         }
 
-        return $minutes . ' minutos';
+        return $minutes.' minutos';
     }
 }

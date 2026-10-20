@@ -21,12 +21,11 @@ use Tests\TestCase;
  */
 class SidebarEyebrowAuditTest extends TestCase
 {
-
     private const APP_LAYOUT_REL = '/resources/js/components/layout/AppLayout.vue';
 
     private static function appLayoutPath(): string
     {
-        return dirname(__DIR__, 3) . self::APP_LAYOUT_REL;
+        return dirname(__DIR__, 3).self::APP_LAYOUT_REL;
     }
 
     public function test_sidebar_has_no_uppercase_tracking_section_labels(): void

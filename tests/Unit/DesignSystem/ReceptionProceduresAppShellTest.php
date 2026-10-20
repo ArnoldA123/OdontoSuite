@@ -12,21 +12,22 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
     /** @return array<int, string> */
     protected static function polishedFiles(): array
     {
-        return [dirname(__DIR__, 3) . self::PAGE_PATH];
+        return [dirname(__DIR__, 3).self::PAGE_PATH];
     }
 
     private static function readSource(string $path): ?string
     {
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
     public function test_canvas_routes_regression_guard_reception_procedures(): void
     {
         $root = dirname(__DIR__, 3);
-        $layout = self::readSource($root . '/resources/js/components/layout/AppLayout.vue');
+        $layout = self::readSource($root.'/resources/js/components/layout/AppLayout.vue');
         $routeTest = self::readSource(
-            $root . '/tests/Unit/DesignSystem/AppLayoutCanvasRoutesTest.php'
+            $root.'/tests/Unit/DesignSystem/AppLayoutCanvasRoutesTest.php'
         );
 
         $this->assertNotNull($layout, 'AppLayout.vue must be readable.');
@@ -45,7 +46,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_search_uses_ui_input(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression('/<UiInput\b/', $src);
@@ -57,7 +58,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_specialty_filter_uses_ui_select(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression('/<UiSelect\b/', $src);
@@ -69,7 +70,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_procedure_code_chip_uses_ui_badge(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression('/<UiBadge\b/', $src);
@@ -79,7 +80,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_empty_state_uses_ui_empty_state(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression('/<UiEmptyState\b/', $src);
@@ -91,7 +92,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_price_uses_system_blue_tabular_nums(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertMatchesRegularExpression('/text-systemBlue-600/', $src);
@@ -102,7 +103,7 @@ class ReceptionProceduresAppShellTest extends ModuleAppShellTestCase
 
     public function test_hairline_borders_and_no_hover_lift(): void
     {
-        $src = self::readSource(dirname(__DIR__, 3) . self::PAGE_PATH);
+        $src = self::readSource(dirname(__DIR__, 3).self::PAGE_PATH);
         $this->assertNotNull($src, 'ReceptionProceduresPage.vue must be readable.');
 
         $this->assertDoesNotMatchRegularExpression('/(?<![\w-])border-theme(?![\w-])/', $src);

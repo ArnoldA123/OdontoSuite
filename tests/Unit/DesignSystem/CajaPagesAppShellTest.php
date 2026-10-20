@@ -24,9 +24,13 @@ namespace Tests\Unit\DesignSystem;
 class CajaPagesAppShellTest extends ModuleAppShellTestCase
 {
     private const CASH_REGISTER_PAGE = '/resources/js/modules/cash-register/CashRegisterPage.vue';
+
     private const READY_TO_BILL_PAGE = '/resources/js/modules/cash-register/ReadyToBillPage.vue';
+
     private const QUOTATIONS_PAGE = '/resources/js/modules/quotations/QuotationsPage.vue';
+
     private const PAYMENT_METHODS_PAGE = '/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
+
     private const PAYMENT_METHOD_FORM_MODAL = '/resources/js/modules/settings/payment-methods/PaymentMethodFormModal.vue';
 
     /** @return array<int, string> */
@@ -35,11 +39,11 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
         $root = dirname(__DIR__, 3);
 
         return [
-            $root . self::CASH_REGISTER_PAGE,
-            $root . self::READY_TO_BILL_PAGE,
-            $root . self::QUOTATIONS_PAGE,
-            $root . self::PAYMENT_METHODS_PAGE,
-            $root . self::PAYMENT_METHOD_FORM_MODAL,
+            $root.self::CASH_REGISTER_PAGE,
+            $root.self::READY_TO_BILL_PAGE,
+            $root.self::QUOTATIONS_PAGE,
+            $root.self::PAYMENT_METHODS_PAGE,
+            $root.self::PAYMENT_METHOD_FORM_MODAL,
         ];
     }
 
@@ -57,25 +61,38 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $this->assertSame(0, preg_match('/(?<![\w-])hover-lift(?![\w-])/', $src),
-            sprintf('%s MUST NOT contain the legacy `hover-lift` class (DLR-R-009).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])hover-lift(?![\w-])/', $src),
+            sprintf('%s MUST NOT contain the legacy `hover-lift` class (DLR-R-009).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/(?<![\w-])bg-gradient-[\w-]+/', $src),
-            sprintf('%s MUST NOT contain a legacy gradient wash (DLR-R-009).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])bg-gradient-[\w-]+/', $src),
+            sprintf('%s MUST NOT contain a legacy gradient wash (DLR-R-009).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/<style\b/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/<style\b/', $src),
             sprintf('%s MUST NOT contain a `<style>` block — the global `* { transition }` '
-                . 'rule and the `hover-lift` keyframes belong to the token CSS (DLR-R-021).', $path));
+                .'rule and the `hover-lift` keyframes belong to the token CSS (DLR-R-021).', $path)
+        );
 
         foreach (self::forbiddenLegacyAliases() as $alias) {
-            $this->assertSame(0, preg_match('/(?<![\w-])' . preg_quote($alias, '/') . '(?![\w-])/', $src),
+            $this->assertSame(
+                0,
+                preg_match('/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/', $src),
                 sprintf('%s MUST NOT contain the legacy alias `%s` — use the systemBlue / systemGreen / '
-                    . 'systemRed / systemYellow ramp instead (DLR-R-009).', $path, $alias));
+                    .'systemRed / systemYellow ramp instead (DLR-R-009).', $path, $alias)
+            );
         }
 
         $this->assertTrue(
             (bool) preg_match('/<UiButton\b/', $src),
-            sprintf('%s MUST consume `<UiButton>` as its only button primitive (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiButton>` as its only button primitive (PAGOS-MOD-001).', $path)
+        );
     }
 
     /**
@@ -90,19 +107,22 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $cleaned = self::stripScriptForClassScan($src);
-        $this->assertSame(0,
+        $this->assertSame(
+            0,
             preg_match("/Intl\\.NumberFormat\\s*\\(\\s*['\"]es-PE['\"]\\s*,\\s*\\{[^}]*currency:\\s*['\"]PEN['\"]/s", $cleaned),
-            sprintf('%s MUST NOT redeclare `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` (PAGOS-MNY-002).', $path));
+            sprintf('%s MUST NOT redeclare `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` (PAGOS-MNY-002).', $path)
+        );
 
         if (preg_match('/formatCurrency\s*\(/', $src) === 1) {
             $this->assertTrue(
                 (bool) preg_match(
                     "/import\\s*\\{[^}]*formatCurrency[^}]*\\}\\s*from\\s*['\"](?:@\\/composables\\/useFormatters"
-                        . "|(?:\\.\\.\\/)+composables\\/useFormatters)['\"]/",
+                        ."|(?:\\.\\.\\/)+composables\\/useFormatters)['\"]/",
                     $src
                 ),
                 sprintf('%s renders `formatCurrency(...)` and MUST import it from the canonical '
-                    . '`useFormatters` module (PAGOS-MNY-002).', $path));
+                    .'`useFormatters` module (PAGOS-MNY-002).', $path)
+            );
         } else {
             $this->assertTrue(true, sprintf('%s renders no money — nothing to assert.', $path));
         }
@@ -115,23 +135,28 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_cash_register_page_hub_primitives(): void
     {
-        $path = dirname(__DIR__, 3) . self::CASH_REGISTER_PAGE;
+        $path = dirname(__DIR__, 3).self::CASH_REGISTER_PAGE;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         foreach (['UiTabs', 'UiCard', 'UiStatusBadge'] as $primitive) {
             $this->assertTrue(
-                (bool) preg_match('/<' . $primitive . '\b/', $src),
-                sprintf('%s MUST consume `<%s>` on the Caja hub (PAGOS-MOD-001).', $path, $primitive));
+                (bool) preg_match('/<'.$primitive.'\b/', $src),
+                sprintf('%s MUST consume `<%s>` on the Caja hub (PAGOS-MOD-001).', $path, $primitive)
+            );
         }
 
-        $this->assertSame(0, preg_match('/(?<![\w-])bg-(?:green|red)-500(?![\w-])/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])bg-(?:green|red)-500(?![\w-])/', $src),
             sprintf('%s MUST NOT hardcode the green/red session dot — `<UiStatusBadge>` owns '
-                . 'the session state (PAGOS-MOD-001).', $path));
+                .'the session state (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/tabular-nums/', $src),
-            sprintf('%s MUST render its real-time totals with `tabular-nums` (DLR-R-007).', $path));
+            sprintf('%s MUST render its real-time totals with `tabular-nums` (DLR-R-007).', $path)
+        );
     }
 
     /**
@@ -141,45 +166,60 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_payment_methods_page_admin_crud_surface(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAYMENT_METHODS_PAGE;
+        $path = dirname(__DIR__, 3).self::PAYMENT_METHODS_PAGE;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $this->assertTrue(
             (bool) preg_match('/<UiStatusBadge\b/', $src),
             sprintf('%s MUST consume `<UiStatusBadge>` for the Sistema/Custom + Activo/Inactivo '
-                . 'pills (PAGOS-MOD-001).', $path));
+                .'pills (PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/<UiBadge\b/', $src),
-            sprintf('%s MUST NOT keep the legacy `<UiBadge>` pill (PAGOS-MOD-001).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/<UiBadge\b/', $src),
+            sprintf('%s MUST NOT keep the legacy `<UiBadge>` pill (PAGOS-MOD-001).', $path)
+        );
 
         $headers = preg_match_all('/<th\b[^>]*>/', $src, $matches);
         if ($headers > 0) {
             foreach ($matches[0] as $th) {
-                $this->assertMatchesRegularExpression('/\bscope\s*=\s*"col"/', $th,
-                    sprintf('%s: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $path, $th));
+                $this->assertMatchesRegularExpression(
+                    '/\bscope\s*=\s*"col"/',
+                    $th,
+                    sprintf('%s: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $path, $th)
+                );
             }
         } else {
             $this->assertTrue(
                 (bool) preg_match('/<UiDataTable\b/', $src),
                 sprintf('%s renders no literal `<th>` and therefore MUST consume `<UiDataTable>`, '
-                    . 'whose header cells declare `scope="col"` (PAGOS-A11Y-001).', $path));
+                    .'whose header cells declare `scope="col"` (PAGOS-A11Y-001).', $path)
+            );
 
-            $primitive = self::readSource(dirname(__DIR__, 3) . '/resources/js/components/ui/DataTable.vue');
+            $primitive = self::readSource(dirname(__DIR__, 3).'/resources/js/components/ui/DataTable.vue');
             $this->assertNotNull($primitive, 'DataTable.vue must be readable to prove the `scope="col"` rule (PAGOS-A11Y-001).');
 
             $primitiveHeaders = preg_match_all('/<th\b[^>]*>/', $primitive, $primitiveMatches);
-            $this->assertGreaterThan(0, $primitiveHeaders,
-                'DataTable.vue must render header cells (PAGOS-A11Y-001).');
+            $this->assertGreaterThan(
+                0,
+                $primitiveHeaders,
+                'DataTable.vue must render header cells (PAGOS-A11Y-001).'
+            );
             foreach ($primitiveMatches[0] as $th) {
-                $this->assertMatchesRegularExpression('/\bscope\s*=\s*"col"/', $th,
-                    sprintf('DataTable.vue: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $th));
+                $this->assertMatchesRegularExpression(
+                    '/\bscope\s*=\s*"col"/',
+                    $th,
+                    sprintf('DataTable.vue: every `<th>` MUST carry `scope="col"` (PAGOS-A11Y-001). Offender: %s', $th)
+                );
             }
         }
 
         $this->assertTrue(
             (bool) preg_match('/border-hairline/', $src),
-            sprintf('%s MUST draw its table rules with the `border-hairline` token (DLR-R-002).', $path));
+            sprintf('%s MUST draw its table rules with the `border-hairline` token (DLR-R-002).', $path)
+        );
     }
 
     /**
@@ -189,25 +229,33 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_gateway_config_redacted(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAYMENT_METHOD_FORM_MODAL;
+        $path = dirname(__DIR__, 3).self::PAYMENT_METHOD_FORM_MODAL;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $this->assertTrue(
             (bool) preg_match('/<div\b[^>]*\bdata-redacted\s*=\s*"true"[^>]*>/s', $src),
-            sprintf('%s MUST mark the `gateway_config` wrapper with `data-redacted="true"` (PAGOS-RED-001).', $path));
+            sprintf('%s MUST mark the `gateway_config` wrapper with `data-redacted="true"` (PAGOS-RED-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\{\{[^}]*gateway_config[^}]*\}\}/s', $src),
+        $this->assertSame(
+            0,
+            preg_match('/\{\{[^}]*gateway_config[^}]*\}\}/s', $src),
             sprintf('%s MUST NOT interpolate `gateway_config` into a rendered text node — the '
-                . 'encrypted blob never reaches the DOM (PAGOS-RED-001).', $path));
+                .'encrypted blob never reaches the DOM (PAGOS-RED-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\bv-html\b/', $src),
-            sprintf('%s MUST NOT use `v-html` on the redacted form (PAGOS-RED-001).', $path));
+        $this->assertSame(
+            0,
+            preg_match('/\bv-html\b/', $src),
+            sprintf('%s MUST NOT use `v-html` on the redacted form (PAGOS-RED-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/v-model\s*=\s*"gatewayConfig\.access_token"[^>]*\n?[^>]*type\s*=\s*"password"'
-                . '|type\s*=\s*"password"[^>]*\n?[^>]*v-model\s*=\s*"gatewayConfig\.access_token"/s', $src),
-            sprintf('%s MUST keep the access-token field masked (`type="password"`) (PAGOS-RED-001).', $path));
+                .'|type\s*=\s*"password"[^>]*\n?[^>]*v-model\s*=\s*"gatewayConfig\.access_token"/s', $src),
+            sprintf('%s MUST keep the access-token field masked (`type="password"`) (PAGOS-RED-001).', $path)
+        );
     }
 
     /**
@@ -221,40 +269,51 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_ready_to_bill_modal_uses_ui_modal(): void
     {
-        $path = dirname(__DIR__, 3) . self::READY_TO_BILL_PAGE;
+        $path = dirname(__DIR__, 3).self::READY_TO_BILL_PAGE;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        $this->assertSame(0, preg_match('/<Teleport\b[^>]*\bto\s*=\s*["\']body["\']/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/<Teleport\b[^>]*\bto\s*=\s*["\']body["\']/', $src),
             sprintf('%s MUST NOT keep a hand-built `<Teleport to="body">` modal — '
-                . 'the desglose modal MUST consume `<UiModal>` (PAGOS-MOD-001).', $path));
+                .'the desglose modal MUST consume `<UiModal>` (PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/(?<![\w-])bg-black\b(?:\s+bg-opacity-\d+)?/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/(?<![\w-])bg-black\b(?:\s+bg-opacity-\d+)?/', $src),
             sprintf('%s MUST NOT keep the legacy `bg-black bg-opacity-*` backdrop — '
-                . '`<UiModal>` owns the backdrop (PAGOS-MOD-001).', $path));
+                .'`<UiModal>` owns the backdrop (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiModal\b/', $src),
-            sprintf('%s MUST consume `<UiModal>` for the desglose modal (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiModal>` for the desglose modal (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiStatusBadge\b/', $src),
             sprintf('%s MUST consume `<UiStatusBadge>` for the quotation Sí/No pills '
-                . '(PAGOS-MOD-001).', $path));
+                .'(PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiButton\b/', $src),
-            sprintf('%s MUST consume `<UiButton>` for the action buttons (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiButton>` for the action buttons (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/\bpreviewOpen\b/', $src),
             sprintf('%s MUST keep the `previewOpen` reactive ref that drives the modal '
-                . 'open/close contract (PAGOS-CON-001-1).', $path));
+                .'open/close contract (PAGOS-CON-001-1).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/\bclosePreview\s*=\s*\(\s*\)\s*=>\s*\{/', $src),
             sprintf('%s MUST keep the `closePreview` handler invoked by the modal close '
-                . 'event (PAGOS-CON-001-1).', $path));
+                .'event (PAGOS-CON-001-1).', $path)
+        );
     }
 
     /**
@@ -270,44 +329,62 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_quotations_page_uses_ui_form_primitives(): void
     {
-        $path = dirname(__DIR__, 3) . self::QUOTATIONS_PAGE;
+        $path = dirname(__DIR__, 3).self::QUOTATIONS_PAGE;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
         $this->assertTrue(
             (bool) preg_match('/<UiInput\b/', $src),
             sprintf('%s MUST consume `<UiInput>` for the Paciente / Fecha desde / Fecha hasta '
-                . 'filters (PAGOS-MOD-001).', $path));
+                .'filters (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertTrue(
             (bool) preg_match('/<UiSelect\b/', $src),
-            sprintf('%s MUST consume `<UiSelect>` for the Estado filter (PAGOS-MOD-001).', $path));
+            sprintf('%s MUST consume `<UiSelect>` for the Estado filter (PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\bfocus:ring-2\b/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/\bfocus:ring-2\b/', $src),
             sprintf('%s MUST NOT keep the legacy `focus:ring-2 focus:ring-primary-500` '
-                . 'chrome — `<UiInput>` / `<UiSelect>` own the focus ring (PAGOS-MOD-001).', $path));
+                .'chrome — `<UiInput>` / `<UiSelect>` own the focus ring (PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\bfocus:border-transparent\b/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/\bfocus:border-transparent\b/', $src),
             sprintf('%s MUST NOT keep the legacy `focus:border-transparent` chrome '
-                . '(PAGOS-MOD-001).', $path));
+                .'(PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\banimate-spin\b/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/\banimate-spin\b/', $src),
             sprintf('%s MUST NOT keep the legacy `animate-spin` spinner — `<UiLoadingSpinner>` '
-                . 'owns the spinner (PAGOS-MOD-001).', $path));
+                .'owns the spinner (PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertMatchesRegularExpression('/<UiButton\b/', $src,
+        $this->assertMatchesRegularExpression(
+            '/<UiButton\b/',
+            $src,
             sprintf('%s MUST consume `<UiButton>` for at least one action button '
-                . '(PAGOS-MOD-001).', $path));
+                .'(PAGOS-MOD-001).', $path)
+        );
 
-        $this->assertSame(0, preg_match('/\bbtn\s+btn-(?:secondary|outline|primary)\b/', $src),
+        $this->assertSame(
+            0,
+            preg_match('/\bbtn\s+btn-(?:secondary|outline|primary)\b/', $src),
             sprintf('%s MUST NOT keep the legacy `btn btn-*` class strings — `<UiButton>` '
-                . 'owns the action chrome (PAGOS-MOD-001).', $path));
+                .'owns the action chrome (PAGOS-MOD-001).', $path)
+        );
 
         $this->assertMatchesRegularExpression(
             "/quotationsChannel\\s*=\\s*channel\\(\\s*['\"]quotations['\"]/",
             $src,
             sprintf('%s MUST keep the named `quotations` Echo channel subscription '
-                . '(PAGOS-RT-001).', $path));
+                .'(PAGOS-RT-001).', $path)
+        );
     }
 
     /** @return array<int, string> */
@@ -328,7 +405,7 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
@@ -353,7 +430,7 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
                 $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/', '""', $stripped) ?? $stripped;
                 $stripped = preg_replace('/`(?:\\\\.|[^`\\\\])*`/', '``', $stripped) ?? $stripped;
 
-                return '<script>' . $stripped . '</script>';
+                return '<script>'.$stripped.'</script>';
             },
             $src
         ) ?? $src;

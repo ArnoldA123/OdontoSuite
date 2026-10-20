@@ -34,14 +34,14 @@ class EndodonticsRecord extends Model
         'radiographic_measurements',
         'treatment_status',
         'treatment_completion_date',
-        'follow_up_notes'
+        'follow_up_notes',
     ];
 
     protected $casts = [
         'canal_lengths' => 'array',
         'canal_diameters' => 'array',
         'radiographic_measurements' => 'array',
-        'treatment_completion_date' => 'date'
+        'treatment_completion_date' => 'date',
     ];
 
     // Relaciones
@@ -108,7 +108,7 @@ class EndodonticsRecord extends Model
             'in_progress' => 'En Progreso',
             'completed' => 'Completado',
             'failed' => 'Fallido',
-            'retreatment' => 'Re-tratamiento'
+            'retreatment' => 'Re-tratamiento',
         ];
 
         return $labels[$this->treatment_status] ?? $this->treatment_status;
@@ -116,6 +116,6 @@ class EndodonticsRecord extends Model
 
     public function getCanalCountLabelAttribute()
     {
-        return $this->canal_count . ' conducto' . ($this->canal_count > 1 ? 's' : '');
+        return $this->canal_count.' conducto'.($this->canal_count > 1 ? 's' : '');
     }
 }

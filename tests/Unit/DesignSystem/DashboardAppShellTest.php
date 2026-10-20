@@ -3,7 +3,6 @@
 namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
-
 use Tests\Support\SourceGrep;
 
 /**
@@ -27,10 +26,15 @@ use Tests\Support\SourceGrep;
  */
 class DashboardAppShellTest extends TestCase
 {
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private const DASHBOARD_FILE = '/resources/js/modules/dashboard/DashboardPage.vue';
+
     private const APP_LAYOUT_FILE = '/resources/js/components/layout/AppLayout.vue';
+
     private const FAB_FILE = '/resources/js/components/layout/FloatingActionButton.vue';
 
     public static function setUpBeforeClass(): void
@@ -41,10 +45,11 @@ class DashboardAppShellTest extends TestCase
 
     private static function readFile(string $absPath): ?string
     {
-        if (!is_file($absPath)) {
+        if (! is_file($absPath)) {
             return null;
         }
         $src = file_get_contents($absPath);
+
         return $src === false ? null : $src;
     }
 
@@ -63,14 +68,14 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_page_no_linear_or_class_gradients(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $this->assertFileExists($path, 'DashboardPage.vue must exist');
 
         $gradients = self::grepCount('linear-gradient|bg-gradient', $path);
         $this->assertSame(
             0,
             $gradients,
-            "DashboardPage.vue must contain zero `linear-gradient` / `bg-gradient` declarations (DoD #4). Found: " . $gradients
+            'DashboardPage.vue must contain zero `linear-gradient` / `bg-gradient` declarations (DoD #4). Found: '.$gradients
         );
     }
 
@@ -81,14 +86,14 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_page_no_scoped_style_block(): void
     {
-        $src = self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $src = self::readFile(self::projectRootPath().self::DASHBOARD_FILE);
         $this->assertNotNull($src);
         // Look for `<style ...>` (optionally with `scoped`).
         $matches = preg_match_all('/<style\b[^>]*>/i', (string) $src);
         $this->assertSame(
             0,
             (int) $matches,
-            'DashboardPage.vue must contain zero <style> blocks (DoD #4). Found: ' . $matches
+            'DashboardPage.vue must contain zero <style> blocks (DoD #4). Found: '.$matches
         );
     }
 
@@ -99,12 +104,12 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_page_no_hex_literals(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $hex = self::grepCount('#[0-9a-fA-F]{6}', $path);
         $this->assertSame(
             0,
             $hex,
-            'DashboardPage.vue must contain zero hand-written #RRGGBB hex literals. Found: ' . $hex
+            'DashboardPage.vue must contain zero hand-written #RRGGBB hex literals. Found: '.$hex
         );
     }
 
@@ -116,7 +121,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_cash_state_lives_on_the_single_cash_card(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -199,7 +204,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_no_raw_english_cash_status_keys_appear_in_source(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -259,14 +264,14 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_app_layout_uses_surface_glass_for_chrome(): void
     {
-        $path = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $path = self::projectRootPath().self::APP_LAYOUT_FILE;
         $this->assertFileExists($path);
 
         $count = self::grepCount('surface-glass', $path);
         $this->assertGreaterThanOrEqual(
             2,
             $count,
-            'AppLayout.vue must apply .surface-glass to at least two chrome surfaces (sidebar + topbar). Found: ' . $count
+            'AppLayout.vue must apply .surface-glass to at least two chrome surfaces (sidebar + topbar). Found: '.$count
         );
     }
 
@@ -276,7 +281,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_app_layout_no_h_screen_or_height_vh(): void
     {
-        $path = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $path = self::projectRootPath().self::APP_LAYOUT_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -284,14 +289,14 @@ class DashboardAppShellTest extends TestCase
         $this->assertSame(
             0,
             (int) $hScreen,
-            'AppLayout.vue must not use h-screen (use min-h-[100dvh]). Found: ' . $hScreen
+            'AppLayout.vue must not use h-screen (use min-h-[100dvh]). Found: '.$hScreen
         );
 
         $vh = preg_match_all('/height\s*:\s*100vh/i', $src);
         $this->assertSame(
             0,
             (int) $vh,
-            'AppLayout.vue must not use `height: 100vh`. Found: ' . $vh
+            'AppLayout.vue must not use `height: 100vh`. Found: '.$vh
         );
     }
 
@@ -301,12 +306,12 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_app_layout_uses_min_dvh(): void
     {
-        $path = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $path = self::projectRootPath().self::APP_LAYOUT_FILE;
         $minDvh = self::grepCount('min-h-\\[100dvh\\]', $path);
         $this->assertGreaterThanOrEqual(
             1,
             $minDvh,
-            'AppLayout.vue must use min-h-[100dvh] for full-height pages (DoD #5). Found: ' . $minDvh
+            'AppLayout.vue must use min-h-[100dvh] for full-height pages (DoD #5). Found: '.$minDvh
         );
     }
 
@@ -319,15 +324,15 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_renders_no_quick_actions_block(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
         foreach (['Cargando acciones rápidas', 'Acciones rápidas'] as $label) {
             $this->assertDoesNotMatchRegularExpression(
-                '/<section\b[^>]*aria-label="' . preg_quote($label, '/') . '"/',
+                '/<section\b[^>]*aria-label="'.preg_quote($label, '/').'"/',
                 $src,
-                'DashboardPage.vue must not render the quick-actions section "' . $label . '" (WU3 / D5: the dashboard never re-lists sidebar navigation).'
+                'DashboardPage.vue must not render the quick-actions section "'.$label.'" (WU3 / D5: the dashboard never re-lists sidebar navigation).'
             );
         }
 
@@ -344,8 +349,7 @@ class DashboardAppShellTest extends TestCase
                 'goToProfessionals',
                 'goToEnvironments',
                 'goToBusinessIntelligence',
-            ]
-            as $handler
+            ] as $handler
         ) {
             $this->assertStringNotContainsString(
                 $handler,
@@ -355,7 +359,6 @@ class DashboardAppShellTest extends TestCase
         }
     }
 
-
     /**
      * WU3 / D6 — "Pendientes" is ONE merged list: quotations and treatment
      * plans are rows of a single dataset. The twin columns (per-type
@@ -364,7 +367,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_pending_block_is_one_merged_list(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -402,7 +405,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_pending_rows_carry_type_badges_and_one_action(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -448,12 +451,12 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_floating_action_button_no_gradient_classes(): void
     {
-        $path = self::projectRootPath() . self::FAB_FILE;
+        $path = self::projectRootPath().self::FAB_FILE;
         $gradients = self::grepCount('bg-gradient-to-|bg-gradient ', $path);
         $this->assertSame(
             0,
             $gradients,
-            'FloatingActionButton.vue must not use bg-gradient classes (DoD #1 - no gradients-as-decoration). Found: ' . $gradients
+            'FloatingActionButton.vue must not use bg-gradient classes (DoD #1 - no gradients-as-decoration). Found: '.$gradients
         );
     }
 
@@ -463,10 +466,10 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_and_layout_combined_no_hex_literals(): void
     {
-        $dir = self::projectRootPath() . '/resources/js/modules/dashboard/';
+        $dir = self::projectRootPath().'/resources/js/modules/dashboard/';
         $this->assertDirectoryExists($dir);
 
-        $layoutDir = self::projectRootPath() . '/resources/js/components/layout/';
+        $layoutDir = self::projectRootPath().'/resources/js/components/layout/';
         $this->assertDirectoryExists($layoutDir);
 
         $hexCount = SourceGrep::count('#[0-9a-fA-F]{6}', $dir, $layoutDir);
@@ -474,7 +477,7 @@ class DashboardAppShellTest extends TestCase
         $this->assertSame(
             0,
             $hexCount,
-            'Dashboard + layout files must contain zero #RRGGBB hex literals. Found: ' . $hexCount
+            'Dashboard + layout files must contain zero #RRGGBB hex literals. Found: '.$hexCount
         );
     }
 
@@ -484,14 +487,14 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_no_pexels_image_references_in_js_source(): void
     {
-        $dir = self::projectRootPath() . '/resources/js/';
+        $dir = self::projectRootPath().'/resources/js/';
         $this->assertDirectoryExists($dir);
 
         $peels = self::grepCount('images/pexels', $dir);
         $this->assertSame(
             0,
             $peels,
-            'resources/js/ must not reference images/pexels (DoD #1 - photography reserved for Login + 404). Found: ' . $peels
+            'resources/js/ must not reference images/pexels (DoD #1 - photography reserved for Login + 404). Found: '.$peels
         );
     }
 
@@ -509,7 +512,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_contains_all_four_daily_operations_stat_card_labels(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -544,7 +547,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_quick_action_tile_copy_is_removed(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -554,8 +557,7 @@ class DashboardAppShellTest extends TestCase
                 'Gestionar equipo',
                 'Configurar espacios',
                 'Análisis y estadísticas',
-            ]
-            as $subtitle
+            ] as $subtitle
         ) {
             $this->assertStringNotContainsString(
                 $subtitle,
@@ -583,7 +585,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_renders_no_ver_calendario_or_ver_todos_ctas(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -615,7 +617,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_stat_cards_have_no_click_affordance(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -668,7 +670,7 @@ class DashboardAppShellTest extends TestCase
     private function statCardRegion(string $src, string $statKey): string
     {
         preg_match(
-            '/<UiCard[^>]*\bdata-stat-card="' . preg_quote($statKey, '/') . '"[^>]*>[\s\S]*?<\/UiCard>/',
+            '/<UiCard[^>]*\bdata-stat-card="'.preg_quote($statKey, '/').'"[^>]*>[\s\S]*?<\/UiCard>/',
             $src,
             $matches
         );
@@ -688,7 +690,7 @@ class DashboardAppShellTest extends TestCase
     private function sectionRegion(string $src, string $ariaLabel): string
     {
         $found = preg_match(
-            '/<section\b[^>]*aria-label="' . preg_quote($ariaLabel, '/') . '"/',
+            '/<section\b[^>]*aria-label="'.preg_quote($ariaLabel, '/').'"/',
             $src,
             $matches,
             PREG_OFFSET_CAPTURE
@@ -713,7 +715,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_preserves_300ms_websocket_debounce(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -731,7 +733,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_uses_empty_state_for_today_appointments(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -753,7 +755,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_uses_shared_section_error_component(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -776,12 +778,12 @@ class DashboardAppShellTest extends TestCase
         ];
         foreach ($hooks as $state => $retry) {
             $this->assertMatchesRegularExpression(
-                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*>/s',
+                '/<DashboardSectionError\b(?=[^>]*data-state="'.$state.'")[^>]*>/s',
                 $src,
                 "DashboardPage.vue must keep the `{$state}` hook on its shared section-error component (T5)."
             );
             $this->assertMatchesRegularExpression(
-                '/<DashboardSectionError\b(?=[^>]*data-state="' . $state . '")[^>]*' . $retry . '/s',
+                '/<DashboardSectionError\b(?=[^>]*data-state="'.$state.'")[^>]*'.$retry.'/s',
                 $src,
                 "DashboardPage.vue must keep the `{$retry}` retry hook on its shared section-error component (T5)."
             );
@@ -805,11 +807,11 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_uses_shared_section_empty_component(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
-        $componentPath = self::projectRootPath() . '/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
+        $componentPath = self::projectRootPath().'/resources/js/modules/dashboard/DashboardSectionEmpty.vue';
         $this->assertFileExists(
             $componentPath,
             'DashboardSectionEmpty.vue must exist (shared empty-state pattern).'
@@ -820,7 +822,7 @@ class DashboardAppShellTest extends TestCase
         // lives in the shared UiSectionEmpty primitive, so the structural
         // tokens are pinned where they live and the dashboard wrapper is
         // pinned to delegate instead of keeping its own copy.
-        $primitivePath = self::projectRootPath() . '/resources/js/components/ui/UiSectionEmpty.vue';
+        $primitivePath = self::projectRootPath().'/resources/js/components/ui/UiSectionEmpty.vue';
         $this->assertFileExists(
             $primitivePath,
             'UiSectionEmpty.vue must exist (shared empty-state primitive).'
@@ -861,7 +863,7 @@ class DashboardAppShellTest extends TestCase
 
         foreach (['empty-appointments', 'empty-upcoming', 'empty-pending'] as $state) {
             $this->assertMatchesRegularExpression(
-                '/<DashboardSectionEmpty\b[^>]*data-state="' . $state . '"/s',
+                '/<DashboardSectionEmpty\b[^>]*data-state="'.$state.'"/s',
                 $src,
                 "DashboardPage.vue must render the shared <DashboardSectionEmpty /> with the `{$state}` hook (WU3 / D9)."
             );
@@ -892,7 +894,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_plan_rows_render_final_cost(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -938,7 +940,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_renders_every_today_appointment_without_cap(): void
     {
-        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $src = (string) self::readFile(self::projectRootPath().self::DASHBOARD_FILE);
         $this->assertNotNull($src);
 
         $this->assertStringNotContainsString(
@@ -959,14 +961,14 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_uses_skeleton_for_loading(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
         $this->assertMatchesRegularExpression(
             '/<UiSkeleton\b/',
             $src,
-            "DashboardPage.vue must render <UiSkeleton /> placeholders in the loading state."
+            'DashboardPage.vue must render <UiSkeleton /> placeholders in the loading state.'
         );
     }
 
@@ -978,7 +980,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_stat_card_numbers_are_tabular_nums(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -990,13 +992,13 @@ class DashboardAppShellTest extends TestCase
     }
 
     /* ============================================================ */
-    /* PR4 — Dashboard exemplar polish slice                        */
-    /*                                                                */
-    /* These tests assert the dashboard polish tokens + grid fixed    */
-    /* slots + greeting hierarchy + topbar optical weight +          */
-    /* quick-action keyhint affordance + empty-state illustration    */
-    /* are present in the source. They are RED before the PR4         */
-    /* implementation lands and GREEN after.                          */
+    /* PR4 — Dashboard exemplar polish slice */
+    /* */
+    /* These tests assert the dashboard polish tokens + grid fixed */
+    /* slots + greeting hierarchy + topbar optical weight + */
+    /* quick-action keyhint affordance + empty-state illustration */
+    /* are present in the source. They are RED before the PR4 */
+    /* implementation lands and GREEN after. */
     /* ============================================================ */
 
     /**
@@ -1007,7 +1009,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_stat_cards_use_eyebrow_number_caption_anatomy(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1064,7 +1066,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_kpi_cards_reserve_no_blank_slots(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1095,7 +1097,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_four_stat_cards_carry_data_stat_card_attribute(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1107,12 +1109,12 @@ class DashboardAppShellTest extends TestCase
         ];
         foreach ($expectedKeys as $key) {
             $this->assertStringContainsString(
-                'data-stat-card="' . $key . '"',
+                'data-stat-card="'.$key.'"',
                 $src,
                 "DashboardPage.vue must mark the \"{$key}\" card with data-stat-card=\"{$key}\"."
             );
             $this->assertStringContainsString(
-                'data-stat="' . $key . '"',
+                'data-stat="'.$key.'"',
                 $src,
                 "DashboardPage.vue must mark the \"{$key}\" value element with data-stat=\"{$key}\" (stable testability hook)."
             );
@@ -1128,7 +1130,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_greeting_not_h2_or_h1_uses_display_typography(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1174,7 +1176,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_app_layout_topbar_consumes_topbar_icon_size_and_weight(): void
     {
-        $path = self::projectRootPath() . self::APP_LAYOUT_FILE;
+        $path = self::projectRootPath().self::APP_LAYOUT_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1207,7 +1209,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_renders_no_kbd_shortcut_badges(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1240,7 +1242,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_empty_state_picsum_illustration(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1278,7 +1280,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_no_external_image_host_anywhere_in_js_source(): void
     {
-        $dir = self::projectRootPath() . '/resources/js/';
+        $dir = self::projectRootPath().'/resources/js/';
         $this->assertDirectoryExists($dir);
 
         // The banned hosts. Picsum is the most recent offender;
@@ -1298,8 +1300,8 @@ class DashboardAppShellTest extends TestCase
                 0,
                 $count,
                 "resources/js/ must not reference the external image host `{$host}` "
-                    . "(clinical products cannot reach out to third-party image hosts). "
-                    . "Found: {$count} occurrences."
+                    .'(clinical products cannot reach out to third-party image hosts). '
+                    ."Found: {$count} occurrences."
             );
         }
     }
@@ -1312,7 +1314,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_agenda_header_renders_no_appointment_count(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1345,7 +1347,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_four_eyebrows_use_uniform_text_size(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1353,7 +1355,7 @@ class DashboardAppShellTest extends TestCase
         $expectedLabels = ['Citas Hoy', 'Atendidas Hoy', 'Por Atender', 'Saldo de Caja'];
         foreach ($expectedLabels as $label) {
             // The eyebrow pattern: <p class="text-xs ... uppercase ... whitespace-nowrap">{{ label }}</p>
-            $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*' . preg_quote($label, '/') . '\s*<\/p>/';
+            $pattern = '/<p[^>]*\btext-xs\b[^>]*\buppercase\b[^>]*\bwhitespace-nowrap\b[^>]*>\s*'.preg_quote($label, '/').'\s*<\/p>/';
             $this->assertMatchesRegularExpression(
                 $pattern,
                 $src,
@@ -1392,7 +1394,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_hoy_block_heading_sits_above_the_kpi_strip(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1431,7 +1433,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_section_headings_use_sentence_case(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1474,7 +1476,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_kpi_cards_render_no_comparison_chips(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1512,7 +1514,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_kpi_cards_carry_no_decorative_dot(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1558,7 +1560,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_citas_hoy_caption_states_the_scope(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1589,7 +1591,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_day_kpis_derive_from_the_today_appointment_list(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1601,7 +1603,7 @@ class DashboardAppShellTest extends TestCase
 
         foreach (['todayKpiDisplay', 'completedKpiDisplay', 'pendingKpiDisplay'] as $binding) {
             $this->assertStringContainsString(
-                '{{ ' . $binding . ' }}',
+                '{{ '.$binding.' }}',
                 $src,
                 "DashboardPage.vue KPI value must render through {$binding} (derived from the agenda array)."
             );
@@ -1621,7 +1623,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_scope_captions_state_number_scope(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1633,7 +1635,7 @@ class DashboardAppShellTest extends TestCase
         foreach ($expectedCaptions as $statKey => $captionText) {
             $card = $this->statCardRegion($src, $statKey);
             $this->assertMatchesRegularExpression(
-                '/data-kpi-caption="' . $statKey . '"[\s\S]{0,200}?' . preg_quote($captionText, '/') . '/',
+                '/data-kpi-caption="'.$statKey.'"[\s\S]{0,200}?'.preg_quote($captionText, '/').'/',
                 $card,
                 "DashboardPage.vue caption on \"{$statKey}\" must state the scope of the number as \"{$captionText}\" (WU1)."
             );
@@ -1647,8 +1649,8 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_uses_canvas_token_for_page_surface(): void
     {
-        $layoutPath = self::projectRootPath() . self::APP_LAYOUT_FILE;
-        $dashboardPath = self::projectRootPath() . self::DASHBOARD_FILE;
+        $layoutPath = self::projectRootPath().self::APP_LAYOUT_FILE;
+        $dashboardPath = self::projectRootPath().self::DASHBOARD_FILE;
 
         $layoutSrc = (string) self::readFile($layoutPath);
         $dashboardSrc = (string) self::readFile($dashboardPath);
@@ -1681,7 +1683,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_kpi_cards_consume_hairline_and_elevation(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1732,7 +1734,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_dashboard_kpi_icon_plates_share_one_tint(): void
     {
-        $path = self::projectRootPath() . self::DASHBOARD_FILE;
+        $path = self::projectRootPath().self::DASHBOARD_FILE;
         $src = (string) self::readFile($path);
         $this->assertNotNull($src);
 
@@ -1790,23 +1792,24 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must keep at least 1 inline SVG with stroke-width="1.5" (the HOTFIX-DASH-007 empty-state line-art icon).'
         );
     }
+
     /**
      * HOTFIX-DASH-001 wins over the PR5 sidebar headers: section labels
      * were removed (hairline dividers instead), pinned by
      * SidebarEyebrowAuditTest. This test now pins the removal — zero group
      * headers and no Operaciones/Configuración labels in AppLayout.vue.
      */
-    public function testPr5SidebarGroupHeadersAdded(): void
+    public function test_pr5_sidebar_group_headers_added(): void
     {
-        $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         $this->assertSame(0, substr_count($source, 'class="px-6 py-2 text-[11px] uppercase tracking-[0.12em] text-systemGray-500"'));
         $this->assertDoesNotMatchRegularExpression('/>\s*Operaciones\s*<\/div>/', $source);
         $this->assertDoesNotMatchRegularExpression('/>\s*Configuración\s*<\/div>/', $source);
     }
 
-    public function testPr5NavLabelsRemainInFrozenOrder(): void
+    public function test_pr5_nav_labels_remain_in_frozen_order(): void
     {
-        $source = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         // T6 — the payment-methods entry carries the accent every sibling
         // label already had. Route path and permission keys stay ASCII.
         $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
@@ -1825,7 +1828,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_t6_payment_methods_copy_carries_the_accent(): void
     {
-        $layout = (string) self::readFile(self::projectRootPath() . self::APP_LAYOUT_FILE);
+        $layout = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         $this->assertStringContainsString(
             "name: 'Métodos de Pago'",
             $layout,
@@ -1838,7 +1841,7 @@ class DashboardAppShellTest extends TestCase
         );
 
         $pagePath = self::projectRootPath()
-            . '/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
+            .'/resources/js/modules/settings/payment-methods/PaymentMethodsPage.vue';
         $this->assertFileExists($pagePath, 'PaymentMethodsPage.vue must exist (T6 naming boundary).');
         $page = (string) self::readFile($pagePath);
 
@@ -1866,7 +1869,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_t6_dashboard_actions_stay_real_buttons(): void
     {
-        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $src = (string) self::readFile(self::projectRootPath().self::DASHBOARD_FILE);
         $this->assertNotNull($src);
 
         $this->assertDoesNotMatchRegularExpression(
@@ -1894,7 +1897,7 @@ class DashboardAppShellTest extends TestCase
      */
     public function test_t6_dashboard_strokes_use_the_1_5_baseline(): void
     {
-        $src = (string) self::readFile(self::projectRootPath() . self::DASHBOARD_FILE);
+        $src = (string) self::readFile(self::projectRootPath().self::DASHBOARD_FILE);
         $this->assertNotNull($src);
 
         $this->assertSame(
@@ -1903,5 +1906,4 @@ class DashboardAppShellTest extends TestCase
             'DashboardPage.vue must contain zero stroke-width="2" strokes (T6: every icon rides the 1.5 baseline).'
         );
     }
-
 }

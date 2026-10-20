@@ -26,7 +26,7 @@ class AppointmentValidationTest extends TestCase
 {
     public function test_store_appointment_rules_include_required_fields(): void
     {
-        $rules = (new StoreAppointmentRequest())->rules();
+        $rules = (new StoreAppointmentRequest)->rules();
 
         // New optional IDs (BF-007)
         $this->assertArrayHasKey('procedure_id', $rules);
@@ -45,7 +45,7 @@ class AppointmentValidationTest extends TestCase
 
     public function test_store_appointment_status_canonical_value(): void
     {
-        $rules = (new StoreAppointmentRequest())->rules();
+        $rules = (new StoreAppointmentRequest)->rules();
         $statusRule = $rules['status'];
 
         // 'in_consultation' is canonical (post-migration)
@@ -56,7 +56,7 @@ class AppointmentValidationTest extends TestCase
 
     public function test_update_appointment_rules_include_ends_at_after_scheduled_at(): void
     {
-        $rules = (new UpdateAppointmentRequest())->rules();
+        $rules = (new UpdateAppointmentRequest)->rules();
 
         $this->assertArrayHasKey('ends_at', $rules);
         $this->assertStringContainsString('nullable', $rules['ends_at']);
@@ -67,7 +67,7 @@ class AppointmentValidationTest extends TestCase
 
     public function test_update_appointment_validator_rejects_ends_at_before_starts_at(): void
     {
-        $rules = (new UpdateAppointmentRequest())->rules();
+        $rules = (new UpdateAppointmentRequest)->rules();
 
         $validator = Validator::make(
             [
@@ -85,7 +85,7 @@ class AppointmentValidationTest extends TestCase
 
     public function test_update_appointment_validator_accepts_ends_at_after_starts_at(): void
     {
-        $rules = (new UpdateAppointmentRequest())->rules();
+        $rules = (new UpdateAppointmentRequest)->rules();
 
         $validator = Validator::make(
             [
@@ -102,7 +102,7 @@ class AppointmentValidationTest extends TestCase
 
     public function test_store_appointment_status_validator_accepts_in_consultation(): void
     {
-        $rules = (new StoreAppointmentRequest())->rules();
+        $rules = (new StoreAppointmentRequest)->rules();
 
         $validator = Validator::make(
             ['status' => 'in_consultation'],

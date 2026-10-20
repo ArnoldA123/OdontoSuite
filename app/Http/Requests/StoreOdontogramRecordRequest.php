@@ -25,19 +25,19 @@ class StoreOdontogramRecordRequest extends FormRequest
                 'condition_code' => Str::limit(strip_tags($this->condition_code), 10),
             ]);
         }
-        
+
         if ($this->has('condition_name')) {
             $this->merge([
                 'condition_name' => Str::limit(strip_tags($this->condition_name), 50),
             ]);
         }
-        
+
         if ($this->has('diagnosis')) {
             $this->merge([
                 'diagnosis' => strip_tags($this->diagnosis),
             ]);
         }
-        
+
         if ($this->has('treatment_notes')) {
             $this->merge([
                 'treatment_notes' => strip_tags($this->treatment_notes),
@@ -64,4 +64,3 @@ class StoreOdontogramRecordRequest extends FormRequest
         ];
     }
 }
-

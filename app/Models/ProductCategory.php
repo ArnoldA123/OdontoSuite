@@ -15,11 +15,11 @@ class ProductCategory extends Model
         'code',
         'description',
         'parent_category',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

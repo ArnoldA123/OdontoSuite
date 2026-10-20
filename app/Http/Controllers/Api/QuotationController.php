@@ -4,9 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\QuotationService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class QuotationController extends Controller
 {
@@ -24,7 +23,7 @@ class QuotationController extends Controller
     {
         try {
             $filters = $request->only([
-                'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id'
+                'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id',
             ]);
 
             $result = $this->quotationService->getQuotations($filters);
@@ -36,12 +35,12 @@ class QuotationController extends Controller
                     'last_page' => $result->lastPage(),
                     'per_page' => $result->perPage(),
                     'total' => $result->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener presupuestos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -57,7 +56,7 @@ class QuotationController extends Controller
             // Si viene treatment_plan_id sin patient_id, derivar el patient del plan.
             // Esto preserva el path generateQuotation (Sprint 0 fix C-1) sin requerir
             // que el cliente envie ambos campos.
-            if (empty($validated['patient_id']) && !empty($validated['treatment_plan_id'])) {
+            if (empty($validated['patient_id']) && ! empty($validated['treatment_plan_id'])) {
                 $plan = \App\Models\TreatmentPlan::find($validated['treatment_plan_id']);
                 if ($plan) {
                     $validated['patient_id'] = $plan->patient_id;
@@ -67,7 +66,7 @@ class QuotationController extends Controller
             if (empty($validated['patient_id'])) {
                 return response()->json([
                     'message' => 'El paciente es obligatorio (o debe venir via treatment_plan_id).',
-                    'errors' => ['patient_id' => ['El paciente es obligatorio.']]
+                    'errors' => ['patient_id' => ['El paciente es obligatorio.']],
                 ], 422);
             }
 
@@ -83,18 +82,18 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotation,
                 'meta' => [
-                    'message' => 'Presupuesto creado exitosamente'
-                ]
+                    'message' => 'Presupuesto creado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear presupuesto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -110,16 +109,16 @@ class QuotationController extends Controller
                 'treatmentPlan',
                 'createdBy',
                 'items',
-                'approvals'
+                'approvals',
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => $quotation
+                'data' => $quotation,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Presupuesto no encontrado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -143,7 +142,7 @@ class QuotationController extends Controller
                 'items' => 'nullable|array',
                 'items.*.description' => 'required_with:items|string',
                 'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0'
+                'items.*.unit_price' => 'required_with:items|numeric|min:0',
             ]);
 
             $quotation = $this->quotationService->updateQuotation($id, $validated);
@@ -151,18 +150,18 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotation,
                 'meta' => [
-                    'message' => 'Presupuesto actualizado exitosamente'
-                ]
+                    'message' => 'Presupuesto actualizado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar presupuesto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -178,7 +177,7 @@ class QuotationController extends Controller
             // Solo permitir eliminar si está en estado draft
             if ($quotation->status !== 'draft') {
                 return response()->json([
-                    'message' => 'No se puede eliminar un presupuesto que no esté en estado borrador'
+                    'message' => 'No se puede eliminar un presupuesto que no esté en estado borrador',
                 ], 422);
             }
 
@@ -186,26 +185,26 @@ class QuotationController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Presupuesto eliminado exitosamente'
-                ]
+                    'message' => 'Presupuesto eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar presupuesto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Aprobar presupuesto
+     * Aprobar presupuesto.
      */
     public function approve(Request $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validate([
                 'notes' => 'nullable|string',
-                'patient_signature' => 'nullable|string'
+                'patient_signature' => 'nullable|string',
             ]);
 
             $quotation = $this->quotationService->approveQuotation($id, $validated);
@@ -213,30 +212,30 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotation,
                 'meta' => [
-                    'message' => 'Presupuesto aprobado exitosamente'
-                ]
+                    'message' => 'Presupuesto aprobado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al aprobar presupuesto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Rechazar presupuesto
+     * Rechazar presupuesto.
      */
     public function reject(Request $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'reason' => 'required|string|max:500'
+                'reason' => 'required|string|max:500',
             ]);
 
             $quotation = $this->quotationService->rejectQuotation($id, $validated['reason']);
@@ -244,24 +243,24 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotation,
                 'meta' => [
-                    'message' => 'Presupuesto rechazado exitosamente'
-                ]
+                    'message' => 'Presupuesto rechazado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al rechazar presupuesto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Descargar PDF del presupuesto
+     * Descargar PDF del presupuesto.
      */
     public function downloadPDF(int $id)
     {
@@ -269,22 +268,22 @@ class QuotationController extends Controller
             $pdfContent = $this->quotationService->generatePDF($id);
             $quotation = \App\Models\Quotation::findOrFail($id);
 
-            $filename = 'presupuesto_' . $quotation->quotation_number . '.pdf';
+            $filename = 'presupuesto_'.$quotation->quotation_number.'.pdf';
 
             return response($pdfContent, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"'
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al generar PDF',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener presupuestos por paciente
+     * Obtener presupuestos por paciente.
      */
     public function byPatient(int $patientId): JsonResponse
     {
@@ -297,13 +296,13 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotations,
                 'meta' => [
-                    'total' => $quotations->count()
-                ]
+                    'total' => $quotations->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener presupuestos del paciente',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

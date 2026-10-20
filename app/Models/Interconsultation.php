@@ -29,13 +29,13 @@ class Interconsultation extends Model
         'follow_up_notes',
         'requested_date',
         'response_date',
-        'follow_up_date'
+        'follow_up_date',
     ];
 
     protected $casts = [
         'requested_date' => 'date',
         'response_date' => 'date',
-        'follow_up_date' => 'date'
+        'follow_up_date' => 'date',
     ];
 
     // Relaciones
@@ -107,7 +107,7 @@ class Interconsultation extends Model
             'low' => 'Baja',
             'medium' => 'Media',
             'high' => 'Alta',
-            'urgent' => 'Urgente'
+            'urgent' => 'Urgente',
         ];
 
         return $labels[$this->priority] ?? $this->priority;
@@ -119,7 +119,7 @@ class Interconsultation extends Model
             'pending' => 'Pendiente',
             'in_progress' => 'En Progreso',
             'completed' => 'Completada',
-            'cancelled' => 'Cancelada'
+            'cancelled' => 'Cancelada',
         ];
 
         return $labels[$this->status] ?? $this->status;

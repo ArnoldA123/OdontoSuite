@@ -68,7 +68,7 @@ class AppLayoutCanvasRoutesTest extends TestCase
 
     private static function appLayoutPath(): string
     {
-        return self::projectRoot() . self::APP_LAYOUT_PATH;
+        return self::projectRoot().self::APP_LAYOUT_PATH;
     }
 
     /**
@@ -78,7 +78,7 @@ class AppLayoutCanvasRoutesTest extends TestCase
      */
     private static function extractCanvasRoutesBody(string $src): ?string
     {
-        if (!preg_match('/const\s+canvasRoutes\s*=\s*\[/', $src, $matches, PREG_OFFSET_CAPTURE)) {
+        if (! preg_match('/const\s+canvasRoutes\s*=\s*\[/', $src, $matches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
 
@@ -194,13 +194,13 @@ class AppLayoutCanvasRoutesTest extends TestCase
         $routes = self::listRoutesInBody($body);
         $moduleRoutes = array_values(array_filter(
             $routes,
-            static fn (string $r): bool => !in_array($r, ['/dashboard', '/login', '/404'], true)
+            static fn (string $r): bool => ! in_array($r, ['/dashboard', '/login', '/404'], true)
         ));
 
         $this->assertNotEmpty(
             $moduleRoutes,
             'canvasRoutes was narrowed back to the vertical-slice set; PR0 extension is required. '
-            . 'At least one non-vertical-slice route must be present. Found: [' . implode(', ', $routes) . '].'
+            .'At least one non-vertical-slice route must be present. Found: ['.implode(', ', $routes).'].'
         );
     }
 }

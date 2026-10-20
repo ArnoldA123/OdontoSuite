@@ -21,7 +21,7 @@ class Installment extends Model
         'interest_amount',
         'late_fee',
         'status',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -30,7 +30,7 @@ class Installment extends Model
         'interest_amount' => 'decimal:2',
         'late_fee' => 'decimal:2',
         'due_date' => 'date',
-        'paid_date' => 'date'
+        'paid_date' => 'date',
     ];
 
     // Relaciones
@@ -48,6 +48,6 @@ class Installment extends Model
     public function scopeOverdue($query)
     {
         return $query->where('due_date', '<', now())
-                    ->where('status', '!=', 'paid');
+            ->where('status', '!=', 'paid');
     }
 }

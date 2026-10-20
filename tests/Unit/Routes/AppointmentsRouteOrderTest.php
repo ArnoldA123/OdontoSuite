@@ -20,12 +20,14 @@ use PHPUnit\Framework\TestCase;
 class AppointmentsRouteOrderTest extends TestCase
 {
     private const READY_TO_BILL_URI = 'api/appointments/ready-to-bill';
+
     private const SHOW_URI = 'api/appointments/{appointment}';
+
     private const BILLING_ROLES = ['administrador', 'finanzas', 'recepcionista'];
 
     private static function routesFile(): string
     {
-        return dirname(__DIR__, 3) . '/routes/api.php';
+        return dirname(__DIR__, 3).'/routes/api.php';
     }
 
     /**
@@ -34,7 +36,7 @@ class AppointmentsRouteOrderTest extends TestCase
     private static function registeredRoutes(): array
     {
         $root = dirname(__DIR__, 3);
-        $command = 'cd ' . escapeshellarg($root) . ' && ' . escapeshellarg(PHP_BINARY) . ' artisan route:list --json';
+        $command = 'cd '.escapeshellarg($root).' && '.escapeshellarg(PHP_BINARY).' artisan route:list --json';
 
         $lines = [];
         $status = 0;
@@ -43,13 +45,13 @@ class AppointmentsRouteOrderTest extends TestCase
         $output = implode("\n", $lines);
 
         if ($status !== 0) {
-            self::fail('`php artisan route:list --json` exited with status ' . $status . ":\n" . $output);
+            self::fail('`php artisan route:list --json` exited with status '.$status.":\n".$output);
         }
 
         $routes = json_decode($output, true);
 
-        if (!is_array($routes)) {
-            self::fail("`php artisan route:list --json` did not return decodable JSON:\n" . $output);
+        if (! is_array($routes)) {
+            self::fail("`php artisan route:list --json` did not return decodable JSON:\n".$output);
         }
 
         return $routes;
@@ -66,7 +68,7 @@ class AppointmentsRouteOrderTest extends TestCase
             $method = (string) ($route['method'] ?? '');
             $uri = (string) ($route['uri'] ?? '');
 
-            if (!str_contains($method, 'GET')) {
+            if (! str_contains($method, 'GET')) {
                 continue;
             }
 
@@ -81,21 +83,21 @@ class AppointmentsRouteOrderTest extends TestCase
 
         $this->assertNotNull(
             $readyToBillIndex,
-            'Missing GET route `' . self::READY_TO_BILL_URI . '` in route:list. The Billing hook route must exist.'
+            'Missing GET route `'.self::READY_TO_BILL_URI.'` in route:list. The Billing hook route must exist.'
         );
 
         $this->assertNotNull(
             $showIndex,
-            'Missing GET route `' . self::SHOW_URI . '` in route:list. The appointments resource show route must exist.'
+            'Missing GET route `'.self::SHOW_URI.'` in route:list. The appointments resource show route must exist.'
         );
 
         $this->assertLessThan(
             $showIndex,
             $readyToBillIndex,
-            '`' . self::READY_TO_BILL_URI . '` must be registered BEFORE `' . self::SHOW_URI . '` '
-                . '(ready-to-bill=' . $readyToBillIndex . ', show=' . $showIndex . '). '
-                . 'Otherwise the fixed segment is swallowed by `{appointment}` model binding, which tries to '
-                . 'resolve "ready-to-bill" as an Appointment and returns 404 for every role.'
+            '`'.self::READY_TO_BILL_URI.'` must be registered BEFORE `'.self::SHOW_URI.'` '
+                .'(ready-to-bill='.$readyToBillIndex.', show='.$showIndex.'). '
+                .'Otherwise the fixed segment is swallowed by `{appointment}` model binding, which tries to '
+                .'resolve "ready-to-bill" as an Appointment and returns 404 for every role.'
         );
     }
 
@@ -126,8 +128,8 @@ class AppointmentsRouteOrderTest extends TestCase
             $this->assertContains(
                 $role,
                 $roles,
-                'The Billing group containing `appointments/ready-to-bill` must keep role `' . $role . '`. '
-                    . 'Found roles: ' . implode(',', $roles) . '. A reorder must not change this protection.'
+                'The Billing group containing `appointments/ready-to-bill` must keep role `'.$role.'`. '
+                    .'Found roles: '.implode(',', $roles).'. A reorder must not change this protection.'
             );
         }
     }

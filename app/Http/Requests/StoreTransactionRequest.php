@@ -3,12 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
-use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Patient;
-use App\Models\PaymentMethod;
-use App\Models\Appointment;
-use App\Models\TreatmentPlan;
 use App\Models\CashRegisterSession;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -25,6 +21,7 @@ use Illuminate\Support\Str;
 class StoreTransactionRequest extends FormRequest
 {
     use LocalizedErrors;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -43,13 +40,13 @@ class StoreTransactionRequest extends FormRequest
                 'description' => Str::limit(strip_tags($this->description), 255),
             ]);
         }
-        
+
         if ($this->has('notes')) {
             $this->merge([
                 'notes' => Str::limit(strip_tags($this->notes), 500),
             ]);
         }
-        
+
         if ($this->has('reference_number')) {
             $this->merge([
                 'reference_number' => Str::limit(strip_tags($this->reference_number), 100),
@@ -66,70 +63,70 @@ class StoreTransactionRequest extends FormRequest
             'patient_id' => [
                 'required',
                 'integer',
-                'exists:patients,id'
+                'exists:patients,id',
             ],
             'appointment_id' => [
                 'nullable',
                 'integer',
-                'exists:appointments,id'
+                'exists:appointments,id',
             ],
             'treatment_plan_id' => [
                 'nullable',
                 'integer',
-                'exists:treatment_plans,id'
+                'exists:treatment_plans,id',
             ],
             'payment_method_id' => [
                 'required',
                 'integer',
-                'exists:payment_methods,id'
+                'exists:payment_methods,id',
             ],
             'type' => [
                 'required',
-                'in:payment,refund,discount,adjustment'
+                'in:payment,refund,discount,adjustment',
             ],
             'amount' => [
                 'required',
                 'numeric',
-                'min:0.01'
+                'min:0.01',
             ],
             'subtotal' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'discount_type' => [
                 'nullable',
-                'in:percentage,fixed'
+                'in:percentage,fixed',
             ],
             'discount_amount' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'discount_authorized_by' => [
                 'nullable',
                 'integer',
-                'exists:users,id'
+                'exists:users,id',
             ],
             'description' => [
                 'required',
                 'string',
-                'max:255'
+                'max:255',
             ],
             'notes' => [
                 'nullable',
                 'string',
-                'max:500'
+                'max:500',
             ],
             'reference_number' => [
                 'nullable',
                 'string',
-                'max:100'
+                'max:100',
             ],
             'metadata' => [
                 'nullable',
-                'array'
-            ]
+                'array',
+            ],
         ];
     }
 
@@ -158,7 +155,7 @@ class StoreTransactionRequest extends FormRequest
             'description.max' => 'La descripción no puede exceder los 255 caracteres.',
             'notes.max' => 'Las notas no pueden exceder los 500 caracteres.',
             'reference_number.max' => 'El número de referencia no puede exceder los 100 caracteres.',
-            'metadata.array' => 'Los metadatos deben ser un objeto.'
+            'metadata.array' => 'Los metadatos deben ser un objeto.',
         ];
     }
 
@@ -173,7 +170,7 @@ class StoreTransactionRequest extends FormRequest
                 ->where('status', 'open')
                 ->first();
 
-            if (!$activeSession) {
+            if (! $activeSession) {
                 $validator->errors()->add(
                     'session',
                     'No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'
@@ -187,7 +184,7 @@ class StoreTransactionRequest extends FormRequest
             if ($discountAmount > 0 && $amount > 0) {
                 $discountPercentage = ($discountAmount / $amount) * 100;
 
-                if ($discountPercentage > 10 && !$this->input('discount_authorized_by')) {
+                if ($discountPercentage > 10 && ! $this->input('discount_authorized_by')) {
                     $validator->errors()->add(
                         'discount_authorized_by',
                         'Los descuentos mayores al 10% requieren autorización del administrador.'
@@ -208,4 +205,3 @@ class StoreTransactionRequest extends FormRequest
         });
     }
 }
-

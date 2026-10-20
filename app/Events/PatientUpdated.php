@@ -4,8 +4,8 @@ namespace App\Events;
 
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -15,6 +15,7 @@ class PatientUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $patient;
+
     public $oldValues;
 
     public function __construct(Patient $patient, array $oldValues = [])
@@ -45,4 +46,3 @@ class PatientUpdated implements ShouldBroadcast
         ];
     }
 }
-

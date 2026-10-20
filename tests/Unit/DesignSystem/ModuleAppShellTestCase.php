@@ -76,10 +76,11 @@ abstract class ModuleAppShellTestCase extends TestCase
 
     private static function readFile(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -111,7 +112,7 @@ abstract class ModuleAppShellTestCase extends TestCase
                 $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/', '""', $stripped) ?? $stripped;
                 $stripped = preg_replace('/`(?:\\\\.|[^`\\\\])*`/', '``', $stripped) ?? $stripped;
 
-                return '<script>' . $stripped . '</script>';
+                return '<script>'.$stripped.'</script>';
             },
             $src
         ) ?? $src;
@@ -155,7 +156,7 @@ abstract class ModuleAppShellTestCase extends TestCase
             $cleaned,
             sprintf(
                 '%s must not contain the legacy `border-theme` literal (DLR-R-002). '
-                . 'Use the `border-hairline` / `--color-hairline` token instead.',
+                .'Use the `border-hairline` / `--color-hairline` token instead.',
                 $path
             )
         );
@@ -222,7 +223,7 @@ abstract class ModuleAppShellTestCase extends TestCase
             $cleaned,
             sprintf(
                 '%s must not contain a `<style scoped>` block (DLR-R-021). '
-                . 'Tailwind utility classes + scoped transitions (focus ring + reduced-motion fallback) live in the global token CSS.',
+                .'Tailwind utility classes + scoped transitions (focus ring + reduced-motion fallback) live in the global token CSS.',
                 $path
             )
         );

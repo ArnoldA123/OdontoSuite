@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * environments-audit / T1: an environment must not take clinical history with
  * it. The original appointments/appointment_blocks foreign keys used
  * ON DELETE CASCADE, so a hard delete of dental_chairs removed every

@@ -114,7 +114,7 @@ class BroadcastingAuthChannelsTest extends TestCase
 
     public function test_events_emit_de_doubled_private_channel_names(): void
     {
-        $appointment = new Appointment();
+        $appointment = new Appointment;
         $appointment->id = 1;
         $appointmentChannel = (new AppointmentCheckedIn($appointment))->broadcastOn()[0];
         // PrivateChannel prepends `private-`; the wire name must carry it
@@ -122,7 +122,7 @@ class BroadcastingAuthChannelsTest extends TestCase
         $this->assertSame('private-appointment.1', $appointmentChannel->name);
         $this->assertStringNotContainsString('private-private-', $appointmentChannel->name);
 
-        $transaction = new Transaction();
+        $transaction = new Transaction;
         $transaction->branch_id = 2;
         $paymentChannel = (new PaymentReceived($transaction))->broadcastOn();
         $this->assertSame('private-cash-register.2', $paymentChannel->name);

@@ -102,7 +102,7 @@ class PatientEventsPrivateChannelTest extends TestCase
      */
     public function patient_event_channel_resolves_to_the_private_wire_name(string $eventClass): void
     {
-        $patient = new \App\Models\Patient();
+        $patient = new \App\Models\Patient;
         $patient->id = 7;
 
         $event = match ($eventClass) {

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class AppointmentBlock extends Model
 {
@@ -57,11 +57,11 @@ class AppointmentBlock extends Model
     {
         return $query->where(function ($q) use ($startDate, $endDate) {
             $q->whereBetween('starts_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
-              ->orWhereBetween('ends_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
-              ->orWhere(function ($q2) use ($startDate, $endDate) {
-                  $q2->where('starts_at', '<=', $startDate->copy()->startOfDay())
-                     ->where('ends_at', '>=', $endDate->copy()->endOfDay());
-              });
+                ->orWhereBetween('ends_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
+                ->orWhere(function ($q2) use ($startDate, $endDate) {
+                    $q2->where('starts_at', '<=', $startDate->copy()->startOfDay())
+                        ->where('ends_at', '>=', $endDate->copy()->endOfDay());
+                });
         });
     }
 

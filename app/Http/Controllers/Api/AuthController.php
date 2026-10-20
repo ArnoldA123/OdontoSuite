@@ -5,16 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Mail\PasswordResetMail;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -31,7 +31,7 @@ class AuthController extends Controller
 
         $credentials = $request->only('username', 'password');
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'username' => ['Las credenciales proporcionadas son incorrectas.'],
             ]);
@@ -40,8 +40,9 @@ class AuthController extends Controller
         $user = Auth::user();
 
         // Verificar si el usuario está activo
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             Auth::logout();
+
             throw ValidationException::withMessages([
                 'username' => ['Tu cuenta ha sido desactivada. Contacta al administrador.'],
             ]);
@@ -111,7 +112,7 @@ class AuthController extends Controller
         try {
             $user = User::where('email', $request->email)->first();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'message' => 'No encontramos un usuario con ese correo electrónico.',
                 ], 404);
@@ -119,7 +120,7 @@ class AuthController extends Controller
 
             // Generate reset token
             $token = Str::random(64);
-            
+
             // Store token in password_reset_tokens table
             \DB::table('password_reset_tokens')->updateOrInsert(
                 ['email' => $user->email],
@@ -135,9 +136,9 @@ class AuthController extends Controller
             // En producción, configurar MAIL_MAILER=smtp + MAIL_HOST/MAIL_PORT/MAIL_USERNAME/MAIL_PASSWORD.
             try {
                 Mail::to($user->email)->send(new PasswordResetMail($user, $token));
-                Log::info('Password reset email sent to: ' . $user->email);
+                Log::info('Password reset email sent to: '.$user->email);
             } catch (\Exception $e) {
-                Log::error('Failed to send password reset email to ' . $user->email . ': ' . $e->getMessage());
+                Log::error('Failed to send password reset email to '.$user->email.': '.$e->getMessage());
             }
 
             $response = [
@@ -160,7 +161,8 @@ class AuthController extends Controller
 
             return response()->json($response);
         } catch (\Exception $e) {
-            Log::error('Error in forgotPassword: ' . $e->getMessage());
+            Log::error('Error in forgotPassword: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al procesar la solicitud. Por favor, intenta nuevamente.',
             ], 500);
@@ -184,7 +186,7 @@ class AuthController extends Controller
                 ->where('email', $request->email)
                 ->first();
 
-            if (!$resetRecord) {
+            if (! $resetRecord) {
                 return response()->json([
                     'message' => 'Token de recuperación inválido o expirado.',
                 ], 400);
@@ -194,13 +196,14 @@ class AuthController extends Controller
             $createdAt = Carbon::parse($resetRecord->created_at);
             if ($createdAt->diffInMinutes(now()) > 60) {
                 \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
                 return response()->json([
                     'message' => 'El token de recuperación ha expirado. Por favor, solicita uno nuevo.',
                 ], 400);
             }
 
             // Verify token
-            if (!Hash::check($request->token, $resetRecord->token)) {
+            if (! Hash::check($request->token, $resetRecord->token)) {
                 return response()->json([
                     'message' => 'Token de recuperación inválido.',
                 ], 400);
@@ -208,7 +211,7 @@ class AuthController extends Controller
 
             // Update user password
             $user = User::where('email', $request->email)->first();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'message' => 'Usuario no encontrado.',
                 ], 404);
@@ -223,7 +226,7 @@ class AuthController extends Controller
             // Revoke all existing tokens for security
             $user->tokens()->delete();
 
-            Log::info('Password reset successful for user: ' . $user->email);
+            Log::info('Password reset successful for user: '.$user->email);
 
             return response()->json([
                 'data' => [
@@ -234,7 +237,8 @@ class AuthController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in resetPassword: ' . $e->getMessage());
+            Log::error('Error in resetPassword: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al restablecer la contraseña. Por favor, intenta nuevamente.',
             ], 500);

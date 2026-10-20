@@ -2,8 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\CashRegisterSession;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CashRegisterPolicy
@@ -101,4 +101,3 @@ class CashRegisterPolicy
         return in_array($user->role, ['administrador', 'finanzas']);
     }
 }
-

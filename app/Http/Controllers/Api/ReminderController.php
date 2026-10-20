@@ -17,9 +17,7 @@ use Illuminate\Http\Request;
  */
 class ReminderController extends Controller
 {
-    public function __construct(private readonly ReminderService $reminderService)
-    {
-    }
+    public function __construct(private readonly ReminderService $reminderService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -80,7 +78,7 @@ class ReminderController extends Controller
             unset($data['status']);
         }
 
-        if (!empty($data)) {
+        if (! empty($data)) {
             $reminder->fill($data)->save();
         }
 

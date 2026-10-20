@@ -43,4 +43,3 @@ class QuotationApproved implements ShouldBroadcast
         ];
     }
 }
-

@@ -13,9 +13,7 @@ class AppointmentCompleted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Appointment $appointment)
-    {
-    }
+    public function __construct(public Appointment $appointment) {}
 
     public function broadcastOn(): array
     {

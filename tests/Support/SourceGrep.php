@@ -24,7 +24,7 @@ final class SourceGrep
         if (! is_callable('shell_exec') || ! is_callable('exec')) {
             Assert::fail(
                 'ripgrep (rg) wrapper requires shell_exec/exec, but PHP disables them here. '
-                . 'Enable program execution or rewrite the assertion in pure PHP.'
+                .'Enable program execution or rewrite the assertion in pure PHP.'
             );
         }
 
@@ -36,8 +36,8 @@ final class SourceGrep
         if ($code !== 0 || stripos($joined, 'ripgrep') === false) {
             Assert::fail(
                 'ripgrep (rg) is required for source-grep assertions but was not found in PATH. '
-                . 'Install ripgrep (apt-get install ripgrep / brew install ripgrep / choco install ripgrep) '
-                . 'instead of asserting on a silent count=0. Got: ' . trim($joined)
+                .'Install ripgrep (apt-get install ripgrep / brew install ripgrep / choco install ripgrep) '
+                .'instead of asserting on a silent count=0. Got: '.trim($joined)
             );
         }
 
@@ -68,7 +68,7 @@ final class SourceGrep
         if ($code >= 2) {
             Assert::fail(
                 "ripgrep failed (exit {$code}) for pattern '{$pattern}'. "
-                . 'Output: ' . implode("\n", $output)
+                .'Output: '.implode("\n", $output)
             );
         }
 
@@ -113,7 +113,7 @@ final class SourceGrep
         if ($code >= 2) {
             Assert::fail(
                 "ripgrep failed (exit {$code}) for pattern '{$pattern}'. "
-                . 'Output: ' . implode("\n", $output)
+                .'Output: '.implode("\n", $output)
             );
         }
 

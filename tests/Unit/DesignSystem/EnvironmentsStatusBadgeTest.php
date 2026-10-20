@@ -45,20 +45,21 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
 
     private static function listPagePath(): string
     {
-        return self::projectRoot() . self::LIST_PAGE_PATH;
+        return self::projectRoot().self::LIST_PAGE_PATH;
     }
 
     private static function sharedStatusPath(): string
     {
-        return self::projectRoot() . self::SHARED_STATUS_PATH;
+        return self::projectRoot().self::SHARED_STATUS_PATH;
     }
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -94,8 +95,8 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             $badgeRefs,
             sprintf(
                 '%s MUST consume `<UiStatusBadge>` for the list-row + View-modal '
-                . 'status pills (AMB-01-008). Found %d badge reference(s); '
-                . 'expected at least 2 (list row + View modal).',
+                .'status pills (AMB-01-008). Found %d badge reference(s); '
+                .'expected at least 2 (list row + View modal).',
                 $path,
                 $badgeRefs
             )
@@ -112,7 +113,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             $variantPropRefs,
             sprintf(
                 '%s MUST bind the status-badge variant via `<UiBadge :variant="...">` '
-                . '(AMB-01-008). Found %d variant-bound reference(s); expected at least 1.',
+                .'(AMB-01-008). Found %d variant-bound reference(s); expected at least 1.',
                 $path,
                 $variantPropRefs
             )
@@ -124,7 +125,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             preg_match('#(?<![\w-])bg-success-100(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-success-100` status-pill alias '
-                . '(AMB-01-008 / DLR-R-009). Found a match.',
+                .'(AMB-01-008 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -135,7 +136,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             preg_match('#(?<![\w-])bg-warning-100(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-warning-100` status-pill alias '
-                . '(AMB-01-008 / DLR-R-009). Found a match.',
+                .'(AMB-01-008 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -148,7 +149,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             preg_match('#(?<![\w-])bg-theme-surface\s+text-theme-primary(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-theme-surface text-theme-primary` '
-                . 'status-pill alias (AMB-01-008 / DLR-R-009). Found a match.',
+                .'status-pill alias (AMB-01-008 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -159,7 +160,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             preg_match('#(?<![\w-])text-success-700(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `text-success-700` status-pill alias '
-                . '(AMB-01-008 / DLR-R-009). Found a match.',
+                .'(AMB-01-008 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -170,7 +171,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             preg_match('#(?<![\w-])text-warning-700(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `text-warning-700` status-pill alias '
-                . '(AMB-01-008 / DLR-R-009). Found a match.',
+                .'(AMB-01-008 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -212,8 +213,8 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             (bool) preg_match('#\bgetStatusVariant\b#', $shared),
             sprintf(
                 '%s MUST export the `getStatusVariant` helper (DLR-AMB-005 EXCEPTION #1 / '
-                . 'AMB-02-001 / T2-D2). The legacy `getStatusColor` returning colour-class strings '
-                . 'MUST be renamed to `getStatusVariant` returning variant tokens.',
+                .'AMB-02-001 / T2-D2). The legacy `getStatusColor` returning colour-class strings '
+                .'MUST be renamed to `getStatusVariant` returning variant tokens.',
                 $sharedPath
             )
         );
@@ -227,7 +228,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             ),
             sprintf(
                 '%s MUST import `getStatusVariant` from the shared `environmentStatus` module '
-                . '(T2-D2). The variant/label maps live in the shared module, not inline in the page.',
+                .'(T2-D2). The variant/label maps live in the shared module, not inline in the page.',
                 $path
             )
         );
@@ -236,10 +237,10 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
         // legacy name is gone).
         $this->assertSame(
             0,
-            preg_match('#\bgetStatusColor\b#', $shared . "\n" . $src),
+            preg_match('#\bgetStatusColor\b#', $shared."\n".$src),
             sprintf(
                 '%s + %s MUST NOT keep the legacy `getStatusColor` helper name '
-                . '(DLR-AMB-005 EXCEPTION #1 / AMB-02-001). Rename to `getStatusVariant`.',
+                .'(DLR-AMB-005 EXCEPTION #1 / AMB-02-001). Rename to `getStatusVariant`.',
                 $sharedPath,
                 $path
             )
@@ -255,7 +256,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             ),
             sprintf(
                 '%s MUST map `active` → `success` in the `getStatusVariant` vocabulary '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                .'(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
                 $sharedPath
             )
         );
@@ -267,7 +268,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             ),
             sprintf(
                 '%s MUST map `inactive` → `neutral` in the `getStatusVariant` vocabulary '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                .'(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
                 $sharedPath
             )
         );
@@ -279,7 +280,7 @@ class EnvironmentsStatusBadgeTest extends \PHPUnit\Framework\TestCase
             ),
             sprintf(
                 '%s MUST map `maintenance` → `warning` in the `getStatusVariant` vocabulary '
-                . '(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
+                .'(AMB-01-008 / DLR-AMB-005 EXCEPTION #1 / T2-D2).',
                 $sharedPath
             )
         );

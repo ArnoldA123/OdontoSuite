@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Sprint 2 (B-CASH-2 + B-CASH-4 prep): agregar columnas para preparar
  * la integracion con pasarelas de pago (Mercado Pago en Sprint 3).
  *

@@ -16,6 +16,7 @@ class TreatmentPlanDeleted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $treatmentPlanId;
+
     public $patientId;
 
     public function __construct(int $treatmentPlanId, int $patientId)
@@ -45,4 +46,3 @@ class TreatmentPlanDeleted implements ShouldBroadcast
         ];
     }
 }
-

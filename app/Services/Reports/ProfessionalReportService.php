@@ -3,14 +3,12 @@
 namespace App\Services\Reports;
 
 use App\Models\User;
-use App\Models\Appointment;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ProfessionalReportService
 {
     /**
-     * Get professional report data
+     * Get professional report data.
      */
     public function getReportData(array $filters = []): array
     {
@@ -69,7 +67,7 @@ class ProfessionalReportService
                 'average_per_appointment' => round($averagePerAppointment, 2),
                 'completion_rate' => $professional->appointments_count > 0 ? round(($completedAppointments / $professional->appointments_count) * 100, 2) : 0,
                 'is_active' => $professional->is_active ? 'Activo' : 'Inactivo',
-                'created_at' => Carbon::parse($professional->created_at)->format('d/m/Y H:i')
+                'created_at' => Carbon::parse($professional->created_at)->format('d/m/Y H:i'),
             ];
         });
 
@@ -90,8 +88,8 @@ class ProfessionalReportService
                 ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
                 ['key' => 'completion_rate', 'label' => 'Tasa de Finalización (%)'],
                 ['key' => 'is_active', 'label' => 'Estado'],
-                ['key' => 'created_at', 'label' => 'Fecha de Registro']
-            ]
+                ['key' => 'created_at', 'label' => 'Fecha de Registro'],
+            ],
         ];
     }
 }

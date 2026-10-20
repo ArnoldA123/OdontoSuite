@@ -22,8 +22,7 @@ class ProcedureCatalogController extends Controller
     public function __construct(
         private readonly ProcedureCatalogService $service,
         private readonly ProcedureCsvImportService $csvImport,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -41,7 +40,8 @@ class ProcedureCatalogController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@index: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@index: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener el catálogo de procedimientos'], 500);
         }
     }
@@ -51,7 +51,8 @@ class ProcedureCatalogController extends Controller
         try {
             return response()->json(['data' => $this->service->summary()]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@summary: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@summary: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener el resumen del catálogo'], 500);
         }
     }
@@ -63,7 +64,8 @@ class ProcedureCatalogController extends Controller
                 'data' => $this->service->activeList(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@active: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@active: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener procedimientos activos'], 500);
         }
     }
@@ -82,7 +84,8 @@ class ProcedureCatalogController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@search: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@search: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al buscar en el catálogo'], 500);
         }
     }
@@ -92,11 +95,13 @@ class ProcedureCatalogController extends Controller
         try {
             $procedure = $this->service->findOrFail((int) $id);
             $procedure->load('specialty');
+
             return response()->json(['data' => new ProcedureCatalogResource($procedure)]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado'], 404);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@show: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@show: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener el procedimiento'], 500);
         }
     }
@@ -118,7 +123,8 @@ class ProcedureCatalogController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@forMe: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@forMe: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener procedimientos del usuario'], 500);
         }
     }
@@ -153,7 +159,8 @@ class ProcedureCatalogController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado'], 404);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@versions: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@versions: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener el historial de versiones'], 500);
         }
     }
@@ -174,7 +181,8 @@ class ProcedureCatalogController extends Controller
         } catch (ValidationException $e) {
             return response()->json(['message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@store: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@store: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al crear el procedimiento'], 500);
         }
     }
@@ -200,7 +208,8 @@ class ProcedureCatalogController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado'], 404);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@update: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@update: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al actualizar el procedimiento'], 500);
         }
     }
@@ -221,14 +230,15 @@ class ProcedureCatalogController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado'], 404);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@destroy: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@destroy: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al desactivar el procedimiento'], 500);
         }
     }
 
     /**
      * Sprint 3 fix (IM-6): importador CSV de procedimientos.
-     * POST /api/admin/procedure-catalog/import con form-data file=@procedures.csv
+     * POST /api/admin/procedure-catalog/import con form-data file=@procedures.csv.
      */
     public function import(\Illuminate\Http\Request $request): JsonResponse
     {
@@ -238,6 +248,7 @@ class ProcedureCatalogController extends Controller
 
         try {
             $result = $this->csvImport->import($request->file('file'));
+
             return response()->json([
                 'data' => $result,
                 'meta' => [
@@ -245,7 +256,8 @@ class ProcedureCatalogController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogController@import: ' . $e->getMessage());
+            Log::error('ProcedureCatalogController@import: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al importar el archivo CSV',
                 'error' => $e->getMessage(),
@@ -255,13 +267,14 @@ class ProcedureCatalogController extends Controller
 
     private function logAudit(string $action, ProcedureCatalog $procedure, array $old, array $new): void
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return;
         }
+
         try {
             AuditLog::log(Auth::user(), $action, $procedure, $old, $new);
         } catch (\Throwable $e) {
-            Log::warning('Audit log failed for procedure catalog: ' . $e->getMessage());
+            Log::warning('Audit log failed for procedure catalog: '.$e->getMessage());
         }
     }
 }

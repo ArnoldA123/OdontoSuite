@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReviewAiAnalysisRequest;
+use App\Models\AiImageAnalysis;
 use App\Services\AiImageAnalysisService;
 use App\Services\ClinicalAttachmentService;
-use App\Models\AiImageAnalysis;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class AiImageAnalysisController extends Controller
 {
     protected $aiAnalysisService;
+
     protected $clinicalAttachmentService;
 
     public function __construct(
@@ -26,7 +27,7 @@ class AiImageAnalysisController extends Controller
     }
 
     /**
-     * Solicitar análisis de imagen
+     * Solicitar análisis de imagen.
      */
     public function analyze(int $attachmentId): JsonResponse
     {
@@ -36,24 +37,24 @@ class AiImageAnalysisController extends Controller
             return response()->json([
                 'data' => $analysis,
                 'meta' => [
-                    'message' => 'Análisis solicitado exitosamente'
-                ]
+                    'message' => 'Análisis solicitado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al solicitar análisis',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener análisis específico
+     * Obtener análisis específico.
      */
     public function show(int $id): JsonResponse
     {
@@ -62,50 +63,50 @@ class AiImageAnalysisController extends Controller
                 'clinicalAttachment',
                 'patient',
                 'requestedBy',
-                'reviewedBy'
+                'reviewedBy',
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => $analysis
+                'data' => $analysis,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Análisis no encontrado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
 
     /**
-     * Obtener análisis por adjunto
+     * Obtener análisis por adjunto.
      */
     public function byAttachment(int $attachmentId): JsonResponse
     {
         try {
             $analysis = $this->aiAnalysisService->getAnalysisByAttachment($attachmentId);
 
-            if (!$analysis) {
+            if (! $analysis) {
                 return response()->json([
                     'data' => null,
                     'meta' => [
-                        'message' => 'No se encontró análisis para este adjunto'
-                    ]
+                        'message' => 'No se encontró análisis para este adjunto',
+                    ],
                 ]);
             }
 
             return response()->json([
-                'data' => $analysis
+                'data' => $analysis,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener análisis',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener análisis por paciente
+     * Obtener análisis por paciente.
      */
     public function byPatient(Request $request, int $patientId): JsonResponse
     {
@@ -117,13 +118,13 @@ class AiImageAnalysisController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener análisis del paciente',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Revisar análisis (aceptar/rechazar)
+     * Revisar análisis (aceptar/rechazar).
      */
     public function review(ReviewAiAnalysisRequest $request, int $id): JsonResponse
     {
@@ -137,24 +138,24 @@ class AiImageAnalysisController extends Controller
             return response()->json([
                 'data' => $analysis,
                 'meta' => [
-                    'message' => 'Análisis revisado exitosamente'
-                ]
+                    'message' => 'Análisis revisado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al revisar análisis',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener análisis pendientes de revisión
+     * Obtener análisis pendientes de revisión.
      */
     public function pending(Request $request): JsonResponse
     {
@@ -166,13 +167,13 @@ class AiImageAnalysisController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener análisis pendientes',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener estadísticas de uso de IA
+     * Obtener estadísticas de uso de IA.
      */
     public function stats(Request $request): JsonResponse
     {
@@ -181,18 +182,18 @@ class AiImageAnalysisController extends Controller
             $stats = $this->aiAnalysisService->getUsageStats($filters);
 
             return response()->json([
-                'data' => $stats
+                'data' => $stats,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener lista de análisis con filtros
+     * Obtener lista de análisis con filtros.
      */
     public function index(Request $request): JsonResponse
     {
@@ -201,7 +202,7 @@ class AiImageAnalysisController extends Controller
                 'clinicalAttachment',
                 'patient',
                 'requestedBy',
-                'reviewedBy'
+                'reviewedBy',
             ]);
 
             // Filtros
@@ -238,18 +239,18 @@ class AiImageAnalysisController extends Controller
                     'last_page' => $analyses->lastPage(),
                     'per_page' => $analyses->perPage(),
                     'total' => $analyses->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener análisis',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Eliminar análisis
+     * Eliminar análisis.
      */
     public function destroy(int $id): JsonResponse
     {
@@ -259,7 +260,7 @@ class AiImageAnalysisController extends Controller
             // Solo permitir eliminar si no ha sido revisado
             if ($analysis->reviewed) {
                 return response()->json([
-                    'message' => 'No se puede eliminar un análisis que ya ha sido revisado'
+                    'message' => 'No se puede eliminar un análisis que ya ha sido revisado',
                 ], 422);
             }
 
@@ -267,19 +268,19 @@ class AiImageAnalysisController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Análisis eliminado exitosamente'
-                ]
+                    'message' => 'Análisis eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar análisis',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Subir imagen y analizar en un solo paso
+     * Subir imagen y analizar en un solo paso.
      */
     public function analyzeUploadedImage(Request $request): JsonResponse
     {
@@ -289,14 +290,14 @@ class AiImageAnalysisController extends Controller
             'category' => $request->category,
             'description' => $request->description,
             'has_image' => $request->hasFile('image'),
-            'image_size' => $request->file('image') ? $request->file('image')->getSize() : null
+            'image_size' => $request->file('image') ? $request->file('image')->getSize() : null,
         ]);
 
         $request->validate([
             'patient_id' => 'required|integer|exists:patients,id',
             'image' => 'required|image|max:20480', // 20MB
             'description' => 'nullable|string|max:500',
-            'category' => 'required|in:radiografia,foto_clinica'
+            'category' => 'required|in:radiografia,foto_clinica',
         ]);
 
         try {
@@ -306,7 +307,7 @@ class AiImageAnalysisController extends Controller
                 'file' => $request->file('image'),
                 'category' => $request->category,
                 'description' => $request->description,
-                'created_by' => Auth::id()
+                'created_by' => Auth::id(),
             ]);
 
             // 2. Analizar imagen inmediatamente
@@ -314,14 +315,15 @@ class AiImageAnalysisController extends Controller
 
             return response()->json([
                 'data' => $analysis,
-                'message' => 'Análisis completado exitosamente.'
+                'message' => 'Análisis completado exitosamente.',
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error("Error analyzing uploaded image: " . $e->getMessage());
+            Log::error('Error analyzing uploaded image: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al analizar la imagen.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -43,4 +43,3 @@ class QuotationCreated implements ShouldBroadcast
         ];
     }
 }
-

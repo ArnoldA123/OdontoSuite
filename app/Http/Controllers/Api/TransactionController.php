@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
-use App\Services\TransactionService;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Transaction;
-use Illuminate\Http\Request;
+use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class TransactionController extends Controller
 {
@@ -23,18 +22,18 @@ class TransactionController extends Controller
     }
 
     /**
-     * Display a listing of transactions
+     * Display a listing of transactions.
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $filters = $request->only([
                 'patient_id', 'type', 'payment_method_id', 'status',
-                'date_from', 'date_to', 'cash_register_session_id', 'branch_id'
+                'date_from', 'date_to', 'cash_register_session_id', 'branch_id',
             ]);
 
             // Si no se especifica sesión, usar la sesión activa del usuario
-            if (!isset($filters['cash_register_session_id'])) {
+            if (! isset($filters['cash_register_session_id'])) {
                 $activeSession = \App\Models\CashRegisterSession::where('user_id', Auth::id())
                     ->where('status', 'open')
                     ->first();
@@ -50,13 +49,13 @@ class TransactionController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las transacciones',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Store a newly created transaction
+     * Store a newly created transaction.
      */
     public function store(StoreTransactionRequest $request): JsonResponse
     {
@@ -69,19 +68,19 @@ class TransactionController extends Controller
             return response()->json([
                 'data' => $transaction,
                 'meta' => [
-                    'message' => 'Transacción registrada exitosamente'
-                ]
+                    'message' => 'Transacción registrada exitosamente',
+                ],
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al registrar la transacción',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Display the specified transaction
+     * Display the specified transaction.
      */
     public function show(Transaction $transaction): JsonResponse
     {
@@ -89,18 +88,18 @@ class TransactionController extends Controller
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy']);
 
             return response()->json([
-                'data' => $transaction
+                'data' => $transaction,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la transacción',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Update the specified transaction
+     * Update the specified transaction.
      */
     public function update(Request $request, Transaction $transaction): JsonResponse
     {
@@ -120,38 +119,38 @@ class TransactionController extends Controller
                 return response()->json([
                     'data' => $transaction,
                     'meta' => [
-                        'message' => 'Transacción actualizada exitosamente'
-                    ]
+                        'message' => 'Transacción actualizada exitosamente',
+                    ],
                 ]);
             }
 
             return response()->json([
-                'message' => 'No se puede actualizar esta transacción'
+                'message' => 'No se puede actualizar esta transacción',
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar la transacción',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Remove the specified transaction (soft delete)
+     * Remove the specified transaction (soft delete).
      */
     public function destroy(Transaction $transaction): JsonResponse
     {
         try {
             if ($transaction->status === 'voided') {
                 return response()->json([
-                    'message' => 'La transacción ya ha sido anulada'
+                    'message' => 'La transacción ya ha sido anulada',
                 ], 422);
             }
 
             // Only allow deletion of recent transactions
             if ($transaction->created_at->diffInHours(now()) > 24) {
                 return response()->json([
-                    'message' => 'No se puede eliminar transacciones mayores a 24 horas'
+                    'message' => 'No se puede eliminar transacciones mayores a 24 horas',
                 ], 422);
             }
 
@@ -160,25 +159,25 @@ class TransactionController extends Controller
             return response()->json([
                 'data' => null,
                 'meta' => [
-                    'message' => 'Transacción eliminada exitosamente'
-                ]
+                    'message' => 'Transacción eliminada exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar la transacción',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Void a transaction
+     * Void a transaction.
      */
     public function void(Request $request, Transaction $transaction): JsonResponse
     {
         try {
             $request->validate([
-                'reason' => 'required|string|max:500'
+                'reason' => 'required|string|max:500',
             ]);
 
             $voidedTransaction = $this->transactionService->voidTransaction(
@@ -189,41 +188,41 @@ class TransactionController extends Controller
             return response()->json([
                 'data' => $voidedTransaction,
                 'meta' => [
-                    'message' => 'Transacción anulada exitosamente'
-                ]
+                    'message' => 'Transacción anulada exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al anular la transacción',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Generate receipt for transaction (PDF)
+     * Generate receipt for transaction (PDF).
      */
     public function generateReceipt(Transaction $transaction)
     {
         try {
             $pdfContent = $this->transactionService->generateReceiptPdf($transaction);
 
-            $filename = 'comprobante_' . $transaction->transaction_number . '.pdf';
+            $filename = 'comprobante_'.$transaction->transaction_number.'.pdf';
 
             return response($pdfContent, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $filename . '"'
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al generar el comprobante',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get transactions list for dropdown/select
+     * Get transactions list for dropdown/select.
      */
     public function list(Request $request): JsonResponse
     {
@@ -248,14 +247,13 @@ class TransactionController extends Controller
                 ->get();
 
             return response()->json([
-                'data' => $transactions
+                'data' => $transactions,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la lista de transacciones',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 }
-

@@ -244,7 +244,7 @@ class AuditBaselineCheckTest extends TestCase
     }
 
     /**
-     * @param  array<string, int|string>  $counters
+     * @param array<string, int|string> $counters
      */
     private function claimedDocument(array $counters): string
     {
@@ -258,7 +258,7 @@ class AuditBaselineCheckTest extends TestCase
     }
 
     /**
-     * @param  array<string, string>  $rows  key => value ('' means unmeasured)
+     * @param array<string, string> $rows key => value ('' means unmeasured)
      */
     private function countersStub(array $rows): string
     {
@@ -273,8 +273,8 @@ class AuditBaselineCheckTest extends TestCase
     }
 
     /**
-     * @param  list<string>            $arguments
-     * @param  array<string, string>   $env
+     * @param  list<string>                            $arguments
+     * @param  array<string, string>                   $env
      * @return array{status: int, lines: list<string>}
      */
     private function runBaseline(array $arguments, array $env = []): array

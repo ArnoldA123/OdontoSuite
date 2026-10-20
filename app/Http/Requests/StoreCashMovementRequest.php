@@ -31,6 +31,7 @@ class StoreCashMovementRequest extends FormRequest
         if ($user === null) {
             return false;
         }
+
         return in_array($user->role, ['administrador', 'finanzas'], true);
     }
 

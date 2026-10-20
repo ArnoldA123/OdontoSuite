@@ -11,12 +11,10 @@ use Illuminate\Support\Facades\Log;
 
 class BillingController extends Controller
 {
-    public function __construct(private readonly BillingService $service)
-    {
-    }
+    public function __construct(private readonly BillingService $service) {}
 
     /**
-     * GET /api/appointments/ready-to-bill
+     * GET /api/appointments/ready-to-bill.
      */
     public function readyToBill(Request $request): JsonResponse
     {
@@ -52,26 +50,28 @@ class BillingController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
-            Log::error('BillingController@readyToBill: ' . $e->getMessage());
+            Log::error('BillingController@readyToBill: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al listar citas por cobrar'], 500);
         }
     }
 
     /**
-     * GET /api/appointments/{id}/payment-preview
+     * GET /api/appointments/{id}/payment-preview.
      */
     public function paymentPreview(Appointment $appointment): JsonResponse
     {
         try {
             return response()->json(['data' => $this->service->paymentPreview($appointment)]);
         } catch (\Throwable $e) {
-            Log::error('BillingController@paymentPreview: ' . $e->getMessage());
+            Log::error('BillingController@paymentPreview: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al obtener el desglose'], 500);
         }
     }
 
     /**
-     * POST /api/appointments/{id}/generate-quotation
+     * POST /api/appointments/{id}/generate-quotation.
      */
     public function generateQuotation(Appointment $appointment): JsonResponse
     {
@@ -97,7 +97,8 @@ class BillingController extends Controller
                 ],
             ], 201);
         } catch (\Throwable $e) {
-            Log::error('BillingController@generateQuotation: ' . $e->getMessage());
+            Log::error('BillingController@generateQuotation: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al generar la cotización'], 500);
         }
     }

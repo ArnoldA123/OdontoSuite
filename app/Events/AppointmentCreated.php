@@ -40,4 +40,3 @@ class AppointmentCreated implements ShouldBroadcast
         ];
     }
 }
-

@@ -30,7 +30,7 @@ class Product extends Model
         'storage_conditions',
         'specifications',
         'requires_prescription',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
@@ -39,7 +39,7 @@ class Product extends Model
         'expiry_date' => 'date',
         'specifications' => 'array',
         'requires_prescription' => 'boolean',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

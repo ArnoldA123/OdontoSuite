@@ -62,7 +62,7 @@ class ReminderTemplate extends Model
         $body = $this->body_text ?? $this->body_html ?? '';
 
         foreach ($variables as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $subject = str_replace($placeholder, (string) $value, $subject);
             $body = str_replace($placeholder, (string) $value, $body);
         }

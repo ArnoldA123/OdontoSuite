@@ -35,7 +35,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::WIZARD_PATH,
+            dirname(__DIR__, 3).self::WIZARD_PATH,
         ];
     }
 
@@ -47,7 +47,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_uses_ui_tabs_for_step_strip(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -72,7 +72,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             preg_match('#@click\s*=\s*["\']currentStep\s*=\s*step\.id["\']#', $src),
             sprintf(
                 '%s MUST NOT keep the inline `@click="currentStep = step.id"` step handler (CITAS-WIZ-001). '
-                . 'Step navigation flows through `<UiTabs v-model="currentStep">`.',
+                .'Step navigation flows through `<UiTabs v-model="currentStep">`.',
                 $path
             )
         );
@@ -89,7 +89,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_no_raw_textarea_or_input_class_string(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -102,7 +102,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT keep the legacy `border-theme` literal on raw `<textarea>` or `<input>` controls (CITAS-WIZ-002 / DLR-R-002). '
-                . 'Use `border-hairline` / `--color-hairline` token, or migrate to `<UiTextarea>` / `<UiInput>`.',
+                .'Use `border-hairline` / `--color-hairline` token, or migrate to `<UiTextarea>` / `<UiInput>`.',
                 $path
             )
         );
@@ -129,7 +129,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_uses_ui_input_ui_select_ui_textarea(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -171,7 +171,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_no_text_red_500_required_indicator(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -180,8 +180,8 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])text-red-500(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the hardcoded `text-red-500` required-asterisk literal (CITAS-WIZ-001). '
-                . 'Required indicators are owned by `<UiInput required>` / `<UiTextarea required>`; '
-                . 'destructive-action colours MUST come from the `text-systemRed-*` token ramp.',
+                .'Required indicators are owned by `<UiInput required>` / `<UiTextarea required>`; '
+                .'destructive-action colours MUST come from the `text-systemRed-*` token ramp.',
                 $path
             )
         );
@@ -196,7 +196,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_no_legacy_focus_ring(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -208,7 +208,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `focus:ring-primary-500` focus-ring alias (DLR-R-004 / CITAS-WIZ-001). '
-                . 'Use `focus:ring-systemBlue-500` (Apple-language ramp) or rely on the Ui primitives.',
+                .'Use `focus:ring-systemBlue-500` (Apple-language ramp) or rely on the Ui primitives.',
                 $path
             )
         );
@@ -221,7 +221,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `focus:border-accent` focus-ring alias (DLR-R-004). '
-                . 'The global `var(--focus-ring-default)` token owns the focus border colour.',
+                .'The global `var(--focus-ring-default)` token owns the focus border colour.',
                 $path
             )
         );
@@ -234,7 +234,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_no_style_scoped(): void
     {
-        $path = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $path = dirname(__DIR__, 3).self::WIZARD_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -243,7 +243,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             preg_match('#<style\s+scoped\s*>#', $src),
             sprintf(
                 '%s MUST NOT contain a `<style scoped>` block (DLR-R-021 / CITAS-WIZ-001). '
-                . 'Tailwind utility classes + global token CSS own the visual surface.',
+                .'Tailwind utility classes + global token CSS own the visual surface.',
                 $path
             )
         );
@@ -267,12 +267,12 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      */
     public function test_wizard_use_consultation_contract_preserved(): void
     {
-        $wizardPath = dirname(__DIR__, 3) . self::WIZARD_PATH;
+        $wizardPath = dirname(__DIR__, 3).self::WIZARD_PATH;
         $wizardSrc = self::readSource($wizardPath);
         $this->assertNotNull($wizardSrc, sprintf('%s must be readable.', $wizardPath));
 
         // 1) The composable file still exports the canonical public surface.
-        $composablePath = dirname(__DIR__, 3) . '/resources/js/composables/useConsultation.js';
+        $composablePath = dirname(__DIR__, 3).'/resources/js/composables/useConsultation.js';
         $composableSrc = self::readSource($composablePath);
         $this->assertNotNull($composableSrc, sprintf('%s must be readable.', $composablePath));
 
@@ -305,7 +305,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
         foreach ($requiredComposableKeys as $key) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#return\s*\{[^}]*?\b' . preg_quote($key, '#') . '\b[^}]*?\}#s',
+                    '#return\s*\{[^}]*?\b'.preg_quote($key, '#').'\b[^}]*?\}#s',
                     $composableSrc
                 ),
                 sprintf(
@@ -391,7 +391,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
         ];
         foreach ($wizardLocalKeys as $key) {
             $this->assertTrue(
-                (bool) preg_match('#\b' . preg_quote($key, '#') . '\b#', $wizardSrc),
+                (bool) preg_match('#\b'.preg_quote($key, '#').'\b#', $wizardSrc),
                 sprintf(
                     '%s MUST keep the wizard-local identifier `%s` (CITAS-CON-001).',
                     $wizardPath,
@@ -403,10 +403,11 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

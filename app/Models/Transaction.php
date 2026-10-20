@@ -33,14 +33,14 @@ class Transaction extends Model
         'reference_number',
         'metadata',
         'status',
-        'processed_at'
+        'processed_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'metadata' => 'array',
-        'processed_at' => 'datetime'
+        'processed_at' => 'datetime',
     ];
 
     // Relaciones

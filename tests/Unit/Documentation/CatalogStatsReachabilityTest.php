@@ -23,7 +23,7 @@ class CatalogStatsReachabilityTest extends TestCase
 
     private static function read(string $relative): string
     {
-        $path = self::projectRoot() . $relative;
+        $path = self::projectRoot().$relative;
         self::assertFileExists($path, "{$relative} must exist");
         $src = file_get_contents($path);
         self::assertIsString($src, "{$relative} must be readable");

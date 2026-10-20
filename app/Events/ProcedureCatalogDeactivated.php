@@ -21,14 +21,13 @@ class ProcedureCatalogDeactivated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Collection<int, User>  $notifiedUsers
+     * @param \Illuminate\Database\Eloquent\Collection<int, User> $notifiedUsers
      */
     public function __construct(
         public readonly ProcedureCatalog $procedure,
         public readonly ?User $deactivatedBy,
         public readonly iterable $notifiedUsers,
-    ) {
-    }
+    ) {}
 
     public function broadcastOn(): array
     {

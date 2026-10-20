@@ -17,11 +17,11 @@ class ToothSurface extends Model
         'surface_name',
         'abbreviation',
         'description',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

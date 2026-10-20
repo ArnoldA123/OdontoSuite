@@ -43,4 +43,3 @@ class MedicalRecordCreated implements ShouldBroadcast
         ];
     }
 }
-

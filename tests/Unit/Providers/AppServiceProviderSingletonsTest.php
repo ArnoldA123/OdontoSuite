@@ -20,7 +20,10 @@ use PHPUnit\Framework\TestCase;
  */
 class AppServiceProviderSingletonsTest extends TestCase
 {
-private static function providerFile(): string { return dirname(__DIR__, 3) . '/app/Providers/AppServiceProvider.php'; }
+    private static function providerFile(): string
+    {
+        return dirname(__DIR__, 3).'/app/Providers/AppServiceProvider.php';
+    }
 
     public function test_app_service_provider_register_does_not_contain_redundant_singletons(): void
     {

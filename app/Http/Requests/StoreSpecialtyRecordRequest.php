@@ -45,7 +45,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'ortodoncia' => ['odontologo', 'administrador'],
             'endodoncia' => ['odontologo', 'administrador'],
             'rehabilitacion' => ['odontologo', 'administrador'],
-            'cirugia_oral' => ['odontologo', 'administrador']
+            'cirugia_oral' => ['odontologo', 'administrador'],
         ];
 
         return in_array($user->role, $specialtyMap[$specialty] ?? []);
@@ -105,7 +105,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'status' => 'sometimes|nullable|in:placed,healing,loaded,failed,removed',
                 'surgical_notes' => 'sometimes|nullable|string|max:2000',
                 'post_surgical_notes' => 'sometimes|nullable|string|max:2000',
-                'torque_value' => 'sometimes|nullable|numeric|min:0|max:999.99'
+                'torque_value' => 'sometimes|nullable|numeric|min:0|max:999.99',
             ],
             'ortodoncia' => [
                 'treatment_type' => 'required|string|max:50',
@@ -118,7 +118,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'current_notes' => 'sometimes|nullable|string|max:2000',
                 'activation_notes' => 'sometimes|nullable|string|max:2000',
                 'progress_notes' => 'sometimes|nullable|string|max:2000',
-                'retention_plan' => 'sometimes|nullable|string|max:1000'
+                'retention_plan' => 'sometimes|nullable|string|max:1000',
             ],
             'endodoncia' => [
                 'tooth_number' => 'required|string|max:10',
@@ -137,7 +137,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'obturation_technique' => 'sometimes|nullable|string|max:200',
                 'obturation_materials' => 'sometimes|nullable|string|max:500',
                 'treatment_status' => 'sometimes|nullable|in:in_progress,completed,failed,retreatment',
-                'treatment_completion_date' => 'sometimes|nullable|date|before_or_equal:today'
+                'treatment_completion_date' => 'sometimes|nullable|date|before_or_equal:today',
             ],
             'rehabilitacion' => [
                 'restoration_type' => 'required|string|max:50',
@@ -155,7 +155,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'try_in_notes' => 'sometimes|nullable|string|max:1000',
                 'cementation_notes' => 'sometimes|nullable|string|max:1000',
                 'warranty_period' => 'sometimes|nullable|integer|min:0|max:120',
-                'status' => 'sometimes|nullable|in:in_progress,in_laboratory,ready_for_try_in,try_in_scheduled,completed,failed'
+                'status' => 'sometimes|nullable|in:in_progress,in_laboratory,ready_for_try_in,try_in_scheduled,completed,failed',
             ],
             'cirugia_oral' => [
                 'procedure_type' => 'required|string|max:50',
@@ -175,7 +175,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'healing_assessment' => 'sometimes|nullable|string|max:1000',
                 'suture_removal_date' => 'sometimes|nullable|date|after:surgery_date',
                 'final_assessment' => 'sometimes|nullable|string|max:1000',
-                'status' => 'sometimes|nullable|in:scheduled,in_progress,completed,in_recovery,follow_up,healed'
+                'status' => 'sometimes|nullable|in:scheduled,in_progress,completed,in_recovery,follow_up,healed',
             ],
             default => []
         };
@@ -209,7 +209,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'material_type.required' => 'El tipo de material es obligatorio',
             'procedure_type.required' => 'El tipo de procedimiento es obligatorio',
             'surgery_date.required' => 'La fecha de cirugía es obligatoria',
-            'surgery_date.before_or_equal' => 'La fecha de cirugía no puede ser futura'
+            'surgery_date.before_or_equal' => 'La fecha de cirugía no puede ser futura',
         ];
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class WorkSchedule extends Model
 {
@@ -55,6 +55,7 @@ class WorkSchedule extends Model
     public function isTimeWithinSchedule(Carbon $time): bool
     {
         $timeOnly = $time->format('H:i');
+
         return $timeOnly >= $this->start_time->format('H:i') &&
                $timeOnly <= $this->end_time->format('H:i');
     }

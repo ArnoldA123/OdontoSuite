@@ -17,7 +17,7 @@ class SqliteMigrateFreshDeclarationTest extends TestCase
         // Issue #79: el esquema no se construye en SQLite. Este test fija la
         // limitación observada: si algún día pasa, la declaración de §6 debe
         // retirarse en el mismo cambio (el test lo exige fallando).
-        if (!in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
             $this->markTestSkipped('pdo_sqlite not available in this environment');
         }
         $db = sys_get_temp_dir().'/osa-sqlite-79-'.uniqid('', true).'.sqlite';
@@ -27,7 +27,9 @@ class SqliteMigrateFreshDeclarationTest extends TestCase
         $lines = [];
         $status = 0;
         exec($command, $lines, $status);
-        if (file_exists($db)) { unlink($db); }
+        if (file_exists($db)) {
+            unlink($db);
+        }
         $output = implode("\n", $lines);
         $this->assertNotSame(0, $status, 'migrate:fresh on SQLite must fail (known limitation, issue #79)');
         $this->assertStringContainsString('idx_transactions_patient_type_status', $output);

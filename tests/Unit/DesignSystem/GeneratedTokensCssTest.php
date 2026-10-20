@@ -3,7 +3,6 @@
 namespace Tests\Unit\DesignSystem;
 
 use PHPUnit\Framework\TestCase;
-
 use Tests\Support\SourceGrep;
 
 /**
@@ -56,12 +55,12 @@ class GeneratedTokensCssTest extends TestCase
 
     private static function generatedCssPath(): string
     {
-        return self::projectRoot() . self::GENERATED_CSS_REL;
+        return self::projectRoot().self::GENERATED_CSS_REL;
     }
 
     private static function fontPath(): string
     {
-        return self::projectRoot() . self::FONT_REL;
+        return self::projectRoot().self::FONT_REL;
     }
 
     /**
@@ -71,10 +70,11 @@ class GeneratedTokensCssTest extends TestCase
     private static function readGeneratedCss(): ?string
     {
         $path = self::generatedCssPath();
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -107,7 +107,7 @@ class GeneratedTokensCssTest extends TestCase
         $this->assertSame(
             1,
             (int) $count,
-            'tokens.generated.css must contain exactly 1 top-level :root block, got ' . var_export($count, true)
+            'tokens.generated.css must contain exactly 1 top-level :root block, got '.var_export($count, true)
         );
     }
 
@@ -121,9 +121,9 @@ class GeneratedTokensCssTest extends TestCase
     public function generated_css_has_no_external_font_request(): void
     {
         $root = self::projectRoot();
-        $count = self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/css')
-            + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/js')
-            + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root . '/resources/views');
+        $count = self::grepCount('fonts\.googleapis|fonts\.gstatic', $root.'/resources/css')
+            + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root.'/resources/js')
+            + self::grepCount('fonts\.googleapis|fonts\.gstatic', $root.'/resources/views');
 
         $this->assertSame(
             0,
@@ -170,7 +170,7 @@ class GeneratedTokensCssTest extends TestCase
         $this->assertSame(
             1,
             (int) $count,
-            '.surface-glass class must be emitted exactly once at top level in tokens.generated.css, got ' . var_export($count, true)
+            '.surface-glass class must be emitted exactly once at top level in tokens.generated.css, got '.var_export($count, true)
         );
     }
 
@@ -182,7 +182,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function card_variant_glass_has_no_backdrop_filter(): void
     {
-        $cardPath = self::projectRoot() . '/resources/js/components/ui/Card.vue';
+        $cardPath = self::projectRoot().'/resources/js/components/ui/Card.vue';
         $this->assertFileExists($cardPath, 'Card.vue must exist');
 
         $count = self::grepCount('backdrop-filter', $cardPath);
@@ -202,7 +202,7 @@ class GeneratedTokensCssTest extends TestCase
      */
     public function primitives_have_no_backdrop_filter_outside_chrome(): void
     {
-        $uiDir = self::projectRoot() . '/resources/js/components/ui';
+        $uiDir = self::projectRoot().'/resources/js/components/ui';
         $total = self::grepCount('backdrop-filter', $uiDir);
         // Card.vue is excluded (covered separately by 2.1.9). After PR2 no
         // other primitive carries a backdrop-filter; chrome lives in
@@ -226,9 +226,9 @@ class GeneratedTokensCssTest extends TestCase
     {
         $root = self::projectRoot();
         $candidates = [
-            $root . '/resources/css/themes.css',
-            $root . '/resources/css/tokens.generated.css',
-            $root . '/resources/css/utilities.css',
+            $root.'/resources/css/themes.css',
+            $root.'/resources/css/tokens.generated.css',
+            $root.'/resources/css/utilities.css',
         ];
         $existing = array_values(array_filter($candidates, 'is_file'));
         $this->assertNotEmpty($existing, 'At least one CSS surface must exist for the universal-selector guard');
@@ -265,7 +265,7 @@ class GeneratedTokensCssTest extends TestCase
         $this->assertNotNull($tokens, 'loadTokensColors() must succeed');
         $expected = [];
         foreach ($tokens as $ramp) {
-            if (!is_array($ramp)) {
+            if (! is_array($ramp)) {
                 continue;
             }
             foreach ($ramp as $step => $value) {
@@ -289,12 +289,12 @@ class GeneratedTokensCssTest extends TestCase
         $this->assertSame(
             [],
             $missing,
-            'tokens.generated.css is missing hex values declared in tokens.js: ' . implode(', ', array_keys($missing))
+            'tokens.generated.css is missing hex values declared in tokens.js: '.implode(', ', array_keys($missing))
         );
         $this->assertSame(
             [],
             $extra,
-            'tokens.generated.css contains hex values NOT declared in tokens.js (drift detected): ' . implode(', ', array_keys($extra))
+            'tokens.generated.css contains hex values NOT declared in tokens.js (drift detected): '.implode(', ', array_keys($extra))
         );
     }
 
@@ -316,8 +316,8 @@ class GeneratedTokensCssTest extends TestCase
      */
     private static function loadTokensSubtree(string $key): ?array
     {
-        $tokensPath = self::projectRoot() . '/resources/js/design-system/tokens.js';
-        if (!is_file($tokensPath)) {
+        $tokensPath = self::projectRoot().'/resources/js/design-system/tokens.js';
+        if (! is_file($tokensPath)) {
             return null;
         }
         $escapedPath = addcslashes($tokensPath, "'\\");
@@ -330,16 +330,16 @@ process.stdout.write(JSON.stringify(root[SUBTREE] ?? null));
 JS;
         $loader = str_replace(
             ['TARGET_PATH', 'SUBTREE'],
-            [$escapedPath, "'" . $key . "'"],
+            [$escapedPath, "'".$key."'"],
             $loader
         );
 
         $tmp = tempnam(sys_get_temp_dir(), 'tokens_colors_loader_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -351,6 +351,7 @@ JS;
             return null;
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return is_array($decoded) ? $decoded : null;
     }
 
@@ -384,7 +385,7 @@ JS;
             [],
             $dangling,
             'Generated CSS references custom properties it never defines: '
-                . implode(', ', $dangling)
+                .implode(', ', $dangling)
         );
     }
 
@@ -413,7 +414,7 @@ JS;
         self::assertSame(
             [],
             $camelCased,
-            'Custom properties must be kebab-case; found: ' . implode(', ', $camelCased)
+            'Custom properties must be kebab-case; found: '.implode(', ', $camelCased)
         );
     }
 
@@ -425,7 +426,7 @@ JS;
 
         foreach (['fast' => '120ms', 'normal' => '200ms', 'slow' => '320ms'] as $step => $value) {
             $this->assertMatchesRegularExpression(
-                '/--motion-duration-' . $step . '\s*:\s*' . $value . '\s*;/',
+                '/--motion-duration-'.$step.'\s*:\s*'.$value.'\s*;/',
                 (string) $css,
                 "tokens.generated.css must declare --motion-duration-{$step}: {$value};"
             );
@@ -460,7 +461,7 @@ JS;
 
         $this->assertMatchesRegularExpression('/--focus-ring-width\s*:\s*3px\s*;/', (string) $css);
         $this->assertMatchesRegularExpression(
-            '/--focus-ring-color\s*:\s*' . preg_quote($accentHex, '/') . '\s*[;)]/i',
+            '/--focus-ring-color\s*:\s*'.preg_quote($accentHex, '/').'\s*[;)]/i',
             (string) $css,
             "tokens.generated.css must declare --focus-ring-color as the accent from tokens.js ({$accentHex}, hex case-insensitive)"
         );
@@ -468,8 +469,8 @@ JS;
         $this->assertMatchesRegularExpression('/--focus-ring-offset\s*:\s*2px\s*;/', (string) $css);
         $this->assertMatchesRegularExpression(
             '/--focus-ring-default\s*:\s*0\s+0\s+0\s+var\(--focus-ring-width\)\s+rgba\(\s*'
-                . $r . '\s*,\s*' . $g . '\s*,\s*' . $b
-                . '\s*,\s*var\(--focus-ring-alpha\)\)\s*;/',
+                .$r.'\s*,\s*'.$g.'\s*,\s*'.$b
+                .'\s*,\s*var\(--focus-ring-alpha\)\)\s*;/',
             (string) $css,
             'tokens.generated.css must declare the composed --focus-ring-default shorthand built from the accent'
         );
@@ -525,7 +526,7 @@ JS;
 
         for ($rung = 1; $rung <= 4; $rung++) {
             $this->assertMatchesRegularExpression(
-                '/--elevation-' . $rung . '\s*:/',
+                '/--elevation-'.$rung.'\s*:/',
                 (string) $css,
                 "tokens.generated.css must declare --elevation-{$rung}"
             );
@@ -581,7 +582,7 @@ JS;
         $this->assertNotSame('', $hairline, 'tokens.colors.border.hairline must exist');
 
         $this->assertMatchesRegularExpression(
-            '/--color-hairline\s*:\s*' . preg_quote($hairline, '/') . '\s*;/',
+            '/--color-hairline\s*:\s*'.preg_quote($hairline, '/').'\s*;/',
             (string) $css,
             "tokens.generated.css must declare --color-hairline: {$hairline}; (mirroring tokens.js)"
         );
@@ -615,7 +616,7 @@ JS;
             $this->assertNotSame(
                 0,
                 $exitCode,
-                'The generator must exit non-zero when tokens.colors.border.hairline is missing. Output: ' . $output
+                'The generator must exit non-zero when tokens.colors.border.hairline is missing. Output: '.$output
             );
             $this->assertStringContainsString(
                 'refusing to emit a hardcoded fallback',
@@ -623,7 +624,7 @@ JS;
                 'The generator must say WHY it refused; a bare failure is a silent fallback by another name.'
             );
             $this->assertFileDoesNotExist(
-                $fixture . '/resources/css/tokens.generated.css',
+                $fixture.'/resources/css/tokens.generated.css',
                 'A refused run must not leave a partial stylesheet behind: that is the silent-drift failure mode.'
             );
         } finally {
@@ -653,13 +654,13 @@ JS;
 
         try {
             [$exitCode, $output] = self::runGenerator($fixture);
-            $this->assertSame(0, $exitCode, 'The generator must succeed on a valid fixture. Output: ' . $output);
+            $this->assertSame(0, $exitCode, 'The generator must succeed on a valid fixture. Output: '.$output);
 
-            $cssPath = $fixture . '/resources/css/tokens.generated.css';
+            $cssPath = $fixture.'/resources/css/tokens.generated.css';
             $this->assertFileExists($cssPath, 'A successful run must write the stylesheet.');
 
             $this->assertStringContainsString(
-                '--color-hairline: ' . $sentinel . ';',
+                '--color-hairline: '.$sentinel.';',
                 (string) file_get_contents($cssPath),
                 'The emitted --color-hairline must echo the token value read from tokens.js.'
             );
@@ -676,26 +677,26 @@ JS;
     private static function makeGeneratorFixture(callable $transformTokens): string
     {
         $projectRoot = self::projectRoot();
-        $root = rtrim(sys_get_temp_dir(), '/\\') . '/odonto-tokens-gen-' . bin2hex(random_bytes(6));
+        $root = rtrim(sys_get_temp_dir(), '/\\').'/odonto-tokens-gen-'.bin2hex(random_bytes(6));
 
         foreach (['/scripts', '/resources/js/design-system', '/resources/css'] as $sub) {
-            $dir = $root . $sub;
-            if (!is_dir($dir)) {
+            $dir = $root.$sub;
+            if (! is_dir($dir)) {
                 @mkdir($dir, 0777, true);
             }
             self::assertDirectoryExists($dir, "Could not create fixture directory {$dir}");
         }
 
-        copy($projectRoot . '/scripts/build-tokens-css.mjs', $root . '/scripts/build-tokens-css.mjs');
+        copy($projectRoot.'/scripts/build-tokens-css.mjs', $root.'/scripts/build-tokens-css.mjs');
 
-        $tokensSrc = (string) file_get_contents($projectRoot . '/resources/js/design-system/tokens.js');
+        $tokensSrc = (string) file_get_contents($projectRoot.'/resources/js/design-system/tokens.js');
         $transformed = $transformTokens($tokensSrc);
         self::assertNotSame(
             $tokensSrc,
             $transformed,
             'Fixture transform changed nothing — the test would pass vacuously.'
         );
-        file_put_contents($root . '/resources/js/design-system/tokens.js', $transformed);
+        file_put_contents($root.'/resources/js/design-system/tokens.js', $transformed);
 
         return $root;
     }
@@ -707,14 +708,14 @@ JS;
     {
         $output = [];
         $exitCode = 0;
-        exec('node ' . escapeshellarg($fixtureRoot . '/scripts/build-tokens-css.mjs') . ' 2>&1', $output, $exitCode);
+        exec('node '.escapeshellarg($fixtureRoot.'/scripts/build-tokens-css.mjs').' 2>&1', $output, $exitCode);
 
         return [$exitCode, implode("\n", $output)];
     }
 
     private static function removeDirectory(string $path): void
     {
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return;
         }
 
@@ -749,11 +750,11 @@ JS;
             $this->assertArrayHasKey($key, $radius, "tokens.radius.{$key} must exist");
 
             // Mirror of the generator's toKebab() (scripts/build-tokens-css.mjs).
-            $cssName = '--radius-' . strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1-$2', $key));
+            $cssName = '--radius-'.strtolower(preg_replace('/([a-z0-9])([A-Z])/', '$1-$2', $key));
             $value = preg_quote((string) $radius[$key], '/');
 
             $this->assertMatchesRegularExpression(
-                '/' . preg_quote($cssName, '/') . '\s*:\s*' . $value . '\s*;/',
+                '/'.preg_quote($cssName, '/').'\s*:\s*'.$value.'\s*;/',
                 (string) $css,
                 "tokens.generated.css must declare {$cssName}: {$radius[$key]};"
             );
@@ -795,7 +796,7 @@ JS;
         $root = self::projectRoot();
 
         $defined = [];
-        foreach (glob($root . '/resources/css/*.css') ?: [] as $cssFile) {
+        foreach (glob($root.'/resources/css/*.css') ?: [] as $cssFile) {
             preg_match_all('/(--color-[a-z0-9-]+)\s*:/i', (string) file_get_contents($cssFile), $m);
             foreach ($m[1] as $name) {
                 $defined[$name] = true;
@@ -805,15 +806,15 @@ JS;
 
         $dangling = [];
         $rii = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($root . '/resources/js', \FilesystemIterator::SKIP_DOTS)
+            new \RecursiveDirectoryIterator($root.'/resources/js', \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($rii as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'vue') {
+            if (! $file->isFile() || $file->getExtension() !== 'vue') {
                 continue;
             }
             preg_match_all('/var\(\s*(--color-[a-z0-9-]+)/i', (string) file_get_contents($file->getPathname()), $m);
             foreach ($m[1] as $name) {
-                if (!isset($defined[$name])) {
+                if (! isset($defined[$name])) {
                     $dangling[$name][] = basename($file->getPathname());
                 }
             }
@@ -828,7 +829,7 @@ JS;
             [],
             $dangling,
             'Vue components reference colour custom properties that no stylesheet defines. '
-                . 'They resolve to `unset` at runtime and fall back to the browser default:' . $report
+                .'They resolve to `unset` at runtime and fall back to the browser default:'.$report
         );
     }
 }

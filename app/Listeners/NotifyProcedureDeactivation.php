@@ -30,7 +30,7 @@ class NotifyProcedureDeactivation
         } catch (\Throwable $e) {
             // AGENTS.md §7: listener MUST swallow + log + report. Failure
             // here MUST NOT crash the procedure deactivation flow.
-            Log::error('NotifyProcedureDeactivation failed: ' . $e->getMessage(), [
+            Log::error('NotifyProcedureDeactivation failed: '.$e->getMessage(), [
                 'procedure_id' => $event->procedure->id ?? null,
                 'exception' => $e,
             ]);

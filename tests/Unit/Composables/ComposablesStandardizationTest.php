@@ -21,11 +21,14 @@ use PHPUnit\Framework\TestCase;
  */
 class ComposablesStandardizationTest extends TestCase
 {
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /**
      * @return array<string, array<string, bool>>
-     *   Map of composable basename => map of exposed members => true/false.
+     *                                            Map of composable basename => map of exposed members => true/false
      */
     private function exposedMembers(): array
     {
@@ -40,9 +43,10 @@ class ComposablesStandardizationTest extends TestCase
 
         $report = [];
         foreach ($candidates as $name) {
-            $file = self::projectRootPath() . "/resources/js/composables/{$name}.js";
-            if (!is_file($file)) {
+            $file = self::projectRootPath()."/resources/js/composables/{$name}.js";
+            if (! is_file($file)) {
                 $report[$name] = ['exists' => false];
+
                 continue;
             }
             $source = file_get_contents($file);
@@ -58,6 +62,7 @@ class ComposablesStandardizationTest extends TestCase
                 'hasFetcher' => $this->hasFetcher($source),
             ];
         }
+
         return $report;
     }
 
@@ -77,6 +82,7 @@ class ComposablesStandardizationTest extends TestCase
         foreach ($report as $name => $info) {
             if ($info['exists'] === false) {
                 $this->markTestSkipped("Composable {$name} does not exist (out of scope for this project)");
+
                 continue;
             }
             $this->assertTrue(
@@ -97,10 +103,12 @@ class ComposablesStandardizationTest extends TestCase
         foreach ($report as $name => $info) {
             if ($info['exists'] === false) {
                 $this->markTestSkipped("Composable {$name} does not exist");
+
                 continue;
             }
             if ($info['hasFetcher'] === false) {
                 $this->markTestSkipped("{$name} has no fetcher; refresh/retry N/A");
+
                 continue;
             }
             $this->assertTrue(
@@ -134,11 +142,12 @@ class ComposablesStandardizationTest extends TestCase
         foreach ($report as $name => $info) {
             if ($info['exists'] === false) {
                 $this->markTestSkipped("Composable {$name} does not exist");
+
                 continue;
             }
-            $source = file_get_contents(self::projectRootPath() . "/resources/js/composables/{$name}.js");
+            $source = file_get_contents(self::projectRootPath()."/resources/js/composables/{$name}.js");
             $collection = $allowedCollections[$name];
-            $hasCollection = (bool) preg_match('/\b' . preg_quote($collection, '/') . '\b/', $source);
+            $hasCollection = (bool) preg_match('/\b'.preg_quote($collection, '/').'\b/', $source);
             $hasData = $info['hasData'];
             $this->assertTrue(
                 $hasCollection || $hasData,

@@ -2,15 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\CashRegisterSession;
-use App\Models\Transaction;
+use App\Models\Branch;
 use App\Models\CashMovement;
+use App\Models\CashRegisterSession;
 use App\Models\Patient;
 use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use App\Models\User;
-use App\Models\Branch;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class CashRegisterSeeder extends Seeder
 {
@@ -27,6 +27,7 @@ class CashRegisterSeeder extends Seeder
 
         if ($users->isEmpty() || $branches->isEmpty() || $patients->isEmpty() || $paymentMethods->isEmpty()) {
             $this->command->warn('No hay suficientes datos para crear sesiones de caja. Ejecute otros seeders primero.');
+
             return;
         }
 
@@ -42,8 +43,8 @@ class CashRegisterSeeder extends Seeder
                 'branch_id' => $branch->id,
                 'opening_amount' => rand(50, 200),
                 'opened_at' => $date->copy()->setTime(8, 0),
-                'opening_notes' => 'Apertura de caja - ' . $date->format('d/m/Y'),
-                'status' => $i < 5 ? 'open' : 'closed'
+                'opening_notes' => 'Apertura de caja - '.$date->format('d/m/Y'),
+                'status' => $i < 5 ? 'open' : 'closed',
             ]);
 
             // Crear transacciones para la sesión
@@ -61,7 +62,7 @@ class CashRegisterSeeder extends Seeder
                     'expected_amount' => $expectedAmount,
                     'difference_amount' => $closingAmount - $expectedAmount,
                     'closed_at' => $date->copy()->setTime(18, 0),
-                    'closing_notes' => 'Cierre de caja - ' . $date->format('d/m/Y')
+                    'closing_notes' => 'Cierre de caja - '.$date->format('d/m/Y'),
                 ]);
             }
 
@@ -73,7 +74,7 @@ class CashRegisterSeeder extends Seeder
     }
 
     /**
-     * Crear transacciones para una sesión
+     * Crear transacciones para una sesión.
      */
     private function createTransactionsForSession($session, $patients, $paymentMethods)
     {
@@ -93,20 +94,20 @@ class CashRegisterSeeder extends Seeder
                 'payment_method_id' => $paymentMethod->id,
                 'cash_register_session_id' => $session->id,
                 'created_by' => $session->user_id,
-                'transaction_number' => 'TXN-' . $session->opened_at->format('Ymd') . '-' . str_pad($session->id . $i + 1, 4, '0', STR_PAD_LEFT),
+                'transaction_number' => 'TXN-'.$session->opened_at->format('Ymd').'-'.str_pad($session->id.$i + 1, 4, '0', STR_PAD_LEFT),
                 'type' => $type,
                 'amount' => $amount,
                 'subtotal' => $amount,
                 'discount_amount' => rand(0, 1) ? rand(5, 20) : 0,
                 'discount_type' => rand(0, 1) ? 'percentage' : 'fixed',
                 'description' => $type === 'income' ?
-                    'Pago de consulta - ' . $patient->name . ' ' . $patient->last_name :
-                    'Gasto operativo - ' . $this->getRandomExpenseDescription(),
+                    'Pago de consulta - '.$patient->name.' '.$patient->last_name :
+                    'Gasto operativo - '.$this->getRandomExpenseDescription(),
                 'notes' => rand(0, 1) ? 'Transacción de prueba' : null,
-                'reference_number' => $paymentMethod->name === 'Tarjeta' ? 'TXN' . rand(100000, 999999) : null,
+                'reference_number' => $paymentMethod->name === 'Tarjeta' ? 'TXN'.rand(100000, 999999) : null,
                 'status' => 'completed',
                 'processed_at' => $session->opened_at->copy()->addHours(rand(1, 8))->addMinutes(rand(0, 59)),
-                'created_at' => $session->opened_at->copy()->addHours(rand(1, 8))->addMinutes(rand(0, 59))
+                'created_at' => $session->opened_at->copy()->addHours(rand(1, 8))->addMinutes(rand(0, 59)),
             ]);
 
             $transactions->push($transaction);
@@ -116,7 +117,7 @@ class CashRegisterSeeder extends Seeder
     }
 
     /**
-     * Crear movimientos de caja para una sesión
+     * Crear movimientos de caja para una sesión.
      */
     private function createMovementsForSession($session)
     {
@@ -130,8 +131,8 @@ class CashRegisterSeeder extends Seeder
             'amount' => $session->opening_amount,
             'description' => 'Apertura de caja',
             'notes' => $session->opening_notes,
-            'reference' => 'OPEN-' . $session->id,
-            'created_at' => $session->opened_at
+            'reference' => 'OPEN-'.$session->id,
+            'created_at' => $session->opened_at,
         ]);
 
         // Movimientos adicionales
@@ -146,11 +147,11 @@ class CashRegisterSeeder extends Seeder
                 'type' => $type,
                 'amount' => $amount,
                 'description' => $type === 'income' ?
-                    'Ingreso adicional - ' . $this->getRandomIncomeDescription() :
-                    'Egreso - ' . $this->getRandomExpenseDescription(),
+                    'Ingreso adicional - '.$this->getRandomIncomeDescription() :
+                    'Egreso - '.$this->getRandomExpenseDescription(),
                 'notes' => 'Movimiento de prueba',
-                'reference' => 'MOV-' . $session->id . '-' . ($i + 1),
-                'created_at' => $session->opened_at->copy()->addHours(rand(1, 8))->addMinutes(rand(0, 59))
+                'reference' => 'MOV-'.$session->id.'-'.($i + 1),
+                'created_at' => $session->opened_at->copy()->addHours(rand(1, 8))->addMinutes(rand(0, 59)),
             ]);
         }
 
@@ -163,8 +164,8 @@ class CashRegisterSeeder extends Seeder
                 'amount' => $session->closing_amount,
                 'description' => 'Cierre de caja',
                 'notes' => $session->closing_notes,
-                'reference' => 'CLOSE-' . $session->id,
-                'created_at' => $session->closed_at
+                'reference' => 'CLOSE-'.$session->id,
+                'created_at' => $session->closed_at,
             ]);
         }
 
@@ -172,7 +173,7 @@ class CashRegisterSeeder extends Seeder
     }
 
     /**
-     * Obtener descripción aleatoria de ingreso
+     * Obtener descripción aleatoria de ingreso.
      */
     private function getRandomIncomeDescription()
     {
@@ -181,14 +182,14 @@ class CashRegisterSeeder extends Seeder
             'Servicio adicional',
             'Pago de cuota',
             'Reembolso de paciente',
-            'Ingreso por comisión'
+            'Ingreso por comisión',
         ];
 
         return $descriptions[array_rand($descriptions)];
     }
 
     /**
-     * Obtener descripción aleatoria de egreso
+     * Obtener descripción aleatoria de egreso.
      */
     private function getRandomExpenseDescription()
     {
@@ -197,10 +198,9 @@ class CashRegisterSeeder extends Seeder
             'Gasto de mantenimiento',
             'Pago de servicios',
             'Retiro de efectivo',
-            'Gasto administrativo'
+            'Gasto administrativo',
         ];
 
         return $descriptions[array_rand($descriptions)];
     }
 }
-

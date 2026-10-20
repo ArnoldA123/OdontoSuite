@@ -19,15 +19,26 @@ class SpecialtyRecordValidationTest extends TestCase
     public function test_authorize_does_not_throw_when_specialty_null(): void
     {
         // Create a fake logged-in user (we don't need DB — just Auth context)
-        $request = new StoreSpecialtyRecordRequest();
+        $request = new StoreSpecialtyRecordRequest;
         // setUser via container; we want the case where 'specialty' is missing
         $this->app->instance('auth.driver', function () {
-            $mock = new class {
-                public function user() { return null; }
-                public function id() { return null; }
-                public function check() { return false; }
-                public function guest() { return true; }
+            $mock = new class
+            {
+                public function user() {}
+
+                public function id() {}
+
+                public function check()
+                {
+                    return false;
+                }
+
+                public function guest()
+                {
+                    return true;
+                }
             };
+
             return $mock;
         });
         // Override UserResolver to return null in case Auth::user() returns a real user
@@ -43,7 +54,7 @@ class SpecialtyRecordValidationTest extends TestCase
 
     public function test_rules_include_procedure_id(): void
     {
-        $rules = (new StoreSpecialtyRecordRequest())->rules();
+        $rules = (new StoreSpecialtyRecordRequest)->rules();
 
         $this->assertArrayHasKey('procedure_id', $rules);
         $this->assertStringContainsString('nullable', $rules['procedure_id']);

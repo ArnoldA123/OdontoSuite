@@ -13,7 +13,10 @@ use PHPUnit\Framework\TestCase;
  */
 class AppointmentControllerInjectionStyleTest extends TestCase
 {
-private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/AppointmentController.php'; }
+    private static function controllerFile(): string
+    {
+        return dirname(__DIR__, 3).'/app/Http/Controllers/Api/AppointmentController.php';
+    }
 
     public function test_appointment_controller_uses_private_readonly_services(): void
     {
@@ -41,7 +44,7 @@ private static function controllerFile(): string { return dirname(__DIR__, 3) . 
             '/public function __construct\(\s*(?:public|private|protected)\s+readonly\s+AppointmentService\s+\$appointmentService\s*,?\s*\)/',
             $source
         );
-        $hasNoServiceAtAll = !str_contains($source, 'AppointmentService');
+        $hasNoServiceAtAll = ! str_contains($source, 'AppointmentService');
 
         $this->assertTrue(
             $hasConstructorPromotion || $hasNoServiceAtAll,

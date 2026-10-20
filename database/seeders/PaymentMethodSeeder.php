@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\PaymentMethod;
+use Illuminate\Database\Seeder;
 
 /**
  * Sprint 0 (B-CASH-2): poblar tabla payment_methods con 5 metodos base

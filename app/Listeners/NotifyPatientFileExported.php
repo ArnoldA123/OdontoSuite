@@ -46,7 +46,7 @@ class NotifyPatientFileExported
                     ]
                 );
             } catch (\Exception $e) {
-                Log::warning('AuditLog failed for PatientFileExported: ' . $e->getMessage());
+                Log::warning('AuditLog failed for PatientFileExported: '.$e->getMessage());
             }
         }
 
@@ -66,7 +66,7 @@ class NotifyPatientFileExported
                     }
                 );
             } catch (\Exception $e) {
-                Log::warning('Email notification failed for PatientFileExported: ' . $e->getMessage());
+                Log::warning('Email notification failed for PatientFileExported: '.$e->getMessage());
             }
         }
     }

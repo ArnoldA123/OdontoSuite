@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Patient;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
-use App\Models\User;
 use App\Models\Branch;
+use App\Models\Patient;
 use App\Models\TreatmentPlan;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class CompletedAppointmentsSeeder extends Seeder
 {
@@ -23,8 +23,9 @@ class CompletedAppointmentsSeeder extends Seeder
         $appointmentTypes = AppointmentType::all();
         $professionals = User::whereIn('role', ['dentista', 'administrador', 'recepcionista'])->get();
 
-        if (!$branch || $appointmentTypes->isEmpty() || $professionals->isEmpty()) {
+        if (! $branch || $appointmentTypes->isEmpty() || $professionals->isEmpty()) {
             $this->command->warn('No hay sucursales, tipos de cita o profesionales. Ejecuta primero los seeders básicos.');
+
             return;
         }
 
@@ -58,7 +59,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 322',
                 'medical_history' => 'Hipertensión controlada con medicación',
                 'allergies' => 'Penicilina',
-                'notes' => 'Paciente regular, buena higiene bucal'
+                'notes' => 'Paciente regular, buena higiene bucal',
             ],
             [
                 'first_name' => 'Carlos Alberto',
@@ -73,7 +74,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 324',
                 'medical_history' => 'Diabetes tipo 2, controlada con dieta',
                 'allergies' => 'Ninguna conocida',
-                'notes' => 'Paciente colaborador, asiste puntualmente'
+                'notes' => 'Paciente colaborador, asiste puntualmente',
             ],
             [
                 'first_name' => 'Ana Patricia',
@@ -88,7 +89,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 326',
                 'medical_history' => 'Sin antecedentes patológicos',
                 'allergies' => 'Látex',
-                'notes' => 'Paciente joven, excelente higiene bucal'
+                'notes' => 'Paciente joven, excelente higiene bucal',
             ],
             [
                 'first_name' => 'Roberto Carlos',
@@ -103,7 +104,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 328',
                 'medical_history' => 'Asma leve, controlado',
                 'allergies' => 'Polen, ácaros',
-                'notes' => 'Paciente deportista, requiere atención especial'
+                'notes' => 'Paciente deportista, requiere atención especial',
             ],
             [
                 'first_name' => 'Lucía Esperanza',
@@ -118,7 +119,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 330',
                 'medical_history' => 'Embarazo de 6 meses',
                 'allergies' => 'Ninguna conocida',
-                'notes' => 'Paciente embarazada, requiere cuidados especiales'
+                'notes' => 'Paciente embarazada, requiere cuidados especiales',
             ],
             [
                 'first_name' => 'Miguel Ángel',
@@ -133,7 +134,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 332',
                 'medical_history' => 'Hipertensión arterial',
                 'allergies' => 'Sulfamidas',
-                'notes' => 'Paciente con ansiedad dental, requiere sedación'
+                'notes' => 'Paciente con ansiedad dental, requiere sedación',
             ],
             [
                 'first_name' => 'Carmen Rosa',
@@ -148,7 +149,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 334',
                 'medical_history' => 'Sin antecedentes patológicos',
                 'allergies' => 'Ninguna conocida',
-                'notes' => 'Paciente modelo, excelente colaboración'
+                'notes' => 'Paciente modelo, excelente colaboración',
             ],
             [
                 'first_name' => 'Fernando José',
@@ -163,7 +164,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 336',
                 'medical_history' => 'Gastritis crónica',
                 'allergies' => 'Ibuprofeno',
-                'notes' => 'Paciente con reflujo gastroesofágico'
+                'notes' => 'Paciente con reflujo gastroesofágico',
             ],
             [
                 'first_name' => 'Sofía Alejandra',
@@ -178,7 +179,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 338',
                 'medical_history' => 'Sin antecedentes patológicos',
                 'allergies' => 'Ninguna conocida',
-                'notes' => 'Paciente universitaria, horarios flexibles'
+                'notes' => 'Paciente universitaria, horarios flexibles',
             ],
             [
                 'first_name' => 'Diego Armando',
@@ -193,8 +194,8 @@ class CompletedAppointmentsSeeder extends Seeder
                 'emergency_contact_phone' => '+51 987 654 340',
                 'medical_history' => 'Artritis reumatoide leve',
                 'allergies' => 'Metotrexato',
-                'notes' => 'Paciente con movilidad reducida'
-            ]
+                'notes' => 'Paciente con movilidad reducida',
+            ],
         ];
 
         foreach ($patients as $patientData) {
@@ -213,33 +214,33 @@ class CompletedAppointmentsSeeder extends Seeder
                 [
                     'patient_id' => $patient->id,
                     'created_by' => $users->random()->id,
-                    'plan_number' => 'TP-' . str_pad($index + 1, 4, '0', STR_PAD_LEFT),
+                    'plan_number' => 'TP-'.str_pad($index + 1, 4, '0', STR_PAD_LEFT),
                     'title' => 'Limpieza Dental Completa',
                     'description' => 'Limpieza profunda, eliminación de sarro y placa bacteriana',
                     'status' => 'approved',
                     'total_cost' => 150.00,
-                    'final_cost' => 150.00
+                    'final_cost' => 150.00,
                 ],
                 [
                     'patient_id' => $patient->id,
                     'created_by' => $users->random()->id,
-                    'plan_number' => 'TP-' . str_pad($index + 6, 4, '0', STR_PAD_LEFT),
+                    'plan_number' => 'TP-'.str_pad($index + 6, 4, '0', STR_PAD_LEFT),
                     'title' => 'Tratamiento de Caries',
                     'description' => 'Obturación con resina compuesta',
                     'status' => 'approved',
                     'total_cost' => 300.00,
-                    'final_cost' => 300.00
+                    'final_cost' => 300.00,
                 ],
                 [
                     'patient_id' => $patient->id,
                     'created_by' => $users->random()->id,
-                    'plan_number' => 'TP-' . str_pad($index + 11, 4, '0', STR_PAD_LEFT),
+                    'plan_number' => 'TP-'.str_pad($index + 11, 4, '0', STR_PAD_LEFT),
                     'title' => 'Ortodoncia Inicial',
                     'description' => 'Evaluación y plan de tratamiento ortodóntico',
                     'status' => 'approved',
                     'total_cost' => 500.00,
-                    'final_cost' => 500.00
-                ]
+                    'final_cost' => 500.00,
+                ],
             ];
 
             foreach ($treatmentPlans as $planData) {
@@ -253,12 +254,12 @@ class CompletedAppointmentsSeeder extends Seeder
         $today = Carbon::today();
         $dentalChair = \App\Models\DentalChair::first();
 
-        if (!$dentalChair) {
+        if (! $dentalChair) {
             $this->command->warn('No hay sillas dentales disponibles. Creando una...');
             $dentalChair = \App\Models\DentalChair::create([
                 'name' => 'Silla 1',
                 'location' => 'Consultorio 1',
-                'is_active' => true
+                'is_active' => true,
             ]);
         }
 
@@ -271,7 +272,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(8, 0),
                 'duration_minutes' => 60,
                 'notes' => 'Consulta de rutina, paciente asintomático',
-                'treatment_notes' => 'Limpieza dental realizada, sin hallazgos patológicos'
+                'treatment_notes' => 'Limpieza dental realizada, sin hallazgos patológicos',
             ],
             [
                 'patient' => $patients[1],
@@ -280,7 +281,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(9, 30),
                 'duration_minutes' => 90,
                 'notes' => 'Ajuste de brackets, progreso satisfactorio',
-                'treatment_notes' => 'Ajuste realizado en arco superior, próxima cita en 4 semanas'
+                'treatment_notes' => 'Ajuste realizado en arco superior, próxima cita en 4 semanas',
             ],
             [
                 'patient' => $patients[2],
@@ -289,7 +290,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(11, 0),
                 'duration_minutes' => 45,
                 'notes' => 'Caries en molar superior, requiere obturación',
-                'treatment_notes' => 'Obturación con resina compuesta en molar 16, sin complicaciones'
+                'treatment_notes' => 'Obturación con resina compuesta en molar 16, sin complicaciones',
             ],
             [
                 'patient' => $patients[3],
@@ -298,7 +299,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(14, 0),
                 'duration_minutes' => 120,
                 'notes' => 'Dolor intenso, requiere tratamiento de conducto',
-                'treatment_notes' => 'Endodoncia en molar 26, primera sesión completada, próxima cita en 1 semana'
+                'treatment_notes' => 'Endodoncia en molar 26, primera sesión completada, próxima cita en 1 semana',
             ],
             [
                 'patient' => $patients[4],
@@ -307,7 +308,7 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(16, 0),
                 'duration_minutes' => 75,
                 'notes' => 'Pérdida de dientes posteriores, requiere prótesis',
-                'treatment_notes' => 'Toma de impresiones para prótesis parcial removible'
+                'treatment_notes' => 'Toma de impresiones para prótesis parcial removible',
             ],
             [
                 'patient' => $patients[5],
@@ -316,8 +317,8 @@ class CompletedAppointmentsSeeder extends Seeder
                 'scheduled_at' => $today->copy()->setTime(17, 30),
                 'duration_minutes' => 30,
                 'notes' => 'Control post-tratamiento, evolución favorable',
-                'treatment_notes' => 'Control de limpieza, evolución excelente, próxima cita en 6 meses'
-            ]
+                'treatment_notes' => 'Control de limpieza, evolución excelente, próxima cita en 6 meses',
+            ],
         ];
 
         foreach ($appointments as $data) {
@@ -345,6 +346,6 @@ class CompletedAppointmentsSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Creadas ' . count($appointments) . ' citas del día actual con pagos pendientes.');
+        $this->command->info('Creadas '.count($appointments).' citas del día actual con pagos pendientes.');
     }
 }

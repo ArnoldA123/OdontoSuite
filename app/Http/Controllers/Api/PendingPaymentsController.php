@@ -4,24 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PendingPaymentsController extends Controller
 {
     /**
-     * Obtener pagos pendientes
+     * Obtener pagos pendientes.
      */
     public function index(Request $request): JsonResponse
     {
         // Verificar autenticación
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return response()->json([
-                'message' => 'No autorizado'
+                'message' => 'No autorizado',
             ], 401);
         }
 
@@ -38,7 +36,7 @@ class PendingPaymentsController extends Controller
                 $search = $request->get('search');
                 $query->whereHas('patient', function ($q) use ($search) {
                     $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
-                      ->orWhere('document_number', 'like', "%{$search}%");
+                        ->orWhere('document_number', 'like', "%{$search}%");
                 });
             }
 
@@ -115,15 +113,15 @@ class PendingPaymentsController extends Controller
                 'data' => $pendingPayments,
                 'meta' => [
                     'total' => $pendingPayments->count(),
-                    'filters' => $request->only(['search', 'date_from', 'date_to'])
-                ]
+                    'filters' => $request->only(['search', 'date_from', 'date_to']),
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener los pagos pendientes',
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -157,9 +155,9 @@ class PendingPaymentsController extends Controller
                 ->where('status', 'completed')
                 ->first();
 
-            if (!$appointment) {
+            if (! $appointment) {
                 return response()->json([
-                    'message' => 'Cita no encontrada o no completada'
+                    'message' => 'Cita no encontrada o no completada',
                 ], 404);
             }
 
@@ -168,7 +166,7 @@ class PendingPaymentsController extends Controller
                 ->exists();
             if ($hasActiveTransaction) {
                 return response()->json([
-                    'message' => 'La cita ya tiene una transacción activa.'
+                    'message' => 'La cita ya tiene una transacción activa.',
                 ], 409);
             }
 
@@ -178,7 +176,7 @@ class PendingPaymentsController extends Controller
 
             if ($pendingBalance <= 0) {
                 return response()->json([
-                    'message' => 'La cita no tiene saldo pendiente.'
+                    'message' => 'La cita no tiene saldo pendiente.',
                 ], 409);
             }
 
@@ -220,7 +218,7 @@ class PendingPaymentsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al procesar el pago pendiente',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

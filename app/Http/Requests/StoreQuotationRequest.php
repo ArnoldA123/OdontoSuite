@@ -99,7 +99,7 @@ class StoreQuotationRequest extends FormRequest
             'items.max' => 'No se pueden agregar más de 50 items',
             'items.*.description.required_with' => 'La descripción del item es obligatoria',
             'items.*.quantity.required_with' => 'La cantidad es obligatoria',
-            'items.*.unit_price.required_with' => 'El precio unitario es obligatorio'
+            'items.*.unit_price.required_with' => 'El precio unitario es obligatorio',
         ];
     }
 }

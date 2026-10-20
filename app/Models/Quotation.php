@@ -44,7 +44,7 @@ class Quotation extends Model
         'tax_percentage' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'payment_terms' => 'array'
+        'payment_terms' => 'array',
     ];
 
     // Relaciones

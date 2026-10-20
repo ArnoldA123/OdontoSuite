@@ -21,7 +21,7 @@ class HotfixLoginBrandMarkTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     public function test_login_header_has_odontosuite_wordmark(): void

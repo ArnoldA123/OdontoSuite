@@ -3,12 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\User;
-use App\Models\AppointmentType;
-use App\Models\DentalChair;
-use Illuminate\Console\Command;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class DiagnoseAppointments extends Command
 {
@@ -42,6 +38,7 @@ class DiagnoseAppointments extends Command
         if ($totalAppointments === 0) {
             $this->warn('⚠️  No hay citas en la base de datos.');
             $this->info('Ejecuta: php artisan db:seed --class=AppointmentSeeder');
+
             return 0;
         }
 
@@ -63,7 +60,7 @@ class DiagnoseAppointments extends Command
 
         // Verificar relaciones
         $this->info('=== Verificación de Relaciones ===');
-        
+
         $appointmentsWithoutPatient = Appointment::whereDoesntHave('patient')->count();
         if ($appointmentsWithoutPatient > 0) {
             $this->warn("⚠️  Citas sin paciente: {$appointmentsWithoutPatient}");
@@ -117,7 +114,7 @@ class DiagnoseAppointments extends Command
                     return [
                         $apt->id,
                         $apt->scheduled_at?->format('Y-m-d H:i'),
-                        $apt->patient ? $apt->patient->first_name . ' ' . $apt->patient->last_name : 'N/A',
+                        $apt->patient ? $apt->patient->first_name.' '.$apt->patient->last_name : 'N/A',
                         $apt->user ? $apt->user->name : 'N/A',
                         $apt->appointmentType ? $apt->appointmentType->name : 'N/A',
                         $apt->status,
@@ -132,10 +129,3 @@ class DiagnoseAppointments extends Command
         return 0;
     }
 }
-
-
-
-
-
-
-

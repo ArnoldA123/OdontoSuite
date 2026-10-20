@@ -5,20 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\CashRegisterSession;
 use App\Models\Patient;
 use App\Models\Quotation;
+use App\Models\Transaction;
 use App\Models\TreatmentPlan;
 use App\Models\User;
-use App\Models\AppointmentType;
-use App\Models\DentalChair;
-use App\Models\CashRegisterSession;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -26,47 +24,47 @@ class DashboardController extends Controller
     {
         try {
             $branchId = $request->input('branch_id');
-            $cacheKey = 'dashboard_stats_' . Auth::id() . '_' . ($branchId ?? 'all');
+            $cacheKey = 'dashboard_stats_'.Auth::id().'_'.($branchId ?? 'all');
 
             $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($branchId) {
                 $today = Carbon::today();
 
                 // Citas de hoy (datos reales)
                 $todayAppointments = Appointment::whereDate('scheduled_at', $today)
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->count();
 
                 // Total de pacientes (datos reales) - Solo pacientes activos para consistencia
                 $totalPatients = Patient::where('is_active', true)
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->count();
 
                 // Total de profesionales activos (datos reales)
                 $totalProfessionals = User::where('is_active', true)
                     ->whereIn('role', ['odontologo', 'implantologo', 'dentista'])
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->count();
 
                 // Total de citas (datos reales)
-                $totalAppointments = Appointment::when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                $totalAppointments = Appointment::when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->count();
 
                 // Total de citas este mes (datos reales)
                 $totalAppointmentsThisMonth = Appointment::whereMonth('scheduled_at', $today->month)
                     ->whereYear('scheduled_at', $today->year)
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->count();
 
                 // Ingresos totales (datos reales)
                 $totalIncome = Transaction::where('type', 'payment')
                     ->where('status', 'completed')
-                    ->when($branchId, fn($q) => $q->whereHas('patient', fn($subQ) => $subQ->where('branch_id', $branchId)))
+                    ->when($branchId, fn ($q) => $q->whereHas('patient', fn ($subQ) => $subQ->where('branch_id', $branchId)))
                     ->sum('amount');
 
                 // Estado de caja actual (datos reales) - No cachear esto, debe ser en tiempo real
                 $currentCashSession = CashRegisterSession::where('status', 'open')
                     ->where('user_id', Auth::id())
-                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->first();
 
                 // Comparison block — strictly additive. Three keys, additive shape only.
@@ -88,9 +86,9 @@ class DashboardController extends Controller
                         'id' => $currentCashSession->id,
                         'opening_amount' => $currentCashSession->opening_amount,
                         'opened_at' => $currentCashSession->opened_at,
-                        'user_id' => $currentCashSession->user_id
+                        'user_id' => $currentCashSession->user_id,
                     ] : [
-                        'status' => 'closed'
+                        'status' => 'closed',
                     ],
                     'comparisons' => $comparisons,
                 ];
@@ -99,7 +97,7 @@ class DashboardController extends Controller
             // Actualizar cash_session en tiempo real (no cachear)
             $currentCashSession = CashRegisterSession::where('status', 'open')
                 ->where('user_id', Auth::id())
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->first();
 
             $stats['cash_session'] = $currentCashSession ? [
@@ -107,9 +105,9 @@ class DashboardController extends Controller
                 'id' => $currentCashSession->id,
                 'opening_amount' => $currentCashSession->opening_amount,
                 'opened_at' => $currentCashSession->opened_at,
-                'user_id' => $currentCashSession->user_id
+                'user_id' => $currentCashSession->user_id,
             ] : [
-                'status' => 'closed'
+                'status' => 'closed',
             ];
 
             return response()->json([
@@ -117,14 +115,15 @@ class DashboardController extends Controller
                 'meta' => [
                     'message' => 'Estadísticas del dashboard cargadas exitosamente',
                     'generated_at' => now()->toISOString(),
-                    'cached' => true
-                ]
+                    'cached' => true,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en DashboardController@stats: ' . $e->getMessage());
+            Log::error('Error en DashboardController@stats: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al obtener datos del dashboard',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -138,7 +137,7 @@ class DashboardController extends Controller
     {
         $previousDate = $today->copy()->subDays(7);
         $previous = Appointment::whereDate('scheduled_at', $previousDate)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->count();
 
         $weekdayShort = $this->weekdayShort($previousDate);
@@ -162,14 +161,14 @@ class DashboardController extends Controller
     {
         $current = Patient::whereYear('created_at', $today->year)
             ->whereMonth('created_at', $today->month)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->count();
 
         // Use subMonthNoOverflow so e.g. May 31 → April 30 (not May 1, which subMonth would return).
         $previousMonth = $today->copy()->subMonthNoOverflow();
         $previous = Patient::whereYear('created_at', $previousMonth->year)
             ->whereMonth('created_at', $previousMonth->month)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->count();
 
         return [
@@ -196,7 +195,7 @@ class DashboardController extends Controller
         $end = $previousMonth->copy()->day($clampedDay)->endOfDay();
 
         $previous = Appointment::whereBetween('scheduled_at', [$start, $end])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->count();
 
         // Label names the PREVIOUS month (where the count window lives), NOT today.
@@ -243,11 +242,12 @@ class DashboardController extends Controller
 
         $diff = $current - $previous;
         if ($diff > 0) {
-            return '+' . $diff;
+            return '+'.$diff;
         }
         if ($diff < 0) {
             return (string) $diff; // already includes the leading "-"
         }
+
         return '+0';
     }
 
@@ -255,12 +255,12 @@ class DashboardController extends Controller
     {
         $today = Carbon::today();
         $branchId = $request->input('branch_id');
-        $cacheKey = 'dashboard_today_' . Auth::id() . '_' . $today->toDateString() . '_' . ($branchId ?? 'all');
+        $cacheKey = 'dashboard_today_'.Auth::id().'_'.$today->toDateString().'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($today, $branchId) {
             return Appointment::with(['patient', 'appointmentType', 'user'])
                 ->whereDate('scheduled_at', $today)
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->orderBy('scheduled_at')
                 ->get();
         });
@@ -271,8 +271,8 @@ class DashboardController extends Controller
                 'message' => 'Citas de hoy cargadas exitosamente',
                 'date' => $today->toDateString(),
                 'count' => $appointments->count(),
-                'cached' => true
-            ]
+                'cached' => true,
+            ],
         ]);
     }
 
@@ -283,12 +283,12 @@ class DashboardController extends Controller
         $startsAt = $now->copy()->addDay()->startOfDay();
         $endOfWeek = $now->copy()->endOfWeek();
         $branchId = $request->input('branch_id');
-        $cacheKey = 'dashboard_upcoming_' . Auth::id() . '_' . $now->format('Y-W') . '_' . ($branchId ?? 'all');
+        $cacheKey = 'dashboard_upcoming_'.Auth::id().'_'.$now->format('Y-W').'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($startsAt, $endOfWeek, $branchId) {
             return Appointment::with(['patient', 'appointmentType', 'user'])
                 ->whereBetween('scheduled_at', [$startsAt, $endOfWeek])
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->orderBy('scheduled_at')
                 ->limit(10)
                 ->get();
@@ -300,8 +300,8 @@ class DashboardController extends Controller
                 'message' => 'Próximas citas cargadas exitosamente',
                 'period' => 'this_week',
                 'count' => $appointments->count(),
-                'cached' => true
-            ]
+                'cached' => true,
+            ],
         ]);
     }
 
@@ -322,7 +322,7 @@ class DashboardController extends Controller
         try {
             $branchId = $request->input('branch_id');
             $role = $request->user()?->role;
-            $cacheKey = 'dashboard_pending_' . Auth::id() . '_' . $role . '_' . ($branchId ?? 'all');
+            $cacheKey = 'dashboard_pending_'.Auth::id().'_'.$role.'_'.($branchId ?? 'all');
 
             $pending = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($branchId, $role) {
                 $data = [];
@@ -347,14 +347,15 @@ class DashboardController extends Controller
                 'meta' => [
                     'message' => 'Pendientes del dashboard cargados exitosamente',
                     'generated_at' => now()->toISOString(),
-                    'cached' => true
-                ]
+                    'cached' => true,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en DashboardController@pending: ' . $e->getMessage());
+            Log::error('Error en DashboardController@pending: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al obtener pendientes del dashboard',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -365,7 +366,7 @@ class DashboardController extends Controller
     private function pendingQuotations($branchId): array
     {
         $query = Quotation::whereIn('status', ['sent', 'viewed'])
-            ->when($branchId, fn($q) => $q->whereHas('patient', fn($p) => $p->where('branch_id', $branchId)));
+            ->when($branchId, fn ($q) => $q->whereHas('patient', fn ($p) => $p->where('branch_id', $branchId)));
 
         $count = (clone $query)->count();
 
@@ -374,7 +375,7 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
-            ->map(fn(Quotation $quotation) => [
+            ->map(fn (Quotation $quotation) => [
                 'id' => $quotation->id,
                 'patient_name' => $quotation->patient?->full_name,
                 'total_amount' => (float) $quotation->total_amount,
@@ -392,7 +393,7 @@ class DashboardController extends Controller
     private function pendingTreatmentPlans($branchId): array
     {
         $query = TreatmentPlan::where('status', 'proposed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
 
         $count = (clone $query)->count();
 
@@ -401,7 +402,7 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
-            ->map(fn(TreatmentPlan $plan) => [
+            ->map(fn (TreatmentPlan $plan) => [
                 'id' => $plan->id,
                 'patient_name' => $plan->patient?->full_name,
                 'title' => $plan->title,

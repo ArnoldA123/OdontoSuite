@@ -2,19 +2,17 @@
 
 namespace App\Services\Reports;
 
-use App\Models\CashRegisterSession;
-use App\Models\Transaction;
-use App\Models\CashMovement;
-use App\Models\PaymentMethod;
 use App\Models\Branch;
+use App\Models\CashRegisterSession;
+use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class CashReportService
 {
     /**
-     * Get daily cash report
+     * Get daily cash report.
      */
     public function getDailyReport(string $date, ?int $branchId = null, ?int $userId = null): array
     {
@@ -46,14 +44,14 @@ class CashReportService
             }),
             'summary_by_payment_method' => $this->getSummaryByPaymentMethod($sessions),
             'summary_by_hour' => $this->getSummaryByHour($sessions),
-            'top_transactions' => $this->getTopTransactions($sessions)
+            'top_transactions' => $this->getTopTransactions($sessions),
         ];
 
         return $report;
     }
 
     /**
-     * Get period cash report
+     * Get period cash report.
      */
     public function getPeriodReport(string $startDate, string $endDate, ?int $branchId = null): array
     {
@@ -72,7 +70,7 @@ class CashReportService
         $report = [
             'period' => [
                 'start_date' => $startDate,
-                'end_date' => $endDate
+                'end_date' => $endDate,
             ],
             'sessions_count' => $sessions->count(),
             'total_opening_amount' => $sessions->sum('opening_amount'),
@@ -83,14 +81,14 @@ class CashReportService
             'daily_summary' => $this->getDailySummary($start, $end, $branchId),
             'summary_by_branch' => $this->getSummaryByBranch($sessions),
             'summary_by_user' => $this->getSummaryByUser($sessions),
-            'payment_methods_analysis' => $this->getPaymentMethodsAnalysis($start, $end, $branchId)
+            'payment_methods_analysis' => $this->getPaymentMethodsAnalysis($start, $end, $branchId),
         ];
 
         return $report;
     }
 
     /**
-     * Export cash data to Excel/PDF
+     * Export cash data to Excel/PDF.
      */
     public function exportData(array $filters, string $format = 'excel'): array
     {
@@ -111,7 +109,7 @@ class CashReportService
     }
 
     /**
-     * Get session details
+     * Get session details.
      */
     private function getSessionDetails(CashRegisterSession $session): array
     {
@@ -134,12 +132,12 @@ class CashReportService
             'by_payment_method' => $this->getSessionPaymentMethodSummary($transactions),
             'duration' => $session->closed_at ?
                 $session->opened_at->diffInHours($session->closed_at) :
-                $session->opened_at->diffInHours(now())
+                $session->opened_at->diffInHours(now()),
         ];
     }
 
     /**
-     * Get summary by payment method
+     * Get summary by payment method.
      */
     private function getSummaryByPaymentMethod($sessions): array
     {
@@ -164,7 +162,7 @@ class CashReportService
                 'payment_method' => $method->name,
                 'count' => $count,
                 'total' => $total,
-                'percentage' => $total > 0 ? ($total / $sessions->sum('closing_amount')) * 100 : 0
+                'percentage' => $total > 0 ? ($total / $sessions->sum('closing_amount')) * 100 : 0,
             ];
         }
 
@@ -172,7 +170,7 @@ class CashReportService
     }
 
     /**
-     * Get summary by hour
+     * Get summary by hour.
      */
     private function getSummaryByHour($sessions): array
     {
@@ -195,7 +193,7 @@ class CashReportService
             $hourlyData[] = [
                 'hour' => $hour,
                 'count' => $count,
-                'total' => $total
+                'total' => $total,
             ];
         }
 
@@ -203,7 +201,7 @@ class CashReportService
     }
 
     /**
-     * Get top transactions
+     * Get top transactions.
      */
     private function getTopTransactions($sessions): array
     {
@@ -222,7 +220,7 @@ class CashReportService
     }
 
     /**
-     * Get daily summary
+     * Get daily summary.
      */
     private function getDailySummary(Carbon $start, Carbon $end, ?int $branchId = null): array
     {
@@ -246,7 +244,7 @@ class CashReportService
                 'sessions_count' => $sessions->count(),
                 'total_opening' => $sessions->sum('opening_amount'),
                 'total_closing' => $sessions->sum('closing_amount'),
-                'total_difference' => $sessions->sum('difference_amount')
+                'total_difference' => $sessions->sum('difference_amount'),
             ];
 
             $current->addDay();
@@ -256,19 +254,20 @@ class CashReportService
     }
 
     /**
-     * Get summary by branch
+     * Get summary by branch.
      */
     private function getSummaryByBranch($sessions): array
     {
         return $sessions->groupBy('branch_id')
             ->map(function ($group, $branchId) {
                 $branch = Branch::find($branchId);
+
                 return [
                     'branch' => $branch ? $branch->name : 'Sucursal no encontrada',
                     'sessions_count' => $group->count(),
                     'total_opening' => $group->sum('opening_amount'),
                     'total_closing' => $group->sum('closing_amount'),
-                    'total_difference' => $group->sum('difference_amount')
+                    'total_difference' => $group->sum('difference_amount'),
                 ];
             })
             ->values()
@@ -276,19 +275,20 @@ class CashReportService
     }
 
     /**
-     * Get summary by user
+     * Get summary by user.
      */
     private function getSummaryByUser($sessions): array
     {
         return $sessions->groupBy('user_id')
             ->map(function ($group, $userId) {
                 $user = User::find($userId);
+
                 return [
                     'user' => $user ? $user->name : 'Usuario no encontrado',
                     'sessions_count' => $group->count(),
                     'total_opening' => $group->sum('opening_amount'),
                     'total_closing' => $group->sum('closing_amount'),
-                    'total_difference' => $group->sum('difference_amount')
+                    'total_difference' => $group->sum('difference_amount'),
                 ];
             })
             ->values()
@@ -296,7 +296,7 @@ class CashReportService
     }
 
     /**
-     * Get payment methods analysis
+     * Get payment methods analysis.
      */
     private function getPaymentMethodsAnalysis(Carbon $start, Carbon $end, ?int $branchId = null): array
     {
@@ -315,11 +315,12 @@ class CashReportService
         return $transactions->groupBy('payment_method_id')
             ->map(function ($group, $methodId) {
                 $method = PaymentMethod::find($methodId);
+
                 return [
                     'payment_method' => $method ? $method->name : 'Método no encontrado',
                     'count' => $group->count(),
                     'total' => $group->sum('amount'),
-                    'average' => $group->avg('amount')
+                    'average' => $group->avg('amount'),
                 ];
             })
             ->values()
@@ -327,17 +328,18 @@ class CashReportService
     }
 
     /**
-     * Get session payment method summary
+     * Get session payment method summary.
      */
     private function getSessionPaymentMethodSummary($transactions): array
     {
         return $transactions->groupBy('payment_method_id')
             ->map(function ($group, $methodId) {
                 $method = PaymentMethod::find($methodId);
+
                 return [
                     'payment_method' => $method ? $method->name : 'N/A',
                     'count' => $group->count(),
-                    'total' => $group->sum('amount')
+                    'total' => $group->sum('amount'),
                 ];
             })
             ->values()
@@ -345,7 +347,7 @@ class CashReportService
     }
 
     /**
-     * Prepare data for Excel export
+     * Prepare data for Excel export.
      */
     private function prepareExcelData(array $data): array
     {
@@ -354,7 +356,7 @@ class CashReportService
     }
 
     /**
-     * Prepare data for PDF export
+     * Prepare data for PDF export.
      */
     private function preparePdfData(array $data): array
     {
@@ -362,4 +364,3 @@ class CashReportService
         return $data;
     }
 }
-

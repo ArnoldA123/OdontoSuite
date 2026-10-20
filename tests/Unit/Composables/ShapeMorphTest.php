@@ -31,7 +31,10 @@ use PHPUnit\Framework\TestCase;
 class ShapeMorphTest extends TestCase
 {
     /** Project root absolute path. */
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /** Pure math module path. */
     private const MATH_REL = '/resources/js/composables/shapeMorphMath.js';
@@ -41,12 +44,12 @@ class ShapeMorphTest extends TestCase
 
     private static function mathPath(): string
     {
-        return self::projectRootPath() . self::MATH_REL;
+        return self::projectRootPath().self::MATH_REL;
     }
 
     private static function composablePath(): string
     {
-        return self::projectRootPath() . self::COMPOSABLE_REL;
+        return self::projectRootPath().self::COMPOSABLE_REL;
     }
 
     /**
@@ -54,8 +57,7 @@ class ShapeMorphTest extends TestCase
      * Vue composable (the composable exports its functions under named
      * bindings so the shim can call them without booting a Vue runtime).
      *
-     * @param string $body  ESM body that ends with `process.stdout.write(JSON.stringify(result))`
-     * @return mixed
+     * @param string $body ESM body that ends with `process.stdout.write(JSON.stringify(result))`
      */
     private static function runNode(string $body): mixed
     {
@@ -79,23 +81,24 @@ JS;
         $loader = str_replace('BODY_PLACEHOLDER', $body, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'shape_morph_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
         if ($output === null || $output === '') {
-            self::fail('node -e produced no output. body: ' . $body);
+            self::fail('node -e produced no output. body: '.$body);
         }
 
         $jsonStart = strpos($output, '{');
         if ($jsonStart === false) {
-            self::fail('node output had no JSON object: ' . $output);
+            self::fail('node output had no JSON object: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return $decoded;
     }
 
@@ -483,7 +486,7 @@ JS;
      */
     public function login_page_never_writes_the_machine_state_directly(): void
     {
-        $loginPath = self::projectRootPath() . '/resources/js/modules/auth/LoginPage.vue';
+        $loginPath = self::projectRootPath().'/resources/js/modules/auth/LoginPage.vue';
         $source = (string) file_get_contents($loginPath);
 
         // Strip comments FIRST. A source-level regex over raw text also matches

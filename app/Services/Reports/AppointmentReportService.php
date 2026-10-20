@@ -3,13 +3,12 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AppointmentReportService
 {
     /**
-     * Get appointment report data
+     * Get appointment report data.
      */
     public function getReportData(array $filters = []): array
     {
@@ -34,7 +33,7 @@ class AppointmentReportService
         $data = $appointments->map(function ($appointment) {
             return [
                 'id' => $appointment->id,
-                'patient_name' => $appointment->patient->first_name . ' ' . $appointment->patient->last_name,
+                'patient_name' => $appointment->patient->first_name.' '.$appointment->patient->last_name,
                 'patient_email' => $appointment->patient->email,
                 'patient_phone' => $appointment->patient->phone,
                 'professional_name' => $appointment->user->name,
@@ -47,7 +46,7 @@ class AppointmentReportService
                 'status' => $this->getStatusText($appointment->status),
                 'price' => $appointment->appointmentType->price ?? 0,
                 'notes' => $appointment->notes ?? '',
-                'created_at' => Carbon::parse($appointment->created_at)->format('d/m/Y H:i')
+                'created_at' => Carbon::parse($appointment->created_at)->format('d/m/Y H:i'),
             ];
         });
 
@@ -68,13 +67,13 @@ class AppointmentReportService
                 ['key' => 'status', 'label' => 'Estado'],
                 ['key' => 'price', 'label' => 'Precio (S/)'],
                 ['key' => 'notes', 'label' => 'Observaciones'],
-                ['key' => 'created_at', 'label' => 'Fecha de Creación']
-            ]
+                ['key' => 'created_at', 'label' => 'Fecha de Creación'],
+            ],
         ];
     }
 
     /**
-     * Get status text in Spanish
+     * Get status text in Spanish.
      */
     private function getStatusText(string $status): string
     {
@@ -84,7 +83,7 @@ class AppointmentReportService
             'in_consultation' => 'En Consulta',
             'completed' => 'Completada',
             'cancelled' => 'Cancelada',
-            'no_show' => 'No se presentó'
+            'no_show' => 'No se presentó',
         ];
 
         return $statuses[$status] ?? $status;

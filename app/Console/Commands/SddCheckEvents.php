@@ -42,14 +42,16 @@ class SddCheckEvents extends Command
         $frontendPath = base_path($this->option('frontend-path'));
         $providerPath = base_path($this->option('provider-path'));
 
-        if (!is_dir($eventsPath)) {
+        if (! is_dir($eventsPath)) {
             $this->error("Events path not found: {$eventsPath}");
+
             return self::FAILURE;
         }
 
         $eventClasses = $this->collectEventClasses($eventsPath);
         if (empty($eventClasses)) {
             $this->info('No event classes discovered.');
+
             return self::SUCCESS;
         }
 
@@ -71,7 +73,7 @@ class SddCheckEvents extends Command
             $hasListener = isset($listenedEvents[$shortName]);
             $hasWsConsumer = $this->hasWebSocketConsumer($shortName, $source, $wsConsumers);
 
-            if (!$hasListener && !$hasWsConsumer) {
+            if (! $hasListener && ! $hasWsConsumer) {
                 $orphans[] = $shortName;
             }
         }
@@ -81,6 +83,7 @@ class SddCheckEvents extends Command
                 'sdd:check-events OK — %d event classes scanned, 0 orphan.',
                 count($eventClasses)
             ));
+
             return self::SUCCESS;
         }
 
@@ -102,14 +105,14 @@ class SddCheckEvents extends Command
     {
         $classes = [];
         $files = $this->phpFiles($path);
-        $fs = new Filesystem();
+        $fs = new Filesystem;
 
         foreach ($files as $file) {
             $contents = $fs->get($file);
-            if (!preg_match('/namespace\s+([^;]+);.*?class\s+(\w+)/s', $contents, $m)) {
+            if (! preg_match('/namespace\s+([^;]+);.*?class\s+(\w+)/s', $contents, $m)) {
                 continue;
             }
-            $fqn = trim($m[1]) . '\\' . $m[2];
+            $fqn = trim($m[1]).'\\'.$m[2];
             $classes[$m[2]] = $fqn;
         }
 
@@ -126,7 +129,7 @@ class SddCheckEvents extends Command
 
         foreach ($files as $file) {
             $contents = file_get_contents($file);
-            if (!preg_match_all('/(\w+)\s*::class/', $contents, $matches)) {
+            if (! preg_match_all('/(\w+)\s*::class/', $contents, $matches)) {
                 continue;
             }
             foreach ($matches[1] as $shortName) {
@@ -148,7 +151,7 @@ class SddCheckEvents extends Command
     private function collectWebSocketConsumers(string $frontendPath): array
     {
         $consumers = [];
-        if (!is_dir($frontendPath)) {
+        if (! is_dir($frontendPath)) {
             return $consumers;
         }
 
@@ -197,7 +200,7 @@ class SddCheckEvents extends Command
      */
     private function phpFiles(string $path): array
     {
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return [];
         }
         $rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
@@ -207,6 +210,7 @@ class SddCheckEvents extends Command
                 $files[] = $f->getPathname();
             }
         }
+
         return $files;
     }
 
@@ -216,25 +220,27 @@ class SddCheckEvents extends Command
     private function collectTextFiles(string $path): array
     {
         $out = [];
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return $out;
         }
         $rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
         foreach ($rii as $f) {
-            if (!$f->isFile()) {
+            if (! $f->isFile()) {
                 continue;
             }
             $ext = strtolower($f->getExtension());
-            if (!in_array($ext, ['js', 'ts', 'vue', 'mjs'], true)) {
+            if (! in_array($ext, ['js', 'ts', 'vue', 'mjs'], true)) {
                 continue;
             }
             $rel = ltrim(str_replace(base_path(), '', $f->getPathname()), '/\\');
+
             try {
                 $out[$rel] = file_get_contents($f->getPathname());
             } catch (Throwable $e) {
                 continue;
             }
         }
+
         return $out;
     }
 
@@ -242,6 +248,7 @@ class SddCheckEvents extends Command
     {
         try {
             $r = new \ReflectionClass($fqcn);
+
             return file_get_contents($r->getFileName());
         } catch (Throwable $e) {
             return null;

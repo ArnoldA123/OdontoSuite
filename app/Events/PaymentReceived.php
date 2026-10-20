@@ -21,7 +21,9 @@ class PaymentReceived implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public Transaction $transaction;
+
     public string $gateway;
+
     public string $externalStatus;
 
     public function __construct(Transaction $transaction, string $gateway = 'mercadopago', string $externalStatus = 'approved')
@@ -35,6 +37,7 @@ class PaymentReceived implements ShouldBroadcast
     {
         // Canal privado por sucursal de la transaccion.
         $branchId = $this->transaction->branch_id ?? 'global';
+
         return new PrivateChannel("cash-register.{$branchId}");
     }
 

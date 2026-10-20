@@ -43,4 +43,3 @@ class TransactionCreated implements ShouldBroadcast
         ];
     }
 }
-

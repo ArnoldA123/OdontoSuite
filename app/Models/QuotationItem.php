@@ -19,12 +19,12 @@ class QuotationItem extends Model
         'unit_price',
         'total_price',
         'specialty',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'unit_price' => 'decimal:2',
-        'total_price' => 'decimal:2'
+        'total_price' => 'decimal:2',
     ];
 
     // Relaciones

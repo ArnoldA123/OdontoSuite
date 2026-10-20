@@ -21,7 +21,7 @@ class MigrationsDriverGuardTest extends TestCase
     /** @test */
     public function timezone_offset_migration_is_driver_guarded_after_slice_05(): void
     {
-        $file = realpath(__DIR__ . '/../../../database/migrations/2026_06_02_173228_fix_appointments_timezone_offset.php');
+        $file = realpath(__DIR__.'/../../../database/migrations/2026_06_02_173228_fix_appointments_timezone_offset.php');
         $this->assertFileExists($file, 'timezone offset migration should still exist (slice 05 does not delete it)');
 
         $source = file_get_contents($file);
@@ -34,14 +34,14 @@ class MigrationsDriverGuardTest extends TestCase
 
         $this->assertTrue(
             $hasGuard,
-            "timezone_offset migration must be driver-conditional so SQLite local tests do not crash on DATE_SUB."
+            'timezone_offset migration must be driver-conditional so SQLite local tests do not crash on DATE_SUB.'
         );
     }
 
     /** @test */
     public function status_enum_migration_remains_driver_guarded(): void
     {
-        $file = realpath(__DIR__ . '/../../../database/migrations/2025_10_14_123001_fix_appointments_status_enum.php');
+        $file = realpath(__DIR__.'/../../../database/migrations/2025_10_14_123001_fix_appointments_status_enum.php');
         $this->assertFileExists($file);
 
         $source = file_get_contents($file);

@@ -20,12 +20,11 @@ use Tests\TestCase;
  */
 class IconInBoxAuditTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     public function test_kpi_cards_have_no_icon_in_rounded_gray_box(): void

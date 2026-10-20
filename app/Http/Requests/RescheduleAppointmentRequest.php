@@ -41,7 +41,7 @@ class RescheduleAppointmentRequest extends FormRequest
                             $fail('La fecha y hora de la cita debe ser al menos 1 minuto en el futuro.');
                         }
                     } catch (\Exception $e) {
-                        $fail('La fecha y hora proporcionada no es válida: ' . $e->getMessage());
+                        $fail('La fecha y hora proporcionada no es válida: '.$e->getMessage());
                     }
                 },
             ],

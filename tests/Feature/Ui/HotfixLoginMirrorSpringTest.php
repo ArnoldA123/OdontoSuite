@@ -19,7 +19,7 @@ class HotfixLoginMirrorSpringTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     /**
@@ -32,12 +32,13 @@ class HotfixLoginMirrorSpringTest extends TestCase
     {
         $opts = [];
         $pattern = '/useSpring\s*\(\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\)/s';
-        if (!preg_match_all($pattern, $source, $matches)) {
+        if (! preg_match_all($pattern, $source, $matches)) {
             return $opts;
         }
         foreach ($matches[1] as $body) {
             $opts[] = $body;
         }
+
         return $opts;
     }
 
@@ -95,6 +96,7 @@ class HotfixLoginMirrorSpringTest extends TestCase
                 && preg_match('/response\s*:\s*([0-9]*\.?[0-9]+)/i', $body, $rm)
             ) {
                 $backdropResponse = (float) $rm[1];
+
                 break;
             }
         }

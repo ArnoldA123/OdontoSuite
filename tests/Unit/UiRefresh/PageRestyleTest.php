@@ -30,13 +30,14 @@ class PageRestyleTest extends TestCase
     /** Absolute path of a file under resources/. */
     private static function path(string $rel): string
     {
-        return self::projectRootPath() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $rel);
+        return self::projectRootPath().DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $rel);
     }
 
     /** Read a UTF-8 file's contents; returns empty string on failure. */
     private static function read(string $rel): string
     {
         $path = self::path($rel);
+
         return is_file($path) ? (string) file_get_contents($path) : '';
     }
 
@@ -49,6 +50,7 @@ class PageRestyleTest extends TestCase
         if ($needle === '') {
             return 0;
         }
+
         return substr_count(strtolower($haystack), strtolower($needle));
     }
 

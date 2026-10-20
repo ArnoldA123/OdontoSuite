@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Slice 01 / T-01.10 — add nullable boolean `is_immutable` column on audit_logs.
  *
  * Future-proof hook (slice 02 will harden it). The flag tells downstream code
@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Schema;
  * is now `user_agent`, the last domain-payload column before framework
  * timestamps (nullable text, present in the base migration).
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('audit_logs', function (Blueprint $table) {

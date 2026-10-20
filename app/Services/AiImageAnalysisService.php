@@ -4,13 +4,11 @@ namespace App\Services;
 
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
-use App\Models\Patient;
-use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class AiImageAnalysisService
@@ -23,7 +21,7 @@ class AiImageAnalysisService
     }
 
     /**
-     * Analizar imagen con IA
+     * Analizar imagen con IA.
      */
     public function analyzeImage(int $attachmentId): AiImageAnalysis
     {
@@ -32,7 +30,7 @@ class AiImageAnalysisService
         // Validar que sea una imagen de radiografía
         if ($attachment->category !== 'radiografia' && $attachment->file_type !== 'image') {
             throw ValidationException::withMessages([
-                'attachment' => ['Solo se pueden analizar imágenes de radiografías con IA.']
+                'attachment' => ['Solo se pueden analizar imágenes de radiografías con IA.'],
             ]);
         }
 
@@ -46,6 +44,7 @@ class AiImageAnalysisService
         }
 
         DB::beginTransaction();
+
         try {
             // Crear registro de análisis
             $analysis = AiImageAnalysis::create([
@@ -53,31 +52,33 @@ class AiImageAnalysisService
                 'patient_id' => $attachment->patient_id,
                 'requested_by' => Auth::id(),
                 'status' => 'pending',
-                'model_used' => $this->openaiConfig['model']
+                'model_used' => $this->openaiConfig['model'],
             ]);
 
             // Procesar análisis de forma asíncrona
             $this->processAnalysis($analysis);
 
             DB::commit();
+
             return $analysis->load(['clinicalAttachment', 'patient', 'requestedBy']);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating AI analysis', [
                 'attachment_id' => $attachmentId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             throw $e;
         }
     }
 
     /**
-     * Optimizar imagen antes de enviar a OpenAI (sin GD)
+     * Optimizar imagen antes de enviar a OpenAI (sin GD).
      */
     protected function optimizeImage(string $imagePath): string
     {
         // Verificar que el archivo existe
-        if (!file_exists($imagePath)) {
+        if (! file_exists($imagePath)) {
             throw new \Exception('Archivo de imagen no encontrado');
         }
 
@@ -96,14 +97,14 @@ class AiImageAnalysisService
             'width' => $width,
             'height' => $height,
             'mime_type' => $mimeType,
-            'file_size' => $fileSize
+            'file_size' => $fileSize,
         ]);
 
         // Si la imagen es muy grande (> 2MB), intentar reducirla
         if ($fileSize > 2 * 1024 * 1024) {
             Log::warning('Imagen muy grande, se enviará tal como está', [
                 'file_size' => $fileSize,
-                'max_recommended' => '2MB'
+                'max_recommended' => '2MB',
             ]);
         }
 
@@ -135,14 +136,14 @@ class AiImageAnalysisService
 
         Log::info('Imagen procesada:', [
             'base64_length' => strlen($base64Data),
-            'original_size' => $fileSize
+            'original_size' => $fileSize,
         ]);
 
         return $base64Data;
     }
 
     /**
-     * Procesar análisis con OpenAI
+     * Procesar análisis con OpenAI.
      */
     protected function processAnalysis(AiImageAnalysis $analysis): void
     {
@@ -153,7 +154,7 @@ class AiImageAnalysisService
             $imagePath = Storage::disk('public')->path($attachment->file_path);
 
             // Verificar que el archivo existe
-            if (!file_exists($imagePath)) {
+            if (! file_exists($imagePath)) {
                 throw new \Exception('Archivo de imagen no encontrado');
             }
 
@@ -170,7 +171,7 @@ class AiImageAnalysisService
             if ($fileSize > $maxSize) {
                 Log::info('Imagen muy grande, será optimizada', [
                     'original_size' => $fileSize,
-                    'max_size' => $maxSize
+                    'max_size' => $maxSize,
                 ]);
             }
 
@@ -190,43 +191,43 @@ class AiImageAnalysisService
         } catch (\Exception $e) {
             Log::error('Error processing AI analysis', [
                 'analysis_id' => $analysis->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             $analysis->update([
                 'status' => 'failed',
-                'raw_response' => $e->getMessage()
+                'raw_response' => $e->getMessage(),
             ]);
         }
     }
 
     /**
-     * Construir prompt especializado para análisis odontológico
+     * Construir prompt especializado para análisis odontológico.
      */
     protected function buildPrompt(): string
     {
-        return "Eres un sistema de análisis de imágenes dentales para uso educativo y de investigación en odontología. Tu función es analizar radiografías dentales para fines académicos y de aprendizaje.
+        return 'Eres un sistema de análisis de imágenes dentales para uso educativo y de investigación en odontología. Tu función es analizar radiografías dentales para fines académicos y de aprendizaje.
 
 CONTEXTO: Esta es una imagen de radiografía dental que necesito analizar para un proyecto educativo en odontología. No es para diagnóstico médico real, sino para fines de aprendizaje y estudio.
 
 Por favor, analiza esta imagen dental y proporciona información educativa en formato JSON:
 
 {
-  \"findings\": [
+  "findings": [
     {
-      \"diagnosis\": \"Hallazgo observado en la imagen\",
-      \"location\": \"Ubicación en la boca\",
-      \"confidence\": 85,
-      \"description\": \"Descripción del hallazgo\",
-      \"severity\": \"leve|moderado|severo\"
+      "diagnosis": "Hallazgo observado en la imagen",
+      "location": "Ubicación en la boca",
+      "confidence": 85,
+      "description": "Descripción del hallazgo",
+      "severity": "leve|moderado|severo"
     }
   ],
-  \"recommendations\": [
-    \"Observación educativa\",
-    \"Punto de estudio\"
+  "recommendations": [
+    "Observación educativa",
+    "Punto de estudio"
   ],
-  \"overall_assessment\": \"Evaluación general de lo observado\",
-  \"confidence_score\": 85
+  "overall_assessment": "Evaluación general de lo observado",
+  "confidence_score": 85
 }
 
 Observa y describe:
@@ -235,18 +236,18 @@ Observa y describe:
 - Características de la imagen
 - Elementos técnicos de la radiografía
 
-Responde únicamente en formato JSON válido.";
+Responde únicamente en formato JSON válido.';
     }
 
     /**
-     * Llamar a OpenAI API
+     * Llamar a OpenAI API.
      */
     protected function callOpenAI(string $imageData, string $mimeType, string $prompt): array
     {
         $response = Http::timeout((int) $this->openaiConfig['timeout'])
             ->withHeaders([
-                'Authorization' => 'Bearer ' . $this->openaiConfig['api_key'],
-                'Content-Type' => 'application/json'
+                'Authorization' => 'Bearer '.$this->openaiConfig['api_key'],
+                'Content-Type' => 'application/json',
             ])
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model' => $this->openaiConfig['model'],
@@ -256,30 +257,30 @@ Responde únicamente en formato JSON válido.";
                         'content' => [
                             [
                                 'type' => 'text',
-                                'text' => $prompt
+                                'text' => $prompt,
                             ],
                             [
                                 'type' => 'image_url',
                                 'image_url' => [
-                                    'url' => "data:{$mimeType};base64,{$imageData}"
-                                ]
-                            ]
-                        ]
-                    ]
+                                    'url' => "data:{$mimeType};base64,{$imageData}",
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
                 'max_tokens' => (int) $this->openaiConfig['max_tokens'],
-                'temperature' => 0.3
+                'temperature' => 0.3,
             ]);
 
-        if (!$response->successful()) {
-            throw new \Exception('Error en la API de OpenAI: ' . $response->body());
+        if (! $response->successful()) {
+            throw new \Exception('Error en la API de OpenAI: '.$response->body());
         }
 
         return $response->json();
     }
 
     /**
-     * Procesar respuesta de OpenAI
+     * Procesar respuesta de OpenAI.
      */
     protected function processResponse(AiImageAnalysis $analysis, array $response): void
     {
@@ -296,12 +297,12 @@ Responde únicamente en formato JSON válido.";
             'recommendations' => $parsedData['recommendations'] ?? [],
             'confidence_score' => $parsedData['confidence_score'] ?? null,
             'raw_response' => $content,
-            'tokens_used' => $usage['total_tokens'] ?? null
+            'tokens_used' => $usage['total_tokens'] ?? null,
         ]);
     }
 
     /**
-     * Parsear respuesta JSON de la IA
+     * Parsear respuesta JSON de la IA.
      */
     protected function parseResponse(string $content): array
     {
@@ -313,6 +314,7 @@ Responde únicamente en formato JSON válido.";
             stripos($content, "can't help") !== false ||
             stripos($content, 'cannot assist') !== false) {
             Log::warning('OpenAI rechazó el análisis de la imagen');
+
             return [
                 'findings' => [
                     [
@@ -320,15 +322,15 @@ Responde únicamente en formato JSON válido.";
                         'location' => 'No especificado',
                         'confidence' => 0,
                         'description' => 'La IA no pudo procesar esta imagen. Posibles causas: formato no compatible, tamaño muy grande, o contenido no reconocido como radiografía dental.',
-                        'severity' => 'leve'
-                    ]
+                        'severity' => 'leve',
+                    ],
                 ],
                 'recommendations' => [
                     'Verificar que la imagen sea una radiografía dental clara',
                     'Intentar con una imagen de menor tamaño o mejor calidad',
-                    'Revisar manualmente la imagen'
+                    'Revisar manualmente la imagen',
                 ],
-                'confidence_score' => 0
+                'confidence_score' => 0,
             ];
         }
 
@@ -344,6 +346,7 @@ Responde únicamente en formato JSON válido.";
 
             if (json_last_error() === JSON_ERROR_NONE) {
                 Log::info('JSON parseado exitosamente:', ['decoded' => $decoded]);
+
                 return $decoded;
             } else {
                 Log::error('Error parseando JSON:', ['error' => json_last_error_msg()]);
@@ -354,6 +357,7 @@ Responde únicamente en formato JSON válido.";
 
         // Fallback: crear estructura básica
         Log::warning('Usando fallback para respuesta de IA');
+
         return [
             'findings' => [
                 [
@@ -361,16 +365,16 @@ Responde únicamente en formato JSON válido.";
                     'location' => 'No especificado',
                     'confidence' => 0,
                     'description' => 'No se pudo procesar la imagen correctamente',
-                    'severity' => 'leve'
-                ]
+                    'severity' => 'leve',
+                ],
             ],
             'recommendations' => ['Revisar manualmente la imagen'],
-            'confidence_score' => 0
+            'confidence_score' => 0,
         ];
     }
 
     /**
-     * Revisar análisis (aceptar/rechazar)
+     * Revisar análisis (aceptar/rechazar).
      */
     public function reviewAnalysis(int $analysisId, string $decision, ?string $notes = null): AiImageAnalysis
     {
@@ -378,7 +382,7 @@ Responde únicamente en formato JSON válido.";
 
         if ($analysis->reviewed) {
             throw ValidationException::withMessages([
-                'analysis' => ['Este análisis ya ha sido revisado.']
+                'analysis' => ['Este análisis ya ha sido revisado.'],
             ]);
         }
 
@@ -388,7 +392,7 @@ Responde únicamente en formato JSON válido.";
     }
 
     /**
-     * Obtener análisis por adjunto
+     * Obtener análisis por adjunto.
      */
     public function getAnalysisByAttachment(int $attachmentId): ?AiImageAnalysis
     {
@@ -399,7 +403,7 @@ Responde únicamente en formato JSON válido.";
     }
 
     /**
-     * Obtener análisis por paciente
+     * Obtener análisis por paciente.
      */
     public function getAnalysisByPatient(int $patientId, array $filters = []): array
     {
@@ -431,12 +435,12 @@ Responde únicamente en formato JSON válido.";
                 'last_page' => $analyses->lastPage(),
                 'per_page' => $analyses->perPage(),
                 'total' => $analyses->total(),
-            ]
+            ],
         ];
     }
 
     /**
-     * Obtener análisis pendientes de revisión
+     * Obtener análisis pendientes de revisión.
      */
     public function getPendingAnalyses(array $filters = []): array
     {
@@ -461,12 +465,12 @@ Responde únicamente en formato JSON válido.";
                 'last_page' => $analyses->lastPage(),
                 'per_page' => $analyses->perPage(),
                 'total' => $analyses->total(),
-            ]
+            ],
         ];
     }
 
     /**
-     * Obtener estadísticas de uso de IA
+     * Obtener estadísticas de uso de IA.
      */
     public function getUsageStats(array $filters = []): array
     {
@@ -492,17 +496,18 @@ Responde únicamente en formato JSON válido.";
                 'reviewed_analyses' => $reviewedAnalyses,
                 'pending_review' => $pendingReview,
                 'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
-                'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0
+                'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
             ];
         } catch (\Exception $e) {
-            Log::error('Error in getUsageStats: ' . $e->getMessage());
+            Log::error('Error in getUsageStats: '.$e->getMessage());
+
             return [
                 'total_analyses' => 0,
                 'completed_analyses' => 0,
                 'reviewed_analyses' => 0,
                 'pending_review' => 0,
                 'completion_rate' => 0,
-                'review_rate' => 0
+                'review_rate' => 0,
             ];
         }
     }

@@ -24,11 +24,13 @@ class AppointmentTypesRedesignContractTest extends TestCase
     }
 
     private const LIST_PAGE = '/resources/js/modules/appointment-types/AppointmentTypesPage.vue';
+
     private const DETAIL_PAGE = '/resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue';
 
     private static function read(string $rel): string
     {
-        $path = self::projectRootPath() . $rel;
+        $path = self::projectRootPath().$rel;
+
         return is_file($path) ? (string) file_get_contents($path) : '';
     }
 
@@ -36,6 +38,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
     {
         $src = self::read(self::LIST_PAGE);
         $this->assertNotSame('', $src, 'AppointmentTypesPage.vue must exist');
+
         return $src;
     }
 
@@ -43,6 +46,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
     {
         $src = self::read(self::DETAIL_PAGE);
         $this->assertNotSame('', $src, 'AppointmentTypeDetailPage.vue must exist');
+
         return $src;
     }
 
@@ -148,7 +152,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
             '#<h2 class="text-2xl font-semibold text-label">#',
             $src,
             'AppointmentTypesPage.vue must keep the section heading grammar '
-            . '`<h2 class="text-2xl font-semibold text-label">` (redesign 2026-10-10).'
+            .'`<h2 class="text-2xl font-semibold text-label">` (redesign 2026-10-10).'
         );
     }
 
@@ -165,13 +169,13 @@ class AppointmentTypesRedesignContractTest extends TestCase
             2,
             preg_match_all('#type\.default_duration_minutes#', $src),
             'AppointmentTypesPage.vue must read `type.default_duration_minutes` for the duration '
-            . 'cell AND the KPI average (the 2026-10-10 duration fix).'
+            .'cell AND the KPI average (the 2026-10-10 duration fix).'
         );
         $this->assertSame(
             0,
             preg_match('#(?<![\w-])type\.duration_minutes(?![\w-])#', $src),
             'AppointmentTypesPage.vue must NOT read the legacy `type.duration_minutes` field '
-            . '(the 2026-10-10 duration fix: reads use `type.default_duration_minutes`).'
+            .'(the 2026-10-10 duration fix: reads use `type.default_duration_minutes`).'
         );
     }
 
@@ -197,9 +201,9 @@ class AppointmentTypesRedesignContractTest extends TestCase
             'duration_minutes',
             $stripped,
             'Every non-`default_` `duration_minutes` reference in AppointmentTypesPage.vue must be the '
-            . 'create/edit write-payload field (`newType.duration_minutes` / `editingType.duration_minutes` / '
-            . '`duration_minutes:` initializer) mandated by AppointmentTypeController::storeRules(). '
-            . 'Anything else re-opens the pre-redesign duration bug.'
+            .'create/edit write-payload field (`newType.duration_minutes` / `editingType.duration_minutes` / '
+            .'`duration_minutes:` initializer) mandated by AppointmentTypeController::storeRules(). '
+            .'Anything else re-opens the pre-redesign duration bug.'
         );
     }
 
@@ -215,10 +219,10 @@ class AppointmentTypesRedesignContractTest extends TestCase
         foreach (['viewingType', 'viewType', 'showViewTypeModal'] as $anchor) {
             $this->assertSame(
                 0,
-                preg_match('#(?<![\w-])' . preg_quote($anchor, '#') . '(?![\w-])#i', $src),
+                preg_match('#(?<![\w-])'.preg_quote($anchor, '#').'(?![\w-])#i', $src),
                 sprintf(
                     'AppointmentTypesPage.vue must NOT resurrect the removed View modal anchor `%s` '
-                    . '(redesign 2026-10-10: Ver Detalle navigates to the detail page).',
+                    .'(redesign 2026-10-10: Ver Detalle navigates to the detail page).',
                     $anchor
                 )
             );
@@ -237,7 +241,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
             'data-detail-skeleton',
             $src,
             'AppointmentTypeDetailPage.vue must keep the `data-detail-skeleton` loading anchor '
-            . '(redesign 2026-10-10).'
+            .'(redesign 2026-10-10).'
         );
     }
 
@@ -253,13 +257,13 @@ class AppointmentTypesRedesignContractTest extends TestCase
             'text-systemRed-600',
             $src,
             'AppointmentTypeDetailPage.vue must keep `text-systemRed-600` on the audit diff old-value span '
-            . '(TIPOS-02-005).'
+            .'(TIPOS-02-005).'
         );
         $this->assertStringContainsString(
             'text-systemGreen-600',
             $src,
             'AppointmentTypeDetailPage.vue must keep `text-systemGreen-600` on the audit diff new-value span '
-            . '(TIPOS-02-005).'
+            .'(TIPOS-02-005).'
         );
     }
 
@@ -332,7 +336,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
                 preg_match_all('~#[0-9a-fA-F]{3,8}~', $src),
                 sprintf(
                     '%s must contain zero hand-written hex color literals `#[0-9a-fA-F]{3,8}`; '
-                    . 'design tokens own every colour value.',
+                    .'design tokens own every colour value.',
                     $rel
                 )
             );
@@ -357,7 +361,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
             '#query\s*:\s*\{\s*edit\s*:\s*String\(#',
             $src,
             'AppointmentTypeDetailPage.vue must deep-link with `query: { edit: String(id) }` '
-            . '(redesign 2026-10-10 deep-link contract).'
+            .'(redesign 2026-10-10 deep-link contract).'
         );
     }
 
@@ -378,7 +382,7 @@ class AppointmentTypesRedesignContractTest extends TestCase
             '#openEditFromQuery\(\)#',
             $src,
             'AppointmentTypesPage.vue must invoke `openEditFromQuery()` after loading the catalog '
-            . '(redesign 2026-10-10 deep-link contract).'
+            .'(redesign 2026-10-10 deep-link contract).'
         );
         $this->assertMatchesRegularExpression(
             '#route\.query\.edit#',

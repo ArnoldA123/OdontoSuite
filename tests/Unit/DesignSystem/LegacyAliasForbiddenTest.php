@@ -75,22 +75,22 @@ class LegacyAliasForbiddenTest extends TestCase
     private static function defaultPolishedFiles(): array
     {
         return [
-            self::projectRootStatic() . '/resources/js/components/ui/StatusBadge.vue',
-            self::projectRootStatic() . '/resources/js/components/layout/AppLayout.vue',
+            self::projectRootStatic().'/resources/js/components/ui/StatusBadge.vue',
+            self::projectRootStatic().'/resources/js/components/layout/AppLayout.vue',
             // PR-ambientes-01 (DLR-AMB-005 / AMB-01-002..008): list page
             // tokenisation. Pins that `bg-success-100`, `bg-warning-100`,
             // `bg-primary-100`, `text-accent`, `text-red-600`,
             // `hover:text-red-900`, `focus:ring-primary-500`,
             // `focus:border-accent`, and `bg-black bg-opacity-50` legacy
             // aliases are absent from the list page after the tokenisation.
-            self::projectRootStatic() . '/resources/js/modules/environments/EnvironmentsPage.vue',
+            self::projectRootStatic().'/resources/js/modules/environments/EnvironmentsPage.vue',
             // PR-ambientes-02 (AMB-02-003..008 + DLR-AMB-005 EXCEPTION #2):
             // detail page tokenisation. Pins the same 21 legacy aliases are
             // absent from the detail page after the template-level replacements
             // (UiTabs / UiEmptyState / UiCard variant="glass" / hairline /
             // `bg-systemBlue-50` header avatar) + the 1-line `<script>`
             // exception (`getAuditActionVariant` returns `'neutral'`).
-            self::projectRootStatic() . '/resources/js/modules/environments/EnvironmentDetailPage.vue',
+            self::projectRootStatic().'/resources/js/modules/environments/EnvironmentDetailPage.vue',
         ];
     }
 
@@ -129,7 +129,7 @@ class LegacyAliasForbiddenTest extends TestCase
      */
     public function test_alias_patterns_are_whole_token(string $alias, string $haystack, bool $expectMatch): void
     {
-        $pattern = '/(?<![\w-])' . preg_quote($alias, '/') . '(?![\w-])/';
+        $pattern = '/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/';
         $matched = preg_match($pattern, $haystack) === 1;
         $this->assertSame(
             $expectMatch,
@@ -200,13 +200,13 @@ class LegacyAliasForbiddenTest extends TestCase
         $this->assertIsString($src, sprintf('%s must be readable.', $path));
 
         foreach (self::LEGACY_ALIASES as $alias) {
-            $pattern = '/(?<![\w-])' . preg_quote($alias, '/') . '(?![\w-])/';
+            $pattern = '/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/';
             $this->assertDoesNotMatchRegularExpression(
                 $pattern,
                 $src,
                 sprintf(
                     '%s contains the forbidden legacy alias `%s` (whole-token match). '
-                    . 'Replace it with the tokenised counterpart per DLR-R-009.',
+                    .'Replace it with the tokenised counterpart per DLR-R-009.',
                     $path,
                     $alias
                 )

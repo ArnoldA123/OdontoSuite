@@ -27,7 +27,7 @@ class CashRegisterServiceTest extends TestCase
      */
     public function test_service_can_be_instantiated(): void
     {
-        $service = new \App\Services\CashRegisterService();
+        $service = new \App\Services\CashRegisterService;
         $this->assertInstanceOf(\App\Services\CashRegisterService::class, $service);
     }
 }

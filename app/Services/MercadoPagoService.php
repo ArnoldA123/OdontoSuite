@@ -4,12 +4,12 @@ namespace App\Services;
 
 use App\Models\PaymentGatewayTransaction;
 use App\Models\Transaction;
-use MercadoPago\Client\Preference\PreferenceClient;
-use MercadoPago\Client\Payment\PaymentClient;
-use MercadoPago\Exceptions\MPApiException;
-use MercadoPago\MercadoPagoConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use MercadoPago\Client\Payment\PaymentClient;
+use MercadoPago\Client\Preference\PreferenceClient;
+use MercadoPago\Exceptions\MPApiException;
+use MercadoPago\MercadoPagoConfig;
 
 /**
  * Sprint 3 (plan #11): servicio para integracion con Mercado Pago.
@@ -24,7 +24,9 @@ use Illuminate\Support\Facades\Log;
 class MercadoPagoService
 {
     private string $accessToken;
+
     private string $publicKey;
+
     private string $environment;
 
     public function __construct()
@@ -57,7 +59,7 @@ class MercadoPagoService
     public function createPreference(Transaction $transaction, string $backUrl, string $failureUrl, string $pendingUrl): array
     {
         try {
-            $client = new PreferenceClient();
+            $client = new PreferenceClient;
 
             $payerName = $transaction->patient?->full_name ?? 'Paciente';
             $payerEmail = $transaction->patient?->email ?? 'paciente@odontosuite.pe';
@@ -120,6 +122,7 @@ class MercadoPagoService
                 'error' => $e->getMessage(),
                 'api_response' => $e->getApiResponse()?->getContent(),
             ]);
+
             throw $e;
         }
     }
@@ -130,7 +133,7 @@ class MercadoPagoService
     public function getPayment(string $paymentId): ?array
     {
         try {
-            $client = new PaymentClient();
+            $client = new PaymentClient;
             $payment = $client->get($paymentId);
 
             return [
@@ -147,6 +150,7 @@ class MercadoPagoService
                 'payment_id' => $paymentId,
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -163,6 +167,7 @@ class MercadoPagoService
         $signatureHeader = $request->header('x-signature');
         if (empty($signatureHeader)) {
             Log::warning('[MP] Webhook sin x-signature header');
+
             return false;
         }
 
@@ -180,6 +185,7 @@ class MercadoPagoService
 
         if (empty($ts) || empty($hash)) {
             Log::warning('[MP] x-signature formato invalido');
+
             return false;
         }
 
@@ -193,7 +199,7 @@ class MercadoPagoService
 
         $valid = hash_equals($expectedHash, $hash);
 
-        if (!$valid) {
+        if (! $valid) {
             Log::warning('[MP] Firma webhook invalida', [
                 'expected' => $expectedHash,
                 'received' => $hash,
@@ -214,13 +220,15 @@ class MercadoPagoService
         }
 
         try {
-            $client = new PaymentClient();
+            $client = new PaymentClient;
             // Obtener el primer pago (page 1, limit 1) para verificar que
             // las credenciales son validas
             $client->search(1, 1);
+
             return true;
         } catch (\Exception $e) {
             Log::warning('[MP] Credenciales invalidas', ['error' => $e->getMessage()]);
+
             return false;
         }
     }

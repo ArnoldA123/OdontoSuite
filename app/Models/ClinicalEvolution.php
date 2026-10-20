@@ -31,7 +31,7 @@ class ClinicalEvolution extends Model
         'vital_signs',
         'clinical_measurements',
         'requires_follow_up',
-        'follow_up_date'
+        'follow_up_date',
     ];
 
     protected $casts = [
@@ -39,7 +39,7 @@ class ClinicalEvolution extends Model
         'vital_signs' => 'array',
         'clinical_measurements' => 'array',
         'requires_follow_up' => 'boolean',
-        'follow_up_date' => 'date'
+        'follow_up_date' => 'date',
     ];
 
     // Relaciones

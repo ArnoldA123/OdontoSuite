@@ -6,7 +6,6 @@ use App\Events\QuotationCreated;
 use App\Models\Appointment;
 use App\Models\Quotation;
 use App\Models\Transaction;
-use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,9 +23,7 @@ class BillingService
      * Una cita está "ready to bill" si:
      *   - status = completed
      *   - final_amount > 0
-     *   - el monto pagado (suma de transactions tipo=payment status=completed) es menor al final_amount
-     *
-     * @return LengthAwarePaginator
+     *   - el monto pagado (suma de transactions tipo=payment status=completed) es menor al final_amount.
      */
     public function readyToBill(array $filters = []): LengthAwarePaginator
     {
@@ -40,7 +37,7 @@ class BillingService
                 $outer->whereDoesntHave('transactions', function (Builder $q) {
                     $q->where('type', 'payment')->where('status', 'completed');
                 })
-                ->orWhereRaw('final_amount > (
+                    ->orWhereRaw('final_amount > (
                     SELECT COALESCE(SUM(amount), 0)
                     FROM transactions
                     WHERE transactions.appointment_id = appointments.id
@@ -49,13 +46,13 @@ class BillingService
                 )');
             });
 
-        if (!empty($filters['patient_id'])) {
+        if (! empty($filters['patient_id'])) {
             $query->where('patient_id', $filters['patient_id']);
         }
-        if (!empty($filters['from'])) {
+        if (! empty($filters['from'])) {
             $query->whereDate('completed_at', '>=', $filters['from']);
         }
-        if (!empty($filters['to'])) {
+        if (! empty($filters['to'])) {
             $query->whereDate('completed_at', '<=', $filters['to']);
         }
 
@@ -206,6 +203,7 @@ class BillingService
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
             }
+
             return $quotation;
         });
     }
@@ -215,7 +213,7 @@ class BillingService
      * Reglas:
      *   - execution: siempre que tenga final_amount > 0
      *   - plan_session: si el clínico pasó generate_quotation=true (default true) o si hay items completed
-     *   - consultation puro: NO (es solo evaluación)
+     *   - consultation puro: NO (es solo evaluación).
      */
     public function shouldAutoGenerateQuotation(Appointment $appointment, array $payload): bool
     {
@@ -234,17 +232,19 @@ class BillingService
             if (array_key_exists('generate_quotation', $payload) && $payload['generate_quotation'] === false) {
                 return false;
             }
+
             return $appointment->treatmentPlan
                 ? $appointment->treatmentPlan->items()->where('status', 'completed')->exists()
                 : false;
         }
+
         return false;
     }
 
     private function generateQuotationNumber(): string
     {
         do {
-            $number = 'PR-' . date('Y') . '-' . strtoupper(Str::random(6));
+            $number = 'PR-'.date('Y').'-'.strtoupper(Str::random(6));
         } while (Quotation::where('quotation_number', $number)->exists());
 
         return $number;

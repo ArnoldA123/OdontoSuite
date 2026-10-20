@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Appointment;
-use App\Models\Patient;
-use App\Models\User;
 use App\Models\AppointmentType;
 use App\Models\DentalChair;
+use App\Models\Patient;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class SimpleAppointmentsSeeder extends Seeder
 {
@@ -24,6 +24,7 @@ class SimpleAppointmentsSeeder extends Seeder
 
         if ($patients->isEmpty() || $professionals->isEmpty() || $appointmentTypes->isEmpty() || $dentalChairs->isEmpty()) {
             $this->command->error('No hay suficientes datos para crear citas.');
+
             return;
         }
 
@@ -72,14 +73,14 @@ class SimpleAppointmentsSeeder extends Seeder
                     'ends_at' => $endsAt,
                     'duration_minutes' => $duration,
                     'status' => $status,
-                    'notes' => 'Cita para ' . $appointmentType->name,
+                    'notes' => 'Cita para '.$appointmentType->name,
                     'treatment_notes' => $treatmentNotes,
                     'created_by' => $admin->id,
                     'updated_by' => $admin->id,
                 ]);
                 $appointmentCount++;
             } catch (\Exception $e) {
-                $this->command->error('Error creando cita: ' . $e->getMessage());
+                $this->command->error('Error creando cita: '.$e->getMessage());
             }
         }
 

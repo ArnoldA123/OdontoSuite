@@ -21,7 +21,7 @@ class HotfixLoginAccessibilityTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     public function test_reduced_motion_neutralizes_form_and_backdrop_transforms(): void
@@ -58,7 +58,7 @@ class HotfixLoginAccessibilityTest extends TestCase
         // (no alpha). Pin the RULE: the declaration inside the media query
         // must not contain "rgba(" with a fractional alpha nor the modern
         // slash notation "rgb(... / 0.x)".
-        if (!preg_match(
+        if (! preg_match(
             '/@media\s*\(\s*prefers-reduced-transparency\s*:\s*reduce\s*\)\s*\{([^}]+)\}/s',
             $source,
             $m
@@ -100,7 +100,7 @@ class HotfixLoginAccessibilityTest extends TestCase
         // resolve to var(--color-label-label) — the highest-contrast label
         // token in the system. This guarantees legibility for users who
         // request more contrast at the OS level.
-        if (!preg_match(
+        if (! preg_match(
             '/@media\s*\(\s*prefers-contrast\s*:\s*more\s*\)\s*\{([^}]+)\}/s',
             $source,
             $m

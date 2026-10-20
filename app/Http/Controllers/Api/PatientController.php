@@ -2,25 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PatientCreated;
+use App\Events\PatientDeleted;
+use App\Events\PatientUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PatientResource;
-use App\Models\Patient;
-use App\Models\AuditLog;
-use App\Services\PatientExportService;
-use App\Events\PatientCreated;
-use App\Events\PatientUpdated;
-use App\Events\PatientDeleted;
 use App\Listeners\ClearDashboardCache;
+use App\Models\Patient;
+use App\Services\PatientExportService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class PatientController extends Controller
 {
     use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
@@ -52,7 +52,7 @@ class PatientController extends Controller
             'is_active',
             'branch_id',
             'created_at',
-            'updated_at'
+            'updated_at',
         ]);
 
         // Search by name, email, phone or document_number (DNI)
@@ -62,10 +62,10 @@ class PatientController extends Controller
 
                 $query->where(function ($q) use ($like) {
                     $q->where('first_name', 'like', $like)
-                      ->orWhere('last_name', 'like', $like)
-                      ->orWhere('email', 'like', $like)
-                      ->orWhere('phone', 'like', $like)
-                      ->orWhere('document_number', 'like', $like);
+                        ->orWhere('last_name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhere('phone', 'like', $like)
+                        ->orWhere('document_number', 'like', $like);
                 });
             };
 
@@ -160,7 +160,7 @@ class PatientController extends Controller
      */
     private static function likePattern(string $term): string
     {
-        return '%' . addcslashes($term, '\\%_') . '%';
+        return '%'.addcslashes($term, '\\%_').'%';
     }
 
     /**
@@ -218,30 +218,30 @@ class PatientController extends Controller
                 $query->with([
                     'appointmentType:id,name,default_duration_minutes,price',
                     'user:id,name,specialty',
-                    'dentalChair:id,name,code'
+                    'dentalChair:id,name,code',
                 ])->orderBy('scheduled_at', 'desc')->limit(10);
             },
             'waitingLists' => function ($query) {
                 $query->with([
                     'appointmentType:id,name',
-                    'preferredUser:id,name'
+                    'preferredUser:id,name',
                 ])->orderBy('created_at', 'desc');
             },
             'auditLogs' => function ($query) {
                 $query->with('user:id,name,email')
-                      ->orderBy('created_at', 'desc')
-                      ->limit(50);
+                    ->orderBy('created_at', 'desc')
+                    ->limit(50);
             },
             'treatmentPlans' => function ($query) {
                 $query->with(['items.dentalPiece', 'createdBy:id,name'])
-                      ->orderBy('created_at', 'desc')
-                      ->limit(5);
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5);
             },
             'quotations' => function ($query) {
                 $query->with(['items', 'createdBy:id,name'])
-                      ->orderBy('created_at', 'desc')
-                      ->limit(5);
-            }
+                    ->orderBy('created_at', 'desc')
+                    ->limit(5);
+            },
         ]);
 
         return response()->json([
@@ -310,7 +310,7 @@ class PatientController extends Controller
 
         // Emitir evento de WebSocket (el listener se encargará de la auditoría)
         event(new PatientUpdated($patient, $oldValues));
-        
+
         // Limpiar cache del dashboard
         ClearDashboardCache::handle();
 
@@ -361,7 +361,7 @@ class PatientController extends Controller
 
         // Emitir evento de WebSocket (el listener se encargará de la auditoría)
         event(new PatientDeleted($patientId, $patientData));
-        
+
         // Limpiar cache del dashboard
         ClearDashboardCache::handle();
 
@@ -419,6 +419,7 @@ class PatientController extends Controller
                     $age = null;
                 }
             }
+
             return [
                 'id' => $p->id,
                 'first_name' => $p->first_name,
@@ -467,7 +468,7 @@ class PatientController extends Controller
     }
 
     /**
-     * Synchronous export method (for backward compatibility)
+     * Synchronous export method (for backward compatibility).
      */
     private function exportSync(Request $request, Patient $patient): \Illuminate\Http\Response|JsonResponse
     {
@@ -478,24 +479,24 @@ class PatientController extends Controller
         ]);
 
         try {
-            $exportService = new PatientExportService();
+            $exportService = new PatientExportService;
             $format = $request->get('format');
 
             if ($format === 'pdf') {
                 $pdfContent = $exportService->exportToPdf($patient->id);
-                $filename = 'ficha_paciente_' . $patient->id . '_' . now()->format('Y-m-d_His') . '.pdf';
+                $filename = 'ficha_paciente_'.$patient->id.'_'.now()->format('Y-m-d_His').'.pdf';
 
                 return response($pdfContent, 200, [
                     'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                 ]);
             } else {
                 $zipContent = $exportService->exportToZip($patient->id);
-                $filename = 'ficha_paciente_' . $patient->id . '_' . now()->format('Y-m-d_His') . '.zip';
+                $filename = 'ficha_paciente_'.$patient->id.'_'.now()->format('Y-m-d_His').'.zip';
 
                 return response($zipContent, 200, [
                     'Content-Type' => 'application/zip',
-                    'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                    'Content-Disposition' => 'attachment; filename="'.$filename.'"',
                 ]);
             }
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -504,14 +505,14 @@ class PatientController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error exporting patient file: ' . $e->getMessage(), [
+            Log::error('Error exporting patient file: '.$e->getMessage(), [
                 'patient_id' => $patient->id,
                 'format' => $request->get('format'),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return response()->json([
                 'message' => 'Error al exportar ficha del paciente',
                 'error' => config('app.debug') ? $e->getMessage() : 'Error interno del servidor',

@@ -20,12 +20,11 @@ use Tests\TestCase;
  */
 class HotfixDashboardStaggerTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     /**
@@ -42,12 +41,13 @@ class HotfixDashboardStaggerTest extends TestCase
 
         $opts = [];
         $pattern = '/useSpring\s*\(\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\)/s';
-        if (!preg_match_all($pattern, $source, $matches)) {
+        if (! preg_match_all($pattern, $source, $matches)) {
             return $opts;
         }
         foreach ($matches[1] as $body) {
             $opts[] = $body;
         }
+
         return $opts;
     }
 
@@ -115,7 +115,7 @@ class HotfixDashboardStaggerTest extends TestCase
 
         foreach ($expectedVars as $cssVar) {
             $this->assertMatchesRegularExpression(
-                "/revealStyle\(\s*'" . preg_quote($cssVar, '/') . "'\s*\)/",
+                "/revealStyle\(\s*'".preg_quote($cssVar, '/')."'\s*\)/",
                 $source,
                 "DashboardPage.vue MUST consume `{$cssVar}` through revealStyle() in a template style rule (T4 - the entrance springs must not be vestigial)."
             );
@@ -152,7 +152,7 @@ class HotfixDashboardStaggerTest extends TestCase
 
         foreach ($expectedDelays as $spring => $delay) {
             $this->assertMatchesRegularExpression(
-                '/' . preg_quote($spring, '/') . '\.set\(1\)\s*,\s*' . $delay . '\s*\)/',
+                '/'.preg_quote($spring, '/').'\.set\(1\)\s*,\s*'.$delay.'\s*\)/',
                 $source,
                 "DashboardPage.vue MUST keep the {$delay}ms stagger delay for {$spring} (T4 - 0/60/120ms entrance cascade, WU3)."
             );

@@ -34,7 +34,7 @@ class AppointmentResource extends JsonResource
             'completed_at' => $this->completed_at?->toIso8601String(),
             'has_payment' => $this->when(
                 $this->relationLoaded('transactions'),
-                fn() => $this->transactions()
+                fn () => $this->transactions()
                     ->where('type', 'payment')
                     ->where('status', '!=', 'voided')
                     ->exists()
@@ -43,7 +43,7 @@ class AppointmentResource extends JsonResource
             'updated_by' => $this->updated_by,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
-            
+
             // Relaciones condicionales
             'patient' => $this->whenLoaded('patient', function () {
                 return [

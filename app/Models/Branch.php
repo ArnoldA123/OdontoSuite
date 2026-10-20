@@ -25,12 +25,12 @@ class Branch extends Model
         'longitude',
         'description',
         'settings',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'settings' => 'array',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

@@ -25,7 +25,7 @@ class StoreOdontogramRequest extends FormRequest
                 'version' => Str::limit(strip_tags($this->version), 10),
             ]);
         }
-        
+
         if ($this->has('notes')) {
             $this->merge([
                 'notes' => strip_tags($this->notes),
@@ -48,4 +48,3 @@ class StoreOdontogramRequest extends FormRequest
         ];
     }
 }
-

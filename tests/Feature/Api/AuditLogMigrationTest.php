@@ -106,7 +106,7 @@ class AuditLogMigrationTest extends TestCase
 
         $this->assertIsString($source, 'Migration file must be readable');
 
-        if (!preg_match(
+        if (! preg_match(
             '/public function\s+up\s*\([^)]*\)\s*:\s*void\s*\{(.*?)\n\s*\}/s',
             $source,
             $m

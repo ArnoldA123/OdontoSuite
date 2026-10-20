@@ -4,8 +4,8 @@ namespace App\Events;
 
 use App\Models\CashMovement;
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -18,6 +18,7 @@ class CashMovementCreated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $movement;
+
     public $sessionId;
 
     public function __construct(CashMovement $movement, $sessionId = null)
@@ -53,4 +54,3 @@ class CashMovementCreated implements ShouldBroadcast
         ];
     }
 }
-

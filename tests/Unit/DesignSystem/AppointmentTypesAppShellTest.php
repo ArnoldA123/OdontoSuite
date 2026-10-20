@@ -65,8 +65,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::LIST_PAGE_PATH,
-            dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH,
+            dirname(__DIR__, 3).self::LIST_PAGE_PATH,
+            dirname(__DIR__, 3).self::DETAIL_PAGE_PATH,
         ];
     }
 
@@ -81,7 +81,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_pages_use_ui_select_for_filter_bar(): void
     {
-        $listPath = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $listPath = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $listSrc = self::readSource($listPath);
         $this->assertNotNull($listSrc, sprintf('%s must be readable.', $listPath));
 
@@ -95,7 +95,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume <UiSelect> for the filter bar (CITAS-AT-001). '
-                . 'Raw `<select class="border-theme">` controls are deprecated.',
+                .'Raw `<select class="border-theme">` controls are deprecated.',
                 $listPath
             )
         );
@@ -111,8 +111,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT keep a raw `<select class="border-theme">` filter '
-                . 'or toggle control (CITAS-AT-001 / DLR-R-002). '
-                . 'All selects MUST consume <UiSelect>.',
+                .'or toggle control (CITAS-AT-001 / DLR-R-002). '
+                .'All selects MUST consume <UiSelect>.',
                 $listPath
             )
         );
@@ -132,11 +132,11 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_pages_use_format_currency_for_price(): void
     {
-        $listPath = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $listPath = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $listSrc = self::readSource($listPath);
         $this->assertNotNull($listSrc, sprintf('%s must be readable.', $listPath));
 
-        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailPath = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $detailSrc = self::readSource($detailPath);
         $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
 
@@ -149,7 +149,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST import `formatCurrency` from the canonical `useFormatters.js` '
-                . 'location for the price field (CITAS-AT-001 / PAGOS-MNY-002).',
+                .'location for the price field (CITAS-AT-001 / PAGOS-MNY-002).',
                 $listPath
             )
         );
@@ -167,7 +167,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             $hasFormatCurrencyImport || $hasFormatPenLabelImport,
             sprintf(
                 '%s MUST import `formatCurrency` (or `formatPENLabel` alias) from the canonical '
-                . '`useFormatters.js` location for the price summary (CITAS-AT-001 / PAGOS-MNY-002).',
+                .'`useFormatters.js` location for the price summary (CITAS-AT-001 / PAGOS-MNY-002).',
                 $detailPath
             )
         );
@@ -182,8 +182,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT redeclare a local `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` '
-                . '(PR-pagos-01 / CITAS-AT-001). The canonical `formatCurrency` from `useFormatters.js` '
-                . 'is the sole money formatter.',
+                .'(PR-pagos-01 / CITAS-AT-001). The canonical `formatCurrency` from `useFormatters.js` '
+                .'is the sole money formatter.',
                 $listPath
             )
         );
@@ -196,8 +196,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT redeclare a local `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` '
-                . '(PR-pagos-01 / CITAS-AT-001). The canonical `formatCurrency` from `useFormatters.js` '
-                . 'is the sole money formatter.',
+                .'(PR-pagos-01 / CITAS-AT-001). The canonical `formatCurrency` from `useFormatters.js` '
+                .'is the sole money formatter.',
                 $detailPath
             )
         );
@@ -212,7 +212,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `S/ ${...}` literal pattern (PR-pagos-01). '
-                . 'Use `formatCurrency(price)` from the canonical helper.',
+                .'Use `formatCurrency(price)` from the canonical helper.',
                 $listPath
             )
         );
@@ -225,7 +225,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `S/ ${...}` literal pattern (PR-pagos-01). '
-                . 'Use `formatCurrency(price)` from the canonical helper.',
+                .'Use `formatCurrency(price)` from the canonical helper.',
                 $detailPath
             )
         );
@@ -258,10 +258,10 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             foreach ($forbiddenAliases as $alias) {
                 $this->assertSame(
                     0,
-                    preg_match('#(?<![\w-])' . preg_quote($alias, '#') . '(?![\w-])#', $src),
+                    preg_match('#(?<![\w-])'.preg_quote($alias, '#').'(?![\w-])#', $src),
                     sprintf(
                         '%s MUST NOT keep the legacy status-pill class `%s` (CITAS-AT-001 / DLR-R-009). '
-                        . 'Replace it with `<UiStatusBadge variant="success|neutral|error">`.',
+                        .'Replace it with `<UiStatusBadge variant="success|neutral|error">`.',
                         $path,
                         $alias
                     )
@@ -295,7 +295,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 ),
                 sprintf(
                     '%s MUST NOT contain the legacy `focus:ring-primary-500` focus-ring alias (DLR-R-004 / CITAS-AT-001). '
-                    . 'Rely on the global `var(--focus-ring-default)` (composed by the Ui primitives).',
+                    .'Rely on the global `var(--focus-ring-default)` (composed by the Ui primitives).',
                     $path
                 )
             );
@@ -308,7 +308,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 ),
                 sprintf(
                     '%s MUST NOT contain the legacy `focus:border-accent` focus-ring alias (DLR-R-004). '
-                    . 'The global token owns the focus border colour.',
+                    .'The global token owns the focus border colour.',
                     $path
                 )
             );
@@ -326,11 +326,11 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_pages_price_column_uses_tabular_nums(): void
     {
-        $listPath = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $listPath = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $listSrc = self::readSource($listPath);
         $this->assertNotNull($listSrc, sprintf('%s must be readable.', $listPath));
 
-        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailPath = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $detailSrc = self::readSource($detailPath);
         $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
 
@@ -345,7 +345,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST apply `tabular-nums` (or the token form) on the price column (DLR-R-007). '
-                . 'Use `tabular-nums` Tailwind utility or `font-feature-settings: var(--font-features-tabular-nums)`.',
+                .'Use `tabular-nums` Tailwind utility or `font-feature-settings: var(--font-features-tabular-nums)`.',
                 $listPath
             )
         );
@@ -361,7 +361,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST apply `tabular-nums` (or the token form) on the price summary (DLR-R-007). '
-                . 'Use `tabular-nums` Tailwind utility or `font-feature-settings: var(--font-features-tabular-nums)`.',
+                .'Use `tabular-nums` Tailwind utility or `font-feature-settings: var(--font-features-tabular-nums)`.',
                 $detailPath
             )
         );
@@ -386,7 +386,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
                 preg_match('#<style\s+scoped\s*>#', $src),
                 sprintf(
                     '%s MUST NOT contain a `<style scoped>` block (DLR-R-021 / CITAS-AT-001). '
-                    . 'Tailwind utility classes + global token CSS own the visual surface.',
+                    .'Tailwind utility classes + global token CSS own the visual surface.',
                     $path
                 )
             );
@@ -401,7 +401,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_page_use_api_ownership_preserved(): void
     {
-        $listPath = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $listPath = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $listSrc = self::readSource($listPath);
         $this->assertNotNull($listSrc, sprintf('%s must be readable.', $listPath));
 
@@ -417,7 +417,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `useApi` import (CITAS-CON-001). '
-                . '`useApi` owns the 401 redirect contract; the page MUST NOT bypass it.',
+                .'`useApi` owns the 401 redirect contract; the page MUST NOT bypass it.',
                 $listPath
             )
         );
@@ -438,7 +438,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_detail_uses_ui_tabs_for_tab_nav(): void
     {
-        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailPath = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $detailSrc = self::readSource($detailPath);
         $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
 
@@ -448,7 +448,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#<UiTabs\b#', $detailSrc),
             sprintf(
                 '%s MUST consume <UiTabs> for the tab navigation strip (TIPOS-02-001). '
-                . 'Replace the raw `<button>` step strip on lines 84-100.',
+                .'Replace the raw `<button>` step strip on lines 84-100.',
                 $detailPath
             )
         );
@@ -465,8 +465,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST declare the `tabs` array with `label` field (NOT `name`) '
-                . 'to match the <UiTabs> validator (TIPOS-02-001 / Tabs.vue:78). '
-                . 'Rename `name` → `label` in the `tabs` array literal.',
+                .'to match the <UiTabs> validator (TIPOS-02-001 / Tabs.vue:78). '
+                .'Rename `name` → `label` in the `tabs` array literal.',
                 $detailPath
             )
         );
@@ -485,8 +485,8 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT keep raw `<button class="...border-systemBlue-500...text-systemBlue-600...">` '
-                . 'tab nav elements (TIPOS-02-001). The <UiTabs> primitive owns the '
-                . 'active indicator visual treatment.',
+                .'tab nav elements (TIPOS-02-001). The <UiTabs> primitive owns the '
+                .'active indicator visual treatment.',
                 $detailPath
             )
         );
@@ -505,7 +505,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_detail_no_gradient_anywhere(): void
     {
-        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailPath = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $detailSrc = self::readSource($detailPath);
         $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
 
@@ -526,9 +526,9 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             $gradientCount,
             sprintf(
                 '%s MUST NOT contain any `bg-gradient` class (TIPOS-02-002 [CRITICAL] / '
-                . 'global guard rail #10 — no gradients anywhere). '
-                . 'Found %d `bg-gradient` match(es). The gradient on line 167 '
-                . 'MUST be removed as part of the <UiEmptyState> adoption.',
+                .'global guard rail #10 — no gradients anywhere). '
+                .'Found %d `bg-gradient` match(es). The gradient on line 167 '
+                .'MUST be removed as part of the <UiEmptyState> adoption.',
                 $detailPath,
                 $gradientCount
             )
@@ -549,7 +549,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
      */
     public function test_detail_audit_diff_uses_system_ramps(): void
     {
-        $detailPath = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $detailPath = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $detailSrc = self::readSource($detailPath);
         $this->assertNotNull($detailSrc, sprintf('%s must be readable.', $detailPath));
 
@@ -560,7 +560,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             $redCount,
             sprintf(
                 '%s MUST NOT keep raw `text-red-500` Tailwind ramps (TIPOS-02-005). '
-                . 'Replace with `text-systemRed-600`. Found %d match(es).',
+                .'Replace with `text-systemRed-600`. Found %d match(es).',
                 $detailPath,
                 $redCount
             )
@@ -573,7 +573,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             $greenCount,
             sprintf(
                 '%s MUST NOT keep raw `text-green-500` Tailwind ramps (TIPOS-02-005). '
-                . 'Replace with `text-systemGreen-600`. Found %d match(es).',
+                .'Replace with `text-systemGreen-600`. Found %d match(es).',
                 $detailPath,
                 $greenCount
             )
@@ -585,7 +585,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])text-systemRed-600(?![\w-])#', $detailSrc),
             sprintf(
                 '%s MUST consume `text-systemRed-600` (TIPOS-02-005). '
-                . 'Found no `text-systemRed-600` reference.',
+                .'Found no `text-systemRed-600` reference.',
                 $detailPath
             )
         );
@@ -596,7 +596,7 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])text-systemGreen-600(?![\w-])#', $detailSrc),
             sprintf(
                 '%s MUST consume `text-systemGreen-600` (TIPOS-02-005). '
-                . 'Found no `text-systemGreen-600` reference.',
+                .'Found no `text-systemGreen-600` reference.',
                 $detailPath
             )
         );
@@ -604,10 +604,11 @@ class AppointmentTypesAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

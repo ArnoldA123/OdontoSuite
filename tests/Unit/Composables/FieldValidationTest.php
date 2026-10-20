@@ -26,32 +26,34 @@ use PHPUnit\Framework\TestCase;
 class FieldValidationTest extends TestCase
 {
     /** Project root absolute path. */
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /** Pure-math module path (Node-loadable, no Vue dependency). */
     private const MATH_REL = '/resources/js/composables/fieldValidationMath.js';
 
     private static function mathPath(): string
     {
-        return self::projectRootPath() . self::MATH_REL;
+        return self::projectRootPath().self::MATH_REL;
     }
 
     /**
      * Run a node script that loads the pure-math module, calls the supplied
      * expression, and returns its result as a JSON object.
      *
-     * @param string $body  ESM body that ends with `process.stdout.write(JSON.stringify(result))`
-     * @return mixed
+     * @param string $body ESM body that ends with `process.stdout.write(JSON.stringify(result))`
      */
     private static function runMath(string $body): mixed
     {
         $mathPath = self::mathPath();
-        if (!is_file($mathPath)) {
+        if (! is_file($mathPath)) {
             self::fail("Math module missing: {$mathPath} — implement fieldValidationMath.js before this test (RED → GREEN)");
         }
 
         $escapedPath = addcslashes($mathPath, "'\\");
-        $loader = <<<JS
+        $loader = <<<'JS'
 import { pathToFileURL } from 'node:url';
 const mod = await import(pathToFileURL('TARGET_PATH').href);
 globalThis.__exports = { ...mod };
@@ -61,23 +63,24 @@ JS;
         $loader = str_replace('BODY_PLACEHOLDER', $body, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'field_val_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
         if ($output === null || $output === '') {
-            self::fail('node -e produced no output. body: ' . $body);
+            self::fail('node -e produced no output. body: '.$body);
         }
 
         $jsonStart = strpos($output, '{');
         if ($jsonStart === false) {
-            self::fail('node output had no JSON object: ' . $output);
+            self::fail('node output had no JSON object: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return $decoded;
     }
 
@@ -86,16 +89,14 @@ JS;
      * call via the math module and run an arbitrary body against the
      * exposed `v` handle.
      *
-     * @param array $formJson     e.g. ['username' => '']
-     * @param string $rulesJson   JSON.stringify of the rules map
-     * @param string $body        node body that uses `globalThis.__v`
-     * @param int    $idleMs
-     * @return mixed
+     * @param array  $formJson  e.g. ['username' => '']
+     * @param string $rulesJson JSON.stringify of the rules map
+     * @param string $body      node body that uses `globalThis.__v`
      */
     private static function runValidator(array $formJson, string $rulesJson, string $body, int $idleMs = 250): mixed
     {
         $formJsonStr = json_encode((object) $formJson, JSON_UNESCAPED_SLASHES);
-        $scriptBody = <<<JS
+        $scriptBody = <<<'JS'
 const { attachValidator } = globalThis.__exports;
 const errors = {};
 const successes = {};
@@ -125,6 +126,7 @@ JS;
             ],
             $scriptBody
         );
+
         return self::runMath($scriptBody);
     }
 
@@ -147,8 +149,8 @@ process.stdout.write(JSON.stringify({
 JS;
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(['username' => ''], $rulesJson, $body);
         $this->assertSame('required', $r['error'], 'empty username must set errors.username = "required"');
@@ -189,8 +191,8 @@ process.stdout.write(JSON.stringify({
 JS;
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(['username' => ''], $rulesJson, $body);
         $this->assertSame('', $r['errorBeforeFire'], 'before debounce fires: errors.username must still be empty');
@@ -215,8 +217,8 @@ JS;
         // Rule returns null when v is truthy (i.e. always passes).
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(['username' => 'admin'], $rulesJson, $body);
         $this->assertSame('', $r['error'], 'passing rule: errors.username must be empty');
@@ -249,8 +251,8 @@ process.stdout.write(JSON.stringify({ beforeClear, afterClear }));
 JS;
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(['username' => ''], $rulesJson, $body);
         $this->assertSame('', $r['beforeClear']['error'], 'precondition: errors.username must be empty after pass');
@@ -279,11 +281,11 @@ process.stdout.write(JSON.stringify({
 JS;
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
+                ['v' => '(v) => v ? null : "required"'],
             ],
             'password' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(
             ['username' => 'admin', 'password' => ''],
@@ -319,12 +321,12 @@ process.stdout.write(JSON.stringify({ firedAt }));
 JS;
         $rulesJson = json_encode([
             'username' => [
-                ['v' => '(v) => v ? null : "required"']
-            ]
+                ['v' => '(v) => v ? null : "required"'],
+            ],
         ]);
         $r = self::runValidator(['username' => ''], $rulesJson, $body);
         $firedAt = (int) $r['firedAt'];
-        $this->assertGreaterThanOrEqual(200, $firedAt, 'debounce must be at least 200ms (got ' . $firedAt . 'ms)');
-        $this->assertLessThanOrEqual(300, $firedAt, 'debounce must be at most 300ms (got ' . $firedAt . 'ms)');
+        $this->assertGreaterThanOrEqual(200, $firedAt, 'debounce must be at least 200ms (got '.$firedAt.'ms)');
+        $this->assertLessThanOrEqual(300, $firedAt, 'debounce must be at most 300ms (got '.$firedAt.'ms)');
     }
 }

@@ -83,10 +83,11 @@ class PacientesNegativeSpaceRulesTest extends TestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -107,7 +108,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
      */
     public function test_patient_selector_not_yet_tokenized(): void
     {
-        $path = self::projectRoot() . self::PATIENT_SELECTOR_PATH;
+        $path = self::projectRoot().self::PATIENT_SELECTOR_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -119,14 +120,14 @@ class PacientesNegativeSpaceRulesTest extends TestCase
         foreach ($forbiddenPrimitives as $name => $primitive) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#(?<![\w-])' . preg_quote($primitive, '#') . '(?![\w-])#',
+                    '#(?<![\w-])'.preg_quote($primitive, '#').'(?![\w-])#',
                     $src
                 ),
                 sprintf(
                     '%s is missing the legacy primitive `%s` — it may have been migrated by the '
-                        . 'PACIENTES rollout (PAC-WS-001 cross-cutting variant / global OQ#7). '
-                        . 'If a separate global PR migrated PatientSelector.vue, flip this test to '
-                        . 'assert the migrated state and pin the cross-cutting contract.',
+                        .'PACIENTES rollout (PAC-WS-001 cross-cutting variant / global OQ#7). '
+                        .'If a separate global PR migrated PatientSelector.vue, flip this test to '
+                        .'assert the migrated state and pin the cross-cutting contract.',
                     $path,
                     $name
                 )
@@ -150,7 +151,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
      */
     public function test_pagination_import_not_silently_renamed(): void
     {
-        $path = self::projectRoot() . self::PATIENTS_LIST_PATH;
+        $path = self::projectRoot().self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -161,8 +162,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
             ),
             sprintf(
                 '%s MUST keep the legacy `import Pagination from .../Pagination.vue` import verbatim '
-                    . '(PAC-CON-001 Pagination variant / OQ#7). The consolidation to `<UiPagination>` '
-                    . 'rides global PR3 (Recepción procedimientos).',
+                    .'(PAC-CON-001 Pagination variant / OQ#7). The consolidation to `<UiPagination>` '
+                    .'rides global PR3 (Recepción procedimientos).',
                 $path
             )
         );
@@ -172,8 +173,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
             $src,
             sprintf(
                 '%s MUST NOT silently rename to `import UiPagination from ...` (PAC-CON-001 / OQ#7). '
-                    . 'The consolidation rides global PR3 — doing it here would double-import the '
-                    . 'component during the chain.',
+                    .'The consolidation rides global PR3 — doing it here would double-import the '
+                    .'component during the chain.',
                 $path
             )
         );
@@ -194,7 +195,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
      */
     public function test_cross_category_deep_links_preserved(): void
     {
-        $path = self::projectRoot() . self::PATIENT_DETAIL_PATH;
+        $path = self::projectRoot().self::PATIENT_DETAIL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -208,7 +209,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
         $totalHits = 0;
         foreach ($targets as $target) {
             $count = preg_match_all(
-                '#router\\.push\\s*\\(\\s*[`\'"][^`\'"]*/' . preg_quote($target, '#') . '\\?patient_id=#',
+                '#router\\.push\\s*\\(\\s*[`\'"][^`\'"]*/'.preg_quote($target, '#').'\\?patient_id=#',
                 $src
             );
             $this->assertGreaterThanOrEqual(
@@ -216,8 +217,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
                 $count,
                 sprintf(
                     '%s MUST preserve at least 1 `router.push(...?patient_id=…)` call to `/%s?patient_id=` (PAC-DEEP-001). '
-                        . 'The 4 deep-link navigations are the contract between this module and the '
-                        . '4 sibling modules; a UI refactor must not drop the `?patient_id=…` query param.',
+                        .'The 4 deep-link navigations are the contract between this module and the '
+                        .'4 sibling modules; a UI refactor must not drop the `?patient_id=…` query param.',
                     $path,
                     $target
                 )
@@ -230,7 +231,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
             $totalHits,
             sprintf(
                 '%s MUST preserve at least 4 cross-category deep-link calls total (PAC-DEEP-001). '
-                    . 'Found %d.',
+                    .'Found %d.',
                 $path,
                 $totalHits
             )
@@ -244,7 +245,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
      *   - `treatment-plans` (`PatientDetailPage.vue`)
      *   - `quotations` (`PatientDetailPage.vue`)
      *   - `medical-records` (`PatientDetailPage.vue`)
-     *   - `specialty-records` (`PatientDetailPage.vue`)
+     *   - `specialty-records` (`PatientDetailPage.vue`).
      *
      * The regex matches the canonical `channel('patients')` form (single
      * or double quotes, any whitespace). A UI refactor that drops a
@@ -255,8 +256,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
     public function test_use_echo_channels_preserved(): void
     {
         $root = self::projectRoot();
-        $patientsPath = $root . self::PATIENTS_LIST_PATH;
-        $detailPath = $root . self::PATIENT_DETAIL_PATH;
+        $patientsPath = $root.self::PATIENTS_LIST_PATH;
+        $detailPath = $root.self::PATIENT_DETAIL_PATH;
 
         $patientsSrc = self::readSource($patientsPath);
         $detailSrc = self::readSource($detailPath);
@@ -276,8 +277,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
                 ),
                 sprintf(
                     '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
-                        . 'The channel is the canonical realtime pipe for patient events and it is '
-                        . 'private because the payload carries medical_history and allergies.',
+                        .'The channel is the canonical realtime pipe for patient events and it is '
+                        .'private because the payload carries medical_history and allergies.',
                     $label === 0 ? self::PATIENTS_LIST_PATH : self::PATIENT_DETAIL_PATH
                 )
             );
@@ -295,12 +296,12 @@ class PacientesNegativeSpaceRulesTest extends TestCase
         foreach ($crossCategoryChannels as $channel) {
             $this->assertTrue(
                 (bool) preg_match(
-                    "#channel\\s*\\(\\s*['\"]" . preg_quote($channel, '#') . "['\"]\\s*\\)#",
+                    "#channel\\s*\\(\\s*['\"]".preg_quote($channel, '#')."['\"]\\s*\\)#",
                     $detailSrc
                 ),
                 sprintf(
                     '%s MUST keep `channel(\'%s\')` subscription (PAC-RT-001). '
-                        . 'The 4 cross-category Echo channels are the realtime pipe for cross-module patient events.',
+                        .'The 4 cross-category Echo channels are the realtime pipe for cross-module patient events.',
                     self::PATIENT_DETAIL_PATH,
                     $channel
                 )
@@ -332,8 +333,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
     {
         $root = self::projectRoot();
         $files = [
-            $root . self::PATIENTS_LIST_PATH,
-            $root . self::PATIENT_DETAIL_PATH,
+            $root.self::PATIENTS_LIST_PATH,
+            $root.self::PATIENT_DETAIL_PATH,
         ];
 
         $forbiddenFields = [
@@ -351,14 +352,14 @@ class PacientesNegativeSpaceRulesTest extends TestCase
                 $this->assertSame(
                     0,
                     preg_match(
-                        '#(?<![\w-])' . preg_quote($field, '#') . '(?![\w-])#',
+                        '#(?<![\w-])'.preg_quote($field, '#').'(?![\w-])#',
                         $src
                     ),
                     sprintf(
                         '%s contains the dormant PHI field `%s` (PAC-PHI-001 violation). '
-                            . 'The field has no migration column backing it; collecting it on the frontend '
-                            . 'would persist as `undefined` on the wire and corrupt the PUT body. '
-                            . 'Remove the v-model binding / data initialization / computed lookup.',
+                            .'The field has no migration column backing it; collecting it on the frontend '
+                            .'would persist as `undefined` on the wire and corrupt the PUT body. '
+                            .'Remove the v-model binding / data initialization / computed lookup.',
                         $path,
                         $name
                     )
@@ -389,7 +390,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
     {
         $root = self::projectRoot();
         $relPath = 'resources/views/exports/patient-file.blade.php';
-        $absPath = $root . self::PDF_EXPORT_TEMPLATE_PATH;
+        $absPath = $root.self::PDF_EXPORT_TEMPLATE_PATH;
 
         $this->assertTrue(
             is_file($absPath),
@@ -428,8 +429,8 @@ class PacientesNegativeSpaceRulesTest extends TestCase
             $exitCode,
             sprintf(
                 '%s was modified in the last 5 pacientes commits (PAC-EXP-001 out-of-scope guard). '
-                    . 'The PDF template is a print artifact outside the SPA visual-language scope; '
-                    . 'revert the unintended change.',
+                    .'The PDF template is a print artifact outside the SPA visual-language scope; '
+                    .'revert the unintended change.',
                 self::PDF_EXPORT_TEMPLATE_PATH
             )
         );
@@ -459,7 +460,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
      */
     public function test_binary_download_pattern_preserved(): void
     {
-        $path = self::projectRoot() . self::PATIENT_DETAIL_PATH;
+        $path = self::projectRoot().self::PATIENT_DETAIL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -474,9 +475,9 @@ class PacientesNegativeSpaceRulesTest extends TestCase
                 (bool) preg_match($pattern, $src),
                 sprintf(
                     '%s MUST preserve the binary-download pattern `%s` (PAC-EXP-001). '
-                        . 'A JSON wrapper (`useApi().get(...)`) would corrupt the binary stream; '
-                        . 'the raw `fetch` + `createObjectURL` + dynamic `<a download>` anchor + '
-                        . '`link.click()` + `revokeObjectURL` triple is the contract.',
+                        .'A JSON wrapper (`useApi().get(...)`) would corrupt the binary stream; '
+                        .'the raw `fetch` + `createObjectURL` + dynamic `<a download>` anchor + '
+                        .'`link.click()` + `revokeObjectURL` triple is the contract.',
                     $path,
                     $name
                 )

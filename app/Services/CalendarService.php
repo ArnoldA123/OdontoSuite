@@ -4,16 +4,12 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\User;
-use App\Models\AppointmentType;
-use App\Models\DentalChair;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class CalendarService
 {
-    public function __construct(private readonly AppointmentService $appointmentService)
-    {
-    }
+    public function __construct(private readonly AppointmentService $appointmentService) {}
 
     /**
      * Get appointments for a specific day.
@@ -24,7 +20,7 @@ class CalendarService
             'patient:id,first_name,last_name,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
-            'appointmentType:id,name,default_duration_minutes,price,color'
+            'appointmentType:id,name,default_duration_minutes,price,color',
         ])
             ->whereDate('scheduled_at', $date)
             ->where('status', '!=', 'cancelled')
@@ -49,7 +45,7 @@ class CalendarService
             'patient:id,first_name,last_name,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
-            'appointmentType:id,name,default_duration_minutes,price,color'
+            'appointmentType:id,name,default_duration_minutes,price,color',
         ])
             ->whereBetween('scheduled_at', [$startOfWeek, $endOfWeek])
             ->where('status', '!=', 'cancelled')
@@ -74,7 +70,7 @@ class CalendarService
             'patient:id,first_name,last_name,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
-            'appointmentType:id,name,default_duration_minutes,price,color'
+            'appointmentType:id,name,default_duration_minutes,price,color',
         ])
             ->whereBetween('scheduled_at', [$startOfMonth, $endOfMonth])
             ->where('status', '!=', 'cancelled')
@@ -97,7 +93,7 @@ class CalendarService
         return $appointments->map(function ($appointment) {
             return [
                 'id' => $appointment->id,
-                'title' => $appointment->patient->full_name . ' - ' . $appointment->appointmentType->name,
+                'title' => $appointment->patient->full_name.' - '.$appointment->appointmentType->name,
                 'start' => $appointment->scheduled_at->toISOString(),
                 'end' => $appointment->ends_at->toISOString(),
                 'backgroundColor' => $appointment->appointmentType->color,
@@ -141,7 +137,7 @@ class CalendarService
             'patient:id,first_name,last_name,email,phone',
             'user:id,name,specialty',
             'dentalChair:id,name,code',
-            'appointmentType:id,name,default_duration_minutes,price,color'
+            'appointmentType:id,name,default_duration_minutes,price,color',
         ])
             ->whereBetween('scheduled_at', [$startDate, $endDate])
             ->where('status', '!=', 'cancelled')
@@ -224,12 +220,15 @@ class CalendarService
         switch ($view) {
             case 'day':
                 $appointments = $this->getDayAppointments($date, $userId);
+
                 break;
             case 'week':
                 $appointments = $this->getWeekAppointments($date, $userId);
+
                 break;
             case 'month':
                 $appointments = $this->getMonthAppointments($date, $userId);
+
                 break;
             default:
                 $appointments = collect();

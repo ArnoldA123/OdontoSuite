@@ -52,15 +52,16 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
 
     private static function listPagePath(): string
     {
-        return self::projectRoot() . self::LIST_PAGE_PATH;
+        return self::projectRoot().self::LIST_PAGE_PATH;
     }
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -100,8 +101,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             $uiInputCount,
             sprintf(
                 '%s MUST consume `<UiInput>` for the New modal name field + the '
-                . 'Edit modal name + code fields (AMB-02-007). Found %d <UiInput> '
-                . 'reference(s); expected at least 3.',
+                .'Edit modal name + code fields (AMB-02-007). Found %d <UiInput> '
+                .'reference(s); expected at least 3.',
                 $path,
                 $uiInputCount
             )
@@ -118,8 +119,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             $uiTextareaCount,
             sprintf(
                 '%s MUST consume `<UiTextarea>` for the New modal description + equipment '
-                . 'fields + the Edit modal description + equipment fields (AMB-02-007 / '
-                . 'T5-F2). Found %d <UiTextarea> reference(s); expected at least 4.',
+                .'fields + the Edit modal description + equipment fields (AMB-02-007 / '
+                .'T5-F2). Found %d <UiTextarea> reference(s); expected at least 4.',
                 $path,
                 $uiTextareaCount
             )
@@ -134,8 +135,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             $uiSelectCount,
             sprintf(
                 '%s MUST consume `<UiSelect>` for the New modal status + Edit modal status '
-                . '+ global status filter (AMB-02-007). Found %d <UiSelect> reference(s); '
-                . 'expected at least 3.',
+                .'+ global status filter (AMB-02-007). Found %d <UiSelect> reference(s); '
+                .'expected at least 3.',
                 $path,
                 $uiSelectCount
             )
@@ -167,8 +168,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             preg_match('#<input\b[^>]*\bv-model=#', $src),
             sprintf(
                 '%s MUST NOT keep raw `<input v-model="...">` controls inside the modal '
-                . 'sections (AMB-02-007). The 3 modal `<input>` fields (New name + Edit name + '
-                . 'Edit code) MUST migrate to `<UiInput v-model="..." />`.',
+                .'sections (AMB-02-007). The 3 modal `<input>` fields (New name + Edit name + '
+                .'Edit code) MUST migrate to `<UiInput v-model="..." />`.',
                 $path
             )
         );
@@ -179,8 +180,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             preg_match('#<textarea\b[^>]*\bv-model=#', $src),
             sprintf(
                 '%s MUST NOT keep raw `<textarea v-model="...">` controls inside the modal '
-                . 'sections (AMB-02-007). The 3 modal `<textarea>` fields (New description + '
-                . 'New equipment + Edit description) MUST migrate to `<UiTextarea v-model="..." />`.',
+                .'sections (AMB-02-007). The 3 modal `<textarea>` fields (New description + '
+                .'New equipment + Edit description) MUST migrate to `<UiTextarea v-model="..." />`.',
                 $path
             )
         );
@@ -191,8 +192,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             preg_match('#<select\b[^>]*\bv-model=#', $src),
             sprintf(
                 '%s MUST NOT keep raw `<select v-model="...">` controls inside the modal '
-                . 'sections (AMB-02-007). The 2 modal `<select>` fields (New status + Edit status) '
-                . 'MUST migrate to `<UiSelect v-model="..." />`.',
+                .'sections (AMB-02-007). The 2 modal `<select>` fields (New status + Edit status) '
+                .'MUST migrate to `<UiSelect v-model="..." />`.',
                 $path
             )
         );
@@ -229,12 +230,12 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
         foreach ($expectedBindings as $binding) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#v-model=["\']' . preg_quote($binding, '#') . '["\']#',
+                    '#v-model=["\']'.preg_quote($binding, '#').'["\']#',
                     $src
                 ),
                 sprintf(
                     '%s MUST preserve the `v-model="%s"` binding on the migrated '
-                    . 'modal form field (AMB-02-007).',
+                    .'modal form field (AMB-02-007).',
                     $path,
                     $binding
                 )
@@ -275,8 +276,8 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             $badgeRefs,
             sprintf(
                 '%s MUST consume `<UiStatusBadge>` for the list-row pill and the modal Estado-group '
-                . 'preview pills (AMB-02-007 / AMB-01-008 / T3-D4). Found %d badge reference(s); '
-                . 'expected at least 2.',
+                .'preview pills (AMB-02-007 / AMB-01-008 / T3-D4). Found %d badge reference(s); '
+                .'expected at least 2.',
                 $path,
                 $badgeRefs
             )
@@ -290,7 +291,7 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             preg_match('#\bviewEnvironment\b#', $src),
             sprintf(
                 '%s MUST NOT keep the dead `viewEnvironment` handler (T3/D4). '
-                . '"Ver detalle" (EyeIcon row action) is the single path to the detail route.',
+                .'"Ver detalle" (EyeIcon row action) is the single path to the detail route.',
                 $path
             )
         );
@@ -299,7 +300,7 @@ class EnvironmentsModalChromeTest extends \PHPUnit\Framework\TestCase
             preg_match('#viewingEnvironment|showViewEnvironmentModal#', $src),
             sprintf(
                 '%s MUST NOT keep the `viewingEnvironment` / `showViewEnvironmentModal` refs '
-                . '(T3/D4). The View modal is deleted.',
+                .'(T3/D4). The View modal is deleted.',
                 $path
             )
         );

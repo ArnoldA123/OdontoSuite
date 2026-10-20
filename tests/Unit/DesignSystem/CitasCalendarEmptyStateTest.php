@@ -41,19 +41,20 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
 
     /** Template markers delimiting the empty-state region. */
     private const EMPTY_MARKER = '<!-- Empty State (D1/D9) -->';
+
     private const DAY_VIEW_MARKER = '<!-- Day View -->';
 
     /** @return array<int, string> */
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::CALENDAR_PATH,
+            dirname(__DIR__, 3).self::CALENDAR_PATH,
         ];
     }
 
     private static function calendarSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', self::CALENDAR_PATH));
 
@@ -139,7 +140,7 @@ class CitasCalendarEmptyStateTest extends ModuleAppShellTestCase
             preg_match('#const loading = ref\(true\)#', $src),
             sprintf(
                 '%s `loading` MUST start true — the initial load must show the loading state, '
-                . 'never the D1/D9 empty block (T7).',
+                .'never the D1/D9 empty block (T7).',
                 self::CALENDAR_PATH
             )
         );

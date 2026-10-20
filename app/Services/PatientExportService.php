@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Patient;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
 class PatientExportService
@@ -18,7 +18,7 @@ class PatientExportService
         try {
             $patient = $this->loadPatientData($patientId);
 
-            if (!$patient) {
+            if (! $patient) {
                 throw new \Exception("Paciente no encontrado con ID: {$patientId}");
             }
 
@@ -29,10 +29,11 @@ class PatientExportService
 
             return $pdf->output();
         } catch (\Exception $e) {
-            Log::error('Error generating PDF: ' . $e->getMessage(), [
+            Log::error('Error generating PDF: '.$e->getMessage(), [
                 'patient_id' => $patientId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             throw $e;
         }
     }
@@ -46,23 +47,23 @@ class PatientExportService
 
         // Create temporary directory
         $baseTempDir = storage_path('app/temp/exports');
-        if (!is_dir($baseTempDir)) {
+        if (! is_dir($baseTempDir)) {
             mkdir($baseTempDir, 0755, true);
         }
-        $tempDir = $baseTempDir . '/' . uniqid('patient_export_', true);
-        if (!is_dir($tempDir)) {
+        $tempDir = $baseTempDir.'/'.uniqid('patient_export_', true);
+        if (! is_dir($tempDir)) {
             mkdir($tempDir, 0755, true);
         }
 
         try {
             // Generate PDF
             $pdfContent = $this->exportToPdf($patientId);
-            $pdfPath = $tempDir . '/ficha_paciente_' . $patient->id . '.pdf';
+            $pdfPath = $tempDir.'/ficha_paciente_'.$patient->id.'.pdf';
             file_put_contents($pdfPath, $pdfContent);
 
             // Copy attachments
-            $attachmentsDir = $tempDir . '/adjuntos';
-            if (!is_dir($attachmentsDir)) {
+            $attachmentsDir = $tempDir.'/adjuntos';
+            if (! is_dir($attachmentsDir)) {
                 mkdir($attachmentsDir, 0755, true);
             }
 
@@ -71,13 +72,13 @@ class PatientExportService
             $attachments = \App\Models\ClinicalAttachment::where('patient_id', $patient->id)
                 ->where('is_active', true)
                 ->get();
-            
+
             foreach ($attachments as $attachment) {
                 if (Storage::disk('public')->exists($attachment->file_path)) {
-                    $safeName = $attachmentCount . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $attachment->original_name);
+                    $safeName = $attachmentCount.'_'.preg_replace('/[^a-zA-Z0-9_-]/', '_', $attachment->original_name);
                     $sourcePath = Storage::disk('public')->path($attachment->file_path);
-                    $destPath = $attachmentsDir . '/' . $safeName;
-                    
+                    $destPath = $attachmentsDir.'/'.$safeName;
+
                     if (file_exists($sourcePath)) {
                         copy($sourcePath, $destPath);
                         $attachmentCount++;
@@ -86,21 +87,21 @@ class PatientExportService
             }
 
             // Create ZIP file
-            $zipPath = storage_path('app/temp/exports/patient_' . $patient->id . '_' . now()->format('Y-m-d_His') . '.zip');
-            $zip = new ZipArchive();
-            
+            $zipPath = storage_path('app/temp/exports/patient_'.$patient->id.'_'.now()->format('Y-m-d_His').'.zip');
+            $zip = new ZipArchive;
+
             if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
                 // Add PDF
                 $zip->addFile($pdfPath, 'ficha_paciente.pdf');
-                
+
                 // Add attachments
                 if (is_dir($attachmentsDir)) {
-                    $files = glob($attachmentsDir . '/*');
+                    $files = glob($attachmentsDir.'/*');
                     foreach ($files as $file) {
-                        $zip->addFile($file, 'adjuntos/' . basename($file));
+                        $zip->addFile($file, 'adjuntos/'.basename($file));
                     }
                 }
-                
+
                 $zip->close();
             }
 
@@ -109,7 +110,7 @@ class PatientExportService
 
             // Read ZIP content
             $zipContent = file_get_contents($zipPath);
-            
+
             // Delete ZIP file
             unlink($zipPath);
 
@@ -119,6 +120,7 @@ class PatientExportService
             if (is_dir($tempDir)) {
                 $this->deleteDirectory($tempDir);
             }
+
             throw $e;
         }
     }
@@ -133,25 +135,25 @@ class PatientExportService
                 $query->with([
                     'appointmentType:id,name,default_duration_minutes,price',
                     'user:id,name,specialty',
-                    'dentalChair:id,name,code'
+                    'dentalChair:id,name,code',
                 ])->orderBy('scheduled_at', 'desc');
             },
             'waitingLists' => function ($query) {
                 $query->with([
                     'appointmentType:id,name',
-                    'preferredUser:id,name'
+                    'preferredUser:id,name',
                 ])->orderBy('created_at', 'desc');
             },
             'treatmentPlans' => function ($query) {
                 $query->with([
                     'items.dentalPiece',
-                    'createdBy:id,name'
+                    'createdBy:id,name',
                 ])->orderBy('created_at', 'desc');
             },
             'quotations' => function ($query) {
                 $query->with([
                     'items',
-                    'createdBy:id,name'
+                    'createdBy:id,name',
                 ])->orderBy('created_at', 'desc');
             },
             'medicalRecords' => function ($query) {
@@ -159,7 +161,7 @@ class PatientExportService
                     'evolutions' => function ($q) {
                         $q->orderBy('evolution_date', 'desc');
                     },
-                    'createdBy:id,name'
+                    'createdBy:id,name',
                 ])->orderBy('first_visit_date', 'desc');
             },
             'endodonticsRecords' => function ($query) {
@@ -184,17 +186,17 @@ class PatientExportService
                             'dentalPiece:id,fdi_number,name,type',
                             'toothSurface:id,surface_code,surface_name',
                             'appointment:id,scheduled_at',
-                            'createdBy:id,name'
+                            'createdBy:id,name',
                         ]);
                     },
-                    'createdBy:id,name'
+                    'createdBy:id,name',
                 ])->orderBy('created_at', 'desc');
             },
             'auditLogs' => function ($query) {
                 $query->with('user:id,name,email')
-                      ->orderBy('created_at', 'desc')
-                      ->limit(100);
-            }
+                    ->orderBy('created_at', 'desc')
+                    ->limit(100);
+            },
         ])->findOrFail($patientId);
     }
 
@@ -203,17 +205,16 @@ class PatientExportService
      */
     private function deleteDirectory(string $dir): bool
     {
-        if (!is_dir($dir)) {
+        if (! is_dir($dir)) {
             return false;
         }
 
         $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
-            $path = $dir . '/' . $file;
+            $path = $dir.'/'.$file;
             is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
         }
 
         return rmdir($dir);
     }
 }
-

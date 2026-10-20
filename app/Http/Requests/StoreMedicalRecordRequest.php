@@ -69,7 +69,7 @@ class StoreMedicalRecordRequest extends FormRequest
             'clinical_examination' => 'sometimes|nullable|string|max:2000',
             'diagnosis' => 'sometimes|nullable|string|max:1000',
             'treatment_plan' => 'sometimes|nullable|string|max:2000',
-            'notes' => 'sometimes|nullable|string|max:1000'
+            'notes' => 'sometimes|nullable|string|max:1000',
         ];
     }
 
@@ -87,7 +87,7 @@ class StoreMedicalRecordRequest extends FormRequest
             'vital_signs.temperature.min' => 'La temperatura mínima es 30°C',
             'vital_signs.temperature.max' => 'La temperatura máxima es 45°C',
             'vital_signs.respiratory_rate.min' => 'La frecuencia respiratoria mínima es 8 rpm',
-            'vital_signs.respiratory_rate.max' => 'La frecuencia respiratoria máxima es 40 rpm'
+            'vital_signs.respiratory_rate.max' => 'La frecuencia respiratoria máxima es 40 rpm',
         ];
     }
 }

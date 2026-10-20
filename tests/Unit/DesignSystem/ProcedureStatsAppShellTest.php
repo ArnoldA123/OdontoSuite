@@ -34,6 +34,7 @@ namespace Tests\Unit\DesignSystem;
 class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
 {
     private const PAGE_PATH = '/resources/js/modules/procedure-catalog/ProcedureStatsPage.vue';
+
     private const APP_JS_PATH = '/resources/js/app.js';
 
     /** KPI slots, left to right: catalog totals first, period usage last. */
@@ -42,12 +43,12 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
     /** @return array<int, string> */
     protected static function polishedFiles(): array
     {
-        return [dirname(__DIR__, 3) . self::PAGE_PATH];
+        return [dirname(__DIR__, 3).self::PAGE_PATH];
     }
 
     private function readSource(string $relativePath): string
     {
-        $path = dirname(__DIR__, 3) . $relativePath;
+        $path = dirname(__DIR__, 3).$relativePath;
         $this->assertFileExists($path, sprintf('%s must exist.', $relativePath));
 
         $source = file_get_contents($path);
@@ -101,7 +102,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
 
     private static function routeOffset(string $src, string $path): ?int
     {
-        $pattern = '~path:\s*[\'"]' . preg_quote($path, '~') . '[\'"]~';
+        $pattern = '~path:\s*[\'"]'.preg_quote($path, '~').'[\'"]~';
         if (preg_match($pattern, $src, $matches, PREG_OFFSET_CAPTURE) !== 1) {
             return null;
         }
@@ -235,7 +236,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
             );
 
             $valueTag = $this->extractBlock(
-                '~<[a-z][^>]*\bdata-kpi-value="' . preg_quote($slot, '~') . '"[^>]*>~',
+                '~<[a-z][^>]*\bdata-kpi-value="'.preg_quote($slot, '~').'"[^>]*>~',
                 $card['html'],
                 sprintf('The `%s` KPI card must expose data-kpi-value="%s" (S1 KPI anatomy).', $slot, $slot)
             );
@@ -273,7 +274,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
             '~\bdata-retry\b(?:(?!</UiButton>)[\s\S]){0,300}?@click="loadStats"~',
             $src,
             'The error block must expose a `data-retry` action wired to loadStats(), '
-            . 'so Reintentar re-emits the request and clears the error (S2).'
+            .'so Reintentar re-emits the request and clears the error (S2).'
         );
 
         $errorPosition = strpos($src, 'data-state="error"');
@@ -296,7 +297,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
             '!error',
             $emptyTag,
             'The empty state must be guarded by `v-else-if="!error ..."`, '
-            . 'so an error is never rendered as an empty period (S2).'
+            .'so an error is never rendered as an empty period (S2).'
         );
     }
 
@@ -413,13 +414,14 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
             '~(?<![\w-])(?:text|bg|border|ring|from|via|to)-(?:green|red|emerald|rose)-[0-9]{2,3}(?![\w-])~',
             $src,
             'ProcedureStatsPage.vue must not use raw Tailwind green/red ramps; '
-            . 'consume the systemGreen/systemRed token ramps (S1).'
+            .'consume the systemGreen/systemRed token ramps (S1).'
         );
 
         $activeCard = null;
         foreach ($this->kpiCards($src) as $card) {
             if ($card['slot'] === 'active') {
                 $activeCard = $card['html'];
+
                 break;
             }
         }
@@ -493,7 +495,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
 
         foreach (['usage', 'specialty'] as $chart) {
             $canvas = $this->extractBlock(
-                '~<canvas\b[^>]*\bdata-chart="' . preg_quote($chart, '~') . '"[^>]*>~',
+                '~<canvas\b[^>]*\bdata-chart="'.preg_quote($chart, '~').'"[^>]*>~',
                 $src,
                 sprintf('ProcedureStatsPage.vue must expose a <canvas data-chart="%s"> hook (S5).', $chart)
             );
@@ -560,7 +562,7 @@ class ProcedureStatsAppShellTest extends ModuleAppShellTestCase
 
         foreach (['usage_count', 'total_quantity', 'total_revenue'] as $cell) {
             $cellBlock = $this->extractBlock(
-                '~<template\b[^>]*#cell-' . preg_quote($cell, '~') . '\b[^>]*>[\s\S]*?</template>~',
+                '~<template\b[^>]*#cell-'.preg_quote($cell, '~').'\b[^>]*>[\s\S]*?</template>~',
                 $src,
                 sprintf('The ranking table must keep the `%s` cell slot (S1 table anatomy).', $cell)
             );

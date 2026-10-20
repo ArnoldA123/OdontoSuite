@@ -48,13 +48,13 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::CALENDAR_PATH,
+            dirname(__DIR__, 3).self::CALENDAR_PATH,
         ];
     }
 
     private static function calendarSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', $path));
 
@@ -63,7 +63,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
 
     private static function dragMathSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::DRAG_MATH_PATH;
+        $path = dirname(__DIR__, 3).self::DRAG_MATH_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', $path));
 
@@ -114,7 +114,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s Day and Week hour cells MUST expose `:data-calendar-drop-target="`${date}-${hour}`"` '
-                . '(T5 drop targets; the key format is the pure-module slot key).',
+                .'(T5 drop targets; the key format is the pure-module slot key).',
                 self::CALENDAR_PATH
             )
         );
@@ -161,7 +161,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s click-to-create slot buttons MUST NOT carry `@pointerdown` drag arming (T5; '
-                . 'drags start only from appointment chips).',
+                .'drags start only from appointment chips).',
                 self::CALENDAR_PATH
             )
         );
@@ -196,7 +196,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s `onChipPointerDown` MUST early-return when `can.editAppointment?.value` is false (T5 permission gate: '
-                . 'dragging follows the edit/update permission, role-based, not ownership).',
+                .'dragging follows the edit/update permission, role-based, not ownership).',
                 self::CALENDAR_PATH
             )
         );
@@ -221,7 +221,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s `dragChipClasses` MUST return no affordance for month view or gated roles (T5: month view untouched, '
-                . 'no grab cursor without the edit permission).',
+                .'no grab cursor without the edit permission).',
                 self::CALENDAR_PATH
             )
         );
@@ -252,7 +252,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             $this->assertSame(
                 1,
                 preg_match(
-                    "#window\.addEventListener\('" . $evt . "'#",
+                    "#window\.addEventListener\('".$evt."'#",
                     $src
                 ),
                 sprintf(
@@ -264,7 +264,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             $this->assertSame(
                 1,
                 preg_match(
-                    "#window\.removeEventListener\('" . $evt . "'#",
+                    "#window\.removeEventListener\('".$evt."'#",
                     $src
                 ),
                 sprintf(
@@ -370,8 +370,8 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST consult `canDropOn` BEFORE calling `rescheduleAppointment` — an invalid drop (own slot / past slot) '
-                . 'must not fire a request (T5 no-request cancellations; T8b: the past-slot rejection now also '
-                . 'announces itself with an info toast, still client-side only).',
+                .'must not fire a request (T5 no-request cancellations; T8b: the past-slot rejection now also '
+                .'announces itself with an info toast, still client-side only).',
                 self::CALENDAR_PATH
             )
         );
@@ -399,7 +399,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             preg_match('#const MIN_FUTURE_MS = 60 \* 1000#', $math),
             sprintf(
                 '%s MUST mirror the endpoint >= 1-minute-future rule (`MIN_FUTURE_MS = 60 * 1000`) so the UI rolls back '
-                . 'before calling the API (T5 drop rule).',
+                .'before calling the API (T5 drop rule).',
                 self::DRAG_MATH_PATH
             )
         );
@@ -489,7 +489,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST read the conflict branch from the server 422 payload (`error.response.data.conflict`) — '
-                . 'the server is the conflict oracle (T5 / CITAS-CONF-001).',
+                .'the server is the conflict oracle (T5 / CITAS-CONF-001).',
                 self::CALENDAR_PATH
             )
         );
@@ -558,7 +558,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
         foreach (['findConflicts', 'hasConflict'] as $heuristic) {
             $this->assertSame(
                 0,
-                preg_match('#\b' . $heuristic . '\b#', $src),
+                preg_match('#\b'.$heuristic.'\b#', $src),
                 sprintf(
                     '%s MUST NOT compute conflicts client-side (`%s`) — the 422 payload is the only conflict source (CITAS-CONF-001).',
                     self::CALENDAR_PATH,
@@ -693,7 +693,7 @@ class CitasCalendarDragRescheduleTest extends ModuleAppShellTestCase
     private static function constantStringValue(string $src, string $name): string|false
     {
         $matched = preg_match(
-            "#const " . preg_quote($name, '#') . "\\s*=\\s*\\n?\\s*'([^']*)'#",
+            '#const '.preg_quote($name, '#')."\\s*=\\s*\\n?\\s*'([^']*)'#",
             $src,
             $m
         );

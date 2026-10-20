@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Services\SpecialtyRecordService;
 use App\Events\SpecialtyRecordCreated;
 use App\Events\SpecialtyRecordUpdated;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Services\SpecialtyRecordService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class SpecialtyRecordController extends Controller
 {
@@ -40,9 +39,9 @@ class SpecialtyRecordController extends Controller
             $specialty = $request->get('specialty');
             $patientId = $request->get('patient_id');
 
-            if (!$specialty || !$patientId) {
+            if (! $specialty || ! $patientId) {
                 return response()->json([
-                    'message' => 'Se requiere especialidad y ID del paciente'
+                    'message' => 'Se requiere especialidad y ID del paciente',
                 ], 400);
             }
 
@@ -52,13 +51,13 @@ class SpecialtyRecordController extends Controller
                 'data' => $records,
                 'meta' => [
                     'total' => $records->count(),
-                    'specialty' => $specialty
-                ]
+                    'specialty' => $specialty,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener registros de especialidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -89,18 +88,18 @@ class SpecialtyRecordController extends Controller
             return response()->json([
                 'data' => $record,
                 'meta' => [
-                    'message' => 'Registro de especialidad creado exitosamente'
-                ]
+                    'message' => 'Registro de especialidad creado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear registro de especialidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -123,19 +122,19 @@ class SpecialtyRecordController extends Controller
                 }
             }
 
-            if (!$record) {
+            if (! $record) {
                 return response()->json([
-                    'message' => 'Registro de especialidad no encontrado'
+                    'message' => 'Registro de especialidad no encontrado',
                 ], 404);
             }
 
             return response()->json([
-                'data' => $record
+                'data' => $record,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener registro de especialidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -166,7 +165,7 @@ class SpecialtyRecordController extends Controller
                 // Campos comunes
                 'notes' => 'nullable|string',
                 'complications' => 'nullable|string',
-                'follow_up_notes' => 'nullable|string'
+                'follow_up_notes' => 'nullable|string',
             ]);
 
             $specialty = $validated['specialty'];
@@ -180,18 +179,18 @@ class SpecialtyRecordController extends Controller
             return response()->json([
                 'data' => $record,
                 'meta' => [
-                    'message' => 'Registro de especialidad actualizado exitosamente'
-                ]
+                    'message' => 'Registro de especialidad actualizado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar registro de especialidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -203,31 +202,31 @@ class SpecialtyRecordController extends Controller
     {
         try {
             $validated = $request->validate([
-                'specialty' => 'required|in:implantologia,ortodoncia,endodoncia,rehabilitacion,cirugia_oral'
+                'specialty' => 'required|in:implantologia,ortodoncia,endodoncia,rehabilitacion,cirugia_oral',
             ]);
 
             $this->specialtyRecordService->deleteRecord($validated['specialty'], $id);
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Registro de especialidad eliminado exitosamente'
-                ]
+                    'message' => 'Registro de especialidad eliminado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar registro de especialidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener registros por paciente y especialidad
+     * Obtener registros por paciente y especialidad.
      */
     public function getByPatient(int $patientId, string $specialty): JsonResponse
     {
@@ -238,19 +237,19 @@ class SpecialtyRecordController extends Controller
                 'data' => $records,
                 'meta' => [
                     'total' => $records->count(),
-                    'specialty' => $specialty
-                ]
+                    'specialty' => $specialty,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener registros del paciente',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener todos los registros de especialidades de un paciente
+     * Obtener todos los registros de especialidades de un paciente.
      */
     public function getAllByPatient(int $patientId): JsonResponse
     {
@@ -260,19 +259,19 @@ class SpecialtyRecordController extends Controller
             return response()->json([
                 'data' => $records,
                 'meta' => [
-                    'total' => collect($records)->flatten()->count()
-                ]
+                    'total' => collect($records)->flatten()->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener todos los registros del paciente',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener estadísticas por especialidad
+     * Obtener estadísticas por especialidad.
      */
     public function getStats(int $patientId, string $specialty): JsonResponse
     {
@@ -280,12 +279,12 @@ class SpecialtyRecordController extends Controller
             $stats = $this->specialtyRecordService->getSpecialtyStats($patientId, $specialty);
 
             return response()->json([
-                'data' => $stats
+                'data' => $stats,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

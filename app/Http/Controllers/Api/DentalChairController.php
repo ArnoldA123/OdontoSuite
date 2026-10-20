@@ -8,12 +8,12 @@ use App\Models\AuditLog;
 use App\Models\DentalChair;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class DentalChairController extends Controller
 {
@@ -29,7 +29,7 @@ class DentalChairController extends Controller
             'description' => 'nullable|string',
             'equipment' => 'nullable|string',
             'status' => 'required|in:active,inactive,maintenance',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
     }
 
@@ -63,14 +63,14 @@ class DentalChairController extends Controller
             return response()->json([
                 'data' => $chairs,
                 'meta' => [
-                    'total' => $chairs->count()
-                ]
+                    'total' => $chairs->count(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al obtener ambientes: ' . $e->getMessage());
+            Log::error('Error al obtener ambientes: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al obtener ambientes'
+                'message' => 'Error al obtener ambientes',
             ], 500);
         }
     }
@@ -108,19 +108,19 @@ class DentalChairController extends Controller
             return response()->json([
                 'data' => $chair,
                 'meta' => [
-                    'message' => 'Ambiente creado exitosamente'
-                ]
+                    'message' => 'Ambiente creado exitosamente',
+                ],
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error al crear ambiente: ' . $e->getMessage());
+            Log::error('Error al crear ambiente: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al crear ambiente'
+                'message' => 'Error al crear ambiente',
             ], 500);
         }
     }
@@ -134,17 +134,17 @@ class DentalChairController extends Controller
             $chair = DentalChair::findOrFail($id);
 
             return response()->json([
-                'data' => $chair
+                'data' => $chair,
             ]);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Ambiente no encontrado'
+                'message' => 'Ambiente no encontrado',
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error al obtener ambiente: ' . $e->getMessage());
+            Log::error('Error al obtener ambiente: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al obtener ambiente'
+                'message' => 'Error al obtener ambiente',
             ], 500);
         }
     }
@@ -158,7 +158,7 @@ class DentalChairController extends Controller
             $chair = DentalChair::findOrFail($id);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Ambiente no encontrado'
+                'message' => 'Ambiente no encontrado',
             ], 404);
         }
 
@@ -202,19 +202,19 @@ class DentalChairController extends Controller
             return response()->json([
                 'data' => $chair,
                 'meta' => [
-                    'message' => 'Ambiente actualizado exitosamente'
-                ]
+                    'message' => 'Ambiente actualizado exitosamente',
+                ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error al actualizar ambiente: ' . $e->getMessage());
+            Log::error('Error al actualizar ambiente: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al actualizar ambiente'
+                'message' => 'Error al actualizar ambiente',
             ], 500);
         }
     }
@@ -228,13 +228,13 @@ class DentalChairController extends Controller
             $chair = DentalChair::findOrFail($id);
         } catch (ModelNotFoundException $e) {
             return response()->json([
-                'message' => 'Ambiente no encontrado'
+                'message' => 'Ambiente no encontrado',
             ], 404);
         }
 
         if ($this->hasSchedulingHistory($chair)) {
             return response()->json([
-                'message' => 'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.'
+                'message' => 'No se puede eliminar el ambiente porque tiene citas o bloqueos asociados.',
             ], 409);
         }
 
@@ -264,14 +264,14 @@ class DentalChairController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Ambiente eliminado exitosamente'
-                ]
+                    'message' => 'Ambiente eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al eliminar ambiente: ' . $e->getMessage());
+            Log::error('Error al eliminar ambiente: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al eliminar ambiente'
+                'message' => 'Error al eliminar ambiente',
             ], 500);
         }
     }
@@ -324,7 +324,7 @@ class DentalChairController extends Controller
             }
         }
 
-        return 'AMB-' . str_pad((string) ($max + 1), 3, '0', STR_PAD_LEFT);
+        return 'AMB-'.str_pad((string) ($max + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function isDuplicateCode(QueryException $e): bool
@@ -357,14 +357,14 @@ class DentalChairController extends Controller
             return response()->json([
                 'data' => $chairs,
                 'meta' => [
-                    'total' => $chairs->count()
-                ]
+                    'total' => $chairs->count(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en DentalChairController@active: ' . $e->getMessage());
+            Log::error('Error en DentalChairController@active: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al obtener sillas dentales activas'
+                'message' => 'Error al obtener sillas dentales activas',
             ], 500);
         }
     }
@@ -387,8 +387,8 @@ class DentalChairController extends Controller
                 ->when($archived === 'only', fn ($q) => $q->where('is_active', false))
                 ->where(function ($q) use ($query) {
                     $q->where('name', 'like', "%{$query}%")
-                      ->orWhere('description', 'like', "%{$query}%")
-                      ->orWhere('equipment', 'like', "%{$query}%");
+                        ->orWhere('description', 'like', "%{$query}%")
+                        ->orWhere('equipment', 'like', "%{$query}%");
                 })
                 ->orderBy('name')
                 ->get();
@@ -397,14 +397,14 @@ class DentalChairController extends Controller
                 'data' => $chairs,
                 'meta' => [
                     'total' => $chairs->count(),
-                    'query' => $query
-                ]
+                    'query' => $query,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al buscar ambientes: ' . $e->getMessage());
+            Log::error('Error al buscar ambientes: '.$e->getMessage());
 
             return response()->json([
-                'message' => 'Error al buscar ambientes'
+                'message' => 'Error al buscar ambientes',
             ], 500);
         }
     }

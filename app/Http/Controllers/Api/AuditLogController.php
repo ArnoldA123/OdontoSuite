@@ -8,8 +8,8 @@ use App\Models\AuditLog;
 use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class AuditLogController extends Controller
@@ -24,8 +24,8 @@ class AuditLogController extends Controller
         // Filter by patient
         if ($request->has('patient_id')) {
             $query->where('auditable_type', Patient::class)
-                  ->where('auditable_id', $request->get('patient_id'));
-    }
+                ->where('auditable_id', $request->get('patient_id'));
+        }
 
         // Filter by user
         if ($request->has('user_id')) {
@@ -113,9 +113,9 @@ class AuditLogController extends Controller
                 ->get();
 
             // Safely get patient name
-            $patientName = $patient->first_name && $patient->last_name 
-                ? trim($patient->first_name . ' ' . $patient->last_name)
-                : ($patient->first_name ?? 'Paciente #' . $patientId);
+            $patientName = $patient->first_name && $patient->last_name
+                ? trim($patient->first_name.' '.$patient->last_name)
+                : ($patient->first_name ?? 'Paciente #'.$patientId);
 
             return response()->json([
                 'data' => $logs,
@@ -135,9 +135,9 @@ class AuditLogController extends Controller
                 ],
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error loading audit logs for patient: ' . $e->getMessage(), [
+            Log::error('Error loading audit logs for patient: '.$e->getMessage(), [
                 'patient_id' => $patientId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -167,7 +167,7 @@ class AuditLogController extends Controller
                 ->get();
 
             // Safely get user name
-            $userName = $user->name ?? 'Usuario #' . $userId;
+            $userName = $user->name ?? 'Usuario #'.$userId;
 
             return response()->json([
                 'data' => $logs,
@@ -187,9 +187,9 @@ class AuditLogController extends Controller
                 ],
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error loading audit logs for user: ' . $e->getMessage(), [
+            Log::error('Error loading audit logs for user: '.$e->getMessage(), [
                 'user_id' => $userId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -219,7 +219,7 @@ class AuditLogController extends Controller
                 ->get();
 
             // Safely get chair name
-            $chairName = $chair->name ?? 'Ambiente #' . $chairId;
+            $chairName = $chair->name ?? 'Ambiente #'.$chairId;
 
             return response()->json([
                 'data' => $logs,
@@ -239,9 +239,9 @@ class AuditLogController extends Controller
                 ],
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error loading audit logs for dental chair: ' . $e->getMessage(), [
+            Log::error('Error loading audit logs for dental chair: '.$e->getMessage(), [
                 'chair_id' => $chairId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -271,7 +271,7 @@ class AuditLogController extends Controller
                 ->get();
 
             // Safely get type name
-            $typeName = $type->name ?? 'Tipo de Cita #' . $typeId;
+            $typeName = $type->name ?? 'Tipo de Cita #'.$typeId;
 
             return response()->json([
                 'data' => $logs,
@@ -291,9 +291,9 @@ class AuditLogController extends Controller
                 ],
             ], 404);
         } catch (\Exception $e) {
-            Log::error('Error loading audit logs for appointment type: ' . $e->getMessage(), [
+            Log::error('Error loading audit logs for appointment type: '.$e->getMessage(), [
                 'type_id' => $typeId,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([

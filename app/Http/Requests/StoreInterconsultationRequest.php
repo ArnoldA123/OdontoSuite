@@ -46,7 +46,7 @@ class StoreInterconsultationRequest extends FormRequest
     {
         return [
             'patient_id' => 'required|exists:patients,id',
-            'to_specialist_id' => 'required|exists:users,id|different:' . Auth::id(),
+            'to_specialist_id' => 'required|exists:users,id|different:'.Auth::id(),
             'appointment_id' => 'sometimes|nullable|exists:appointments,id',
             'specialty_from' => 'required|string|max:50',
             'specialty_to' => 'required|string|max:50',
@@ -55,7 +55,7 @@ class StoreInterconsultationRequest extends FormRequest
             'clinical_data' => 'sometimes|nullable|string|max:2000',
             'requested_studies' => 'sometimes|nullable|string|max:1000',
             'priority' => 'required|in:low,medium,high,urgent',
-            'requested_date' => 'sometimes|nullable|date|before_or_equal:today'
+            'requested_date' => 'sometimes|nullable|date|before_or_equal:today',
         ];
     }
 
@@ -75,7 +75,7 @@ class StoreInterconsultationRequest extends FormRequest
             'specialty_to.required' => 'La especialidad de destino es obligatoria',
             'priority.required' => 'La prioridad es obligatoria',
             'priority.in' => 'La prioridad seleccionada no es válida',
-            'requested_date.before_or_equal' => 'La fecha de solicitud no puede ser futura'
+            'requested_date.before_or_equal' => 'La fecha de solicitud no puede ser futura',
         ];
     }
 }

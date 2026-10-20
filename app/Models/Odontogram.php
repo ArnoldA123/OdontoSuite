@@ -18,12 +18,12 @@ class Odontogram extends Model
         'version',
         'notes',
         'configuration',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'configuration' => 'array',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

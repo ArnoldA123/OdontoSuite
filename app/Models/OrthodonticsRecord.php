@@ -28,7 +28,7 @@ class OrthodonticsRecord extends Model
         'progress_notes',
         'complications',
         'measurements',
-        'retention_plan'
+        'retention_plan',
     ];
 
     protected $casts = [
@@ -37,7 +37,7 @@ class OrthodonticsRecord extends Model
         'actual_completion_date' => 'date',
         'elastic_configuration' => 'array',
         'bracket_positions' => 'array',
-        'measurements' => 'array'
+        'measurements' => 'array',
     ];
 
     // Relaciones
@@ -94,7 +94,7 @@ class OrthodonticsRecord extends Model
             'initial' => 'Inicial',
             'active' => 'Activo',
             'retention' => 'Retención',
-            'completed' => 'Completado'
+            'completed' => 'Completado',
         ];
 
         return $labels[$this->treatment_phase] ?? $this->treatment_phase;

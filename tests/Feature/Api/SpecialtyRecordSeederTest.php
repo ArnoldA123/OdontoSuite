@@ -57,8 +57,8 @@ class SpecialtyRecordSeederTest extends TestCase
             Patient::create([
                 'first_name' => 'Seeder Fixture',
                 'last_name' => "Patient {$index}",
-                'email' => "seeder.fixture.{$index}." . uniqid() . '@example.com',
-                'phone' => '+51 9' . str_pad((string) (10000000 + $index), 8, '0', STR_PAD_LEFT),
+                'email' => "seeder.fixture.{$index}.".uniqid().'@example.com',
+                'phone' => '+51 9'.str_pad((string) (10000000 + $index), 8, '0', STR_PAD_LEFT),
                 'is_active' => true,
             ]);
         }
@@ -71,7 +71,7 @@ class SpecialtyRecordSeederTest extends TestCase
         $this->seedPatients();
         $this->seed(\Database\Seeders\DentalPieceSeeder::class);
 
-        (new SpecialtyRecordSeeder())->run();
+        (new SpecialtyRecordSeeder)->run();
 
         $this->assertGreaterThan(
             0,
@@ -107,11 +107,11 @@ class SpecialtyRecordSeederTest extends TestCase
         $this->seedPatients();
         $this->seed(\Database\Seeders\DentalPieceSeeder::class);
 
-        (new SpecialtyRecordSeeder())->run();
+        (new SpecialtyRecordSeeder)->run();
         $firstOrtho = OrthodonticsRecord::count();
         $firstImplant = ImplantologyRecord::count();
 
-        (new SpecialtyRecordSeeder())->run();
+        (new SpecialtyRecordSeeder)->run();
 
         $this->assertSame(
             $firstOrtho * 2,
@@ -132,7 +132,7 @@ class SpecialtyRecordSeederTest extends TestCase
         $this->seedPatients();
         // Note: DentalPieceSeeder NOT called — collection is empty.
 
-        (new SpecialtyRecordSeeder())->run();
+        (new SpecialtyRecordSeeder)->run();
 
         $this->assertSame(0, DentalPiece::count(), 'No dental pieces seeded in this test');
         $this->assertSame(0, ImplantologyRecord::count(), 'Implantology branch must early-return');

@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Branch;
 use App\Models\CashRegisterSession;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -39,18 +39,18 @@ class OpenCashRegisterRequest extends FormRequest
             'branch_id' => [
                 'required',
                 'integer',
-                'exists:branches,id'
+                'exists:branches,id',
             ],
             'opening_amount' => [
                 'required',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'opening_notes' => [
                 'nullable',
                 'string',
-                'max:500'
-            ]
+                'max:500',
+            ],
         ];
     }
 
@@ -65,7 +65,7 @@ class OpenCashRegisterRequest extends FormRequest
             'opening_amount.required' => 'El monto de apertura es requerido.',
             'opening_amount.numeric' => 'El monto de apertura debe ser un número.',
             'opening_amount.min' => 'El monto de apertura debe ser mayor o igual a 0.',
-            'opening_notes.max' => 'Las notas de apertura no pueden exceder los 500 caracteres.'
+            'opening_notes.max' => 'Las notas de apertura no pueden exceder los 500 caracteres.',
         ];
     }
 
@@ -90,4 +90,3 @@ class OpenCashRegisterRequest extends FormRequest
         });
     }
 }
-

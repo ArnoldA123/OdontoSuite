@@ -49,7 +49,7 @@ class CashCloseAndClosureReportTest extends TestCase
     {
         return Branch::create([
             'name' => 'Cash Branch',
-            'code' => 'CSH' . strtoupper(substr(uniqid(), -4)),
+            'code' => 'CSH'.strtoupper(substr(uniqid(), -4)),
             'address' => 'Av. Test 456',
             'city' => 'Lima',
             'is_active' => true,

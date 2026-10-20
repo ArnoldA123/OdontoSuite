@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\AppointmentCreated;
-use App\Events\AppointmentUpdated;
 use App\Events\AppointmentDeleted;
+use App\Events\AppointmentUpdated;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +17,7 @@ class LogAppointmentActivity
     public function handle($event): void
     {
         try {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 return;
             }
 
@@ -44,11 +44,11 @@ class LogAppointmentActivity
             } elseif ($event instanceof AppointmentDeleted) {
                 // Para deleted, usar appointment si está disponible, sino crear instancia temporal
                 $appointment = $event->appointment;
-                if (!$appointment) {
-                    $appointment = new \App\Models\Appointment();
+                if (! $appointment) {
+                    $appointment = new \App\Models\Appointment;
                     $appointment->id = $event->appointmentId;
                 }
-                
+
                 AuditLog::log(
                     $user,
                     'appointment_deleted',
@@ -65,4 +65,3 @@ class LogAppointmentActivity
         }
     }
 }
-

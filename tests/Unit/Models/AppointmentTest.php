@@ -2,22 +2,25 @@
 
 namespace Tests\Unit\Models;
 
-use Tests\TestCase;
 use App\Models\Appointment;
+use App\Models\AppointmentType;
+use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
-use App\Models\DentalChair;
-use App\Models\AppointmentType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AppointmentTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
+
     private Patient $patient;
+
     private DentalChair $dentalChair;
+
     private AppointmentType $appointmentType;
 
     protected function setUp(): void
@@ -26,21 +29,21 @@ class AppointmentTest extends TestCase
 
         $this->user = User::factory()->create([
             'role' => 'odontologo',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $this->patient = Patient::factory()->create([
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $this->dentalChair = DentalChair::factory()->create([
             'is_active' => true,
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         $this->appointmentType = AppointmentType::factory()->create([
             'is_active' => true,
-            'default_duration_minutes' => 60
+            'default_duration_minutes' => 60,
         ]);
     }
 
@@ -77,7 +80,7 @@ class AppointmentTest extends TestCase
     public function it_belongs_to_a_user()
     {
         $appointment = Appointment::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         $this->assertInstanceOf(User::class, $appointment->user);
@@ -88,7 +91,7 @@ class AppointmentTest extends TestCase
     public function it_belongs_to_a_patient()
     {
         $appointment = Appointment::factory()->create([
-            'patient_id' => $this->patient->id
+            'patient_id' => $this->patient->id,
         ]);
 
         $this->assertInstanceOf(Patient::class, $appointment->patient);
@@ -99,7 +102,7 @@ class AppointmentTest extends TestCase
     public function it_belongs_to_a_dental_chair()
     {
         $appointment = Appointment::factory()->create([
-            'dental_chair_id' => $this->dentalChair->id
+            'dental_chair_id' => $this->dentalChair->id,
         ]);
 
         $this->assertInstanceOf(DentalChair::class, $appointment->dentalChair);
@@ -110,7 +113,7 @@ class AppointmentTest extends TestCase
     public function it_belongs_to_an_appointment_type()
     {
         $appointment = Appointment::factory()->create([
-            'appointment_type_id' => $this->appointmentType->id
+            'appointment_type_id' => $this->appointmentType->id,
         ]);
 
         $this->assertInstanceOf(AppointmentType::class, $appointment->appointmentType);
@@ -122,15 +125,15 @@ class AppointmentTest extends TestCase
     {
         // Create appointments with different statuses
         $scheduledAppointment = Appointment::factory()->create([
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $completedAppointment = Appointment::factory()->create([
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         $cancelledAppointment = Appointment::factory()->create([
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $scheduledAppointments = Appointment::scheduled()->get();
@@ -146,15 +149,15 @@ class AppointmentTest extends TestCase
     {
         // Create appointments with different statuses
         $scheduledAppointment = Appointment::factory()->create([
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $completedAppointment = Appointment::factory()->create([
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         $cancelledAppointment = Appointment::factory()->create([
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $completedAppointments = Appointment::completed()->get();
@@ -170,15 +173,15 @@ class AppointmentTest extends TestCase
     {
         // Create appointments with different statuses
         $scheduledAppointment = Appointment::factory()->create([
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $completedAppointment = Appointment::factory()->create([
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         $cancelledAppointment = Appointment::factory()->create([
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $cancelledAppointments = Appointment::cancelled()->get();
@@ -196,12 +199,12 @@ class AppointmentTest extends TestCase
 
         // Create appointments for today
         $todayAppointment = Appointment::factory()->create([
-            'scheduled_at' => $date->copy()->setTime(9, 0)
+            'scheduled_at' => $date->copy()->setTime(9, 0),
         ]);
 
         // Create appointment for tomorrow
         $tomorrowAppointment = Appointment::factory()->create([
-            'scheduled_at' => $date->copy()->addDay()->setTime(9, 0)
+            'scheduled_at' => $date->copy()->addDay()->setTime(9, 0),
         ]);
 
         $todayAppointments = Appointment::forDate($date)->get();
@@ -219,12 +222,12 @@ class AppointmentTest extends TestCase
 
         // Create appointments within range
         $inRangeAppointment = Appointment::factory()->create([
-            'scheduled_at' => $startDate->copy()->addDays(1)->setTime(9, 0)
+            'scheduled_at' => $startDate->copy()->addDays(1)->setTime(9, 0),
         ]);
 
         // Create appointment outside range
         $outOfRangeAppointment = Appointment::factory()->create([
-            'scheduled_at' => $startDate->copy()->addDays(5)->setTime(9, 0)
+            'scheduled_at' => $startDate->copy()->addDays(5)->setTime(9, 0),
         ]);
 
         $rangeAppointments = Appointment::forDateRange($startDate, $endDate)->get();
@@ -239,17 +242,17 @@ class AppointmentTest extends TestCase
     {
         $otherUser = User::factory()->create([
             'role' => 'odontologo',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Create appointment for current user
         $userAppointment = Appointment::factory()->create([
-            'user_id' => $this->user->id
+            'user_id' => $this->user->id,
         ]);
 
         // Create appointment for other user
         $otherUserAppointment = Appointment::factory()->create([
-            'user_id' => $otherUser->id
+            'user_id' => $otherUser->id,
         ]);
 
         $userAppointments = Appointment::forUser($this->user->id)->get();
@@ -263,17 +266,17 @@ class AppointmentTest extends TestCase
     public function it_can_scope_appointments_for_patient()
     {
         $otherPatient = Patient::factory()->create([
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         // Create appointment for current patient
         $patientAppointment = Appointment::factory()->create([
-            'patient_id' => $this->patient->id
+            'patient_id' => $this->patient->id,
         ]);
 
         // Create appointment for other patient
         $otherPatientAppointment = Appointment::factory()->create([
-            'patient_id' => $otherPatient->id
+            'patient_id' => $otherPatient->id,
         ]);
 
         $patientAppointments = Appointment::forPatient($this->patient->id)->get();
@@ -291,7 +294,7 @@ class AppointmentTest extends TestCase
 
         $appointment = Appointment::factory()->create([
             'scheduled_at' => $scheduledAt,
-            'duration_minutes' => $duration
+            'duration_minutes' => $duration,
         ]);
 
         $expectedEndTime = $scheduledAt->copy()->addMinutes($duration);
@@ -304,7 +307,7 @@ class AppointmentTest extends TestCase
     public function it_can_get_formatted_duration()
     {
         $appointment = Appointment::factory()->create([
-            'duration_minutes' => 90
+            'duration_minutes' => 90,
         ]);
 
         $this->assertEquals('1h 30m', $appointment->formatted_duration);
@@ -315,7 +318,7 @@ class AppointmentTest extends TestCase
     {
         $scheduledAt = Carbon::now()->setTime(14, 30);
         $appointment = Appointment::factory()->create([
-            'scheduled_at' => $scheduledAt
+            'scheduled_at' => $scheduledAt,
         ]);
 
         $expected = $scheduledAt->format('d/m/Y H:i');

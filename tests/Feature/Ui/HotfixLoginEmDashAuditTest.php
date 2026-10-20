@@ -18,7 +18,7 @@ class HotfixLoginEmDashAuditTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     public function test_login_page_has_zero_em_dashes_in_visible_text(): void

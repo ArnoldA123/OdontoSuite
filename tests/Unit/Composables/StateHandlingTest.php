@@ -20,20 +20,23 @@ use PHPUnit\Framework\TestCase;
 class StateHandlingTest extends TestCase
 {
     /** Project root. */
-private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /**
      * Import a JS module via Node and return the JSON-serialized eval result.
      *
-     * @param string $relPath  Path relative to project root.
-     * @param string $body     JS body to evaluate after import.
-     * @return mixed|null      Decoded result, or null on failure.
+     * @param  string     $relPath path relative to project root
+     * @param  string     $body    JS body to evaluate after import
+     * @return mixed|null decoded result, or null on failure
      */
     private static function evalModule(string $relPath, string $body)
     {
-        $modulePath = self::projectRootPath() . $relPath;
-        if (!is_file($modulePath)) {
-            return null;
+        $modulePath = self::projectRootPath().$relPath;
+        if (! is_file($modulePath)) {
+            return;
         }
         $escapedPath = addcslashes($modulePath, "'\\");
 
@@ -59,27 +62,28 @@ JS;
         $loader = str_replace('USER_BODY', $indentedBody, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'state_loader_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
         if ($output === null || $output === '') {
-            return null;
+            return;
         }
         $jsonStart = strrpos($output, '{');
         $jsonStart = $jsonStart === false ? strrpos($output, '[') : $jsonStart;
         if ($jsonStart === false) {
-            return null;
+            return;
         }
+
         return json_decode(substr($output, $jsonStart), true);
     }
 
     /** @test FF-003 */
-    public function useToast_returns_toasts_as_ref_not_plain_array(): void
+    public function use_toast_returns_toasts_as_ref_not_plain_array(): void
     {
         $result = self::evalModule(
             '/resources/js/composables/useToast.js',
@@ -104,7 +108,7 @@ JS
     }
 
     /** @test FF-003 */
-    public function useToast_exposes_globalToasts_as_ref_too(): void
+    public function use_toast_exposes_global_toasts_as_ref_too(): void
     {
         $result = self::evalModule(
             '/resources/js/composables/useToast.js',
@@ -125,9 +129,9 @@ JS
     }
 
     /** @test FF-006 */
-    public function useAiAnalysis_uploadAndAnalyze_does_not_pass_ignored_headers_argument(): void
+    public function use_ai_analysis_upload_and_analyze_does_not_pass_ignored_headers_argument(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useAiAnalysis.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useAiAnalysis.js');
         $this->assertNotFalse($source);
 
         // Slice 08 / FF-006: useAiAnalysis.uploadAndAnalyze used to pass a
@@ -142,9 +146,9 @@ JS
     }
 
     /** @test FF-006 */
-    public function useAiAnalysis_uploadAndAnalyze_calls_post_with_two_arguments(): void
+    public function use_ai_analysis_upload_and_analyze_calls_post_with_two_arguments(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useAiAnalysis.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useAiAnalysis.js');
         $this->assertNotFalse($source);
 
         // After the fix the call should be `post('/api/ai-analysis/upload-and-analyze', formData)`.
@@ -156,9 +160,9 @@ JS
     }
 
     /** @test FF-007 */
-    public function useCashRegister_keeps_subscription_handlers_at_module_level(): void
+    public function use_cash_register_keeps_subscription_handlers_at_module_level(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useCashRegister.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useCashRegister.js');
         $this->assertNotFalse($source);
 
         // Slice 08 / FF-007: the cashRegisterChannel + cashSessionChannel
@@ -177,9 +181,9 @@ JS
     }
 
     /** @test FF-007 */
-    public function useCashRegister_singleton_guards_repeat_setup_calls(): void
+    public function use_cash_register_singleton_guards_repeat_setup_calls(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useCashRegister.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useCashRegister.js');
         $this->assertNotFalse($source);
 
         // A "setup" guard must exist inside setupWebSocketSubscriptions that
@@ -192,7 +196,7 @@ JS
     }
 
     /** @test FF-013 */
-    public function useNotifications_does_not_crash_when_localStorage_is_undefined(): void
+    public function use_notifications_does_not_crash_when_local_storage_is_undefined(): void
     {
         // Simulate SSR / non-browser environment by deleting both
         // `window` and `localStorage` from globalThis BEFORE importing the
@@ -219,12 +223,12 @@ process.stdout.write(JSON.stringify(result));
 JS;
 
         $tmp = tempnam(sys_get_temp_dir(), 'use_notif_loader_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $modulePath = self::projectRootPath() . '/resources/js/composables/useNotifications.js';
-        $cmd = 'node "' . $loaderFile . '" "' . $modulePath . '" 2>&1';
+        $modulePath = self::projectRootPath().'/resources/js/composables/useNotifications.js';
+        $cmd = 'node "'.$loaderFile.'" "'.$modulePath.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -238,18 +242,18 @@ JS;
 
         $this->assertNotNull(
             $result,
-            'useNotifications module must evaluate without crashing when window is undefined (FF-013). Output: ' . substr((string) $output, 0, 500)
+            'useNotifications module must evaluate without crashing when window is undefined (FF-013). Output: '.substr((string) $output, 0, 500)
         );
         $this->assertTrue(
             $result['ok'] === true,
-            'useNotifications top-level loadFromStorage must not throw when localStorage is unavailable (FF-013). Got: ' . json_encode($result)
+            'useNotifications top-level loadFromStorage must not throw when localStorage is unavailable (FF-013). Got: '.json_encode($result)
         );
     }
 
     /** @test FF-013 */
-    public function useNotifications_loadFromStorage_is_guarded(): void
+    public function use_notifications_load_from_storage_is_guarded(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/composables/useNotifications.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useNotifications.js');
         $this->assertNotFalse($source);
 
         // After the fix, loadFromStorage() must guard with typeof window
@@ -276,9 +280,9 @@ JS;
     }
 
     /** @test FF-009 */
-    public function app_js_does_not_call_useEcho_before_auth(): void
+    public function app_js_does_not_call_use_echo_before_auth(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/app.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/app.js');
         $this->assertNotFalse($source);
 
         // FF-009: app.js used to call useEcho() unconditionally before the
@@ -314,7 +318,7 @@ JS;
     /** @test FF-005 */
     public function bootstrap_js_no_longer_imports_axios(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/bootstrap.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/bootstrap.js');
         $this->assertNotFalse($source);
 
         $this->assertStringNotContainsString(
@@ -330,9 +334,9 @@ JS;
     }
 
     /** @test FF-016 */
-    public function router_auth_uses_useAuth_for_authentication_check(): void
+    public function router_auth_uses_use_auth_for_authentication_check(): void
     {
-        $source = file_get_contents(self::projectRootPath() . '/resources/js/router/auth.js');
+        $source = file_get_contents(self::projectRootPath().'/resources/js/router/auth.js');
         $this->assertNotFalse($source);
 
         // FF-016: router/auth.js used to read localStorage directly while

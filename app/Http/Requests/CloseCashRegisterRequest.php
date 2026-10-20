@@ -3,8 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
-use Illuminate\Foundation\Http\FormRequest;
 use App\Models\CashRegisterSession;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -20,6 +20,7 @@ use Illuminate\Support\Str;
 class CloseCashRegisterRequest extends FormRequest
 {
     use LocalizedErrors;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -49,49 +50,49 @@ class CloseCashRegisterRequest extends FormRequest
             'session_id' => [
                 'required',
                 'integer',
-                'exists:cash_register_sessions,id'
+                'exists:cash_register_sessions,id',
             ],
             'closing_amount' => [
                 'required',
                 'numeric',
                 // Slice 02 / T-02.6 — API-014 fix: frontend enforces > 0; backend
                 // was `min:0` allowing zero-amount closes. Now requires at least 0.01.
-                'min:0.01'
+                'min:0.01',
             ],
             'closing_notes' => [
                 'nullable',
                 'string',
-                'max:500'
+                'max:500',
             ],
             'arqueo' => [
                 'nullable',
-                'array'
+                'array',
             ],
             'arqueo.efectivo' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'arqueo.tarjeta_debito' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'arqueo.tarjeta_credito' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'arqueo.transferencia' => [
                 'nullable',
                 'numeric',
-                'min:0'
+                'min:0',
             ],
             'arqueo.otros' => [
                 'nullable',
                 'numeric',
-                'min:0'
-            ]
+                'min:0',
+            ],
         ];
     }
 
@@ -109,7 +110,7 @@ class CloseCashRegisterRequest extends FormRequest
             'closing_notes.max' => 'Las notas de cierre no pueden exceder los 500 caracteres.',
             'arqueo.array' => 'Los datos de arqueo deben ser un objeto.',
             'arqueo.*.numeric' => 'Los valores de arqueo deben ser números.',
-            'arqueo.*.min' => 'Los valores de arqueo deben ser mayores o iguales a 0.'
+            'arqueo.*.min' => 'Los valores de arqueo deben ser mayores o iguales a 0.',
         ];
     }
 
@@ -137,4 +138,3 @@ class CloseCashRegisterRequest extends FormRequest
         });
     }
 }
-

@@ -2,28 +2,25 @@
 
 namespace App\Services;
 
-use App\Events\PaymentRegistered;
 use App\Events\CashMovementCreated;
+use App\Events\PaymentRegistered;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Listeners\ClearDashboardCache;
-use App\Models\Transaction;
-use App\Models\CashRegisterSession;
 use App\Models\CashMovement;
+use App\Models\CashRegisterSession;
 use App\Models\Patient;
-use App\Models\Appointment;
-use App\Models\TreatmentPlan;
 use App\Models\PaymentMethod;
+use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TransactionService
 {
     /**
-     * Create a new transaction
+     * Create a new transaction.
      */
     public function createTransaction(array $data): Transaction
     {
@@ -31,13 +28,14 @@ class TransactionService
 
         // Check if there's an active cash session
         $cashSession = $this->getActiveCashSession();
-        if (!$cashSession) {
+        if (! $cashSession) {
             throw ValidationException::withMessages([
                 'session' => ['No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones.'],
             ]);
         }
 
         DB::beginTransaction();
+
         try {
             // Calculate amounts
             $amounts = $this->calculateAmounts($data);
@@ -63,7 +61,7 @@ class TransactionService
                 'reference_number' => $data['reference_number'] ?? null,
                 'metadata' => $data['metadata'] ?? null,
                 'status' => 'completed',
-                'processed_at' => now()
+                'processed_at' => now(),
             ]);
 
             // Create cash movement
@@ -77,19 +75,20 @@ class TransactionService
             event(new PaymentRegistered($transaction, $cashSession->id));
             event(new CashMovementCreated($cashMovement, $cashSession->id));
             event(new TransactionCreated($transaction));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
 
             return $transaction;
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
 
     /**
-     * Void a transaction (only for administrators)
+     * Void a transaction (only for administrators).
      */
     public function voidTransaction(int $transactionId, string $reason): Transaction
     {
@@ -109,10 +108,11 @@ class TransactionService
         }
 
         DB::beginTransaction();
+
         try {
             $transaction->update([
                 'status' => 'voided',
-                'notes' => $transaction->notes . "\n\nANULADA: " . $reason . " - " . now()->format('d/m/Y H:i:s')
+                'notes' => $transaction->notes."\n\nANULADA: ".$reason.' - '.now()->format('d/m/Y H:i:s'),
             ]);
 
             // Create void cash movement
@@ -121,24 +121,25 @@ class TransactionService
             }
 
             DB::commit();
-            
+
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy']);
-            
+
             // Emitir evento de WebSocket
             event(new TransactionUpdated($transaction));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
-            
+
             return $transaction;
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
 
     /**
-     * Get transactions with filters
+     * Get transactions with filters.
      */
     public function getTransactions(array $filters = []): array
     {
@@ -173,7 +174,7 @@ class TransactionService
         }
 
         if (isset($filters['branch_id'])) {
-            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+            $query->whereHas('patient', fn ($q) => $q->where('branch_id', $filters['branch_id']));
         }
 
         $transactions = $query->orderBy('created_at', 'desc')->paginate(15);
@@ -185,12 +186,12 @@ class TransactionService
                 'last_page' => $transactions->lastPage(),
                 'per_page' => $transactions->perPage(),
                 'total' => $transactions->total(),
-            ]
+            ],
         ];
     }
 
     /**
-     * Generate receipt for transaction
+     * Generate receipt for transaction.
      */
     public function generateReceipt(Transaction $transaction): array
     {
@@ -200,14 +201,14 @@ class TransactionService
                 'name' => 'OdontoSuite',
                 'address' => 'Dirección de la clínica',
                 'phone' => 'Teléfono de la clínica',
-                'ruc' => 'RUC de la clínica'
+                'ruc' => 'RUC de la clínica',
             ],
             'receipt_number' => $transaction->transaction_number,
             'date' => $transaction->created_at->format('d/m/Y H:i:s'),
             'total' => $transaction->amount,
             'subtotal' => $transaction->subtotal,
             'discount' => $transaction->discount_amount,
-            'payment_method' => $transaction->paymentMethod->name ?? 'N/A'
+            'payment_method' => $transaction->paymentMethod->name ?? 'N/A',
         ];
 
         return $receiptData;
@@ -228,14 +229,14 @@ class TransactionService
                 'name' => 'OdontoSuite',
                 'address' => 'Dirección de la clínica',
                 'phone' => 'Teléfono de la clínica',
-                'ruc' => 'RUC de la clínica'
+                'ruc' => 'RUC de la clínica',
             ],
             'receipt_number' => $transaction->transaction_number,
             'date' => $transaction->created_at->format('d/m/Y H:i:s'),
             'total' => $transaction->amount,
             'subtotal' => $transaction->subtotal,
             'discount' => $transaction->discount_amount,
-            'payment_method' => $transaction->paymentMethod->name ?? 'N/A'
+            'payment_method' => $transaction->paymentMethod->name ?? 'N/A',
         ];
 
         $pdf = Pdf::loadView('reports.receipt', ['receiptData' => $receiptData]);
@@ -244,37 +245,37 @@ class TransactionService
     }
 
     /**
-     * Validate transaction data
+     * Validate transaction data.
      */
     private function validateTransactionData(array $data): void
     {
-        if (!isset($data['patient_id'])) {
+        if (! isset($data['patient_id'])) {
             throw ValidationException::withMessages([
                 'patient_id' => ['El paciente es requerido.'],
             ]);
         }
 
         $patient = Patient::find($data['patient_id']);
-        if (!$patient) {
+        if (! $patient) {
             throw ValidationException::withMessages([
                 'patient_id' => ['El paciente seleccionado no es válido.'],
             ]);
         }
 
         // Validar que el paciente esté activo
-        if (!$patient->is_active) {
+        if (! $patient->is_active) {
             throw ValidationException::withMessages([
                 'patient_id' => ['No se puede crear una transacción para un paciente inactivo.'],
             ]);
         }
 
-        if (!isset($data['payment_method_id']) || !PaymentMethod::find($data['payment_method_id'])) {
+        if (! isset($data['payment_method_id']) || ! PaymentMethod::find($data['payment_method_id'])) {
             throw ValidationException::withMessages([
                 'payment_method_id' => ['El método de pago seleccionado no es válido.'],
             ]);
         }
 
-        if (!isset($data['amount']) || $data['amount'] <= 0) {
+        if (! isset($data['amount']) || $data['amount'] <= 0) {
             throw ValidationException::withMessages([
                 'amount' => ['El monto debe ser mayor a 0.'],
             ]);
@@ -284,7 +285,7 @@ class TransactionService
         if (isset($data['discount_amount']) && $data['discount_amount'] > 0) {
             $discountPercentage = ($data['discount_amount'] / $data['amount']) * 100;
 
-            if ($discountPercentage > 10 && !isset($data['discount_authorized_by'])) {
+            if ($discountPercentage > 10 && ! isset($data['discount_authorized_by'])) {
                 throw ValidationException::withMessages([
                     'discount' => ['Los descuentos mayores al 10% requieren autorización del administrador.'],
                 ]);
@@ -293,7 +294,7 @@ class TransactionService
     }
 
     /**
-     * Get active cash session
+     * Get active cash session.
      */
     private function getActiveCashSession(): ?CashRegisterSession
     {
@@ -303,7 +304,7 @@ class TransactionService
     }
 
     /**
-     * Calculate transaction amounts
+     * Calculate transaction amounts.
      */
     private function calculateAmounts(array $data): array
     {
@@ -323,12 +324,12 @@ class TransactionService
             'subtotal' => $subtotal,
             'discount_amount' => $discountAmount,
             'total' => $total,
-            'commission_amount' => $commissionAmount
+            'commission_amount' => $commissionAmount,
         ];
     }
 
     /**
-     * Generate unique transaction number
+     * Generate unique transaction number.
      */
     private function generateTransactionNumber(): string
     {
@@ -338,13 +339,13 @@ class TransactionService
             ->first();
 
         $sequence = $lastTransaction ?
-            (int)substr($lastTransaction->transaction_number, -4) + 1 : 1;
+            (int) substr($lastTransaction->transaction_number, -4) + 1 : 1;
 
-        return 'TXN-' . $date . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+        return 'TXN-'.$date.'-'.str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Create cash movement for transaction
+     * Create cash movement for transaction.
      */
     private function createCashMovement(Transaction $transaction, CashRegisterSession $session): CashMovement
     {
@@ -368,12 +369,12 @@ class TransactionService
             'amount' => $transaction->amount,
             'description' => $transaction->description,
             'notes' => $transaction->notes,
-            'reference' => $transaction->transaction_number
+            'reference' => $transaction->transaction_number,
         ]);
     }
 
     /**
-     * Create void cash movement
+     * Create void cash movement.
      */
     private function createVoidCashMovement(Transaction $transaction): void
     {
@@ -392,10 +393,9 @@ class TransactionService
             'created_by' => Auth::id(),
             'type' => $movementType, // Reverse the type
             'amount' => $transaction->amount,
-            'description' => 'Anulación de transacción: ' . $transaction->transaction_number,
+            'description' => 'Anulación de transacción: '.$transaction->transaction_number,
             'notes' => 'Transacción anulada',
-            'reference' => 'VOID-' . $transaction->transaction_number
+            'reference' => 'VOID-'.$transaction->transaction_number,
         ]);
     }
 }
-

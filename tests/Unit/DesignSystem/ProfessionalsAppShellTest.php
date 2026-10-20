@@ -77,7 +77,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     private static function moduleVueSources(): array
     {
-        $files = glob(self::projectRootPath() . self::MODULE_DIR . '/*.vue');
+        $files = glob(self::projectRootPath().self::MODULE_DIR.'/*.vue');
         self::assertIsArray($files);
         self::assertNotEmpty($files, 'resources/js/modules/professionals/ must contain .vue sources');
         sort($files);
@@ -102,7 +102,7 @@ class ProfessionalsAppShellTest extends TestCase
                 self::assertStringNotContainsString(
                     $alias,
                     $src,
-                    self::shortName($path) . " must not use the legacy alias class '{$alias}' (T1: token utilities only)."
+                    self::shortName($path)." must not use the legacy alias class '{$alias}' (T1: token utilities only)."
                 );
             }
         }
@@ -115,7 +115,7 @@ class ProfessionalsAppShellTest extends TestCase
                 self::assertStringNotContainsString(
                     $badgeClass,
                     $src,
-                    self::shortName($path) . " must not build pills by hand with '{$badgeClass}' (D6: <UiBadge> is the single pill system)."
+                    self::shortName($path)." must not build pills by hand with '{$badgeClass}' (D6: <UiBadge> is the single pill system)."
                 );
             }
         }
@@ -127,7 +127,7 @@ class ProfessionalsAppShellTest extends TestCase
             self::assertStringNotContainsString(
                 '<select',
                 $src,
-                self::shortName($path) . ' must not render raw <select> elements (D8: <UiSelect> primitive).'
+                self::shortName($path).' must not render raw <select> elements (D8: <UiSelect> primitive).'
             );
         }
     }
@@ -192,7 +192,7 @@ class ProfessionalsAppShellTest extends TestCase
             preg_match('/\b(\w+)\s*=\s*await\s*$/', $tail, $assigned);
             $resultVar = $assigned[1];
             self::assertMatchesRegularExpression(
-                '/\bif\s*\(\s*!?\s*' . preg_quote($resultVar, '/') . '\b/',
+                '/\bif\s*\(\s*!?\s*'.preg_quote($resultVar, '/').'\b/',
                 substr($src, $offset),
                 "{$shortName}: the awaited confirm() result '{$resultVar}' must gate the action with `if ({$resultVar})` (D12/RELIABILITY-001: an unchecked confirmation always proceeds)."
             );
@@ -204,7 +204,7 @@ class ProfessionalsAppShellTest extends TestCase
         foreach (self::moduleVueSources() as $path => $src) {
             self::assertFalse(
                 strpos($src, "\u{2014}") !== false,
-                self::shortName($path) . ' must not contain the U+2014 em-dash character (use "N/D" or plain text).'
+                self::shortName($path).' must not contain the U+2014 em-dash character (use "N/D" or plain text).'
             );
         }
     }
@@ -212,7 +212,7 @@ class ProfessionalsAppShellTest extends TestCase
     public function test_page_files_import_shared_professionals_constants(): void
     {
         foreach (self::PAGE_FILES as $file) {
-            $src = self::readSource(self::projectRootPath() . $file);
+            $src = self::readSource(self::projectRootPath().$file);
             self::assertImportsSharedConstants($src, basename($file));
         }
     }
@@ -233,7 +233,7 @@ class ProfessionalsAppShellTest extends TestCase
 
     public function test_professionals_constants_export_frozen_vocabulary(): void
     {
-        $path = self::projectRootPath() . self::MODULE_DIR . '/professionals.constants.js';
+        $path = self::projectRootPath().self::MODULE_DIR.'/professionals.constants.js';
         self::assertConstantsExportVocabulary(self::readSource($path));
     }
 
@@ -266,7 +266,7 @@ class ProfessionalsAppShellTest extends TestCase
 
         foreach ($frozenSpecialtyLabels as $key => $label) {
             self::assertMatchesRegularExpression(
-                '/\b' . preg_quote($key, '/') . '\s*:\s*[\x27\x22]' . preg_quote($label, '/') . '[\x27\x22]/',
+                '/\b'.preg_quote($key, '/').'\s*:\s*[\x27\x22]'.preg_quote($label, '/').'[\x27\x22]/',
                 $src,
                 "SPECIALTY_LABELS must keep the frozen label '{$label}' for '{$key}' with either quote style (vocabulary normalization must not change copy, RELIABILITY-003)."
             );
@@ -279,7 +279,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_hero_band_hook_uses_canvas_surface_without_mint(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertStringContainsString(
             'data-professionals-hero',
@@ -308,7 +308,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_page_bans_gradient_surfaces(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         foreach (['bg-gradient', 'linear-gradient'] as $gradient) {
             self::assertStringNotContainsString(
@@ -325,7 +325,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_team_kpi_strip_has_exactly_four_stat_cards(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertStringContainsString(
             'data-team-kpis',
@@ -359,7 +359,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_search_endpoint_gone_and_role_query_derived_from_clinical_roles(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertStringNotContainsString(
             '/api/users/search',
@@ -394,7 +394,7 @@ class ProfessionalsAppShellTest extends TestCase
             self::assertDoesNotMatchRegularExpression(
                 '/bg-\[color:var\(--color-\w+-100\)\]/',
                 $src,
-                self::shortName($path) . ' must not build pill fills with bg-[color:var(--color-*-100)] (D6: <UiBadge> is the single pill system, RELIABILITY-004).'
+                self::shortName($path).' must not build pill fills with bg-[color:var(--color-*-100)] (D6: <UiBadge> is the single pill system, RELIABILITY-004).'
             );
         }
     }
@@ -404,7 +404,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_professionals_page_removes_dead_view_modal(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         foreach (['viewProfessional', 'showViewProfessionalModal', 'viewingProfessional', 'Ver Profesional'] as $remnant) {
             self::assertStringNotContainsString(
@@ -421,7 +421,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_professionals_page_role_selector_fed_from_shared_vocabulary(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertMatchesRegularExpression(
             "/import\s*\{[^}]*ROLE_LABELS[^}]*\}\s*from\s*['\"]\.\/professionals\.constants['\"]/",
@@ -454,7 +454,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_professionals_page_uses_dashboard_section_empty(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertMatchesRegularExpression(
             "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/UiSectionEmpty\\.vue['\"]/",
@@ -478,7 +478,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_professionals_page_exposes_team_list_data_hooks(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         foreach (['data-team-list', 'data-team-filters', 'data-team-row'] as $hook) {
             self::assertStringContainsString(
@@ -495,7 +495,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_bans_gradient_surfaces(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         foreach (['bg-gradient', 'linear-gradient'] as $gradient) {
             self::assertStringNotContainsString(
@@ -512,7 +512,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_never_renders_commission_rate(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         self::assertStringNotContainsString(
             'commission_rate',
@@ -527,7 +527,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_bans_hand_built_badge_fills(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         foreach (self::BANNED_HAND_BUILT_BADGES as $badgeClass) {
             self::assertStringNotContainsString(
@@ -550,7 +550,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_uses_dashboard_section_empty(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         self::assertMatchesRegularExpression(
             "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/UiSectionEmpty\\.vue['\"]/",
@@ -571,7 +571,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_imports_shared_professionals_constants(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         foreach (['ROLE_LABELS', 'SPECIALTY_LABELS'] as $export) {
             self::assertMatchesRegularExpression(
@@ -595,7 +595,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_exposes_facts_block_hook(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         self::assertStringContainsString(
             'data-professional-facts',
@@ -611,7 +611,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_hero_matches_list_surface_and_drops_back_button(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         self::assertMatchesRegularExpression(
             "/from\\s*['\"]\\.\\.\\/\\.\\.\\/components\\/ui\\/Breadcrumbs\\.vue['\"]/",
@@ -639,7 +639,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_detail_page_bans_em_dash_character(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[1]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[1]);
 
         self::assertFalse(
             strpos($src, "\u{2014}") !== false,
@@ -654,7 +654,7 @@ class ProfessionalsAppShellTest extends TestCase
      */
     public function test_professionals_page_enforces_required_fields_in_submit_path(): void
     {
-        $src = self::readSource(self::projectRootPath() . self::PAGE_FILES[0]);
+        $src = self::readSource(self::projectRootPath().self::PAGE_FILES[0]);
 
         self::assertStringContainsString(
             'validateProfessionalForm',

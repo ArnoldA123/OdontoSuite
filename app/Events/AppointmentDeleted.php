@@ -13,7 +13,9 @@ class AppointmentDeleted implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $appointmentId;
+
     public $oldValues;
+
     public $appointment;
 
     public function __construct($appointmentId, array $oldValues = [], $appointment = null)
@@ -43,4 +45,3 @@ class AppointmentDeleted implements ShouldBroadcast
         ];
     }
 }
-

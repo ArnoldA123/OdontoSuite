@@ -32,7 +32,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('users', 'specialties')) {
+        if (! Schema::hasColumn('users', 'specialties')) {
             Schema::table('users', function (Blueprint $table) {
                 $table->json('specialties')->nullable()->after('professional_license');
             });

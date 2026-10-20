@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\Branch;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BranchController extends Controller
 {
@@ -31,12 +31,12 @@ class BranchController extends Controller
             'latitude' => 'sometimes|nullable|numeric',
             'longitude' => 'sometimes|nullable|numeric',
             'description' => 'sometimes|nullable|string|max:1000',
-            'is_active' => 'sometimes|boolean'
+            'is_active' => 'sometimes|boolean',
         ];
     }
 
     /**
-     * Display a listing of branches
+     * Display a listing of branches.
      */
     public function index(Request $request): JsonResponse
     {
@@ -53,9 +53,9 @@ class BranchController extends Controller
                 $q = $request->q;
                 $query->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%$q%")
-                      ->orWhere('code', 'like', "%$q%")
-                      ->orWhere('city', 'like', "%$q%")
-                      ->orWhere('address', 'like', "%$q%");
+                        ->orWhere('code', 'like', "%$q%")
+                        ->orWhere('city', 'like', "%$q%")
+                        ->orWhere('address', 'like', "%$q%");
                 });
             }
 
@@ -71,13 +71,13 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cargar sucursales',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Store a newly created branch
+     * Store a newly created branch.
      */
     public function store(Request $request): JsonResponse
     {
@@ -105,19 +105,19 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Los datos proporcionados no son validos.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear sucursal',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Display the specified branch
+     * Display the specified branch.
      */
     public function show(Branch $branch): JsonResponse
     {
@@ -130,7 +130,7 @@ class BranchController extends Controller
     }
 
     /**
-     * Update the specified branch
+     * Update the specified branch.
      */
     public function update(Request $request, Branch $branch): JsonResponse
     {
@@ -163,19 +163,19 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Los datos proporcionados no son validos.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar sucursal',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Remove the specified branch
+     * Remove the specified branch.
      */
     public function destroy(Branch $branch): JsonResponse
     {
@@ -192,7 +192,7 @@ class BranchController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'No se puede eliminar la sucursal. Verifica que no tenga usuarios, pacientes o sesiones de caja asociadas.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -18,12 +18,11 @@ use Tests\TestCase;
  */
 class HotfixDashboardSurfaceConsistencyTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     public function test_quick_action_cards_are_removed_with_the_block(): void

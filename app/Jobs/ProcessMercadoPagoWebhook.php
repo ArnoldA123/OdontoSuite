@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Events\PaymentReceived;
-use App\Models\PaymentGatewayWebhookEvent;
 use App\Models\PaymentGatewayTransaction;
+use App\Models\PaymentGatewayWebhookEvent;
 use App\Models\Transaction;
 use App\Services\MercadoPagoService;
 use Illuminate\Bus\Queueable;
@@ -20,6 +20,7 @@ class ProcessMercadoPagoWebhook implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
+
     public array $backoff = [60, 300, 900]; // 1min, 5min, 15min
 
     public function __construct(
@@ -30,6 +31,7 @@ class ProcessMercadoPagoWebhook implements ShouldQueue
     {
         if ($this->event->processed) {
             Log::info('[MP] Webhook ya procesado, ignorando', ['event_id' => $this->event->id]);
+
             return;
         }
 
@@ -41,7 +43,8 @@ class ProcessMercadoPagoWebhook implements ShouldQueue
 
         // Solo nos interesan los eventos de tipo payment
         if ($this->event->event_type !== 'payment') {
-            $this->markProcessed(null, 'Tipo de evento ignorado: ' . $this->event->event_type);
+            $this->markProcessed(null, 'Tipo de evento ignorado: '.$this->event->event_type);
+
             return;
         }
 
@@ -50,21 +53,22 @@ class ProcessMercadoPagoWebhook implements ShouldQueue
             $paymentId = $this->event->external_id;
             $paymentData = $mp->getPayment($paymentId);
 
-            if (!$paymentData) {
+            if (! $paymentData) {
                 $this->markProcessed(null, 'No se pudo consultar el pago en MP');
+
                 return;
             }
 
             DB::transaction(function () use ($paymentData) {
                 $externalRef = $paymentData['external_reference'];
 
-                if (!$externalRef) {
+                if (! $externalRef) {
                     throw new \Exception('external_reference vacio en respuesta MP');
                 }
 
                 // Buscar la transaccion local por ID
                 $transaction = Transaction::find($externalRef);
-                if (!$transaction) {
+                if (! $transaction) {
                     throw new \Exception("Transaccion local #{$externalRef} no encontrada");
                 }
 
@@ -112,6 +116,7 @@ class ProcessMercadoPagoWebhook implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
             $this->markProcessed(false, $e->getMessage());
+
             throw $e; // re-lanzar para retry con backoff
         }
     }

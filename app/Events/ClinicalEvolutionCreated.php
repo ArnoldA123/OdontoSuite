@@ -42,4 +42,3 @@ class ClinicalEvolutionCreated implements ShouldBroadcast
         ];
     }
 }
-

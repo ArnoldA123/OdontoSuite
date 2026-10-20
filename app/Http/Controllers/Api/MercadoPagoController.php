@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use App\Services\MercadoPagoService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class MercadoPagoController extends Controller
@@ -17,7 +17,7 @@ class MercadoPagoController extends Controller
 
     /**
      * Crear preferencia de pago MP para una transaccion.
-     * POST /api/payments/mercadopago/preference
+     * POST /api/payments/mercadopago/preference.
      */
     public function createPreference(Request $request): JsonResponse
     {
@@ -58,16 +58,17 @@ class MercadoPagoController extends Controller
 
     /**
      * Webhook de Mercado Pago (sin auth — validado por firma HMAC).
-     * POST /api/payments/webhooks/mercadopago
+     * POST /api/payments/webhooks/mercadopago.
      */
     public function webhook(Request $request): JsonResponse
     {
         // Validar firma
-        if (!$this->mpService->validateWebhookSignature($request)) {
+        if (! $this->mpService->validateWebhookSignature($request)) {
             Log::warning('[MP] Webhook rechazado: firma invalida', [
                 'ip' => $request->ip(),
                 'headers' => $request->header('x-signature'),
             ]);
+
             return response()->json(['message' => 'Firma invalida'], 401);
         }
 
@@ -75,7 +76,7 @@ class MercadoPagoController extends Controller
         $type = $data['type'] ?? null;
         $externalId = $data['data']['id'] ?? null;
 
-        if (!$type || !$externalId) {
+        if (! $type || ! $externalId) {
             return response()->json(['message' => 'Payload incompleto'], 422);
         }
 

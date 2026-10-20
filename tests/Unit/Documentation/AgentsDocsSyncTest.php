@@ -17,11 +17,14 @@ use PHPUnit\Framework\TestCase;
  */
 class AgentsDocsSyncTest extends TestCase
 {
-private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private function agentsMd(): string
     {
-        $path = self::projectRootPath() . '/AGENTS.md';
+        $path = self::projectRootPath().'/AGENTS.md';
         $this->assertFileExists($path, 'AGENTS.md must exist at project root');
 
         return file_get_contents($path);
@@ -29,16 +32,16 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
 
     private function databaseSeeder(): string
     {
-        return file_get_contents(self::projectRootPath() . '/database/seeders/DatabaseSeeder.php');
+        return file_get_contents(self::projectRootPath().'/database/seeders/DatabaseSeeder.php');
     }
 
     private function appServiceProvider(): string
     {
-        return file_get_contents(self::projectRootPath() . '/app/Providers/AppServiceProvider.php');
+        return file_get_contents(self::projectRootPath().'/app/Providers/AppServiceProvider.php');
     }
 
     /** @test BF-017 */
-    public function agentsMd_documents_payment_method_seeder(): void
+    public function agents_md_documents_payment_method_seeder(): void
     {
         // DatabaseSeeder.php uses PaymentMethodSeeder (line 22). AGENTS.md
         // §4 must list it among the 11 active seeders, otherwise
@@ -55,7 +58,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test BF-020 */
-    public function agentsMd_listener_count_matches_app_service_provider(): void
+    public function agents_md_listener_count_matches_app_service_provider(): void
     {
         // AppServiceProvider.php currently wires N Event::listen calls.
         // AGENTS.md §4 must reflect the real count of "cableos" (wires),
@@ -84,7 +87,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test BF-027 */
-    public function agentsMd_offers_workaround_for_sqlite_test_failures(): void
+    public function agents_md_offers_workaround_for_sqlite_test_failures(): void
     {
         // The 28 SQLite pre-existing failures are documented as tech debt
         // without a concrete workaround. AGENTS.md §6 must offer at least
@@ -104,7 +107,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     public function composer_dev_script_uses_pnpm_not_npm(): void
     {
         // composer.json scripts.dev must invoke `pnpm dev`, not `npm run dev`.
-        $composer = file_get_contents(self::projectRootPath() . '/composer.json');
+        $composer = file_get_contents(self::projectRootPath().'/composer.json');
         $this->assertNotFalse($composer);
 
         $this->assertStringContainsString(
@@ -120,7 +123,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test BF-017 */
-    public function agentsMd_seeder_count_matches_database_seeder_call_count(): void
+    public function agents_md_seeder_count_matches_database_seeder_call_count(): void
     {
         // The expected count is DERIVED from DatabaseSeeder.php, never hardcoded.
         //
@@ -150,7 +153,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             "{$callCount} activos",
             $docs,
             "AGENTS.md §4 must declare {$callCount} active seeders, matching the {$callCount} "
-                . '$this->call([...]) entries in DatabaseSeeder.php'
+                .'$this->call([...]) entries in DatabaseSeeder.php'
         );
     }
 }

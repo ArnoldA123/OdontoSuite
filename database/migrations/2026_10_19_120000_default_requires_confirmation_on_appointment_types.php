@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Appointment types confirm by default (decision D1, 2026-10-19).
  *
  * The column was created with `default(false)` while every seeded catalog row

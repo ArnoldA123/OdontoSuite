@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\ClinicalAttachment;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ClinicalAttachmentService
 {
@@ -29,7 +28,7 @@ class ClinicalAttachmentService
             'description' => $data['description'] ?? null,
             'metadata' => $this->generateMetadata($file),
             'is_private' => $data['is_private'] ?? false,
-            'is_active' => true
+            'is_active' => true,
         ]);
     }
 
@@ -75,7 +74,7 @@ class ClinicalAttachmentService
         if (in_array($mimeType, [
             'application/pdf',
             'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])) {
             return 'document';
         }
@@ -97,7 +96,7 @@ class ClinicalAttachmentService
                 if ($imageInfo) {
                     $metadata['dimensions'] = [
                         'width' => $imageInfo[0],
-                        'height' => $imageInfo[1]
+                        'height' => $imageInfo[1],
                     ];
                 }
             } catch (\Exception $e) {

@@ -66,8 +66,8 @@ class SpecialtyRecordsRoundTripTest extends TestCase
         return Patient::create([
             'first_name' => 'Implant',
             'last_name' => 'Patient',
-            'email' => 'implant.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'implant.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'is_active' => true,
         ]);
     }
@@ -97,8 +97,8 @@ class SpecialtyRecordsRoundTripTest extends TestCase
             'implant_model' => 'TiUltra',
             'implant_diameter' => '4.3',
             'implant_length' => '11.5',
-            'batch_number' => 'BATCH-' . uniqid(),
-            'serial_number' => 'SN-' . uniqid(),
+            'batch_number' => 'BATCH-'.uniqid(),
+            'serial_number' => 'SN-'.uniqid(),
             'placement_date' => now()->subDay()->toDateString(),
             'status' => 'placed',
             'surgical_notes' => 'Sin complicaciones',

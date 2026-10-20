@@ -17,18 +17,18 @@ class HotfixLoginSubtitleTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     /**
      * Resolve the computed font-size of .welcome-subtitle in px.
      * Order of precedence:
      *   1. Explicit `font-size:` declaration inside the .welcome-subtitle rule.
-     *   2. Tailwind utility class mapping (text-sm, text-base, text-lg, etc.)
+     *   2. Tailwind utility class mapping (text-sm, text-base, text-lg, etc.).
      */
     private static function subtitleFontSizePx(string $source): ?float
     {
-        if (!preg_match('/\.welcome-subtitle\s*\{([^}]+)\}/s', $source, $m)) {
+        if (! preg_match('/\.welcome-subtitle\s*\{([^}]+)\}/s', $source, $m)) {
             return null;
         }
         $block = $m[1];
@@ -40,6 +40,7 @@ class HotfixLoginSubtitleTest extends TestCase
             if ($unit === 'rem' || $unit === 'em') {
                 return $value * 16.0;
             }
+
             return $value;
         }
 
@@ -55,10 +56,11 @@ class HotfixLoginSubtitleTest extends TestCase
         ];
         $resolved = null;
         foreach ($tailwindSizes as $util => $px) {
-            if (preg_match('/(?:^|\s)' . preg_quote($util, '/') . '(?:\s|$)/', $block)) {
+            if (preg_match('/(?:^|\s)'.preg_quote($util, '/').'(?:\s|$)/', $block)) {
                 $resolved = $px;
             }
         }
+
         return $resolved;
     }
 

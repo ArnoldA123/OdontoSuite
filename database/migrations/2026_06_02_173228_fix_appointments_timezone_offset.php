@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -34,7 +34,7 @@ return new class extends Migration
             $table->unique(['dental_chair_id', 'scheduled_at', 'ends_at'], 'unique_chair_time_slot');
         });
 
-        Log::info('Timezone fix migration: adjusted ' . $affected . ' appointments by -5 hours');
+        Log::info('Timezone fix migration: adjusted '.$affected.' appointments by -5 hours');
     }
 
     public function down(): void
