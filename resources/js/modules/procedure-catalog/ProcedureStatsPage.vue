@@ -30,7 +30,7 @@
             Uso del catálogo por especialidad y procedimientos más frecuentes
           </p>
         </div>
-        <div class="flex flex-shrink-0 items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap">
           <UiButton variant="secondary" data-hero-back @click="goBack">
             <template #icon-left>
               <ArrowLeftIcon class="w-4 h-4" aria-hidden="true" />
@@ -289,40 +289,38 @@
 
     <template v-else-if="!error">
       <section class="mb-6" aria-label="Procedimientos más usados" data-top-procedures>
-        <UiCard variant="glass">
-          <template #header>
-            <h2 class="text-lg font-semibold text-theme-primary">
-              Top {{ topRows.length }} procedimientos más usados
-            </h2>
+        <h2 class="mb-3 text-lg font-semibold text-theme-primary">
+          Top {{ topRows.length }} procedimientos más usados
+        </h2>
+        <!-- The DataTable renders its own framed surface: wrapping it in a Card
+             stacks two boxes with the same background. -->
+        <UiDataTable
+          :data="topRows"
+          :columns="columns"
+          :searchable="false"
+          :pagination="false"
+          row-key="key"
+          data-top-procedures-table
+        >
+          <template #cell-rank="{ row }">
+            <span class="text-theme-secondary tabular-nums">{{ row.rank }}</span>
           </template>
-          <UiDataTable
-            :data="topRows"
-            :columns="columns"
-            :searchable="false"
-            :pagination="false"
-            row-key="key"
-            data-top-procedures-table
-          >
-            <template #cell-rank="{ row }">
-              <span class="text-theme-secondary tabular-nums">{{ row.rank }}</span>
-            </template>
-            <template #cell-code="{ row }">
-              <span class="font-mono text-theme-primary">{{ row.code }}</span>
-            </template>
-            <template #cell-name="{ row }">
-              <span class="text-theme-primary">{{ row.name }}</span>
-            </template>
-            <template #cell-usage_count="{ row }">
-              <span class="tabular-nums">{{ formatCount(row.usage_count) }}</span>
-            </template>
-            <template #cell-total_quantity="{ row }">
-              <span class="tabular-nums">{{ formatCount(row.total_quantity) }}</span>
-            </template>
-            <template #cell-total_revenue="{ row }">
-              <span class="tabular-nums">{{ formatCurrency(row.total_revenue) }}</span>
-            </template>
-          </UiDataTable>
-        </UiCard>
+          <template #cell-code="{ row }">
+            <span class="font-mono text-theme-primary">{{ row.code }}</span>
+          </template>
+          <template #cell-name="{ row }">
+            <span class="text-theme-primary">{{ row.name }}</span>
+          </template>
+          <template #cell-usage_count="{ row }">
+            <span class="tabular-nums">{{ formatCount(row.usage_count) }}</span>
+          </template>
+          <template #cell-total_quantity="{ row }">
+            <span class="tabular-nums">{{ formatCount(row.total_quantity) }}</span>
+          </template>
+          <template #cell-total_revenue="{ row }">
+            <span class="tabular-nums">{{ formatCurrency(row.total_revenue) }}</span>
+          </template>
+        </UiDataTable>
       </section>
 
       <section aria-label="Distribución por especialidad" data-specialty-distribution>
@@ -411,6 +409,8 @@ const CHART_PALETTE = [
   colors.systemYellow[500]
 ]
 const CHART_LABEL_MAX = 28
+const CHART_LABEL_MAX_NARROW = 16
+const CHART_NARROW_WIDTH = 420
 
 const presets = [
   { id: '7d', label: '7 días', days: 7 },
@@ -503,22 +503,18 @@ const topRows = computed(() =>
   }))
 )
 
-const specialtyRows = computed(() => {
-  const maxUsage = bySpecialty.value.reduce(
-    (max, row) => Math.max(max, Number(row.usage_count || 0)),
-    0
-  )
-
-  return bySpecialty.value.map(row => {
+const specialtyRows = computed(() =>
+  bySpecialty.value.map(row => {
     const usage = Number(row.usage_count || 0)
+    const share = periodUsage.value > 0 ? (usage / periodUsage.value) * 100 : 0
     return {
       ...row,
       key: row.specialty_id ?? 'sin-especialidad',
-      share: periodUsage.value > 0 ? Math.round((usage / periodUsage.value) * 100) : 0,
-      barWidth: maxUsage > 0 ? Math.max(2, Math.round((usage / maxUsage) * 100)) : 0
+      share: Math.round(share),
+      barWidth: usage > 0 ? Math.max(2, Math.round(share)) : 0
     }
   })
-})
+)
 
 const goBack = () => router.push('/procedure-catalog')
 
@@ -534,10 +530,18 @@ const exportCsv = () => {
   downloadCsvFile(buildProcedureStatsFilename(applied.value.from, applied.value.to), csv)
 }
 
-const truncateChartLabel = label => {
+const truncateChartLabel = (label, limit = CHART_LABEL_MAX) => {
   const text = String(label ?? '')
-  return text.length > CHART_LABEL_MAX ? `${text.slice(0, CHART_LABEL_MAX - 1)}…` : text
+  return text.length > limit ? `${text.slice(0, limit - 1)}…` : text
 }
+
+// A narrow canvas cannot reserve room for a long axis label: Chart.js draws it
+// past the left edge and the browser clips the text instead of shortening it,
+// so the label budget follows the rendered width.
+const chartLabelLimit = canvas =>
+  canvas.clientWidth > 0 && canvas.clientWidth < CHART_NARROW_WIDTH
+    ? CHART_LABEL_MAX_NARROW
+    : CHART_LABEL_MAX
 
 const destroyCharts = () => {
   for (const chart of [usageChart, specialtyChart]) {
@@ -589,7 +593,9 @@ const renderCharts = async () => {
     usageChart = new Chart(usageCanvas, {
       type: 'bar',
       data: {
-        labels: topProcedures.value.map(row => truncateChartLabel(row.name)),
+        labels: topProcedures.value.map(row =>
+          truncateChartLabel(row.name, chartLabelLimit(usageCanvas))
+        ),
         datasets: [
           {
             label: 'Usos',
