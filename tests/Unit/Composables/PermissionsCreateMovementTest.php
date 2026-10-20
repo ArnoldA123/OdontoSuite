@@ -91,17 +91,20 @@ class PermissionsCreateMovementTest extends TestCase
             'CashRegisterPage "Nuevo Movimiento" button must be gated by canCreateMovement (FF-001)'
         );
 
-        // And `canCreateMovement` must be destructured from usePermissions()
-        // into `createMovement: canCreateMovement` (the rename is the
-        // convention used by sibling permissions like createTransaction).
-        // The actual line is:
-        //   const { createTransaction: canCreateTransaction, createMovement: canCreateMovement } = usePermissions()
-        // So we look for the destructuring assignment + the rename pattern,
-        // not for a forward window.
+        // And `canCreateMovement` must read the permission from the `can`
+        // object. The previous contract destructured `createMovement` straight
+        // off `usePermissions()`, which returns `{ can, ... }`: the value was
+        // always `undefined` and the button never rendered for anyone, so this
+        // guard was pinning the bug instead of the rule.
         $this->assertMatchesRegularExpression(
-            '/createMovement\s*:\s*canCreateMovement[^}]*\}\s*=\s*usePermissions\s*\(\s*\)/',
+            '/const\s*\{[^}]*\bcan\b[^}]*\}\s*=\s*usePermissions\s*\(\s*\)/',
             $page,
-            'CashRegisterPage must destructure createMovement from usePermissions() (FF-001)'
+            'CashRegisterPage must read the `can` object from usePermissions() (FF-001)'
+        );
+        $this->assertMatchesRegularExpression(
+            '/canCreateMovement\s*=\s*computed\(\s*\(\s*\)\s*=>\s*can\.createMovement\.value\s*\)/',
+            $page,
+            'canCreateMovement must resolve can.createMovement.value (FF-001)'
         );
     }
 }

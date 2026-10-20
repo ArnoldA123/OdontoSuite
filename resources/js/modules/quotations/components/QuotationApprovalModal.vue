@@ -1,92 +1,89 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2 class="modal-title">Aprobar Presupuesto</h2>
-        <button class="modal-close" @click="closeModal">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="approval-info">
-          <div class="quotation-summary">
-            <h3 class="summary-title">Resumen del Presupuesto</h3>
-            <div class="summary-details">
-              <div class="detail-row">
-                <span class="label">Número:</span>
-                <span class="value">#{{ quotation.quotation_number }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="label">Paciente:</span>
-                <span class="value">
-                  {{ quotation.patient?.first_name }} {{ quotation.patient?.last_name }}
-                </span>
-              </div>
-              <div class="detail-row">
-                <span class="label">Total:</span>
-                <span class="value">S/ {{ formatPrice(quotation.total_amount) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <form class="approval-form" @submit.prevent="handleSubmit">
-            <div class="form-group">
-              <label class="form-label">Comentarios de Aprobación</label>
-              <textarea
-                v-model="form.comments"
-                class="form-textarea"
-                rows="3"
-                placeholder="Comentarios adicionales sobre la aprobación..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Fecha de Aprobación</label>
-              <input v-model="form.approved_at" type="datetime-local" class="form-input" required />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Aprobado por</label>
-              <input
-                v-model="form.approved_by"
-                type="text"
-                class="form-input"
-                placeholder="Nombre del aprobador"
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Condiciones Especiales</label>
-              <textarea
-                v-model="form.conditions"
-                class="form-textarea"
-                rows="2"
-                placeholder="Condiciones especiales o restricciones..."
-              />
-            </div>
-          </form>
+  <UiModal model-value title="Aprobar presupuesto" size="md" @close="emit('close')">
+    <div class="space-y-5 bg-canvas" data-quotation-approval>
+      <div class="space-y-3 rounded-lg border border-hairline p-4" data-modal-summary>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+            Presupuesto
+          </p>
+          <UiStatusBadge :variant="status.variant" :label="status.label" size="sm" />
         </div>
+        <dl class="space-y-1.5 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Número</dt>
+            <dd class="text-right font-medium text-theme-primary tabular-nums">
+              {{ quotationNumber }}
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Paciente</dt>
+            <dd class="text-right font-medium text-theme-primary">{{ patientName }}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Total</dt>
+            <dd class="text-right font-semibold text-theme-primary tabular-nums">
+              {{ formatCurrency(quotation.total_amount) }}
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
-          Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
-          <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Aprobando...' : 'Aprobar Presupuesto' }}
-        </button>
+      <p class="text-sm text-theme-secondary">
+        Al aprobar se registra la fecha y el usuario que aprueba.
+      </p>
+
+      <div>
+        <label for="quotation-approval-notes" class="mb-1 block text-sm font-medium text-label">
+          Nota de aprobación (opcional)
+        </label>
+        <UiTextarea
+          id="quotation-approval-notes"
+          v-model="notes"
+          :rows="3"
+          :disabled="saving"
+          data-modal-field="notes"
+        />
       </div>
+
+      <p v-if="error" class="text-sm text-error-500" role="alert" data-modal-error>{{ error }}</p>
     </div>
-  </div>
+
+    <template #footer>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="saving"
+        data-modal-action="cancel"
+        @click="emit('close')"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton
+        type="button"
+        variant="success"
+        :loading="saving"
+        data-modal-action="approve"
+        @click="onApprove"
+      >
+        <template #icon-left>
+          <CheckIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Aprobar presupuesto
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref } from 'vue'
+import { CheckIcon } from '@heroicons/vue/24/outline'
 import { useQuotations } from '@/composables/useQuotations'
-import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { formatCurrency } from '../../../composables/useFormatters'
+import { getStatusMeta } from '../quotationMeta.js'
+import UiButton from '@/components/ui/Button.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 const props = defineProps({
   quotation: {
@@ -97,133 +94,45 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'approved'])
 
-const { approveQuotation, loading } = useQuotations()
+const { approveQuotation } = useQuotations()
 
-const form = ref({
-  comments: '',
-  approved_at: '',
-  approved_by: '',
-  conditions: ''
+const notes = ref('')
+const saving = ref(false)
+const error = ref('')
+
+const status = computed(() => getStatusMeta(props.quotation?.status))
+
+const quotationNumber = computed(() =>
+  props.quotation?.quotation_number ? `#${props.quotation.quotation_number}` : '—'
+)
+
+const patientName = computed(() => {
+  const patient = props.quotation?.patient
+  if (!patient) return '—'
+
+  const name = `${patient.first_name || ''} ${patient.last_name || ''}`.trim()
+
+  return name || '—'
 })
 
-const handleSubmit = async () => {
-  try {
-    const approvalData = {
-      comments: form.value.comments,
-      approved_at: form.value.approved_at,
-      approved_by: form.value.approved_by,
-      conditions: form.value.conditions
-    }
+const onApprove = async () => {
+  if (saving.value) return
 
-    await approveQuotation(props.quotation.id, approvalData)
-    emit('approved', props.quotation)
-    closeModal()
+  saving.value = true
+  error.value = ''
+
+  try {
+    const trimmed = notes.value.trim()
+    const payload = {}
+    if (trimmed) payload.notes = trimmed
+
+    const updated = await approveQuotation(props.quotation.id, payload)
+    emit('approved', updated)
+    emit('close')
   } catch (err) {
-    // El modal sigue abierto para reintentar la aprobación
+    error.value = err.response?.data?.message || 'No pudimos aprobar el presupuesto.'
+  } finally {
+    saving.value = false
   }
 }
-
-const closeModal = () => {
-  emit('close')
-}
-
-const formatPrice = price => {
-  return Number(price).toFixed(2)
-}
-
-onMounted(() => {
-  // Set default values
-  form.value.approved_at = new Date().toISOString().slice(0, 16)
-  form.value.approved_by = 'Usuario Actual' // This should come from auth context
-})
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.modal-close {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-body {
-  @apply p-6;
-}
-
-.approval-info {
-  @apply space-y-6;
-}
-
-.quotation-summary {
-  @apply bg-theme-surface rounded-lg p-4;
-}
-
-.summary-title {
-  @apply text-lg font-medium text-theme-primary mb-3;
-}
-
-.summary-details {
-  @apply space-y-2;
-}
-
-.detail-row {
-  @apply flex justify-between items-center;
-}
-
-.label {
-  @apply text-sm font-medium text-theme-secondary;
-}
-
-.value {
-  @apply text-sm text-theme-primary;
-}
-
-.approval-form {
-  @apply space-y-4;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-theme-primary;
-}
-
-.form-input {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-textarea {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-theme-surface-elevated text-theme-primary;
-}
-
-.modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-</style>

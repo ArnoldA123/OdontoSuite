@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\TreatmentPlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class TreatmentPlanController extends Controller
 {
@@ -50,13 +51,29 @@ class TreatmentPlanController extends Controller
     }
 
     /**
+     * Resumen agregado del módulo para la tira de KPIs.
+     */
+    public function summary(): JsonResponse
+    {
+        try {
+            return response()->json(['data' => $this->treatmentPlanService->summary()]);
+        } catch (\Exception $e) {
+            Log::error('TreatmentPlanController@summary: '.$e->getMessage());
+
+            return response()->json([
+                'message' => 'Error al obtener el resumen de planes de tratamiento',
+            ], 500);
+        }
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $filters = $request->only([
-                'patient_id', 'patient_name', 'status', 'created_by', 'date_from', 'date_to', 'branch_id',
+                'patient_id', 'patient_name', 'status', 'statuses', 'overdue', 'created_by', 'date_from', 'date_to', 'branch_id',
             ]);
 
             $result = $this->treatmentPlanService->getPlans($filters);

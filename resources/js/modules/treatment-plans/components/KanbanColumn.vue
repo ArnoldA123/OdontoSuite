@@ -1,54 +1,93 @@
 <template>
-  <div class="kanban-col" :class="`tone-${column.tone}`">
-    <div class="kanban-col-header">
-      <span class="dot" :class="`dot-${column.tone}`" />
-      <span class="label">{{ column.label }}</span>
-      <span class="count">{{ plans.length }}</span>
-    </div>
+  <section
+    data-kanban-column
+    :data-tone="column.tone"
+    class="flex min-h-[300px] flex-col gap-2 rounded-[var(--radius-panel)] bg-canvas p-2"
+    :style="{ border: '1px solid var(--color-hairline)' }"
+    :aria-label="`Columna ${column.label}`"
+  >
+    <header class="flex items-center gap-2 px-2 pt-1">
+      <span class="h-2 w-2 shrink-0 rounded-full" :class="toneDotClass" aria-hidden="true" />
+      <span class="truncate text-xs font-semibold text-theme-primary">{{ column.label }}</span>
+      <span
+        class="ml-auto shrink-0 rounded-[var(--radius-control)] bg-theme-surface-elevated px-1.5 py-0.5 text-xs tabular-nums text-theme-secondary"
+      >
+        {{ plans.length }}
+      </span>
+    </header>
 
     <div
-      class="kanban-col-body"
-      :class="{ 'is-over': isOver }"
+      data-kanban-drop-zone
+      class="flex-1 space-y-2 rounded-[var(--radius-control)] p-1 transition-colors"
+      :class="{ 'ring-2 ring-accent-500': isOver }"
       @dragover.prevent="isOver = true"
       @dragleave="isOver = false"
       @drop.prevent="onDrop"
     >
-      <div
+      <article
         v-for="plan in plans"
         :key="plan.id"
-        class="kanban-card"
+        data-kanban-card
+        class="cursor-pointer rounded-[var(--radius-control)] bg-theme-surface-elevated p-2.5 hover-lift"
+        :style="{ border: '1px solid var(--color-hairline)' }"
         draggable="true"
         @dragstart="onDragStart($event, plan)"
-        @click="$emit('view', plan)"
+        @dragend="isOver = false"
+        @click="emit('view', plan)"
       >
-        <div class="kc-title">
+        <p class="truncate text-sm font-medium text-theme-primary">
           {{ plan.title }}
-        </div>
-        <div class="kc-meta">
-          <span class="kc-patient">
-            {{ plan.patient?.first_name }} {{ plan.patient?.last_name }}
+        </p>
+        <div class="mt-1 flex items-center justify-between gap-2 text-xs">
+          <span class="truncate text-theme-secondary">{{ patientName(plan) }}</span>
+          <span class="shrink-0 font-semibold tabular-nums text-theme-primary">
+            {{ formatCurrency(plan.final_cost) }}
           </span>
-          <span class="kc-cost">S/ {{ formatPrice(plan.final_cost) }}</span>
         </div>
-        <div v-if="plan.is_overdue" class="kc-overdue">Vencido</div>
-      </div>
+        <p
+          v-if="plan.is_overdue"
+          class="mt-1.5 inline-flex rounded-[var(--radius-control)] bg-systemRed-50 px-1.5 py-0.5 text-[10px] font-medium text-systemRed-600"
+        >
+          Vencido
+        </p>
+      </article>
 
-      <div v-if="plans.length === 0" class="kanban-empty">Arrastra planes aquí</div>
+      <p v-if="plans.length === 0" class="py-6 text-center text-xs text-theme-secondary">
+        Arrastra planes aquí
+      </p>
     </div>
-  </div>
+  </section>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { formatCurrency } from '@/composables/useFormatters'
 
 const props = defineProps({
   column: { type: Object, required: true },
   plans: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['view', 'changeStatus', 'dropPlan'])
+const emit = defineEmits(['view', 'dropPlan'])
+
+const TONE_DOT_CLASSES = {
+  neutral: 'bg-systemGray-500',
+  steel: 'bg-systemSteel-500',
+  green: 'bg-systemGreen-500',
+  yellow: 'bg-systemYellow-500',
+  accent: 'bg-accent-500',
+  red: 'bg-systemRed-500'
+}
 
 const isOver = ref(false)
+
+const toneDotClass = computed(() => TONE_DOT_CLASSES[props.column.tone] ?? TONE_DOT_CLASSES.neutral)
+
+const patientName = plan => {
+  const name = [plan.patient?.first_name, plan.patient?.last_name].filter(Boolean).join(' ')
+
+  return name || 'Sin paciente'
+}
 
 const onDragStart = (e, plan) => {
   e.dataTransfer.setData('application/json', JSON.stringify(plan))
@@ -65,90 +104,4 @@ const onDrop = e => {
     // Drop fuera del kanban: se ignora sin mover el plan
   }
 }
-
-const formatPrice = price =>
-  new Intl.NumberFormat('es-PE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(price || 0)
 </script>
-
-<style scoped>
-.kanban-col {
-  @apply flex flex-col rounded-lg p-2 min-h-[300px];
-  background-color: var(--color-surface);
-}
-
-.kanban-col-header {
-  @apply flex items-center gap-2 px-2 py-1.5 text-xs font-semibold;
-  color: var(--color-text-secondary);
-}
-
-.dot {
-  @apply w-2 h-2 rounded-full;
-}
-.dot-gray {
-  background-color: rgb(156 163 175);
-}
-.dot-blue {
-  background-color: rgb(59 130 246);
-}
-.dot-green {
-  background-color: rgb(34 197 94);
-}
-.dot-amber {
-  background-color: rgb(245 158 11);
-}
-.dot-emerald {
-  background-color: rgb(16 185 129);
-}
-.dot-red {
-  background-color: rgb(239 68 68);
-}
-
-.count {
-  @apply ml-auto text-xs px-1.5 py-0.5 rounded;
-  background-color: var(--color-surface-elevated);
-}
-
-.kanban-col-body {
-  @apply flex-1 space-y-2 p-1 rounded transition-colors;
-}
-
-.kanban-col-body.is-over {
-  @apply ring-2 ring-primary-400;
-}
-
-.kanban-card {
-  @apply p-2.5 rounded-md cursor-pointer hover-lift transition-shadow;
-  background-color: var(--color-surface-elevated);
-  border: 1px solid var(--color-border, transparent);
-}
-
-.kc-title {
-  @apply text-sm font-medium truncate;
-  color: var(--color-text-primary);
-}
-
-.kc-meta {
-  @apply flex justify-between items-center mt-1 text-xs;
-  color: var(--color-text-secondary);
-}
-
-.kc-cost {
-  @apply font-semibold;
-  color: rgb(37 99 235);
-}
-
-.kc-overdue {
-  @apply mt-1.5 inline-block text-[10px] px-1.5 py-0.5 rounded;
-  background-color: rgb(254 226 226);
-  color: rgb(185 28 28);
-}
-
-.kanban-empty {
-  @apply text-center text-xs py-6;
-  color: var(--color-text-secondary);
-  opacity: 0.6;
-}
-</style>

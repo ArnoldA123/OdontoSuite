@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 113 migraciones
+  migrations/              # 114 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
+  api.php                  # 200 rutas API (medido con php artisan route:list --json: uris api/…; 213 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -388,8 +388,68 @@ documentada y no bloquea producción.
   `procedure_catalog.specialty_id` y `user_specialties` las referencian. La
   entrada clínica "Especialidades" (`/specialty-records`) no cambia; la nueva
   entrada del sidebar se llama "Catálogo de Especialidades". §4 y §5
-  sincronizados: 18 módulos de dominio y 20 páginas; los conteos de rutas API
-  (198) no cambian.
+  sincronizados: 18 módulos de dominio y 20 páginas; la feature no agrega rutas
+  API.
+- **2026-10-20 (presupuestos interface redesign)** — `/quotations` pasa a la
+  superficie del dashboard: hero band, KPI strip de cuatro tarjetas alimentado
+  por `GET /api/quotations/summary`, búsqueda `q` server-side (número, paciente,
+  documento) más estado (los 6 del enum) y rango de fechas, lista sobre
+  `UiDataTable` con badges de estado y vencimiento, y detalle / creación /
+  edición / aprobación / rechazo sobre `UiModal`, con estados skeleton, error y
+  vacío. Corrige el contrato del backend: `treatment_plan_id` pasa a nullable
+  (presupuesto manual), `approve` escribe las columnas reales de
+  `quotation_approvals` (`patient_id`, `approval_status`, `approval_date`,
+  `patient_notes`, `signature_data`) en vez de columnas inexistentes, y la
+  descarga del PDF deja de pedir un blob a `useApi.get`. Se retira
+  `QuotationCard.vue` (la tabla lo reemplaza) y se conserva
+  `QuotationStatusBadge.vue` para el detalle de planes de tratamiento. §4
+  sincronizado con valores medidos: 200 rutas API (nueva
+  `GET quotations/summary`) y 213 totales con web; 114 migraciones. Tests:
+  `QuotationIndexSummaryTest` (7, MySQL), `QuotationsRedesignContractTest` (10),
+  `quotationMeta.test.js` (8), `quotations-list.test.js` (4) y
+  `quotations-form.test.js` (2). Guard `scripts/audit/doc-drift.mjs` en verde.
+- **2026-10-20 (caja interface redesign)** — `/cash-register` pasa al lenguaje
+  del dashboard: hero band con estado de sesión, KPI strip permanente (Apertura
+  / Cobros / Egresos / Saldo esperado) y las cinco tabs sobre `UiDataTable`,
+  `UiFilterBar` y `UiPagination`, con estados de carga, error con retry y vacío.
+  `/cash-register/ready-to-bill` entra en `AppLayout` y usa las mismas
+  primitivas. Se arreglan los controles que no funcionaban: los cuatro modales
+  de sesión/transacción/movimiento pasan a `v-model`, "Nuevo movimiento" envía
+  el `concept` obligatorio, el Historial pagina y filtra contra el API, Cobros
+  paga con `pending-payments/{id}/pay` (actualiza el saldo de la cita) y
+  Reportes consume su propio payload de período. La aritmética de caja deja de
+  mezclar poblaciones: el ledger de movimientos es la fuente única de flujos
+  (`cash_in`, `cash_out`, `expected_amount`), las filas espejo de apertura y
+  cierre quedan fuera de la ecuación y el reporte de período suma
+  `total_income`/`total_expenses` y calcula el porcentaje de cada método sobre
+  el total del mix. Sin rutas, controladores, modelos ni migraciones nuevas: los
+  conteos de §4 no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+- **2026-10-20 (Business Intelligence: superficie + contrato de reportes v2)** —
+  `/business-intelligence` se rediseña sobre la receta del dashboard: hero band
+  con período aplicado, KPI strip, filtros compartidos y presets, selector de
+  corte de ingresos, `UiDataTable`, estados de carga/error/vacío y gráficos con
+  tokens y destrucción controlada. La página deja de consumir el canal público
+  `dashboard-updates` y refresca bajo demanda. Los servicios de reporte se
+  corrigen: una sola definición de ingresos (transacciones cobradas, no precio
+  de catálogo), atribución única por `appointment_id`, período inclusivo en
+  ambos extremos, disponibilidad por sillas activas y días hábiles reales,
+  contadores reales de canceladas/no-show, `meta.summary` en el reporte de
+  ingresos, export Excel/CSV/PDF honesto y errores 500 sin filtrar la excepción.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Follow-ups abiertos: canal privado por rol, devoluciones no neteadas
+  y retiro de la dependencia `maatwebsite/excel` (en desuso).
+- **2026-10-20 (treatment-plans-ui-redesign)** — Planes de tratamiento pasa al
+  lenguaje del dashboard en sus cuatro superficies (lista y kanban, modal de
+  alta/edición, detalle del plan y tarjetas/columnas/badge): hero band, tira de
+  cuatro KPIs, tarjeta de filtros con presets y estados de carga, error con
+  reintento y vacío compartido. Añade `GET /api/treatment-plans/summary` para
+  que los KPIs resuman la tabla completa y no la página visible, más los filtros
+  de índice `statuses` (lista) y `overdue`, que hacen funcionar los presets
+  Activos/Vencidos (antes enviaban `status=active|overdue` y nunca filtraban).
+  §4 sincronizado: 199 rutas API, 212 totales con web. Sin migraciones ni
+  primitivas UI nuevas. Tests: `TreatmentPlansSummaryTest`,
+  `TreatmentPlansIndexFiltersTest`, `TreatmentPlansAppShellTest` y smokes JS del
+  módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
 - **2026-10-20 (follow-ups #169/#170/#171 de citas)** — La ventana de lista de
   espera se compara por fecha completa (`whereDate` en ambos bordes): un
   `preferred_end_date` a medianoche cubre su día y el día de inicio cuenta

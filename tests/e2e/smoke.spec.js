@@ -31,7 +31,7 @@ const PAGES = [
   {
     slug: 'quotations',
     path: '/quotations',
-    locator: '.page-title:has-text("Presupuestos")'
+    locator: '[data-hero-title]:has-text("Presupuestos")'
   },
   {
     slug: 'business-intelligence',

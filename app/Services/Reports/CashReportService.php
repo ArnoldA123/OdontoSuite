@@ -7,10 +7,13 @@ use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Services\CashRegisterService;
 use Carbon\Carbon;
 
 class CashReportService
 {
+    public function __construct(private readonly CashRegisterService $cashRegisterService) {}
+
     /**
      * Get daily cash report.
      */
@@ -66,6 +69,7 @@ class CashReportService
         }
 
         $sessions = $query->get();
+        $flow = $this->getFlowTotals($start, $end, $branchId);
 
         $report = [
             'period' => [
@@ -78,6 +82,8 @@ class CashReportService
             'total_expected_amount' => $sessions->sum('expected_amount'),
             'total_difference' => $sessions->sum('difference_amount'),
             'average_difference' => $sessions->avg('difference_amount'),
+            'total_income' => $flow['total_income'],
+            'total_expenses' => $flow['total_expenses'],
             'daily_summary' => $this->getDailySummary($start, $end, $branchId),
             'summary_by_branch' => $this->getSummaryByBranch($sessions),
             'summary_by_user' => $this->getSummaryByUser($sessions),
@@ -117,7 +123,7 @@ class CashReportService
             ->where('status', 'completed')
             ->get();
 
-        $movements = $session->movements;
+        $summary = $this->cashRegisterService->getSessionSummary($session);
 
         return [
             'session' => $session,
@@ -127,8 +133,10 @@ class CashReportService
             'difference_amount' => $session->difference_amount,
             'transactions_count' => $transactions->count(),
             'transactions_total' => $transactions->sum('amount'),
-            'movements_count' => $movements->count(),
-            'movements_total' => $movements->sum('amount'),
+            'movements_count' => $summary['movements_count'],
+            'cash_in' => $summary['cash_in'],
+            'cash_out' => $summary['cash_out'],
+            'net_flow' => $summary['net_flow'],
             'by_payment_method' => $this->getSessionPaymentMethodSummary($transactions),
             'duration' => $session->closed_at ?
                 $session->opened_at->diffInHours($session->closed_at) :
@@ -137,7 +145,7 @@ class CashReportService
     }
 
     /**
-     * Get summary by payment method.
+     * Get summary by payment method. Percentages divide by the mix total.
      */
     private function getSummaryByPaymentMethod($sessions): array
     {
@@ -162,42 +170,75 @@ class CashReportService
                 'payment_method' => $method->name,
                 'count' => $count,
                 'total' => $total,
-                'percentage' => $total > 0 ? ($total / $sessions->sum('closing_amount')) * 100 : 0,
             ];
         }
 
-        return $summary;
+        $mixTotal = array_sum(array_column($summary, 'total'));
+
+        return array_map(function (array $row) use ($mixTotal) {
+            $row['percentage'] = $mixTotal > 0 ? round($row['total'] / $mixTotal * 100, 2) : 0.0;
+
+            return $row;
+        }, $summary);
     }
 
     /**
-     * Get summary by hour.
+     * Get summary by hour, bucketed from completed transactions.
      */
     private function getSummaryByHour($sessions): array
     {
+        $buckets = array_fill(0, 24, ['count' => 0, 'total' => 0.0]);
+
+        foreach ($sessions as $session) {
+            $transactions = Transaction::where('cash_register_session_id', $session->id)
+                ->where('status', 'completed')
+                ->get();
+
+            foreach ($transactions as $transaction) {
+                $hour = (int) $transaction->created_at->format('H');
+                $buckets[$hour]['count']++;
+                $buckets[$hour]['total'] += (float) $transaction->amount;
+            }
+        }
+
         $hourlyData = [];
 
-        for ($hour = 0; $hour < 24; $hour++) {
-            $total = 0;
-            $count = 0;
-
-            foreach ($sessions as $session) {
-                $transactions = Transaction::where('cash_register_session_id', $session->id)
-                    ->whereHour('created_at', $hour)
-                    ->where('status', 'completed')
-                    ->get();
-
-                $total += $transactions->sum('amount');
-                $count += $transactions->count();
-            }
-
+        foreach ($buckets as $hour => $bucket) {
             $hourlyData[] = [
                 'hour' => $hour,
-                'count' => $count,
-                'total' => $total,
+                'count' => $bucket['count'],
+                'total' => round($bucket['total'], 2),
             ];
         }
 
         return $hourlyData;
+    }
+
+    /**
+     * Completed sales split into income and expenses for the period.
+     *
+     * @return array{total_income: float, total_expenses: float}
+     */
+    private function getFlowTotals(Carbon $start, Carbon $end, ?int $branchId = null): array
+    {
+        $row = Transaction::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->whereHas('cashRegisterSession', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                });
+            })
+            ->selectRaw(
+                "COALESCE(SUM(CASE WHEN type IN ('payment', 'income') THEN amount ELSE 0 END), 0) as total_income, ".
+                "COALESCE(SUM(CASE WHEN type IN ('refund', 'expense') THEN amount ELSE 0 END), 0) as total_expenses"
+            )
+            ->first();
+
+        return [
+            'total_income' => round((float) ($row->total_income ?? 0), 2),
+            'total_expenses' => round((float) ($row->total_expenses ?? 0), 2),
+        ];
     }
 
     /**
@@ -311,16 +352,18 @@ class CashReportService
         }
 
         $transactions = $query->get();
+        $mixTotal = (float) $transactions->sum('amount');
 
         return $transactions->groupBy('payment_method_id')
-            ->map(function ($group, $methodId) {
-                $method = PaymentMethod::find($methodId);
+            ->map(function ($group) use ($mixTotal) {
+                $total = (float) $group->sum('amount');
 
                 return [
-                    'payment_method' => $method ? $method->name : 'Método no encontrado',
+                    'payment_method' => $group->first()->paymentMethod?->name ?? 'Método no encontrado',
                     'count' => $group->count(),
-                    'total' => $group->sum('amount'),
+                    'total' => $total,
                     'average' => $group->avg('amount'),
+                    'percentage' => $mixTotal > 0 ? round($total / $mixTotal * 100, 2) : 0.0,
                 ];
             })
             ->values()
