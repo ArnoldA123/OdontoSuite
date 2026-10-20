@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
+use App\Events\QuotationRejected;
 use App\Events\QuotationUpdated;
 use App\Models\Quotation;
 use App\Models\QuotationApproval;
@@ -239,6 +240,12 @@ class QuotationService
                 'status' => 'rejected',
                 'notes' => QuotationText::appendRejection($quotation->notes, $reason),
             ]);
+
+            try {
+                event(new QuotationRejected($quotation, $reason));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
 
             return $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
         });

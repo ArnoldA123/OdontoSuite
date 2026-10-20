@@ -73,7 +73,7 @@ describe('quotations private channel', () => {
     wrapper.unmount()
   })
 
-  it('keeps the three quotation listeners on the private channel', async () => {
+  it('keeps the four quotation listeners on the private channel', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
     await flushPromises()
 
@@ -82,7 +82,8 @@ describe('quotations private channel', () => {
     expect(quotations.listeners.listeners).toEqual([
       '.quotation.created',
       '.quotation.updated',
-      '.quotation.approved'
+      '.quotation.approved',
+      '.quotation.rejected'
     ])
 
     wrapper.unmount()

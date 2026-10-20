@@ -1203,6 +1203,19 @@ export default {
                   }
                 }
               })
+              .listen('.quotation.rejected', async e => {
+                if (e.quotation.patient_id === patientId) {
+                  const index = quotations.value.findIndex(q => q.id === e.quotation.id)
+                  if (index !== -1) {
+                    quotations.value[index] = e.quotation
+                  } else {
+                    await loadQuotations()
+                  }
+                  if (activeTab.value === 'quotations') {
+                    toast.warning('Presupuesto rechazado')
+                  }
+                }
+              })
           }
 
           // Canal de historias clínicas

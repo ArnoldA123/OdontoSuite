@@ -715,6 +715,10 @@ onMounted(() => {
           await refresh()
           toast.success('Presupuesto aprobado', { duration: 6000 })
         })
+        .listen('.quotation.rejected', async () => {
+          await refresh()
+          toast.warning('Presupuesto rechazado', { duration: 6000 })
+        })
     }
   } catch {
     // Without WebSocket the list still works through the initial fetch.

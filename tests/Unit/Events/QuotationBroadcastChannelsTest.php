@@ -4,6 +4,7 @@ namespace Tests\Unit\Events;
 
 use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
+use App\Events\QuotationRejected;
 use App\Events\QuotationUpdated;
 use App\Models\Quotation;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -22,14 +23,15 @@ use Tests\TestCase;
 class QuotationBroadcastChannelsTest extends TestCase
 {
     /**
-     * @return array<string, array{class-string}>
+     * @return array<string, array{string, array<string, string>}>
      */
     public static function quotationEvents(): array
     {
         return [
-            'QuotationCreated' => [QuotationCreated::class],
-            'QuotationUpdated' => [QuotationUpdated::class],
-            'QuotationApproved' => [QuotationApproved::class],
+            'QuotationCreated' => [QuotationCreated::class, []],
+            'QuotationUpdated' => [QuotationUpdated::class, []],
+            'QuotationApproved' => [QuotationApproved::class, []],
+            'QuotationRejected' => [QuotationRejected::class, ['reason' => 'Precio alto']],
         ];
     }
 
@@ -38,9 +40,11 @@ class QuotationBroadcastChannelsTest extends TestCase
      *
      * @dataProvider quotationEvents
      */
-    public function quotation_event_broadcasts_on_the_private_quotations_channel(string $eventClass): void
-    {
-        $channels = (new $eventClass($this->quotation()))->broadcastOn();
+    public function quotation_event_broadcasts_on_the_private_quotations_channel(
+        string $eventClass,
+        array $constructorArguments
+    ): void {
+        $channels = (new $eventClass($this->quotation(), ...$constructorArguments))->broadcastOn();
 
         $this->assertCount(1, $channels, "{$eventClass} MUST broadcast on exactly one channel.");
         $this->assertInstanceOf(PrivateChannel::class, $channels[0]);
@@ -56,8 +60,10 @@ class QuotationBroadcastChannelsTest extends TestCase
      *
      * @dataProvider quotationEvents
      */
-    public function quotation_event_no_longer_publishes_to_the_public_dashboard_channel(string $eventClass): void
-    {
+    public function quotation_event_no_longer_publishes_to_the_public_dashboard_channel(
+        string $eventClass,
+        array $constructorArguments
+    ): void {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
 
         $this->assertStringNotContainsString(
@@ -72,8 +78,10 @@ class QuotationBroadcastChannelsTest extends TestCase
      *
      * @dataProvider quotationEvents
      */
-    public function quotation_event_never_uses_the_public_channel_class(string $eventClass): void
-    {
+    public function quotation_event_never_uses_the_public_channel_class(
+        string $eventClass,
+        array $constructorArguments
+    ): void {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
 
         $this->assertStringNotContainsString(
