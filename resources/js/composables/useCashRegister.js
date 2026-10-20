@@ -257,6 +257,16 @@ export function useCashRegister() {
               await loadCurrentSession()
             }
           })
+          .listen('.transaction.updated', async e => {
+            // Anular o editar una transacción cambia el saldo esperado de la
+            // sesión, así que este evento también recarga el resumen. La
+            // suscripción vive aquí desde que Business Intelligence dejó de
+            // consumir el canal público (D11).
+            const updatedSession = e.transaction?.cash_register_session_id
+            if (!updatedSession || updatedSession === currentSession.value?.id) {
+              await loadCurrentSession()
+            }
+          })
       }
 
       // Canal privado para la sesión específica si hay sesión activa
@@ -286,6 +296,9 @@ export function useCashRegister() {
             await loadCurrentSession()
           })
           .listen('.transaction.created', async () => {
+            await loadCurrentSession()
+          })
+          .listen('.transaction.updated', async () => {
             await loadCurrentSession()
           })
       }
