@@ -172,6 +172,17 @@ const handleClose = () => {
 // Escape is a no-op while closed, and the listener is gone on unmount.
 onMounted(() => {
   document.addEventListener('keydown', handleDocumentEscape)
+
+  // Consumers may mount the modal already open (`model-value="true"`), in
+  // which case the watch below never observes a change. Apply the open state
+  // once on mount so the scroll lock and the focus trap engage anyway. Only
+  // the open branch runs here: locking twice is harmless, while running the
+  // closed branch on mount would release a lock owned by a parent modal.
+  if (props.modelValue) {
+    emit('open')
+    document.body.style.overflow = 'hidden'
+    focusTrap.activate(modalRef.value)
+  }
 })
 
 // Watch for modelValue changes
