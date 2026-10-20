@@ -1,958 +1,984 @@
 <template>
-  <AppLayout>
-    <div class="space-y-6">
-      <PageHeader
-        title="Business Intelligence"
-        subtitle="Analisis y reportes del sistema"
-        class="mb-6"
-      >
-        <template #actions>
-          <span
-            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-100 text-success-700 text-xs font-medium"
-            aria-label="Actualizaciones en tiempo real activas"
-            title="Actualizaciones en tiempo real activas"
+  <AppLayout class="bg-canvas">
+    <header
+      data-bi-hero
+      class="mb-6 p-6 md:p-8"
+      style="
+        background: var(--color-canvas);
+        border: 1px solid var(--color-hairline);
+        border-radius: var(--radius-panel);
+        box-shadow: var(--elevation-2);
+      "
+    >
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <p
+            class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+            data-hero-eyebrow
           >
-            <span
-              class="w-2 h-2 rounded-full bg-success-500 animate-pulse-subtle"
-              aria-hidden="true"
-            />
-            En vivo
-          </span>
-        </template>
-      </PageHeader>
-      <!-- Filters Section -->
-      <UiCard variant="glass">
-        <template #header>
-          <h2 class="text-lg font-semibold text-theme-primary">Filtros de Reporte</h2>
-        </template>
-        <div class="space-y-6">
-          <!-- First Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Date Range -->
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-2">
-                Rango de Fechas
-              </label>
-              <div class="flex space-x-2">
-                <UiInput v-model="filters.startDate" type="date" class="flex-1" />
-                <UiInput v-model="filters.endDate" type="date" class="flex-1" />
-              </div>
-            </div>
-
-            <!-- Professional Filter -->
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-2">
-                Profesional ({{ professionals.length }})
-              </label>
-              <select
-                v-model="filters.professionalId"
-                class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-              >
-                <option value="">Todos los profesionales</option>
-                <option
-                  v-for="professional in professionals"
-                  :key="professional.id"
-                  :value="professional.id"
-                >
-                  {{ professional.name }}
-                </option>
-              </select>
-              <div class="text-xs text-theme-secondary mt-1">
-                Debug: {{ professionals.length }} profesionales cargados
-              </div>
-            </div>
-          </div>
-
-          <!-- Second Row -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Environment Filter -->
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-2">
-                Ambiente ({{ environments.length }})
-              </label>
-              <select
-                v-model="filters.environmentId"
-                class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-              >
-                <option value="">Todos los ambientes</option>
-                <option
-                  v-for="environment in environments"
-                  :key="environment.id"
-                  :value="environment.id"
-                >
-                  {{ environment.name }}
-                </option>
-              </select>
-              <div class="text-xs text-theme-secondary mt-1">
-                Debug: {{ environments.length }} ambientes cargados
-              </div>
-            </div>
-
-            <!-- Report Type -->
-            <div>
-              <label class="block text-sm font-medium text-theme-primary mb-2">
-                Tipo de Reporte
-              </label>
-              <select
-                v-model="selectedReport"
-                class="w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary"
-                @change="loadReport"
-              >
-                <option value="dashboard">Dashboard General</option>
-                <option value="appointments">Reporte de Citas</option>
-                <option value="patients">Reporte de Pacientes</option>
-                <option value="professionals">Reporte de Profesionales</option>
-                <option value="revenue">Reporte de Ingresos</option>
-                <option value="utilization">Utilización de Ambientes</option>
-              </select>
-            </div>
-          </div>
+            Inteligencia de negocio
+          </p>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+            Business Intelligence
+          </h2>
+          <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+            Citas, pacientes, ingresos y ocupación de la clínica
+          </p>
         </div>
+        <div class="flex flex-wrap items-center gap-2 md:flex-shrink-0 md:flex-nowrap">
+          <UiButton
+            variant="secondary"
+            :disabled="loading || !!exporting"
+            data-hero-refresh
+            @click="loadReport"
+          >
+            <template #icon-left>
+              <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+            </template>
+            Actualizar
+          </UiButton>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            :disabled="loading || exporting === 'excel'"
+            data-export-excel
+            @click="exportReport('excel')"
+          >
+            Excel
+          </UiButton>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            :disabled="loading || exporting === 'csv'"
+            data-export-csv
+            @click="exportReport('csv')"
+          >
+            CSV
+          </UiButton>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            :disabled="loading || exporting === 'pdf'"
+            data-export-pdf
+            @click="exportReport('pdf')"
+          >
+            PDF
+          </UiButton>
+        </div>
+      </div>
+      <p class="mt-4 text-xs text-theme-secondary" data-period-applied>
+        Período aplicado: {{ appliedLabel }}
+      </p>
+    </header>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-between items-center mt-6">
-          <div class="flex space-x-3">
-            <UiButton variant="primary" @click="applyFilters">
-              <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-              </template>
-              Aplicar Filtros
-            </UiButton>
-            <UiButton variant="secondary" @click="resetFilters">Limpiar</UiButton>
-          </div>
+    <UiCard variant="glass" class="mb-6" data-bi-filters>
+      <template #header>
+        <h2 class="text-lg font-semibold text-theme-primary">Filtros del reporte</h2>
+      </template>
 
-          <!-- Export Buttons -->
-          <div class="flex space-x-2">
+      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+        <div class="lg:col-span-3">
+          <span class="mb-2 block text-sm font-medium text-theme-primary">Período</span>
+          <div
+            class="inline-flex gap-1 rounded-[var(--radius-control)] p-1"
+            style="border: 1px solid var(--color-hairline)"
+            role="group"
+            aria-label="Presets de período"
+          >
             <UiButton
-              :disabled="loading"
-              variant="success"
+              v-for="preset in presets"
+              :key="preset.id"
+              :variant="periodPreset === preset.id ? 'primary' : 'ghost'"
               size="sm"
-              @click="exportReport('excel')"
+              :aria-pressed="periodPreset === preset.id"
+              :data-preset="preset.id"
+              @click="selectPreset(preset)"
             >
-              <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </template>
-              Excel
-            </UiButton>
-            <UiButton :disabled="loading" variant="primary" size="sm" @click="exportReport('csv')">
-              <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </template>
-              CSV
-            </UiButton>
-            <UiButton :disabled="loading" variant="danger" size="sm" @click="exportReport('pdf')">
-              <template #icon-left>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </template>
-              PDF
+              {{ preset.label }}
             </UiButton>
           </div>
         </div>
-      </UiCard>
 
-      <!-- Loading State -->
-      <div v-if="loading" class="py-12">
-        <LoadingSpinner size="lg" text="Cargando reporte..." />
+        <div class="lg:col-span-2">
+          <UiInput
+            id="bi-from"
+            v-model="draft.from"
+            type="date"
+            label="Desde"
+            data-filters-from
+            @update:model-value="periodPreset = 'custom'"
+          />
+        </div>
+
+        <div class="lg:col-span-2">
+          <UiInput
+            id="bi-to"
+            v-model="draft.to"
+            type="date"
+            label="Hasta"
+            :error="rangeError"
+            data-filters-to
+            @update:model-value="periodPreset = 'custom'"
+          />
+        </div>
+
+        <div class="lg:col-span-2">
+          <UiSelect
+            v-model="draft.professionalId"
+            :options="professionalOptions"
+            label="Profesional"
+            data-filters-professional
+          />
+        </div>
+
+        <div class="lg:col-span-2">
+          <UiSelect
+            v-model="draft.environmentId"
+            :options="environmentOptions"
+            label="Ambiente"
+            data-filters-environment
+          />
+        </div>
+
+        <div class="lg:col-span-1">
+          <UiButton
+            class="w-full"
+            :disabled="!!rangeError || loading"
+            data-filters-apply
+            @click="applyFilters"
+          >
+            Aplicar
+          </UiButton>
+        </div>
       </div>
 
-      <!-- Dashboard Content -->
-      <div v-else>
-        <!-- Dashboard General -->
-        <div v-if="selectedReport === 'dashboard'" class="space-y-6">
-          <!-- KPI Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <UiCard variant="elevated">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <svg
-                      class="w-5 h-5 text-accent"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-theme-secondary">Total Citas</p>
-                  <p class="text-2xl font-semibold text-theme-primary">
-                    {{ dashboardData.totalAppointments || 0 }}
-                  </p>
-                </div>
-              </div>
-            </UiCard>
+      <div
+        class="mt-4 flex flex-col gap-3 border-t pt-4 md:flex-row md:items-end md:justify-between"
+        style="border-color: var(--color-hairline)"
+      >
+        <div class="md:w-80">
+          <UiSelect
+            v-model="selectedReport"
+            :options="reportOptions"
+            label="Reporte"
+            data-filters-report
+            @change="applyFilters"
+          />
+        </div>
+        <UiButton variant="secondary" data-filters-reset @click="resetFilters">
+          <template #icon-left>
+            <ArrowUturnLeftIcon class="w-4 h-4" aria-hidden="true" />
+          </template>
+          Limpiar filtros
+        </UiButton>
+      </div>
+    </UiCard>
 
-            <UiCard variant="elevated">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-success-badge rounded-lg flex items-center justify-center">
-                    <svg
-                      class="w-5 h-5 text-success-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-theme-secondary">Total Pacientes</p>
-                  <p class="text-2xl font-semibold text-theme-primary">
-                    {{ dashboardData.totalPatients || 0 }}
-                  </p>
-                </div>
-              </div>
-            </UiCard>
+    <div class="space-y-6" :aria-busy="loading">
+      <DashboardSectionError
+        v-if="error"
+        data-state="error"
+        role="alert"
+        title="No pudimos cargar el reporte"
+        :description="error"
+        :retry-attrs="{ 'data-retry': '' }"
+        @retry="loadReport"
+      />
 
-            <UiCard variant="elevated">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
-                    <svg
-                      class="w-5 h-5 text-accent"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-theme-secondary">Ingresos Totales</p>
-                  <p class="text-2xl font-semibold text-theme-primary">
-                    S/ {{ dashboardData.totalRevenue || 0 }}
-                  </p>
-                </div>
-              </div>
-            </UiCard>
+      <section
+        v-if="loading"
+        aria-label="Cargando reporte"
+        aria-busy="true"
+        data-bi-loading
+        class="space-y-4"
+      >
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <UiSkeleton
+            v-for="slot in 4"
+            :key="`bi-skeleton-${slot}`"
+            variant="card"
+            animation="wave"
+          />
+        </div>
+        <UiSkeleton variant="table" animation="wave" />
+      </section>
 
-            <UiCard variant="elevated">
-              <div class="flex items-center">
-                <div class="flex-shrink-0">
-                  <div class="w-8 h-8 bg-warning-badge rounded-lg flex items-center justify-center">
-                    <svg
-                      class="w-5 h-5 text-warning-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm font-medium text-theme-secondary">Tasa de Ocupación</p>
-                  <p class="text-2xl font-semibold text-theme-primary">
-                    {{ dashboardData.occupancyRate || 0 }}%
-                  </p>
-                </div>
-              </div>
-            </UiCard>
-          </div>
+      <template v-else-if="!error">
+        <section
+          v-if="isDashboard"
+          aria-label="Resumen del período"
+          data-bi-kpis
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+        >
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-kpi-card="appointments"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <p class="text-xs font-medium uppercase text-theme-secondary">Citas</p>
+            <p
+              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+              data-kpi-value="appointments"
+            >
+              {{ formatNumber(dashboard.totalAppointments) }}
+            </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="appointments">
+              Agendadas en el período
+            </p>
+          </UiCard>
 
-          <!-- Charts Section -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Appointments Chart -->
-            <UiCard variant="elevated">
-              <h3 class="text-lg font-semibold text-theme-primary mb-4">Citas por Día</h3>
-              <div class="h-64">
-                <canvas ref="appointmentsChart" />
-              </div>
-            </UiCard>
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-kpi-card="patients"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <p class="text-xs font-medium uppercase text-theme-secondary">Pacientes</p>
+            <p
+              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+              data-kpi-value="patients"
+            >
+              {{ formatNumber(dashboard.totalPatients) }}
+            </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="patients">
+              {{ formatNumber(dashboard.newPatients) }} nuevos en el período
+            </p>
+          </UiCard>
 
-            <!-- Revenue Chart -->
-            <UiCard variant="elevated">
-              <h3 class="text-lg font-semibold text-theme-primary mb-4">Ingresos por Mes</h3>
-              <div class="h-64">
-                <canvas ref="revenueChart" />
-              </div>
-            </UiCard>
-          </div>
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-kpi-card="revenue"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <p class="text-xs font-medium uppercase text-theme-secondary">Ingresos cobrados</p>
+            <p
+              class="mt-2 text-2xl font-bold leading-none text-systemGreen-600 tabular-nums"
+              data-kpi-value="revenue"
+            >
+              {{ formatCurrency(dashboard.totalRevenue) }}
+            </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="revenue">
+              Pagos completados
+            </p>
+          </UiCard>
 
-          <!-- Professional Performance -->
-          <UiCard variant="elevated">
-            <h3 class="text-lg font-semibold text-theme-primary mb-4">
-              Rendimiento por Profesional
-            </h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-theme">
-                <thead class="bg-theme-surface">
-                  <tr>
-                    <th
-                      class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                    >
-                      Profesional
-                    </th>
-                    <th
-                      class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                    >
-                      Citas
-                    </th>
-                    <th
-                      class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                    >
-                      Ingresos
-                    </th>
-                    <th
-                      class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                    >
-                      Promedio por Cita
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="bg-theme-surface-elevated divide-y divide-theme">
-                  <tr v-if="dashboardData.professionalPerformance.length === 0">
-                    <td colspan="4" class="px-6 py-4 text-center text-sm text-theme-secondary">
-                      No hay datos disponibles
-                    </td>
-                  </tr>
-                  <tr
-                    v-for="professional in dashboardData.professionalPerformance"
-                    :key="professional.id"
-                  >
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-theme-primary">
-                      {{ professional.name }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-secondary">
-                      {{ professional.appointments }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-secondary">
-                      S/ {{ professional.revenue }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-secondary">
-                      S/ {{ professional.averagePerAppointment }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <UiCard
+            variant="glass"
+            padding="sm"
+            data-kpi-card="occupancy"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <p class="text-xs font-medium uppercase text-theme-secondary">Ocupación</p>
+            <p
+              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+              data-kpi-value="occupancy"
+            >
+              {{ formatPercent(dashboard.occupancyRate) }}
+            </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="occupancy">
+              {{ formatNumber(dashboard.usedHours) }} /
+              {{ formatNumber(dashboard.availableHours) }} h de silla
+            </p>
+          </UiCard>
+        </section>
+
+        <section
+          v-if="isDashboard && hasDashboardCharts"
+          aria-label="Gráficos del período"
+          data-bi-charts
+          class="grid grid-cols-1 gap-4 lg:grid-cols-2"
+        >
+          <UiCard
+            v-if="dashboard.appointmentsByDay.length > 0"
+            variant="glass"
+            data-chart-card="appointments-by-day"
+          >
+            <template #header>
+              <h2 class="text-lg font-semibold text-theme-primary">Citas por Día</h2>
+            </template>
+            <div class="h-64">
+              <canvas
+                ref="appointmentsChartRef"
+                data-chart="appointments-by-day"
+                role="img"
+                aria-label="Citas por día"
+              />
             </div>
           </UiCard>
-        </div>
 
-        <!-- Specific Reports -->
-        <div v-else class="bg-theme-surface-elevated rounded-2xl shadow-xl p-6">
-          <h3 class="text-lg font-semibold text-theme-primary mb-4">
-            {{ getReportTitle() }}
-          </h3>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-theme">
-              <thead class="bg-theme-surface">
-                <tr>
-                  <th
-                    v-for="column in reportColumns"
-                    :key="column.key"
-                    class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-                  >
-                    {{ column.label }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-theme-surface-elevated divide-y divide-theme">
-                <tr v-if="reportData.length === 0">
-                  <td
-                    :colspan="reportColumns.length"
-                    class="px-6 py-4 text-center text-sm text-theme-secondary"
-                  >
-                    No hay datos disponibles
-                  </td>
-                </tr>
-                <tr v-for="(row, index) in reportData" :key="index">
-                  <td
-                    v-for="column in reportColumns"
-                    :key="column.key"
-                    class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary"
-                  >
-                    {{ row[column.key] }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+          <UiCard
+            v-if="dashboard.revenueByMonth.length > 0"
+            variant="glass"
+            data-chart-card="revenue-by-month"
+          >
+            <template #header>
+              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Cobrados por Mes</h2>
+            </template>
+            <div class="h-64">
+              <canvas
+                ref="revenueChartRef"
+                data-chart="revenue-by-month"
+                role="img"
+                aria-label="Ingresos cobrados por mes"
+              />
+            </div>
+          </UiCard>
+        </section>
+
+        <section v-if="selectedReport === 'revenue' && revenueSummary" data-revenue-summary>
+          <UiCard variant="glass">
+            <template #header>
+              <h2 class="text-lg font-semibold text-theme-primary">Resumen del período</h2>
+            </template>
+            <dl class="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div>
+                <dt class="text-xs font-medium uppercase text-theme-secondary">
+                  Citas completadas
+                </dt>
+                <dd
+                  class="mt-1 text-xl font-semibold text-label tabular-nums"
+                  data-revenue-summary="appointments"
+                >
+                  {{ formatNumber(revenueSummary.appointments_count) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase text-theme-secondary">
+                  Ingresos cobrados
+                </dt>
+                <dd
+                  class="mt-1 text-xl font-semibold text-label tabular-nums"
+                  data-revenue-summary="revenue"
+                >
+                  {{ formatCurrency(revenueSummary.total_revenue) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase text-theme-secondary">
+                  Promedio por cita
+                </dt>
+                <dd
+                  class="mt-1 text-xl font-semibold text-label tabular-nums"
+                  data-revenue-summary="average"
+                >
+                  {{ formatCurrency(revenueSummary.average_per_appointment) }}
+                </dd>
+              </div>
+            </dl>
+          </UiCard>
+        </section>
+
+        <section
+          v-if="selectedReport === 'revenue' && porDiaRows.length > 0"
+          aria-label="Ingresos por día"
+          data-bi-charts
+          class="grid grid-cols-1 gap-4"
+        >
+          <UiCard variant="glass" data-chart-card="revenue-by-day">
+            <template #header>
+              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Cobrados por Día</h2>
+            </template>
+            <div class="h-64">
+              <canvas
+                ref="dailyRevenueChartRef"
+                data-chart="revenue-by-day"
+                role="img"
+                aria-label="Ingresos cobrados por día"
+              />
+            </div>
+          </UiCard>
+        </section>
+
+        <UiCard v-if="isEmpty" variant="glass" data-report-empty>
+          <UiEmptyState
+            title="Sin datos en el período"
+            description="No hay actividad registrada para los filtros aplicados."
+          >
+            <template #action>
+              <UiButton variant="secondary" data-widen-period @click="selectPreset(presets[2])">
+                Ampliar a 90 días
+              </UiButton>
+            </template>
+          </UiEmptyState>
+        </UiCard>
+
+        <template v-else>
+          <section
+            v-if="isDashboard && dashboard.professionalPerformance.length > 0"
+            aria-label="Rendimiento por profesional"
+            data-professional-performance
+          >
+            <h2 class="mb-3 text-lg font-semibold text-theme-primary">
+              Rendimiento por Profesional
+            </h2>
+            <UiDataTable
+              :data="dashboard.professionalPerformance"
+              :columns="professionalColumns"
+              :searchable="false"
+              :pagination="false"
+              row-key="id"
+              data-professional-table
+            />
+          </section>
+
+          <section v-else-if="!isDashboard" :aria-label="reportTitle" data-report-table-section>
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 class="text-lg font-semibold text-theme-primary">{{ reportTitle }}</h2>
+              <!--
+                Revenue is cut four ways over the SAME money (by type, by
+                professional, by chair, by day). Showing all four at once in
+                one table invited adding the column and quadrupling the total,
+                so only one cut is visible at a time.
+              -->
+              <div
+                v-if="selectedReport === 'revenue' && availableRevenueDimensions.length > 1"
+                role="group"
+                aria-label="Corte de ingresos"
+                class="flex flex-wrap gap-1 rounded-[var(--radius-control)] border p-1"
+                style="border-color: var(--color-hairline)"
+                data-revenue-dimensions
+              >
+                <UiButton
+                  v-for="dimension in availableRevenueDimensions"
+                  :key="dimension"
+                  size="sm"
+                  :variant="revenueDimension === dimension ? 'primary' : 'ghost'"
+                  :aria-pressed="revenueDimension === dimension"
+                  :data-revenue-dimension="dimension"
+                  @click="revenueDimension = dimension"
+                >
+                  {{ dimension }}
+                </UiButton>
+              </div>
+            </div>
+            <UiDataTable
+              :data="visibleReportRows"
+              :columns="tableColumns"
+              row-key="id"
+              data-report-table
+            />
+          </section>
+        </template>
+      </template>
     </div>
   </AppLayout>
 </template>
 
-<script>
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+<script setup>
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useApi } from '../../composables/useApi'
-import { useToast } from '../../composables/useToast'
-import { useErrorHandler } from '../../composables/useErrorHandler'
-import { useEcho } from '../../composables/useEcho'
-// Chart.js takes plain JS colour values, so it cannot read the CSS custom
-// properties the rest of the app uses — which is how these two charts ended up
-// on Tailwind's DEFAULT palette (`indigo-500` / `green-500`) while the app moved
-// to the token palette. Importing `colors` makes them follow the design system:
-// change `tokens.js` and the charts move with it. Each chart has a single
-// series, so there is no categorical collision to resolve here.
+import { ArrowPathIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { colors } from '../../design-system/tokens.js'
+import { useApi } from '../../composables/useApi'
+import { formatCurrency } from '../../composables/useFormatters'
+import { useToast } from '../../composables/useToast'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
-import UiInput from '../../components/ui/Input.vue'
 import UiCard from '../../components/ui/Card.vue'
-import LoadingSpinner from '../../components/ui/LoadingSpinner.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
+import UiEmptyState from '../../components/ui/EmptyState.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiSelect from '../../components/ui/Select.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
+import DashboardSectionError from '../dashboard/DashboardSectionError.vue'
 
-export default {
-  name: 'BusinessIntelligencePage',
-  components: {
-    AppLayout,
-    UiButton,
-    UiInput,
-    UiCard,
-    LoadingSpinner
+const DASHBOARD_ENDPOINT = '/api/reports/dashboard'
+const FALLBACK_ERROR = 'Revisa tu conexión y vuelve a intentarlo.'
+const MONEY_KEYS = new Set(['price', 'total_spent', 'total_revenue', 'average_per_appointment'])
+const EXPORT_EXTENSIONS = { excel: 'xls', csv: 'csv', pdf: 'pdf' }
+
+const EMPTY_DASHBOARD = {
+  totalAppointments: 0,
+  totalPatients: 0,
+  newPatients: 0,
+  totalRevenue: 0,
+  occupancyRate: 0,
+  usedHours: 0,
+  availableHours: 0,
+  appointmentsByDay: [],
+  revenueByMonth: [],
+  professionalPerformance: []
+}
+
+const presets = [
+  { id: '7d', label: '7 días', days: 7 },
+  { id: '30d', label: '30 días', days: 30 },
+  { id: '90d', label: '90 días', days: 90 }
+]
+
+const reportOptions = [
+  { value: 'dashboard', label: 'Dashboard General' },
+  { value: 'appointments', label: 'Reporte de Citas' },
+  { value: 'patients', label: 'Reporte de Pacientes' },
+  { value: 'professionals', label: 'Reporte de Profesionales' },
+  { value: 'revenue', label: 'Reporte de Ingresos' },
+  { value: 'utilization', label: 'Utilización de Ambientes' }
+]
+
+const REVENUE_DIMENSIONS = [
+  'Por Tipo de Cita',
+  'Por Profesional',
+  'Por Ambiente',
+  'Por Día',
+  'Sin cita asociada'
+]
+
+const REPORT_TITLES = {
+  appointments: 'Reporte de Citas',
+  patients: 'Reporte de Pacientes',
+  professionals: 'Reporte de Profesionales',
+  revenue: 'Reporte de Ingresos',
+  utilization: 'Utilización de Ambientes'
+}
+
+const professionalColumns = [
+  { key: 'name', label: 'Profesional' },
+  { key: 'appointments', label: 'Citas', align: 'right' },
+  {
+    key: 'revenue',
+    label: 'Ingresos cobrados',
+    align: 'right',
+    formatter: value => formatCurrency(value)
   },
-  setup() {
-    const router = useRouter()
-    const { user, get } = useApi()
-    const toast = useToast()
-    const { channel, echo } = useEcho()
+  {
+    key: 'averagePerAppointment',
+    label: 'Promedio por cita',
+    align: 'right',
+    formatter: value => formatCurrency(value)
+  }
+]
 
-    const loading = ref(false)
-    const selectedReport = ref('dashboard')
-    const professionals = ref([])
-    const environments = ref([])
-    const dashboardData = ref({
-      totalAppointments: 0,
-      totalPatients: 0,
-      totalRevenue: 0,
-      occupancyRate: 0,
-      appointmentsByDay: [],
-      revenueByMonth: [],
-      professionalPerformance: []
-    })
-    const reportData = ref([])
-    const reportColumns = ref([])
+const toISODate = date => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
-    const filters = reactive({
-      startDate: '',
-      endDate: '',
-      professionalId: '',
-      environmentId: ''
-    })
+const daysBack = days => {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return toISODate(date)
+}
 
-    const appointmentsChart = ref(null)
-    const revenueChart = ref(null)
-    const appointmentsChartInstance = ref(null)
-    const revenueChartInstance = ref(null)
+const formatShortDate = isoDate => (isoDate || '').split('-').reverse().join('/')
 
-    // WebSocket subscriptions
-    let dashboardChannel = null
+const formatNumber = value =>
+  Number(value || 0).toLocaleString('es-PE', { maximumFractionDigits: 1 })
 
-    const loadInitialData = async () => {
-      try {
-        // Set default date range (last 30 days to next 60 days)
-        const today = new Date()
-        const startDate = new Date()
-        const endDate = new Date()
-        startDate.setDate(today.getDate() - 30)
-        endDate.setDate(today.getDate() + 60)
+const formatPercent = value => `${formatNumber(value)}%`
 
-        filters.startDate = startDate.toISOString().split('T')[0]
-        filters.endDate = endDate.toISOString().split('T')[0]
+const defaultRange = () => ({ from: daysBack(29), to: daysBack(0) })
 
-        // Load professionals and environments
-        const [professionalsRes, environmentsRes] = await Promise.all([
-          get('/api/users/active'),
-          get('/api/dental-chairs/active')
-        ])
+const router = useRouter()
+const { get, download, normalizeError } = useApi()
+const toast = useToast()
 
-        professionals.value = professionalsRes?.data || []
-        environments.value = environmentsRes?.data || []
+const draft = ref({ ...defaultRange(), professionalId: '', environmentId: '' })
+const applied = ref({ ...draft.value })
+const periodPreset = ref('30d')
+const appliedPreset = ref('30d')
+const selectedReport = ref('dashboard')
+const professionals = ref([])
+const environments = ref([])
+const dashboard = ref({ ...EMPTY_DASHBOARD })
+const reportRows = ref([])
+const reportColumns = ref([])
+const revenueSummary = ref(null)
+const loading = ref(false)
+const error = ref(null)
+const exporting = ref('')
 
-        // Verificar si hay datos vacíos y notificar
-        if (professionals.value.length === 0) {
-          toast.warning('No se encontraron profesionales activos')
-        }
-        if (environments.value.length === 0) {
-          toast.warning('No se encontraron ambientes activos')
-        }
+const appointmentsChartRef = ref(null)
+const revenueChartRef = ref(null)
+const dailyRevenueChartRef = ref(null)
 
-        // Force reactivity update
-        await nextTick()
+let chartInstances = []
+let chartRenderToken = 0
+let disposed = false
 
-        // Load dashboard data
-        await loadDashboardData()
-      } catch (error) {
-        toast.error('Error al cargar los datos iniciales. Por favor, recarga la página.')
-        professionals.value = []
-        environments.value = []
-      }
-    }
+const isDashboard = computed(() => selectedReport.value === 'dashboard')
 
-    const loadDashboardData = async () => {
-      loading.value = true
-      try {
-        const response = await get('/api/reports/dashboard', {
-          params: {
-            start_date: filters.startDate,
-            end_date: filters.endDate,
-            professional_id: filters.professionalId,
-            environment_id: filters.environmentId
-          }
-        })
+const rangeError = computed(() => {
+  if (!draft.value.from || !draft.value.to) {
+    return ''
+  }
+  return draft.value.to < draft.value.from
+    ? 'La fecha final no puede ser anterior a la inicial.'
+    : ''
+})
 
-        dashboardData.value = {
-          totalAppointments: response.data?.totalAppointments || 0,
-          totalPatients: response.data?.totalPatients || 0,
-          totalRevenue: response.data?.totalRevenue || 0,
-          occupancyRate: response.data?.occupancyRate || 0,
-          appointmentsByDay: response.data?.appointmentsByDay || [],
-          revenueByMonth: response.data?.revenueByMonth || [],
-          professionalPerformance: response.data?.professionalPerformance || []
-        }
+const appliedLabel = computed(() => {
+  const preset = presets.find(item => item.id === appliedPreset.value)
+  const range = `${formatShortDate(applied.value.from)} — ${formatShortDate(applied.value.to)}`
+  return `${range} · ${preset ? preset.label : 'rango manual'}`
+})
 
-        // Create charts after data is loaded
-        await nextTick()
-        // Wait a bit more for DOM to be fully rendered
-        setTimeout(async () => {
-          await createCharts()
-        }, 100)
-      } catch (error) {
-        toast.error('Error al cargar los datos del dashboard. Por favor, intenta nuevamente.')
-      } finally {
-        loading.value = false
-      }
-    }
+const professionalOptions = computed(() => [
+  { value: '', label: 'Todos los profesionales' },
+  ...professionals.value.map(professional => ({
+    value: professional.id,
+    label: professional.name
+  }))
+])
 
-    const loadReport = async () => {
-      if (selectedReport.value === 'dashboard') {
-        await loadDashboardData()
-        return
-      }
+const environmentOptions = computed(() => [
+  { value: '', label: 'Todos los ambientes' },
+  ...environments.value.map(environment => ({
+    value: environment.id,
+    label: environment.name
+  }))
+])
 
-      loading.value = true
-      try {
-        const response = await get(`/api/reports/${selectedReport.value}`, {
-          params: {
-            start_date: filters.startDate,
-            end_date: filters.endDate,
-            professional_id: filters.professionalId,
-            environment_id: filters.environmentId
-          }
-        })
+const reportTitle = computed(() => REPORT_TITLES[selectedReport.value] || 'Reporte')
 
-        reportData.value = response.data || []
-        reportColumns.value = response.columns || []
-      } catch (error) {
-        // Se conserva el reporte anterior si falla la carga
-      } finally {
-        loading.value = false
-      }
-    }
+const hasDashboardCharts = computed(
+  () => dashboard.value.appointmentsByDay.length > 0 || dashboard.value.revenueByMonth.length > 0
+)
 
-    const createCharts = async () => {
-      try {
-        // Check if elements exist
-        if (!appointmentsChart.value) {
-          return
-        }
-        if (!revenueChart.value) {
-          return
-        }
+const porDiaRows = computed(() =>
+  selectedReport.value === 'revenue' ? reportRows.value.filter(row => row.type === 'Por Día') : []
+)
 
-        // Destroy existing charts if they exist
-        if (appointmentsChartInstance.value) {
-          try {
-            appointmentsChartInstance.value.destroy()
-          } catch (e) {
-            // El gráfico anterior ya no es válido, se recrea abajo
-          }
-          appointmentsChartInstance.value = null // Nullificar después de destruir
-        }
-        if (revenueChartInstance.value) {
-          try {
-            revenueChartInstance.value.destroy()
-          } catch (e) {
-            // El gráfico anterior ya no es válido, se recrea abajo
-          }
-          revenueChartInstance.value = null // Nullificar después de destruir
-        }
+// D8: the four revenue cuts describe the same money, so they are alternatives,
+// never rows of one summable column.
+const revenueDimension = ref(REVENUE_DIMENSIONS[0])
 
-        // Load Chart.js dynamically
-        const { Chart, registerables } = await import('chart.js')
-        Chart.register(...registerables)
+const availableRevenueDimensions = computed(() =>
+  REVENUE_DIMENSIONS.filter(dimension => reportRows.value.some(row => row.type === dimension))
+)
 
-        // Verificar que el canvas esté disponible antes de crear chart
-        if (!appointmentsChart.value || !appointmentsChart.value.getContext) {
-          return
-        }
+const visibleReportRows = computed(() => {
+  if (selectedReport.value === 'revenue') {
+    return reportRows.value.filter(row => row.type === revenueDimension.value)
+  }
+  return reportRows.value
+})
 
-        // Appointments Chart
-        if (
-          dashboardData.value.appointmentsByDay &&
-          dashboardData.value.appointmentsByDay.length > 0
-        ) {
-          try {
-            const appointmentsCtx = appointmentsChart.value.getContext('2d')
-            if (appointmentsCtx) {
-              appointmentsChartInstance.value = new Chart(appointmentsCtx, {
-                type: 'line',
-                data: {
-                  labels: dashboardData.value.appointmentsByDay.map(item => item.date),
-                  datasets: [
-                    {
-                      label: 'Citas',
-                      data: dashboardData.value.appointmentsByDay.map(item => item.count),
-                      // `systemIndigo` — a neutral operational hue, deliberately
-                      // NOT the accent: the accent is green and the revenue chart
-                      // below is already green, so two green charts would read as
-                      // one. Toned down to the token's mid step.
-                      borderColor: colors.systemIndigo[500],
-                      backgroundColor: `${colors.systemIndigo[500]}1a`,
-                      tension: 0.4
-                    }
-                  ]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true
-                    }
-                  }
-                }
-              })
-            }
-          } catch (error) {
-            // Se conserva el gráfico anterior si falla la creación
-          }
-        }
+const isEmpty = computed(() => {
+  if (isDashboard.value) {
+    return !hasDashboardCharts.value && dashboard.value.professionalPerformance.length === 0
+  }
+  return reportRows.value.length === 0
+})
 
-        // Verificar que el canvas esté disponible antes de crear chart
-        if (!revenueChart.value || !revenueChart.value.getContext) {
-          return
-        }
-
-        // Revenue Chart
-        if (dashboardData.value.revenueByMonth && dashboardData.value.revenueByMonth.length > 0) {
-          try {
-            const revenueCtx = revenueChart.value.getContext('2d')
-            if (revenueCtx) {
-              revenueChartInstance.value = new Chart(revenueCtx, {
-                type: 'bar',
-                data: {
-                  labels: dashboardData.value.revenueByMonth.map(item => item.month),
-                  datasets: [
-                    {
-                      label: 'Ingresos (S/)',
-                      data: dashboardData.value.revenueByMonth.map(item => item.revenue),
-                      // Revenue reads as "money in", so the success ramp is the
-                      // honest hue. Tailwind's `green-500` was close to
-                      // `systemGreen-500` but not equal, which is exactly the
-                      // drift this import removes.
-                      backgroundColor: `${colors.systemGreen[500]}cc`,
-                      borderColor: colors.systemGreen[500],
-                      borderWidth: 1
-                    }
-                  ]
-                },
-                options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true
-                    }
-                  }
-                }
-              })
-            }
-          } catch (error) {
-            // Se conserva el gráfico anterior si falla la creación
-          }
-        }
-      } catch (error) {
-        // Continue without charts if Chart.js fails to load
-      }
-    }
-
-    const applyFilters = async () => {
-      await loadReport()
-      // Recreate charts after loading new data
-      await nextTick()
-      setTimeout(async () => {
-        await createCharts()
-      }, 100)
-    }
-
-    const resetFilters = async () => {
-      // Reset to default date range
-      const today = new Date()
-      const startDate = new Date()
-      const endDate = new Date()
-      startDate.setDate(today.getDate() - 30)
-      endDate.setDate(today.getDate() + 60)
-
-      filters.startDate = startDate.toISOString().split('T')[0]
-      filters.endDate = endDate.toISOString().split('T')[0]
-      filters.professionalId = ''
-      filters.environmentId = ''
-
-      await loadReport()
-      // Recreate charts after loading new data
-      await nextTick()
-      setTimeout(async () => {
-        await createCharts()
-      }, 100)
-    }
-
-    const exportReport = async format => {
-      try {
-        const token = localStorage.getItem('auth_token')
-        const params = new URLSearchParams({
-          format,
-          start_date: filters.startDate,
-          end_date: filters.endDate,
-          professional_id: filters.professionalId || '',
-          environment_id: filters.environmentId || ''
-        })
-
-        const response = await fetch(`/api/reports/${selectedReport.value}/export?${params}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json'
-          }
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        // Get filename from Content-Disposition header
-        const contentDisposition = response.headers.get('Content-Disposition')
-        let filename = `${selectedReport.value}_${new Date().toISOString().split('T')[0]}.${format}`
-
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="(.+)"/)
-          if (filenameMatch) {
-            filename = filenameMatch[1]
-          }
-        }
-
-        // Create download link
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = filename
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      } catch (error) {
-        const { handleError } = useErrorHandler()
-        handleError(error, 'Error al exportar el reporte')
-      }
-    }
-
-    const getReportTitle = () => {
-      const titles = {
-        appointments: 'Reporte de Citas',
-        patients: 'Reporte de Pacientes',
-        professionals: 'Reporte de Profesionales',
-        revenue: 'Reporte de Ingresos',
-        utilization: 'Utilización de Ambientes'
-      }
-      return titles[selectedReport.value] || 'Reporte'
-    }
-
-    onMounted(async () => {
-      // Check if user exists in localStorage as fallback
-      const localUser = localStorage.getItem('user')
-
-      if (!user || !user.value) {
-        if (!localUser) {
-          router.push('/login')
-          return
-        }
-      }
-
-      await loadInitialData()
-
-      // Suscribirse a canales WebSocket para actualizaciones en tiempo real
-      try {
-        dashboardChannel = channel('dashboard-updates')
-        if (dashboardChannel) {
-          dashboardChannel
-            .listen('.dashboard.stats-updated', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.appointment.created', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.appointment.updated', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.appointment.deleted', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.patient.created', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.patient.updated', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.patient.deleted', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.user.created', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.user.updated', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.transaction.created', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-            .listen('.transaction.updated', async () => {
-              if (selectedReport.value === 'dashboard') {
-                await loadDashboardData()
-              }
-            })
-        }
-      } catch (error) {
-        // WebSocket no disponible, se sigue con carga manual
-      }
-    })
-
-    onUnmounted(() => {
-      // Destruir charts antes de desmontar
-      if (appointmentsChartInstance.value) {
-        try {
-          appointmentsChartInstance.value.destroy()
-        } catch (e) {
-          // El gráfico ya fue destruido, se continúa con la limpieza
-        }
-        appointmentsChartInstance.value = null
-      }
-      if (revenueChartInstance.value) {
-        try {
-          revenueChartInstance.value.destroy()
-        } catch (e) {
-          // El gráfico ya fue destruido, se continúa con la limpieza
-        }
-        revenueChartInstance.value = null
-      }
-
-      // Limpiar suscripciones WebSocket
-      if (echo) {
-        try {
-          echo.leave('dashboard-updates')
-        } catch (e) {
-          // Error al limpiar suscripción, se ignora en desmontaje
-        }
-      }
-    })
-
+const tableColumns = computed(() =>
+  reportColumns.value.map(column => {
+    const isMoney = MONEY_KEYS.has(column.key)
     return {
-      user,
-      loading,
-      selectedReport,
-      professionals,
-      environments,
-      dashboardData,
-      reportData,
-      reportColumns,
-      filters,
-      appointmentsChart,
-      revenueChart,
-      loadReport,
-      applyFilters,
-      resetFilters,
-      exportReport,
-      getReportTitle
+      ...column,
+      align: isMoney ? 'right' : column.align,
+      formatter: isMoney ? value => formatCurrency(value) : undefined
+    }
+  })
+)
+
+const normalizeDashboard = payload => ({
+  totalAppointments: Number(payload?.totalAppointments ?? 0),
+  totalPatients: Number(payload?.totalPatients ?? 0),
+  newPatients: Number(payload?.newPatients ?? 0),
+  totalRevenue: Number(payload?.totalRevenue ?? 0),
+  occupancyRate: Number(payload?.occupancyRate ?? 0),
+  usedHours: Number(payload?.usedHours ?? 0),
+  availableHours: Number(payload?.availableHours ?? 0),
+  appointmentsByDay: Array.isArray(payload?.appointmentsByDay) ? payload.appointmentsByDay : [],
+  revenueByMonth: Array.isArray(payload?.revenueByMonth) ? payload.revenueByMonth : [],
+  professionalPerformance: Array.isArray(payload?.professionalPerformance)
+    ? payload.professionalPerformance
+    : []
+})
+
+const appliedParams = () => ({
+  start_date: applied.value.from,
+  end_date: applied.value.to,
+  professional_id: applied.value.professionalId || '',
+  environment_id: applied.value.environmentId || ''
+})
+
+const clearData = () => {
+  dashboard.value = { ...EMPTY_DASHBOARD }
+  reportRows.value = []
+  reportColumns.value = []
+  revenueSummary.value = null
+}
+
+const destroyCharts = () => {
+  for (const chart of chartInstances) {
+    try {
+      chart.destroy()
+    } catch (chartError) {
+      // The instance was already disposed; nothing left to release.
     }
   }
+  chartInstances = []
 }
+
+const appointmentsChartConfig = () => ({
+  type: 'line',
+  data: {
+    labels: dashboard.value.appointmentsByDay.map(item => item.date),
+    datasets: [
+      {
+        label: 'Citas',
+        data: dashboard.value.appointmentsByDay.map(item => Number(item.count || 0)),
+        borderColor: colors.systemIndigo[500],
+        backgroundColor: `${colors.systemIndigo[500]}1a`,
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 } }
+    }
+  }
+})
+
+const revenueByMonthChartConfig = () => ({
+  type: 'bar',
+  data: {
+    labels: dashboard.value.revenueByMonth.map(item => item.month),
+    datasets: [
+      {
+        label: 'Ingresos cobrados (S/)',
+        data: dashboard.value.revenueByMonth.map(item => Number(item.revenue || 0)),
+        backgroundColor: `${colors.systemGreen[500]}cc`,
+        borderColor: colors.systemGreen[500],
+        borderWidth: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+})
+
+const revenueByDayChartConfig = () => ({
+  type: 'bar',
+  data: {
+    labels: porDiaRows.value.map(row => row.category),
+    datasets: [
+      {
+        label: 'Ingresos cobrados (S/)',
+        data: porDiaRows.value.map(row => Number(row.total_revenue || 0)),
+        backgroundColor: `${colors.accent[500]}cc`,
+        borderColor: colors.accent[500],
+        borderWidth: 1,
+        borderRadius: 6
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+})
+
+const chartTargets = () => {
+  const targets = []
+
+  if (isDashboard.value) {
+    if (appointmentsChartRef.value && dashboard.value.appointmentsByDay.length > 0) {
+      targets.push({
+        canvas: appointmentsChartRef.value,
+        config: appointmentsChartConfig()
+      })
+    }
+    if (revenueChartRef.value && dashboard.value.revenueByMonth.length > 0) {
+      targets.push({
+        canvas: revenueChartRef.value,
+        config: revenueByMonthChartConfig()
+      })
+    }
+    return targets
+  }
+
+  if (
+    selectedReport.value === 'revenue' &&
+    dailyRevenueChartRef.value &&
+    porDiaRows.value.length > 0
+  ) {
+    targets.push({
+      canvas: dailyRevenueChartRef.value,
+      config: revenueByDayChartConfig()
+    })
+  }
+
+  return targets
+}
+
+const renderCharts = async () => {
+  chartRenderToken += 1
+  const token = chartRenderToken
+  destroyCharts()
+
+  const targets = chartTargets()
+  if (targets.length === 0) {
+    return
+  }
+
+  try {
+    const { Chart, registerables } = await import('chart.js')
+    Chart.register(...registerables)
+
+    if (disposed || token !== chartRenderToken) {
+      return
+    }
+
+    for (const target of targets) {
+      if (typeof target.canvas?.getContext !== 'function') {
+        continue
+      }
+      const context = target.canvas.getContext('2d')
+      if (!context) {
+        continue
+      }
+      chartInstances.push(new Chart(target.canvas, target.config))
+    }
+  } catch (chartError) {
+    // A chart failure must never remove the tabular data below.
+  }
+}
+
+const reportErrorMessage = err => normalizeError(err, FALLBACK_ERROR) || FALLBACK_ERROR
+
+const loadReport = async () => {
+  loading.value = true
+  error.value = null
+
+  try {
+    if (isDashboard.value) {
+      const response = await get(DASHBOARD_ENDPOINT, { params: appliedParams() })
+      dashboard.value = normalizeDashboard(response?.data)
+      reportRows.value = []
+      reportColumns.value = []
+      revenueSummary.value = null
+    } else {
+      const response = await get(`/api/reports/${selectedReport.value}`, {
+        params: appliedParams()
+      })
+      reportRows.value = Array.isArray(response?.data) ? response.data : []
+      reportColumns.value = Array.isArray(response?.columns) ? response.columns : []
+      revenueSummary.value =
+        selectedReport.value === 'revenue' ? (response?.meta?.summary ?? null) : null
+      if (selectedReport.value === 'revenue') {
+        revenueDimension.value = availableRevenueDimensions.value[0] || REVENUE_DIMENSIONS[0]
+      }
+      dashboard.value = { ...EMPTY_DASHBOARD }
+    }
+  } catch (err) {
+    error.value = reportErrorMessage(err)
+    clearData()
+  } finally {
+    loading.value = false
+    await nextTick()
+    await renderCharts()
+  }
+}
+
+const applyFilters = () => {
+  if (rangeError.value) {
+    return
+  }
+
+  applied.value = {
+    from: draft.value.from,
+    to: draft.value.to,
+    professionalId: draft.value.professionalId,
+    environmentId: draft.value.environmentId
+  }
+  appliedPreset.value = periodPreset.value
+  loadReport()
+}
+
+const selectPreset = preset => {
+  periodPreset.value = preset.id
+  draft.value.from = daysBack(preset.days - 1)
+  draft.value.to = daysBack(0)
+  applyFilters()
+}
+
+const resetFilters = () => {
+  periodPreset.value = '30d'
+  draft.value = { ...defaultRange(), professionalId: '', environmentId: '' }
+  applyFilters()
+}
+
+const loadFilterOptions = async () => {
+  const [professionalsResponse, environmentsResponse] = await Promise.all([
+    get('/api/users/active').catch(() => null),
+    get('/api/dental-chairs/active').catch(() => null)
+  ])
+
+  professionals.value = Array.isArray(professionalsResponse?.data) ? professionalsResponse.data : []
+  environments.value = Array.isArray(environmentsResponse?.data) ? environmentsResponse.data : []
+}
+
+const saveBlob = (blob, filename) => {
+  if (typeof window === 'undefined' || typeof window.URL?.createObjectURL !== 'function') {
+    return
+  }
+
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.URL.revokeObjectURL(url)
+}
+
+const exportReport = async format => {
+  if (exporting.value) {
+    return
+  }
+
+  exporting.value = format
+  const fallbackFilename = `${selectedReport.value}_${applied.value.from}_${applied.value.to}.${EXPORT_EXTENSIONS[format]}`
+
+  try {
+    const { blob, filename } = await download(`/api/reports/${selectedReport.value}/export`, {
+      params: { format, ...appliedParams() },
+      fallbackFilename
+    })
+    saveBlob(blob, filename || fallbackFilename)
+  } catch (err) {
+    toast.error(reportErrorMessage(err))
+  } finally {
+    exporting.value = ''
+  }
+}
+
+onMounted(async () => {
+  const localUser = localStorage.getItem('user')
+  if (!localUser) {
+    router.push('/login')
+    return
+  }
+
+  await loadFilterOptions()
+  await loadReport()
+})
+
+onUnmounted(() => {
+  disposed = true
+  chartRenderToken += 1
+  destroyCharts()
+})
 </script>
-
-<style scoped>
-/* Estilos adicionales para el diseño iOS/iCloud */
-.shadow-xl {
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.transition-colors {
-  transition-property: color, background-color, border-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
-}
-</style>

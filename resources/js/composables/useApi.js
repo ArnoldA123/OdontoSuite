@@ -165,6 +165,84 @@ export function useApi() {
   }
 
   /**
+   * Read the filename a download response advertises. RFC 5987's
+   * `filename*=UTF-8''...` form wins over the plain `filename=` fallback
+   * because it is the only one that survives non-ASCII names.
+   */
+  const filenameFromDisposition = contentDisposition => {
+    if (!contentDisposition) {
+      return ''
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match) {
+      try {
+        return decodeURIComponent(utf8Match[1].trim())
+      } catch (decodeError) {
+        return utf8Match[1].trim()
+      }
+    }
+
+    const asciiMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
+    return asciiMatch ? asciiMatch[1].trim() : ''
+  }
+
+  /**
+   * T9 - export downloads ride the same auth headers as the rest of the
+   * client instead of re-reading `localStorage` at the call site. Returns the
+   * blob plus the server filename and rejects with the normalized shape the
+   * other verbs throw, so `normalizeError` can read it unchanged.
+   */
+  const download = async (url, options = {}) => {
+    let fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
+
+    if (options.params) {
+      const params = new URLSearchParams(options.params).toString()
+      if (params) {
+        fullUrl += `${fullUrl.includes('?') ? '&' : '?'}${params}`
+      }
+    }
+
+    const response = await fetch(fullUrl, {
+      method: options.method || 'GET',
+      headers: { ...getHeaders(), ...(options.headers || {}) }
+    })
+
+    if (response.status === 401) {
+      const isOnLogin = typeof window !== 'undefined' && window.location.pathname === '/login'
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user')
+      if (!isOnLogin) {
+        window.location.href = '/login'
+      }
+      throw { response: { data: { message: 'Sesión expirada' } }, status: 401 }
+    }
+
+    if (!response.ok) {
+      const contentType = response.headers.get('content-type') || ''
+      let payload = {}
+
+      if (contentType.includes('application/json')) {
+        payload = await response.json().catch(() => ({}))
+      }
+
+      if (!payload || !payload.message) {
+        payload = { message: `No se pudo descargar el archivo (${response.status}).` }
+      }
+
+      throw { response: { data: payload }, status: response.status }
+    }
+
+    const blob = await response.blob()
+    const filename =
+      filenameFromDisposition(response.headers.get('content-disposition')) ||
+      options.fallbackFilename ||
+      'descarga'
+
+    return { blob, filename }
+  }
+
+  /**
    * Slice 11 / T-08.14: normalize an error thrown by any of the useApi
    * verbs into a Spanish-localized user-facing string. The order of
    * preference matches what consumers have been hand-rolling so the
@@ -207,6 +285,7 @@ export function useApi() {
     put,
     patch,
     delete: del,
+    download,
     setToken,
     normalizeError
   }
