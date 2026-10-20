@@ -1,11 +1,12 @@
 <template>
   <span :class="statusClasses">
-    {{ statusLabel }}
+    {{ statusMeta.label }}
   </span>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { getStatusMeta } from '../quotationMeta'
 
 const props = defineProps({
   status: {
@@ -14,27 +15,19 @@ const props = defineProps({
   }
 })
 
-const statusClasses = computed(() => {
-  const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium'
+// Legacy alias ramp kept for the un-migrated consumers of this badge.
+const VARIANT_CLASSES = {
+  neutral: 'bg-theme-surface text-theme-secondary',
+  info: 'bg-primary-100 text-primary-700',
+  success: 'bg-success-100 text-success-700',
+  warning: 'bg-warning-100 text-warning-700',
+  error: 'bg-error-100 text-error-700'
+}
 
-  const statusMap = {
-    draft: `${baseClasses} bg-theme-surface text-theme-secondary`,
-    sent: `${baseClasses} bg-primary-100 text-primary-700`,
-    approved: `${baseClasses} bg-success-100 text-success-700`,
-    rejected: `${baseClasses} bg-error-100 text-error-700`
-  }
+const statusMeta = computed(() => getStatusMeta(props.status))
 
-  return statusMap[props.status] || `${baseClasses} bg-theme-surface text-theme-secondary`
-})
-
-const statusLabel = computed(() => {
-  const labels = {
-    draft: 'Borrador',
-    sent: 'Enviado',
-    approved: 'Aprobado',
-    rejected: 'Rechazado'
-  }
-
-  return labels[props.status] || props.status
-})
+const statusClasses = computed(() => [
+  'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+  VARIANT_CLASSES[statusMeta.value.variant] || VARIANT_CLASSES.neutral
+])
 </script>

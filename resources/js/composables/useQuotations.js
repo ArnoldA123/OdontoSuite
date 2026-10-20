@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 
 export function useQuotations() {
-  const { get, post, put, delete: del } = useApi()
+  const { get, post, put, delete: del, download } = useApi()
 
   // Estado reactivo
   const quotations = ref([])
@@ -203,24 +203,13 @@ export function useQuotations() {
       downloading.value = true
       error.value = null
 
-      const token = localStorage.getItem('auth_token')
-      const response = await fetch(`/api/quotations/${id}/pdf`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/pdf'
-        }
+      const downloaded = await download(`/api/quotations/${id}/pdf`, {
+        fallbackFilename: filename || `presupuesto_${id}.pdf`
       })
-
-      if (!response.ok) {
-        throw { response: { data: { message: 'No pudimos descargar el presupuesto.' } } }
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
+      const url = window.URL.createObjectURL(downloaded.blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = filename || `presupuesto_${id}.pdf`
+      link.download = downloaded.filename
       document.body.appendChild(link)
       link.click()
       link.remove()

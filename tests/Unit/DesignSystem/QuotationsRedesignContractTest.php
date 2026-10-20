@@ -28,6 +28,8 @@ class QuotationsRedesignContractTest extends TestCase
 
     private const VOCABULARY = '/resources/js/modules/quotations/quotationMeta.js';
 
+    private const BADGE = '/resources/js/modules/quotations/components/QuotationStatusBadge.vue';
+
     private static function read(string $path): string
     {
         $source = file_get_contents(dirname(__DIR__, 3).$path);
@@ -338,6 +340,32 @@ class QuotationsRedesignContractTest extends TestCase
         }
     }
 
+    public function test_status_badge_reads_the_shared_vocabulary(): void
+    {
+        $badge = self::read(self::BADGE);
+
+        $this->assertMatchesRegularExpression(
+            '/import\s*\{\s*getStatusMeta\s*\}\s*from\s*[\'"]\.\.\/quotationMeta[\'"]/',
+            $badge,
+            'The badge MUST resolve labels and variants through the vocabulary.'
+        );
+        $this->assertMatchesRegularExpression(
+            '/statusMeta\.label/',
+            $badge,
+            'The badge MUST render the vocabulary label.'
+        );
+        $this->assertStringNotContainsString(
+            'Rechazado',
+            $badge,
+            'The badge MUST NOT keep a local label map: the vocabulary owns it.'
+        );
+        $this->assertStringNotContainsString(
+            "'viewed'",
+            $badge,
+            'The badge MUST NOT enumerate statuses locally.'
+        );
+    }
+
     public function test_vocabulary_is_the_single_source_of_truth(): void
     {
         $vocabulary = self::read(self::VOCABULARY);
@@ -369,7 +397,10 @@ class QuotationsRedesignContractTest extends TestCase
             );
         }
 
-        $this->assertStringNotContainsString('Intl.NumberFormat', $vocabulary,
-            'Money formatting belongs to the canonical useFormatters helper (PAGOS-MNY-002).');
+        $this->assertStringNotContainsString(
+            'Intl.NumberFormat',
+            $vocabulary,
+            'Money formatting belongs to the canonical useFormatters helper (PAGOS-MNY-002).'
+        );
     }
 }
