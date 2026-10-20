@@ -85,6 +85,19 @@ describe('create patient inline smoke', () => {
     wrapper.unmount()
   })
 
+  it('keeps a real submit control associated with its form so Enter still saves', async () => {
+    const wrapper = await mountInline()
+
+    const form = document.querySelector('#create-patient-form')
+    const submitButton = root().querySelector('[data-create-patient-submit]')
+
+    expect(form).toBeTruthy()
+    expect(submitButton.getAttribute('type')).toBe('submit')
+    expect(submitButton.getAttribute('form')).toBe('create-patient-form')
+
+    wrapper.unmount()
+  })
+
   it('blocks the POST while the names and the last names are missing', async () => {
     const wrapper = await mountInline()
 

@@ -7,7 +7,7 @@
     title="Nuevo paciente"
     @close="emit('close')"
   >
-    <form novalidate @submit.prevent="handleSubmit">
+    <form id="create-patient-form" novalidate @submit.prevent="handleSubmit">
       <div class="space-y-4">
         <div ref="firstField" data-inline-field="first_name">
           <UiInput
@@ -87,10 +87,10 @@
       </UiButton>
       <UiButton
         variant="primary"
-        type="button"
+        type="submit"
+        form="create-patient-form"
         :loading="loading"
         data-create-patient-submit
-        @click="handleSubmit"
       >
         Crear paciente
       </UiButton>

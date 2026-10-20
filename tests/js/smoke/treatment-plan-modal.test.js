@@ -118,6 +118,19 @@ describe('treatment plan modal smoke', () => {
     wrapper.unmount()
   })
 
+  it('keeps a real submit control associated with its form so Enter still saves', async () => {
+    const wrapper = await mountModal()
+
+    const form = document.querySelector('#treatment-plan-form')
+    const submitButton = document.querySelector('[data-plan-submit]')
+
+    expect(form).toBeTruthy()
+    expect(submitButton.getAttribute('type')).toBe('submit')
+    expect(submitButton.getAttribute('form')).toBe('treatment-plan-form')
+
+    wrapper.unmount()
+  })
+
   it('blocks submission without a patient and emits nothing', async () => {
     const wrapper = await mountModal()
 

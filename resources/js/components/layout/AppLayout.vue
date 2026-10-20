@@ -1030,9 +1030,9 @@ const getPageTitle = () => {
 }
 
 // Surfaces whose page renders its own visible title: the hero band on the
-// redesigned modules, PageHeader on the older ones. There the topbar keeps the
-// document's single <h1> for the outline but hides it from sight, so the hero
-// is the only visible page title; the short description stays as context.
+// redesigned modules, PageHeader on the older ones. There the topbar keeps its
+// <h1> for the document outline but hides it from sight, so the hero is the only
+// visible page title; the short description stays as context.
 const pageTitledRoutes = [
   '/ai-analysis',
   '/appointment-types',

@@ -359,10 +359,10 @@
           </UiButton>
           <UiButton
             variant="primary"
-            type="button"
+            type="submit"
+            form="treatment-plan-form"
             :loading="loading"
             data-plan-submit
-            @click="handleSubmit"
           >
             {{ isEdit ? 'Actualizar' : 'Crear' }} plan
           </UiButton>

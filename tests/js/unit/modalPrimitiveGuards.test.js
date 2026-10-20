@@ -141,9 +141,64 @@ describe('Modal cancellable close (issue #177)', () => {
 
     wrapper.unmount()
   })
+
+  it('treats a throwing guard as a veto', async () => {
+    const beforeClose = vi.fn(async () => {
+      throw new Error('guard failed')
+    })
+    const wrapper = mountModal({ props: { beforeClose } })
+
+    document.querySelector('[aria-label="Cerrar modal"]').click()
+    await flushPromises()
+
+    expect(beforeClose).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('update:modelValue')).toBeFalsy()
+    expect(wrapper.emitted('close')).toBeFalsy()
+
+    wrapper.unmount()
+  })
+
+  it('closes when the guard resolves with anything but false', async () => {
+    const beforeClose = vi.fn(async () => undefined)
+    const wrapper = mountModal({ props: { beforeClose } })
+
+    document.querySelector('[aria-label="Cerrar modal"]').click()
+    await flushPromises()
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+
+    wrapper.unmount()
+  })
 })
 
 describe('Modal nested instances (issue #177)', () => {
+  it('keeps the scroll lock balanced when it unmounts with a pending guard', async () => {
+    let releaseGuard
+    const beforeClose = vi.fn(
+      () =>
+        new Promise(resolve => {
+          releaseGuard = resolve
+        })
+    )
+    const wrapper = mountModal({ props: { beforeClose } })
+
+    document.querySelector('[aria-label="Cerrar modal"]').click()
+    await flushPromises()
+    expect(document.body.style.overflow).toBe('hidden')
+
+    wrapper.unmount()
+    expect(document.body.style.overflow).toBe('')
+
+    releaseGuard(true)
+    await flushPromises()
+
+    // A leaked lock would keep the page frozen after the next modal closes.
+    const next = mountModal({ props: { title: 'Siguiente' } })
+    expect(document.body.style.overflow).toBe('hidden')
+    next.unmount()
+    expect(document.body.style.overflow).toBe('')
+  })
+
   it('answers Escape only on the top-most modal', async () => {
     const parent = mountModal({ props: { title: 'Plan' } })
     const child = mountModal({ props: { title: 'Paciente' } })

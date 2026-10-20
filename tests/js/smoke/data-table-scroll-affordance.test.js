@@ -124,6 +124,27 @@ describe('DataTable horizontal scroll affordance (issue #209)', () => {
     wrapper.unmount()
   })
 
+  it('re-measures when the column set changes without a data change', async () => {
+    const wrapper = mountTable()
+    setGeometry(wrapper, { scrollWidth: 320, clientWidth: 320 })
+    await remeasure()
+
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(false)
+
+    Object.defineProperty(viewport(wrapper).element, 'scrollWidth', {
+      configurable: true,
+      value: 720
+    })
+    await wrapper.setProps({ columns: [...COLUMNS, { key: 'extra', label: 'Extra' }] })
+    await nextTick()
+    await nextTick()
+
+    expect(wrapper.find('[data-table-scroll]').attributes('data-table-scroll')).toBe('right')
+    expect(wrapper.find('[data-table-scroll-affordance]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
   it('re-measures when the table data changes', async () => {
     const wrapper = mountTable()
     setGeometry(wrapper, { scrollWidth: 720, clientWidth: 320 })

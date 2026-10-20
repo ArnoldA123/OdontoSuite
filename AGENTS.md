@@ -376,6 +376,14 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (corrección de #177 tras verificación independiente)** — El botón
+  de envío de los dos diálogos migrados vuelve a ser `type="submit"` con
+  `form="…"`, así Enter sigue enviando desde cualquier campo; `DataTable` remide
+  el overflow cuando cambia el conjunto de columnas, no solo los datos. Tests:
+  asociación del submit (5 en `treatment-plan-modal`, 4 en
+  `create-patient-inline`), remedición por columnas (6) y guardias de la
+  primitiva (13).
+
 - **2026-10-20 (UiModal: hooks de raíz y cierre cancelable)** — `Modal.vue`
   reenvía `$attrs` al nodo raíz teleportado (`inheritAttrs: false` +
   `v-bind="$attrs"`), acepta `beforeClose` (al devolver `false` veta el cierre y
@@ -394,12 +402,12 @@ documentada y no bloquea producción.
 - **2026-10-20 (topbar sin título duplicado)** — En las rutas cuya página ya
   renderiza su propio título (hero band de las superficies rediseñadas o
   `PageHeader`), el topbar de `AppLayout` deja de pintar el título visible:
-  conserva el único `<h1>` del documento como `sr-only` y publica la descripción
-  corta como contexto (`data-topbar-title-owner` y `data-topbar-context`). Las
-  rutas sin título propio (calendario, pacientes, dashboard, historias) siguen
-  mostrando el título del topbar sin cambios. Sin rutas, navegación funcional,
-  modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no cambian.
-  Tests: `topbar-title-ownership.test.js` (26).
+  conserva su `<h1>` como `sr-only` y publica la descripción corta como contexto
+  (`data-topbar-title-owner` y `data-topbar-context`). Las rutas sin título
+  propio (calendario, pacientes, dashboard, historias) siguen mostrando el
+  título del topbar sin cambios. Sin rutas, navegación funcional, modelos,
+  migraciones ni primitivas UI nuevas: los conteos de §4 no cambian. Tests:
+  `topbar-title-ownership.test.js` (26).
 
 - **2026-10-20 (UiDataTable: affordance de scroll horizontal)** —
   `DataTable.vue` mide el overflow de su viewport interno y, cuando la tabla

@@ -531,6 +531,13 @@ watch(
   }
 )
 
+// Column sets can change without a data change (filters that hide columns), and
+// the overflow of the viewport changes with them.
+watch(
+  () => props.columns,
+  () => nextTick(readScrollState)
+)
+
 watch(selectedRows, newSelection => {
   selectAll.value =
     newSelection.length === filteredData.value.length && filteredData.value.length > 0
