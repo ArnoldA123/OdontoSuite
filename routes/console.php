@@ -26,3 +26,12 @@ Schedule::command('reminders:reconcile')
     ->hourly()
     ->name('reminders-reconcile')
     ->withoutOverlapping(5);
+
+// Issue #201: the quotation status is authoritative, so a daily sweep moves
+// every pending quotation whose validity ended to `expired`. The UI badge keeps
+// deriving from `valid_until`, so the state only formalizes what it already
+// shows.
+Schedule::command('quotations:expire')
+    ->dailyAt('00:10')
+    ->name('quotations-expire')
+    ->withoutOverlapping(5);
