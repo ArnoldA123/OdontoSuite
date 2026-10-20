@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 201 rutas API (medido con php artisan route:list --json: uris api/…; 214 totales con web)
+  api.php                  # 197 rutas API (medido con php artisan route:list --json: uris api/…; 210 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -375,6 +375,26 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-20 (caja: rutas honestas, sesión actual y fugas de los 500)** —
+  Cierra los cuatro defectos vecinos detectados al entregar
+  #191/#193/#194/#196/#198. Se retira `POST /cash-register-sessions/{id}/close`
+  (ignoraba su `{id}`, gemelo del `{id}/open` que quitó #194) y
+  `apiResource('cash-register-sessions')` publica sólo `index` y `show`:
+  `store`, `update` y `destroy` no existen en el controlador y respondían 500
+  por método inexistente (ahora 405). `CashRegisterService::getCurrentSession()`
+  acota por usuario salvo `administrador` —regla de `CashRegisterPolicy::view`—
+  porque el guard anterior usaba `userCanManageCashRegister()`, que admite los
+  tres roles de caja y nunca acotaba nada; `GET /cash-register/current` ya no
+  devuelve la caja de otro usuario. El mensaje de `OpenCashRegisterRequest`
+  nombra la regla real (usuario y sucursal). Los cinco `catch` de
+  `CashRegisterController` (`current`, `index`, `show`, `movements`, `summary`)
+  dejan de devolver el mensaje de la excepción: mensaje genérico y `Log::error`,
+  con `ModelNotFoundException` reenviada para conservar el 404. §4 sincronizado
+  con valores medidos: 197 rutas API, 210 totales con web. Tests nuevos:
+  `CashRegisterPhantomRoutesTest` (4), `CashRegisterCurrentSessionScopeTest` (4)
+  y `CashRegisterErrorEnvelopeTest` (5). Guard `scripts/audit/doc-drift.mjs` en
+  verde.
 
 - **2026-10-20 (caja: dureza del backend y cobro en recepción)** — Cierra las
   issues #191, #193, #194, #196 y #198 en dos slices: `fix/caja-hardening`
