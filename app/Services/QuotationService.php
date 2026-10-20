@@ -9,6 +9,7 @@ use App\Models\Quotation;
 use App\Models\QuotationApproval;
 use App\Models\QuotationItem;
 use App\Models\TreatmentPlan;
+use App\Support\QuotationText;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -221,7 +222,7 @@ class QuotationService
 
         $quotation->update([
             'status' => 'rejected',
-            'notes' => $quotation->notes."\n\nRechazado: ".$reason,
+            'notes' => QuotationText::appendRejection($quotation->notes, $reason),
         ]);
 
         return $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreQuotationRequest;
+use App\Http\Requests\UpdateQuotationRequest;
 use App\Services\QuotationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,7 +65,7 @@ class QuotationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(\App\Http\Requests\StoreQuotationRequest $request): JsonResponse
+    public function store(StoreQuotationRequest $request): JsonResponse
     {
         try {
             $validated = $request->validated();
@@ -141,26 +143,10 @@ class QuotationController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateQuotationRequest $request, int $id): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'quotation_date' => 'nullable|date',
-                'valid_until' => 'nullable|date|after:quotation_date',
-                'subtotal' => 'nullable|numeric|min:0',
-                'discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'discount_amount' => 'nullable|numeric|min:0',
-                'tax_percentage' => 'nullable|numeric|min:0|max:100',
-                'terms_conditions' => 'nullable|string',
-                'notes' => 'nullable|string',
-                'payment_terms' => 'nullable|array',
-                'items' => 'nullable|array',
-                'items.*.description' => 'required_with:items|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-            ]);
-
-            $quotation = $this->quotationService->updateQuotation($id, $validated);
+            $quotation = $this->quotationService->updateQuotation($id, $request->validated());
 
             return response()->json([
                 'data' => $quotation,
