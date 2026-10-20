@@ -376,6 +376,16 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (topbar sin título duplicado)** — En las rutas cuya página ya
+  renderiza su propio título (hero band de las superficies rediseñadas o
+  `PageHeader`), el topbar de `AppLayout` deja de pintar el título visible:
+  conserva el único `<h1>` del documento como `sr-only` y publica la descripción
+  corta como contexto (`data-topbar-title-owner` y `data-topbar-context`). Las
+  rutas sin título propio (calendario, pacientes, dashboard, historias) siguen
+  mostrando el título del topbar sin cambios. Sin rutas, navegación funcional,
+  modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no cambian.
+  Tests: `topbar-title-ownership.test.js` (26).
+
 - **2026-10-20 (UiDataTable: affordance de scroll horizontal)** —
   `DataTable.vue` mide el overflow de su viewport interno y, cuando la tabla
   excede el ancho, pinta un degradado en el borde oculto y el aviso «Desliza
