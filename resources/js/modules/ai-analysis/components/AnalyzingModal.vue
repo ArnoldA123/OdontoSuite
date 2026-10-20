@@ -1,75 +1,112 @@
 <template>
   <UiModal :model-value="show" :closable="false">
-    <div class="p-8 text-center">
-      <!-- Animación de IA procesando -->
-      <div class="relative w-24 h-24 mx-auto mb-6">
-        <div class="absolute inset-0 bg-gradient-accent rounded-full animate-pulse" />
-        <CpuChipIcon class="absolute inset-0 m-auto w-12 h-12 text-white animate-spin-slow" />
+    <div class="p-6 text-center md:p-8">
+      <div
+        class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full"
+        style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+      >
+        <ExclamationTriangleIcon
+          v-if="status === 'failed'"
+          class="h-10 w-10 text-systemRed-600"
+          aria-hidden="true"
+        />
+        <CpuChipIcon
+          v-else
+          class="h-10 w-10 text-theme-primary"
+          :class="{ 'animate-spin': isRunning }"
+          aria-hidden="true"
+        />
       </div>
 
-      <h3 class="text-xl font-semibold mb-2">Analizando Imagen...</h3>
-      <p class="text-theme-secondary mb-6">
+      <h3 class="mb-2 text-xl font-semibold text-theme-primary">Analizando imagen...</h3>
+      <p class="mb-6 text-sm text-theme-secondary">
         La IA está procesando la imagen. Esto puede tomar unos segundos.
       </p>
 
-      <!-- Pasos del proceso -->
-      <div class="space-y-3 text-left max-w-md mx-auto">
-        <div class="step" :class="[{ completed: step >= 1 }]">
-          <CheckCircleIcon v-if="step >= 1" class="w-5 h-5 text-green-500" />
-          <div v-else class="w-5 h-5 border-2 border-theme rounded-full" />
-          <span>Subiendo imagen...</span>
-        </div>
-        <div class="step" :class="[{ completed: step >= 2 }]">
-          <CheckCircleIcon v-if="step >= 2" class="w-5 h-5 text-green-500" />
-          <div v-else class="w-5 h-5 border-2 border-theme rounded-full" />
-          <span>Procesando con IA...</span>
-        </div>
-        <div class="step" :class="[{ completed: step >= 3 }]">
-          <CheckCircleIcon v-if="step >= 3" class="w-5 h-5 text-green-500" />
-          <div v-else class="w-5 h-5 border-2 border-theme rounded-full" />
-          <span>Generando hallazgos...</span>
-        </div>
+      <ol class="mx-auto max-w-md space-y-3 text-left">
+        <li
+          v-for="step in steps"
+          :key="step.key"
+          :data-progress-step="step.key"
+          class="flex items-center gap-3 text-sm"
+          :class="stepClass(step.state)"
+        >
+          <CheckCircleIcon
+            v-if="step.state === 'done'"
+            class="h-5 w-5 flex-shrink-0 text-systemGreen-600"
+            aria-hidden="true"
+          />
+          <span
+            v-else-if="step.state === 'active'"
+            class="flex h-5 w-5 flex-shrink-0 items-center justify-center"
+            aria-hidden="true"
+          >
+            <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-theme-primary" />
+          </span>
+          <span
+            v-else
+            class="h-5 w-5 flex-shrink-0 rounded-full"
+            style="border: 2px solid var(--color-hairline)"
+            aria-hidden="true"
+          />
+          <span>{{ step.label }}</span>
+        </li>
+      </ol>
+
+      <div v-if="status === 'failed'" class="mt-6 space-y-4">
+        <p role="alert" data-progress-error class="text-sm text-systemRed-600">
+          {{ message }}
+        </p>
+        <UiButton variant="secondary" data-progress-close @click="emit('close')">Cerrar</UiButton>
       </div>
     </div>
   </UiModal>
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
-import UiModal from '@/components/ui/Modal.vue'
-import { CpuChipIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { computed } from 'vue'
+import { CheckCircleIcon, CpuChipIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+import UiButton from '../../../components/ui/Button.vue'
+import UiModal from '../../../components/ui/Modal.vue'
 
-defineProps({
-  show: {
-    type: Boolean,
-    default: false
+const props = defineProps({
+  show: { type: Boolean, default: false },
+  status: {
+    type: String,
+    default: 'uploading',
+    validator: value => ['uploading', 'analyzing', 'completed', 'failed'].includes(value)
   },
-  step: {
-    type: Number,
-    default: 0
-  }
+  message: { type: String, default: '' }
 })
+
+const emit = defineEmits(['close'])
+
+const STEP_ORDER = ['uploading', 'analyzing', 'completed']
+
+const STEPS = [
+  { key: 'uploading', label: 'Subiendo imagen...' },
+  { key: 'analyzing', label: 'Procesando con IA...' },
+  { key: 'completed', label: 'Generando hallazgos...' }
+]
+
+const isRunning = computed(() => props.status === 'uploading' || props.status === 'analyzing')
+
+const steps = computed(() => {
+  const current = STEP_ORDER.indexOf(props.status)
+
+  return STEPS.map((step, index) => {
+    let state = 'pending'
+    if (current >= 0) {
+      if (index < current) state = 'done'
+      else if (index === current) state = props.status === 'completed' ? 'done' : 'active'
+    }
+    return { ...step, state }
+  })
+})
+
+const stepClass = state => {
+  if (state === 'done') return 'text-theme-secondary'
+  if (state === 'active') return 'font-medium text-theme-primary'
+  return 'text-theme-secondary'
+}
 </script>
-
-<style scoped>
-.step {
-  @apply flex items-center gap-3 text-sm;
-}
-
-.step.completed {
-  @apply text-green-600;
-}
-
-.animate-spin-slow {
-  animation: spin 3s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

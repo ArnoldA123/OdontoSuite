@@ -29,7 +29,16 @@
               Análisis asistido de imágenes clínicas con inteligencia artificial
             </p>
           </div>
-          <div class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap">
+          <div
+            class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap"
+            data-hero-actions
+          >
+            <UiButton variant="primary" data-hero-primary @click="openSheet">
+              <template #icon-left>
+                <PlusIcon class="h-4 w-4" aria-hidden="true" />
+              </template>
+              Nuevo análisis
+            </UiButton>
             <UiButton
               variant="secondary"
               :disabled="loading"
@@ -216,15 +225,20 @@
                 : 'Sube una radiografía o foto clínica para obtener un análisis asistido.'
             "
           >
-            <UiButton
-              v-if="hasActiveFilters"
-              variant="secondary"
-              size="sm"
-              data-clear-filters
-              @click="clearFilters"
-            >
-              Limpiar filtros
-            </UiButton>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <UiButton variant="primary" size="sm" data-empty-primary @click="openSheet">
+                Nuevo análisis
+              </UiButton>
+              <UiButton
+                v-if="hasActiveFilters"
+                variant="secondary"
+                size="sm"
+                data-clear-filters
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+            </div>
           </UiSectionEmpty>
         </UiCard>
 
@@ -301,7 +315,7 @@
                   size="sm"
                   data-row-action="delete"
                   aria-label="Eliminar análisis"
-                  @click="deleteAnalysis(row)"
+                  @click="deleteAnalysis(row.id)"
                 >
                   <TrashIcon class="h-4 w-4" aria-hidden="true" />
                 </UiButton>
@@ -320,74 +334,6 @@
           </div>
         </template>
       </section>
-
-      <!-- Inline new-analysis form: replaced by the Sheet flow in a later slice. -->
-      <UiCard variant="glass" data-ai-new-analysis>
-        <template #header>
-          <h2 class="flex items-center gap-2 text-lg font-semibold text-theme-primary">
-            <CpuChipIcon class="h-5 w-5 text-accent" aria-hidden="true" />
-            Nuevo análisis de IA
-          </h2>
-        </template>
-
-        <div class="space-y-4">
-          <div>
-            <p class="mb-2 text-sm font-medium text-theme-primary">1. Seleccionar paciente</p>
-            <PatientSelector
-              v-model="newAnalysis.patient"
-              placeholder="Buscar paciente..."
-              class="w-full"
-            />
-          </div>
-
-          <div v-if="newAnalysis.patient">
-            <p class="mb-2 text-sm font-medium text-theme-primary">
-              2. Subir radiografía o imagen clínica
-            </p>
-            <FileUpload
-              accept="image/*"
-              preview
-              @file-selected="handleFileSelected"
-              @file-cleared="handleFileCleared"
-            />
-          </div>
-
-          <div v-if="newAnalysis.file">
-            <p class="mb-2 text-sm font-medium text-theme-primary">3. Tipo de imagen</p>
-            <UiSelect v-model="newAnalysis.category" :options="categoryOptions" class="w-full" />
-          </div>
-
-          <div v-if="newAnalysis.file">
-            <label
-              for="ai-analysis-description"
-              class="mb-2 block text-sm font-medium text-theme-primary"
-            >
-              4. Descripción (opcional)
-            </label>
-            <UiTextarea
-              id="ai-analysis-description"
-              v-model="newAnalysis.description"
-              placeholder="Ej: Radiografía panorámica, dolor en molar inferior derecho..."
-              :rows="2"
-            />
-          </div>
-
-          <p v-if="formError" role="alert" class="text-sm text-systemRed-600">{{ formError }}</p>
-
-          <UiButton
-            :disabled="!canStartAnalysis"
-            :loading="analyzing"
-            size="lg"
-            class="w-full"
-            @click="startAnalysis"
-          >
-            <template #icon-left>
-              <CpuChipIcon class="h-5 w-5" aria-hidden="true" />
-            </template>
-            Analizar con IA
-          </UiButton>
-        </div>
-      </UiCard>
     </div>
 
     <AiAnalysisModal
@@ -395,9 +341,23 @@
       :analysis="selectedAnalysis"
       @close="selectedAnalysis = null"
       @review="handleReview"
+      @delete="deleteAnalysis"
     />
 
-    <AnalyzingModal :show="showAnalyzingModal" :step="analysisStep" />
+    <AiAnalysisSheet
+      v-model="showSheet"
+      :submitting="sheetSubmitting"
+      :error-message="sheetError"
+      @close="handleSheetClose"
+      @submit="handleSheetSubmit"
+    />
+
+    <AnalyzingModal
+      :show="showAnalyzingModal"
+      :status="analysisStatus"
+      :message="analysisErrorMessage"
+      @close="showAnalyzingModal = false"
+    />
   </AppLayout>
 </template>
 
@@ -406,11 +366,11 @@ import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import {
   ArrowPathIcon,
   ClipboardDocumentCheckIcon,
-  CpuChipIcon,
   ExclamationTriangleIcon,
   EyeIcon,
   MagnifyingGlassIcon,
   PhotoIcon,
+  PlusIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'
 import { useAiAnalysis } from '../../composables/useAiAnalysis'
@@ -427,11 +387,9 @@ import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiSelect from '../../components/ui/Select.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
 import UiStatusPill from '../../components/ui/StatusPill.vue'
-import UiTextarea from '../../components/ui/UiTextarea.vue'
 import Pagination from '../../components/ui/Pagination.vue'
-import FileUpload from '../../components/ui/FileUpload.vue'
-import PatientSelector from '../../components/ui/PatientSelector.vue'
 import AiAnalysisModal from './components/AiAnalysisModal.vue'
+import AiAnalysisSheet from './components/AiAnalysisSheet.vue'
 import AnalyzingModal from './components/AnalyzingModal.vue'
 
 const {
@@ -504,23 +462,14 @@ const columns = [
   { key: 'actions', label: 'Acciones' }
 ]
 
-const categoryOptions = [
-  { value: 'radiografia', label: 'Radiografía' },
-  { value: 'foto_clinica', label: 'Foto Clínica' }
-]
-
 const selectedAnalysis = ref(null)
 
-const newAnalysis = ref({
-  patient: null,
-  file: null,
-  description: '',
-  category: 'radiografia'
-})
-const analyzing = ref(false)
-const analysisStep = ref(0)
+const showSheet = ref(false)
+const sheetSubmitting = ref(false)
+const sheetError = ref('')
 const showAnalyzingModal = ref(false)
-const formError = ref('')
+const analysisStatus = ref('uploading')
+const analysisErrorMessage = ref('')
 
 const kpiCards = computed(() => {
   const data = stats.value ?? {}
@@ -583,9 +532,44 @@ const statusVariant = status => STATUS_VARIANTS[status] || 'neutral'
 const formatConfidence = value =>
   value === null || value === undefined || value === '' ? '—' : `${value}%`
 
-const canStartAnalysis = computed(() =>
-  Boolean(newAnalysis.value.patient && newAnalysis.value.file)
-)
+const openSheet = () => {
+  sheetError.value = ''
+  showSheet.value = true
+}
+
+const handleSheetClose = () => {
+  showSheet.value = false
+  sheetError.value = ''
+}
+
+const handleSheetSubmit = async ({ patientId, file, category, description }) => {
+  if (sheetSubmitting.value) return
+
+  sheetSubmitting.value = true
+  sheetError.value = ''
+  analysisErrorMessage.value = ''
+  analysisStatus.value = 'uploading'
+  showAnalyzingModal.value = true
+
+  try {
+    analysisStatus.value = 'analyzing'
+    const result = await uploadAndAnalyze(patientId, file, description, category)
+
+    analysisStatus.value = 'completed'
+    showAnalyzingModal.value = false
+    showSheet.value = false
+    selectedAnalysis.value = result
+    await loadData(1)
+  } catch (error) {
+    analysisStatus.value = 'failed'
+    analysisErrorMessage.value =
+      error?.response?.data?.message || 'No se pudo analizar la imagen. Intenta de nuevo.'
+    sheetError.value = analysisErrorMessage.value
+    showAnalyzingModal.value = false
+  } finally {
+    sheetSubmitting.value = false
+  }
+}
 
 const loadData = async (page = 1) => {
   loading.value = true
@@ -677,7 +661,7 @@ const viewAnalysis = row => {
   selectedAnalysis.value = row
 }
 
-const deleteAnalysis = async row => {
+const deleteAnalysis = async analysisId => {
   const ok = await confirm({
     title: 'Eliminar análisis',
     message: '¿Estás seguro de que quieres eliminar este análisis?',
@@ -687,7 +671,8 @@ const deleteAnalysis = async row => {
   if (!ok) return
 
   try {
-    await deleteAnalysisApi(row.id)
+    await deleteAnalysisApi(analysisId)
+    selectedAnalysis.value = null
     await loadData(paginationMeta.value.current_page || 1)
   } catch (error) {
     // The composable surfaces the failure; the row stays in the list.
@@ -701,61 +686,6 @@ const handleReview = async (analysisId, decision, notes) => {
     await loadData(paginationMeta.value.current_page || 1)
   } catch (error) {
     // The modal keeps the review open; the composable shows the toast.
-  }
-}
-
-const handleFileSelected = file => {
-  newAnalysis.value.file = file
-  formError.value = ''
-}
-
-const handleFileCleared = () => {
-  newAnalysis.value.file = null
-}
-
-const startAnalysis = async () => {
-  if (!canStartAnalysis.value) {
-    formError.value = newAnalysis.value.patient
-      ? 'Selecciona una imagen.'
-      : 'Selecciona un paciente.'
-    return
-  }
-
-  formError.value = ''
-  analyzing.value = true
-  showAnalyzingModal.value = true
-  analysisStep.value = 0
-
-  try {
-    analysisStep.value = 1
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    analysisStep.value = 2
-    const result = await uploadAndAnalyze(
-      newAnalysis.value.patient.id,
-      newAnalysis.value.file,
-      newAnalysis.value.description,
-      newAnalysis.value.category
-    )
-
-    analysisStep.value = 3
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    showAnalyzingModal.value = false
-    selectedAnalysis.value = result
-
-    newAnalysis.value = {
-      patient: null,
-      file: null,
-      description: '',
-      category: 'radiografia'
-    }
-
-    await loadData(1)
-  } catch (error) {
-    showAnalyzingModal.value = false
-  } finally {
-    analyzing.value = false
   }
 }
 
