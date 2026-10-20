@@ -3,7 +3,7 @@ import { useApi } from './useApi'
 import { useToast } from './useToast'
 
 export function useAiAnalysis() {
-  const { get, post, del } = useApi()
+  const { get, post, delete: del } = useApi()
   const { success, error } = useToast()
 
   const loading = ref(false)
