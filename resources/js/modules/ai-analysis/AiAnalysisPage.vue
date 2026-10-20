@@ -1,368 +1,422 @@
 <template>
   <AppLayout>
-    <!-- Header Section -->
-    <PageHeader
-      title="Análisis con IA"
-      subtitle="Análisis asistido de imágenes clínicas con inteligencia artificial"
-      class="mb-6"
-    >
-      <template #actions>
-        <UiButton variant="secondary" :disabled="loading" @click="refreshData">
-          <template #icon-left>
-            <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': loading }" />
-          </template>
-          Actualizar
-        </UiButton>
-      </template>
-    </PageHeader>
-
-    <!-- Sección: Nuevo Análisis -->
-    <UiCard variant="glass" class="mb-8">
-      <div class="p-6">
-        <h2 class="text-xl font-semibold mb-4 flex items-center">
-          <div
-            class="w-8 h-8 bg-gradient-to-br from-accent to-accent-hover rounded-lg mr-3 flex items-center justify-center"
-          >
-            <CpuChipIcon class="w-5 h-5 text-white" />
-          </div>
-          Nuevo Análisis de IA
-        </h2>
-
-        <!-- Paso 1: Seleccionar Paciente -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-theme-primary mb-2">
-            1. Seleccionar Paciente
-          </label>
-          <PatientSelector
-            v-model="newAnalysis.patient"
-            placeholder="Buscar paciente..."
-            class="w-full"
-          />
-        </div>
-
-        <!-- Paso 2: Subir Imagen -->
-        <div v-if="newAnalysis.patient" class="mb-4">
-          <label class="block text-sm font-medium text-theme-primary mb-2">
-            2. Subir Radiografía o Imagen Clínica
-          </label>
-          <FileUpload
-            accept="image/*"
-            preview
-            @file-selected="handleFileSelected"
-            @file-cleared="handleFileCleared"
-          />
-        </div>
-
-        <!-- Paso 3: Información Adicional (Opcional) -->
-        <div v-if="newAnalysis.file" class="mb-4">
-          <label class="block text-sm font-medium text-theme-primary mb-2">3. Tipo de Imagen</label>
-          <UiSelect v-model="newAnalysis.category" :options="categoryOptions" class="w-full" />
-        </div>
-
-        <div v-if="newAnalysis.file" class="mb-4">
-          <label class="block text-sm font-medium text-theme-primary mb-2">
-            4. Descripción (Opcional)
-          </label>
-          <UiTextarea
-            v-model="newAnalysis.description"
-            placeholder="Ej: Radiografía panorámica, dolor en molar inferior derecho..."
-            rows="2"
-          />
-        </div>
-
-        <!-- Botón Analizar -->
-        <UiButton
-          :disabled="!canStartAnalysis"
-          :loading="analyzing"
-          size="lg"
-          class="w-full"
-          @click="startAnalysis"
-        >
-          <CpuChipIcon class="w-5 h-5 mr-2" />
-          Analizar con IA
-        </UiButton>
-      </div>
-    </UiCard>
-
-    <!-- Stats Grid -->
-    <div v-if="stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <!-- Total Analyses -->
-      <UiCard variant="glass" hover>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Total Análisis</p>
-            <p class="text-3xl font-bold text-theme-primary">
-              {{ stats.total_analyses }}
-            </p>
-            <p class="text-xs text-theme-secondary mt-1">Realizados</p>
-          </div>
-          <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-            <CpuChipIcon class="w-6 h-6 text-accent" />
-          </div>
-        </div>
-      </UiCard>
-
-      <!-- Completed Analyses -->
-      <UiCard variant="glass" hover>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Completados</p>
-            <p class="text-3xl font-bold text-theme-primary">
-              {{ stats.completed_analyses }}
-            </p>
-            <p class="text-xs text-theme-secondary mt-1">Listos para revisar</p>
-          </div>
-          <div class="w-12 h-12 bg-success-100 rounded-xl flex items-center justify-center">
-            <CheckCircleIcon class="w-6 h-6 text-green-600" />
-          </div>
-        </div>
-      </UiCard>
-
-      <!-- Pending Review -->
-      <UiCard variant="glass" hover>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Pendientes</p>
-            <p class="text-3xl font-bold text-theme-primary">
-              {{ stats.pending_review }}
-            </p>
-            <p class="text-xs text-theme-secondary mt-1">Por revisar</p>
-          </div>
-          <div class="w-12 h-12 bg-warning-100 rounded-xl flex items-center justify-center">
-            <ClockIcon class="w-6 h-6 text-yellow-600" />
-          </div>
-        </div>
-      </UiCard>
-
-      <!-- Completion Rate -->
-      <UiCard variant="glass" hover>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-theme-secondary mb-1">Tasa Completado</p>
-            <p class="text-3xl font-bold text-theme-primary">{{ stats.completion_rate }}%</p>
-            <p class="text-xs text-theme-secondary mt-1">Eficiencia</p>
-          </div>
-          <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center">
-            <ChartBarIcon class="w-6 h-6 text-accent" />
-          </div>
-        </div>
-      </UiCard>
-    </div>
-
-    <!-- Search and Filters -->
-    <UiCard variant="glass" class="mb-6">
-      <div class="flex flex-col lg:flex-row gap-4">
-        <div class="flex-1">
-          <UiInput
-            v-model="searchQuery"
-            placeholder="Buscar por paciente o hallazgos..."
-            class="w-full"
-          >
-            <template #prefix>
-              <svg
-                class="w-5 h-5 text-theme-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </template>
-          </UiInput>
-        </div>
-        <div class="flex gap-3">
-          <UiSelect
-            v-model="filters.status"
-            :options="statusFilterOptions"
-            size="sm"
-            class="min-w-[140px]"
-          />
-          <UiSelect
-            v-model="filters.reviewed"
-            :options="reviewedFilterOptions"
-            size="sm"
-            class="min-w-[140px]"
-          />
-          <UiButton v-if="hasActiveFilters" variant="secondary" class="px-3" @click="clearFilters">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </UiButton>
-        </div>
-      </div>
-    </UiCard>
-
-    <!-- Tabs Navigation -->
-    <div class="mb-6">
-      <div class="flex space-x-1 bg-theme-surface p-1 rounded-lg">
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200"
-          :class="[
-            activeTab === tab.key
-              ? 'bg-theme-surface-elevated text-theme-primary shadow-sm'
-              : 'text-theme-secondary hover:text-theme-primary'
-          ]"
-          @click="activeTab = tab.key"
-        >
-          <component :is="tab.icon" class="w-4 h-4 mr-2" />
-          {{ tab.label }}
-          <span
-            v-if="tab.count !== null"
-            class="ml-2 px-2 py-0.5 text-xs font-medium bg-theme-surface-elevated text-theme-secondary rounded-full"
-          >
-            {{ tab.count }}
-          </span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Content -->
-    <div class="content-section">
-      <!-- Loading State -->
-      <div v-if="loading && analyses.length === 0" class="loading-state">
-        <div class="loading-spinner" />
-        <p>Cargando análisis...</p>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="filteredAnalyses.length === 0" class="empty-state">
-        <CpuChipIcon class="w-16 h-16 text-theme-secondary mx-auto mb-4" />
-        <h3 class="empty-title">No hay análisis disponibles</h3>
-        <p class="empty-description">
-          {{
-            hasActiveFilters
-              ? 'No se encontraron análisis con los filtros aplicados'
-              : 'Aún no se han realizado análisis de IA'
-          }}
-        </p>
-      </div>
-
-      <!-- Analyses List -->
-      <div v-else class="analyses-grid">
-        <AiAnalysisCard
-          v-for="analysis in paginatedAnalyses"
-          :key="analysis.id"
-          :analysis="analysis"
-          @view="viewAnalysis"
-          @review="reviewAnalysis"
-          @delete="deleteAnalysis"
-        />
-      </div>
-
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="pagination-section">
-        <div class="pagination-info">
-          Mostrando {{ (currentPage - 1) * itemsPerPage + 1 }} -
-          {{ Math.min(currentPage * itemsPerPage, totalItems) }} de {{ totalItems }} análisis
-        </div>
-        <div class="pagination-controls">
-          <button
-            :disabled="currentPage === 1"
-            class="pagination-btn"
-            @click="currentPage = Math.max(1, currentPage - 1)"
-          >
-            <ChevronLeftIcon class="w-4 h-4" />
-          </button>
-
-          <div class="pagination-pages">
-            <button
-              v-for="page in visiblePages"
-              :key="page"
-              class="pagination-page"
-              :class="currentPage === page ? 'pagination-page-active' : 'pagination-page'"
-              @click="currentPage = page"
+    <div class="space-y-6">
+      <!-- Hero band: dashboard surface vocabulary; the topbar owns the page's <h1>. -->
+      <header
+        ref="heroSection"
+        data-ai-hero
+        data-reveal="hero"
+        class="relative mb-6 overflow-hidden p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
+        :style="revealStyle('--spring-ai-hero-o')"
+      >
+        <DentalMotifLayer variant="hero" />
+        <div class="relative flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+              data-hero-eyebrow
             >
-              {{ page }}
-            </button>
+              Inteligencia artificial
+            </p>
+            <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Análisis con IA</h2>
+            <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+              Análisis asistido de imágenes clínicas con inteligencia artificial
+            </p>
           </div>
-
-          <button
-            :disabled="currentPage === totalPages"
-            class="pagination-btn"
-            @click="currentPage = Math.min(totalPages, currentPage + 1)"
+          <div
+            class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap"
+            data-hero-actions
           >
-            <ChevronRightIcon class="w-4 h-4" />
-          </button>
+            <UiButton variant="primary" data-hero-primary @click="openSheet">
+              <template #icon-left>
+                <PlusIcon class="h-4 w-4" aria-hidden="true" />
+              </template>
+              Nuevo análisis
+            </UiButton>
+            <UiButton
+              variant="secondary"
+              :disabled="loading"
+              data-hero-refresh
+              @click="refreshData"
+            >
+              <template #icon-left>
+                <ArrowPathIcon
+                  class="h-4 w-4"
+                  :class="{ 'animate-spin': loading }"
+                  aria-hidden="true"
+                />
+              </template>
+              Actualizar
+            </UiButton>
+          </div>
         </div>
+      </header>
+
+      <div
+        v-if="loadError"
+        data-state="error"
+        role="alert"
+        class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-panel)] bg-systemRed-50 p-5"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <ExclamationTriangleIcon
+            class="h-6 w-6 flex-shrink-0 text-systemRed-600"
+            aria-hidden="true"
+          />
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-theme-primary">
+              No se pudieron cargar los análisis.
+            </p>
+            <p class="text-sm text-theme-secondary">{{ loadError }}</p>
+          </div>
+        </div>
+        <UiButton variant="primary" size="sm" data-retry @click="refreshData">Reintentar</UiButton>
       </div>
+
+      <!-- Summary block: dashboard KPI anatomy (non-interactive). -->
+      <section
+        ref="summarySection"
+        data-ai-summary
+        data-reveal="summary"
+        aria-label="Resumen de análisis"
+        :style="revealStyle('--spring-ai-summary-o')"
+      >
+        <div
+          v-if="!hasLoadedOnce && !loadError"
+          aria-busy="true"
+          class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+        >
+          <UiSkeleton v-for="slot in 4" :key="slot" variant="card" animation="wave" />
+        </div>
+        <div v-else-if="!loadError" class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <UiCard
+            v-for="kpi in kpiCards"
+            :key="kpi.key"
+            variant="glass"
+            padding="sm"
+            :data-kpi-card="kpi.key"
+            :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+          >
+            <p class="text-xs font-medium uppercase text-theme-secondary">{{ kpi.label }}</p>
+            <p
+              class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+              :data-kpi-value="kpi.key"
+            >
+              {{ kpi.value }}
+            </p>
+            <p class="mt-1 text-xs text-theme-secondary" :data-kpi-caption="kpi.key">
+              {{ kpi.caption }}
+            </p>
+          </UiCard>
+        </div>
+      </section>
+
+      <!-- Directory block: filters travel to the server; the table owns the rows. -->
+      <section
+        ref="directorySection"
+        data-ai-directory
+        data-reveal="directory"
+        class="space-y-4"
+        :style="revealStyle('--spring-ai-directory-o')"
+      >
+        <div class="flex items-baseline gap-3">
+          <h2 class="text-2xl font-semibold text-label">Análisis recientes</h2>
+          <p class="text-sm text-theme-secondary">Revisa, filtra y da seguimiento a cada estudio</p>
+        </div>
+
+        <UiCard variant="glass" data-ai-filters>
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+            <div class="lg:col-span-4">
+              <span class="mb-2 block text-sm font-medium text-theme-primary">Estado</span>
+              <div
+                class="inline-flex flex-wrap gap-1 rounded-[var(--radius-control)] p-1"
+                style="border: 1px solid var(--color-hairline)"
+                role="group"
+                aria-label="Presets de estado"
+              >
+                <UiButton
+                  v-for="preset in presets"
+                  :key="preset.id"
+                  :variant="isPresetActive(preset.id) ? 'primary' : 'ghost'"
+                  size="sm"
+                  :aria-pressed="isPresetActive(preset.id)"
+                  :data-preset="preset.id"
+                  @click="applyPreset(preset.id)"
+                >
+                  {{ preset.label }}
+                </UiButton>
+              </div>
+            </div>
+            <div class="lg:col-span-3">
+              <UiInput
+                :model-value="searchQuery"
+                placeholder="Buscar por paciente"
+                data-filters-search
+                @update:model-value="onSearchInput"
+              >
+                <template #prefix>
+                  <MagnifyingGlassIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+                </template>
+              </UiInput>
+            </div>
+            <div class="lg:col-span-2">
+              <span class="mb-2 block text-sm font-medium text-theme-primary">Revisión</span>
+              <UiSelect
+                :model-value="filters.reviewed"
+                :options="reviewedOptions"
+                size="sm"
+                label="Revisión"
+                @update:model-value="onReviewedChange"
+              />
+            </div>
+            <div class="lg:col-span-1">
+              <UiInput
+                :model-value="filters.date_from"
+                type="date"
+                label="Desde"
+                data-filters-from
+                @update:model-value="onDateFromChange"
+              />
+            </div>
+            <div class="lg:col-span-1">
+              <UiInput
+                :model-value="filters.date_to"
+                type="date"
+                label="Hasta"
+                data-filters-to
+                @update:model-value="onDateToChange"
+              />
+            </div>
+            <div v-if="hasActiveFilters" class="lg:col-span-1">
+              <UiButton
+                variant="secondary"
+                size="sm"
+                class="w-full"
+                data-clear-filters
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+            </div>
+          </div>
+        </UiCard>
+
+        <div v-if="loading && !hasLoadedOnce" aria-busy="true">
+          <UiSkeleton variant="table" animation="wave" />
+        </div>
+
+        <UiCard v-else-if="!loadError && analyses.length === 0" variant="glass" data-ai-empty>
+          <UiSectionEmpty
+            :title="
+              hasActiveFilters
+                ? 'Ningún análisis coincide con los filtros aplicados.'
+                : 'Sin análisis registrados'
+            "
+            :description="
+              hasActiveFilters
+                ? 'Ajusta o limpia los filtros para volver a ver los análisis.'
+                : 'Sube una radiografía o foto clínica para obtener un análisis asistido.'
+            "
+          >
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <UiButton variant="primary" size="sm" data-empty-primary @click="openSheet">
+                Nuevo análisis
+              </UiButton>
+              <UiButton
+                v-if="hasActiveFilters"
+                variant="secondary"
+                size="sm"
+                data-clear-filters
+                @click="clearFilters"
+              >
+                Limpiar filtros
+              </UiButton>
+            </div>
+          </UiSectionEmpty>
+        </UiCard>
+
+        <template v-else-if="!loadError">
+          <UiDataTable
+            :data="analyses"
+            :columns="columns"
+            :searchable="false"
+            :pagination="false"
+            :show-header="false"
+            row-key="id"
+            data-ai-table
+          >
+            <template #cell-image="{ row }">
+              <img
+                v-if="row.clinical_attachment?.file_path"
+                :src="`/storage/${row.clinical_attachment.file_path}`"
+                :alt="row.clinical_attachment.original_name || ''"
+                class="h-10 w-10 rounded-[var(--radius-control)] object-cover"
+              />
+              <span
+                v-else
+                class="inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius-control)] bg-theme-surface"
+              >
+                <PhotoIcon class="h-5 w-5 text-theme-secondary" aria-hidden="true" />
+              </span>
+            </template>
+            <template #cell-patient="{ row }">
+              <span class="font-medium text-theme-primary">
+                {{ patientName(row) }}
+              </span>
+            </template>
+            <template #cell-category="{ row }">
+              <span class="text-theme-secondary">{{ categoryLabel(row) }}</span>
+            </template>
+            <template #cell-status="{ row }">
+              <UiStatusPill :status="row.status" :variant="statusVariant(row.status)" size="sm">
+                {{ getStatusLabel(row.status) }}
+              </UiStatusPill>
+            </template>
+            <template #cell-reviewed="{ row }">
+              <span :class="row.reviewed ? 'text-systemGreen-700' : 'text-theme-secondary'">
+                {{ row.reviewed ? 'Revisado' : 'Sin revisar' }}
+              </span>
+            </template>
+            <template #cell-confidence="{ row }">
+              <span class="tabular-nums">{{ formatConfidence(row.confidence_score) }}</span>
+            </template>
+            <template #cell-created_at="{ row }">
+              <span class="text-theme-secondary">{{ formatDate(row.created_at) }}</span>
+            </template>
+            <template #cell-actions="{ row }">
+              <div class="flex items-center gap-1">
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  data-row-action="view"
+                  aria-label="Ver detalle"
+                  @click="viewAnalysis(row)"
+                >
+                  <EyeIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  data-row-action="review"
+                  aria-label="Revisar análisis"
+                  @click="viewAnalysis(row)"
+                >
+                  <ClipboardDocumentCheckIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  size="sm"
+                  data-row-action="delete"
+                  aria-label="Eliminar análisis"
+                  @click="deleteAnalysis(row.id)"
+                >
+                  <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+              </div>
+            </template>
+          </UiDataTable>
+
+          <div v-if="paginationMeta.last_page > 1">
+            <Pagination
+              :current-page="paginationMeta.current_page"
+              :total-pages="paginationMeta.last_page"
+              :total="paginationMeta.total"
+              :per-page="paginationMeta.per_page"
+              @page-change="handlePageChange"
+            />
+          </div>
+        </template>
+      </section>
     </div>
 
-    <!-- Analysis Modal -->
     <AiAnalysisModal
       v-if="selectedAnalysis"
       :analysis="selectedAnalysis"
       @close="selectedAnalysis = null"
       @review="handleReview"
+      @delete="deleteAnalysis"
     />
 
-    <!-- Analyzing Modal -->
-    <AnalyzingModal :show="showAnalyzingModal" :step="analysisStep" />
+    <AiAnalysisSheet
+      v-model="showSheet"
+      :submitting="sheetSubmitting"
+      :error-message="sheetError"
+      @close="handleSheetClose"
+      @submit="handleSheetSubmit"
+    />
+
+    <AnalyzingModal
+      :show="showAnalyzingModal"
+      :status="analysisStatus"
+      :message="analysisErrorMessage"
+      @close="showAnalyzingModal = false"
+    />
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useAiAnalysis } from '@/composables/useAiAnalysis'
-import { useConfirm } from '@/composables/useConfirm'
-import AiAnalysisCard from './components/AiAnalysisCard.vue'
-import AiAnalysisModal from './components/AiAnalysisModal.vue'
-import AnalyzingModal from './components/AnalyzingModal.vue'
-import FileUpload from '@/components/ui/FileUpload.vue'
-import PatientSelector from '@/components/ui/PatientSelector.vue'
-import UiTextarea from '@/components/ui/UiTextarea.vue'
-import UiSelect from '@/components/ui/Select.vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import {
-  CpuChipIcon,
   ArrowPathIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ChartBarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
+  ClipboardDocumentCheckIcon,
+  ExclamationTriangleIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  PhotoIcon,
+  PlusIcon,
+  TrashIcon
 } from '@heroicons/vue/24/outline'
+import { useAiAnalysis } from '../../composables/useAiAnalysis'
+import { useConfirm } from '../../composables/useConfirm'
+import { useSpring } from '../../composables/useSpring'
+import { prefersReducedMotion } from '../../composables/useSpringMath'
+import AppLayout from '../../components/layout/AppLayout.vue'
+import DentalMotifLayer from '../../components/ui/DentalMotifLayer.vue'
+import UiButton from '../../components/ui/Button.vue'
+import UiCard from '../../components/ui/Card.vue'
+import UiDataTable from '../../components/ui/DataTable.vue'
+import UiInput from '../../components/ui/Input.vue'
+import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
+import UiSelect from '../../components/ui/Select.vue'
+import UiSkeleton from '../../components/ui/Skeleton.vue'
+import UiStatusPill from '../../components/ui/StatusPill.vue'
+import Pagination from '../../components/ui/Pagination.vue'
+import AiAnalysisModal from './components/AiAnalysisModal.vue'
+import AiAnalysisSheet from './components/AiAnalysisSheet.vue'
+import AnalyzingModal from './components/AnalyzingModal.vue'
 
 const {
-  loading,
   analyses,
   stats,
   getAnalyses,
   getStats,
   reviewAnalysis: reviewAnalysisApi,
   deleteAnalysis: deleteAnalysisApi,
-  uploadAndAnalyze
+  uploadAndAnalyze,
+  getStatusLabel,
+  formatDate
 } = useAiAnalysis()
 
 const { confirm } = useConfirm()
 
-// State
-const activeTab = ref('all')
-const selectedAnalysis = ref(null)
-const currentPage = ref(1)
-const itemsPerPage = 12
+const PAGE_SIZE = 15
 
-// Nuevo análisis
-const newAnalysis = ref({
-  patient: null,
-  file: null,
-  description: '',
-  category: 'radiografia'
+const loading = ref(true)
+const loadError = ref('')
+const hasLoadedOnce = ref(false)
+const paginationMeta = ref({
+  current_page: 1,
+  last_page: 1,
+  per_page: PAGE_SIZE,
+  total: 0
 })
-
-const analyzing = ref(false)
-const analysisStep = ref(0)
-const showAnalyzingModal = ref(false)
 
 const filters = ref({
   status: '',
@@ -370,140 +424,252 @@ const filters = ref({
   date_from: '',
   date_to: ''
 })
+const searchQuery = ref('')
 
-// UiSelect option lists
-const categoryOptions = [
-  { value: 'radiografia', label: 'Radiografía' },
-  { value: 'foto_clinica', label: 'Foto Clínica' }
-]
-const statusFilterOptions = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'pending', label: 'Pendiente' },
-  { value: 'processing', label: 'Procesando' },
-  { value: 'completed', label: 'Completado' },
-  { value: 'failed', label: 'Fallido' }
-]
-const reviewedFilterOptions = [
-  { value: '', label: 'Todos' },
-  { value: 'true', label: 'Revisados' },
-  { value: 'false', label: 'Sin Revisar' }
+const presets = [
+  { id: 'all', label: 'Todas', status: '', reviewed: '' },
+  { id: 'pending', label: 'Pendientes', status: 'completed', reviewed: false },
+  { id: 'completed', label: 'Completados', status: 'completed', reviewed: '' },
+  { id: 'failed', label: 'Fallidos', status: 'failed', reviewed: '' }
 ]
 
-// Tabs configuration
-const tabs = computed(() => [
-  {
-    key: 'all',
-    label: 'Todos',
-    icon: 'CpuChipIcon',
-    count: analyses.value?.length || 0
-  },
-  {
-    key: 'pending',
-    label: 'Pendientes',
-    icon: 'ClockIcon',
-    count: stats.value?.pending_review || 0
-  },
-  {
-    key: 'completed',
-    label: 'Completados',
-    icon: 'CheckCircleIcon',
-    count: stats.value?.completed_analyses || 0
-  }
-])
+const reviewedOptions = [
+  { value: '', label: 'Todas' },
+  { value: true, label: 'Revisados' },
+  { value: false, label: 'Sin revisar' }
+]
 
-// Computed
-const hasActiveFilters = computed(() => {
-  return Object.values(filters.value).some(value => value !== '')
+const CATEGORY_LABELS = {
+  radiografia: 'Radiografía',
+  foto_clinica: 'Foto clínica'
+}
+
+const STATUS_VARIANTS = {
+  pending: 'warning',
+  processing: 'info',
+  completed: 'success',
+  failed: 'error'
+}
+
+const columns = [
+  { key: 'image', label: 'Imagen' },
+  { key: 'patient', label: 'Paciente' },
+  { key: 'category', label: 'Tipo' },
+  { key: 'status', label: 'Estado' },
+  { key: 'reviewed', label: 'Revisión' },
+  { key: 'confidence', label: 'Confianza' },
+  { key: 'created_at', label: 'Fecha' },
+  { key: 'actions', label: 'Acciones' }
+]
+
+const selectedAnalysis = ref(null)
+
+const showSheet = ref(false)
+const sheetSubmitting = ref(false)
+const sheetError = ref('')
+const showAnalyzingModal = ref(false)
+const analysisStatus = ref('uploading')
+const analysisErrorMessage = ref('')
+
+const kpiCards = computed(() => {
+  const data = stats.value ?? {}
+  return [
+    {
+      key: 'total_analyses',
+      label: 'Total de análisis',
+      value: data.total_analyses ?? 0,
+      caption: 'Acumulados'
+    },
+    {
+      key: 'completed_analyses',
+      label: 'Completados',
+      value: data.completed_analyses ?? 0,
+      caption: `${data.reviewed_analyses ?? 0} revisados`
+    },
+    {
+      key: 'pending_review',
+      label: 'Pendientes de revisión',
+      value: data.pending_review ?? 0,
+      caption: 'Esperando tu revisión'
+    },
+    {
+      key: 'completion_rate',
+      label: 'Tasa de completado',
+      value: `${data.completion_rate ?? 0}%`,
+      caption: `${data.review_rate ?? 0}% de tasa de revisión`
+    }
+  ]
 })
 
-// Computed para nuevo análisis
-const canStartAnalysis = computed(() => {
-  return newAnalysis.value.patient && newAnalysis.value.file
-})
+const nonEmptyFilters = () => {
+  const result = {}
+  const term = searchQuery.value.trim()
 
-const filteredAnalyses = computed(() => {
-  let filtered = analyses.value || []
+  if (term) result.search = term
+  if (filters.value.status) result.status = filters.value.status
+  if (filters.value.reviewed !== '') result.reviewed = filters.value.reviewed
+  if (filters.value.date_from) result.date_from = filters.value.date_from
+  if (filters.value.date_to) result.date_to = filters.value.date_to
 
-  if (activeTab.value === 'pending') {
-    filtered = filtered.filter(a => a.status === 'completed' && !a.reviewed)
-  } else if (activeTab.value === 'completed') {
-    filtered = filtered.filter(a => a.status === 'completed')
-  }
+  return result
+}
 
-  if (filters.value.status) {
-    filtered = filtered.filter(a => a.status === filters.value.status)
-  }
+const hasActiveFilters = computed(() => Object.keys(nonEmptyFilters()).length > 0)
 
-  if (filters.value.reviewed !== '') {
-    const isReviewed = filters.value.reviewed === 'true'
-    filtered = filtered.filter(a => a.reviewed === isReviewed)
-  }
+const isPresetActive = presetId => {
+  const preset = presets.find(item => item.id === presetId)
+  if (!preset) return false
+  return filters.value.status === preset.status && filters.value.reviewed === preset.reviewed
+}
 
-  if (filters.value.date_from) {
-    filtered = filtered.filter(a => new Date(a.created_at) >= new Date(filters.value.date_from))
-  }
+const patientName = row => {
+  const patient = row?.patient
 
-  if (filters.value.date_to) {
-    filtered = filtered.filter(a => new Date(a.created_at) <= new Date(filters.value.date_to))
-  }
+  if (!patient) return 'Paciente no disponible'
+  if (patient.full_name) return patient.full_name
 
-  return filtered
-})
+  const composed = [patient.first_name, patient.last_name].filter(Boolean).join(' ')
 
-const totalItems = computed(() => filteredAnalyses.value.length)
-const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage))
-const paginatedAnalyses = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
-  return filteredAnalyses.value.slice(start, end)
-})
+  return composed || 'Paciente no disponible'
+}
 
-const visiblePages = computed(() => {
-  const pages = []
-  const start = Math.max(1, currentPage.value - 2)
-  const end = Math.min(totalPages.value, currentPage.value + 2)
+const categoryLabel = row => {
+  const category = row?.clinical_attachment?.category
+  return CATEGORY_LABELS[category] || category || '—'
+}
 
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
+const statusVariant = status => STATUS_VARIANTS[status] || 'neutral'
 
-  return pages
-})
+const formatConfidence = value =>
+  value === null || value === undefined || value === '' ? '—' : `${value}%`
 
-// Methods
-const loadData = async () => {
+const openSheet = () => {
+  sheetError.value = ''
+  showSheet.value = true
+}
+
+const handleSheetClose = () => {
+  showSheet.value = false
+  sheetError.value = ''
+}
+
+const handleSheetSubmit = async ({ patientId, file, category, description }) => {
+  if (sheetSubmitting.value) return
+
+  sheetSubmitting.value = true
+  sheetError.value = ''
+  analysisErrorMessage.value = ''
+  analysisStatus.value = 'uploading'
+  showAnalyzingModal.value = true
+
   try {
-    await Promise.all([getAnalyses(), getStats()])
+    analysisStatus.value = 'analyzing'
+    const result = await uploadAndAnalyze(patientId, file, description, category)
+
+    analysisStatus.value = 'completed'
+    showAnalyzingModal.value = false
+    showSheet.value = false
+    selectedAnalysis.value = result
+    await loadData(1)
   } catch (error) {
-    // Se conserva la lista anterior si falla la recarga
+    analysisStatus.value = 'failed'
+    analysisErrorMessage.value =
+      error?.response?.data?.message || 'No se pudo analizar la imagen. Intenta de nuevo.'
+    sheetError.value = analysisErrorMessage.value
+    showAnalyzingModal.value = false
+  } finally {
+    sheetSubmitting.value = false
   }
 }
 
-const refreshData = async () => {
-  await loadData()
+const loadData = async (page = 1) => {
+  loading.value = true
+  loadError.value = ''
+
+  try {
+    const [response] = await Promise.all([
+      getAnalyses({ page, per_page: PAGE_SIZE, ...nonEmptyFilters() }),
+      getStats()
+    ])
+    const meta = response?.meta ?? {}
+
+    paginationMeta.value = {
+      current_page: meta.current_page ?? page,
+      last_page: meta.last_page ?? 1,
+      per_page: meta.per_page ?? PAGE_SIZE,
+      total: meta.total ?? (Array.isArray(response?.data) ? response.data.length : 0)
+    }
+  } catch (err) {
+    loadError.value = err?.response?.data?.message || 'Revisa tu conexión y vuelve a intentarlo.'
+    paginationMeta.value = {
+      current_page: 1,
+      last_page: 1,
+      per_page: PAGE_SIZE,
+      total: 0
+    }
+  } finally {
+    loading.value = false
+    hasLoadedOnce.value = true
+  }
+
+  if (!entrancePlayed && !loadError.value) {
+    await nextTick()
+    playEntrance()
+  }
+}
+
+const refreshData = () => loadData(paginationMeta.value.current_page || 1)
+
+const handlePageChange = page => loadData(page)
+
+const applyPreset = presetId => {
+  const preset = presets.find(item => item.id === presetId)
+  if (!preset) return
+
+  filters.value = { ...filters.value, status: preset.status, reviewed: preset.reviewed }
+  loadData(1)
+}
+
+const onReviewedChange = value => {
+  filters.value.reviewed = value
+  loadData(1)
+}
+
+const onDateFromChange = value => {
+  filters.value.date_from = value
+  loadData(1)
+}
+
+const onDateToChange = value => {
+  filters.value.date_to = value
+  loadData(1)
+}
+
+let searchTimer = null
+
+const onSearchInput = value => {
+  searchQuery.value = value
+
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTimer = null
+    loadData(1)
+  }, 300)
 }
 
 const clearFilters = () => {
-  filters.value = {
-    status: '',
-    reviewed: '',
-    date_from: '',
-    date_to: ''
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
   }
+
+  searchQuery.value = ''
+  filters.value = { status: '', reviewed: '', date_from: '', date_to: '' }
+  loadData(1)
 }
 
-const viewAnalysis = analysis => {
-  selectedAnalysis.value = analysis
-}
-
-const reviewAnalysis = async (analysisId, decision, notes) => {
-  try {
-    await reviewAnalysisApi(analysisId, decision, notes)
-    selectedAnalysis.value = null
-    await loadData() // Refresh data
-  } catch (error) {
-    // La revisión falló, el análisis sigue pendiente
-  }
+const viewAnalysis = row => {
+  selectedAnalysis.value = row
 }
 
 const deleteAnalysis = async analysisId => {
@@ -513,269 +679,78 @@ const deleteAnalysis = async analysisId => {
     confirmText: 'Eliminar',
     variant: 'danger'
   })
-  if (ok) {
-    try {
-      await deleteAnalysisApi(analysisId)
-      await loadData() // Refresh data
-    } catch (error) {
-      // El análisis se conserva si falla la eliminación
-    }
-  }
-}
-
-const handleReview = (analysisId, decision, notes) => {
-  reviewAnalysis(analysisId, decision, notes)
-}
-
-// Watchers
-watch(activeTab, () => {
-  currentPage.value = 1
-})
-
-watch(
-  filters,
-  () => {
-    currentPage.value = 1
-  },
-  { deep: true }
-)
-
-// Métodos para nuevo análisis
-const handleFileSelected = file => {
-  newAnalysis.value.file = file
-}
-
-const handleFileCleared = () => {
-  newAnalysis.value.file = null
-}
-
-const startAnalysis = async () => {
-  if (!canStartAnalysis.value) return
-
-  // Validar datos antes de enviar
-
-  if (!newAnalysis.value.patient?.id) {
-    alert('Por favor selecciona un paciente')
-    return
-  }
-
-  if (!newAnalysis.value.file) {
-    alert('Por favor selecciona una imagen')
-    return
-  }
-
-  analyzing.value = true
-  showAnalyzingModal.value = true
-  analysisStep.value = 0
+  if (!ok) return
 
   try {
-    // Paso 1: Subiendo
-    analysisStep.value = 1
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Paso 2: Procesando
-    analysisStep.value = 2
-    const result = await uploadAndAnalyze(
-      newAnalysis.value.patient.id,
-      newAnalysis.value.file,
-      newAnalysis.value.description,
-      newAnalysis.value.category
-    )
-
-    // Paso 3: Completado
-    analysisStep.value = 3
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Cerrar modal y mostrar resultados
-    showAnalyzingModal.value = false
-    selectedAnalysis.value = result
-
-    // Limpiar formulario
-    newAnalysis.value = {
-      patient: null,
-      file: null,
-      description: '',
-      category: 'radiografia'
-    }
-
-    // Recargar lista
-    await loadData()
+    await deleteAnalysisApi(analysisId)
+    selectedAnalysis.value = null
+    await loadData(paginationMeta.value.current_page || 1)
   } catch (error) {
-    showAnalyzingModal.value = false
-  } finally {
-    analyzing.value = false
+    // The composable surfaces the failure; the row stays in the list.
   }
 }
 
-// Lifecycle
+const handleReview = async (analysisId, decision, notes) => {
+  try {
+    await reviewAnalysisApi(analysisId, decision, notes)
+    selectedAnalysis.value = null
+    await loadData(paginationMeta.value.current_page || 1)
+  } catch (error) {
+    // The modal keeps the review open; the composable shows the toast.
+  }
+}
+
+// One-shot staggered entrance (60ms) per section, mirroring the dashboard and
+// PatientsPage pattern. revealStyle() renders the FINAL state whenever no
+// spring is attached (reduced motion, or a section mounting later).
+const heroSpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-ai-hero-o'
+})
+const summarySpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-ai-summary-o'
+})
+const directorySpring = useSpring({
+  damping: 1.0,
+  response: 0.35,
+  cssVar: '--spring-ai-directory-o'
+})
+
+const heroSection = ref(null)
+const summarySection = ref(null)
+const directorySection = ref(null)
+
+const revealStyle = cssVar => ({
+  opacity: `var(${cssVar}, 1)`,
+  transform: `translateY(calc((1 - var(${cssVar}, 1)) * 8px))`
+})
+
+let entrancePlayed = false
+const playEntrance = () => {
+  if (entrancePlayed) return
+  entrancePlayed = true
+  if (prefersReducedMotion()) return
+
+  if (heroSection.value) heroSpring.attach(heroSection.value)
+  if (summarySection.value) summarySpring.attach(summarySection.value)
+  if (directorySection.value) directorySpring.attach(directorySection.value)
+
+  setTimeout(() => heroSpring.set(1), 0)
+  setTimeout(() => summarySpring.set(1), 60)
+  setTimeout(() => directorySpring.set(1), 120)
+}
+
 onMounted(() => {
-  loadData()
+  loadData(1)
+})
+
+onUnmounted(() => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
 })
 </script>
-
-<style scoped>
-.ai-analysis-page {
-  @apply space-y-6;
-}
-
-.page-header {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-6;
-}
-
-.header-content {
-  @apply flex items-center justify-between;
-}
-
-.page-title {
-  @apply text-2xl font-bold text-theme-primary flex items-center;
-}
-
-.page-subtitle {
-  @apply text-theme-secondary mt-1;
-}
-
-.stats-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
-}
-
-.stat-card {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4 flex items-center space-x-3;
-}
-
-.stat-icon {
-  @apply w-12 h-12 rounded-lg flex items-center justify-center;
-}
-
-.stat-content {
-  @apply flex-1;
-}
-
-.stat-value {
-  @apply text-2xl font-bold text-theme-primary;
-}
-
-.stat-label {
-  @apply text-sm text-theme-secondary;
-}
-
-.filters-section {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg p-4;
-}
-
-.filters-header {
-  @apply flex items-center justify-between mb-4;
-}
-
-.filters-title {
-  @apply text-lg font-medium text-theme-primary;
-}
-
-.filters-grid {
-  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
-}
-
-.filter-group {
-  @apply space-y-2;
-}
-
-.filter-label {
-  @apply text-sm font-medium text-theme-primary;
-}
-
-.filter-select,
-.filter-input {
-  @apply w-full px-3 py-2 border border-theme rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-accent bg-theme-surface-elevated text-theme-primary;
-}
-
-.tabs-section {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg;
-}
-
-.tabs-header {
-  @apply flex border-b border-theme;
-}
-
-.tab-button {
-  @apply flex items-center px-4 py-3 text-sm font-medium text-theme-secondary hover:text-theme-primary hover:bg-theme-surface border-b-2 border-transparent transition-colors;
-}
-
-.tab-active {
-  @apply text-accent border-accent bg-primary-50;
-}
-
-.tab-count {
-  @apply ml-2 px-2 py-1 text-xs font-medium bg-theme-surface-elevated text-theme-secondary rounded-full;
-}
-
-.content-section {
-  @apply bg-theme-surface-elevated border border-theme rounded-lg;
-}
-
-.loading-state {
-  @apply flex flex-col items-center justify-center py-12;
-}
-
-.loading-spinner {
-  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4;
-}
-
-.empty-state {
-  @apply text-center py-12;
-}
-
-.empty-title {
-  @apply text-lg font-medium text-theme-primary mb-2;
-}
-
-.empty-description {
-  @apply text-theme-secondary;
-}
-
-.analyses-grid {
-  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6;
-}
-
-.pagination-section {
-  @apply flex items-center justify-between px-6 py-4 border-t border-theme;
-}
-
-.pagination-info {
-  @apply text-sm text-theme-primary;
-}
-
-.pagination-controls {
-  @apply flex items-center space-x-2;
-}
-
-.pagination-btn {
-  @apply p-2 text-theme-secondary hover:text-theme-primary disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-.pagination-pages {
-  @apply flex items-center space-x-1;
-}
-
-.pagination-page {
-  @apply px-3 py-2 text-sm font-medium text-theme-primary hover:text-theme-primary hover:bg-theme-surface rounded-lg transition-colors;
-}
-
-.pagination-page-active {
-  @apply text-accent bg-primary-50;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-secondary {
-  @apply bg-theme-surface text-theme-primary hover:bg-theme-surface-elevated;
-}
-
-.btn-sm {
-  @apply px-3 py-1.5 text-xs;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-</style>
