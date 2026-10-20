@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 113 migraciones
+  migrations/              # 114 migraciones
   seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
                            #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
@@ -375,6 +375,24 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (presupuestos interface redesign)** — `/quotations` pasa a la
+  superficie del dashboard: hero band, KPI strip de cuatro tarjetas alimentado
+  por `GET /api/quotations/summary`, búsqueda `q` server-side (número, paciente,
+  documento) más estado (los 6 del enum) y rango de fechas, lista sobre
+  `UiDataTable` con badges de estado y vencimiento, y detalle / creación /
+  edición / aprobación / rechazo sobre `UiModal`, con estados skeleton, error y
+  vacío. Corrige el contrato del backend: `treatment_plan_id` pasa a nullable
+  (presupuesto manual), `approve` escribe las columnas reales de
+  `quotation_approvals` (`patient_id`, `approval_status`, `approval_date`,
+  `patient_notes`, `signature_data`) en vez de columnas inexistentes, y la
+  descarga del PDF deja de pedir un blob a `useApi.get`. Se retira
+  `QuotationCard.vue` (la tabla lo reemplaza) y se conserva
+  `QuotationStatusBadge.vue` para el detalle de planes de tratamiento. §4
+  sincronizado con valores medidos: 199 rutas API (nueva
+  `GET quotations/summary`) y 212 totales con web; 114 migraciones. Tests:
+  `QuotationIndexSummaryTest` (7, MySQL), `QuotationsRedesignContractTest` (9),
+  `quotationMeta.test.js` (8), `quotations-list.test.js` (4) y
+  `quotations-form.test.js` (2). Guard `scripts/audit/doc-drift.mjs` en verde.
 - **2026-10-20 (caja interface redesign)** — `/cash-register` pasa al lenguaje
   del dashboard: hero band con estado de sesión, KPI strip permanente (Apertura
   / Cobros / Egresos / Saldo esperado) y las cinco tabs sobre `UiDataTable`,

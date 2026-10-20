@@ -111,8 +111,8 @@
     </section>
 
     <UiCard variant="glass" class="mb-6">
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div class="lg:col-span-2">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end">
+        <div class="min-w-0 flex-1">
           <UiInput
             v-model="filters.q"
             data-quotations-search
@@ -126,17 +126,31 @@
             </template>
           </UiInput>
         </div>
-        <UiSelect
-          v-model="filters.status"
-          data-status-filter
-          label="Estado"
-          :options="STATUS_FILTER_OPTIONS"
-          placeholder="Todos los estados"
-          @change="applyFilters"
-        />
-        <div class="flex items-end gap-3">
-          <UiInput v-model="filters.date_from" type="date" label="Desde" data-date-from />
-          <UiInput v-model="filters.date_to" type="date" label="Hasta" data-date-to />
+        <div class="w-full lg:w-56">
+          <UiSelect
+            v-model="filters.status"
+            data-status-filter
+            label="Estado"
+            :options="STATUS_FILTER_OPTIONS"
+            placeholder="Todos los estados"
+            @change="applyFilters"
+          />
+        </div>
+        <div class="grid grid-cols-2 gap-3 lg:w-[22rem]">
+          <UiInput
+            v-model="filters.date_from"
+            type="date"
+            label="Desde"
+            class="min-w-0"
+            data-date-from
+          />
+          <UiInput
+            v-model="filters.date_to"
+            type="date"
+            label="Hasta"
+            class="min-w-0"
+            data-date-to
+          />
         </div>
       </div>
 
