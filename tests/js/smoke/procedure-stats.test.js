@@ -120,6 +120,10 @@ describe('procedure stats page (T2)', () => {
 
     expect(wrapper.find('[data-procedure-stats-hero]').exists()).toBe(true)
     expect(wrapper.find('[data-hero-title]').text()).toBe('Estadísticas del Catálogo')
+    // One <h1> per document: the shell topbar owns it, so the hero band is a
+    // section heading instead of a second document title.
+    expect(wrapper.findAll('h1')).toHaveLength(1)
+    expect(wrapper.find('[data-hero-title]').element.tagName).toBe('H2')
     expect(wrapper.find('[data-role-disclosure]').text()).toContain('Administrador')
     expect(wrapper.find('[data-role-disclosure]').text()).toContain('Finanzas')
 

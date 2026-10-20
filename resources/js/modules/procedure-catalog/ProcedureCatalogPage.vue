@@ -13,9 +13,9 @@
       <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Catálogo</p>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
             Catálogo de Procedimientos
-          </h1>
+          </h2>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
             Gestiona los procedimientos clínicos disponibles en la clínica
           </p>

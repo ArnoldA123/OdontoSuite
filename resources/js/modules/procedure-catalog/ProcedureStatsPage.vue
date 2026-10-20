@@ -23,9 +23,9 @@
               Administrador · Finanzas
             </UiBadge>
           </div>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
             Estadísticas del Catálogo
-          </h1>
+          </h2>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
             Uso del catálogo por especialidad y procedimientos más frecuentes
           </p>
