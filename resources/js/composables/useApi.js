@@ -78,41 +78,6 @@ export function useApi() {
     return response.json()
   }
 
-  /**
-   * Fetch a binary response (PDF, CSV, Excel) through the same auth and
-   * session-expiry rules as the JSON helpers. `handleResponse` cannot be used
-   * for these: it rejects every non-JSON content type.
-   */
-  const download = async (url, { method = 'GET', data = null } = {}) => {
-    const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
-    const headers = { Accept: '*/*' }
-    if (token.value) {
-      headers.Authorization = `Bearer ${token.value}`
-    }
-
-    const response = await fetch(fullUrl, {
-      method,
-      headers,
-      body: method === 'GET' ? undefined : JSON.stringify(data ?? {})
-    })
-
-    if (response.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user')
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
-      throw { response: { data: { message: 'Sesión expirada' } }, status: 401 }
-    }
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw { response: { data: error }, status: response.status }
-    }
-
-    return response.blob()
-  }
-
   const get = async (url, options = {}) => {
     let fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`
 
@@ -238,9 +203,12 @@ export function useApi() {
       }
     }
 
+    const method = options.method || 'GET'
+
     const response = await fetch(fullUrl, {
-      method: options.method || 'GET',
-      headers: { ...getHeaders(), ...(options.headers || {}) }
+      method,
+      headers: { ...getHeaders(), ...(options.headers || {}) },
+      body: method === 'GET' || options.data == null ? undefined : JSON.stringify(options.data)
     })
 
     if (response.status === 401) {
@@ -321,7 +289,6 @@ export function useApi() {
     put,
     patch,
     delete: del,
-    download,
     setToken,
     normalizeError
   }

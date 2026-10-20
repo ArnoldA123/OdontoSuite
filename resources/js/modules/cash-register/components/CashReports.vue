@@ -523,15 +523,16 @@ const exportReport = async format => {
   exportError.value = ''
   lastExportFormat.value = format
   try {
-    const blob = await download(`/api/cash-register/reports/export/${format}`, {
+    const { blob, filename } = await download(`/api/cash-register/reports/export/${format}`, {
       method: 'POST',
       data: {
         start_date: applied.value.start,
         end_date: applied.value.end,
         report_type: 'period'
-      }
+      },
+      fallbackFilename: `caja-${applied.value.start}-${applied.value.end}.${EXPORT_EXTENSIONS[format]}`
     })
-    saveBlob(blob, `caja-${applied.value.start}-${applied.value.end}.${EXPORT_EXTENSIONS[format]}`)
+    saveBlob(blob, filename)
   } catch (err) {
     exportError.value = messageOf(err, 'No se pudo exportar el reporte.')
   } finally {

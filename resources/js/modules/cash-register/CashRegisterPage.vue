@@ -586,7 +586,9 @@ const voidTransaction = async transaction => {
 
 const downloadReceipt = async transaction => {
   try {
-    const blob = await download(`/api/transactions/${transaction.id}/receipt`, { method: 'POST' })
+    const { blob } = await download(`/api/transactions/${transaction.id}/receipt`, {
+      method: 'POST'
+    })
     const url = URL.createObjectURL(blob)
     window.open(url, '_blank', 'noopener')
     setTimeout(() => URL.revokeObjectURL(url), 60000)

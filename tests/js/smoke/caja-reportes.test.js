@@ -77,7 +77,10 @@ describe('cash reports (T9)', () => {
     getMock.mockReset()
     getMock.mockResolvedValue({ data: reportPayload })
     downloadMock.mockReset()
-    downloadMock.mockResolvedValue(new Blob(['report']))
+    downloadMock.mockImplementation(async url => ({
+      blob: new Blob(['report']),
+      filename: `caja-2026-10-01-2026-10-30.${url.split('/').pop()}`
+    }))
 
     clicks = []
     createObjectURL = vi.fn(() => 'blob:http://localhost:3000/caja-reportes')
@@ -190,7 +193,8 @@ describe('cash reports (T9)', () => {
     expect(downloadMock).toHaveBeenCalledTimes(1)
     expect(downloadMock).toHaveBeenCalledWith('/api/cash-register/reports/export/csv', {
       method: 'POST',
-      data: { start_date: '2026-10-01', end_date: '2026-10-30', report_type: 'period' }
+      data: { start_date: '2026-10-01', end_date: '2026-10-30', report_type: 'period' },
+      fallbackFilename: 'caja-2026-10-01-2026-10-30.csv'
     })
     expect(clicks).toEqual([
       {
