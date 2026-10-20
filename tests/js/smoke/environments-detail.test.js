@@ -165,7 +165,7 @@ describe('environment detail error states (T4)', () => {
     expect(getMock.mock.calls.at(-1)[0]).toBe(apiRoutes.detail)
     expect(wrapper.find('[data-environment-detail-error]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Consultorio Norte')
-    expect(wrapper.find('[role="banner"] h1').text()).toBe('Consultorio Norte')
+    expect(wrapper.find('.page-title').text()).toBe('Consultorio Norte')
     wrapper.unmount()
   })
 
@@ -213,13 +213,13 @@ describe('environment detail states (T4)', () => {
     const wrapper = await mountDetail()
 
     expect(wrapper.find('[data-environment-detail-loading]').exists()).toBe(true)
-    expect(wrapper.find('[role="banner"] h1').text()).toBe('Detalle del ambiente')
+    expect(wrapper.find('.page-title').text()).toBe('Detalle del ambiente')
 
     resolveDetail({ data: detailPayload })
     await flushPromises()
 
     expect(wrapper.find('[data-environment-detail-loading]').exists()).toBe(false)
-    expect(wrapper.find('[role="banner"] h1').text()).toBe('Consultorio Norte')
+    expect(wrapper.find('.page-title').text()).toBe('Consultorio Norte')
     wrapper.unmount()
   })
 

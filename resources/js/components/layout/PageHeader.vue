@@ -1,5 +1,5 @@
 <template>
-  <header :class="containerClasses" role="banner">
+  <header :class="containerClasses">
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
       <div class="min-w-0 flex-1">
         <Breadcrumbs
@@ -10,9 +10,9 @@
           variant="minimal"
           class="mb-2"
         />
-        <h1 class="page-title">
+        <h2 class="page-title">
           {{ title }}
-        </h1>
+        </h2>
         <p v-if="subtitle" class="page-subtitle">
           {{ subtitle }}
         </p>
