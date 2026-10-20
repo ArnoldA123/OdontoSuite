@@ -47,17 +47,27 @@ S6 — entrega aprobada: «commit push, pr merge y limpieza del worktree».
 | T1  | S1   | #193 policy de sesión en show/movements/closure-report     | `72c81f0`                 |
 | T2  | S2   | #196 envelope del 500 sin error/trace                      | `8659b84`                 |
 | T3  | S3   | #198 paginación server-side de pending-payments            | `9218521`                 |
-| T4  | S4   | #194 summary acotado, ruta `{id}/open` fuera, currentView  | pendiente                 |
-| T5  | S5   | #191 RBAC de cobros a recepcionista + matriz y UI          | pendiente                 |
-| T6  | S6   | checks, docs sincronizados, push, PR, merge, limpieza      | pendiente                 |
+| T4  | S4   | #194 summary acotado, ruta `{id}/open` fuera, currentView  | `69e2561`                 |
+| T5  | S5   | #191 RBAC de cobros a recepcionista + matriz y UI          | `aa875eb`                 |
+| T6  | S6   | checks, docs sincronizados, push, PR, merge, limpieza      | docs + entrega            |
 
 ## Slices de entrega
 
 - **Slice 1 — contrato y dureza del backend de caja** (`72c81f0`, `8659b84`, `9218521`):
   T1-T3, 419 líneas propias. Frontera registrada al cruzar el presupuesto de 400 líneas de
-  revisión; se entrega como PR propio sobre `main`.
-- **Slice 2 — sesiones y RBAC de cobros**: T4-T6, rama encadenada sobre el slice 1 y PR con
-  base en el slice 1 hasta que este se integre.
+  revisión; se entrega como PR #230 sobre `main`.
+- **Slice 2 — sesiones y RBAC de cobros** (base `fix/caja-hardening`, rama
+  `fix/caja-hardening-rbac`): T4 `69e2561`, T5 `aa875eb` y el commit de docs. PR con base en el
+  slice 1 hasta que este se integre, y luego reencuadrado a `main`.
+
+## Verificación
+
+- Suite PHP completa con `phpunit.mysql.xml` contra la base dedicada
+  `odontosuite_caja_hardening_test` (`DB_SOCKET=` fuerza el MySQL de Docker en 3307). Las otras
+  sesiones de agente comparten `odontosuite_test` y una llegó a recrearla en vivo, así que la
+  base de tests queda aislada por worktree.
+- `pnpm test:js`, `pnpm lint:check`, `pnpm format:check`, `vendor/bin/pint --test` y
+  `node scripts/audit/doc-drift.mjs` como guardas del repositorio.
 
 ## Log
 
