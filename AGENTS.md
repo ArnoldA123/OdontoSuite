@@ -343,11 +343,11 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 lint en rojo nunca esconde si los tests pasan). El workflow es la fuente de
 verdad; esta tabla lo resume sin repetir su contenido.
 
-| Job              | Qué verifica                                                                                                                                                                                                  |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`        | Bloqueantes: PHP syntax, validación JSON, ESLint, Vitest smoke (`pnpm test:js`). Avisos explícitos (no-bloqueantes con motivo anotado en el workflow): Pint y Prettier, con deuda de formato pendiente (#15). |
-| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                                                                                  |
-| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                                                                           |
+| Job              | Qué verifica                                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`). |
+| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                       |
+| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                |
 
 **Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a
 `main`.
@@ -367,6 +367,16 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-20 (cierre de la deuda de formato)** — Pint y Prettier pasan a
+  bloqueantes en el job `quality`: se formateó el código propio (369 archivos
+  PHP con Pint y 92 de frontend, scripts y documentación viva con Prettier).
+  `.prettierignore` excluye con motivo escrito lo que no es código propio
+  (`.agents/`, `openspec/`, `odd/`, `docs/mejoras/`) y lo que otra herramienta
+  reescribe (`pnpm-lock.yaml`, `composer.json`,
+  `resources/css/tokens.generated.css`). Cierra el follow-up de #15; el issue no
+  se reabre. Los conteos de §4 no cambian: no hay rutas, modelos, migraciones ni
+  primitivas UI nuevas.
 
 - **2026-10-19 (procedure-stats-ui-redesign T1-T4)** — `/procedure-stats` pasa a
   un rediseño completo que reemplaza el pase anterior de esa misma página
