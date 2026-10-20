@@ -65,11 +65,11 @@ class CitasNegativeSpaceRulesTest extends TestCase
         $root = dirname(__DIR__, 3);
 
         return [
-            $root . '/resources/js/modules/appointments/ConsultationWizard.vue',
-            $root . '/resources/js/modules/appointments/CalendarPage.vue',
-            $root . '/resources/js/components/appointments/NewAppointmentModal.vue',
-            $root . '/resources/js/modules/appointment-types/AppointmentTypesPage.vue',
-            $root . '/resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue',
+            $root.'/resources/js/modules/appointments/ConsultationWizard.vue',
+            $root.'/resources/js/modules/appointments/CalendarPage.vue',
+            $root.'/resources/js/components/appointments/NewAppointmentModal.vue',
+            $root.'/resources/js/modules/appointment-types/AppointmentTypesPage.vue',
+            $root.'/resources/js/modules/appointment-types/AppointmentTypeDetailPage.vue',
         ];
     }
 
@@ -88,10 +88,11 @@ class CitasNegativeSpaceRulesTest extends TestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -120,8 +121,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
             $count,
             sprintf(
                 '%s contains %d `.toISOString()` call(s) — CITAS-TZ-001 violation. '
-                . 'The server interprets `datetime-local` input as naive local time; '
-                . 'a JS-side ISO conversion would drop the local TZ offset.',
+                .'The server interprets `datetime-local` input as naive local time; '
+                .'a JS-side ISO conversion would drop the local TZ offset.',
                 $path,
                 $count
             )
@@ -158,8 +159,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bfindConflicts\b#', $src),
             sprintf(
                 '%s contains `findConflicts` — CITAS-CONF-001 violation. '
-                . 'The server is the conflict oracle; the frontend MUST NOT call '
-                . '`AppointmentRepository::findConflicts` directly.',
+                .'The server is the conflict oracle; the frontend MUST NOT call '
+                .'`AppointmentRepository::findConflicts` directly.',
                 $path
             )
         );
@@ -170,7 +171,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bhasConflict\b#', $src),
             sprintf(
                 '%s contains `hasConflict` — CITAS-CONF-001 violation. '
-                . 'A local conflict heuristic is stale by definition; the source of truth is the server.',
+                .'A local conflict heuristic is stale by definition; the source of truth is the server.',
                 $path
             )
         );
@@ -182,7 +183,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bconflicts\s*\.\s*length\b#', $src),
             sprintf(
                 '%s contains `conflicts.length` — CITAS-CONF-001 violation. '
-                . 'A local conflict count is stale by definition.',
+                .'A local conflict count is stale by definition.',
                 $path
             )
         );
@@ -194,7 +195,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bavailable\b#', $src),
             sprintf(
                 '%s contains `available` — CITAS-CONF-001 violation. '
-                . 'A front-end "available" claim is stale; the server is the oracle.',
+                .'A front-end "available" claim is stale; the server is the oracle.',
                 $path
             )
         );
@@ -220,7 +221,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#ConfirmationToken#', $src),
             sprintf(
                 '%s contains `ConfirmationToken` — CITAS-CONF-001/UXF-021 violation. '
-                . 'The model is backend-only; the frontend MUST NOT reference the hash, id, or raw token.',
+                .'The model is backend-only; the frontend MUST NOT reference the hash, id, or raw token.',
                 $path
             )
         );
@@ -230,7 +231,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bconfirmation_token\b#', $src),
             sprintf(
                 '%s contains `confirmation_token` (snake_case) — CITAS-CONF-001 violation. '
-                . 'Frontend code MUST NOT reference the snake_case token identifier.',
+                .'Frontend code MUST NOT reference the snake_case token identifier.',
                 $path
             )
         );
@@ -259,8 +260,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bWorkSchedule\b#', $src),
             sprintf(
                 '%s contains `WorkSchedule` — CITAS-WS-001 violation. '
-                . 'The validations are commented out in `AppointmentService::createAppointment` '
-                . 'lines 75–89 ("profesionales trabajan 24/7"); the UI MUST NOT imply enforcement.',
+                .'The validations are commented out in `AppointmentService::createAppointment` '
+                .'lines 75–89 ("profesionales trabajan 24/7"); the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -270,7 +271,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bwork_schedules?\b#', $src),
             sprintf(
                 '%s contains `work_schedule` (snake_case) — CITAS-WS-001 violation. '
-                . 'The validations are commented out; the UI MUST NOT imply enforcement.',
+                .'The validations are commented out; the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -280,7 +281,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bAppointmentBlock\b#', $src),
             sprintf(
                 '%s contains `AppointmentBlock` — CITAS-WS-001 violation. '
-                . 'The `appointment_blocks` table exists but is NOT enforced; the UI MUST NOT imply enforcement.',
+                .'The `appointment_blocks` table exists but is NOT enforced; the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -290,7 +291,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\bappointment_blocks?\b#', $src),
             sprintf(
                 '%s contains `appointment_block` (snake_case) — CITAS-WS-001 violation. '
-                . 'The table is not enforced; the UI MUST NOT imply enforcement.',
+                .'The table is not enforced; the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -302,7 +303,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#fuera\s+de\s+horario#i', $src),
             sprintf(
                 '%s contains "fuera de horario" UX text — CITAS-WS-001 violation. '
-                . 'The work-schedule validation is dormant; the UI MUST NOT imply enforcement.',
+                .'The work-schedule validation is dormant; the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -312,7 +313,7 @@ class CitasNegativeSpaceRulesTest extends TestCase
             preg_match('#\ben\s+bloqueo\b#i', $src),
             sprintf(
                 '%s contains "en bloqueo" UX text — CITAS-WS-001 violation. '
-                . 'The block validation is dormant; the UI MUST NOT imply enforcement.',
+                .'The block validation is dormant; the UI MUST NOT imply enforcement.',
                 $path
             )
         );
@@ -369,8 +370,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
                 $cmd,
                 sprintf(
                     '%s `<script>` block is missing preserved signature `%s` (CITAS-CON-001). '
-                    . 'The reactivity contract is byte-for-byte; rename or removal of a load-bearing '
-                    . 'function/ref/emits payload is a regression.',
+                    .'The reactivity contract is byte-for-byte; rename or removal of a load-bearing '
+                    .'function/ref/emits payload is a regression.',
                     $path,
                     $signature
                 )

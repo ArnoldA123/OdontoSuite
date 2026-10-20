@@ -50,13 +50,13 @@ class PatientResourceAgeTest extends TestCase
 
         // Minimal Eloquent bootstrap so Patient's `birth_date` cast can resolve
         // the connection's date format. No schema, no migrations, no rows.
-        $capsule = new Capsule();
+        $capsule = new Capsule;
         $capsule->addConnection([
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
         ]);
-        $capsule->setEventDispatcher(new Dispatcher());
+        $capsule->setEventDispatcher(new Dispatcher);
         $capsule->setAsGlobal();
         $capsule->bootEloquent();
     }
@@ -75,7 +75,7 @@ class PatientResourceAgeTest extends TestCase
 
     private function resolveAgeFromAttributes(array $attributes): mixed
     {
-        $patient = new Patient();
+        $patient = new Patient;
         foreach ($attributes as $key => $value) {
             $patient->setAttribute($key, $value);
         }
@@ -210,7 +210,7 @@ class PatientResourceAgeTest extends TestCase
     /** @test */
     public function resource_age_is_identical_across_local_timezones_for_same_utc_day(): void
     {
-        $patient = new Patient();
+        $patient = new Patient;
         $patient->setAttribute('first_name', 'UTC');
         $patient->setAttribute('last_name', 'Traveler');
         $patient->setAttribute('birth_date', Carbon::parse('2000-01-01')->startOfDay());
@@ -235,7 +235,7 @@ class PatientResourceAgeTest extends TestCase
             1,
             $unique,
             'PatientResource `age` MUST be identical across local timezones for the same UTC instant; got: '
-                . json_encode($ages, JSON_UNESCAPED_UNICODE)
+                .json_encode($ages, JSON_UNESCAPED_UNICODE)
         );
         $this->assertIsInt($ages['UTC']);
     }
@@ -248,7 +248,7 @@ class PatientResourceAgeTest extends TestCase
     public function resource_array_key_age_is_documented_in_source(): void
     {
         $source = (string) file_get_contents(
-            realpath(__DIR__ . '/../../../app/Http/Resources/PatientResource.php')
+            realpath(__DIR__.'/../../../app/Http/Resources/PatientResource.php')
         );
 
         $this->assertStringContainsString(
@@ -262,7 +262,7 @@ class PatientResourceAgeTest extends TestCase
     public function resource_age_uses_birth_date_and_now(): void
     {
         $source = (string) file_get_contents(
-            realpath(__DIR__ . '/../../../app/Http/Resources/PatientResource.php')
+            realpath(__DIR__.'/../../../app/Http/Resources/PatientResource.php')
         );
 
         // The age computation MUST derive from `birth_date` and call `now()`

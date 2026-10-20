@@ -34,7 +34,9 @@ class UserFactoryContractTest extends TestCase
     private const HUMAN_READABLE_PATTERN = '/^[a-z0-9._-]+$/';
 
     private const AUTH_CONTROLLER = 'app/Http/Controllers/Api/AuthController.php';
+
     private const USER_CONTROLLER = 'app/Http/Controllers/Api/UserController.php';
+
     private const ROLE_BASED_SEEDER = 'database/seeders/RoleBasedUsersSeeder.php';
 
     // ---------------------------------------------------------------------

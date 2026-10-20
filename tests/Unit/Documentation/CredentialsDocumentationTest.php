@@ -15,7 +15,7 @@ class CredentialsDocumentationTest extends TestCase
 {
     private static function credentialsPath(): string
     {
-        return realpath(__DIR__ . '/../../..') . '/CREDENTIALS.md';
+        return realpath(__DIR__.'/../../..').'/CREDENTIALS.md';
     }
 
     /** @test */
@@ -54,12 +54,12 @@ class CredentialsDocumentationTest extends TestCase
         $this->assertSame(
             [],
             $missing,
-            'CREDENTIALS.md does not document these seeded usernames: ' . implode(', ', $missing)
+            'CREDENTIALS.md does not document these seeded usernames: '.implode(', ', $missing)
         );
         $this->assertSame(
             [],
             $invented,
-            'CREDENTIALS.md documents usernames the seeder never creates: ' . implode(', ', $invented)
+            'CREDENTIALS.md documents usernames the seeder never creates: '.implode(', ', $invented)
         );
     }
 
@@ -78,7 +78,7 @@ class CredentialsDocumentationTest extends TestCase
         $mismatched = [];
         foreach ($pairs as $username => $email) {
             // A username the seeder does not know is the other test's business.
-            if (!isset($seeded[$username])) {
+            if (! isset($seeded[$username])) {
                 continue;
             }
             if ($seeded[$username] !== $email) {
@@ -89,7 +89,7 @@ class CredentialsDocumentationTest extends TestCase
         $this->assertSame(
             [],
             $mismatched,
-            "CREDENTIALS.md emails disagree with the seeder:\n  " . implode("\n  ", $mismatched)
+            "CREDENTIALS.md emails disagree with the seeder:\n  ".implode("\n  ", $mismatched)
         );
     }
 
@@ -158,7 +158,7 @@ class CredentialsDocumentationTest extends TestCase
 
     private static function seederPath(): string
     {
-        return realpath(__DIR__ . '/../../..') . '/database/seeders/RoleBasedUsersSeeder.php';
+        return realpath(__DIR__.'/../../..').'/database/seeders/RoleBasedUsersSeeder.php';
     }
 
     /** @test */

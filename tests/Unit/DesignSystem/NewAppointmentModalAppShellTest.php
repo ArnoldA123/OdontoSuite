@@ -41,7 +41,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::MODAL_PATH,
+            dirname(__DIR__, 3).self::MODAL_PATH,
         ];
     }
 
@@ -53,7 +53,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_uses_ui_modal(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -62,7 +62,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#<UiModal\b#', $src),
             sprintf(
                 '%s MUST consume `<UiModal>` for the modal chrome (CITAS-MOD-001). '
-                . 'The hand-built `<Teleport to="body">` + `bg-black bg-opacity-50` backdrop is deprecated.',
+                .'The hand-built `<Teleport to="body">` + `bg-black bg-opacity-50` backdrop is deprecated.',
                 $path
             )
         );
@@ -73,7 +73,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             preg_match('#<Teleport\s+to\s*=\s*["\']body["\']#', $src),
             sprintf(
                 '%s MUST NOT keep a hand-built `<Teleport to="body">` modal '
-                . '(CITAS-MOD-001). The chrome MUST consume `<UiModal>`.',
+                .'(CITAS-MOD-001). The chrome MUST consume `<UiModal>`.',
                 $path
             )
         );
@@ -84,7 +84,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])bg-black\s+bg-opacity-50(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-black bg-opacity-50` backdrop literal (CITAS-MOD-001). '
-                . '`<UiModal>` owns the backdrop.',
+                .'`<UiModal>` owns the backdrop.',
                 $path
             )
         );
@@ -98,7 +98,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_no_raw_select(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -111,7 +111,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT keep a raw `<select>` carrying the legacy `border-theme` literal (CITAS-MOD-001 / DLR-R-002). '
-                . 'All selects MUST consume `<UiSelect>`.',
+                .'All selects MUST consume `<UiSelect>`.',
                 $path
             )
         );
@@ -125,7 +125,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_no_legacy_focus_ring(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -137,7 +137,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `focus:ring-primary-500` focus-ring alias (DLR-R-004 / CITAS-MOD-001). '
-                . 'Use `focus:ring-systemBlue-500` or rely on the Ui primitives.',
+                .'Use `focus:ring-systemBlue-500` or rely on the Ui primitives.',
                 $path
             )
         );
@@ -150,7 +150,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT contain the legacy `focus:border-accent` focus-ring alias (DLR-R-004). '
-                . 'The global `var(--focus-ring-default)` token owns the focus border colour.',
+                .'The global `var(--focus-ring-default)` token owns the focus border colour.',
                 $path
             )
         );
@@ -163,7 +163,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_uses_ui_select_ui_input(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -206,7 +206,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_handles_duplicate_key_422(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -220,7 +220,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST import `UiStatusBadge` (CITAS-CONF-001 / CITAS-MOD-001). '
-                . 'UiStatusBadge is not globally registered — local import required.',
+                .'UiStatusBadge is not globally registered — local import required.',
                 $path
             )
         );
@@ -235,7 +235,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST render a `<UiStatusBadge variant="error">` with the label '
-                . '"Otra mesa ya reservó este horario" for duplicate-key 422 (CITAS-CONF-001).',
+                .'"Otra mesa ya reservó este horario" for duplicate-key 422 (CITAS-CONF-001).',
                 $path
             )
         );
@@ -250,8 +250,8 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST detect duplicate-key errors via either `error.code === \'duplicate_key\'` '
-                . 'OR `error.response.status === 422` (CITAS-CONF-001). The DB unique constraints '
-                . '`unique_user_time_slot` / `unique_chair_time_slot` bubble as 422 / duplicate_key.',
+                .'OR `error.response.status === 422` (CITAS-CONF-001). The DB unique constraints '
+                .'`unique_user_time_slot` / `unique_chair_time_slot` bubble as 422 / duplicate_key.',
                 $path
             )
         );
@@ -268,7 +268,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_no_to_iso_string_on_datetime_local(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -277,8 +277,8 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             preg_match('#\.toISOString\s*\(\s*\)#', $src),
             sprintf(
                 '%s MUST NOT call `.toISOString()` on any value (CITAS-TZ-001). '
-                . 'The server interprets `datetime-local` input as naive local time; '
-                . 'a JS-side ISO conversion would drop the local TZ offset.',
+                .'The server interprets `datetime-local` input as naive local time; '
+                .'a JS-side ISO conversion would drop the local TZ offset.',
                 $path
             )
         );
@@ -294,7 +294,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_modal_emit_contract_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::MODAL_PATH;
+        $path = dirname(__DIR__, 3).self::MODAL_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -306,7 +306,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep `defineEmits([\'update:modelValue\', \'created\', \'updated\'])` '
-                . 'byte-for-byte (CITAS-CON-001). Parent callers listen on these event names.',
+                .'byte-for-byte (CITAS-CON-001). Parent callers listen on these event names.',
                 $path
             )
         );
@@ -324,7 +324,7 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `useApi` import (CITAS-CON-001). '
-                . '`useApi` owns the 401 redirect contract; the modal MUST NOT bypass it.',
+                .'`useApi` owns the 401 redirect contract; the modal MUST NOT bypass it.',
                 $path
             )
         );
@@ -341,8 +341,8 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep a `catch (...) { ... toast.error(...) }` block in `saveAppointment` '
-                . '(CITAS-CON-001). The canonical error feedback is preserved alongside the '
-                . '422 duplicate-key badge mapping.',
+                .'(CITAS-CON-001). The canonical error feedback is preserved alongside the '
+                .'422 duplicate-key badge mapping.',
                 $path
             )
         );
@@ -350,10 +350,11 @@ class NewAppointmentModalAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

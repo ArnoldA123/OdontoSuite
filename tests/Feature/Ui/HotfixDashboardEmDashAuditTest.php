@@ -15,12 +15,11 @@ use Tests\TestCase;
  */
 class HotfixDashboardEmDashAuditTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     public function test_dashboard_page_has_zero_em_dashes_in_visible_text(): void
@@ -90,7 +89,7 @@ class HotfixDashboardEmDashAuditTest extends TestCase
         ];
 
         foreach ($files as $file) {
-            $path = dirname(__DIR__, 3) . '/resources/js/modules/dashboard/' . $file;
+            $path = dirname(__DIR__, 3).'/resources/js/modules/dashboard/'.$file;
             $this->assertFileExists(
                 $path,
                 "{$file} must exist (T5 shared section-state pattern, HOTFIX-DASH-011 boundary)."

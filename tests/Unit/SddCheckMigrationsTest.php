@@ -41,13 +41,13 @@ class SddCheckMigrationsTest extends TestCase
 
     private static function migrationsDir(): string
     {
-        return realpath(__DIR__ . '/../../database/migrations');
+        return realpath(__DIR__.'/../../database/migrations');
     }
 
     /** @return string[] */
     private static function guardedMigrations(): array
     {
-        $all = glob(self::migrationsDir() . '/*.php') ?: [];
+        $all = glob(self::migrationsDir().'/*.php') ?: [];
         $cutoff = self::GUARD_CUTOFF_PREFIX;
         $guarded = [];
         foreach ($all as $file) {
@@ -59,6 +59,7 @@ class SddCheckMigrationsTest extends TestCase
             }
         }
         sort($guarded);
+
         return $guarded;
     }
 
@@ -75,8 +76,9 @@ class SddCheckMigrationsTest extends TestCase
      */
     private static function allMigrations(): array
     {
-        $all = glob(self::migrationsDir() . '/*.php') ?: [];
+        $all = glob(self::migrationsDir().'/*.php') ?: [];
         sort($all);
+
         return $all;
     }
 
@@ -86,9 +88,10 @@ class SddCheckMigrationsTest extends TestCase
      */
     private static function methodBody(string $source, string $method): string
     {
-        if (!preg_match('/public function\s+' . preg_quote($method, '/') . '\s*\([^)]*\)\s*:\s*void\s*\{(.*?)\n\s*\}/s', $source, $m)) {
+        if (! preg_match('/public function\s+'.preg_quote($method, '/').'\s*\([^)]*\)\s*:\s*void\s*\{(.*?)\n\s*\}/s', $source, $m)) {
             return '';
         }
+
         return $m[1];
     }
 
@@ -121,13 +124,13 @@ class SddCheckMigrationsTest extends TestCase
                 || preg_match('/DROP\s+COLUMN\s+/i', $stripped)
                 || preg_match('/ALTER\s+TABLE\s+\S+\s+DROP\s+/i', $stripped)
             ) {
-                $violations[] = $name . ' drops a column in up()';
+                $violations[] = $name.' drops a column in up()';
             }
         }
         $this->assertSame(
             [],
             $violations,
-            "New migrations must not drop columns in up() — use additive migrations only.\n" . implode("\n", $violations)
+            "New migrations must not drop columns in up() — use additive migrations only.\n".implode("\n", $violations)
         );
     }
 
@@ -143,7 +146,7 @@ class SddCheckMigrationsTest extends TestCase
             }
             $hasModify = (bool) preg_match('/MODIFY\s+COLUMN\s+/i', $up)
                 || (bool) preg_match('/->change\s*\(\s*\)/i', $up);
-            if (!$hasModify) {
+            if (! $hasModify) {
                 continue;
             }
             // Driver guard required.
@@ -151,14 +154,14 @@ class SddCheckMigrationsTest extends TestCase
                 || (bool) preg_match("/DB::getDriverName\s*\(\s*\)\s*!==?\s*['\"]sqlite['\"]/", $up)
                 || (bool) preg_match("/DB::connection\s*\(\s*\)->getDriverName\s*\(\s*\)\s*===?\s*['\"]mysql['\"]/", $up)
                 || str_contains($up, 'Schema::getConnection()->getDriverName() === \'mysql\'');
-            if (!$hasGuard) {
-                $violations[] = basename($file) . ' uses MODIFY/->change() without driver guard';
+            if (! $hasGuard) {
+                $violations[] = basename($file).' uses MODIFY/->change() without driver guard';
             }
         }
         $this->assertSame(
             [],
             $violations,
-            "Raw ALTER TABLE ... MODIFY COLUMN must be wrapped in driver-conditional (MySQL only) to keep SQLite test env working.\n" . implode("\n", $violations)
+            "Raw ALTER TABLE ... MODIFY COLUMN must be wrapped in driver-conditional (MySQL only) to keep SQLite test env working.\n".implode("\n", $violations)
         );
     }
 
@@ -173,19 +176,19 @@ class SddCheckMigrationsTest extends TestCase
                 continue;
             }
             $hasDateArithmetic = (bool) preg_match('/DATE_(SUB|ADD)\s*\(/i', $up);
-            if (!$hasDateArithmetic) {
+            if (! $hasDateArithmetic) {
                 continue;
             }
             $hasGuard = (bool) preg_match("/DB::getDriverName\s*\(\s*\)\s*===?\s*['\"]mysql['\"]/", $up)
                 || (bool) preg_match("/DB::getDriverName\s*\(\s*\)\s*!==?\s*['\"]sqlite['\"]/", $up);
-            if (!$hasGuard) {
-                $violations[] = basename($file) . ' uses DATE_SUB/DATE_ADD without driver guard';
+            if (! $hasGuard) {
+                $violations[] = basename($file).' uses DATE_SUB/DATE_ADD without driver guard';
             }
         }
         $this->assertSame(
             [],
             $violations,
-            "DATE_SUB / DATE_ADD are MySQL-specific; must be driver-conditional.\n" . implode("\n", $violations)
+            "DATE_SUB / DATE_ADD are MySQL-specific; must be driver-conditional.\n".implode("\n", $violations)
         );
     }
 
@@ -200,18 +203,18 @@ class SddCheckMigrationsTest extends TestCase
                 continue;
             }
             $hasDropUnique = (bool) preg_match('/->dropUnique\s*\(/i', $up);
-            if (!$hasDropUnique) {
+            if (! $hasDropUnique) {
                 continue;
             }
             $hasRecreate = (bool) preg_match('/->unique\s*\(/i', $up);
-            if (!$hasRecreate) {
-                $violations[] = basename($file) . ' drops unique index without recreating it';
+            if (! $hasRecreate) {
+                $violations[] = basename($file).' drops unique index without recreating it';
             }
         }
         $this->assertSame(
             [],
             $violations,
-            "dropUnique() in up() must be paired with unique() in the same block (atomic).\n" . implode("\n", $violations)
+            "dropUnique() in up() must be paired with unique() in the same block (atomic).\n".implode("\n", $violations)
         );
     }
 
@@ -225,7 +228,7 @@ class SddCheckMigrationsTest extends TestCase
     public function guard_only_scans_migrations_added_during_or_after_slice_05(): void
     {
         $guarded = array_map('basename', self::guardedMigrations());
-        $all = array_map('basename', glob(self::migrationsDir() . '/*.php') ?: []);
+        $all = array_map('basename', glob(self::migrationsDir().'/*.php') ?: []);
 
         $this->assertNotEmpty($guarded, 'Expected at least one migration in the guard window');
 
@@ -293,7 +296,7 @@ class SddCheckMigrationsTest extends TestCase
             [],
             $violations,
             "No migration may reference App\\Models\\ (NEW-002 regression). Offending files:\n"
-                . implode("\n", $violations)
+                .implode("\n", $violations)
         );
     }
 
@@ -376,6 +379,7 @@ class SddCheckMigrationsTest extends TestCase
                     }
                     if ($enteredClosure && $braceDepth <= 0) {
                         $closureEnd = $j;
+
                         break;
                     }
                 }
@@ -433,6 +437,7 @@ class SddCheckMigrationsTest extends TestCase
                     }
                     if ($enteredClosure && $braceDepth <= 0) {
                         $closureEnd = $j;
+
                         break;
                     }
                 }
@@ -447,7 +452,7 @@ class SddCheckMigrationsTest extends TestCase
                 // string literals — stripping them would defeat the check.
                 $closureRaw = '';
                 for ($m = $closureStart; $m <= $closureEnd; $m++) {
-                    $closureRaw .= $lines[$m] . "\n";
+                    $closureRaw .= $lines[$m]."\n";
                 }
 
                 // For each column-add call inside the closure, if the column
@@ -472,10 +477,10 @@ class SddCheckMigrationsTest extends TestCase
                     // `Schema::hasColumn($otherTable, 'error_message')` does
                     // not satisfy the check for `reminder_schedules`.
                     $guardPattern = "/Schema::hasColumn\\s*\\(\\s*['\"]"
-                        . preg_quote($currentTable, '/')
-                        . "['\"]\\s*,\\s*['\"]"
-                        . preg_quote($col, '/')
-                        . "['\"]/";
+                        .preg_quote($currentTable, '/')
+                        ."['\"]\\s*,\\s*['\"]"
+                        .preg_quote($col, '/')
+                        ."['\"]/";
                     if (preg_match($guardPattern, $closureRaw)) {
                         // Guard present in the same closure. Pass.
                         continue;
@@ -492,7 +497,7 @@ class SddCheckMigrationsTest extends TestCase
             [],
             $violations,
             "No migration may re-add a column that an earlier migration already created without a Schema::hasColumn(...) guard in the same closure (NEW-003 regression). Offending files:\n"
-                . implode("\n", $violations)
+                .implode("\n", $violations)
         );
     }
 }

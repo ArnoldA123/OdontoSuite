@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;

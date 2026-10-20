@@ -65,7 +65,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
     ];
 
     private const SEEDER_FILE = __DIR__
-        . '/../../../database/seeders/SpecialtyRecordSeeder.php';
+        .'/../../../database/seeders/SpecialtyRecordSeeder.php';
 
     protected function setUp(): void
     {
@@ -129,7 +129,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
         $blocks = [];
 
         foreach (self::MODEL_MAP as $modelName => $_) {
-            $needle = $modelName . '::create(';
+            $needle = $modelName.'::create(';
             $offset = 0;
 
             while (($pos = strpos($source, $needle, $offset)) !== false) {
@@ -209,6 +209,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
                 $depth--;
                 if ($depth === 0) {
                     $end = $i;
+
                     break;
                 }
             }
@@ -232,11 +233,13 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
             if ($ch === '[' || $ch === '{') {
                 $depth++;
                 $i++;
+
                 continue;
             }
             if ($ch === ']' || $ch === '}') {
                 $depth--;
                 $i++;
+
                 continue;
             }
 
@@ -248,11 +251,13 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
                 if (preg_match("/^'([a-z_][a-z0-9_]*)'\s*=>/", $slice, $m) === 1) {
                     $keys[] = $m[1];
                     $i += strlen($m[0]);
+
                     continue;
                 }
                 // Not a key — step past the opening quote so we do not
                 // misread a string value as a key candidate.
                 $i++;
+
                 continue;
             }
 
@@ -273,13 +278,13 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
     {
         $blocks = array_values(array_filter(
             $this->extractCreateBlocks($this->seederSourceWithoutComments()),
-            fn(array $b): bool => $b['model'] === $modelName
+            fn (array $b): bool => $b['model'] === $modelName
         ));
 
         $this->assertNotEmpty(
             $blocks,
             "Seeder MUST contain at least one {$modelName}::create() block; "
-            . 'the field-contract test cannot prove the contract if the branch is missing.'
+            .'the field-contract test cannot prove the contract if the branch is missing.'
         );
 
         return array_map(
@@ -309,7 +314,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
                 [],
                 $offending,
                 sprintf(
-                    "%s::create at line %d uses non-fillable keys: [%s]. Allowed \$fillable: [%s].",
+                    '%s::create at line %d uses non-fillable keys: [%s]. Allowed $fillable: [%s].',
                     $modelName,
                     $block['line'],
                     implode(', ', $offending),
@@ -384,8 +389,8 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
                 "'{$legacy}' =>",
                 $source,
                 "SpecialtyRecordSeeder MUST NOT write the universal legacy key `{$legacy}`. "
-                . 'Use `created_by` (User FK) instead of `user_id`, and the per-model FK '
-                . "on patients/appointments instead of `medical_record_id`."
+                .'Use `created_by` (User FK) instead of `user_id`, and the per-model FK '
+                .'on patients/appointments instead of `medical_record_id`.'
             );
         }
     }

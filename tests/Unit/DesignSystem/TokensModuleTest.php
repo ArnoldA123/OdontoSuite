@@ -81,7 +81,10 @@ class TokensModuleTest extends TestCase
     ];
 
     /** Project root absolute path. */
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /**
      * Split a 6-digit hex literal into its decimal r/g/b parts, so assertions
@@ -102,12 +105,12 @@ class TokensModuleTest extends TestCase
 
     private static function tokensPath(): string
     {
-        return self::projectRootPath() . self::TOKENS_REL_PATH;
+        return self::projectRootPath().self::TOKENS_REL_PATH;
     }
 
     private static function tailwindPath(): string
     {
-        return self::projectRootPath() . self::TAILWIND_REL_PATH;
+        return self::projectRootPath().self::TAILWIND_REL_PATH;
     }
 
     /**
@@ -119,7 +122,7 @@ class TokensModuleTest extends TestCase
     private static function loadTokens(): ?array
     {
         $tokensPath = self::tokensPath();
-        if (!is_file($tokensPath)) {
+        if (! is_file($tokensPath)) {
             return null;
         }
 
@@ -149,13 +152,13 @@ JS;
 
         // Write to a .mjs file so node ESM loader is happy without flags.
         $tmp = tempnam(sys_get_temp_dir(), 'tokens_loader_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
         // Run via shell_exec — works around Node 24 on Windows crashing in
         // proc_open with ncrypto::CSPRNG when stdin pipe closes early.
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -170,6 +173,7 @@ JS;
         }
         $jsonStr = substr($output, $jsonStart);
         $decoded = json_decode($jsonStr, true);
+
         return is_array($decoded) ? $decoded : null;
     }
 
@@ -322,6 +326,7 @@ JS;
             $count = (int) (str_contains($line, ':') ? substr($line, strrpos($line, ':') + 1) : $line);
             $total += $count;
         }
+
         return $total;
     }
 
@@ -336,7 +341,7 @@ JS;
         self::assertSame(
             0,
             $count,
-            $message . " (pattern: {$pattern}, count: {$count})"
+            $message." (pattern: {$pattern}, count: {$count})"
         );
     }
 
@@ -424,7 +429,7 @@ JS;
         // New primary ramps (iOS system colors).
         foreach ([
             'systemBlue', 'systemRed', 'systemOrange', 'systemYellow',
-            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray'
+            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray',
         ] as $ramp) {
             $this->assertArrayHasKey(
                 $ramp,
@@ -508,7 +513,7 @@ JS;
         }
 
         foreach ($colors as $rampName => $steps) {
-            if (!is_array($steps)) {
+            if (! is_array($steps)) {
                 continue;
             }
             foreach (array_keys($steps) as $stepName) {
@@ -536,7 +541,7 @@ JS;
 
         foreach ([
             'systemBlue', 'systemRed', 'systemOrange', 'systemYellow',
-            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray'
+            'systemGreen', 'systemIndigo', 'systemPurple', 'systemPink', 'systemGray',
         ] as $ramp) {
             $this->assertArrayHasKey(
                 $ramp,
@@ -695,10 +700,11 @@ JS;
      */
     private static function loadGeneratedCss(): ?string
     {
-        $path = self::projectRootPath() . '/resources/css/tokens.generated.css';
-        if (!is_file($path)) {
+        $path = self::projectRootPath().'/resources/css/tokens.generated.css';
+        if (! is_file($path)) {
             return null;
         }
+
         return (string) file_get_contents($path);
     }
 
@@ -713,16 +719,17 @@ JS;
         );
         $rc = 0;
         $output = [];
-        $exe = self::projectRootPath() . DIRECTORY_SEPARATOR;
+        $exe = self::projectRootPath().DIRECTORY_SEPARATOR;
         // chdir to project root so git picks up the right repo.
         $prev = getcwd();
         if ($prev !== false) {
             chdir($exe);
         }
-        exec('git ls-files --error-unmatch ' . escapeshellarg($relPath) . ' 2>&1', $output, $rc);
+        exec('git ls-files --error-unmatch '.escapeshellarg($relPath).' 2>&1', $output, $rc);
         if ($prev !== false) {
             chdir($prev);
         }
+
         return $rc === 0;
     }
 
@@ -775,7 +782,7 @@ JS;
         $cmd = sprintf(
             'rg --no-heading --count-matches --no-messages %s %s 2>&1',
             escapeshellarg('#FAF9F7|#F2EFE9|#E8E3D8|#C96442|#B05432|#2C7A7B'),
-            escapeshellarg($root . '/resources')
+            escapeshellarg($root.'/resources')
         );
         $output = (string) shell_exec($cmd);
         $total = 0;
@@ -845,7 +852,7 @@ JS;
                 strtoupper((string) $colors[self::ACCENT_RAMP][$step]),
                 strtoupper((string) $colors[$alias][$step]),
                 "tokens.colors.{$alias}.{$step} must alias "
-                    . self::ACCENT_RAMP . "-{$step}"
+                    .self::ACCENT_RAMP."-{$step}"
             );
         }
 
@@ -1006,6 +1013,7 @@ JS;
                 $palette[$name][$step[1]] = $step[2];
             }
         }
+
         return $palette;
     }
 
@@ -1114,7 +1122,7 @@ JS;
         $this->assertSame(
             strtoupper((string) $tokens['colors'][self::ACCENT_RAMP]['500']),
             strtoupper((string) $tokens['focusRing']['color']),
-            'tokens.focusRing.color must equal ' . self::ACCENT_RAMP . '-500 (the accent ramp)'
+            'tokens.focusRing.color must equal '.self::ACCENT_RAMP.'-500 (the accent ramp)'
         );
         $this->assertSame(0.20, (float) $tokens['focusRing']['alpha'], 'tokens.focusRing.alpha must be 0.20');
         $this->assertSame('2px', $tokens['focusRing']['offset'], 'tokens.focusRing.offset must be 2px');
@@ -1158,7 +1166,7 @@ JS;
         $this->assertSame('none', (string) $tokens['elevation'][0], 'tokens.elevation.0 must be "none"');
 
         [$r, $g, $b] = self::hexToRgbParts((string) $tokens['colors']['label']['secondaryLabel']);
-        $huePattern = '/rgba\(\s*' . $r . '\s*,\s*' . $g . '\s*,\s*' . $b . '\s*,/';
+        $huePattern = '/rgba\(\s*'.$r.'\s*,\s*'.$g.'\s*,\s*'.$b.'\s*,/';
 
         for ($rung = 1; $rung <= 4; $rung++) {
             $this->assertArrayHasKey($rung, $tokens['elevation'], "tokens.elevation.{$rung} must exist");

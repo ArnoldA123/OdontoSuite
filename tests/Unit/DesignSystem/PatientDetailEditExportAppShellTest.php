@@ -85,7 +85,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::PATIENT_DETAIL_PATH,
+            dirname(__DIR__, 3).self::PATIENT_DETAIL_PATH,
         ];
     }
 
@@ -107,8 +107,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<AppLayout\b/', $src),
             sprintf(
                 '%s MUST reference AppLayout (canvas-surface wrapper per DLR-CORE-001). '
-                    . 'The pacientes design acknowledges the page file does not need a direct '
-                    . 'bg-canvas reference -- the AppLayout provides it.',
+                    .'The pacientes design acknowledges the page file does not need a direct '
+                    .'bg-canvas reference -- the AppLayout provides it.',
                 $path
             )
         );
@@ -135,8 +135,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             $modal,
             sprintf(
                 '%s Edit modal surface MUST NOT contain the legacy border-theme literal '
-                    . '(PAC-EDIT-001 / DLR-R-002). UiModal owns the header divider via '
-                    . 'its built-in hairline token.',
+                    .'(PAC-EDIT-001 / DLR-R-002). UiModal owns the header divider via '
+                    .'its built-in hairline token.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -162,8 +162,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             preg_match('/(?<![\w-])focus:ring-primary-500(?![\w-])/', $modal),
             sprintf(
                 '%s Edit modal surface MUST NOT contain the legacy focus:ring-primary-500 '
-                    . 'alias (PAC-EDIT-001 / DLR-R-004). UiSelect consumes the composed '
-                    . 'var(--focus-ring-default) token.',
+                    .'alias (PAC-EDIT-001 / DLR-R-004). UiSelect consumes the composed '
+                    .'var(--focus-ring-default) token.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -194,7 +194,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             preg_match_all('/<UiModal\b/', $modal),
             sprintf(
                 '%s MUST consume UiModal for the Edit Patient modal '
-                    . '(PAC-EDIT-001). Found %d.',
+                    .'(PAC-EDIT-001). Found %d.',
                 self::SHARED_FORM_PATH,
                 preg_match_all('/<UiModal\b/', $modal)
             )
@@ -208,7 +208,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
                 preg_match('/(?<![\w-])bg-black\s+bg-opacity-50(?![\w-])/', $content),
                 sprintf(
                     '%s MUST NOT keep the legacy bg-black bg-opacity-50 modal backdrop '
-                        . '(PAC-EDIT-001). UiModal owns the backdrop + focus trap + iOS motion.',
+                        .'(PAC-EDIT-001). UiModal owns the backdrop + focus trap + iOS motion.',
                     $file
                 )
             );
@@ -236,8 +236,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             preg_match('/<select\b/i', $modal),
             sprintf(
                 '%s Edit modal surface MUST NOT contain a raw select element '
-                    . '(PAC-EDIT-001 / DLR-R-009). Use UiSelect for the gender + is_active '
-                    . 'dropdowns.',
+                    .'(PAC-EDIT-001 / DLR-R-009). Use UiSelect for the gender + is_active '
+                    .'dropdowns.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -264,7 +264,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             preg_match_all('/<UiSelect\b/', $modal),
             sprintf(
                 '%s Edit modal surface MUST consume UiSelect for BOTH the gender dropdown '
-                    . 'AND the is_active dropdown (PAC-EDIT-001). Found %d.',
+                    .'AND the is_active dropdown (PAC-EDIT-001). Found %d.',
                 self::SHARED_FORM_PATH,
                 preg_match_all('/<UiSelect\b/', $modal)
             )
@@ -378,7 +378,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST use UiButton for the Export trigger with @click="exportPatientFile" '
-                    . '(PAC-EXP-001). The raw button + manual class strings are legacy.',
+                    .'(PAC-EXP-001). The raw button + manual class strings are legacy.',
                 $path
             )
         );
@@ -392,7 +392,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT keep a raw button for the Export trigger '
-                    . '(PAC-EXP-001). The UiButton primitive is the canonical affordance.',
+                    .'(PAC-EXP-001). The UiButton primitive is the canonical affordance.',
                 $path
             )
         );
@@ -429,7 +429,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve localStorage.getItem(auth_token) (PAC-EXP-001). '
-                    . 'The Bearer token read is the first link in the binary download chain.',
+                    .'The Bearer token read is the first link in the binary download chain.',
                 $path
             )
         );
@@ -442,7 +442,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve the Authorization Bearer token header (PAC-EXP-001). '
-                    . 'The Bearer token is the auth contract for the binary download endpoint.',
+                    .'The Bearer token is the auth contract for the binary download endpoint.',
                 $path
             )
         );
@@ -455,7 +455,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve response.blob() (PAC-EXP-001). The blob is the binary '
-                    . 'stream that gets anchored to the download link.',
+                    .'stream that gets anchored to the download link.',
                 $path
             )
         );
@@ -468,8 +468,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve window.URL.createObjectURL(blob) (PAC-EXP-001). '
-                    . 'The Object URL is the only safe way to download a Bearer-token-authenticated '
-                    . 'binary stream; useApi() JSON wrapper would corrupt the stream.',
+                    .'The Object URL is the only safe way to download a Bearer-token-authenticated '
+                    .'binary stream; useApi() JSON wrapper would corrupt the stream.',
                 $path
             )
         );
@@ -482,7 +482,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve link.download = ... (PAC-EXP-001). The download attribute '
-                    . 'triggers the browser native download flow with the binary payload.',
+                    .'triggers the browser native download flow with the binary payload.',
                 $path
             )
         );
@@ -495,7 +495,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve link.click() (PAC-EXP-001). The click is the trigger for '
-                    . 'the browser native download flow.',
+                    .'the browser native download flow.',
                 $path
             )
         );
@@ -508,7 +508,7 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve window.URL.revokeObjectURL(...) (PAC-EXP-001). The '
-                    . 'revocation releases the Object URL memory after the download completes.',
+                    .'revocation releases the Object URL memory after the download completes.',
                 $path
             )
         );
@@ -536,8 +536,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST preserve the /api/patients/INTERPOLATION/export?format=... endpoint URL '
-                    . '(PAC-EXP-001). The patient resource endpoint is the contract for the '
-                    . 'binary export action.',
+                    .'(PAC-EXP-001). The patient resource endpoint is the contract for the '
+                    .'binary export action.',
                 $path
             )
         );
@@ -551,8 +551,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT wrap the export fetch in useApi() (PAC-EXP-001). '
-                    . 'The JSON envelope from useApi() would corrupt the binary stream; '
-                    . 'the raw fetch + Bearer token pattern is the only safe path.',
+                    .'The JSON envelope from useApi() would corrupt the binary stream; '
+                    .'the raw fetch + Bearer token pattern is the only safe path.',
                 $path
             )
         );
@@ -583,8 +583,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the error.response.data.message read in the catch block '
-                    . '(PAC-EDIT-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
-                    . 'via useToast.',
+                    .'(PAC-EDIT-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
+                    .'via useToast.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -597,8 +597,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the error.response.data.errors read + the '
-                    . 'Object.values(errors).flat() flattening '
-                    . '(PAC-EDIT-001). The 422 validation bag surfaces verbatim via useToast.',
+                    .'Object.values(errors).flat() flattening '
+                    .'(PAC-EDIT-001). The 422 validation bag surfaces verbatim via useToast.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -631,8 +631,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep put(/api/patients/INTERPOLATION, data) in the submit function '
-                    . '(PAC-EDIT-001 / PAC-CON-001). The useApi() PUT signature is '
-                    . 'the canonical pattern for the Edit modal form submit.',
+                    .'(PAC-EDIT-001 / PAC-CON-001). The useApi() PUT signature is '
+                    .'the canonical pattern for the Edit modal form submit.',
                 self::SHARED_FORM_PATH
             )
         );
@@ -647,8 +647,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
                 ),
                 sprintf(
                     '%s MUST NOT import axios directly (PAC-CON-001). The useApi() wrapper is '
-                        . 'the canonical HTTP primitive; axios-direct would silently bypass the '
-                        . '401 redirect + JSON envelope handling.',
+                        .'the canonical HTTP primitive; axios-direct would silently bypass the '
+                        .'401 redirect + JSON envelope handling.',
                     $file
                 )
             );
@@ -657,16 +657,17 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
     /** Source of the shared edit/create form component (re-anchored scan target). */
     private static function sharedFormSource(): ?string
     {
-        return self::readSource(dirname(__DIR__, 3) . self::SHARED_FORM_PATH);
+        return self::readSource(dirname(__DIR__, 3).self::SHARED_FORM_PATH);
     }
 }

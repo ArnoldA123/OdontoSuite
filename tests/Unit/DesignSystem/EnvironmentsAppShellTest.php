@@ -42,12 +42,12 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::LIST_PAGE_PATH,
+            dirname(__DIR__, 3).self::LIST_PAGE_PATH,
             // PR-ambientes-02 — detail page added to the polished file set so
             // the 5 inherited DLR-R rules (canvas token, no border-theme,
             // focus ring, no <style scoped>, no legacy focus-ring aliases)
             // also fire against the detail page.
-            dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH,
+            dirname(__DIR__, 3).self::DETAIL_PAGE_PATH,
         ];
     }
 
@@ -63,7 +63,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_status_filter_uses_ui_select(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -77,7 +77,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume <UiSelect> for the status filter (AMB-01-002). '
-                . 'Raw `<select class="border-theme">` controls are deprecated.',
+                .'Raw `<select class="border-theme">` controls are deprecated.',
                 $path
             )
         );
@@ -90,7 +90,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#<select\b[^>]*\bborder-theme(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep a raw `<select class="border-theme">` status '
-                . 'filter (AMB-01-002 / DLR-R-002). All selects MUST consume <UiSelect>.',
+                .'filter (AMB-01-002 / DLR-R-002). All selects MUST consume <UiSelect>.',
                 $path
             )
         );
@@ -115,7 +115,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_table_consumes_data_table_primitive(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -127,7 +127,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $uiDataTableCount,
             sprintf(
                 '%s MUST consume `<UiDataTable>` for the list table (AMB-01-003 / T2-D1). '
-                . 'Found %d <UiDataTable> reference(s); expected at least 1.',
+                .'Found %d <UiDataTable> reference(s); expected at least 1.',
                 $path,
                 $uiDataTableCount
             )
@@ -142,7 +142,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST consume `var(--color-hairline)` on the list panel chrome '
-                . '(AMB-01-003).',
+                .'(AMB-01-003).',
                 $path
             )
         );
@@ -154,7 +154,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $divideThemeCount,
             sprintf(
                 '%s MUST NOT keep the legacy `divide-theme` literal (AMB-01-003 / '
-                . 'global guard rail — hairline token). Found %d `divide-theme` match(es).',
+                .'global guard rail — hairline token). Found %d `divide-theme` match(es).',
                 $path,
                 $divideThemeCount
             )
@@ -173,7 +173,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_row_avatar_uses_system_blue(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -183,7 +183,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])bg-systemBlue-50(?![\w-])#', $src),
             sprintf(
                 '%s MUST consume `bg-systemBlue-50` on the row avatar background '
-                . '(AMB-01-004). Replace `bg-primary-100`.',
+                .'(AMB-01-004). Replace `bg-primary-100`.',
                 $path
             )
         );
@@ -194,7 +194,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])text-systemBlue-700(?![\w-])#', $src),
             sprintf(
                 '%s MUST consume `text-systemBlue-700` on the row avatar initial '
-                . '(AMB-01-004). Replace `text-accent`.',
+                .'(AMB-01-004). Replace `text-accent`.',
                 $path
             )
         );
@@ -205,7 +205,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])bg-primary-100(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-primary-100` row-avatar alias '
-                . '(AMB-01-004 / DLR-R-009). Found a match.',
+                .'(AMB-01-004 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -216,7 +216,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])text-accent(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `text-accent` row-avatar alias '
-                . '(AMB-01-004 / DLR-R-009). Found a match.',
+                .'(AMB-01-004 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -249,7 +249,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_action_buttons_use_ui_button_variants(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -261,8 +261,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $ghostCount,
             sprintf(
                 '%s MUST consume `<UiButton variant="ghost">` for Ver detalle + Editar + Eliminar '
-                . '(AMB-01-005 / D-modal-link). Found %d `variant="ghost"` reference(s); '
-                . 'expected at least 3.',
+                .'(AMB-01-005 / D-modal-link). Found %d `variant="ghost"` reference(s); '
+                .'expected at least 3.',
                 $path,
                 $ghostCount
             )
@@ -277,9 +277,9 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $linkCount,
             sprintf(
                 '%s MUST NOT consume `<UiButton variant="link">` (AMB-01-005 / D-modal-link). '
-                . '`components/ui/Button.vue` has no `link` variant; the prop falls back to '
-                . '`primary`. Use `variant="ghost"` (the text-button rung). '
-                . 'Found %d `variant="link"` reference(s).',
+                .'`components/ui/Button.vue` has no `link` variant; the prop falls back to '
+                .'`primary`. Use `variant="ghost"` (the text-button rung). '
+                .'Found %d `variant="link"` reference(s).',
                 $path,
                 $linkCount
             )
@@ -290,7 +290,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])text-systemRed-700(?![\w-])#', $src),
             sprintf(
                 '%s MUST consume `text-systemRed-700` on the Eliminar button body '
-                . '(AMB-01-005). Replace `text-red-600`.',
+                .'(AMB-01-005). Replace `text-red-600`.',
                 $path
             )
         );
@@ -303,7 +303,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])text-accent(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep legacy `text-accent` action-button classes '
-                . '(AMB-01-005 / DLR-R-009). Found a match.',
+                .'(AMB-01-005 / DLR-R-009). Found a match.',
                 $path
             )
         );
@@ -314,7 +314,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])hover:text-accent-hover(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `hover:text-accent-hover` action-button alias '
-                . '(AMB-01-005). Found a match.',
+                .'(AMB-01-005). Found a match.',
                 $path
             )
         );
@@ -325,7 +325,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])text-red-600(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `text-red-600` Tailwind ramp '
-                . '(AMB-01-005). Found a match.',
+                .'(AMB-01-005). Found a match.',
                 $path
             )
         );
@@ -336,7 +336,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])hover:text-red-900(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `hover:text-red-900` Tailwind ramp '
-                . '(AMB-01-005). Found a match.',
+                .'(AMB-01-005). Found a match.',
                 $path
             )
         );
@@ -359,7 +359,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_loading_state_uses_skeleton_primitive(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -373,7 +373,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume `<UiSkeleton />` for the list loading state '
-                . '(AMB-01-006 / T2-D6). Replace the loading spinner with the skeleton primitive.',
+                .'(AMB-01-006 / T2-D6). Replace the loading spinner with the skeleton primitive.',
                 $path
             )
         );
@@ -385,7 +385,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#<UiLoadingSpinner\b#', $src),
             sprintf(
                 '%s MUST NOT keep `<UiLoadingSpinner>` for the list loading state '
-                . '(AMB-01-006 / T2-D6). Loading renders `<UiSkeleton>`.',
+                .'(AMB-01-006 / T2-D6). Loading renders `<UiSkeleton>`.',
                 $path
             )
         );
@@ -399,7 +399,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $borderAccentCount,
             sprintf(
                 '%s MUST NOT keep the legacy `border-accent` spinner alias '
-                . '(AMB-01-006 / DLR-R-009). Found %d `border-accent` match(es).',
+                .'(AMB-01-006 / DLR-R-009). Found %d `border-accent` match(es).',
                 $path,
                 $borderAccentCount
             )
@@ -419,7 +419,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_empty_state_uses_ui_component(): void
     {
-        $path = dirname(__DIR__, 3) . self::LIST_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::LIST_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -431,8 +431,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $uiEmptyStateCount,
             sprintf(
                 '%s MUST consume `<UiEmptyState title="..." description="..." />` for '
-                . 'the list empty state (AMB-01-007). Found %d <UiEmptyState> reference(s); '
-                . 'the unused import at the top of the file must be wired up.',
+                .'the list empty state (AMB-01-007). Found %d <UiEmptyState> reference(s); '
+                .'the unused import at the top of the file must be wired up.',
                 $path,
                 $uiEmptyStateCount
             )
@@ -448,7 +448,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT keep the hand-rolled `<svg class="mx-auto h-12 text-theme-secondary">` '
-                . 'empty-state icon (AMB-01-007). Replace with <UiEmptyState title="..." description="..." />.',
+                .'empty-state icon (AMB-01-007). Replace with <UiEmptyState title="..." description="..." />.',
                 $path
             )
         );
@@ -460,8 +460,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT keep the hand-rolled `<p>No se encontraron ambientes</p>` '
-                . 'empty-state paragraph (AMB-01-007). The title MUST live on the '
-                . '<UiEmptyState title="..."> prop.',
+                .'empty-state paragraph (AMB-01-007). The title MUST live on the '
+                .'<UiEmptyState title="..."> prop.',
                 $path
             )
         );
@@ -476,10 +476,11 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -505,7 +506,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_tabs_use_ui_tabs(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -519,8 +520,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume `<UiTabs v-model="activeTab" :tabs="tabs">` for the '
-                . '2-tab drawer (AMB-02-003). Replace the raw `<nav class="flex space-x-8 border-b border-theme">` '
-                . 'on line 70 with the canonical primitive.',
+                .'2-tab drawer (AMB-02-003). Replace the raw `<nav class="flex space-x-8 border-b border-theme">` '
+                .'on line 70 with the canonical primitive.',
                 $path
             )
         );
@@ -537,7 +538,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $borderAccentCount,
             sprintf(
                 '%s MUST NOT keep the legacy `border-accent text-accent` active-tab '
-                . 'indicator (AMB-02-003 / DLR-R-009). Found %d match(es).',
+                .'indicator (AMB-02-003 / DLR-R-009). Found %d match(es).',
                 $path,
                 $borderAccentCount
             )
@@ -557,7 +558,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_no_gradient_class(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -567,7 +568,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])bg-systemBlue-50(?![\w-])#', $src),
             sprintf(
                 '%s MUST consume `bg-systemBlue-50` on the header avatar '
-                . '(AMB-02-004). Replace `bg-gradient-accent` with a flat ramp.',
+                .'(AMB-02-004). Replace `bg-gradient-accent` with a flat ramp.',
                 $path
             )
         );
@@ -581,7 +582,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $gradientCount,
             sprintf(
                 '%s MUST NOT keep any `bg-gradient-*` class (AMB-02-004 / '
-                . 'global §11 — no gradients). Found %d `bg-gradient-*` match(es).',
+                .'global §11 — no gradients). Found %d `bg-gradient-*` match(es).',
                 $path,
                 $gradientCount
             )
@@ -606,7 +607,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_summary_avatar_icon_uses_tint_foreground(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -616,8 +617,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#(?<![\w-])text-systemBlue-700(?![\w-])#', $src),
             sprintf(
                 '%s MUST consume `text-systemBlue-700` as the foreground on the '
-                . '`bg-systemBlue-50` avatar tint (AMB-02-004 companion / T4). '
-                . 'Replace `text-white`.',
+                .'`bg-systemBlue-50` avatar tint (AMB-02-004 companion / T4). '
+                .'Replace `text-white`.',
                 $path
             )
         );
@@ -629,7 +630,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])text-white(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep `text-white` on light avatar tints (AMB-02-004 '
-                . 'companion / T4). Found a match.',
+                .'companion / T4). Found a match.',
                 $path
             )
         );
@@ -647,7 +648,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_audit_empty_state_uses_ui_component(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -662,8 +663,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume `<UiEmptyState title="No hay historial de auditoría" '
-                . 'description="...">` for the audit-log empty state (AMB-02-005). '
-                . 'Replace the hand-rolled gradient SVG + paragraphs on lines 145-167.',
+                .'description="...">` for the audit-log empty state (AMB-02-005). '
+                .'Replace the hand-rolled gradient SVG + paragraphs on lines 145-167.',
                 $path
             )
         );
@@ -676,7 +677,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])bg-gradient-to-br(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `bg-gradient-to-br` audit empty-state '
-                . 'icon alias (AMB-02-005 / global §11). Found a match.',
+                .'icon alias (AMB-02-005 / global §11). Found a match.',
                 $path
             )
         );
@@ -702,7 +703,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_audit_log_uses_ui_card(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -715,8 +716,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST consume `<UiCard variant="glass">` for the audit log item wrapper '
-                . '(AMB-02-006). Replace the hand-rolled `border border-theme rounded-lg p-4` '
-                . 'wrapper on line 172.',
+                .'(AMB-02-006). Replace the hand-rolled `border border-theme rounded-lg p-4` '
+                .'wrapper on line 172.',
                 $path
             )
         );
@@ -727,7 +728,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT keep the legacy `border border-theme rounded-lg p-4` '
-                . 'audit log item wrapper (AMB-02-006). Replace with `<UiCard variant="glass">`.',
+                .'audit log item wrapper (AMB-02-006). Replace with `<UiCard variant="glass">`.',
                 $path
             )
         );
@@ -745,7 +746,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_change_diff_callout_uses_hairline(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -759,8 +760,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST consume `border-l-2 border-[color:var(--color-hairline)]` on the '
-                . 'change-diff callout (AMB-02-006). Replace `border-l-2 border-theme` '
-                . 'on line 198.',
+                .'change-diff callout (AMB-02-006). Replace `border-l-2 border-theme` '
+                .'on line 198.',
                 $path
             )
         );
@@ -771,7 +772,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             preg_match('#(?<![\w-])border-l-2\s+border-theme(?![\w-])#', $src),
             sprintf(
                 '%s MUST NOT keep the legacy `border-l-2 border-theme` change-diff callout '
-                . 'border (AMB-02-006 / DLR-R-002). Found a match.',
+                .'border (AMB-02-006 / DLR-R-002). Found a match.',
                 $path
             )
         );
@@ -794,7 +795,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
      */
     public function test_audit_action_badge_uses_legal_variant(): void
     {
-        $path = dirname(__DIR__, 3) . self::DETAIL_PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::DETAIL_PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -804,8 +805,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('#\bgetAuditActionVariant\b#', $src),
             sprintf(
                 '%s MUST declare the `getAuditActionVariant` helper (AMB-02-002 / '
-                . 'DLR-AMB-005 EXCEPTION #2). The audit action badge uses it to '
-                . 'pick the <UiBadge> variant.',
+                .'DLR-AMB-005 EXCEPTION #2). The audit action badge uses it to '
+                .'pick the <UiBadge> variant.',
                 $path
             )
         );
@@ -822,8 +823,8 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST NOT return the illegal <UiBadge> variant `\'secondary\'` from '
-                . '`getAuditActionVariant` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2). '
-                . 'Replace `return \'secondary\'` with `return \'neutral\'`.',
+                .'`getAuditActionVariant` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2). '
+                .'Replace `return \'secondary\'` with `return \'neutral\'`.',
                 $path
             )
         );
@@ -838,7 +839,7 @@ class EnvironmentsAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST map the `getAuditActionVariant` default case to '
-                . '`return \'neutral\'` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2).',
+                .'`return \'neutral\'` (AMB-02-002 / DLR-AMB-005 EXCEPTION #2).',
                 $path
             )
         );

@@ -19,19 +19,20 @@ class PatientControllerIndexSortTest extends TestCase
 {
     private static function controllerFile(): string
     {
-        return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/PatientController.php';
+        return dirname(__DIR__, 3).'/app/Http/Controllers/Api/PatientController.php';
     }
 
     private function controllerSource(): string
     {
         $source = file_get_contents(self::controllerFile());
         $this->assertNotFalse($source, 'PatientController source MUST be readable.');
+
         return $source;
     }
 
     private function extractMethodBody(string $source, string $methodName): ?string
     {
-        if (!preg_match('/function\s+' . preg_quote($methodName, '/') . '\s*\([^)]*\)\s*:[^{]*\{/', $source, $matches, PREG_OFFSET_CAPTURE)) {
+        if (! preg_match('/function\s+'.preg_quote($methodName, '/').'\s*\([^)]*\)\s*:[^{]*\{/', $source, $matches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
 
@@ -49,6 +50,7 @@ class PatientControllerIndexSortTest extends TestCase
                 }
             }
         }
+
         return null;
     }
 

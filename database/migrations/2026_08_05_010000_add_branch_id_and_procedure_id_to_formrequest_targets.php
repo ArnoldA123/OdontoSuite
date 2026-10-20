@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Slice 02 / T-02.7, T-02.9 — additive-only nullable columns to support the
  * expanded FormRequests:
  *

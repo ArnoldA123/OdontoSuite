@@ -47,13 +47,13 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::CALENDAR_PATH,
+            dirname(__DIR__, 3).self::CALENDAR_PATH,
         ];
     }
 
     private static function calendarSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', $path));
 
@@ -62,7 +62,7 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
 
     private static function dateMathSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::DATE_MATH_PATH;
+        $path = dirname(__DIR__, 3).self::DATE_MATH_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', $path));
 
@@ -203,7 +203,7 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
         ] as $needle => $label) {
             $this->assertSame(
                 0,
-                preg_match('#' . preg_quote($needle, '#') . '#', $slice),
+                preg_match('#'.preg_quote($needle, '#').'#', $slice),
                 sprintf(
                     '%s month body MUST NOT leak the Day/Week `%s` (`%s`) — month chips are click-only, no drag, no click-to-create (T5/T6 scope).',
                     self::CALENDAR_PATH,
@@ -303,7 +303,7 @@ class CitasCalendarMonthViewTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s `drillDownToDate` MUST parse the date from LOCAL components (no UTC `new Date(\'YYYY-MM-DD\')`, CITAS-TZ-001) and '
-                . 'reuse `changeView(\'day\')` AFTER setting `currentDate` (T6/D8 wiring).',
+                .'reuse `changeView(\'day\')` AFTER setting `currentDate` (T6/D8 wiring).',
                 self::CALENDAR_PATH
             )
         );

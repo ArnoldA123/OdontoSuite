@@ -101,7 +101,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH,
+            dirname(__DIR__, 3).self::PATIENTS_LIST_PATH,
         ];
     }
 
@@ -122,7 +122,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_no_border_theme(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -136,8 +136,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $listSection,
             sprintf(
                 '%s MUST NOT contain `border-theme` in the LIST section (PAC-LIST-001 / DLR-R-002). '
-                    . 'Use `border-hairline` or `divide-[color:var(--color-hairline)]`. '
-                    . 'The 2 remaining `border-theme` literals live inside the inlined modals (PR-pacientes-02).',
+                    .'Use `border-hairline` or `divide-[color:var(--color-hairline)]`. '
+                    .'The 2 remaining `border-theme` literals live inside the inlined modals (PR-pacientes-02).',
                 $path
             )
         );
@@ -147,7 +147,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $listSection,
             sprintf(
                 '%s MUST NOT contain `divide-theme` in the LIST section (PAC-LIST-001 / DLR-R-002). '
-                    . 'Use `divide-[color:var(--color-hairline)]` for row dividers.',
+                    .'Use `divide-[color:var(--color-hairline)]` for row dividers.',
                 $path
             )
         );
@@ -163,7 +163,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_no_legacy_status_pills(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -172,11 +172,11 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         $forbidden = ['bg-success-badge', 'bg-danger-badge'];
         foreach ($forbidden as $alias) {
             $this->assertDoesNotMatchRegularExpression(
-                '/(?<![\w-])' . preg_quote($alias, '/') . '(?![\w-])/',
+                '/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/',
                 $listSection,
                 sprintf(
                     '%s MUST NOT keep the legacy status-pill alias `%s` (PAC-LIST-001 / DLR-R-009). '
-                        . 'Replace with the tokenized systemGreen-50/700 or systemRed-50/700 ramps.',
+                        .'Replace with the tokenized systemGreen-50/700 or systemRed-50/700 ramps.',
                     $path,
                     $alias
                 )
@@ -192,7 +192,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_ui_select_for_status_filter(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -205,7 +205,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST consume `<UiSelect v-model="statusFilter">` for the status filter (PAC-LIST-001). '
-                    . 'The raw `<select>` with `focus:ring-primary-500` is forbidden by DLR-R-004.',
+                    .'The raw `<select>` with `focus:ring-primary-500` is forbidden by DLR-R-004.',
                 $path
             )
         );
@@ -233,7 +233,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_uses_ui_input_for_search(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -269,7 +269,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_no_hover_lift(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -280,7 +280,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $listSection,
             sprintf(
                 '%s MUST NOT keep the legacy `hover-lift` affordance on the 4 stat cards '
-                    . '(PAC-LIST-001 / DLR-R-009). The token-aligned affordance is `<UiCard clickable>`.',
+                    .'(PAC-LIST-001 / DLR-R-009). The token-aligned affordance is `<UiCard clickable>`.',
                 $path
             )
         );
@@ -300,7 +300,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_kpi_cards_are_non_interactive(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -362,7 +362,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_kpi_values_and_row_cells_keep_tabular_nums(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -386,7 +386,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
 
         // 2) The shared row component carries the tokenized form on its
         // document/age cells in BOTH variants (table row + mobile card).
-        $rowPath = dirname(__DIR__, 3) . self::PATIENT_ROW_PATH;
+        $rowPath = dirname(__DIR__, 3).self::PATIENT_ROW_PATH;
         $rowSrc = self::readSource($rowPath);
         $this->assertNotNull($rowSrc, sprintf('%s must be readable.', $rowPath));
 
@@ -417,7 +417,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_patients_blocks_render_in_reading_order(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -446,7 +446,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             0,
             preg_match_all('/<h1\b/', $src),
             'The page must own no h1: the hero title is a non-heading .page-title '
-                . 'and the app-shell topbar (AppLayout.vue) owns the page\'s single h1.'
+                .'and the app-shell topbar (AppLayout.vue) owns the page\'s single h1.'
         );
     }
 
@@ -458,7 +458,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_hero_band_carries_the_login_surface_vocabulary(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -491,7 +491,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             '/<p[^>]*class="page-title[^"]*"[^>]*>\s*Pacientes\s*<\/p>/',
             $src,
             'The hero band must render the page title "Pacientes" as a non-heading element '
-                . '(duplicate-h1 fix; the app-shell topbar owns the single h1).'
+                .'(duplicate-h1 fix; the app-shell topbar owns the single h1).'
         );
         $this->assertStringContainsString(
             'OdontoSuite',
@@ -524,7 +524,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_no_style_scoped(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -533,7 +533,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT contain a `<style scoped>` block (PR-pacientes-01 / DLR-R-021 / DLR-CORE-008). '
-                    . 'The single `@media (max-width: 640px)` rule at the old line 1315 is a no-op; remove it.',
+                    .'The single `@media (max-width: 640px)` rule at the old line 1315 is a no-op; remove it.',
                 $path
             )
         );
@@ -553,7 +553,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_no_text_green_red_600_action_buttons(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -562,11 +562,11 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         $forbidden = ['text-green-600', 'text-red-600'];
         foreach ($forbidden as $alias) {
             $this->assertDoesNotMatchRegularExpression(
-                '/(?<![\w-])' . preg_quote($alias, '/') . '(?![\w-])/',
+                '/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/',
                 $listSection,
                 sprintf(
                     '%s MUST NOT keep the raw Tailwind colour alias `%s` on mobile action buttons '
-                        . '(PR-pacientes-01 / DLR-R-009). Use the tokenized `text-systemGreen-700` / `text-systemRed-700` ramps.',
+                        .'(PR-pacientes-01 / DLR-R-009). Use the tokenized `text-systemGreen-700` / `text-systemRed-700` ramps.',
                     $path,
                     $alias
                 )
@@ -599,8 +599,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<AppLayout\b/', $src),
             sprintf(
                 '%s MUST reference `<AppLayout>` (the canvas-surface wrapper per DLR-CORE-001). '
-                    . 'The pacientes design acknowledges the page file does not need a direct '
-                    . '`bg-canvas` reference — the AppLayout provides it.',
+                    .'The pacientes design acknowledges the page file does not need a direct '
+                    .'`bg-canvas` reference — the AppLayout provides it.',
                 $path
             )
         );
@@ -635,8 +635,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $listSection,
             sprintf(
                 '%s LIST section must not contain the legacy `border-theme` literal (DLR-R-002). '
-                    . 'Use the `border-hairline` / `--color-hairline` token instead. '
-                    . 'The 2 remaining `border-theme` literals live inside the inlined modals (PR-pacientes-02).',
+                    .'Use the `border-hairline` / `--color-hairline` token instead. '
+                    .'The 2 remaining `border-theme` literals live inside the inlined modals (PR-pacientes-02).',
                 $path
             )
         );
@@ -656,7 +656,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_use_echo_patients_channel_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -666,8 +666,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match("#privateChannel\s*\(\s*['\"]patients['\"]\s*\)#", $src),
             sprintf(
                 '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
-                    . 'The channel is the canonical realtime pipe for patient events on the list page '
-                    . 'and it is private because the payload carries clinical data.',
+                    .'The channel is the canonical realtime pipe for patient events on the list page '
+                    .'and it is private because the payload carries clinical data.',
                 $path
             )
         );
@@ -681,7 +681,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         foreach ($requiredEvents as $event) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '#\.listen\s*\(\s*[\'"]' . preg_quote($event, '#') . '[\'"]#',
+                    '#\.listen\s*\(\s*[\'"]'.preg_quote($event, '#').'[\'"]#',
                     $src
                 ),
                 sprintf(
@@ -713,7 +713,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      */
     public function test_list_legacy_pagination_import_preserved(): void
     {
-        $path = dirname(__DIR__, 3) . self::PATIENTS_LIST_PATH;
+        $path = dirname(__DIR__, 3).self::PATIENTS_LIST_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -724,7 +724,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the legacy `import Pagination from .../Pagination.vue` import verbatim '
-                    . '(PAC-REV-001 / OQ#7). The consolidation to `<UiPagination>` rides global PR3.',
+                    .'(PAC-REV-001 / OQ#7). The consolidation to `<UiPagination>` rides global PR3.',
                 $path
             )
         );
@@ -744,7 +744,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             $src,
             sprintf(
                 '%s MUST NOT silently rename to `import UiPagination` (PAC-REV-001 / OQ#7). '
-                    . 'The consolidation rides global PR3 (Recepción procedimientos).',
+                    .'The consolidation rides global PR3 (Recepción procedimientos).',
                 $path
             )
         );
@@ -752,10 +752,11 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -780,6 +781,7 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
         if ($pos === false) {
             return $src;
         }
+
         return substr($src, 0, $pos);
     }
 }

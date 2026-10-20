@@ -10,7 +10,6 @@ use App\Http\Requests\StoreSpecialtyRecordRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\StoreTreatmentPlanRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
-use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
 /**
@@ -51,7 +50,7 @@ class FormRequestFieldsTest extends TestCase
         $this->assertTrue(class_exists($formRequestClass), "$formRequestClass missing");
 
         /** @var \Illuminate\Foundation\Http\FormRequest $formRequest */
-        $formRequest = new $formRequestClass();
+        $formRequest = new $formRequestClass;
         $rules = $formRequest->rules();
 
         $this->assertArrayHasKey(
@@ -87,7 +86,7 @@ class FormRequestFieldsTest extends TestCase
         ];
 
         foreach ($formRequests as $formRequestClass) {
-            $messages = (new $formRequestClass())->messages();
+            $messages = (new $formRequestClass)->messages();
             $this->assertNotEmpty(
                 $messages,
                 "$formRequestClass::messages() must be non-empty (Spanish locale)"

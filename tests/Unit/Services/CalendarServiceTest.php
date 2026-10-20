@@ -2,24 +2,28 @@
 
 namespace Tests\Unit\Services;
 
-use Tests\TestCase;
-use App\Services\CalendarService;
 use App\Models\Appointment;
+use App\Models\AppointmentType;
+use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
-use App\Models\DentalChair;
-use App\Models\AppointmentType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\CalendarService;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class CalendarServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     private CalendarService $calendarService;
+
     private User $user;
+
     private Patient $patient;
+
     private DentalChair $dentalChair;
+
     private AppointmentType $appointmentType;
 
     protected function setUp(): void
@@ -31,21 +35,21 @@ class CalendarServiceTest extends TestCase
         // Create test data
         $this->user = User::factory()->create([
             'role' => 'odontologo',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $this->patient = Patient::factory()->create([
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $this->dentalChair = DentalChair::factory()->create([
             'is_active' => true,
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         $this->appointmentType = AppointmentType::factory()->create([
             'is_active' => true,
-            'default_duration_minutes' => 60
+            'default_duration_minutes' => 60,
         ]);
     }
 
@@ -62,7 +66,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $date->copy()->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointment2 = Appointment::factory()->create([
@@ -72,7 +76,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $date->copy()->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         // Create appointment for different day
@@ -83,7 +87,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $date->copy()->addDay(),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointments = $this->calendarService->getDayAppointments($date);
@@ -106,7 +110,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfWeek->copy()->addDays(1)->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointment2 = Appointment::factory()->create([
@@ -116,7 +120,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfWeek->copy()->addDays(3)->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         // Create appointment for next week
@@ -127,7 +131,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfWeek->copy()->addWeek(),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointments = $this->calendarService->getWeekAppointments($startOfWeek);
@@ -150,7 +154,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfMonth->copy()->addDays(5)->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointment2 = Appointment::factory()->create([
@@ -160,7 +164,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfMonth->copy()->addDays(15)->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         // Create appointment for next month
@@ -171,7 +175,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startOfMonth->copy()->addMonth(),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointments = $this->calendarService->getMonthAppointments($startOfMonth);
@@ -195,7 +199,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(1)->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointment2 = Appointment::factory()->create([
@@ -205,7 +209,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(3)->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         // Create appointment outside range
@@ -216,7 +220,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(10),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointments = $this->calendarService->getAppointmentsInRange($startDate, $endDate);
@@ -240,7 +244,7 @@ class CalendarServiceTest extends TestCase
             'scheduled_at' => $startDate->copy()->addDays(1)->setTime(9, 0),
             'duration_minutes' => 60,
             'status' => 'scheduled',
-            'notes' => 'Test appointment'
+            'notes' => 'Test appointment',
         ]);
 
         $calendarData = $this->calendarService->getCalendarData($startDate, $endDate);
@@ -255,7 +259,7 @@ class CalendarServiceTest extends TestCase
         // FullCalendar renders `title` as the event label, so it carries the
         // appointment identity; the free-text note travels in extendedProps.
         $this->assertEquals(
-            $appointment->patient->full_name . ' - ' . $appointment->appointmentType->name,
+            $appointment->patient->full_name.' - '.$appointment->appointmentType->name,
             $event['title']
         );
         $this->assertEquals($appointment->notes, $event['extendedProps']['notes']);
@@ -275,7 +279,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(1)->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         Appointment::factory()->create([
@@ -285,7 +289,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(2)->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         Appointment::factory()->create([
@@ -295,7 +299,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $startDate->copy()->addDays(3)->setTime(11, 0),
             'duration_minutes' => 60,
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $stats = $this->calendarService->getCalendarStats($startDate, $endDate);
@@ -318,7 +322,7 @@ class CalendarServiceTest extends TestCase
     {
         $otherUser = User::factory()->create([
             'role' => 'odontologo',
-            'is_active' => true
+            'is_active' => true,
         ]);
 
         $date = Carbon::today();
@@ -331,7 +335,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $date->copy()->setTime(9, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         // Create appointment for other user
@@ -342,7 +346,7 @@ class CalendarServiceTest extends TestCase
             'appointment_type_id' => $this->appointmentType->id,
             'scheduled_at' => $date->copy()->setTime(14, 0),
             'duration_minutes' => 60,
-            'status' => 'scheduled'
+            'status' => 'scheduled',
         ]);
 
         $appointments = $this->calendarService->getDayAppointments($date, $this->user->id);

@@ -74,7 +74,7 @@ class PatientsModuleContractTest extends TestCase
         $admin = $this->admin();
         $patient = $this->patient(['first_name' => 'Anonimo', 'last_name' => 'Total']);
 
-        $show = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/' . $patient->id);
+        $show = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/'.$patient->id);
         $show->assertOk();
         $this->assertNull($show->json('data.document_number'), 'GET /api/patients/{id} MUST NOT fabricate a document_number.');
 
@@ -90,7 +90,7 @@ class PatientsModuleContractTest extends TestCase
         $admin = $this->admin();
         $patient = $this->patient(['document_number' => '45678912']);
 
-        $show = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/' . $patient->id);
+        $show = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/'.$patient->id);
 
         $show->assertOk();
         $this->assertSame('45678912', $show->json('data.document_number'));
@@ -109,7 +109,7 @@ class PatientsModuleContractTest extends TestCase
         $patient = $this->patient(['first_name' => 'Buscable', 'last_name' => 'Zeta']);
         $this->assertGreaterThanOrEqual(10, $patient->id);
 
-        $byId = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/search?q=' . $patient->id);
+        $byId = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/search?q='.$patient->id);
 
         $byId->assertOk();
         $this->assertCount(
@@ -149,7 +149,7 @@ class PatientsModuleContractTest extends TestCase
         $first = $this->patient(['first_name' => 'Primero', 'phone' => '+51 999 111 222']);
         $second = $this->patient(['first_name' => 'Segundo', 'phone' => '+51 999 333 444']);
 
-        $taken = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/' . $second->id, [
+        $taken = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/'.$second->id, [
             'first_name' => 'Segundo',
             'last_name' => 'Prueba',
             'phone' => '+51 999 111 222',
@@ -157,7 +157,7 @@ class PatientsModuleContractTest extends TestCase
         $taken->assertStatus(422);
         $this->assertArrayHasKey('phone', $taken->json('errors'));
 
-        $own = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/' . $second->id, [
+        $own = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/'.$second->id, [
             'first_name' => 'Segundo',
             'last_name' => 'Prueba',
             'phone' => '+51 999 333 444',
@@ -280,7 +280,7 @@ class PatientsModuleContractTest extends TestCase
         $this->patient();
 
         foreach (['-5', '0', 'abc'] as $value) {
-            $response = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?per_page=' . $value);
+            $response = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?per_page='.$value);
 
             $response->assertOk();
             $this->assertSame(
@@ -320,7 +320,7 @@ class PatientsModuleContractTest extends TestCase
         $admin = $this->admin();
         $patient = $this->patient();
 
-        $update = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/' . $patient->id, [
+        $update = $this->actingAs($admin, 'sanctum')->putJson('/api/patients/'.$patient->id, [
             'first_name' => 'Sin',
             'last_name' => 'Sede',
             'branch_id' => null,
@@ -340,7 +340,7 @@ class PatientsModuleContractTest extends TestCase
         $inNorte = $this->patient(['first_name' => 'Norte', 'branch_id' => $norte->id]);
         $floating = $this->patient(['first_name' => 'Flotante']);
 
-        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?branch_id=' . $centro->id);
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?branch_id='.$centro->id);
 
         $response->assertOk();
         $ids = collect($response->json('data'))->pluck('id')->all();
@@ -372,7 +372,7 @@ class PatientsModuleContractTest extends TestCase
         $this->patient(['first_name' => 'Buscable', 'last_name' => 'Otro']);
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/patients/search?q=Buscable&branch_id=' . $centro->id);
+            ->getJson('/api/patients/search?q=Buscable&branch_id='.$centro->id);
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
@@ -397,7 +397,7 @@ class PatientsModuleContractTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/' . $patient->id);
+        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/'.$patient->id);
 
         $response->assertStatus(422);
         $this->assertStringContainsString('historia', strtolower($response->json('message')));
@@ -423,7 +423,7 @@ class PatientsModuleContractTest extends TestCase
             'status' => 'completed',
         ]);
 
-        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/' . $patient->id);
+        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/'.$patient->id);
 
         $response->assertStatus(422);
         $this->assertSame(0, Patient::onlyTrashed()->count());
@@ -434,7 +434,7 @@ class PatientsModuleContractTest extends TestCase
         $admin = $this->admin();
         $patient = $this->patient(['first_name' => 'Limpio', 'last_name' => 'Sin Historial']);
 
-        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/' . $patient->id);
+        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/'.$patient->id);
 
         $response->assertOk();
         $this->assertSame(1, Patient::onlyTrashed()->count());
@@ -451,7 +451,7 @@ class PatientsModuleContractTest extends TestCase
             'created_by' => $admin->id,
         ]);
 
-        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/' . $patient->id);
+        $response = $this->actingAs($admin, 'sanctum')->deleteJson('/api/patients/'.$patient->id);
 
         $response->assertStatus(422);
         $this->assertSame(0, Patient::onlyTrashed()->count());
@@ -491,11 +491,11 @@ class PatientsModuleContractTest extends TestCase
         $this->patient(['first_name' => 'Uno', 'last_name' => 'Alfa']);
         $this->patient(['first_name' => 'Dos', 'last_name' => 'Beta']);
 
-        $search = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/search?q=' . urlencode('%%'));
+        $search = $this->actingAs($admin, 'sanctum')->getJson('/api/patients/search?q='.urlencode('%%'));
         $search->assertOk();
         $this->assertCount(0, $search->json('data'), 'A literal % MUST NOT behave as a wildcard.');
 
-        $index = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?search=' . urlencode('%%'));
+        $index = $this->actingAs($admin, 'sanctum')->getJson('/api/patients?search='.urlencode('%%'));
         $index->assertOk();
         $this->assertSame(0, $index->json('meta.total'), 'A literal % MUST NOT behave as a wildcard.');
     }

@@ -38,8 +38,9 @@ class ReminderScheduleFillableContractTest extends TestCase
 
     private const PHANTOM_FILLABLE = ['type', 'anticipation_hours'];
 
-    private const SERVICE_FILE = __DIR__ . '/../../../app/Services/ReminderService.php';
-    private const MODEL_FILE = __DIR__ . '/../../../app/Models/ReminderSchedule.php';
+    private const SERVICE_FILE = __DIR__.'/../../../app/Services/ReminderService.php';
+
+    private const MODEL_FILE = __DIR__.'/../../../app/Models/ReminderSchedule.php';
 
     protected function setUp(): void
     {
@@ -53,6 +54,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     {
         $defaults = (new ReflectionClass(ReminderSchedule::class))->getDefaultProperties();
         $this->assertArrayHasKey('fillable', $defaults, 'ReminderSchedule must declare $fillable.');
+
         return $defaults['fillable'] ?? [];
     }
 
@@ -60,6 +62,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     {
         $source = file_get_contents(self::MODEL_FILE);
         $this->assertIsString($source, 'ReminderSchedule.php must be readable.');
+
         return $source;
     }
 
@@ -67,6 +70,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     {
         $source = file_get_contents(self::SERVICE_FILE);
         $this->assertIsString($source, 'ReminderService.php must be readable.');
+
         return $source;
     }
 
@@ -83,7 +87,7 @@ class ReminderScheduleFillableContractTest extends TestCase
             self::EXPECTED_FILLABLE,
             $declared,
             sprintf(
-                "ReminderSchedule::\$fillable must match the canonical columns. Expected: [%s]. Actual: [%s].",
+                'ReminderSchedule::$fillable must match the canonical columns. Expected: [%s]. Actual: [%s].',
                 implode(', ', self::EXPECTED_FILLABLE),
                 implode(', ', $declared)
             )

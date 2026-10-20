@@ -18,12 +18,11 @@ use Tests\TestCase;
  */
 class KpiNumberTabularTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     public function test_each_kpi_number_declares_literal_tnum_font_feature_settings(): void

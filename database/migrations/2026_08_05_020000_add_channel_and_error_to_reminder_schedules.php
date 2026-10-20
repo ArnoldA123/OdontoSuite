@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Slice 03 (T-03.6): add `channel` column to reminder_schedules so the
  * whitelist validation has a real column to persist into. Also adds
  * `error_message` so failed deliveries can carry diagnostics.

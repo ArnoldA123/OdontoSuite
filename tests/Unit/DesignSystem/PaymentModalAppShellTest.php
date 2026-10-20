@@ -47,8 +47,8 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
         $root = dirname(__DIR__, 3);
 
         return [
-            $root . '/resources/js/modules/cash-register/components/PaymentModal.vue',
-            $root . '/resources/js/modules/cash-register/components/MercadoPagoCheckout.vue',
+            $root.'/resources/js/modules/cash-register/components/PaymentModal.vue',
+            $root.'/resources/js/modules/cash-register/components/MercadoPagoCheckout.vue',
         ];
     }
 
@@ -137,7 +137,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_payment_modal_uses_ui_tabs_for_tab_strip(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/PaymentModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/PaymentModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -175,7 +175,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_payment_modal_mercadopago_tab_disabled_when_amount_zero(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/PaymentModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/PaymentModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -221,7 +221,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
      */
     public function test_payment_modal_no_legacy_status_pill_classes(): void
     {
-        $path = dirname(__DIR__, 3) . '/resources/js/modules/cash-register/components/PaymentModal.vue';
+        $path = dirname(__DIR__, 3).'/resources/js/modules/cash-register/components/PaymentModal.vue';
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -236,7 +236,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
             $violates,
             sprintf(
                 '%s MUST NOT contain legacy status-pill classes (PAGOS-MOD-001). '
-                    . 'Use `<UiStatusBadge variant="success|warning|error|neutral">` instead.',
+                    .'Use `<UiStatusBadge variant="success|warning|error|neutral">` instead.',
                 $path
             )
         );
@@ -265,7 +265,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
             $cleaned,
             sprintf(
                 '%s MUST NOT contain the legacy `border-theme` literal (DLR-R-002). '
-                    . 'Use the `border-hairline` / `--color-hairline` token instead.',
+                    .'Use the `border-hairline` / `--color-hairline` token instead.',
                 $path
             )
         );
@@ -283,10 +283,11 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -307,7 +308,7 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
                 $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/', '""', $stripped) ?? $stripped;
                 $stripped = preg_replace('/`(?:\\\\.|[^`\\\\])*`/', '``', $stripped) ?? $stripped;
 
-                return '<script>' . $stripped . '</script>';
+                return '<script>'.$stripped.'</script>';
             },
             $src
         ) ?? $src;

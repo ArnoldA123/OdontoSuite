@@ -65,7 +65,7 @@ class ReminderDispatchTest extends TestCase
         return User::create([
             'name' => 'Test Odontologo',
             'email' => 'odontologo.reminder.test@example.com',
-            'username' => 'odonto_reminder_' . uniqid(),
+            'username' => 'odonto_reminder_'.uniqid(),
             'password' => bcrypt('password'),
             'role' => 'odontologo',
             'is_active' => true,

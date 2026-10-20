@@ -30,7 +30,7 @@ class ProcedureCatalogFlowTest extends TestCase
     /** @test */
     public function procedure_catalog_model_fillable_includes_catalog_fields(): void
     {
-        $model = new ProcedureCatalog();
+        $model = new ProcedureCatalog;
         $fillable = $model->getFillable();
 
         $expected = [
@@ -47,7 +47,7 @@ class ProcedureCatalogFlowTest extends TestCase
     /** @test */
     public function procedure_catalog_model_casts_numeric_and_boolean_fields(): void
     {
-        $model = new ProcedureCatalog();
+        $model = new ProcedureCatalog;
         $casts = $model->getCasts();
 
         $this->assertEquals('decimal:2', $casts['default_cost'] ?? null);
@@ -60,7 +60,7 @@ class ProcedureCatalogFlowTest extends TestCase
     /** @test */
     public function procedure_catalog_has_specialty_relationship(): void
     {
-        $model = new ProcedureCatalog();
+        $model = new ProcedureCatalog;
         $this->assertTrue(method_exists($model, 'specialty'));
         $this->assertTrue(method_exists($model, 'favoritedBy'));
         $this->assertTrue(method_exists($model, 'treatmentPlanItems'));
@@ -100,8 +100,8 @@ class ProcedureCatalogFlowTest extends TestCase
     public function procedure_catalog_routes_are_registered(): void
     {
         $routes = collect(\Illuminate\Support\Facades\Route::getRoutes())
-            ->map(fn($r) => $r->uri())
-            ->filter(fn($uri) => str_contains($uri, 'procedure-catalog') || str_contains($uri, 'procedure-catalog-favorites'));
+            ->map(fn ($r) => $r->uri())
+            ->filter(fn ($uri) => str_contains($uri, 'procedure-catalog') || str_contains($uri, 'procedure-catalog-favorites'));
 
         $this->assertGreaterThanOrEqual(10, $routes->count(), 'Should have at least 10 procedure-catalog routes');
     }
@@ -112,8 +112,8 @@ class ProcedureCatalogFlowTest extends TestCase
         // POST/PUT/DELETE en procedure-catalog requieren rol administrativo
         // (admin o finanzas para el endpoint de import).
         $writeRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
-            ->filter(fn($r) => in_array('POST', $r->methods()) || in_array('PUT', $r->methods()) || in_array('DELETE', $r->methods()))
-            ->filter(fn($r) => str_contains($r->uri(), 'procedure-catalog') && !str_contains($r->uri(), 'favorite'));
+            ->filter(fn ($r) => in_array('POST', $r->methods()) || in_array('PUT', $r->methods()) || in_array('DELETE', $r->methods()))
+            ->filter(fn ($r) => str_contains($r->uri(), 'procedure-catalog') && ! str_contains($r->uri(), 'favorite'));
 
         $writeRoutes->each(function ($route) {
             $middleware = implode(',', $route->middleware());
@@ -129,7 +129,7 @@ class ProcedureCatalogFlowTest extends TestCase
     public function procedure_catalog_favorite_routes_have_clinical_role_middleware(): void
     {
         $favRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
-            ->filter(fn($r) => str_contains($r->uri(), 'favorite') || str_contains($r->uri(), 'procedure-catalog-favorites'));
+            ->filter(fn ($r) => str_contains($r->uri(), 'favorite') || str_contains($r->uri(), 'procedure-catalog-favorites'));
 
         $favRoutes->each(function ($route) {
             $middleware = implode(',', $route->middleware());

@@ -21,12 +21,11 @@ use Tests\TestCase;
  */
 class HotfixDashboardEmptyStateTest extends TestCase
 {
-
     private const DASHBOARD_PAGE_REL = '/resources/js/modules/dashboard/DashboardPage.vue';
 
     private static function dashboardPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::DASHBOARD_PAGE_REL;
+        return dirname(__DIR__, 3).self::DASHBOARD_PAGE_REL;
     }
 
     public function test_empty_state_has_inline_svg_with_stroke_width_1_5(): void

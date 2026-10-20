@@ -30,10 +30,11 @@ class CardHoverMotionGateTest extends TestCase
 
     private static function cardSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::CARD_VUE;
-        if (!is_file($path)) {
+        $path = dirname(__DIR__, 3).self::CARD_VUE;
+        if (! is_file($path)) {
             self::fail("Card.vue missing: {$path}");
         }
+
         return (string) file_get_contents($path);
     }
 
@@ -87,14 +88,14 @@ class CardHoverMotionGateTest extends TestCase
         $this->assertDoesNotMatchRegularExpression(
             '/^\s*[\'"][^\'\"]*hover:scale-\[/m',
             $stripped,
-            "Card.vue MUST NOT apply a Tailwind hover:scale-[1.02] utility — apple-design §14 prefers-reduced-motion gate would be bypassed. Found one inside an interpolated class string."
+            'Card.vue MUST NOT apply a Tailwind hover:scale-[1.02] utility — apple-design §14 prefers-reduced-motion gate would be bypassed. Found one inside an interpolated class string.'
         );
     }
 
     /**
      * @test
      */
-    public function scoped_hover_transform_is_translateY_minus_1px(): void
+    public function scoped_hover_transform_is_translate_y_minus_1px(): void
     {
         $source = self::cardSource();
         // The scoped CSS rule must use translateY(-1px) per the HOTFIX-DASH-010

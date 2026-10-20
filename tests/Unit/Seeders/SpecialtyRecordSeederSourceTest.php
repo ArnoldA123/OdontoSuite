@@ -24,7 +24,7 @@ class SpecialtyRecordSeederSourceTest extends TestCase
     public function seeder_references_five_concrete_models_in_source(): void
     {
         $source = file_get_contents(
-            realpath(__DIR__ . '/../../../database/seeders/SpecialtyRecordSeeder.php')
+            realpath(__DIR__.'/../../../database/seeders/SpecialtyRecordSeeder.php')
         );
 
         $expectedModels = [

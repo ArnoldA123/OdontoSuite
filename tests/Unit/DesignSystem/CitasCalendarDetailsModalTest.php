@@ -57,13 +57,13 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::CALENDAR_PATH,
+            dirname(__DIR__, 3).self::CALENDAR_PATH,
         ];
     }
 
     private static function calendarSource(): string
     {
-        $path = dirname(__DIR__, 3) . self::CALENDAR_PATH;
+        $path = dirname(__DIR__, 3).self::CALENDAR_PATH;
         $src = is_file($path) ? file_get_contents($path) : false;
         self::assertNotFalse($src, sprintf('%s must be readable.', self::CALENDAR_PATH));
 
@@ -95,7 +95,7 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
      */
     private static function actionTagAttributes(string $src, string $hook): string
     {
-        $pattern = '#<UiButton\b(?=[^>]*data-calendar-action="' . preg_quote($hook, '#') . '")([^>]*)>#s';
+        $pattern = '#<UiButton\b(?=[^>]*data-calendar-action="'.preg_quote($hook, '#').'")([^>]*)>#s';
         $count = preg_match($pattern, $src, $matches);
         self::assertSame(
             1,
@@ -244,7 +244,7 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
             preg_match('#can\.updateAppointment#', $src),
             sprintf(
                 '%s MUST NOT reference `can.updateAppointment` — the key does not exist in usePermissions '
-                . '(real key: `editAppointment`); the optional chain made "Editar" silently unreachable (T7 bugfix).',
+                .'(real key: `editAppointment`); the optional chain made "Editar" silently unreachable (T7 bugfix).',
                 self::CALENDAR_PATH
             )
         );
@@ -290,7 +290,7 @@ class CitasCalendarDetailsModalTest extends ModuleAppShellTestCase
             preg_match('#:appointment\s*=\s*"editingAppointment"#', $src),
             sprintf(
                 '%s `<NewAppointmentModal>` MUST receive `:appointment="editingAppointment"` '
-                . '— the modal implements edit mode around that prop (T7 bugfix 1: "Editar" used to open an empty form).',
+                .'— the modal implements edit mode around that prop (T7 bugfix 1: "Editar" used to open an empty form).',
                 self::CALENDAR_PATH
             )
         );

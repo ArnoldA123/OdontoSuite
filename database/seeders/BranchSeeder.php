@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Branch;
+use Illuminate\Database\Seeder;
 
 /**
  * Sprint 0 (B-CASH-1): poblar tabla branches con 3 sedes base.

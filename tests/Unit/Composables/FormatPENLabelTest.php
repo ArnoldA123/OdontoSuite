@@ -28,7 +28,10 @@ use PHPUnit\Framework\TestCase;
  */
 class FormatPENLabelTest extends TestCase
 {
-private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private const HELPER_REL_PATH = '/resources/js/composables/useFormatters.js';
 
@@ -291,7 +294,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             [],
             $violations,
             'DashboardPage.vue and SessionList.vue must consume formatPENLabel, not call Intl.NumberFormat directly. Offenders:'
-                . "\n" . implode(', ', $violations)
+                ."\n".implode(', ', $violations)
         );
     }
 
@@ -309,7 +312,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             basename(self::sessionListPath()),
         ];
         foreach ($owned as $name) {
-            $file = self::projectRootPath() . '/resources/js';
+            $file = self::projectRootPath().'/resources/js';
             // Walk only the two known locations.
             $candidates = [
                 self::dashboardPath(),
@@ -333,7 +336,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             [],
             $violations,
             'DashboardPage.vue and SessionList.vue must NOT contain the literal `S/ ` prefix (PR1 owns the duplicate-prefix bug fix). Offenders:'
-                . "\n" . implode(', ', $violations)
+                ."\n".implode(', ', $violations)
         );
     }
 
@@ -350,7 +353,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             $this->assertStringNotContainsString(
                 'formatCurrency(',
                 $source,
-                basename($path) . ' must not reference the local formatCurrency helper anymore (PR1 dedup)'
+                basename($path).' must not reference the local formatCurrency helper anymore (PR1 dedup)'
             );
         }
     }
@@ -398,10 +401,10 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             [],
             $violations,
             'PR-pagos-01: the four migrated files MUST NOT redeclare the '
-                . 'Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' }) literal. '
-                . 'They must import formatCurrency from useFormatters.js. '
-                . 'Canonical location: resources/js/composables/useFormatters.js. '
-                . 'Offenders: ' . implode(', ', $violations)
+                .'Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' }) literal. '
+                .'They must import formatCurrency from useFormatters.js. '
+                .'Canonical location: resources/js/composables/useFormatters.js. '
+                .'Offenders: '.implode(', ', $violations)
         );
     }
 
@@ -425,17 +428,19 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
         foreach ($scopeFiles as $path) {
             $source = (string) file_get_contents($path);
             if ($source === '') {
-                $violations[] = basename($path) . ' (empty)';
+                $violations[] = basename($path).' (empty)';
+
                 continue;
             }
             $found = false;
             foreach ($importPatterns as $needle) {
                 if (strpos($source, $needle) !== false) {
                     $found = true;
+
                     break;
                 }
             }
-            if (!$found) {
+            if (! $found) {
                 $violations[] = basename($path);
             }
         }
@@ -444,8 +449,8 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             [],
             $violations,
             'PR-pagos-01: each migrated file MUST import the canonical '
-                . 'formatCurrency helper from useFormatters. Offenders: '
-                . implode(', ', $violations)
+                .'formatCurrency helper from useFormatters. Offenders: '
+                .implode(', ', $violations)
         );
     }
 
@@ -514,9 +519,9 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
             [],
             $violations,
             'PR-pagos-01: the four migrated files MUST NOT declare their own '
-                . 'formatCurrency helper. The canonical declaration lives at '
-                . 'resources/js/composables/useFormatters.js. Offenders: '
-                . implode(', ', $violations)
+                .'formatCurrency helper. The canonical declaration lives at '
+                .'resources/js/composables/useFormatters.js. Offenders: '
+                .implode(', ', $violations)
         );
     }
 
@@ -526,31 +531,31 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
 
     private static function helperPath(): string
     {
-        return self::projectRootPath() . self::HELPER_REL_PATH;
+        return self::projectRootPath().self::HELPER_REL_PATH;
     }
 
     private static function dashboardPath(): string
     {
-        return self::projectRootPath() . self::DASHBOARD_REL_PATH;
+        return self::projectRootPath().self::DASHBOARD_REL_PATH;
     }
 
     private static function sessionListPath(): string
     {
-        return self::projectRootPath() . self::SESSION_LIST_REL_PATH;
+        return self::projectRootPath().self::SESSION_LIST_REL_PATH;
     }
 
     private static function currencyInputPath(): string
     {
-        return self::projectRootPath() . self::CURRENCY_INPUT_REL_PATH;
+        return self::projectRootPath().self::CURRENCY_INPUT_REL_PATH;
     }
 
     /**
-     * @return string[] Absolute paths to the 4 PR-pagos-01 migrated files.
+     * @return string[] absolute paths to the 4 PR-pagos-01 migrated files
      */
     private static function prPagos01ScopePaths(): array
     {
         return array_map(
-            static fn (string $rel): string => self::projectRootPath() . $rel,
+            static fn (string $rel): string => self::projectRootPath().$rel,
             self::PR_PAGOS_01_SCOPE_REL_PATHS
         );
     }
@@ -569,7 +574,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     private static function loadHelperExports(): ?array
     {
         $path = self::helperPath();
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
 
@@ -588,11 +593,11 @@ JS;
         $loader = str_replace('TARGET_PATH', $escapedPath, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'formatters_loader_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -604,6 +609,7 @@ JS;
             return null;
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return is_array($decoded) ? $decoded : null;
     }
 
@@ -614,8 +620,8 @@ JS;
     private static function callHelper(mixed $value): string
     {
         $path = self::helperPath();
-        if (!is_file($path)) {
-            $this->fail('Helper file missing: ' . $path);
+        if (! is_file($path)) {
+            $this->fail('Helper file missing: '.$path);
         }
 
         $escapedPath = addcslashes($path, "'\\");
@@ -623,7 +629,7 @@ JS;
         if ($value === 'undefined-as-value') {
             $valueLiteral = 'undefined';
         } elseif (is_string($value)) {
-            $valueLiteral = "'" . addcslashes($value, "'\\") . "'";
+            $valueLiteral = "'".addcslashes($value, "'\\")."'";
         } elseif (is_null($value)) {
             $valueLiteral = 'null';
         } else {
@@ -641,11 +647,11 @@ JS;
         $loader = str_replace('VALUE_EXPR', $valueLiteral, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'formatters_call_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -655,12 +661,13 @@ JS;
 
         $jsonStart = strpos($output, '"');
         if ($jsonStart === false) {
-            self::fail('Node output was not a JSON string: ' . $output);
+            self::fail('Node output was not a JSON string: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
-        if (!is_string($decoded)) {
-            self::fail('Node output was not a string: ' . $output);
+        if (! is_string($decoded)) {
+            self::fail('Node output was not a string: '.$output);
         }
+
         return $decoded;
     }
 
@@ -672,15 +679,15 @@ JS;
     private static function callFormatCurrency(mixed $value): string
     {
         $path = self::helperPath();
-        if (!is_file($path)) {
-            $this->fail('Helper file missing: ' . $path);
+        if (! is_file($path)) {
+            $this->fail('Helper file missing: '.$path);
         }
 
         $escapedPath = addcslashes($path, "'\\");
         if ($value === 'undefined-as-value') {
             $valueLiteral = 'undefined';
         } elseif (is_string($value)) {
-            $valueLiteral = "'" . addcslashes($value, "'\\") . "'";
+            $valueLiteral = "'".addcslashes($value, "'\\")."'";
         } elseif (is_null($value)) {
             $valueLiteral = 'null';
         } else {
@@ -698,11 +705,11 @@ JS;
         $loader = str_replace('VALUE_EXPR', $valueLiteral, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'formatters_call_currency_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
@@ -712,12 +719,13 @@ JS;
 
         $jsonStart = strpos($output, '"');
         if ($jsonStart === false) {
-            self::fail('Node output was not a JSON string: ' . $output);
+            self::fail('Node output was not a JSON string: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
-        if (!is_string($decoded)) {
-            self::fail('Node output was not a string: ' . $output);
+        if (! is_string($decoded)) {
+            self::fail('Node output was not a string: '.$output);
         }
+
         return $decoded;
     }
 
@@ -729,7 +737,7 @@ JS;
      */
     private static function collectJsFiles(string $root): array
     {
-        if (!is_dir($root)) {
+        if (! is_dir($root)) {
             return [];
         }
         $iter = new \RecursiveIteratorIterator(
@@ -743,6 +751,7 @@ JS;
                 $out[] = $entry->getPathname();
             }
         }
+
         return $out;
     }
 
@@ -761,6 +770,7 @@ JS;
         $stripped = preg_replace("/'(?:\\\\.|[^'\\\\])*'/s", "''", $stripped) ?? $stripped;
         // Double-quoted strings.
         $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/s', '""', $stripped) ?? $stripped;
+
         return $stripped;
     }
 
@@ -769,6 +779,7 @@ JS;
         if (is_string($case)) {
             return "'{$case}'";
         }
+
         return var_export($case, true);
     }
 

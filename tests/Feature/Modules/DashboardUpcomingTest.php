@@ -12,7 +12,6 @@ use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -54,9 +53,9 @@ class DashboardUpcomingTest extends TestCase
     private function userWithRole(string $role): User
     {
         return User::create([
-            'name' => 'Upcoming ' . ucfirst($role),
-            'email' => 'upcoming.' . $role . '.' . uniqid('', true) . '@example.com',
-            'username' => 'upcoming_' . $role . '_' . uniqid(),
+            'name' => 'Upcoming '.ucfirst($role),
+            'email' => 'upcoming.'.$role.'.'.uniqid('', true).'@example.com',
+            'username' => 'upcoming_'.$role.'_'.uniqid(),
             'password' => bcrypt('password'),
             'role' => $role,
             'is_active' => true,
@@ -68,8 +67,8 @@ class DashboardUpcomingTest extends TestCase
         return Patient::create([
             'first_name' => $firstName,
             'last_name' => 'Patient',
-            'email' => 'upcoming.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'upcoming.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'is_active' => true,
         ]);
     }
@@ -78,7 +77,7 @@ class DashboardUpcomingTest extends TestCase
     {
         return Branch::create([
             'name' => $name,
-            'code' => substr('UP' . uniqid(), 0, 10),
+            'code' => substr('UP'.uniqid(), 0, 10),
             'address' => 'Av. Upcoming 123',
             'city' => 'Lima',
             'is_active' => true,
@@ -89,7 +88,7 @@ class DashboardUpcomingTest extends TestCase
     {
         return DentalChair::create([
             'name' => 'Upcoming Chair',
-            'code' => substr('UC' . uniqid(), 0, 10),
+            'code' => substr('UC'.uniqid(), 0, 10),
             'is_active' => true,
         ]);
     }

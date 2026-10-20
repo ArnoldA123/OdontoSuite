@@ -22,26 +22,31 @@ use PHPUnit\Framework\TestCase;
  */
 class PaymentModal401RedirectTest extends TestCase
 {
-private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private function paymentModalSource(): string
     {
-        $path = self::projectRootPath() . '/resources/js/modules/cash-register/components/PaymentModal.vue';
+        $path = self::projectRootPath().'/resources/js/modules/cash-register/components/PaymentModal.vue';
         $source = file_get_contents($path);
         $this->assertNotFalse($source, 'PaymentModal.vue must exist');
+
         return $source;
     }
 
     private function useAuthSource(): string
     {
-        $path = self::projectRootPath() . '/resources/js/composables/useAuth.js';
+        $path = self::projectRootPath().'/resources/js/composables/useAuth.js';
         $source = file_get_contents($path);
         $this->assertNotFalse($source, 'useAuth.js must exist');
+
         return $source;
     }
 
     /** @test UXF-021 */
-    public function useAuth_exports_authLogout_alias(): void
+    public function use_auth_exports_auth_logout_alias(): void
     {
         $source = $this->useAuthSource();
 
@@ -54,7 +59,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_loadPaymentMethods_calls_authLogout_on_401(): void
+    public function payment_modal_load_payment_methods_calls_auth_logout_on_401(): void
     {
         $source = $this->paymentModalSource();
 
@@ -69,7 +74,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_loadPaymentMethods_routes_to_login_on_401(): void
+    public function payment_modal_load_payment_methods_routes_to_login_on_401(): void
     {
         $source = $this->paymentModalSource();
 
@@ -83,7 +88,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_loadPaymentMethods_toast_on_401_says_session_expired(): void
+    public function payment_modal_load_payment_methods_toast_on_401_says_session_expired(): void
     {
         $source = $this->paymentModalSource();
 
@@ -97,7 +102,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_handles_401_in_loadPatientAppointments_too(): void
+    public function payment_modal_handles_401_in_load_patient_appointments_too(): void
     {
         $source = $this->paymentModalSource();
 
@@ -111,7 +116,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_handleSubmit_also_redirects_on_401(): void
+    public function payment_modal_handle_submit_also_redirects_on_401(): void
     {
         $source = $this->paymentModalSource();
 
@@ -125,7 +130,7 @@ private static function projectRootPath(): string { return dirname(__DIR__, 3); 
     }
 
     /** @test UXF-021 */
-    public function PaymentModal_handleSessionExpired_combines_toast_logout_and_router_push(): void
+    public function payment_modal_handle_session_expired_combines_toast_logout_and_router_push(): void
     {
         $source = $this->paymentModalSource();
 

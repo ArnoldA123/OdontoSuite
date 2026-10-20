@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\User;
-use App\Models\Transaction;
 use App\Models\CashRegisterSession;
 use App\Models\Patient;
 use App\Models\PaymentMethod;
+use App\Models\Transaction;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -52,7 +52,7 @@ class TransactionVoidAndReceiptTest extends TestCase
             'payment_method_id' => $paymentMethod->id,
             'cash_register_session_id' => $session->id,
             'created_by' => $session->user_id,
-            'transaction_number' => 'TXN-' . now()->format('Ymd') . '-0001',
+            'transaction_number' => 'TXN-'.now()->format('Ymd').'-0001',
             'type' => 'payment',
             'amount' => 150.00,
             'subtotal' => 150.00,

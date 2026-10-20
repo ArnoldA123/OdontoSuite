@@ -39,7 +39,7 @@ class AppointmentFillableTest extends TestCase
 
     public function test_fillable_does_not_contain_removed_columns(): void
     {
-        $fillable = (new Appointment())->getFillable();
+        $fillable = (new Appointment)->getFillable();
 
         foreach (self::REMOVED_COLUMNS as $column) {
             $this->assertNotContains(
@@ -52,7 +52,7 @@ class AppointmentFillableTest extends TestCase
 
     public function test_casts_do_not_contain_last_activity_at(): void
     {
-        $casts = (new Appointment())->getCasts();
+        $casts = (new Appointment)->getCasts();
 
         $this->assertArrayNotHasKey(
             'last_activity_at',
@@ -63,7 +63,7 @@ class AppointmentFillableTest extends TestCase
 
     public function test_casts_do_not_contain_requires_anesthesia(): void
     {
-        $casts = (new Appointment())->getCasts();
+        $casts = (new Appointment)->getCasts();
 
         $this->assertArrayNotHasKey(
             'requires_anesthesia',
@@ -77,7 +77,7 @@ class AppointmentFillableTest extends TestCase
         // Mass-assign with the removed keys plus a real column. The real
         // column must persist; the removed keys must be silently dropped
         // (Laravel's default mass-assignment behavior).
-        $appointment = new Appointment();
+        $appointment = new Appointment;
         $appointment->fill([
             'patient_id' => 42,
             'specialty' => 'should-be-dropped',

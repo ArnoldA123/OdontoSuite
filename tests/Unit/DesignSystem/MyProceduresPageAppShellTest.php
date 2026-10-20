@@ -18,19 +18,20 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** @return array<int, string> */
     protected static function polishedFiles(): array
     {
-        return [dirname(__DIR__, 3) . self::PAGE_PATH];
+        return [dirname(__DIR__, 3).self::PAGE_PATH];
     }
 
     private static function readSource(string $path): ?string
     {
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
     /** MIS-001 (DLR-R-002) — no `border-theme` / `divide-theme` literals remain. */
     public function test_no_border_theme_literal(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -44,7 +45,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-002 — search field consumes `<UiInput v-model="search">`; raw `<input>` is gone. */
     public function test_search_uses_ui_input(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -70,7 +71,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-003 — both PEN literals consume `formatCurrency(...)`; no local `Intl.NumberFormat`. */
     public function test_format_currency_used_for_pen_values(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -103,7 +104,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-004 — at least 6 `tabular-nums` references on numeric spans. */
     public function test_tabular_nums_on_numeric_cells(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -118,7 +119,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-005 — `LoadingSpinner` import + tags renamed to `UiLoadingSpinner`. */
     public function test_loading_spinner_import_is_ui_prefixed(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -144,7 +145,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-006 — `disabled:opacity-30` → `disabled:opacity-40` for iOS parity with `<UiButton>`. */
     public function test_disabled_opacity_uses_ios_parity(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -162,7 +163,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-007 — code badges drop `font-mono`; system sans + `tabular-nums`. */
     public function test_code_badges_use_system_sans_with_tabular_nums(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -183,7 +184,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-008 — both empty states consume `<UiEmptyState>`. */
     public function test_empty_states_consume_ui_empty_state(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -204,7 +205,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-009 — every raw icon `<button>` consumes `var(--focus-ring-default)`; no legacy focus aliases. */
     public function test_raw_icon_buttons_consume_focus_ring_token(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -233,7 +234,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
      */
     public function test_status_ramps_use_tokenized_system_colors(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -257,7 +258,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-011 — `hover:bg-theme-surface` → `hover:bg-canvas`; semantic alias `bg-theme-surface-elevated` retained. */
     public function test_hover_surface_uses_canvas_token(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -273,7 +274,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
     /** MIS-012 — every `rounded-lg` replaced with contextual radius token; bare `rounded-lg` count == 0. */
     public function test_radius_uses_contextual_tokens(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -308,7 +309,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
      */
     public function test_script_setup_unchanged(): void
     {
-        $path = dirname(__DIR__, 3) . self::PAGE_PATH;
+        $path = dirname(__DIR__, 3).self::PAGE_PATH;
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
@@ -333,7 +334,7 @@ class MyProceduresPageAppShellTest extends ModuleAppShellTestCase
         $requiredDestructured = ['favorites', 'forMe', 'loading', 'getFavorites', 'getForMe', 'addFavorite', 'removeFavorite', 'reorderFavorites'];
         foreach ($requiredDestructured as $binding) {
             $this->assertMatchesRegularExpression(
-                '#\b' . preg_quote($binding, '#') . '\b#',
+                '#\b'.preg_quote($binding, '#').'\b#',
                 $src,
                 sprintf('%s MUST keep the `%s` binding from `useProcedureFavorites` (MIS-013).', $path, $binding)
             );

@@ -68,9 +68,9 @@ class SddCheckJsComposablesTest extends TestCase
         // glob only the top-level composables directory and then use a
         // RecursiveDirectoryIterator for the .vue/.js trees.
         $paths = array_merge(
-            glob(__DIR__ . '/../../resources/js/composables/*.js') ?: [],
-            self::collectJsFiles(__DIR__ . '/../../resources/js/modules'),
-            self::collectJsFiles(__DIR__ . '/../../resources/js/components'),
+            glob(__DIR__.'/../../resources/js/composables/*.js') ?: [],
+            self::collectJsFiles(__DIR__.'/../../resources/js/modules'),
+            self::collectJsFiles(__DIR__.'/../../resources/js/components'),
         );
 
         foreach ($paths as $file) {
@@ -97,7 +97,7 @@ class SddCheckJsComposablesTest extends TestCase
             foreach ($sanitized as $i => $line) {
                 $stripped = preg_replace($stripPatterns, '', $line) ?? $line;
                 if (preg_match($forbidden, $stripped)) {
-                    $violations[] = "{$name}:" . ($i + 1) . ' double-unwraps response';
+                    $violations[] = "{$name}:".($i + 1).' double-unwraps response';
                 }
             }
         }
@@ -106,7 +106,7 @@ class SddCheckJsComposablesTest extends TestCase
             [],
             $violations,
             "No composable may drill response.data.data or response.data.meta - useApi returns a flat envelope (NEW-005). Offenders:\n"
-                . implode("\n", $violations)
+                .implode("\n", $violations)
         );
     }
 
@@ -134,11 +134,13 @@ class SddCheckJsComposablesTest extends TestCase
                     $i = $end + 2;
                     $inBlock = false;
                 }
+
                 continue;
             }
             $start = strpos($line, '/*', $i);
             if ($start === false) {
                 $out .= substr($line, $i);
+
                 break;
             }
             $out .= substr($line, $i, $start - $i);
@@ -150,6 +152,7 @@ class SddCheckJsComposablesTest extends TestCase
                 $i = $end + 2;
             }
         }
+
         return [$out, $inBlock];
     }
 
@@ -179,6 +182,7 @@ class SddCheckJsComposablesTest extends TestCase
                 $out[] = $entry->getPathname();
             }
         }
+
         return $out;
     }
 }

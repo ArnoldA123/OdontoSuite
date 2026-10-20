@@ -19,12 +19,12 @@ return new class extends Migration
             $table->index('specialty_id');
         });
 
-        DB::statement("
+        DB::statement('
             UPDATE procedure_catalog pc
             INNER JOIN specialties s ON s.code = pc.specialty
             SET pc.specialty_id = s.id
             WHERE pc.specialty IS NOT NULL
-        ");
+        ');
     }
 
     public function down(): void

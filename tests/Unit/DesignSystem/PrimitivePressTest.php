@@ -40,6 +40,7 @@ class PrimitivePressTest extends TestCase
     private const HEADLINE = ['Card.vue', 'Button.vue', 'Input.vue', 'Badge.vue', 'Avatar.vue'];
 
     private const EASE_IOS = 'var(--motion-easing-ios)';
+
     private const FOCUS_RING = 'box-shadow: var(--focus-ring-default);';
 
     /** The canonical transform transition: fast rung (120ms) on the iOS curve. */
@@ -53,10 +54,10 @@ class PrimitivePressTest extends TestCase
     /** Read a primitive's source, failing loudly if the file moved or vanished. */
     private static function primitive(string $name): string
     {
-        $path = self::projectRoot() . '/resources/js/components/ui/' . $name;
-        self::assertFileExists($path, $name . ' must exist under resources/js/components/ui/');
+        $path = self::projectRoot().'/resources/js/components/ui/'.$name;
+        self::assertFileExists($path, $name.' must exist under resources/js/components/ui/');
         $src = file_get_contents($path);
-        self::assertIsString($src, $name . ' must be readable');
+        self::assertIsString($src, $name.' must be readable');
 
         return (string) $src;
     }
@@ -91,7 +92,7 @@ class PrimitivePressTest extends TestCase
             $this->assertStringContainsString(
                 self::TRANSFORM_TRANSITION,
                 self::primitive($name),
-                $name . ' must transition transform on the fast rung with the iOS curve (D8)'
+                $name.' must transition transform on the fast rung with the iOS curve (D8)'
             );
         }
     }
@@ -103,7 +104,7 @@ class PrimitivePressTest extends TestCase
             $this->assertMatchesRegularExpression(
                 '/background-color\s+var\(--motion-duration-normal\)\s+ease-out/',
                 self::primitive($name),
-                $name . ' must keep standard easing for its colour wash (D8) — only transforms take the iOS curve'
+                $name.' must keep standard easing for its colour wash (D8) — only transforms take the iOS curve'
             );
         }
     }
@@ -150,17 +151,17 @@ class PrimitivePressTest extends TestCase
             $this->assertStringContainsString(
                 self::FOCUS_RING,
                 $src,
-                $name . ' must consume var(--focus-ring-default) (D6)'
+                $name.' must consume var(--focus-ring-default) (D6)'
             );
             $this->assertDoesNotMatchRegularExpression(
                 '/outline:\s*\d+px solid/',
                 $src,
-                $name . ' must not keep a hand-rolled focus outline alongside the token (D6)'
+                $name.' must not keep a hand-rolled focus outline alongside the token (D6)'
             );
             $this->assertDoesNotMatchRegularExpression(
                 '/focus:ring-2/',
                 $src,
-                $name . ' must not keep a Tailwind focus:ring-2 utility — it out-specifies the token (D6)'
+                $name.' must not keep a Tailwind focus:ring-2 utility — it out-specifies the token (D6)'
             );
         }
 
@@ -206,12 +207,12 @@ class PrimitivePressTest extends TestCase
             $this->assertStringContainsString(
                 self::FOCUS_RING,
                 $src,
-                $name . ' must consume var(--focus-ring-default) on its focusable element (D6/G1)'
+                $name.' must consume var(--focus-ring-default) on its focusable element (D6/G1)'
             );
             $this->assertDoesNotMatchRegularExpression(
                 '/focus:ring-2/',
                 $src,
-                $name . ' must not keep a Tailwind focus:ring-2 utility — it out-specifies the token (D6)'
+                $name.' must not keep a Tailwind focus:ring-2 utility — it out-specifies the token (D6)'
             );
         }
     }
@@ -238,7 +239,7 @@ class PrimitivePressTest extends TestCase
             $this->assertMatchesRegularExpression(
                 '/:hover\s*\{[^}]*box-shadow:\s*var\(--elevation-[1-4]\)/s',
                 self::primitive($name),
-                $name . ' must step up an --elevation-* rung on hover rather than declaring a raw shadow'
+                $name.' must step up an --elevation-* rung on hover rather than declaring a raw shadow'
             );
         }
     }
@@ -253,7 +254,7 @@ class PrimitivePressTest extends TestCase
             $this->assertStringNotContainsString(
                 'data-pressed',
                 self::primitive($name),
-                $name . ' must not introduce data-pressed — :active is the entire mechanism (D10)'
+                $name.' must not introduce data-pressed — :active is the entire mechanism (D10)'
             );
         }
     }
@@ -270,21 +271,21 @@ class PrimitivePressTest extends TestCase
         foreach ($movers as $name) {
             $block = self::reducedMotionBlock(self::primitive($name));
 
-            $this->assertNotNull($block, $name . ' must declare a prefers-reduced-motion: reduce block (D11)');
+            $this->assertNotNull($block, $name.' must declare a prefers-reduced-motion: reduce block (D11)');
             $this->assertStringContainsString(
                 'opacity',
                 (string) $block,
-                $name . ' reduced-motion block must substitute an opacity change for the transform (D11)'
+                $name.' reduced-motion block must substitute an opacity change for the transform (D11)'
             );
             $this->assertDoesNotMatchRegularExpression(
                 '/\b0(ms|s)\b/',
                 (string) $block,
-                $name . ' must not flip a duration to 0 — feedback survives, movement goes (D11)'
+                $name.' must not flip a duration to 0 — feedback survives, movement goes (D11)'
             );
 
             if (preg_match_all('/(\d+)ms/', (string) $block, $m) > 0) {
                 foreach ($m[1] as $ms) {
-                    $this->assertLessThanOrEqual(200, (int) $ms, $name . ' reduced-motion substitute must be at most 200ms (D11)');
+                    $this->assertLessThanOrEqual(200, (int) $ms, $name.' reduced-motion substitute must be at most 200ms (D11)');
                 }
             }
         }
@@ -317,7 +318,7 @@ class PrimitivePressTest extends TestCase
                 $selector = trim($selector);
 
                 // `(?<![a-z-])` keeps `text-transform` out of the match.
-                if (!preg_match('/(?<![a-z-])transform:/', $body)) {
+                if (! preg_match('/(?<![a-z-])transform:/', $body)) {
                     continue;
                 }
                 if (preg_match('/:hover|:active|:focus-visible|%|dismissing|\bto\b/', $selector)) {
@@ -329,9 +330,9 @@ class PrimitivePressTest extends TestCase
                     $this->assertContains(
                         trim($decl),
                         $allowedResting,
-                        $name . ' declares "' . trim($decl) . '" on resting selector "' . $selector
-                            . '". Only :hover/:active/:focus-visible may change in PR2 — a resting transform '
-                            . 'would move this primitive for every module consuming it untouched.'
+                        $name.' declares "'.trim($decl).'" on resting selector "'.$selector
+                            .'". Only :hover/:active/:focus-visible may change in PR2 — a resting transform '
+                            .'would move this primitive for every module consuming it untouched.'
                     );
                 }
             }

@@ -57,7 +57,7 @@ class DentalChairLifecycleTest extends TestCase
     private function chair(string $code, string $status = 'active', bool $isActive = true): DentalChair
     {
         return DentalChair::create([
-            'name' => 'Chair ' . $code,
+            'name' => 'Chair '.$code,
             'code' => $code,
             'description' => 'Fixture',
             'equipment' => 'Fixture equipment',
@@ -119,7 +119,7 @@ class DentalChairLifecycleTest extends TestCase
      * process can carry a seeded database into this class, so exact listing
      * equality would fail for reasons unrelated to this contract.
      *
-     * @param  array<int, string>  $only
+     * @param  array<int, string> $only
      * @return array<int, string>
      */
     private function listedCodes($response, array $only): array
@@ -148,7 +148,7 @@ class DentalChairLifecycleTest extends TestCase
 
     private function ambCode(int $number): string
     {
-        return 'AMB-' . str_pad((string) $number, 3, '0', STR_PAD_LEFT);
+        return 'AMB-'.str_pad((string) $number, 3, '0', STR_PAD_LEFT);
     }
 
     public function test_destroy_is_blocked_when_the_environment_has_appointments(): void

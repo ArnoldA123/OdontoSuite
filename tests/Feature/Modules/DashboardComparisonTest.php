@@ -62,8 +62,8 @@ class DashboardComparisonTest extends TestCase
     {
         return User::create([
             'name' => 'DC Admin',
-            'email' => 'dc.admin.' . uniqid('', true) . '@example.com',
-            'username' => 'dc_admin_' . uniqid(),
+            'email' => 'dc.admin.'.uniqid('', true).'@example.com',
+            'username' => 'dc_admin_'.uniqid(),
             'password' => bcrypt('password'),
             'role' => 'administrador',
             'is_active' => true,
@@ -75,7 +75,7 @@ class DashboardComparisonTest extends TestCase
         return Branch::create([
             'name' => 'DC Branch',
             // branches.code is varchar(10); truncate to fit.
-            'code' => substr('DC' . uniqid(), 0, 10),
+            'code' => substr('DC'.uniqid(), 0, 10),
             'address' => 'Av. Test 123',
             'city' => 'Lima',
             'is_active' => true,
@@ -86,7 +86,7 @@ class DashboardComparisonTest extends TestCase
     {
         return DentalChair::create([
             'name' => 'DC Chair',
-            'code' => substr('DC' . uniqid(), 0, 10),
+            'code' => substr('DC'.uniqid(), 0, 10),
             'is_active' => true,
         ]);
     }
@@ -112,8 +112,8 @@ class DashboardComparisonTest extends TestCase
         $patient = Patient::create([
             'first_name' => 'DC',
             'last_name' => 'Patient',
-            'email' => 'dc.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'dc.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'is_active' => true,
         ]);
 
@@ -136,13 +136,14 @@ class DashboardComparisonTest extends TestCase
         $patient = new Patient([
             'first_name' => 'Reg',
             'last_name' => 'Patient',
-            'email' => 'reg.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'reg.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'is_active' => $isActive,
         ]);
         $patient->created_at = $createdAt;
         $patient->updated_at = $createdAt;
         $patient->save();
+
         return $patient;
     }
 
@@ -168,7 +169,7 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
 
         $response->assertOk();
 
@@ -207,7 +208,7 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
 
         $response->assertOk();
         $cmp = $response->json('data.comparisons.appointments_today');
@@ -233,7 +234,7 @@ class DashboardComparisonTest extends TestCase
         // Zero appointments on previous Wednesday — by construction.
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
 
         $response->assertOk();
         $cmp = $response->json('data.comparisons.appointments_today');
@@ -296,7 +297,7 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
 
         $response->assertOk();
         $cmp = $response->json('data.comparisons.total_appointments_this_month');
@@ -327,7 +328,7 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
 
         $response->assertOk();
         $cmp = $response->json('data.comparisons.total_appointments_this_month');
@@ -361,8 +362,11 @@ class DashboardComparisonTest extends TestCase
 
         $response->assertOk();
         // D15 regression guard — cumulative headline is preserved.
-        $this->assertSame(105, $response->json('data.total_patients'),
-            'data.total_patients MUST stay the cumulative active count even with the comparison block attached.');
+        $this->assertSame(
+            105,
+            $response->json('data.total_patients'),
+            'data.total_patients MUST stay the cumulative active count even with the comparison block attached.'
+        );
 
         // Comparison is the DIFFERENT quantity (new registrations) — not the headline.
         $cmp = $response->json('data.comparisons.total_patients');
@@ -412,10 +416,16 @@ class DashboardComparisonTest extends TestCase
             ->getJson('/api/dashboard/stats');
 
         $response->assertOk();
-        $this->assertArrayNotHasKey('total_professionals', $response->json('data.comparisons'),
-            'Profesionales MUST NOT carry a comparison entry.');
-        $this->assertArrayNotHasKey('cash_session', $response->json('data.comparisons'),
-            'Estado de Caja MUST NOT carry a comparison entry.');
+        $this->assertArrayNotHasKey(
+            'total_professionals',
+            $response->json('data.comparisons'),
+            'Profesionales MUST NOT carry a comparison entry.'
+        );
+        $this->assertArrayNotHasKey(
+            'cash_session',
+            $response->json('data.comparisons'),
+            'Estado de Caja MUST NOT carry a comparison entry.'
+        );
 
         // But their scalar fields are still present.
         $this->assertArrayHasKey('total_professionals', $response->json('data'));
@@ -491,8 +501,11 @@ class DashboardComparisonTest extends TestCase
 
         $response->assertOk();
         $cmp = $response->json('data.comparisons.total_appointments_this_month');
-        $this->assertSame('ago', $this->previousMonthToken($today),
-            'Anchor sanity: today=2026-09-01 → previous month is August → token "ago".');
+        $this->assertSame(
+            'ago',
+            $this->previousMonthToken($today),
+            'Anchor sanity: today=2026-09-01 → previous month is August → token "ago".'
+        );
         $this->assertStringStartsWith('vs ago 1 (1 día)', $cmp['period_label']);
     }
 
@@ -519,21 +532,30 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
         $response->assertOk();
 
         $cmpAppt = $response->json('data.comparisons.appointments_today');
         $this->assertSame(3, $cmpAppt['current']);
         $this->assertSame(2, $cmpAppt['previous']);
-        $this->assertStringContainsString(' dic', $cmpAppt['period_label'],
-            'appointments_today label MUST name the prev-weekday month (dic), not the hardcoded "ago".');
-        $this->assertStringNotContainsString(' ago ', $cmpAppt['period_label'],
-            'period_label MUST NOT embed the literal "ago" between spaces.');
+        $this->assertStringContainsString(
+            ' dic',
+            $cmpAppt['period_label'],
+            'appointments_today label MUST name the prev-weekday month (dic), not the hardcoded "ago".'
+        );
+        $this->assertStringNotContainsString(
+            ' ago ',
+            $cmpAppt['period_label'],
+            'period_label MUST NOT embed the literal "ago" between spaces.'
+        );
         $this->assertStringContainsString('mar 8', $cmpAppt['period_label']);
 
         $cmpMonth = $response->json('data.comparisons.total_appointments_this_month');
-        $this->assertStringContainsString(' nov ', $cmpMonth['period_label'],
-            'total_appointments_this_month label MUST name the prev-month token (nov), not "ago".');
+        $this->assertStringContainsString(
+            ' nov ',
+            $cmpMonth['period_label'],
+            'total_appointments_this_month label MUST name the prev-month token (nov), not "ago".'
+        );
         $this->assertStringContainsString('15', $cmpMonth['period_label']);
     }
 
@@ -569,21 +591,30 @@ class DashboardComparisonTest extends TestCase
         }
 
         $response = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+            ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
         $response->assertOk();
 
         $cmpAppt = $response->json('data.comparisons.appointments_today');
         $this->assertSame(1, $cmpAppt['current']);
         $this->assertSame(2, $cmpAppt['previous']);
-        $this->assertStringContainsString(' ene', $cmpAppt['period_label'],
-            'appointments_today label MUST name the prev-weekday month (ene), not "ago".');
+        $this->assertStringContainsString(
+            ' ene',
+            $cmpAppt['period_label'],
+            'appointments_today label MUST name the prev-weekday month (ene), not "ago".'
+        );
         $this->assertStringContainsString('sáb 3', $cmpAppt['period_label']);
 
         $cmpMonth = $response->json('data.comparisons.total_appointments_this_month');
-        $this->assertSame(4, $cmpMonth['previous'],
-            'Dec 1-10 window MUST count the 4 Dec fixtures and exclude the 3 Jan fixtures.');
-        $this->assertStringContainsString(' dic ', $cmpMonth['period_label'],
-            'total_appointments_this_month label MUST name the prev-month token (dic), not "ago".');
+        $this->assertSame(
+            4,
+            $cmpMonth['previous'],
+            'Dec 1-10 window MUST count the 4 Dec fixtures and exclude the 3 Jan fixtures.'
+        );
+        $this->assertStringContainsString(
+            ' dic ',
+            $cmpMonth['period_label'],
+            'total_appointments_this_month label MUST name the prev-month token (dic), not "ago".'
+        );
     }
 
     public function test_period_labels_never_hardcode_ago_between_spaces(): void
@@ -614,15 +645,21 @@ class DashboardComparisonTest extends TestCase
             $this->appointment($admin, $branch, $type, $chair, $today->copy()->subDays(7)->addHour());
 
             $response = $this->actingAs($admin, 'sanctum')
-                ->getJson('/api/dashboard/stats?branch_id=' . $branch->id);
+                ->getJson('/api/dashboard/stats?branch_id='.$branch->id);
             $response->assertOk();
             $cmpAppt = $response->json('data.comparisons.appointments_today');
             $cmpMonth = $response->json('data.comparisons.total_appointments_this_month');
 
-            $this->assertStringContainsString(" {$apptToken}", $cmpAppt['period_label'],
-                "{$isoDay}: appointments_today label MUST contain ' {$apptToken}'.");
-            $this->assertStringContainsString(" {$monthToken} ", $cmpMonth['period_label'],
-                "{$isoDay}: total_appointments_this_month label MUST contain ' {$monthToken} '.");
+            $this->assertStringContainsString(
+                " {$apptToken}",
+                $cmpAppt['period_label'],
+                "{$isoDay}: appointments_today label MUST contain ' {$apptToken}'."
+            );
+            $this->assertStringContainsString(
+                " {$monthToken} ",
+                $cmpMonth['period_label'],
+                "{$isoDay}: total_appointments_this_month label MUST contain ' {$monthToken} '."
+            );
         }
     }
 
@@ -634,6 +671,7 @@ class DashboardComparisonTest extends TestCase
     private function previousMonthToken(Carbon $today): string
     {
         $prev = $today->copy()->subMonthNoOverflow();
+
         return $this->monthToken($prev->month);
     }
 }

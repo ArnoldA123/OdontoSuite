@@ -59,9 +59,9 @@ class DashboardPendingTest extends TestCase
     private function userWithRole(string $role): User
     {
         return User::create([
-            'name' => 'Pending ' . ucfirst($role),
-            'email' => 'pending.' . $role . '.' . uniqid('', true) . '@example.com',
-            'username' => 'pending_' . $role . '_' . uniqid(),
+            'name' => 'Pending '.ucfirst($role),
+            'email' => 'pending.'.$role.'.'.uniqid('', true).'@example.com',
+            'username' => 'pending_'.$role.'_'.uniqid(),
             'password' => bcrypt('password'),
             'role' => $role,
             'is_active' => true,
@@ -73,8 +73,8 @@ class DashboardPendingTest extends TestCase
         return Patient::create([
             'first_name' => $firstName,
             'last_name' => 'Patient',
-            'email' => 'pending.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'pending.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'branch_id' => $branch?->id,
             'is_active' => true,
         ]);
@@ -84,7 +84,7 @@ class DashboardPendingTest extends TestCase
     {
         return Branch::create([
             'name' => $name,
-            'code' => 'PB' . strtoupper(Str::random(8)),
+            'code' => 'PB'.strtoupper(Str::random(8)),
             'address' => 'Av. Pending 123',
             'city' => 'Lima',
             'is_active' => true,
@@ -101,8 +101,8 @@ class DashboardPendingTest extends TestCase
         $plan = new TreatmentPlan([
             'patient_id' => $patient->id,
             'created_by' => $author->id,
-            'plan_number' => 'TP-' . strtoupper(Str::random(8)),
-            'title' => 'Plan ' . $status,
+            'plan_number' => 'TP-'.strtoupper(Str::random(8)),
+            'title' => 'Plan '.$status,
             'status' => $status,
             'total_cost' => 249.5,
             'final_cost' => 249.5,
@@ -126,7 +126,7 @@ class DashboardPendingTest extends TestCase
             'treatment_plan_id' => $plan->id,
             'patient_id' => $patient->id,
             'created_by' => $author->id,
-            'quotation_number' => 'Q-' . strtoupper(Str::random(8)),
+            'quotation_number' => 'Q-'.strtoupper(Str::random(8)),
             'quotation_date' => $createdAt->toDateString(),
             'valid_until' => $createdAt->copy()->addDays(30)->toDateString(),
             'subtotal' => 149.9,
@@ -285,7 +285,7 @@ class DashboardPendingTest extends TestCase
         $this->plan($admin, $patientB, 'proposed', now()->subHour(), $branchB);
 
         $filtered = $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/dashboard/pending?branch_id=' . $branchA->id);
+            ->getJson('/api/dashboard/pending?branch_id='.$branchA->id);
 
         $filtered->assertOk();
         $this->assertSame(1, $filtered->json('data.quotations.count'));

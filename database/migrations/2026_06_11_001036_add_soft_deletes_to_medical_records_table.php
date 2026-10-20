@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Sprint 3 (M-1): agregar SoftDeletes a MedicalRecord.
  *
  * Razon: clinica real no debe perder pacientes, citas, historias clinicas

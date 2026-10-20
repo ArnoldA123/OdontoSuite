@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * ui-premium-microdetail-2026-08 / PR3 — Index `patients.created_at`.
  *
  * Backed by the dashboard period-comparisons slice: the comparison for

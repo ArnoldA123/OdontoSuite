@@ -19,7 +19,10 @@ use PHPUnit\Framework\TestCase;
  */
 class SpecialtyRecordControllerShowQueriesTest extends TestCase
 {
-private static function controllerFile(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api/SpecialtyRecordController.php'; }
+    private static function controllerFile(): string
+    {
+        return dirname(__DIR__, 3).'/app/Http/Controllers/Api/SpecialtyRecordController.php';
+    }
 
     public function test_specialty_record_show_iterates_models_in_a_loop(): void
     {

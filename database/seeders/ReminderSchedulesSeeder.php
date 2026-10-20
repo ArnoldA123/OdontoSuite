@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\ReminderSchedule;
 use App\Models\Appointment;
+use App\Models\ReminderSchedule;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class ReminderSchedulesSeeder extends Seeder
 {
@@ -21,6 +20,7 @@ class ReminderSchedulesSeeder extends Seeder
 
         if ($appointments->isEmpty()) {
             $this->command->info('No hay citas con recordatorios para crear.');
+
             return;
         }
 
@@ -48,17 +48,13 @@ class ReminderSchedulesSeeder extends Seeder
         }
 
         // Insertar recordatorios en lotes
-        if (!empty($reminders)) {
+        if (! empty($reminders)) {
             $chunks = array_chunk($reminders, 100);
             foreach ($chunks as $chunk) {
                 ReminderSchedule::insert($chunk);
             }
         }
 
-        $this->command->info(count($reminders) . ' recordatorios creados exitosamente.');
+        $this->command->info(count($reminders).' recordatorios creados exitosamente.');
     }
-
 }
-
-
-

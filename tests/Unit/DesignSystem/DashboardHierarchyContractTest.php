@@ -21,11 +21,13 @@ class DashboardHierarchyContractTest extends TestCase
     }
 
     private const DASHBOARD_FILE = '/resources/js/modules/dashboard/DashboardPage.vue';
+
     private const APP_LAYOUT_FILE = '/resources/js/components/layout/AppLayout.vue';
 
     private static function read(string $rel): string
     {
-        $path = self::projectRootPath() . $rel;
+        $path = self::projectRootPath().$rel;
+
         return is_file($path) ? (string) file_get_contents($path) : '';
     }
 
@@ -33,6 +35,7 @@ class DashboardHierarchyContractTest extends TestCase
     {
         $src = self::read(self::DASHBOARD_FILE);
         $this->assertNotSame('', $src, 'DashboardPage.vue must exist');
+
         return $src;
     }
 

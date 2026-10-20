@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Patient;
+use Illuminate\Database\Seeder;
 
 class PatientSeeder extends Seeder
 {
@@ -24,7 +23,7 @@ class PatientSeeder extends Seeder
             'Agustín', 'Josefa', 'Maximiliano', 'Magdalena', 'Cristóbal', 'Pascale', 'Joaquín', 'Ignacia', 'Simón', 'Rafaela',
             'Lucas', 'María José', 'Gabriel', 'María Paz', 'Alonso', 'María Jesús', 'Bastián', 'María Ignacia', 'Vicente', 'María Elena',
             'Javier', 'María Fernanda', 'Pablo', 'María Victoria', 'Rafael', 'María Soledad', 'Eduardo', 'María Angélica', 'Hernán', 'María Teresa',
-            'Cristian', 'María del Carmen', 'Patricio', 'María Inés', 'Fabián', 'María Loreto', 'Gonzalo', 'María Consuelo', 'Hugo', 'María Esperanza'
+            'Cristian', 'María del Carmen', 'Patricio', 'María Inés', 'Fabián', 'María Loreto', 'Gonzalo', 'María Consuelo', 'Hugo', 'María Esperanza',
         ];
 
         $lastNames = [
@@ -37,7 +36,7 @@ class PatientSeeder extends Seeder
             'Campos', 'Vega', 'Fuentes', 'Carrasco', 'Diez', 'Caballero', 'Reyes', 'Nieto', 'Aguilar', 'Pascual',
             'Santana', 'Herrero', 'Montero', 'Lara', 'Hidalgo', 'Giménez', 'Ibáñez', 'Ferrer', 'Duran', 'Santiago',
             'Benítez', 'Vargas', 'Mora', 'Vicente', 'Arias', 'Carmona', 'Crespo', 'Román', 'Pastor', 'Soto',
-            'Sáez', 'Velasco', 'Moya', 'Soler', 'Parra', 'Esteban', 'Bravo', 'Gallardo', 'Rojas', 'Pardo'
+            'Sáez', 'Velasco', 'Moya', 'Soler', 'Parra', 'Esteban', 'Bravo', 'Gallardo', 'Rojas', 'Pardo',
         ];
 
         $addresses = [
@@ -60,7 +59,7 @@ class PatientSeeder extends Seeder
             'Av. Nicolás de Piérola 680, Trujillo',
             'Jr. Orbegoso 791, Trujillo',
             'Av. Larco Herrera 802, Trujillo',
-            'Calle Almagro 913, Trujillo'
+            'Calle Almagro 913, Trujillo',
         ];
 
         $medicalHistories = [
@@ -78,7 +77,7 @@ class PatientSeeder extends Seeder
             'Colesterol alto',
             'Gastritis',
             'Problemas renales',
-            'Epilepsia'
+            'Epilepsia',
         ];
 
         $allergies = [
@@ -96,7 +95,7 @@ class PatientSeeder extends Seeder
             'Yodo',
             'Metales (níquel)',
             'Fragancias',
-            'Conservantes'
+            'Conservantes',
         ];
 
         $notes = [
@@ -114,7 +113,7 @@ class PatientSeeder extends Seeder
             'Paciente con fobia dental, sedación',
             'Paciente con prótesis, mantenimiento',
             'Paciente post-operatorio, seguimiento',
-            'Paciente con implantes, control periódico'
+            'Paciente con implantes, control periódico',
         ];
 
         $patients = [];
@@ -131,18 +130,18 @@ class PatientSeeder extends Seeder
             // Email derivado del índice del bucle: las 100 filas son distintas
             // por construcción, sin depender de los nombres aleatorios.
             $emailDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com'];
-            $email = strtolower($firstName . '.' . $lastName . '.' . $i . '@' . $emailDomains[$i % count($emailDomains)]);
+            $email = strtolower($firstName.'.'.$lastName.'.'.$i.'@'.$emailDomains[$i % count($emailDomains)]);
 
             $phonePrefix = ['987', '986', '985', '984', '983', '982', '981', '980'];
-            $phone = '+51 ' . $phonePrefix[$i % count($phonePrefix)] . ' ' . sprintf('%03d %03d', 100 + $i, 100 + (($i * 37) % 900));
+            $phone = '+51 '.$phonePrefix[$i % count($phonePrefix)].' '.sprintf('%03d %03d', 100 + $i, 100 + (($i * 37) % 900));
 
-            $emergencyName = $firstNames[array_rand($firstNames)] . ' ' . $lastNames[array_rand($lastNames)];
-            $emergencyPhone = '+51 ' . $phonePrefix[($i + 4) % count($phonePrefix)] . ' ' . sprintf('%03d %03d', 600 + $i, 100 + (($i * 53 + 7) % 900));
+            $emergencyName = $firstNames[array_rand($firstNames)].' '.$lastNames[array_rand($lastNames)];
+            $emergencyPhone = '+51 '.$phonePrefix[($i + 4) % count($phonePrefix)].' '.sprintf('%03d %03d', 600 + $i, 100 + (($i * 53 + 7) % 900));
 
             $patients[] = [
                 'first_name' => $firstName,
                 'last_name' => $lastName,
-                'document_number' => 'DOC-' . str_pad($i + 1, 8, '0', STR_PAD_LEFT),
+                'document_number' => 'DOC-'.str_pad($i + 1, 8, '0', STR_PAD_LEFT),
                 'email' => $email,
                 'phone' => $phone,
                 'birth_date' => $birthDate,

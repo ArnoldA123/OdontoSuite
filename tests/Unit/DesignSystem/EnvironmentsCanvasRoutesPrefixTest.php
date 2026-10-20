@@ -39,16 +39,17 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
 
     private static function appLayoutPath(): string
     {
-        return dirname(__DIR__, 3) . self::APP_LAYOUT_PATH;
+        return dirname(__DIR__, 3).self::APP_LAYOUT_PATH;
     }
 
     private static function readSource(): ?string
     {
         $path = self::appLayoutPath();
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -72,8 +73,8 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
             ),
             sprintf(
                 '%s MUST define `function matchesCanvasRoute(path)` (AMB-01-001). '
-                . 'The helper enables prefix matching so detail routes like '
-                . '`/environments/123` render on the canvas surface.',
+                .'The helper enables prefix matching so detail routes like '
+                .'`/environments/123` render on the canvas surface.',
                 self::appLayoutPath()
             )
         );
@@ -87,8 +88,8 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
             ),
             sprintf(
                 '%s `matchesCanvasRoute` body MUST use the canonical prefix-matching '
-                . 'pattern (AMB-01-001). Expected `canvasRoutes.some(route => path === route || '
-                . 'path.startsWith(route + \'/\'))`.',
+                .'pattern (AMB-01-001). Expected `canvasRoutes.some(route => path === route || '
+                .'path.startsWith(route + \'/\'))`.',
                 self::appLayoutPath()
             )
         );
@@ -117,8 +118,8 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
             ),
             sprintf(
                 '%s `isCanvasRoute` MUST delegate to `matchesCanvasRoute(route.path)` '
-                . '(AMB-01-001). Replace the legacy `canvasRoutes.includes(route.path)` '
-                . 'exact-match computed.',
+                .'(AMB-01-001). Replace the legacy `canvasRoutes.includes(route.path)` '
+                .'exact-match computed.',
                 self::appLayoutPath()
             )
         );
@@ -131,7 +132,7 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
             ),
             sprintf(
                 '%s MUST NOT keep the legacy `canvasRoutes.includes(route.path)` '
-                . 'exact-match check (AMB-01-001). The helper replaces it.',
+                .'exact-match check (AMB-01-001). The helper replaces it.',
                 self::appLayoutPath()
             )
         );
@@ -212,7 +213,7 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
      */
     private static function extractCanvasRoutesBody(string $src): ?string
     {
-        if (!preg_match('/const\s+canvasRoutes\s*=\s*\[/', $src, $matches, PREG_OFFSET_CAPTURE)) {
+        if (! preg_match('/const\s+canvasRoutes\s*=\s*\[/', $src, $matches, PREG_OFFSET_CAPTURE)) {
             return null;
         }
 
@@ -262,10 +263,11 @@ class EnvironmentsCanvasRoutesPrefixTest extends TestCase
     private static function simulateMatchesCanvasRoute(array $routes, string $path): bool
     {
         foreach ($routes as $route) {
-            if ($path === $route || str_starts_with($path, $route . '/')) {
+            if ($path === $route || str_starts_with($path, $route.'/')) {
                 return true;
             }
         }
+
         return false;
     }
 }

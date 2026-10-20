@@ -3,7 +3,6 @@
 namespace Tests\Unit\Composables;
 
 use PHPUnit\Framework\TestCase;
-
 use Tests\Support\SourceGrep;
 
 /**
@@ -22,7 +21,10 @@ use Tests\Support\SourceGrep;
  */
 class AppShellTest extends TestCase
 {
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     private const APP_JS_REL = '/resources/js/app.js';
 
@@ -30,20 +32,16 @@ class AppShellTest extends TestCase
 
     private static function appJsPath(): string
     {
-        return self::projectRootPath() . self::APP_JS_REL;
+        return self::projectRootPath().self::APP_JS_REL;
     }
 
     private static function packageJsonPath(): string
     {
-        return self::projectRootPath() . self::PACKAGE_JSON_REL;
+        return self::projectRootPath().self::PACKAGE_JSON_REL;
     }
 
     /**
      * Sum ripgrep --count-matches results across one or more paths.
-     *
-     * @param string $pattern
-     * @param string ...$paths
-     * @return int
      */
     private static function grepCount(string $pattern, string ...$paths): int
     {
@@ -68,8 +66,8 @@ class AppShellTest extends TestCase
             0,
             $count,
             'resources/js/app.js must not reference `MotionPlugin` '
-                . '(retired with @vueuse/motion: no real v-motion consumer).'
-                . ' Got count=' . $count . '.'
+                .'(retired with @vueuse/motion: no real v-motion consumer).'
+                .' Got count='.$count.'.'
         );
     }
 
@@ -91,9 +89,9 @@ class AppShellTest extends TestCase
             $this->assertSame(
                 0,
                 $count,
-                basename($path) . ' must not reference "@vueuse/motion" '
-                    . '(dependency retired with the plugin registration).'
-                    . ' Got count=' . $count . '.'
+                basename($path).' must not reference "@vueuse/motion" '
+                    .'(dependency retired with the plugin registration).'
+                    .' Got count='.$count.'.'
             );
         }
     }

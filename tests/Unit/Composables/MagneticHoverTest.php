@@ -3,7 +3,6 @@
 namespace Tests\Unit\Composables;
 
 use PHPUnit\Framework\TestCase;
-
 use Tests\Support\SourceGrep;
 
 /**
@@ -29,35 +28,36 @@ use Tests\Support\SourceGrep;
 class MagneticHoverTest extends TestCase
 {
     /** Project root absolute path. */
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /** Composable module path. */
     private const COMPOSABLE_REL = '/resources/js/composables/useMagneticHover.js';
+
     /** Pure-math module path (Node-loadable, no Vue dependency). */
     private const MATH_REL = '/resources/js/composables/magneticHoverMath.js';
+
     private const BUTTON_REL = '/resources/js/components/ui/Button.vue';
 
     private static function composablePath(): string
     {
-        return self::projectRootPath() . self::COMPOSABLE_REL;
+        return self::projectRootPath().self::COMPOSABLE_REL;
     }
 
     private static function mathPath(): string
     {
-        return self::projectRootPath() . self::MATH_REL;
+        return self::projectRootPath().self::MATH_REL;
     }
 
     private static function buttonPath(): string
     {
-        return self::projectRootPath() . self::BUTTON_REL;
+        return self::projectRootPath().self::BUTTON_REL;
     }
 
     /**
      * Sum ripgrep --count-matches results across one or more paths.
-     *
-     * @param string $pattern
-     * @param string ...$paths
-     * @return int
      */
     private static function grepCount(string $pattern, string ...$paths): int
     {
@@ -69,18 +69,17 @@ class MagneticHoverTest extends TestCase
      * Vue dependency), calls the supplied expression, and returns its
      * result as a JSON object. Mirrors `UseSpringMathTest::runMath`.
      *
-     * @param string $body  ESM body that ends with `process.stdout.write(JSON.stringify(result))`
-     * @return mixed
+     * @param string $body ESM body that ends with `process.stdout.write(JSON.stringify(result))`
      */
     private static function runMath(string $body): mixed
     {
         $mathPath = self::mathPath();
-        if (!is_file($mathPath)) {
+        if (! is_file($mathPath)) {
             self::fail("Math module missing: {$mathPath} — implement magneticHoverMath.js before this test (RED → GREEN)");
         }
 
         $escapedPath = addcslashes($mathPath, "'\\");
-        $loader = <<<JS
+        $loader = <<<'JS'
 import { pathToFileURL } from 'node:url';
 const mod = await import(pathToFileURL('TARGET_PATH').href);
 globalThis.__exports = { ...mod };
@@ -90,23 +89,24 @@ JS;
         $loader = str_replace('BODY_PLACEHOLDER', $body, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'mag_hover_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
         if ($output === null || $output === '') {
-            self::fail('node -e produced no output. body: ' . $body);
+            self::fail('node -e produced no output. body: '.$body);
         }
 
         $jsonStart = strpos($output, '{');
         if ($jsonStart === false) {
-            self::fail('node output had no JSON object: ' . $output);
+            self::fail('node output had no JSON object: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return $decoded;
     }
 
@@ -140,9 +140,7 @@ JS;
      * bounds captured via a closure (the design doc's signature), the test
      * binds bounds through a wrapper function that calls the helper.
      *
-     * @param array{bx:int,by:int,bw:int,bh:int,max:float} $bounds
-     * @param int $mx
-     * @param int $my
+     * @param  array{bx:int,by:int,bw:int,bh:int,max:float} $bounds
      * @return array{dx:float,dy:float}
      */
     private static function callOffset(array $bounds, int $mx, int $my): array
@@ -174,6 +172,7 @@ JS;
             ],
             $body
         );
+
         return self::runMath($body);
     }
 
@@ -228,13 +227,13 @@ JS;
             28.284,
             (float) $r['dx'],
             0.5,
-            'dx must be clamped to ~28.28 when raw magnitude exceeds M (got dx=' . $r['dx'] . ')'
+            'dx must be clamped to ~28.28 when raw magnitude exceeds M (got dx='.$r['dx'].')'
         );
         $this->assertEqualsWithDelta(
             28.284,
             (float) $r['dy'],
             0.5,
-            'dy must be clamped to ~28.28 when raw magnitude exceeds M (got dy=' . $r['dy'] . ')'
+            'dy must be clamped to ~28.28 when raw magnitude exceeds M (got dy='.$r['dy'].')'
         );
 
         // And the clamped magnitude must be exactly M (the cap).
@@ -329,7 +328,7 @@ JS;
         // name is acceptable; assert the literal string is present.
         $this->assertGreaterThanOrEqual(
             1,
-            self::grepCount("data-magnetic", self::buttonPath()),
+            self::grepCount('data-magnetic', self::buttonPath()),
             'Button.vue must reference the data-magnetic selector'
         );
 
@@ -338,7 +337,7 @@ JS;
         // must consume them in its transform.
         $this->assertGreaterThanOrEqual(
             1,
-            self::grepCount("spring-magnet-x", self::buttonPath()),
+            self::grepCount('spring-magnet-x', self::buttonPath()),
             'Button.vue must consume var(--spring-magnet-x) so the magnetic effect renders'
         );
     }

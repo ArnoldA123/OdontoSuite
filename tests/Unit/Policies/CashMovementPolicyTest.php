@@ -39,13 +39,15 @@ class CashMovementPolicyTest extends TestCase
             class_exists($class),
             "Policy class {$class} must exist (FF-001)"
         );
-        return new $class();
+
+        return new $class;
     }
 
     private function userWithRole(string $role): User
     {
-        $user = new User();
+        $user = new User;
         $user->role = $role;
+
         return $user;
     }
 
@@ -55,7 +57,7 @@ class CashMovementPolicyTest extends TestCase
         $class = self::policyClass();
         $this->assertTrue(
             class_exists($class),
-            "CashMovementPolicy class must exist at app/Policies/CashMovementPolicy.php"
+            'CashMovementPolicy class must exist at app/Policies/CashMovementPolicy.php'
         );
         $this->assertTrue(
             method_exists($class, 'create'),
@@ -85,6 +87,7 @@ class CashMovementPolicyTest extends TestCase
 
     /**
      * @test FF-001
+     *
      * @dataProvider nonAllowedRoles
      */
     public function create_returns_false_for_non_allowed_roles(string $role): void
@@ -114,7 +117,7 @@ class CashMovementPolicyTest extends TestCase
         // routes/api.php:345 wraps cash-movements in
         // `role:administrador,finanzas`. We assert the policy's allowed roles
         // are exactly that set.
-        $source = file_get_contents(__DIR__ . '/../../../routes/api.php');
+        $source = file_get_contents(__DIR__.'/../../../routes/api.php');
         $this->assertNotFalse($source);
 
         // Find the line that defines cash-movements registration.
@@ -132,7 +135,7 @@ class CashMovementPolicyTest extends TestCase
         );
 
         // And the policy itself must use the same role set (no drift).
-        $policySource = file_get_contents(__DIR__ . '/../../../app/Policies/CashMovementPolicy.php');
+        $policySource = file_get_contents(__DIR__.'/../../../app/Policies/CashMovementPolicy.php');
         $this->assertNotFalse($policySource);
         $this->assertStringContainsString(
             "['administrador', 'finanzas']",

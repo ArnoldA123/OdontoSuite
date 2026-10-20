@@ -16,7 +16,7 @@ class TreatmentPlanFactory extends Factory
         return [
             'patient_id' => \App\Models\Patient::factory(),
             'created_by' => \App\Models\User::factory(),
-            'plan_number' => 'TP-' . $this->faker->unique()->bothify('####-####'),
+            'plan_number' => 'TP-'.$this->faker->unique()->bothify('####-####'),
             'title' => $this->faker->words(3, true),
             'description' => $this->faker->sentence(),
             'status' => 'draft',

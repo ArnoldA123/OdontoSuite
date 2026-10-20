@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Hotfix edit (2026-08-05) — NEW-002 portability fix.
  *
  * The original backfill used the Patient Eloquent model directly. Because
@@ -50,7 +50,7 @@ return new class extends Migration
             DB::table('patients')
                 ->where('id', $row->id)
                 ->update([
-                    'document_number' => 'DOC-' . str_pad($row->id, 8, '0', STR_PAD_LEFT),
+                    'document_number' => 'DOC-'.str_pad($row->id, 8, '0', STR_PAD_LEFT),
                 ]);
         }
 

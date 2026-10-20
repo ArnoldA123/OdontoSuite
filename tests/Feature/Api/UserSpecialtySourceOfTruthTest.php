@@ -42,7 +42,7 @@ class UserSpecialtySourceOfTruthTest extends TestCase
     /** @test */
     public function user_model_relationship_returns_pivot_specialties(): void
     {
-        $seed = new RoleBasedUsersSeeder();
+        $seed = new RoleBasedUsersSeeder;
         $seed->setCommand($this->createMock(\Illuminate\Console\Command::class));
         $seed->run();
 
@@ -66,7 +66,7 @@ class UserSpecialtySourceOfTruthTest extends TestCase
     /** @test */
     public function user_resource_exposes_specialties_via_pivot(): void
     {
-        $seed = new RoleBasedUsersSeeder();
+        $seed = new RoleBasedUsersSeeder;
         $seed->setCommand($this->createMock(\Illuminate\Console\Command::class));
         $seed->run();
 

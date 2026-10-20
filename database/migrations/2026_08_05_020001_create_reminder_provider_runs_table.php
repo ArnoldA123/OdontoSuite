@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Slice 03 (T-03.8): idempotency tracking for ReminderProvider hourly run.
  * Single-row table (singleton) — `runs_count` and `last_run_at` allow the
  * provider to skip overlapping ticks if the previous run took > 60s.

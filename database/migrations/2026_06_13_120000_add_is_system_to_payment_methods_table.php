@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * Sprint 0 (B-CASH-2): agregar columna is_system a payment_methods.
  * Razon: distinguir metodos del sistema (cash, transfer, credit_card) que
  * toda clinica peruana usa y no deben ser borrados por el admin, de

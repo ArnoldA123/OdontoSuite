@@ -73,8 +73,11 @@ class CashMovementPermissionTest extends TestCase
                 'description' => 'Test movement',
             ]);
 
-        $this->assertNotEquals(403, $response->status(),
-            "administrador must NOT be 403'd by the cash-movement RBAC gate. Got: {$response->status()}");
+        $this->assertNotEquals(
+            403,
+            $response->status(),
+            "administrador must NOT be 403'd by the cash-movement RBAC gate. Got: {$response->status()}"
+        );
     }
 
     /** @test FF-001 */
@@ -92,12 +95,16 @@ class CashMovementPermissionTest extends TestCase
                 'description' => 'Test movement',
             ]);
 
-        $this->assertNotEquals(403, $response->status(),
-            "finanzas must NOT be 403'd by the cash-movement RBAC gate. Got: {$response->status()}");
+        $this->assertNotEquals(
+            403,
+            $response->status(),
+            "finanzas must NOT be 403'd by the cash-movement RBAC gate. Got: {$response->status()}"
+        );
     }
 
     /**
      * @test FF-001
+     *
      * @dataProvider forbiddenRoles
      */
     public function non_admin_non_finanzas_cannot_post_cash_movement(string $role): void

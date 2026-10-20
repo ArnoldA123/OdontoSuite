@@ -3,8 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Http\Requests\CloseCashRegisterRequest;
-use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\StoreCashMovementRequest;
+use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\StoreTreatmentPlanRequest;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
@@ -16,7 +16,7 @@ class CashRegisterValidationTest extends TestCase
 {
     public function test_close_cash_rules_reject_zero_closing_amount(): void
     {
-        $rules = (new CloseCashRegisterRequest())->rules();
+        $rules = (new CloseCashRegisterRequest)->rules();
 
         // Original rule: 'min:0' allows 0. After slice 02 must reject 0.
         $validator = Validator::make(
@@ -32,7 +32,7 @@ class CashRegisterValidationTest extends TestCase
 
     public function test_close_cash_rules_accept_positive_closing_amount(): void
     {
-        $rules = (new CloseCashRegisterRequest())->rules();
+        $rules = (new CloseCashRegisterRequest)->rules();
         $validator = Validator::make(
             ['closing_amount' => 100.50],
             ['closing_amount' => $rules['closing_amount']]
@@ -42,7 +42,7 @@ class CashRegisterValidationTest extends TestCase
 
     public function test_store_transaction_rules_include_payment_method_id(): void
     {
-        $rules = (new StoreTransactionRequest())->rules();
+        $rules = (new StoreTransactionRequest)->rules();
         $this->assertArrayHasKey('payment_method_id', $rules);
     }
 
@@ -51,10 +51,12 @@ class CashRegisterValidationTest extends TestCase
         // Per the spec T-02.11, StoreCashMovementRequest must exist with:
         // - branch_id (nullable, exists:branches,id)
         // - concept (in:opening_balance,sale_refund,withdrawal,deposit,adjustment)
-        $this->assertTrue(class_exists(StoreCashMovementRequest::class),
-            'StoreCashMovementRequest class must exist (T-02.11)');
+        $this->assertTrue(
+            class_exists(StoreCashMovementRequest::class),
+            'StoreCashMovementRequest class must exist (T-02.11)'
+        );
 
-        $rules = (new StoreCashMovementRequest())->rules();
+        $rules = (new StoreCashMovementRequest)->rules();
         $this->assertArrayHasKey('branch_id', $rules);
         $this->assertArrayHasKey('concept', $rules);
 
@@ -70,7 +72,7 @@ class CashRegisterValidationTest extends TestCase
 
     public function test_store_treatment_plan_rules_include_branch_id(): void
     {
-        $rules = (new StoreTreatmentPlanRequest())->rules();
+        $rules = (new StoreTreatmentPlanRequest)->rules();
         $this->assertArrayHasKey('branch_id', $rules);
         $this->assertStringContainsString('nullable', $rules['branch_id']);
         $this->assertStringContainsString('branches', $rules['branch_id']);

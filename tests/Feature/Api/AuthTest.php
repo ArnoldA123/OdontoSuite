@@ -13,7 +13,7 @@ class AuthTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Test rate limiting: maximum 3 attempts per minute
+     * Test rate limiting: maximum 3 attempts per minute.
      */
     public function test_login_rate_limiting_three_attempts_per_minute(): void
     {
@@ -45,7 +45,7 @@ class AuthTest extends TestCase
     }
 
     /**
-     * Test blocking after 5 failed attempts for 10 minutes
+     * Test blocking after 5 failed attempts for 10 minutes.
      */
     public function test_login_blocked_after_five_failed_attempts(): void
     {
@@ -80,7 +80,7 @@ class AuthTest extends TestCase
     }
 
     /**
-     * Test successful login clears rate limit counters
+     * Test successful login clears rate limit counters.
      */
     public function test_successful_login_clears_rate_limit_counters(): void
     {
@@ -112,7 +112,7 @@ class AuthTest extends TestCase
         // After successful login, we should be able to make attempts again
         // (rate limit should be reset)
         Cache::flush(); // Clear cache to simulate fresh state
-        
+
         $response = $this->postJson('/api/auth/login', [
             'username' => 'testuser',
             'password' => 'wrongpassword',
@@ -123,7 +123,7 @@ class AuthTest extends TestCase
     }
 
     /**
-     * Test inactive user cannot login
+     * Test inactive user cannot login.
      */
     public function test_inactive_user_cannot_login(): void
     {
@@ -142,4 +142,3 @@ class AuthTest extends TestCase
         $this->assertStringContainsString('desactivada', $response->json('errors.username.0'));
     }
 }
-

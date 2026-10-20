@@ -20,7 +20,7 @@ class HotfixLoginCardSurfaceTest extends TestCase
 
     private static function loginPagePath(): string
     {
-        return dirname(__DIR__, 3) . self::LOGIN_PAGE_REL;
+        return dirname(__DIR__, 3).self::LOGIN_PAGE_REL;
     }
 
     public function test_login_card_does_not_use_glass_variant(): void

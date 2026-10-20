@@ -78,8 +78,8 @@ class BusinessIntelligenceRenderTest extends TestCase
         $patient = Patient::create([
             'first_name' => 'BI',
             'last_name' => 'Patient',
-            'email' => 'bi.patient.' . uniqid('', true) . '@example.com',
-            'phone' => '+51 9' . str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
+            'email' => 'bi.patient.'.uniqid('', true).'@example.com',
+            'phone' => '+51 9'.str_pad((string) random_int(10000000, 99999999), 8, '0', STR_PAD_LEFT),
             'is_active' => true,
         ]);
 

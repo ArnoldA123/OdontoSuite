@@ -20,8 +20,15 @@ use PHPUnit\Framework\TestCase;
  */
 class BroadcastingAuth503Test extends TestCase
 {
-    private static function routesFile(): string { return dirname(__DIR__, 3) . '/routes/api.php'; }
-    private static function appDir(): string { return dirname(__DIR__, 3) . '/app/Http/Controllers/Api'; }
+    private static function routesFile(): string
+    {
+        return dirname(__DIR__, 3).'/routes/api.php';
+    }
+
+    private static function appDir(): string
+    {
+        return dirname(__DIR__, 3).'/app/Http/Controllers/Api';
+    }
 
     public function test_broadcasting_auth_returns_503_when_secret_or_key_missing(): void
     {
@@ -33,7 +40,7 @@ class BroadcastingAuth503Test extends TestCase
         // The fix swaps the 500 response on missing reverb secret/key
         // to a 503 (service unavailable).
         $closureUses503 = str_contains($routesSource, "response()->json(['message' => 'Server configuration error'], 503)")
-            || preg_match("/response\\(\\)->json\\([^)]*Server configuration error[^)]*503/s", $routesSource) === 1;
+            || preg_match('/response\\(\\)->json\\([^)]*Server configuration error[^)]*503/s', $routesSource) === 1;
 
         // Assert the emitted status code, not a comment mention. The
         // controller's BF-019 rationale comment contains the literal "503"
@@ -63,7 +70,7 @@ class BroadcastingAuth503Test extends TestCase
     {
         // BF-025: the big inline closure in routes/api.php must be extracted
         // into a dedicated BroadcastingAuthController.
-        $controllerFile = self::appDir() . '/BroadcastingAuthController.php';
+        $controllerFile = self::appDir().'/BroadcastingAuthController.php';
         $this->assertFileExists(
             $controllerFile,
             'BF-025: routes/api.php must NOT contain the broadcasting/auth closure inline — extract it to App\Http\Controllers\Api\BroadcastingAuthController'
@@ -72,8 +79,8 @@ class BroadcastingAuth503Test extends TestCase
 
     private function controllerSource(): ?string
     {
-        $controllerFile = self::appDir() . '/BroadcastingAuthController.php';
-        if (!is_file($controllerFile)) {
+        $controllerFile = self::appDir().'/BroadcastingAuthController.php';
+        if (! is_file($controllerFile)) {
             return null;
         }
 

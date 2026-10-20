@@ -92,7 +92,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
     protected static function polishedFiles(): array
     {
         return [
-            dirname(__DIR__, 3) . self::PATIENTS_PAGE_PATH,
+            dirname(__DIR__, 3).self::PATIENTS_PAGE_PATH,
         ];
     }
 
@@ -116,8 +116,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<AppLayout\b/', $src),
             sprintf(
                 '%s MUST reference `<AppLayout>` (the canvas-surface wrapper per DLR-CORE-001). '
-                    . 'The pacientes design acknowledges the page file does not need a direct '
-                    . '`bg-canvas` reference — the AppLayout provides it.',
+                    .'The pacientes design acknowledges the page file does not need a direct '
+                    .'`bg-canvas` reference — the AppLayout provides it.',
                 $path
             )
         );
@@ -149,7 +149,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             preg_match_all('/<PatientFormModal\b/', $page),
             sprintf(
                 '%s MUST render the shared `<PatientFormModal>` for BOTH the New Patient '
-                    . 'AND the Edit Patient flows — exactly one usage (PAC-MOD-001 / consolidation). Found %d.',
+                    .'AND the Edit Patient flows — exactly one usage (PAC-MOD-001 / consolidation). Found %d.',
                 self::PATIENTS_PAGE_PATH,
                 preg_match_all('/<PatientFormModal\b/', $page)
             )
@@ -173,7 +173,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
                 preg_match('/(?<![\w-])bg-black\s+bg-opacity-50(?![\w-])/', $src),
                 sprintf(
                     '%s MUST NOT keep the legacy `bg-black bg-opacity-50` modal backdrop '
-                        . '(PAC-MOD-001). `<UiModal>` owns the backdrop + focus trap + iOS motion.',
+                        .'(PAC-MOD-001). `<UiModal>` owns the backdrop + focus trap + iOS motion.',
                     $file
                 )
             );
@@ -200,7 +200,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             $modal,
             sprintf(
                 '%s MUST NOT contain the legacy `border-theme` literal (PAC-MOD-001 / DLR-R-002). '
-                    . 'Use `border-hairline` for dividers.',
+                    .'Use `border-hairline` for dividers.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -224,7 +224,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             preg_match('/<select\b/i', $modal),
             sprintf(
                 '%s MUST NOT contain a raw `<select>` element (PAC-MOD-001 / DLR-R-009). '
-                    . 'Use `<UiSelect>` for the gender + status dropdowns.',
+                    .'Use `<UiSelect>` for the gender + status dropdowns.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -249,8 +249,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             $modal,
             sprintf(
                 '%s MUST NOT contain the legacy `focus:ring-primary-500` / `focus:border-accent` aliases '
-                    . '(PAC-MOD-001 / DLR-R-004). The `var(--focus-ring-default)` token (consumed by '
-                    . '`<UiInput>` / `<UiSelect>` / `<UiTextarea>`) owns the focus ring.',
+                    .'(PAC-MOD-001 / DLR-R-004). The `var(--focus-ring-default)` token (consumed by '
+                    .'`<UiInput>` / `<UiSelect>` / `<UiTextarea>`) owns the focus ring.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -303,8 +303,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
                 ),
             sprintf(
                 '%s MUST consume `<UiTextarea>` for the medical_history + allergies + notes fields '
-                    . '(PAC-MOD-001). The pre-PR `<UiInput type="textarea">` is invalid — the Input.vue '
-                    . 'validator does not allow `textarea` as a type.',
+                    .'(PAC-MOD-001). The pre-PR `<UiInput type="textarea">` is invalid — the Input.vue '
+                    .'validator does not allow `textarea` as a type.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -315,7 +315,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             preg_match('/<textarea\b/i', $modal),
             sprintf(
                 '%s MUST NOT contain a raw `<textarea>` element (PAC-MOD-001 / DLR-R-009). '
-                    . 'Use `<UiTextarea>` for the free-text medical fields.',
+                    .'Use `<UiTextarea>` for the free-text medical fields.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -326,7 +326,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             $modal,
             sprintf(
                 '%s MUST NOT use `<UiInput type="textarea">` (PAC-MOD-001). '
-                    . 'The Input.vue type validator rejects it; `<UiTextarea>` owns long text.',
+                    .'The Input.vue type validator rejects it; `<UiTextarea>` owns long text.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -363,8 +363,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `error.response?.data?.message` read in the catch block '
-                    . '(PAC-MOD-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
-                    . 'via `useToast`.',
+                    .'(PAC-MOD-001). The 422 duplicate-email/phone envelope is surfaced verbatim '
+                    .'via `useToast`.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -378,7 +378,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `error.response?.data?.errors` read + the `Object.values(errors).flat().join(\'\\n\')` flattening '
-                    . '(PAC-MOD-001). The 422 validation bag surfaces verbatim via `useToast`.',
+                    .'(PAC-MOD-001). The 422 validation bag surfaces verbatim via `useToast`.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -393,7 +393,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep a `catch (...) { ... toast.error(...) }` block in the submit flow '
-                    . '(PAC-MOD-001). The form stays open on 422 and the user sees the toast.',
+                    .'(PAC-MOD-001). The form stays open on 422 and the user sees the toast.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -417,7 +417,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             $catchBlock,
             sprintf(
                 '%s MUST NOT emit `close` from the catch block (PAC-MOD-001): the form stays open on 422 '
-                    . 'so the user can correct the offending field.',
+                    .'so the user can correct the offending field.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -482,7 +482,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             (bool) preg_match('/<PatientFormModal\b[^>]*\s@saved\s*=/s', $page),
             sprintf(
                 '%s MUST wire `<PatientFormModal @saved=...>` (PAC-MOD-001): the success payload '
-                    . 'drives the list update + success toast.',
+                    .'drives the list update + success toast.',
                 self::PATIENTS_PAGE_PATH
             )
         );
@@ -508,7 +508,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `const { get, delete: del } = useApi()` destructure '
-                    . '(PAC-CON-001). Renaming would silently break loadPatients + deletePatient.',
+                    .'(PAC-CON-001). Renaming would silently break loadPatients + deletePatient.',
                 self::PATIENTS_PAGE_PATH
             )
         );
@@ -522,7 +522,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `const { post, put } = useApi()` destructure (PAC-CON-001). '
-                    . 'The create/update flows ride the shared form component.',
+                    .'The create/update flows ride the shared form component.',
                 self::PATIENTS_FORM_MODAL_PATH
             )
         );
@@ -555,7 +555,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `useToast` import (PAC-CON-001). The success + delete toasts are '
-                    . 'surfaced verbatim.',
+                    .'surfaced verbatim.',
                 self::PATIENTS_PAGE_PATH
             )
         );
@@ -585,7 +585,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `privateChannel(\'patients\')` subscription (PAC-RT-001). '
-                    . 'The channel is the canonical realtime pipe for patient events.',
+                    .'The channel is the canonical realtime pipe for patient events.',
                 self::PATIENTS_PAGE_PATH
             )
         );
@@ -695,8 +695,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
             ),
             sprintf(
                 '%s MUST keep the `const { can } = usePermissions()` destructure (PAC-CON-001). '
-                    . 'The `can.createPatient / can.editPatient / can.deletePatient` flags '
-                    . 'gate the action buttons + the New Patient modal open button.',
+                    .'The `can.createPatient / can.editPatient / can.deletePatient` flags '
+                    .'gate the action buttons + the New Patient modal open button.',
                 self::PATIENTS_PAGE_PATH
             )
         );
@@ -706,7 +706,7 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
         foreach ($flags as $flag) {
             $this->assertTrue(
                 (bool) preg_match(
-                    '/' . preg_quote($flag, '/') . '\b/',
+                    '/'.preg_quote($flag, '/').'\b/',
                     $page
                 ),
                 sprintf(
@@ -720,20 +720,21 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
 
     private static function pageSource(): ?string
     {
-        return self::readSource(dirname(__DIR__, 3) . self::PATIENTS_PAGE_PATH);
+        return self::readSource(dirname(__DIR__, 3).self::PATIENTS_PAGE_PATH);
     }
 
     private static function modalSource(): ?string
     {
-        return self::readSource(dirname(__DIR__, 3) . self::PATIENTS_FORM_MODAL_PATH);
+        return self::readSource(dirname(__DIR__, 3).self::PATIENTS_FORM_MODAL_PATH);
     }
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 }

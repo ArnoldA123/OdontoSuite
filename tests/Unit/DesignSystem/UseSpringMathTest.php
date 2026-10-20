@@ -25,32 +25,34 @@ use PHPUnit\Framework\TestCase;
 class UseSpringMathTest extends TestCase
 {
     /** Project root absolute path. */
-    private static function projectRootPath(): string { return dirname(__DIR__, 3); }
+    private static function projectRootPath(): string
+    {
+        return dirname(__DIR__, 3);
+    }
 
     /** Pure math module path. */
     private const MATH_REL = '/resources/js/composables/useSpringMath.js';
 
     private static function mathPath(): string
     {
-        return self::projectRootPath() . self::MATH_REL;
+        return self::projectRootPath().self::MATH_REL;
     }
 
     /**
      * Run a node script that loads the math module, calls the supplied
      * expression, and returns its result as a JSON object.
      *
-     * @param string $body  ESM body that ends with `process.stdout.write(JSON.stringify(result))`
-     * @return mixed
+     * @param string $body ESM body that ends with `process.stdout.write(JSON.stringify(result))`
      */
     private static function runMath(string $body): mixed
     {
         $mathPath = self::mathPath();
-        if (!is_file($mathPath)) {
+        if (! is_file($mathPath)) {
             self::fail("Math module missing: {$mathPath} — implement useSpringMath.js before this test (RED → GREEN)");
         }
 
         $escapedPath = addcslashes($mathPath, "'\\");
-        $loader = <<<JS
+        $loader = <<<'JS'
 import { pathToFileURL } from 'node:url';
 const mod = await import(pathToFileURL('TARGET_PATH').href);
 globalThis.__exports = { ...mod };
@@ -60,23 +62,24 @@ JS;
         $loader = str_replace('BODY_PLACEHOLDER', $body, $loader);
 
         $tmp = tempnam(sys_get_temp_dir(), 'spring_math_');
-        $loaderFile = $tmp . '.mjs';
+        $loaderFile = $tmp.'.mjs';
         file_put_contents($loaderFile, $loader);
         @unlink($tmp);
 
-        $cmd = 'node "' . $loaderFile . '" 2>&1';
+        $cmd = 'node "'.$loaderFile.'" 2>&1';
         $output = shell_exec($cmd);
         @unlink($loaderFile);
 
         if ($output === null || $output === '') {
-            self::fail('node -e produced no output. body: ' . $body);
+            self::fail('node -e produced no output. body: '.$body);
         }
 
         $jsonStart = strpos($output, '{');
         if ($jsonStart === false) {
-            self::fail('node output had no JSON object: ' . $output);
+            self::fail('node output had no JSON object: '.$output);
         }
         $decoded = json_decode(substr($output, $jsonStart), true);
+
         return $decoded;
     }
 
@@ -140,8 +143,8 @@ const result = { maxOvershoot, crossings };
 process.stdout.write(JSON.stringify(result));
 JS;
         $r = self::runMath($body);
-        $this->assertGreaterThan(0.5, (float) $r['maxOvershoot'], 'underdamped spring must overshoot above the target (got maxOvershoot=' . $r['maxOvershoot'] . ')');
-        $this->assertGreaterThanOrEqual(2, (int) $r['crossings'], 'underdamped spring must cross the target at least twice (got crossings=' . $r['crossings'] . ')');
+        $this->assertGreaterThan(0.5, (float) $r['maxOvershoot'], 'underdamped spring must overshoot above the target (got maxOvershoot='.$r['maxOvershoot'].')');
+        $this->assertGreaterThanOrEqual(2, (int) $r['crossings'], 'underdamped spring must cross the target at least twice (got crossings='.$r['crossings'].')');
     }
 
     /** @test */
@@ -160,11 +163,11 @@ const result = { beforeInterrupt, afterInterrupt: afterInterrupt.value, jump: Ma
 process.stdout.write(JSON.stringify(result));
 JS;
         $r = self::runMath($body);
-        $this->assertLessThan(5.0, (float) $r['jump'], 'interrupt must not jump the value; got jump=' . $r['jump']);
+        $this->assertLessThan(5.0, (float) $r['jump'], 'interrupt must not jump the value; got jump='.$r['jump']);
     }
 
     /** @test */
-    public function useSpring2D_x_and_y_are_independent(): void
+    public function use_spring2_d_x_and_y_are_independent(): void
     {
         // X is animated; Y is held at rest. The Y state must not change when
         // the X integrator is advanced. Pure-math test: simulate one axis.
@@ -283,9 +286,9 @@ JS;
      *
      * @test
      */
-    public function useFontsLoaded_composable_is_absent(): void
+    public function use_fonts_loaded_composable_is_absent(): void
     {
-        $composablePath = self::projectRootPath() . '/resources/js/composables/useFontsLoaded.js';
+        $composablePath = self::projectRootPath().'/resources/js/composables/useFontsLoaded.js';
         $this->assertFalse(
             is_file($composablePath),
             'resources/js/composables/useFontsLoaded.js must be deleted (Newsreader retired per Decision 6)'
@@ -295,7 +298,7 @@ JS;
         $cmd = sprintf(
             'rg --no-heading --count-matches --no-messages %s %s 2>&1',
             escapeshellarg('useFontsLoaded'),
-            escapeshellarg(self::projectRootPath() . '/resources')
+            escapeshellarg(self::projectRootPath().'/resources')
         );
         $output = (string) shell_exec($cmd);
         $total = 0;

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('duration_minutes');
             $table->enum('status', [
                 'scheduled', 'confirmed', 'in_progress', 'completed',
-                'cancelled', 'no_show', 'rescheduled'
+                'cancelled', 'no_show', 'rescheduled',
             ])->default('scheduled');
             $table->text('notes')->nullable();
             $table->text('treatment_notes')->nullable();

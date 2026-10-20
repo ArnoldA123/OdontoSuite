@@ -16,7 +16,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
     /** @test */
     public function user_fillable_does_not_include_specialties_json(): void
     {
-        $fillable = (new User())->getFillable();
+        $fillable = (new User)->getFillable();
 
         // The JSON `specialties` column is dropped (legacy). It must not be
         // mass-assignable — pivot is the source-of-truth.
@@ -30,7 +30,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
     /** @test */
     public function user_fillable_keeps_specialty_legacy_string(): void
     {
-        $fillable = (new User())->getFillable();
+        $fillable = (new User)->getFillable();
 
         // ADR-0007: the legacy `specialty` string is RETAINED for frontend
         // compatibility.
@@ -44,7 +44,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
     /** @test */
     public function user_has_specialties_pivot_relation_method(): void
     {
-        $user = new User();
+        $user = new User;
         $this->assertTrue(
             method_exists($user, 'specialties'),
             'User must expose a `specialties()` pivot relation.'
@@ -64,7 +64,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
     /** @test */
     public function user_has_specialty_code_accessor(): void
     {
-        $user = new User();
+        $user = new User;
         $this->assertTrue(
             method_exists($user, 'getSpecialtyCodeAttribute'),
             'User must keep the `specialty_code` accessor (Sprint 2 DM-6 sync with pivot).'
@@ -74,7 +74,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
     /** @test */
     public function user_casts_do_not_include_specialties_json(): void
     {
-        $casts = (new User())->getCasts();
+        $casts = (new User)->getCasts();
 
         $this->assertArrayNotHasKey(
             'specialties',

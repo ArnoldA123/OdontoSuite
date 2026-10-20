@@ -49,7 +49,7 @@ class DentalChairStatusFilterTest extends TestCase
     private function makeChair(string $code, string $status, bool $isActive = true): DentalChair
     {
         return DentalChair::create([
-            'name' => 'Chair ' . $code,
+            'name' => 'Chair '.$code,
             'code' => $code,
             'description' => 'T1 status filter fixture',
             'equipment' => 'Fixture equipment',

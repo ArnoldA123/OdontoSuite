@@ -43,11 +43,11 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         $root = dirname(__DIR__, 3);
 
         return [
-            $root . '/resources/js/modules/cash-register/components/TransactionList.vue',
-            $root . '/resources/js/modules/cash-register/components/MovementList.vue',
-            $root . '/resources/js/modules/cash-register/components/SessionList.vue',
-            $root . '/resources/js/modules/cash-register/components/CashReports.vue',
-            $root . '/resources/js/modules/cash-register/components/PendingPaymentsList.vue',
+            $root.'/resources/js/modules/cash-register/components/TransactionList.vue',
+            $root.'/resources/js/modules/cash-register/components/MovementList.vue',
+            $root.'/resources/js/modules/cash-register/components/SessionList.vue',
+            $root.'/resources/js/modules/cash-register/components/CashReports.vue',
+            $root.'/resources/js/modules/cash-register/components/PendingPaymentsList.vue',
         ];
     }
 
@@ -70,7 +70,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
             $violates,
             sprintf(
                 '%s MUST NOT redeclare `Intl.NumberFormat(\'es-PE\', { currency: \'PEN\' })` '
-                    . '(PAGOS-MNY-002). Import `formatCurrency` from `useFormatters`.',
+                    .'(PAGOS-MNY-002). Import `formatCurrency` from `useFormatters`.',
                 $path
             )
         );
@@ -92,7 +92,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
             $violates,
             sprintf(
                 '%s MUST NOT contain raw `<input v-model="amount*">` (PAGOS-MNY-001). '
-                    . 'Use `<CurrencyInput>` for money capture.',
+                    .'Use `<CurrencyInput>` for money capture.',
                 $path
             )
         );
@@ -107,8 +107,9 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         $this->assertNotNull($source, sprintf('%s must exist and be readable.', $path));
 
         $hasTable = (bool) preg_match('/<table\b/', $source);
-        if (!$hasTable) {
+        if (! $hasTable) {
             $this->assertTrue(true, sprintf('%s has no <table> — nothing to assert.', $path));
+
             return;
         }
 
@@ -138,7 +139,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
             $hasAriaLabel,
             sprintf(
                 '%s renders a <table> and MUST declare `aria-label="... soles ..."` on numeric '
-                    . '<td> cells (PAGOS-A11Y-001).',
+                    .'<td> cells (PAGOS-A11Y-001).',
                 $path
             )
         );
@@ -163,7 +164,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
             $violates,
             sprintf(
                 '%s MUST NOT contain legacy status-pill classes (PAGOS-MOD-001). '
-                    . 'Use `<UiStatusBadge variant="success|warning|error|neutral">` instead.',
+                    .'Use `<UiStatusBadge variant="success|warning|error|neutral">` instead.',
                 $path
             )
         );
@@ -171,10 +172,11 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
 
     private static function readSource(string $path): ?string
     {
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return null;
         }
         $src = file_get_contents($path);
+
         return $src === false ? null : $src;
     }
 
@@ -195,7 +197,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
                 $stripped = preg_replace('/"(?:\\\\.|[^"\\\\])*"/', '""', $stripped) ?? $stripped;
                 $stripped = preg_replace('/`(?:\\\\.|[^`\\\\])*`/', '``', $stripped) ?? $stripped;
 
-                return '<script>' . $stripped . '</script>';
+                return '<script>'.$stripped.'</script>';
             },
             $src
         ) ?? $src;
