@@ -22,8 +22,10 @@ class AppointmentService
 {
     protected AppointmentRepository $repository;
 
-    public function __construct(AppointmentRepository $repository)
-    {
+    public function __construct(
+        AppointmentRepository $repository,
+        private readonly ReminderService $reminderService
+    ) {
         $this->repository = $repository;
     }
 
@@ -128,6 +130,11 @@ class AppointmentService
                         'error' => $e->getMessage(),
                     ]);
                 }
+
+                // Issue #154: the confirmation pipeline starts with the
+                // reminder rows, so they commit or roll back with the
+                // appointment instead of being scheduled after the fact.
+                $this->reminderService->scheduleReminders($appointment);
 
                 DB::commit();
 
@@ -331,6 +338,10 @@ class AppointmentService
                 $appointment->fresh()->toArray(),
                 ['new_datetime' => $newDateTime->toISOString()]
             );
+
+            // Issue #154: cancel the pending rows and recreate them for the
+            // new time, inside the same transaction.
+            $this->reminderService->rescheduleReminders($appointment);
 
             DB::commit();
 

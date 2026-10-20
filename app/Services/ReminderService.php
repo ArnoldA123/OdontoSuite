@@ -15,28 +15,75 @@ use Illuminate\Support\Facades\Mail;
 class ReminderService
 {
     /**
-     * Schedule reminders for an appointment.
+     * Reminder windows every confirming appointment gets, as
+     * [template type, hours before]. One source shared by creation,
+     * rescheduling and reconciliation: a window is scheduled when
+     * `scheduled_at - hours_before` has not passed yet, which also covers the
+     * exact boundary (see scheduleReminder).
+     */
+    private const WINDOWS = [
+        ['24h', 24],
+        ['48h', 48],
+        ['72h', 72],
+    ];
+
+    /**
+     * Schedule the confirmation reminders for an appointment.
+     *
+     * Issue #154: this is the creation half of the pipeline. AppointmentService
+     * calls it inside the appointment transaction, so the reminder rows commit
+     * or roll back with the appointment. Idempotent through scheduleReminder.
      */
     public function scheduleReminders(Appointment $appointment): void
     {
-        $appointmentType = $appointment->appointmentType;
-
-        if (! $appointmentType->requires_confirmation) {
+        if (! $this->requiresConfirmation($appointment)) {
             return;
         }
 
-        // Schedule 24h reminder
-        $this->scheduleReminder($appointment, '24h', 24);
+        foreach (self::WINDOWS as [$type, $hoursBefore]) {
+            $this->scheduleReminder($appointment, $type, $hoursBefore);
+        }
+    }
 
-        // Schedule 48h reminder if appointment is more than 48h away
-        if ($appointment->scheduled_at->diffInHours(now()) > 48) {
-            $this->scheduleReminder($appointment, '48h', 48);
+    /**
+     * Ensure the reminders an appointment should already have exist, without
+     * touching rows that exist in any status: the hourly reconciliation must
+     * not resurrect a reminder that was sent or cancelled on purpose.
+     *
+     * Returns the number of reminder rows created.
+     */
+    public function reconcileAppointment(Appointment $appointment): int
+    {
+        if (! $this->requiresConfirmation($appointment)) {
+            return 0;
         }
 
-        // Schedule 72h reminder if appointment is more than 72h away
-        if ($appointment->scheduled_at->diffInHours(now()) > 72) {
-            $this->scheduleReminder($appointment, '72h', 72);
+        $created = 0;
+
+        foreach (self::WINDOWS as [$type, $hoursBefore]) {
+            $exists = ReminderSchedule::where('appointment_id', $appointment->id)
+                ->where('hours_before', $hoursBefore)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            $created += $this->scheduleReminder($appointment, $type, $hoursBefore) ? 1 : 0;
         }
+
+        return $created;
+    }
+
+    /**
+     * Whether the appointment type asks for a confirmation reminder.
+     *
+     * The flag is read through the relation query, not the possibly stale
+     * loaded relation, because update/reschedule may have just changed it.
+     */
+    private function requiresConfirmation(Appointment $appointment): bool
+    {
+        return (bool) $appointment->appointmentType()->value('requires_confirmation');
     }
 
     /**
@@ -48,15 +95,18 @@ class ReminderService
      * `(appointment_id, hours_before)` via `updateOrCreate`, so re-dispatching
      * the same kind of reminder for the same appointment is a no-op and
      * never produces duplicates.
+     *
+     * Returns whether a pending row was written: false when no active template
+     * exists for the type or when the window has already passed.
      */
-    public function scheduleReminder(Appointment $appointment, string $type, int $hoursBefore): void
+    public function scheduleReminder(Appointment $appointment, string $type, int $hoursBefore): bool
     {
         $template = ReminderTemplate::where('type', $type)->where('is_active', true)->first();
 
         if (! $template) {
             Log::warning("No reminder template found for type: {$type}");
 
-            return;
+            return false;
         }
 
         $scheduledAt = $appointment->scheduled_at->copy()->subHours($hoursBefore);
@@ -67,7 +117,7 @@ class ReminderService
         // swallow the boundary case where the appointment is exactly
         // `$hoursBefore` hours away).
         if ($scheduledAt->lessThan(now()->subSecond())) {
-            return;
+            return false;
         }
 
         ReminderSchedule::updateOrCreate(
@@ -81,6 +131,8 @@ class ReminderService
                 'status' => 'pending',
             ]
         );
+
+        return true;
     }
 
     /**
