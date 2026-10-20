@@ -373,17 +373,18 @@ documentada y no bloquea producción.
 
 - **2026-10-20 (rediseño de la interfaz de Análisis IA)** — `/ai-analysis` pasa
   al lenguaje de superficie del dashboard: hero band con el título en `<h2>`,
-  KPI strip no interactiva, filtros y paginación servidos por la API, tabla sobre
-  `UiDataTable` + `Pagination`, estados de carga/error con retry y vacío, y
-  motion con `prefers-reduced-motion`. El alta de análisis pasa a un `UiSheet`
-  con validación local (20 MB, solo imágenes) y el detalle/revisión se reescribió
-  con gate de permisos y confirmación de borrado. Backend: `GET /api/ai-analysis`
-  acepta `per_page` (1..100) y `search` por nombre de paciente, ignora filtros
-  vacíos, y `DELETE` de un id inexistente responde 404 (antes 500); las 500 del
-  `AiImageAnalysisController` ya no exponen el mensaje de la excepción. Corrige
-  además el gate de `AiAnalysisButton.vue`, que llamaba `can(...)` sobre el mapa
-  de permisos. Sin rutas, migraciones ni primitivas UI nuevas: los conteos de §4
-  no cambian y `scripts/audit/doc-drift.mjs` sigue en verde.
+  KPI strip no interactiva, filtros y paginación servidos por la API, tabla
+  sobre `UiDataTable` + `Pagination`, estados de carga/error con retry y vacío,
+  y motion con `prefers-reduced-motion`. El alta de análisis pasa a un `UiSheet`
+  con validación local (20 MB, solo imágenes) y el detalle/revisión se
+  reescribió con gate de permisos y confirmación de borrado. Backend:
+  `GET /api/ai-analysis` acepta `per_page` (1..100) y `search` por nombre de
+  paciente, ignora filtros vacíos, y `DELETE` de un id inexistente responde 404
+  (antes 500); las 500 del `AiImageAnalysisController` ya no exponen el mensaje
+  de la excepción. Corrige además el gate de `AiAnalysisButton.vue`, que llamaba
+  `can(...)` sobre el mapa de permisos. Sin rutas, migraciones ni primitivas UI
+  nuevas: los conteos de §4 no cambian y `scripts/audit/doc-drift.mjs` sigue en
+  verde.
 
 - **2026-10-19 (recordatorios #154)** — `ReminderService::scheduleReminders()`
   deja de ser código muerto: `AppointmentService` agenda los recordatorios de
