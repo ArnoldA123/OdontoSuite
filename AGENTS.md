@@ -383,19 +383,17 @@ documentada y no bloquea producción.
   `CashRegisterPolicy::view` (dueño o administrador), regla que era código
   muerto porque el auto-descubrimiento busca `CashRegisterSessionPolicy`;
   `AppServiceProvider` la registra explícitamente y un id inexistente responde
-  404 en vez de 500. `GET /api/pending-payments` pagina con `per_page`
-  (1..100, default 15) y devuelve `current_page`, `last_page`, `per_page` y
-  `total`; sus 500 dejan de exponer el mensaje de la excepción y el trace y
-  pasan al log. `GET /api/cash-register/summary` se acota al usuario
-  autenticado salvo para administrador/finanzas (que pueden filtrar por
-  `user_id`) y hereda el filtro de sucursal de
-  `CashRegisterService::getCurrentSession()`; se retira
-  `POST /cash-register-sessions/{id}/open` (ignoraba `{id}`) y el método
-  muerto `currentView()`. Los pagos pendientes pasan al grupo de caja:
-  `recepcionista` cobra desde la tab Cobros (permiso
-  `collectPendingPayments`), documentado en la matriz de `CREDENTIALS.md`.
-  §4 sincronizado con valores medidos: 201 rutas API, 214 totales con web (la
-  ruta `{id}/open` se retiró). Tests nuevos:
+  404 en vez de 500. `GET /api/pending-payments` pagina con `per_page` (1..100,
+  default 15) y devuelve `current_page`, `last_page`, `per_page` y `total`; sus
+  500 dejan de exponer el mensaje de la excepción y el trace y pasan al log.
+  `GET /api/cash-register/summary` se acota al usuario autenticado salvo para
+  administrador/finanzas (que pueden filtrar por `user_id`) y hereda el filtro
+  de sucursal de `CashRegisterService::getCurrentSession()`; se retira
+  `POST /cash-register-sessions/{id}/open` (ignoraba `{id}`) y el método muerto
+  `currentView()`. Los pagos pendientes pasan al grupo de caja: `recepcionista`
+  cobra desde la tab Cobros (permiso `collectPendingPayments`), documentado en
+  la matriz de `CREDENTIALS.md`. §4 sincronizado con valores medidos: 201 rutas
+  API, 214 totales con web (la ruta `{id}/open` se retiró). Tests nuevos:
   `CashSessionOwnershipTest` (8), `PendingPaymentsErrorEnvelopeTest` (2),
   `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
   `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
