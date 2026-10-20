@@ -21,9 +21,9 @@
       <div class="mt-3 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Recepción</p>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>
             Catálogo de Procedimientos
-          </h1>
+          </h2>
           <p class="mt-2 text-sm text-theme-secondary">
             Consulta precios y duración para orientar al paciente
           </p>

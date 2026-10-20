@@ -17,7 +17,7 @@
           >
             Configuración
           </p>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Métodos de Pago</h1>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Métodos de Pago</h2>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
             Gestiona los métodos con los que la clínica registra cobros
           </p>

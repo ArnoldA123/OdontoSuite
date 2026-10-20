@@ -21,7 +21,7 @@
           >
             Catálogo
           </p>
-          <h1 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Tipos de Cita</h1>
+          <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Tipos de Cita</h2>
           <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
             Configura duración, precio y color de cada tipo de cita
           </p>
