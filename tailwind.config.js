@@ -257,6 +257,45 @@ export default {
           'background-color': 'var(--color-danger-bg)',
           color: 'var(--color-danger-text)'
         },
+        // Design-token semantic utilities (issue #221). The nested token keys
+        // (`colors.label.label`, `colors.border.hairline`,
+        // `colors.background.canvas`) would otherwise derive
+        // `text-label-label`, `border-border-hairline`,
+        // `bg-background-canvas`; these aliases are the vocabulary every
+        // redesigned module already speaks. Keep them tied to the CSS vars the
+        // generator emits (scripts/build-tokens-css.mjs) — the static guard
+        // tests/js/unit/design-token-utilities.test.js fails when a module uses
+        // a token-shaped class Tailwind cannot generate.
+        '.bg-canvas': {
+          'background-color': 'var(--color-canvas)'
+        },
+        '.text-label': {
+          color: 'var(--color-label-label)'
+        },
+        '.border-hairline': {
+          'border-color': 'var(--color-hairline)'
+        },
+        '.divide-hairline > :not([hidden]) ~ :not([hidden])': {
+          'border-color': 'var(--color-hairline)'
+        },
+        // Background/label ramps that modules address by their inner step name
+        // (`bg-systemBackground`, not `bg-background-systemBackground`).
+        '.bg-systemBackground': {
+          'background-color': 'var(--color-background-system-background)'
+        },
+        '.text-systemBackground': {
+          color: 'var(--color-background-system-background)'
+        },
+        '.border-separator': {
+          'border-color': 'var(--color-separator-separator)'
+        },
+        // Accent aliases used by the shared chrome focus/ring vocabulary.
+        '.ring-accent': {
+          '--tw-ring-color': 'var(--color-accent)'
+        },
+        '.text-accent-hover': {
+          color: 'var(--color-accent-hover)'
+        },
         // Hover lift sutil estilo Apple (-1px translateY + shadow-medium)
         '.hover-lift': {
           transition: 'transform 150ms ease-out, box-shadow 150ms ease-out'
