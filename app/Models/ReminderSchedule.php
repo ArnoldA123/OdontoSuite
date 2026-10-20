@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 use InvalidArgumentException;
 
 class ReminderSchedule extends Model
@@ -90,7 +89,7 @@ class ReminderSchedule extends Model
     public function scopeDue($query)
     {
         return $query->where('status', 'pending')
-                    ->where('scheduled_at', '<=', now());
+            ->where('scheduled_at', '<=', now());
     }
 
     /**
@@ -112,19 +111,20 @@ class ReminderSchedule extends Model
     {
         $current = $this->status ?? 'pending';
 
-        if (!array_key_exists($current, self::STATUS_TRANSITIONS)) {
+        if (! array_key_exists($current, self::STATUS_TRANSITIONS)) {
             throw new InvalidArgumentException("Unknown current status: {$current}");
         }
 
         $allowed = self::STATUS_TRANSITIONS[$current];
 
-        if (!in_array($newStatus, $allowed, true) && $newStatus !== $current) {
+        if (! in_array($newStatus, $allowed, true) && $newStatus !== $current) {
             throw new InvalidArgumentException(
                 "Invalid reminder status transition: {$current} -> {$newStatus}"
             );
         }
 
         $this->status = $newStatus;
+
         return $this->save();
     }
 

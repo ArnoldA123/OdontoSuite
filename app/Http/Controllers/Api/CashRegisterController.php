@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\CashRegisterService;
-use App\Http\Requests\OpenCashRegisterRequest;
 use App\Http\Requests\CloseCashRegisterRequest;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\OpenCashRegisterRequest;
 use App\Models\CashRegisterSession;
+use App\Services\CashRegisterService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CashRegisterController extends Controller
 {
@@ -21,7 +21,7 @@ class CashRegisterController extends Controller
     }
 
     /**
-     * Open a new cash register session
+     * Open a new cash register session.
      */
     public function open(OpenCashRegisterRequest $request): JsonResponse
     {
@@ -31,19 +31,19 @@ class CashRegisterController extends Controller
             return response()->json([
                 'data' => $session,
                 'meta' => [
-                    'message' => 'Sesión de caja abierta exitosamente'
-                ]
+                    'message' => 'Sesión de caja abierta exitosamente',
+                ],
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al abrir la sesión de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Close cash register session
+     * Close cash register session.
      */
     public function close(CloseCashRegisterRequest $request): JsonResponse
     {
@@ -54,31 +54,31 @@ class CashRegisterController extends Controller
             return response()->json([
                 'data' => $session,
                 'meta' => [
-                    'message' => 'Sesión de caja cerrada exitosamente'
-                ]
+                    'message' => 'Sesión de caja cerrada exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al cerrar la sesión de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Get current open session
+     * Get current open session.
      */
     public function current(): JsonResponse
     {
         try {
             $session = $this->cashRegisterService->getCurrentSession();
 
-            if (!$session) {
+            if (! $session) {
                 return response()->json([
                     'data' => null,
                     'meta' => [
-                        'message' => 'No hay sesión de caja abierta'
-                    ]
+                        'message' => 'No hay sesión de caja abierta',
+                    ],
                 ]);
             }
 
@@ -87,53 +87,53 @@ class CashRegisterController extends Controller
             return response()->json([
                 'data' => [
                     'session' => $session,
-                    'summary' => $summary
-                ]
+                    'summary' => $summary,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get current session for viewing (read-only)
+     * Get current session for viewing (read-only).
      */
     public function currentView(): JsonResponse
     {
         try {
             $session = $this->cashRegisterService->getCurrentSession();
 
-            if (!$session) {
+            if (! $session) {
                 return response()->json([
                     'data' => null,
                     'meta' => [
-                        'message' => 'No hay sesión de caja abierta'
-                    ]
+                        'message' => 'No hay sesión de caja abierta',
+                    ],
                 ]);
             }
 
             return response()->json([
-                'data' => $session
+                'data' => $session,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la sesión actual',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get sessions list
+     * Get sessions list.
      */
     public function index(Request $request): JsonResponse
     {
         try {
             $filters = $request->only([
-                'user_id', 'branch_id', 'status', 'date_from', 'date_to'
+                'user_id', 'branch_id', 'status', 'date_from', 'date_to',
             ]);
 
             $result = $this->cashRegisterService->getSessions($filters);
@@ -142,36 +142,36 @@ class CashRegisterController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener las sesiones de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get specific session details
+     * Get specific session details.
      */
     public function show(int $id): JsonResponse
     {
         try {
             $session = \App\Models\CashRegisterSession::with([
-                'user', 'branch', 'movements', 'transactions'
+                'user', 'branch', 'movements', 'transactions',
             ])->findOrFail($id);
 
             $summary = $this->cashRegisterService->getSessionSummary($session);
 
             return response()->json([
-                'data' => $summary
+                'data' => $summary,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la sesión de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get movements for a specific session
+     * Get movements for a specific session.
      */
     public function movements($sessionId): JsonResponse
     {
@@ -190,12 +190,12 @@ class CashRegisterController extends Controller
                     'last_page' => $movements->lastPage(),
                     'per_page' => $movements->perPage(),
                     'total' => $movements->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener los movimientos de la sesión',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -228,7 +228,7 @@ class CashRegisterController extends Controller
 
             $session = $query->latest('opened_at')->first();
 
-            if (!$session) {
+            if (! $session) {
                 return response()->json([
                     'data' => $this->cashRegisterService->getEmptySummary(),
                     'meta' => ['message' => 'No hay sesión de caja para la fecha indicada'],
@@ -244,13 +244,13 @@ class CashRegisterController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener el resumen de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Generate closure report for a specific session
+     * Generate closure report for a specific session.
      */
     public function closureReport(int $sessionId)
     {
@@ -261,10 +261,9 @@ class CashRegisterController extends Controller
 
         $pdf = Pdf::loadView('reports.cash-closure', [
             'session' => $session,
-            'summary' => $summary
+            'summary' => $summary,
         ]);
 
         return $pdf->download("cierre-caja-{$sessionId}.pdf");
     }
 }
-

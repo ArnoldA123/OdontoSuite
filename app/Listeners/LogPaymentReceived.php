@@ -50,7 +50,7 @@ class LogPaymentReceived
         } catch (Throwable $e) {
             // AGENTS.md §7: swallow + log + report. Listener must NEVER
             // crash the webhook lifecycle.
-            Log::error('LogPaymentReceived failed: ' . $e->getMessage(), [
+            Log::error('LogPaymentReceived failed: '.$e->getMessage(), [
                 'transaction_id' => $event->transaction->id ?? null,
                 'gateway' => $event->gateway,
                 'exception' => $e,

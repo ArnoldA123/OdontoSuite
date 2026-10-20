@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CashRegisterSession;
 use Closure;
 use Illuminate\Http\Request;
-use App\Models\CashRegisterSession;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -35,7 +35,7 @@ class RequireActiveCashSession
         // recursos que requieren caja abierta. La verificación exacta de la
         // ruta está en el método de cada controller, pero aquí filtramos por
         // método HTTP para no romper lecturas (GET).
-        if (!in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        if (! in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
             return $next($request);
         }
 
@@ -43,7 +43,7 @@ class RequireActiveCashSession
             ->where('status', 'open')
             ->first();
 
-        if (!$activeSession) {
+        if (! $activeSession) {
             return response()->json([
                 'message' => 'No hay una sesión de caja abierta. Debe abrir la caja antes de registrar transacciones o movimientos.',
                 'error' => 'NO_ACTIVE_SESSION',
@@ -56,4 +56,3 @@ class RequireActiveCashSession
         return $next($request);
     }
 }
-

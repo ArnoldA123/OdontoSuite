@@ -34,7 +34,7 @@ class RehabilitationRecord extends Model
         'cementation_notes',
         'follow_up_notes',
         'warranty_period',
-        'status'
+        'status',
     ];
 
     protected $casts = [
@@ -43,7 +43,7 @@ class RehabilitationRecord extends Model
         'try_in_date' => 'date',
         'cementation_date' => 'date',
         'photographic_records' => 'array',
-        'warranty_period' => 'integer'
+        'warranty_period' => 'integer',
     ];
 
     // Relaciones
@@ -117,7 +117,7 @@ class RehabilitationRecord extends Model
             'ready_for_try_in' => 'Listo para Prueba',
             'try_in_scheduled' => 'Prueba Programada',
             'completed' => 'Completado',
-            'failed' => 'Fallido'
+            'failed' => 'Fallido',
         ];
 
         return $labels[$this->status] ?? $this->status;
@@ -131,7 +131,7 @@ class RehabilitationRecord extends Model
             'veneer' => 'Carilla',
             'inlay' => 'Inlay',
             'onlay' => 'Onlay',
-            'overlay' => 'Overlay'
+            'overlay' => 'Overlay',
         ];
 
         return $labels[$this->restoration_type] ?? $this->restoration_type;

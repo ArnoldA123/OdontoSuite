@@ -68,6 +68,7 @@ class ProcedureCatalog extends Model
         if ($this->specialty_id && $this->specialty) {
             return $this->specialty->code;
         }
+
         return $this->legacy_specialty;
     }
 
@@ -110,8 +111,8 @@ class ProcedureCatalog extends Model
      * Uso recomendado en el controller/service cuando se responde al frontend:
      *   $data['name'] = $pc->translate($locale, 'name');
      *
-     * @param  string  $locale  Codigo de idioma (es, en, pt...)
-     * @param  string  $field   Campo del modelo (name, description, requirements, etc.)
+     * @param  string $locale Codigo de idioma (es, en, pt...)
+     * @param  string $field  Campo del modelo (name, description, requirements, etc.)
      * @return mixed
      */
     public function translate(string $locale, string $field)
@@ -123,6 +124,7 @@ class ProcedureCatalog extends Model
             if ($translation && $translation->{$field} !== null) {
                 return $translation->{$field};
             }
+
             return $this->getAttribute($field);
         }
 
@@ -145,17 +147,19 @@ class ProcedureCatalog extends Model
 
     public function scopeBySpecialtyCode(Builder $query, ?string $specialtyCode): Builder
     {
-        if (!$specialtyCode) {
+        if (! $specialtyCode) {
             return $query;
         }
+
         return $query->whereHas('specialty', fn ($q) => $q->where('code', $specialtyCode));
     }
 
     public function scopeBySpecialtyId(Builder $query, ?int $specialtyId): Builder
     {
-        if (!$specialtyId) {
+        if (! $specialtyId) {
             return $query;
         }
+
         return $query->where('specialty_id', $specialtyId);
     }
 
@@ -168,9 +172,10 @@ class ProcedureCatalog extends Model
     public function materialsNeededList(): array
     {
         $raw = $this->materials_needed;
-        if (!is_string($raw) || trim($raw) === '') {
+        if (! is_string($raw) || trim($raw) === '') {
             return [];
         }
+
         return array_values(array_filter(array_map('trim', preg_split('/[,;\n]/', $raw))));
     }
 
@@ -189,7 +194,7 @@ class ProcedureCatalog extends Model
         $item['estimated_duration_minutes'] = $item['estimated_duration_minutes'] ?? $this->default_duration_minutes;
         $item['requires_anesthesia'] = $item['requires_anesthesia'] ?? $this->requires_anesthesia;
 
-        if (empty($item['materials_required']) && !empty($this->materials_needed)) {
+        if (empty($item['materials_required']) && ! empty($this->materials_needed)) {
             $item['materials_required'] = $this->materialsNeededList();
         }
 

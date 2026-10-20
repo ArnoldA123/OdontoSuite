@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\PatientCreated;
-use App\Events\PatientUpdated;
 use App\Events\PatientDeleted;
+use App\Events\PatientUpdated;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +17,7 @@ class LogPatientActivity
     public function handle($event): void
     {
         try {
-            if (!Auth::check()) {
+            if (! Auth::check()) {
                 return;
             }
 
@@ -41,9 +41,9 @@ class LogPatientActivity
                 );
             } elseif ($event instanceof PatientDeleted) {
                 // Para deleted, necesitamos crear una instancia temporal
-                $tempPatient = new \App\Models\Patient();
+                $tempPatient = new \App\Models\Patient;
                 $tempPatient->id = $event->patientId;
-                
+
                 AuditLog::log(
                     $user,
                     'patient_deleted',
@@ -60,4 +60,3 @@ class LogPatientActivity
         }
     }
 }
-

@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CashMovementController extends Controller
 {
     /**
-     * Display a listing of cash movements
+     * Display a listing of cash movements.
      */
     public function index(Request $request): JsonResponse
     {
@@ -39,7 +39,7 @@ class CashMovementController extends Controller
             }
 
             // Filter by current user's sessions if not admin
-            if (!Auth::user()->isAdministrador()) {
+            if (! Auth::user()->isAdministrador()) {
                 $userSessionIds = CashRegisterSession::where('user_id', Auth::id())
                     ->pluck('id');
                 $query->whereIn('cash_register_session_id', $userSessionIds);
@@ -57,18 +57,18 @@ class CashMovementController extends Controller
                     'last_page' => $movements->lastPage(),
                     'per_page' => $movements->perPage(),
                     'total' => $movements->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener los movimientos de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Store a newly created cash movement
+     * Store a newly created cash movement.
      *
      * Slice 02: validates with StoreCashMovementRequest (concept whitelist +
      * branch_id support). The FormRequest returns a 422 envelope directly
@@ -85,7 +85,7 @@ class CashMovementController extends Controller
 
             if ($session->status !== 'open') {
                 return response()->json([
-                    'message' => 'No se pueden registrar movimientos en una sesión de caja cerrada'
+                    'message' => 'No se pueden registrar movimientos en una sesión de caja cerrada',
                 ], 422);
             }
 
@@ -93,7 +93,7 @@ class CashMovementController extends Controller
             // the single source of the "session owner OR administrador" rule).
             if ($request->user()->cannot('createInSession', [CashMovement::class, $session])) {
                 return response()->json([
-                    'message' => 'No tienes permisos para registrar movimientos en esta sesión de caja'
+                    'message' => 'No tienes permisos para registrar movimientos en esta sesión de caja',
                 ], 403);
             }
 
@@ -104,45 +104,45 @@ class CashMovementController extends Controller
             return response()->json([
                 'data' => $movement->load(['cashRegisterSession', 'transaction', 'createdBy']),
                 'meta' => [
-                    'message' => 'Movimiento de caja registrado exitosamente'
-                ]
+                    'message' => 'Movimiento de caja registrado exitosamente',
+                ],
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al registrar el movimiento de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Display the specified cash movement
+     * Display the specified cash movement.
      */
     public function show(CashMovement $cashMovement): JsonResponse
     {
         try {
             // Check permissions
-            if ($cashMovement->cashRegisterSession->user_id !== Auth::id() && !Auth::user()->isAdministrador()) {
+            if ($cashMovement->cashRegisterSession->user_id !== Auth::id() && ! Auth::user()->isAdministrador()) {
                 return response()->json([
-                    'message' => 'No tienes permisos para ver este movimiento de caja'
+                    'message' => 'No tienes permisos para ver este movimiento de caja',
                 ], 403);
             }
 
             $cashMovement->load(['cashRegisterSession', 'transaction', 'createdBy']);
 
             return response()->json([
-                'data' => $cashMovement
+                'data' => $cashMovement,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener el movimiento de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Update the specified cash movement
+     * Update the specified cash movement.
      */
     public function update(Request $request, CashMovement $cashMovement): JsonResponse
     {
@@ -150,21 +150,21 @@ class CashMovementController extends Controller
             // Check permissions (policy is the single source of the rule)
             if ($request->user()->cannot('update', $cashMovement)) {
                 return response()->json([
-                    'message' => 'No tienes permisos para actualizar este movimiento de caja'
+                    'message' => 'No tienes permisos para actualizar este movimiento de caja',
                 ], 403);
             }
 
             // Check if session is still open
             if ($cashMovement->cashRegisterSession->status !== 'open') {
                 return response()->json([
-                    'message' => 'No se pueden actualizar movimientos de sesiones cerradas'
+                    'message' => 'No se pueden actualizar movimientos de sesiones cerradas',
                 ], 422);
             }
 
             $validated = $request->validate([
                 'description' => 'sometimes|string|max:255',
                 'notes' => 'nullable|string|max:500',
-                'reference' => 'nullable|string|max:100'
+                'reference' => 'nullable|string|max:100',
             ]);
 
             $cashMovement->update($validated);
@@ -172,19 +172,19 @@ class CashMovementController extends Controller
             return response()->json([
                 'data' => $cashMovement->fresh()->load(['cashRegisterSession', 'transaction', 'createdBy']),
                 'meta' => [
-                    'message' => 'Movimiento de caja actualizado exitosamente'
-                ]
+                    'message' => 'Movimiento de caja actualizado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar el movimiento de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 422);
         }
     }
 
     /**
-     * Remove the specified cash movement
+     * Remove the specified cash movement.
      */
     public function destroy(CashMovement $cashMovement): JsonResponse
     {
@@ -192,21 +192,21 @@ class CashMovementController extends Controller
             // Check permissions (policy is the single source of the rule)
             if (Auth::user()->cannot('delete', $cashMovement)) {
                 return response()->json([
-                    'message' => 'No tienes permisos para eliminar este movimiento de caja'
+                    'message' => 'No tienes permisos para eliminar este movimiento de caja',
                 ], 403);
             }
 
             // Check if session is still open
             if ($cashMovement->cashRegisterSession->status !== 'open') {
                 return response()->json([
-                    'message' => 'No se pueden eliminar movimientos de sesiones cerradas'
+                    'message' => 'No se pueden eliminar movimientos de sesiones cerradas',
                 ], 422);
             }
 
             // Don't allow deletion of system movements (opening/closing)
             if (in_array($cashMovement->type, ['opening', 'closing'])) {
                 return response()->json([
-                    'message' => 'No se pueden eliminar movimientos del sistema'
+                    'message' => 'No se pueden eliminar movimientos del sistema',
                 ], 422);
             }
 
@@ -215,15 +215,14 @@ class CashMovementController extends Controller
             return response()->json([
                 'data' => null,
                 'meta' => [
-                    'message' => 'Movimiento de caja eliminado exitosamente'
-                ]
+                    'message' => 'Movimiento de caja eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar el movimiento de caja',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 }
-

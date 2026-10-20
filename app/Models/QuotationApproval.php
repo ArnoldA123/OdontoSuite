@@ -19,12 +19,12 @@ class QuotationApproval extends Model
         'approval_date',
         'approval_method',
         'signature_data',
-        'approved_items'
+        'approved_items',
     ];
 
     protected $casts = [
         'approval_date' => 'date',
-        'approved_items' => 'array'
+        'approved_items' => 'array',
     ];
 
     // Relaciones

@@ -17,9 +17,9 @@ trait HasCrudRules
     /**
      * Derive the update rules from the create rules.
      *
-     * @param  array<string, mixed>  $createRules  rules used by the store action
-     * @param  array<int, string>  $drop  fields that cannot change on update
-     * @param  array<string, mixed>  $overrides  fields that replace the derived rule
+     * @param  array<string, mixed> $createRules rules used by the store action
+     * @param  array<int, string>   $drop        fields that cannot change on update
+     * @param  array<string, mixed> $overrides   fields that replace the derived rule
      * @return array<string, mixed>
      */
     protected function updateRules(array $createRules, array $drop = [], array $overrides = []): array
@@ -40,7 +40,7 @@ trait HasCrudRules
     /**
      * Make a single field rule optional without dropping its other constraints.
      *
-     * @param  string|array<int, string>  $rule
+     * @param  string|array<int, string> $rule
      * @return string|array<int, string>
      */
     private function makeOptional(string|array $rule): string|array
@@ -48,7 +48,7 @@ trait HasCrudRules
         if (is_array($rule)) {
             $rule = array_values(array_diff($rule, ['required']));
 
-            if (!in_array('sometimes', $rule, true)) {
+            if (! in_array('sometimes', $rule, true)) {
                 array_unshift($rule, 'sometimes');
             }
 
@@ -57,7 +57,7 @@ trait HasCrudRules
 
         $parts = array_values(array_diff(explode('|', $rule), ['required']));
 
-        if (!in_array('sometimes', $parts, true)) {
+        if (! in_array('sometimes', $parts, true)) {
             array_unshift($parts, 'sometimes');
         }
 

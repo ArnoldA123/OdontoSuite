@@ -2,26 +2,26 @@
 
 namespace App\Services;
 
-use App\Events\CashSessionOpened;
 use App\Events\CashSessionClosed;
-use App\Models\CashRegisterSession;
-use App\Models\CashMovement;
-use App\Models\Transaction;
+use App\Events\CashSessionOpened;
 use App\Models\Branch;
+use App\Models\CashMovement;
+use App\Models\CashRegisterSession;
+use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CashRegisterService
 {
     /**
-     * Open a new cash register session
+     * Open a new cash register session.
      */
     public function openSession(array $data): CashRegisterSession
     {
-        if (!$this->userCanManageCashRegister()) {
+        if (! $this->userCanManageCashRegister()) {
             throw ValidationException::withMessages([
                 'session' => ['No tienes permisos para abrir sesiones de caja.'],
             ]);
@@ -42,6 +42,7 @@ class CashRegisterService
         }
 
         DB::beginTransaction();
+
         try {
             $session = CashRegisterSession::create([
                 'user_id' => Auth::id(),
@@ -49,7 +50,7 @@ class CashRegisterService
                 'opening_amount' => $data['opening_amount'],
                 'opened_at' => now(),
                 'opening_notes' => isset($data['opening_notes']) ? substr($data['opening_notes'], 0, 500) : null,
-                'status' => 'open'
+                'status' => 'open',
             ]);
 
             // Create initial cash movement
@@ -60,7 +61,7 @@ class CashRegisterService
                 'amount' => $data['opening_amount'],
                 'description' => 'Apertura de caja',
                 'notes' => isset($data['opening_notes']) ? substr($data['opening_notes'], 0, 500) : null,
-                'reference' => 'OPEN-' . str_pad($session->id, 6, '0', STR_PAD_LEFT)
+                'reference' => 'OPEN-'.str_pad($session->id, 6, '0', STR_PAD_LEFT),
             ]);
 
             DB::commit();
@@ -73,12 +74,13 @@ class CashRegisterService
             return $session;
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
 
     /**
-     * Close cash register session with arqueo
+     * Close cash register session with arqueo.
      */
     public function closeSession(int $sessionId, array $data): CashRegisterSession
     {
@@ -90,13 +92,14 @@ class CashRegisterService
             ]);
         }
 
-        if (!$this->userCanManageCashRegister()) {
+        if (! $this->userCanManageCashRegister()) {
             throw ValidationException::withMessages([
                 'session' => ['No tienes permisos para cerrar sesiones de caja.'],
             ]);
         }
 
         DB::beginTransaction();
+
         try {
             // Calculate expected amount
             $expectedAmount = $this->calculateExpectedAmount($session);
@@ -111,7 +114,7 @@ class CashRegisterService
                 'closed_at' => now(),
                 'closing_notes' => $data['closing_notes'] ?? null,
                 'arqueo_data' => $data['arqueo'] ?? null,
-                'status' => 'closed'
+                'status' => 'closed',
             ]);
 
             // Create closing cash movement
@@ -122,7 +125,7 @@ class CashRegisterService
                 'amount' => $data['closing_amount'],
                 'description' => 'Cierre de caja',
                 'notes' => $data['closing_notes'] ?? null,
-                'reference' => 'CLOSE-' . $session->id
+                'reference' => 'CLOSE-'.$session->id,
             ]);
 
             DB::commit();
@@ -135,6 +138,7 @@ class CashRegisterService
             return $session;
         } catch (\Exception $e) {
             DB::rollBack();
+
             throw $e;
         }
     }
@@ -143,7 +147,7 @@ class CashRegisterService
     {
         $query = CashRegisterSession::where('status', 'open');
 
-        if (!$this->userCanManageCashRegister()) {
+        if (! $this->userCanManageCashRegister()) {
             $query->where('user_id', Auth::id());
         }
 
@@ -180,18 +184,18 @@ class CashRegisterService
     }
 
     /**
-     * Get session summary
+     * Get session summary.
      */
     public function getSessionSummary(CashRegisterSession $session): array
     {
         // Obtener todas las transacciones de la sesión (con logging para debug)
         $allTransactions = Transaction::where('cash_register_session_id', $session->id)->get();
-        
+
         \Log::info('getSessionSummary: Transacciones encontradas', [
             'session_id' => $session->id,
             'total_transactions' => $allTransactions->count(),
             'transactions_by_type' => $allTransactions->groupBy('type')->map->count(),
-            'transactions_by_status' => $allTransactions->groupBy('status')->map->count()
+            'transactions_by_status' => $allTransactions->groupBy('status')->map->count(),
         ]);
 
         // Filtrar solo las completadas
@@ -199,25 +203,25 @@ class CashRegisterService
 
         \Log::info('getSessionSummary: Transacciones completadas', [
             'completed_count' => $transactions->count(),
-            'by_type' => $transactions->groupBy('type')->map(function($group) {
+            'by_type' => $transactions->groupBy('type')->map(function ($group) {
                 return [
                     'count' => $group->count(),
-                    'total' => $group->sum('amount')
+                    'total' => $group->sum('amount'),
                 ];
-            })
+            }),
         ]);
 
         $movements = $session->movements;
 
         // Calcular totales de manera más explícita
         // Buscar tanto 'payment' como 'income' para compatibilidad
-        $paymentTransactions = $transactions->filter(function($t) {
+        $paymentTransactions = $transactions->filter(function ($t) {
             return in_array($t->type, ['payment', 'income']);
         });
-        $refundTransactions = $transactions->filter(function($t) {
+        $refundTransactions = $transactions->filter(function ($t) {
             return in_array($t->type, ['refund', 'expense']);
         });
-        
+
         $totalIncome = $paymentTransactions->sum('amount');
         $totalExpenses = $refundTransactions->sum('amount');
 
@@ -225,7 +229,7 @@ class CashRegisterService
             'total_income' => $totalIncome,
             'total_expenses' => $totalExpenses,
             'payment_count' => $paymentTransactions->count(),
-            'refund_count' => $refundTransactions->count()
+            'refund_count' => $refundTransactions->count(),
         ]);
 
         $summary = [
@@ -238,14 +242,14 @@ class CashRegisterService
             'transactions_count' => $transactions->count(),
             'movements_count' => $movements->count(),
             'by_payment_method' => $this->getSummaryByPaymentMethod($transactions),
-            'by_hour' => $this->getSummaryByHour($transactions)
+            'by_hour' => $this->getSummaryByHour($transactions),
         ];
 
         return $summary;
     }
 
     /**
-     * Get sessions list with filters
+     * Get sessions list with filters.
      */
     public function getSessions(array $filters = []): array
     {
@@ -280,22 +284,22 @@ class CashRegisterService
                 'last_page' => $sessions->lastPage(),
                 'per_page' => $sessions->perPage(),
                 'total' => $sessions->total(),
-            ]
+            ],
         ];
     }
 
     /**
-     * Validate open session data
+     * Validate open session data.
      */
     private function validateOpenSession(array $data): void
     {
-        if (!isset($data['branch_id']) || !Branch::find($data['branch_id'])) {
+        if (! isset($data['branch_id']) || ! Branch::find($data['branch_id'])) {
             throw ValidationException::withMessages([
                 'branch_id' => ['La sucursal seleccionada no es válida.'],
             ]);
         }
 
-        if (!isset($data['opening_amount']) || $data['opening_amount'] < 0) {
+        if (! isset($data['opening_amount']) || $data['opening_amount'] < 0) {
             throw ValidationException::withMessages([
                 'opening_amount' => ['El monto de apertura debe ser mayor o igual a 0.'],
             ]);
@@ -335,7 +339,7 @@ class CashRegisterService
     }
 
     /**
-     * Get summary by payment method
+     * Get summary by payment method.
      */
     private function getSummaryByPaymentMethod($transactions): array
     {
@@ -343,27 +347,26 @@ class CashRegisterService
             ->map(function ($group) {
                 return [
                     'count' => $group->count(),
-                    'total' => $group->sum('amount')
+                    'total' => $group->sum('amount'),
                 ];
             })
             ->toArray();
     }
 
     /**
-     * Get summary by hour
+     * Get summary by hour.
      */
     private function getSummaryByHour($transactions): array
     {
         return $transactions->groupBy(function ($transaction) {
-                return Carbon::parse($transaction->created_at)->format('H');
-            })
+            return Carbon::parse($transaction->created_at)->format('H');
+        })
             ->map(function ($group) {
                 return [
                     'count' => $group->count(),
-                    'total' => $group->sum('amount')
+                    'total' => $group->sum('amount'),
                 ];
             })
             ->toArray();
     }
 }
-

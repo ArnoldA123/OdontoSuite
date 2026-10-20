@@ -14,6 +14,7 @@ class AppointmentUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $appointment;
+
     public $oldValues;
 
     public function __construct(Appointment $appointment, array $oldValues = [])
@@ -42,4 +43,3 @@ class AppointmentUpdated implements ShouldBroadcast
         ];
     }
 }
-

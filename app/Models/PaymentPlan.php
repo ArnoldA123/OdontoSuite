@@ -28,7 +28,7 @@ class PaymentPlan extends Model
         'interest_rate',
         'terms_conditions',
         'status',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -39,7 +39,7 @@ class PaymentPlan extends Model
         'interest_rate' => 'decimal:2',
         'start_date' => 'date',
         'end_date' => 'date',
-        'terms_conditions' => 'array'
+        'terms_conditions' => 'array',
     ];
 
     // Relaciones

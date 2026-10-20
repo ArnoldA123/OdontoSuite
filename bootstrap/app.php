@@ -71,8 +71,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // their own status code. Without this renderer they fell through to the
         // generic Throwable handler below and every api/* failure became a 500.
         $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, \Illuminate\Http\Request $request) {
-            if (!$request->expectsJson() && !$request->is('api/*')) {
-                return null;
+            if (! $request->expectsJson() && ! $request->is('api/*')) {
+                return;
             }
 
             $status = $e->getStatusCode();

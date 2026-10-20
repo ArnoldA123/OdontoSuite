@@ -25,14 +25,14 @@ class StockMovement extends Model
         'notes',
         'movement_date',
         'expiry_date',
-        'batch_number'
+        'batch_number',
     ];
 
     protected $casts = [
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'movement_date' => 'date',
-        'expiry_date' => 'date'
+        'expiry_date' => 'date',
     ];
 
     // Relaciones

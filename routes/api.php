@@ -1,40 +1,38 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\AppointmentController;
-use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\AppointmentTypeController;
+use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\CashMovementController;
+use App\Http\Controllers\Api\CashRegisterController;
+use App\Http\Controllers\Api\CashReportController;
+use App\Http\Controllers\Api\ConsultationController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DentalChairController;
+use App\Http\Controllers\Api\MedicalRecordController;
+use App\Http\Controllers\Api\MercadoPagoController;
+use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PaymentMethodController;
+use App\Http\Controllers\Api\PendingPaymentsController;
 use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
 use App\Http\Controllers\Api\ProcedureStatsController;
-use App\Http\Controllers\Api\SpecialtyController;
-use App\Http\Controllers\Api\ReminderTemplateController;
-use App\Http\Controllers\Api\AuditLogController;
-use App\Http\Controllers\Api\BranchController;
-use App\Http\Controllers\Api\MedicalRecordController;
-use App\Http\Controllers\Api\TreatmentPlanController;
-use App\Http\Controllers\Api\QuotationController;
-use App\Http\Controllers\Api\SpecialtyRecordController;
-use App\Http\Controllers\Api\PaymentMethodController;
-use App\Http\Controllers\Api\TransactionController;
-use App\Http\Controllers\Api\CashMovementController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\MercadoPagoController;
-use App\Http\Controllers\Api\CashRegisterController;
-use App\Http\Controllers\Api\CashReportController;
-use App\Http\Controllers\Api\Reports\ReportController;
-use App\Http\Controllers\Api\PendingPaymentsController;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\AiImageAnalysisController;
-use App\Http\Controllers\Api\ConsultationController;
-use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\QuotationController;
+use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\ReminderTemplateController;
+use App\Http\Controllers\Api\Reports\ReportController;
+use App\Http\Controllers\Api\SpecialtyController;
+use App\Http\Controllers\Api\SpecialtyRecordController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\TreatmentPlanController;
+use App\Http\Controllers\Api\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,7 +69,6 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
     });
 });
-
 
 // Rutas protegidas por autenticación
 Route::middleware('auth:sanctum')->group(function () {
@@ -124,9 +121,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:administrador')->group(function () {
         Route::apiResource('users', UserController::class);
     });
-
-
-
 
     // Pacientes: lectura abierta a los 7 roles; escritura segun matriz CREDENTIALS.md
     Route::get('patients/search', [PatientController::class, 'search']);
@@ -234,7 +228,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('branches', BranchController::class);
     });
 
-
     // Planes de tratamiento (clínicos y admin)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
         Route::apiResource('treatment-plans', TreatmentPlanController::class);
@@ -274,7 +267,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('medical-records/patient/{patientId}/stats', [MedicalRecordController::class, 'getStats']);
         Route::get('medical-records/patient/{patientId}/attachments', [MedicalRecordController::class, 'getAttachmentsByCategory']);
     });
-
 
     // Registros de especialidades (solo especialistas)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
@@ -351,21 +343,21 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // IA Asistiva (solo odontólogos y especialistas)
-Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
-    // Nuevo endpoint para subir y analizar en un solo paso
-    Route::post('ai-analysis/upload-and-analyze', [AiImageAnalysisController::class, 'analyzeUploadedImage']);
+    Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
+        // Nuevo endpoint para subir y analizar en un solo paso
+        Route::post('ai-analysis/upload-and-analyze', [AiImageAnalysisController::class, 'analyzeUploadedImage']);
 
-    // Rutas específicas primero (antes de las rutas con parámetros)
-    Route::get('ai-analysis/stats', [AiImageAnalysisController::class, 'stats']);
-    Route::get('ai-analysis/pending', [AiImageAnalysisController::class, 'pending']);
-    Route::get('ai-analysis', [AiImageAnalysisController::class, 'index']);
-    Route::get('ai-analysis/attachment/{attachmentId}', [AiImageAnalysisController::class, 'byAttachment']);
-    Route::get('ai-analysis/patient/{patientId}', [AiImageAnalysisController::class, 'byPatient']);
+        // Rutas específicas primero (antes de las rutas con parámetros)
+        Route::get('ai-analysis/stats', [AiImageAnalysisController::class, 'stats']);
+        Route::get('ai-analysis/pending', [AiImageAnalysisController::class, 'pending']);
+        Route::get('ai-analysis', [AiImageAnalysisController::class, 'index']);
+        Route::get('ai-analysis/attachment/{attachmentId}', [AiImageAnalysisController::class, 'byAttachment']);
+        Route::get('ai-analysis/patient/{patientId}', [AiImageAnalysisController::class, 'byPatient']);
 
-    // Rutas con parámetros al final
-    Route::post('ai-analysis/analyze/{attachmentId}', [AiImageAnalysisController::class, 'analyze']);
-    Route::post('ai-analysis/{id}/review', [AiImageAnalysisController::class, 'review']);
-    Route::get('ai-analysis/{id}', [AiImageAnalysisController::class, 'show']);
-    Route::delete('ai-analysis/{id}', [AiImageAnalysisController::class, 'destroy']);
-});
+        // Rutas con parámetros al final
+        Route::post('ai-analysis/analyze/{attachmentId}', [AiImageAnalysisController::class, 'analyze']);
+        Route::post('ai-analysis/{id}/review', [AiImageAnalysisController::class, 'review']);
+        Route::get('ai-analysis/{id}', [AiImageAnalysisController::class, 'show']);
+        Route::delete('ai-analysis/{id}', [AiImageAnalysisController::class, 'destroy']);
+    });
 });

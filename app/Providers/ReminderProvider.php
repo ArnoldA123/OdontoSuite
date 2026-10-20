@@ -33,9 +33,7 @@ class ReminderProvider
      */
     public const IDEMPOTENCY_WINDOW_SECONDS = 60;
 
-    public function __construct(private readonly ReminderService $reminderService)
-    {
-    }
+    public function __construct(private readonly ReminderService $reminderService) {}
 
     /**
      * Entry point invoked by the scheduler. Returns the number of reminders
@@ -58,7 +56,7 @@ class ReminderProvider
         } catch (Throwable $e) {
             // AGENTS.md §7: a single provider failure must NEVER escalate
             // into the request lifecycle. Log + record sentinel run, swallow.
-            Log::error('ReminderProvider tick failed: ' . $e->getMessage(), [
+            Log::error('ReminderProvider tick failed: '.$e->getMessage(), [
                 'exception' => $e,
             ]);
             $this->recordRun($startedAt, 0);
@@ -76,7 +74,7 @@ class ReminderProvider
     {
         $run = $this->getOrCreateRunRow();
 
-        if (!$run->last_run_at) {
+        if (! $run->last_run_at) {
             return false;
         }
 
@@ -100,13 +98,14 @@ class ReminderProvider
         // DB::transaction makes the singleton seed safe under concurrent ticks.
         return DB::transaction(function () {
             $row = ReminderProviderRun::query()->lockForUpdate()->first();
-            if (!$row) {
+            if (! $row) {
                 $row = ReminderProviderRun::create([
                     'last_run_at' => null,
                     'runs_count' => 0,
                     'last_processed' => 0,
                 ]);
             }
+
             return $row;
         });
     }

@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
+use App\Events\ReminderSent;
 use App\Models\Appointment;
+use App\Models\ConfirmationToken;
 use App\Models\ReminderSchedule;
 use App\Models\ReminderTemplate;
-use App\Models\ConfirmationToken;
-use App\Events\ReminderSent;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ReminderService
 {
@@ -22,7 +21,7 @@ class ReminderService
     {
         $appointmentType = $appointment->appointmentType;
 
-        if (!$appointmentType->requires_confirmation) {
+        if (! $appointmentType->requires_confirmation) {
             return;
         }
 
@@ -54,8 +53,9 @@ class ReminderService
     {
         $template = ReminderTemplate::where('type', $type)->where('is_active', true)->first();
 
-        if (!$template) {
+        if (! $template) {
             Log::warning("No reminder template found for type: {$type}");
+
             return;
         }
 
@@ -101,7 +101,7 @@ class ReminderService
                 $reminder->markAsSent();
                 $processed++;
             } catch (\Exception $e) {
-                Log::error("Failed to send reminder {$reminder->id}: " . $e->getMessage());
+                Log::error("Failed to send reminder {$reminder->id}: ".$e->getMessage());
             }
         }
 
@@ -122,7 +122,7 @@ class ReminderService
             ->where('expires_at', '>', now())
             ->first();
 
-        if (!$token) {
+        if (! $token) {
             $token = ConfirmationToken::createForAppointment($appointment, 'confirmation', 24);
         }
 
@@ -212,18 +212,18 @@ class ReminderService
      * Slice 07a: writes the canonical `hours_before` column. Idempotent on
      * `(appointment_id, hours_before)` via `updateOrCreate`.
      */
-    public function createCustomReminder(Appointment $appointment, string $type, int $hoursBefore, string $customMessage = null): ReminderSchedule
+    public function createCustomReminder(Appointment $appointment, string $type, int $hoursBefore, ?string $customMessage = null): ReminderSchedule
     {
         $template = ReminderTemplate::where('type', $type)->where('is_active', true)->first();
 
-        if (!$template) {
+        if (! $template) {
             throw new \Exception("No reminder template found for type: {$type}");
         }
 
         $scheduledAt = $appointment->scheduled_at->copy()->subHours($hoursBefore);
 
         if ($scheduledAt->isPast()) {
-            throw new \Exception("Cannot schedule reminder in the past");
+            throw new \Exception('Cannot schedule reminder in the past');
         }
 
         return ReminderSchedule::updateOrCreate(
@@ -252,7 +252,7 @@ class ReminderService
     {
         $template = ReminderTemplate::where('type', $type)->where('is_active', true)->first();
 
-        if (!$template) {
+        if (! $template) {
             throw new \Exception("No reminder template found for type: {$type}");
         }
 

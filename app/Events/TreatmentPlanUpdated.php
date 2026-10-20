@@ -43,4 +43,3 @@ class TreatmentPlanUpdated implements ShouldBroadcast
         ];
     }
 }
-

@@ -8,7 +8,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Sprint 3 fix (IM-6): importador CSV de procedimientos del catalogo.
@@ -37,9 +36,10 @@ class ProcedureCsvImportService
         $header = fgetcsv($handle);
         if ($header === false) {
             fclose($handle);
+
             throw new \RuntimeException('CSV vacío o sin encabezado.');
         }
-        $header = array_map(fn($h) => strtolower(trim($h)), $header);
+        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
 
         $specialtyMap = Specialty::pluck('id', 'code')->toArray();
 
@@ -51,7 +51,7 @@ class ProcedureCsvImportService
 
         while (($row = fgetcsv($handle)) !== false) {
             $rowNumber++;
-            if (count(array_filter($row, fn($v) => $v !== null && $v !== '')) === 0) {
+            if (count(array_filter($row, fn ($v) => $v !== null && $v !== '')) === 0) {
                 continue; // fila vacia
             }
 
@@ -62,11 +62,12 @@ class ProcedureCsvImportService
                     'errors' => ['Formato: número de columnas no coincide con el encabezado.'],
                     'data' => $row,
                 ];
+
                 continue;
             }
 
             $data = array_combine($header, $row);
-            $data = array_map(fn($v) => is_string($v) ? trim($v) : $v, $data);
+            $data = array_map(fn ($v) => is_string($v) ? trim($v) : $v, $data);
 
             $validator = Validator::make($data, [
                 'code' => 'required|string|max:50',
@@ -90,6 +91,7 @@ class ProcedureCsvImportService
                     'errors' => $validator->errors()->all(),
                     'data' => $data,
                 ];
+
                 continue;
             }
 
@@ -105,7 +107,7 @@ class ProcedureCsvImportService
                 }
             }
 
-            if (!empty($validated['specialty_code']) && isset($specialtyMap[$validated['specialty_code']])) {
+            if (! empty($validated['specialty_code']) && isset($specialtyMap[$validated['specialty_code']])) {
                 $validated['specialty_id'] = $specialtyMap[$validated['specialty_code']];
             }
             unset($validated['specialty_code']);

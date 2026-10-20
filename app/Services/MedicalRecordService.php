@@ -2,18 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\MedicalRecord;
-use App\Models\ClinicalEvolution;
 use App\Models\ClinicalAttachment;
-use Illuminate\Support\Facades\DB;
+use App\Models\ClinicalEvolution;
+use App\Models\MedicalRecord;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class MedicalRecordService
 {
     /**
-     * Crear historia clínica
+     * Crear historia clínica.
      */
     public function createRecord(int $patientId, array $data): MedicalRecord
     {
@@ -30,7 +30,7 @@ class MedicalRecordService
     }
 
     /**
-     * Agregar evolución a la historia clínica
+     * Agregar evolución a la historia clínica.
      */
     public function addEvolution(int $recordId, array $data): ClinicalEvolution
     {
@@ -48,13 +48,13 @@ class MedicalRecordService
     }
 
     /**
-     * Adjuntar archivo a la historia clínica
+     * Adjuntar archivo a la historia clínica.
      */
     public function attachFile(array $data): ClinicalAttachment
     {
         $file = $data['file'];
         $originalName = $file->getClientOriginalName();
-        $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $fileName = Str::uuid().'.'.$file->getClientOriginalExtension();
         $filePath = $file->storeAs('clinical-attachments', $fileName, 'public');
 
         $attachmentData = [
@@ -70,7 +70,7 @@ class MedicalRecordService
             'file_size' => $file->getSize(),
             'category' => $data['category'] ?? 'general',
             'description' => $data['description'] ?? '',
-            'is_private' => $data['is_private'] ?? false
+            'is_private' => $data['is_private'] ?? false,
         ];
 
         $attachment = ClinicalAttachment::create($attachmentData);
@@ -79,7 +79,7 @@ class MedicalRecordService
     }
 
     /**
-     * Obtener historial completo del paciente
+     * Obtener historial completo del paciente.
      */
     public function getPatientHistory(int $patientId)
     {
@@ -91,16 +91,16 @@ class MedicalRecordService
             },
             'attachments' => function ($query) {
                 $query->where('is_active', true);
-            }
+            },
         ])
-        ->where('patient_id', $patientId)
-        ->where('is_active', true)
-        ->orderBy('first_visit_date', 'desc')
-        ->get();
+            ->where('patient_id', $patientId)
+            ->where('is_active', true)
+            ->orderBy('first_visit_date', 'desc')
+            ->get();
     }
 
     /**
-     * Obtener registros por especialidad
+     * Obtener registros por especialidad.
      */
     public function getRecordsBySpecialty(int $patientId, string $specialty)
     {
@@ -109,23 +109,23 @@ class MedicalRecordService
             'createdBy',
             'evolutions' => function ($query) use ($specialty) {
                 $query->where('specialty', $specialty)
-                      ->orderBy('evolution_date', 'desc');
+                    ->orderBy('evolution_date', 'desc');
             },
             'attachments' => function ($query) {
                 $query->where('is_active', true);
-            }
+            },
         ])
-        ->where('patient_id', $patientId)
-        ->where('is_active', true)
-        ->whereHas('evolutions', function ($query) use ($specialty) {
-            $query->where('specialty', $specialty);
-        })
-        ->orderBy('first_visit_date', 'desc')
-        ->get();
+            ->where('patient_id', $patientId)
+            ->where('is_active', true)
+            ->whereHas('evolutions', function ($query) use ($specialty) {
+                $query->where('specialty', $specialty);
+            })
+            ->orderBy('first_visit_date', 'desc')
+            ->get();
     }
 
     /**
-     * Obtener evolución específica
+     * Obtener evolución específica.
      */
     public function getEvolution(int $evolutionId)
     {
@@ -134,12 +134,12 @@ class MedicalRecordService
             'appointment',
             'medicalRecord',
             'createdBy',
-            'attachments'
+            'attachments',
         ])->findOrFail($evolutionId);
     }
 
     /**
-     * Actualizar evolución
+     * Actualizar evolución.
      */
     public function updateEvolution(int $evolutionId, array $data): ClinicalEvolution
     {
@@ -150,7 +150,7 @@ class MedicalRecordService
     }
 
     /**
-     * Eliminar archivo adjunto
+     * Eliminar archivo adjunto.
      */
     public function deleteAttachment(int $attachmentId): bool
     {
@@ -168,7 +168,7 @@ class MedicalRecordService
     }
 
     /**
-     * Obtener archivos por categoría
+     * Obtener archivos por categoría.
      */
     public function getAttachmentsByCategory(int $patientId, string $category)
     {
@@ -180,19 +180,19 @@ class MedicalRecordService
     }
 
     /**
-     * Generar número de historia clínica único
+     * Generar número de historia clínica único.
      */
     private function generateRecordNumber(): string
     {
         do {
-            $number = 'HC-' . date('Y') . '-' . strtoupper(Str::random(6));
+            $number = 'HC-'.date('Y').'-'.strtoupper(Str::random(6));
         } while (MedicalRecord::where('record_number', $number)->exists());
 
         return $number;
     }
 
     /**
-     * Determinar tipo de archivo por MIME type
+     * Determinar tipo de archivo por MIME type.
      */
     private function getFileType(string $mimeType): string
     {
@@ -206,7 +206,7 @@ class MedicalRecordService
 
         if (in_array($mimeType, [
             'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ])) {
             return 'document';
         }
@@ -215,7 +215,7 @@ class MedicalRecordService
     }
 
     /**
-     * Obtener estadísticas de la historia clínica
+     * Obtener estadísticas de la historia clínica.
      */
     public function getRecordStats(int $patientId): array
     {
@@ -223,12 +223,12 @@ class MedicalRecordService
             ->where('is_active', true)
             ->first();
 
-        if (!$record) {
+        if (! $record) {
             return [
                 'total_evolutions' => 0,
                 'total_attachments' => 0,
                 'last_evolution' => null,
-                'specialties_involved' => []
+                'specialties_involved' => [],
             ];
         }
 
@@ -240,7 +240,7 @@ class MedicalRecordService
             'total_attachments' => $attachments->count(),
             'last_evolution' => $evolutions->sortByDesc('evolution_date')->first(),
             'specialties_involved' => $evolutions->pluck('specialty')->unique()->values()->toArray(),
-            'attachment_categories' => $attachments->groupBy('category')->map->count()
+            'attachment_categories' => $attachments->groupBy('category')->map->count(),
         ];
     }
 }

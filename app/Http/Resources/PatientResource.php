@@ -35,13 +35,13 @@ class PatientResource extends JsonResource
             'branch_id' => $this->branch_id,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
-            
+
             // Contadores condicionales
             'appointments_count' => $this->when(isset($this->appointments_count), $this->appointments_count),
             'treatment_plans_count' => $this->when(isset($this->treatment_plans_count), $this->treatment_plans_count),
             'quotations_count' => $this->when(isset($this->quotations_count), $this->quotations_count),
             'medical_records_count' => $this->when(isset($this->medical_records_count), $this->medical_records_count),
-            
+
             // Relaciones condicionales
             'appointments' => $this->whenLoaded('appointments', function () {
                 return $this->appointments->map(function ($appointment) {
@@ -88,4 +88,3 @@ class PatientResource extends JsonResource
         ];
     }
 }
-

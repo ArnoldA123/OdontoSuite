@@ -12,14 +12,15 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ExportPatientFileJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected int $patientId;
+
     protected string $format; // 'pdf' or 'zip'
+
     protected ?int $userId;
 
     /**
@@ -53,7 +54,7 @@ class ExportPatientFileJob implements ShouldQueue
             }
 
             // Store the file path in cache or database for retrieval
-            $cacheKey = "patient_export_{$this->patientId}_{$this->format}_" . now()->timestamp;
+            $cacheKey = "patient_export_{$this->patientId}_{$this->format}_".now()->timestamp;
             cache()->put($cacheKey, $filePath, now()->addHours(1));
 
             Log::info('Patient file export completed', [
@@ -100,4 +101,3 @@ class ExportPatientFileJob implements ShouldQueue
         ]);
     }
 }
-

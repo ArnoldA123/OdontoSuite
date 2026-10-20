@@ -19,15 +19,15 @@ class PatientFileExported implements ShouldBroadcast
         public readonly ?User $user,
         public readonly string $format,
         public readonly string $filePath,
-    ) {
-    }
+    ) {}
 
     public function broadcastOn(): array
     {
         $channels = [new Channel('dashboard-updates')];
         if ($this->user) {
-            $channels[] = new Channel('user.' . $this->user->id);
+            $channels[] = new Channel('user.'.$this->user->id);
         }
+
         return $channels;
     }
 

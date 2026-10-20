@@ -15,10 +15,8 @@ use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Odontogram;
 use App\Models\OdontogramRecord;
-use App\Models\Patient;
 use App\Models\ProcedureMaterial;
 use App\Models\Product;
-use App\Models\Quotation;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Http\UploadedFile;
@@ -26,13 +24,14 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ConsultationService
 {
     public const MODE_CONSULTATION = 'consultation';
+
     public const MODE_EXECUTION = 'execution';
+
     public const MODE_PLAN_SESSION = 'plan_session';
 
     public const VALID_MODES = [
@@ -41,16 +40,14 @@ class ConsultationService
         self::MODE_PLAN_SESSION,
     ];
 
-    public function __construct(private readonly BillingService $billing)
-    {
-    }
+    public function __construct(private readonly BillingService $billing) {}
 
     /**
      * Punto único de entrada para cerrar una consulta.
      *
      * Toda la operación corre dentro de una transacción DB.
      *
-     * @param  array<string, mixed>  $payload  ver contrato JSON
+     * @param array<string, mixed> $payload ver contrato JSON
      */
     public function complete(Appointment $appointment, array $payload): array
     {
@@ -133,6 +130,7 @@ class ConsultationService
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
             }
+
             return [
                 'appointment' => $appointment,
                 'quotation' => $quotation,
@@ -153,7 +151,7 @@ class ConsultationService
         }
 
         $allowedFrom = ['scheduled', 'confirmed'];
-        if (!in_array($appointment->status, $allowedFrom, true)) {
+        if (! in_array($appointment->status, $allowedFrom, true)) {
             throw AppointmentNotInConsultationException::make($appointment->status);
         }
 
@@ -171,6 +169,7 @@ class ConsultationService
             Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
         }
+
         return $appointment->refresh();
     }
 
@@ -182,24 +181,24 @@ class ConsultationService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * @param array<string, mixed> $payload
      */
     private function validatePayload(Appointment $appointment, array $payload): void
     {
         $mode = $payload['mode'] ?? null;
-        if (!in_array($mode, self::VALID_MODES, true)) {
+        if (! in_array($mode, self::VALID_MODES, true)) {
             throw InvalidConsultationModeException::make($mode);
         }
 
         $evolution = $payload['evolution'] ?? null;
-        if (!is_array($evolution)) {
-            throw new MissingEvolutionException();
+        if (! is_array($evolution)) {
+            throw new MissingEvolutionException;
         }
 
         $requiredSoap = ['subjective', 'objective', 'assessment', 'plan'];
         $missing = array_filter($requiredSoap, fn ($k) => trim((string) ($evolution[$k] ?? '')) === '');
-        if (!empty($missing)) {
-            throw new MissingEvolutionException();
+        if (! empty($missing)) {
+            throw new MissingEvolutionException;
         }
 
         $skipMaterials = (bool) ($payload['skip_materials'] ?? false);
@@ -207,11 +206,11 @@ class ConsultationService
         $materialsCount = is_array($materials) ? count($materials) : 0;
 
         if ($mode === self::MODE_CONSULTATION && $materialsCount > 0) {
-            throw new UnexpectedMaterialsException();
+            throw new UnexpectedMaterialsException;
         }
 
         $requiresMaterials = (bool) ($appointment->appointmentType?->requires_materials ?? false);
-        if ($requiresMaterials && $materialsCount === 0 && !$skipMaterials) {
+        if ($requiresMaterials && $materialsCount === 0 && ! $skipMaterials) {
             throw new MissingMaterialsException(
                 'el tipo de cita requiere registrar materiales o confirmar "skip_materials"'
             );
@@ -220,19 +219,19 @@ class ConsultationService
         if ($mode === self::MODE_PLAN_SESSION) {
             $planData = $payload['treatment_plan'] ?? null;
             $planId = is_array($planData) ? ($planData['id'] ?? null) : null;
-            if (!$planId) {
+            if (! $planId) {
                 throw InvalidTreatmentPlanException::requiresPlanId();
             }
 
             $plan = TreatmentPlan::find($planId);
-            if (!$plan || $plan->patient_id !== $appointment->patient_id) {
+            if (! $plan || $plan->patient_id !== $appointment->patient_id) {
                 throw InvalidTreatmentPlanException::notFound($planId);
             }
         }
     }
 
     /**
-     * @param  array<string, mixed>  $evolution
+     * @param array<string, mixed> $evolution
      */
     private function persistEvolution(Appointment $appointment, array $evolution, ?int $userId): ClinicalEvolution
     {
@@ -240,7 +239,7 @@ class ConsultationService
             ['patient_id' => $appointment->patient_id, 'is_active' => true],
             [
                 'created_by' => $userId,
-                'record_number' => 'HC-' . date('Y') . '-' . strtoupper(Str::random(6)),
+                'record_number' => 'HC-'.date('Y').'-'.strtoupper(Str::random(6)),
                 'first_visit_date' => now()->toDateString(),
             ],
         );
@@ -269,7 +268,7 @@ class ConsultationService
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $records
+     * @param array<int, array<string, mixed>> $records
      */
     private function persistOdontogramRecords(Appointment $appointment, array $records, ?int $userId): void
     {
@@ -300,8 +299,7 @@ class ConsultationService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     * @return TreatmentPlan|null
+     * @param array<string, mixed> $payload
      */
     private function upsertTreatmentPlan(Appointment $appointment, string $mode, array $payload, ?int $userId): ?TreatmentPlan
     {
@@ -313,7 +311,7 @@ class ConsultationService
             $itemUpdates = $planData['items'] ?? [];
             foreach ($itemUpdates as $update) {
                 $item = $plan->items->firstWhere('id', $update['id'] ?? null);
-                if (!$item) {
+                if (! $item) {
                     continue;
                 }
                 $item->status = $update['status'] ?? $item->status;
@@ -405,12 +403,12 @@ class ConsultationService
     }
 
     /**
-     * @param  array<string, mixed>  $payload
+     * @param array<string, mixed> $payload
      */
     private function persistProcedureMaterials(Appointment $appointment, array $payload, ?int $userId): void
     {
         $materials = $payload['materials'] ?? [];
-        if (empty($materials) || !is_array($materials)) {
+        if (empty($materials) || ! is_array($materials)) {
             return;
         }
 
@@ -418,7 +416,7 @@ class ConsultationService
 
         foreach ($materials as $idx => $m) {
             $productId = $m['product_id'] ?? null;
-            if (!$productId) {
+            if (! $productId) {
                 continue;
             }
 
@@ -428,12 +426,13 @@ class ConsultationService
             // materiales, pero esta salvaguarda cubre el caso de products table vacia
             // (catalogo no poblado) sin abortar la consulta completa.
             $product = Product::find($productId);
-            if (!$product) {
+            if (! $product) {
                 Log::warning('Consultation: material con product_id inexistente, se omite', [
                     'appointment_id' => $appointment->id,
                     'material_index' => $idx,
                     'product_id' => $productId,
                 ]);
+
                 continue;
             }
 
@@ -459,7 +458,7 @@ class ConsultationService
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $attachments
+     * @param  array<int, array<string, mixed>> $attachments
      * @return array<int, ClinicalAttachment>
      */
     private function persistAttachments(
@@ -471,11 +470,11 @@ class ConsultationService
         $created = [];
         foreach ($attachments as $att) {
             $file = $att['file'] ?? null;
-            if (!$file instanceof UploadedFile) {
+            if (! $file instanceof UploadedFile) {
                 continue;
             }
 
-            $fileName = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $fileName = Str::uuid().'.'.$file->getClientOriginalExtension();
             $filePath = $file->storeAs('clinical-attachments', $fileName, 'public');
 
             $created[] = ClinicalAttachment::create([
@@ -499,7 +498,7 @@ class ConsultationService
     }
 
     /**
-     * @param  array<string, mixed>|null  $next
+     * @param array<string, mixed>|null $next
      */
     private function scheduleFollowUpAppointment(Appointment $appointment, ?array $next, ?int $userId): void
     {
@@ -524,7 +523,7 @@ class ConsultationService
     private function resolvePlanId(Appointment $appointment, array $payload): ?int
     {
         $planData = $payload['treatment_plan'] ?? null;
-        if (is_array($planData) && !empty($planData['id'])) {
+        if (is_array($planData) && ! empty($planData['id'])) {
             return (int) $planData['id'];
         }
 
@@ -534,7 +533,7 @@ class ConsultationService
     private function resolvePlanItemIds(Appointment $appointment): array
     {
         $planId = $appointment->treatment_plan_id;
-        if (!$planId) {
+        if (! $planId) {
             return [];
         }
 
@@ -550,7 +549,7 @@ class ConsultationService
             return null;
         }
 
-        if (!empty($material['treatment_plan_item_id'])) {
+        if (! empty($material['treatment_plan_item_id'])) {
             $candidate = (int) $material['treatment_plan_item_id'];
             if (in_array($candidate, $planItemIds, true)) {
                 return $candidate;
@@ -584,7 +583,7 @@ class ConsultationService
     private function generatePlanNumber(): string
     {
         do {
-            $number = 'TP-' . date('Y') . '-' . strtoupper(Str::random(6));
+            $number = 'TP-'.date('Y').'-'.strtoupper(Str::random(6));
         } while (TreatmentPlan::where('plan_number', $number)->exists());
 
         return $number;
@@ -604,6 +603,7 @@ class ConsultationService
         ], true)) {
             return 'document';
         }
+
         return 'other';
     }
 }

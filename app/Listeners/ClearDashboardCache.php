@@ -34,7 +34,7 @@ class ClearDashboardCache
 
             Log::debug('Dashboard cache cleared due to data change');
         } catch (\Exception $e) {
-            Log::error('Error clearing dashboard cache: ' . $e->getMessage());
+            Log::error('Error clearing dashboard cache: '.$e->getMessage());
         }
     }
 }

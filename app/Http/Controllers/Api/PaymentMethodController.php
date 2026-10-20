@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\PaymentMethod;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PaymentMethodController extends Controller
 {
@@ -32,7 +32,7 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Display a listing of payment methods
+     * Display a listing of payment methods.
      */
     public function index(Request $request): JsonResponse
     {
@@ -49,8 +49,8 @@ class PaymentMethodController extends Controller
                 $q = $request->q;
                 $query->where(function ($w) use ($q) {
                     $w->where('name', 'like', "%$q%")
-                      ->orWhere('code', 'like', "%$q%")
-                      ->orWhere('description', 'like', "%$q%");
+                        ->orWhere('code', 'like', "%$q%")
+                        ->orWhere('description', 'like', "%$q%");
                 });
             }
 
@@ -59,7 +59,7 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cargar metodos de pago',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -81,13 +81,13 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cargar metodos de pago activos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * @param  Collection<int, PaymentMethod>  $methods
+     * @param Collection<int, PaymentMethod> $methods
      */
     private function methodsResponse(Collection $methods, string $message): JsonResponse
     {
@@ -112,7 +112,7 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Store a newly created payment method
+     * Store a newly created payment method.
      */
     public function store(Request $request): JsonResponse
     {
@@ -142,25 +142,25 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Los datos proporcionados no son validos.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear metodo de pago',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Display the specified payment method
+     * Display the specified payment method.
      */
     public function show(PaymentMethod $paymentMethod): JsonResponse
     {
         // El admin puede ver si tiene credenciales (sin ver el valor)
         $data = $paymentMethod->toArray();
-        $data['has_gateway_config'] = !is_null($paymentMethod->gateway_config);
+        $data['has_gateway_config'] = ! is_null($paymentMethod->gateway_config);
         // Nunca devolver el secret encriptado
         $data['gateway_config'] = null;
 
@@ -173,7 +173,7 @@ class PaymentMethodController extends Controller
     }
 
     /**
-     * Update the specified payment method
+     * Update the specified payment method.
      */
     public function update(Request $request, PaymentMethod $paymentMethod): JsonResponse
     {
@@ -197,19 +197,19 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Los datos proporcionados no son validos.',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar metodo de pago',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Remove the specified payment method
+     * Remove the specified payment method.
      */
     public function destroy(PaymentMethod $paymentMethod): JsonResponse
     {
@@ -219,7 +219,7 @@ class PaymentMethodController extends Controller
             if ($paymentMethod->is_system) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede eliminar un metodo del sistema. Desactivalo en su lugar usando is_active=false.'
+                    'message' => 'No se puede eliminar un metodo del sistema. Desactivalo en su lugar usando is_active=false.',
                 ], 403);
             }
 
@@ -228,7 +228,7 @@ class PaymentMethodController extends Controller
             if ($txCount > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => "No se puede eliminar: el metodo tiene {$txCount} transaccion(es) registrada(s). Desactivalo en su lugar."
+                    'message' => "No se puede eliminar: el metodo tiene {$txCount} transaccion(es) registrada(s). Desactivalo en su lugar.",
                 ], 409);
             }
 
@@ -244,7 +244,7 @@ class PaymentMethodController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar metodo de pago',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

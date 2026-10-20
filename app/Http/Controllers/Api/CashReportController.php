@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\CashReportExport;
 use App\Http\Controllers\Controller;
 use App\Services\Reports\CashReportService;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\CashReportExport;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CashReportController extends Controller
@@ -74,13 +74,13 @@ class CashReportController extends Controller
             $filters['branch_id'] ?? null
         );
 
-        $filename = 'reporte-caja-' . now()->format('Y-m-d');
+        $filename = 'reporte-caja-'.now()->format('Y-m-d');
 
         return match (strtolower($format)) {
-            'excel' => $this->downloadExcel(new CashReportExport($report), $filename . '.xls'),
-            'csv' => $this->downloadCsv(new CashReportExport($report), $filename . '.csv'),
+            'excel' => $this->downloadExcel(new CashReportExport($report), $filename.'.xls'),
+            'csv' => $this->downloadCsv(new CashReportExport($report), $filename.'.csv'),
             'pdf' => Pdf::loadView('reports.cash-report-pdf', ['report' => $report])
-                ->download($filename . '.pdf'),
+                ->download($filename.'.pdf'),
             default => response()->json([
                 'message' => 'Formato de exportacion no soportado. Use excel, pdf o csv.',
             ], 400),
@@ -93,20 +93,20 @@ class CashReportController extends Controller
         foreach ($export->toRows() as $row) {
             $cells .= '<tr>';
             foreach ($row as $cell) {
-                $cells .= '<td>' . e($cell) . '</td>';
+                $cells .= '<td>'.e($cell).'</td>';
             }
             $cells .= '</tr>';
         }
 
         $html = '<html xmlns:o="urn:schemas-microsoft-com:office:office"'
-            . ' xmlns:x="urn:schemas-microsoft-com:office:excel"'
-            . ' xmlns="http://www.w3.org/TR/REC-html40">'
-            . '<head><meta charset="UTF-8"></head>'
-            . '<body><table border="1">' . $cells . '</table></body></html>';
+            .' xmlns:x="urn:schemas-microsoft-com:office:excel"'
+            .' xmlns="http://www.w3.org/TR/REC-html40">'
+            .'<head><meta charset="UTF-8"></head>'
+            .'<body><table border="1">'.$cells.'</table></body></html>';
 
         return response($html, 200, [
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }
 
@@ -125,30 +125,3 @@ class CashReportController extends Controller
         ]);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

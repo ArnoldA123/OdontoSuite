@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\TreatmentPlanDeleted;
 use App\Http\Controllers\Controller;
 use App\Services\TreatmentPlanService;
-use App\Events\TreatmentPlanDeleted;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class TreatmentPlanController extends Controller
 {
@@ -43,6 +42,7 @@ class TreatmentPlanController extends Controller
                         $item[$k] = null;
                     }
                 }
+
                 return $item;
             }, $items);
             $request->merge(['items' => $items]);
@@ -68,12 +68,12 @@ class TreatmentPlanController extends Controller
                     'last_page' => $result->lastPage(),
                     'per_page' => $result->perPage(),
                     'total' => $result->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener planes de tratamiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -93,18 +93,18 @@ class TreatmentPlanController extends Controller
             return response()->json([
                 'data' => $plan,
                 'meta' => [
-                    'message' => 'Plan de tratamiento creado exitosamente'
-                ]
+                    'message' => 'Plan de tratamiento creado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear plan de tratamiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -176,18 +176,18 @@ class TreatmentPlanController extends Controller
             return response()->json([
                 'data' => $plan,
                 'meta' => [
-                    'message' => 'Plan de tratamiento actualizado exitosamente'
-                ]
+                    'message' => 'Plan de tratamiento actualizado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar plan de tratamiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -203,7 +203,7 @@ class TreatmentPlanController extends Controller
             // Solo permitir eliminar si está en estado draft
             if ($plan->status !== 'draft') {
                 return response()->json([
-                    'message' => 'No se puede eliminar un plan que no esté en estado borrador'
+                    'message' => 'No se puede eliminar un plan que no esté en estado borrador',
                 ], 422);
             }
 
@@ -216,25 +216,25 @@ class TreatmentPlanController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Plan de tratamiento eliminado exitosamente'
-                ]
+                    'message' => 'Plan de tratamiento eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar plan de tratamiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Cambiar estado del plan
+     * Cambiar estado del plan.
      */
     public function changeStatus(Request $request, int $id): JsonResponse
     {
         try {
             $validated = $request->validate([
-                'status' => 'required|in:draft,proposed,approved,in_progress,completed,cancelled'
+                'status' => 'required|in:draft,proposed,approved,in_progress,completed,cancelled',
             ]);
 
             $plan = $this->treatmentPlanService->changeStatus($id, $validated['status']);
@@ -242,24 +242,24 @@ class TreatmentPlanController extends Controller
             return response()->json([
                 'data' => $plan,
                 'meta' => [
-                    'message' => 'Estado del plan actualizado exitosamente'
-                ]
+                    'message' => 'Estado del plan actualizado exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al cambiar estado del plan',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Duplicar plan de tratamiento
+     * Duplicar plan de tratamiento.
      */
     public function duplicate(int $id): JsonResponse
     {
@@ -269,19 +269,19 @@ class TreatmentPlanController extends Controller
             return response()->json([
                 'data' => $plan,
                 'meta' => [
-                    'message' => 'Plan de tratamiento duplicado exitosamente'
-                ]
+                    'message' => 'Plan de tratamiento duplicado exitosamente',
+                ],
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al duplicar plan de tratamiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Agregar item al plan
+     * Agregar item al plan.
      */
     public function addItem(Request $request, int $id): JsonResponse
     {
@@ -309,24 +309,24 @@ class TreatmentPlanController extends Controller
             return response()->json([
                 'data' => $item,
                 'meta' => [
-                    'message' => 'Procedimiento agregado exitosamente'
-                ]
+                    'message' => 'Procedimiento agregado exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al agregar procedimiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Eliminar item del plan
+     * Eliminar item del plan.
      */
     public function removeItem(int $itemId): JsonResponse
     {
@@ -335,13 +335,13 @@ class TreatmentPlanController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Procedimiento eliminado exitosamente'
-                ]
+                    'message' => 'Procedimiento eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar procedimiento',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

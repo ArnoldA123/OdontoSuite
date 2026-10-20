@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Broadcast;
 
-/**
+/*
  * Mirror documentation only.
  *
  * The effective broadcasting authorization authority is
@@ -25,6 +25,7 @@ Broadcast::channel('patients', function ($user) {
     if ($user === null) {
         return false;
     }
+
     return in_array($user->role ?? null, [
         'administrador', 'recepcionista', 'odontologo', 'implantologo',
         'tecnico_dental', 'asistente', 'finanzas',
@@ -49,6 +50,7 @@ Broadcast::channel('appointment.{appointmentId}', function ($user, $appointmentI
         return false;
     }
     $allowed = ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'recepcionista'];
+
     return in_array($user->role ?? null, $allowed, true);
 });
 
@@ -60,5 +62,6 @@ Broadcast::channel('cash-register.{branchId}', function ($user, $branchId) {
     if ($user === null) {
         return false;
     }
+
     return in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
 });

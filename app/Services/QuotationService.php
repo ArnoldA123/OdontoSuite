@@ -2,23 +2,23 @@
 
 namespace App\Services;
 
-use App\Models\Quotation;
-use App\Models\QuotationItem;
-use App\Models\QuotationApproval;
-use App\Models\TreatmentPlan;
+use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
 use App\Events\QuotationUpdated;
-use App\Events\QuotationApproved;
+use App\Models\Quotation;
+use App\Models\QuotationApproval;
+use App\Models\QuotationItem;
+use App\Models\TreatmentPlan;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class QuotationService
 {
     /**
-     * Generar presupuesto desde un plan de tratamiento
+     * Generar presupuesto desde un plan de tratamiento.
      */
     public function generateQuotation(int $treatmentPlanId, array $data = []): Quotation
     {
@@ -41,7 +41,7 @@ class QuotationService
                 'status' => 'draft',
                 'terms_conditions' => $data['terms_conditions'] ?? '',
                 'notes' => $data['notes'] ?? '',
-                'payment_terms' => $data['payment_terms'] ?? []
+                'payment_terms' => $data['payment_terms'] ?? [],
             ];
 
             // Calcular descuentos e impuestos
@@ -59,7 +59,7 @@ class QuotationService
                     'specialty' => $item->specialty,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_cost,
-                    'total_price' => $item->quantity * $item->unit_cost
+                    'total_price' => $item->quantity * $item->unit_cost,
                 ]);
             }
 
@@ -72,12 +72,13 @@ class QuotationService
             } catch (\Throwable $e) {
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
             }
+
             return $quotation;
         });
     }
 
     /**
-     * Crear presupuesto manual
+     * Crear presupuesto manual.
      */
     public function createQuotation(array $data): Quotation
     {
@@ -103,7 +104,7 @@ class QuotationService
                         'specialty' => $itemData['specialty'] ?? null,
                         'quantity' => $itemData['quantity'],
                         'unit_price' => $itemData['unit_price'],
-                        'total_price' => $itemData['quantity'] * $itemData['unit_price']
+                        'total_price' => $itemData['quantity'] * $itemData['unit_price'],
                     ]);
                 }
             }
@@ -117,12 +118,13 @@ class QuotationService
             } catch (\Throwable $e) {
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
             }
+
             return $quotation;
         });
     }
 
     /**
-     * Actualizar presupuesto
+     * Actualizar presupuesto.
      */
     public function updateQuotation(int $id, array $data): Quotation
     {
@@ -150,7 +152,7 @@ class QuotationService
                         'specialty' => $itemData['specialty'] ?? null,
                         'quantity' => $itemData['quantity'],
                         'unit_price' => $itemData['unit_price'],
-                        'total_price' => $itemData['quantity'] * $itemData['unit_price']
+                        'total_price' => $itemData['quantity'] * $itemData['unit_price'],
                     ]);
                 }
             }
@@ -164,12 +166,13 @@ class QuotationService
             } catch (\Throwable $e) {
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
             }
+
             return $quotation;
         });
     }
 
     /**
-     * Aprobar presupuesto
+     * Aprobar presupuesto.
      */
     public function approveQuotation(int $id, array $approvalData): Quotation
     {
@@ -184,7 +187,7 @@ class QuotationService
                 'approved_by' => Auth::id(),
                 'approval_date' => now(),
                 'approval_notes' => $approvalData['notes'] ?? '',
-                'patient_signature' => $approvalData['patient_signature'] ?? null
+                'patient_signature' => $approvalData['patient_signature'] ?? null,
             ]);
 
             $quotation->refresh();
@@ -196,17 +199,19 @@ class QuotationService
             } catch (\Throwable $e) {
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
             }
+
             try {
                 event(new QuotationUpdated($quotation));
             } catch (\Throwable $e) {
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
             }
+
             return $quotation;
         });
     }
 
     /**
-     * Rechazar presupuesto
+     * Rechazar presupuesto.
      */
     public function rejectQuotation(int $id, string $reason): Quotation
     {
@@ -214,14 +219,14 @@ class QuotationService
 
         $quotation->update([
             'status' => 'rejected',
-            'notes' => $quotation->notes . "\n\nRechazado: " . $reason
+            'notes' => $quotation->notes."\n\nRechazado: ".$reason,
         ]);
 
         return $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
     }
 
     /**
-     * Generar PDF del presupuesto
+     * Generar PDF del presupuesto.
      */
     public function generatePDF(int $id): string
     {
@@ -233,7 +238,7 @@ class QuotationService
     }
 
     /**
-     * Calcular montos del presupuesto
+     * Calcular montos del presupuesto.
      */
     private function calculateAmounts(array &$data): void
     {
@@ -261,19 +266,19 @@ class QuotationService
     }
 
     /**
-     * Generar número de presupuesto único
+     * Generar número de presupuesto único.
      */
     private function generateQuotationNumber(): string
     {
         do {
-            $number = 'PR-' . date('Y') . '-' . strtoupper(Str::random(6));
+            $number = 'PR-'.date('Y').'-'.strtoupper(Str::random(6));
         } while (Quotation::where('quotation_number', $number)->exists());
 
         return $number;
     }
 
     /**
-     * Obtener presupuestos con filtros
+     * Obtener presupuestos con filtros.
      */
     public function getQuotations(array $filters = [])
     {
@@ -308,7 +313,7 @@ class QuotationService
         }
 
         if (isset($filters['branch_id'])) {
-            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+            $query->whereHas('patient', fn ($q) => $q->where('branch_id', $filters['branch_id']));
         }
 
         return $query->orderBy('quotation_date', 'desc')->paginate(15);

@@ -43,4 +43,3 @@ class CashSessionOpened implements ShouldBroadcast
         ];
     }
 }
-

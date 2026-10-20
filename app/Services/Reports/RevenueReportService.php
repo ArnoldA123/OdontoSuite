@@ -3,14 +3,13 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
-use App\Models\AppointmentType;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class RevenueReportService
 {
     /**
-     * Get revenue report data
+     * Get revenue report data.
      */
     public function getReportData(array $filters = []): array
     {
@@ -40,7 +39,7 @@ class RevenueReportService
             'appointments_count' => $this->getTotalAppointments($startDate, $endDate, $professionalId, $environmentId),
             'total_revenue' => $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId),
             'average_per_appointment' => $this->getAveragePerAppointment($startDate, $endDate, $professionalId, $environmentId),
-            'period' => Carbon::parse($startDate)->format('d/m/Y') . ' - ' . Carbon::parse($endDate)->format('d/m/Y')
+            'period' => Carbon::parse($startDate)->format('d/m/Y').' - '.Carbon::parse($endDate)->format('d/m/Y'),
         ]);
 
         // Add revenue by type
@@ -51,7 +50,7 @@ class RevenueReportService
                 'appointments_count' => $item['count'],
                 'total_revenue' => $item['revenue'],
                 'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => ''
+                'period' => '',
             ]);
         }
 
@@ -63,7 +62,7 @@ class RevenueReportService
                 'appointments_count' => $item['count'],
                 'total_revenue' => $item['revenue'],
                 'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => ''
+                'period' => '',
             ]);
         }
 
@@ -75,7 +74,7 @@ class RevenueReportService
                 'appointments_count' => $item['count'],
                 'total_revenue' => $item['revenue'],
                 'average_per_appointment' => $item['count'] > 0 ? round($item['revenue'] / $item['count'], 2) : 0,
-                'period' => ''
+                'period' => '',
             ]);
         }
 
@@ -87,13 +86,13 @@ class RevenueReportService
                 ['key' => 'appointments_count', 'label' => 'Número de Citas'],
                 ['key' => 'total_revenue', 'label' => 'Ingresos Totales (S/)'],
                 ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
-                ['key' => 'period', 'label' => 'Período']
-            ]
+                ['key' => 'period', 'label' => 'Período'],
+            ],
         ];
     }
 
     /**
-     * Get revenue by appointment type
+     * Get revenue by appointment type.
      */
     private function getRevenueByAppointmentType(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -122,13 +121,13 @@ class RevenueReportService
             return [
                 'appointment_type' => $item->appointmentType->name,
                 'count' => $item->count,
-                'revenue' => round($item->revenue, 2)
+                'revenue' => round($item->revenue, 2),
             ];
         })->toArray();
     }
 
     /**
-     * Get revenue by professional
+     * Get revenue by professional.
      */
     private function getRevenueByProfessional(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -157,13 +156,13 @@ class RevenueReportService
             return [
                 'professional_name' => $item->user->name,
                 'count' => $item->count,
-                'revenue' => round($item->revenue, 2)
+                'revenue' => round($item->revenue, 2),
             ];
         })->toArray();
     }
 
     /**
-     * Get revenue by environment
+     * Get revenue by environment.
      */
     private function getRevenueByEnvironment(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -192,13 +191,13 @@ class RevenueReportService
             return [
                 'environment_name' => $item->dentalChair->name,
                 'count' => $item->count,
-                'revenue' => round($item->revenue, 2)
+                'revenue' => round($item->revenue, 2),
             ];
         })->toArray();
     }
 
     /**
-     * Get daily revenue
+     * Get daily revenue.
      */
     private function getDailyRevenue(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -207,11 +206,11 @@ class RevenueReportService
             DB::raw('COUNT(*) as count'),
             DB::raw('SUM(appointment_types.price) as revenue')
         )
-        ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
-        ->whereBetween('scheduled_at', [$startDate, $endDate])
-        ->where('appointments.status', 'completed')
-        ->groupBy(DB::raw('DATE(scheduled_at)'))
-        ->orderBy('date');
+            ->join('appointment_types', 'appointments.appointment_type_id', '=', 'appointment_types.id')
+            ->whereBetween('scheduled_at', [$startDate, $endDate])
+            ->where('appointments.status', 'completed')
+            ->groupBy(DB::raw('DATE(scheduled_at)'))
+            ->orderBy('date');
 
         if ($professionalId) {
             $query->where('appointments.user_id', $professionalId);
@@ -225,7 +224,7 @@ class RevenueReportService
     }
 
     /**
-     * Get total appointments
+     * Get total appointments.
      */
     private function getTotalAppointments(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): int
     {
@@ -244,7 +243,7 @@ class RevenueReportService
     }
 
     /**
-     * Get total revenue
+     * Get total revenue.
      */
     private function getTotalRevenue(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {
@@ -268,7 +267,7 @@ class RevenueReportService
     }
 
     /**
-     * Get average per appointment
+     * Get average per appointment.
      */
     private function getAveragePerAppointment(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {

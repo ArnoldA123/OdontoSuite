@@ -31,7 +31,7 @@ class ImplantologyRecord extends Model
         'radiographic_data',
         'measurements',
         'torque_value',
-        'follow_up_notes'
+        'follow_up_notes',
     ];
 
     protected $casts = [
@@ -40,7 +40,7 @@ class ImplantologyRecord extends Model
         'loading_date' => 'date',
         'radiographic_data' => 'array',
         'measurements' => 'array',
-        'torque_value' => 'decimal:2'
+        'torque_value' => 'decimal:2',
     ];
 
     // Relaciones
@@ -108,7 +108,7 @@ class ImplantologyRecord extends Model
             'healing' => 'Cicatrizando',
             'loaded' => 'Cargado',
             'failed' => 'Fallido',
-            'removed' => 'Removido'
+            'removed' => 'Removido',
         ];
 
         return $labels[$this->status] ?? $this->status;

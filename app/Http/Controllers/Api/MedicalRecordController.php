@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ClinicalAttachmentCreated;
+use App\Events\ClinicalEvolutionCreated;
+use App\Events\MedicalRecordCreated;
+use App\Events\MedicalRecordUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\MedicalRecord;
 use App\Services\MedicalRecordService;
-use App\Events\MedicalRecordCreated;
-use App\Events\MedicalRecordUpdated;
-use App\Events\ClinicalEvolutionCreated;
-use App\Events\ClinicalAttachmentCreated;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 class MedicalRecordController extends Controller
 {
@@ -36,7 +35,7 @@ class MedicalRecordController extends Controller
 
             // Multi-tenant: filtrar por branch_id del paciente asociado
             if ($request->has('branch_id')) {
-                $query->whereHas('patient', fn($q) => $q->where('branch_id', $request->input('branch_id')));
+                $query->whereHas('patient', fn ($q) => $q->where('branch_id', $request->input('branch_id')));
             }
 
             $records = $query->orderBy('first_visit_date', 'desc')->paginate(10);
@@ -47,13 +46,13 @@ class MedicalRecordController extends Controller
                     'total' => $records->total(),
                     'current_page' => $records->currentPage(),
                     'per_page' => $records->perPage(),
-                    'last_page' => $records->lastPage()
-                ]
+                    'last_page' => $records->lastPage(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener historias clínicas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -74,18 +73,18 @@ class MedicalRecordController extends Controller
             return response()->json([
                 'data' => $record,
                 'meta' => [
-                    'message' => 'Historia clínica creada exitosamente'
-                ]
+                    'message' => 'Historia clínica creada exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear historia clínica',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -104,16 +103,16 @@ class MedicalRecordController extends Controller
                 },
                 'attachments' => function ($query) {
                     $query->where('is_active', true);
-                }
+                },
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => $record
+                'data' => $record,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Historia clínica no encontrada',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -138,7 +137,7 @@ class MedicalRecordController extends Controller
                 'clinical_examination' => 'nullable|string',
                 'diagnosis' => 'nullable|string',
                 'treatment_plan' => 'nullable|string',
-                'notes' => 'nullable|string'
+                'notes' => 'nullable|string',
             ]);
 
             $record = \App\Models\MedicalRecord::findOrFail($id);
@@ -151,18 +150,18 @@ class MedicalRecordController extends Controller
             return response()->json([
                 'data' => $record->load(['patient', 'createdBy']),
                 'meta' => [
-                    'message' => 'Historia clínica actualizada exitosamente'
-                ]
+                    'message' => 'Historia clínica actualizada exitosamente',
+                ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar historia clínica',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -180,19 +179,19 @@ class MedicalRecordController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Historia clínica desactivada exitosamente'
-                ]
+                    'message' => 'Historia clínica desactivada exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar historia clínica',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Agregar evolución a la historia clínica
+     * Agregar evolución a la historia clínica.
      */
     public function addEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
     {
@@ -208,24 +207,24 @@ class MedicalRecordController extends Controller
             return response()->json([
                 'data' => $evolution,
                 'meta' => [
-                    'message' => 'Evolución agregada exitosamente'
-                ]
+                    'message' => 'Evolución agregada exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al agregar evolución',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener evoluciones de la historia clínica
+     * Obtener evoluciones de la historia clínica.
      */
     public function getEvolutions(int $id): JsonResponse
     {
@@ -234,28 +233,28 @@ class MedicalRecordController extends Controller
                 'patient',
                 'appointment',
                 'createdBy',
-                'attachments'
+                'attachments',
             ])
-            ->where('medical_record_id', $id)
-            ->orderBy('evolution_date', 'desc')
-            ->get();
+                ->where('medical_record_id', $id)
+                ->orderBy('evolution_date', 'desc')
+                ->get();
 
             return response()->json([
                 'data' => $evolutions,
                 'meta' => [
-                    'total' => $evolutions->count()
-                ]
+                    'total' => $evolutions->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener evoluciones',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Subir archivo adjunto
+     * Subir archivo adjunto.
      */
     public function uploadAttachment(Request $request): JsonResponse
     {
@@ -267,7 +266,7 @@ class MedicalRecordController extends Controller
                 'file' => 'required|file|max:10240', // 10MB max
                 'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro',
                 'description' => 'nullable|string',
-                'is_private' => 'boolean'
+                'is_private' => 'boolean',
             ]);
 
             $attachment = $this->medicalRecordService->attachFile($validated);
@@ -279,18 +278,18 @@ class MedicalRecordController extends Controller
             return response()->json([
                 'data' => $attachment,
                 'meta' => [
-                    'message' => 'Archivo subido exitosamente'
-                ]
+                    'message' => 'Archivo subido exitosamente',
+                ],
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al subir archivo',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -320,7 +319,7 @@ class MedicalRecordController extends Controller
     }
 
     /**
-     * Obtener estadísticas de la historia clínica
+     * Obtener estadísticas de la historia clínica.
      */
     public function getStats(int $patientId): JsonResponse
     {
@@ -328,18 +327,18 @@ class MedicalRecordController extends Controller
             $stats = $this->medicalRecordService->getRecordStats($patientId);
 
             return response()->json([
-                'data' => $stats
+                'data' => $stats,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Obtener archivos por categoría
+     * Obtener archivos por categoría.
      */
     public function getAttachmentsByCategory(Request $request, int $patientId): JsonResponse
     {
@@ -350,13 +349,13 @@ class MedicalRecordController extends Controller
             return response()->json([
                 'data' => $attachments,
                 'meta' => [
-                    'total' => $attachments->count()
-                ]
+                    'total' => $attachments->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener archivos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

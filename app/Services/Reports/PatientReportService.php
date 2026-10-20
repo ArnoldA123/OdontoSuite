@@ -3,14 +3,12 @@
 namespace App\Services\Reports;
 
 use App\Models\Patient;
-use App\Models\Appointment;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PatientReportService
 {
     /**
-     * Get patient report data
+     * Get patient report data.
      */
     public function getReportData(array $filters = []): array
     {
@@ -30,19 +28,19 @@ class PatientReportService
                 $q->where('dental_chair_id', $environmentId);
             }
         }])
-        ->with(['appointments' => function ($q) use ($startDate, $endDate, $professionalId, $environmentId) {
-            $q->with('appointmentType')
-                ->whereBetween('scheduled_at', [$startDate, $endDate])
-                ->where('status', 'completed');
+            ->with(['appointments' => function ($q) use ($startDate, $endDate, $professionalId, $environmentId) {
+                $q->with('appointmentType')
+                    ->whereBetween('scheduled_at', [$startDate, $endDate])
+                    ->where('status', 'completed');
 
-            if ($professionalId) {
-                $q->where('user_id', $professionalId);
-            }
+                if ($professionalId) {
+                    $q->where('user_id', $professionalId);
+                }
 
-            if ($environmentId) {
-                $q->where('dental_chair_id', $environmentId);
-            }
-        }]);
+                if ($environmentId) {
+                    $q->where('dental_chair_id', $environmentId);
+                }
+            }]);
 
         $patients = $query->get();
 
@@ -65,7 +63,7 @@ class PatientReportService
                 'total_spent' => round($totalSpent, 2),
                 'last_appointment' => $lastAppointment ? Carbon::parse($lastAppointment->scheduled_at)->format('d/m/Y') : 'Nunca',
                 'is_active' => $patient->is_active ? 'Activo' : 'Inactivo',
-                'created_at' => Carbon::parse($patient->created_at)->format('d/m/Y H:i')
+                'created_at' => Carbon::parse($patient->created_at)->format('d/m/Y H:i'),
             ];
         });
 
@@ -83,8 +81,8 @@ class PatientReportService
                 ['key' => 'total_spent', 'label' => 'Total Gastado (S/)'],
                 ['key' => 'last_appointment', 'label' => 'Última Cita'],
                 ['key' => 'is_active', 'label' => 'Estado'],
-                ['key' => 'created_at', 'label' => 'Fecha de Registro']
-            ]
+                ['key' => 'created_at', 'label' => 'Fecha de Registro'],
+            ],
         ];
     }
 }

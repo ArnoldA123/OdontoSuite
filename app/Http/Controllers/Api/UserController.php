@@ -2,21 +2,21 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\UserResource;
-use App\Http\Requests\Concerns\HasCrudRules;
-use App\Models\AuditLog;
-use App\Models\User;
 use App\Events\UserCreated;
 use App\Events\UserUpdated;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Concerns\HasCrudRules;
+use App\Http\Resources\UserResource;
 use App\Listeners\ClearDashboardCache;
-use Illuminate\Http\Request;
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
@@ -83,12 +83,12 @@ class UserController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'nullable|string|max:20',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:' . implode(',', self::ROLES),
+            'role' => 'required|in:'.implode(',', self::ROLES),
             'specialty' => 'nullable|string|max:255',
             'professional_license' => 'nullable|string|max:50',
             'branch_id' => 'nullable|integer|exists:branches,id',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
     }
 
@@ -116,13 +116,13 @@ class UserController extends Controller
             return response()->json([
                 'data' => UserResource::collection($users)->resolve(),
                 'meta' => [
-                    'total' => $users->count()
-                ]
+                    'total' => $users->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener usuarios',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -161,25 +161,25 @@ class UserController extends Controller
 
             // Emitir evento de WebSocket
             event(new UserCreated($user));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
 
             return response()->json([
                 'data' => (new UserResource($user))->resolve(),
                 'meta' => [
-                    'message' => 'Usuario creado exitosamente'
-                ]
+                    'message' => 'Usuario creado exitosamente',
+                ],
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear usuario',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -194,18 +194,18 @@ class UserController extends Controller
                 'specialties',
                 'auditLogs' => function ($query) {
                     $query->with('user:id,name,email')
-                          ->orderBy('created_at', 'desc')
-                          ->limit(50);
-                }
+                        ->orderBy('created_at', 'desc')
+                        ->limit(50);
+                },
             ])->findOrFail($id);
 
             return response()->json([
-                'data' => (new UserResource($user))->resolve()
+                'data' => (new UserResource($user))->resolve(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Usuario no encontrado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -225,8 +225,8 @@ class UserController extends Controller
             }
 
             $validated = $request->validate($this->updateRules($this->storeRules(), [], [
-                'username' => 'sometimes|string|max:255|unique:users,username,' . $id,
-                'email' => 'sometimes|email|unique:users,email,' . $id,
+                'username' => 'sometimes|string|max:255|unique:users,username,'.$id,
+                'email' => 'sometimes|email|unique:users,email,'.$id,
             ]));
 
             // Capture old values for audit (only relevant fields)
@@ -271,25 +271,25 @@ class UserController extends Controller
 
             // Emitir evento de WebSocket
             event(new UserUpdated($user));
-            
+
             // Limpiar cache del dashboard
             ClearDashboardCache::handle();
 
             return response()->json([
                 'data' => (new UserResource($user))->resolve(),
                 'meta' => [
-                    'message' => 'Usuario actualizado exitosamente'
-                ]
+                    'message' => 'Usuario actualizado exitosamente',
+                ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar usuario',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -344,13 +344,13 @@ class UserController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Usuario eliminado exitosamente'
-                ]
+                    'message' => 'Usuario eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar usuario',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -373,7 +373,7 @@ class UserController extends Controller
                 ->count();
 
             if ($count > 0) {
-                $parts[] = $count . ' ' . ($count === 1 ? $singular : $plural);
+                $parts[] = $count.' '.($count === 1 ? $singular : $plural);
             }
         }
 
@@ -383,7 +383,7 @@ class UserController extends Controller
 
         $list = count($parts) === 1
             ? $parts[0]
-            : implode(', ', array_slice($parts, 0, -1)) . ' y ' . end($parts);
+            : implode(', ', array_slice($parts, 0, -1)).' y '.end($parts);
 
         return sprintf(
             'No se puede eliminar a %s: tiene %s. Desactívalo en su lugar.',
@@ -393,7 +393,7 @@ class UserController extends Controller
     }
 
     /**
-     * Get active users (professionals only)
+     * Get active users (professionals only).
      */
     public function active(): JsonResponse
     {
@@ -406,14 +406,15 @@ class UserController extends Controller
             return response()->json([
                 'data' => $users,
                 'meta' => [
-                    'total' => $users->count()
-                ]
+                    'total' => $users->count(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en UserController@active: ' . $e->getMessage());
+            Log::error('Error en UserController@active: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al obtener usuarios activos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

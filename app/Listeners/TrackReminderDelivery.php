@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\ReminderSent;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -43,7 +43,7 @@ class TrackReminderDelivery
         } catch (Throwable $e) {
             // AGENTS.md §7: swallow + log + report. Listener must NEVER
             // crash the request lifecycle.
-            Log::error('TrackReminderDelivery failed: ' . $e->getMessage(), [
+            Log::error('TrackReminderDelivery failed: '.$e->getMessage(), [
                 'reminder_id' => $event->reminder->id ?? null,
                 'exception' => $e,
             ]);

@@ -28,14 +28,14 @@ class ClinicalAttachment extends Model
         'description',
         'metadata',
         'is_private',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'is_private' => 'boolean',
         'is_active' => 'boolean',
-        'file_size' => 'integer'
+        'file_size' => 'integer',
     ];
 
     // Relaciones
@@ -105,6 +105,6 @@ class ClinicalAttachment extends Model
             $bytes /= 1024;
         }
 
-        return round($bytes, 2) . ' ' . $units[$i];
+        return round($bytes, 2).' '.$units[$i];
     }
 }

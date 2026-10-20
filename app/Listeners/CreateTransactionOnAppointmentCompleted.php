@@ -39,7 +39,7 @@ class CreateTransactionOnAppointmentCompleted
         } catch (\Throwable $e) {
             // AGENTS.md §7: listener MUST swallow + log + report. Failure
             // here MUST NOT crash the consultation flow.
-            Log::error('CreateTransactionOnAppointmentCompleted failed: ' . $e->getMessage(), [
+            Log::error('CreateTransactionOnAppointmentCompleted failed: '.$e->getMessage(), [
                 'appointment_id' => $event->appointment->id ?? null,
                 'exception' => $e,
             ]);

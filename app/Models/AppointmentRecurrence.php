@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class AppointmentRecurrence extends Model
 {
@@ -38,7 +38,7 @@ class AppointmentRecurrence extends Model
         return $query->where('is_active', true);
     }
 
-    public function getNextOccurrence(Carbon $fromDate = null): ?Carbon
+    public function getNextOccurrence(?Carbon $fromDate = null): ?Carbon
     {
         $fromDate = $fromDate ?? now();
         $baseDate = $this->appointment->scheduled_at;
@@ -84,7 +84,7 @@ class AppointmentRecurrence extends Model
         foreach ($days as $dayOfWeek) {
             $candidate = $nextDate->copy()->startOfWeek()->addDays($dayOfWeek);
             if ($candidate->gte($fromDate)) {
-                if (!$this->end_date || $candidate->lte($this->end_date)) {
+                if (! $this->end_date || $candidate->lte($this->end_date)) {
                     return $candidate;
                 }
             }

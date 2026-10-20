@@ -14,7 +14,7 @@ class ProcedureCatalogService
     {
         $query = ProcedureCatalog::query()->with('specialty');
 
-        if (!empty($filters['specialty'])) {
+        if (! empty($filters['specialty'])) {
             $query->whereHas('specialty', fn ($q) => $q->where('code', $filters['specialty']));
         }
 
@@ -22,7 +22,7 @@ class ProcedureCatalogService
             $query->where('is_active', (bool) $filters['is_active']);
         }
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $query->where(function (Builder $q) use ($filters) {
                 $term = $filters['q'];
                 $q->where('name', 'like', "%{$term}%")
@@ -160,7 +160,7 @@ class ProcedureCatalogService
             ->with('specialty')
             ->active();
 
-        if (!empty($filters['specialty'])) {
+        if (! empty($filters['specialty'])) {
             $userSpecialtyCodes = $user->specialties()->pluck('code')->all();
             if (in_array($filters['specialty'], $userSpecialtyCodes, true)) {
                 $query->whereHas('specialty', fn ($q) => $q->where('code', $filters['specialty']));
@@ -171,10 +171,10 @@ class ProcedureCatalogService
             $userSpecialtyIds = $user->specialties()->pluck('specialties.id')->all();
             $favoriteIds = $user->favoriteProcedures()->pluck('procedure_catalog.id')->all();
 
-            if (!empty($userSpecialtyIds)) {
+            if (! empty($userSpecialtyIds)) {
                 $query->where(function (Builder $q) use ($userSpecialtyIds, $favoriteIds) {
                     $q->whereIn('specialty_id', $userSpecialtyIds);
-                    if (!empty($favoriteIds)) {
+                    if (! empty($favoriteIds)) {
                         $q->orWhereIn('id', $favoriteIds);
                     }
                 });
@@ -183,7 +183,7 @@ class ProcedureCatalogService
             }
         }
 
-        if (!empty($filters['q'])) {
+        if (! empty($filters['q'])) {
             $term = $filters['q'];
             $query->where(function (Builder $q) use ($term) {
                 $q->where('name', 'like', "%{$term}%")
@@ -203,6 +203,7 @@ class ProcedureCatalogService
         $items->getCollection()->transform(function (ProcedureCatalog $p) use ($favoriteIds, $favoritePositions) {
             $p->is_favorite = in_array($p->id, $favoriteIds, true);
             $p->favorite_position = $favoritePositions[$p->id] ?? null;
+
             return $p;
         });
 
@@ -232,7 +233,7 @@ class ProcedureCatalogService
         $after = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
 
         $changed = array_diff_assoc($after, $before);
-        if (!empty($changed)) {
+        if (! empty($changed)) {
             $this->fireUpdatedEvent($procedure, 'updated', $changed);
         }
 
@@ -287,7 +288,7 @@ class ProcedureCatalogService
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed> $data
      * @return array<string, mixed>
      */
     private function normalize(array $data, bool $isUpdate = false): array
@@ -317,7 +318,7 @@ class ProcedureCatalogService
             }
         }
 
-        if (!$isUpdate) {
+        if (! $isUpdate) {
             $normalized['is_active'] = $normalized['is_active'] ?? true;
             $normalized['default_cost'] = $normalized['default_cost'] ?? 0;
             $normalized['default_duration_minutes'] = $normalized['default_duration_minutes'] ?? 30;

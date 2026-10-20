@@ -47,7 +47,7 @@ class Patient extends Model
      */
     public function getNameAttribute()
     {
-        return trim($this->first_name . ' ' . $this->last_name);
+        return trim($this->first_name.' '.$this->last_name);
     }
 
     /**
@@ -105,7 +105,6 @@ class Patient extends Model
     {
         return $this->hasMany(Odontogram::class);
     }
-
 
     /**
      * Get endodontics records for the patient.

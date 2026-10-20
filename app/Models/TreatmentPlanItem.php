@@ -28,7 +28,7 @@ class TreatmentPlanItem extends Model
         'notes',
         'materials_required',
         'requires_anesthesia',
-        'is_optional'
+        'is_optional',
     ];
 
     protected $casts = [

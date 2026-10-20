@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-/**
+/*
  * CheckRole — middleware canónico para control de acceso basado en roles.
  *
  * Alias registrado en `bootstrap/app.php` como `role`:
@@ -28,55 +28,20 @@ class CheckRole
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response) $next
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         // Verificar que el usuario esté autenticado
-        if (!$request->user()) {
+        if (! $request->user()) {
             abort(401, 'No autenticado');
         }
 
         // Verificar que el usuario tenga uno de los roles permitidos
-        if (!in_array($request->user()->role, $roles)) {
+        if (! in_array($request->user()->role, $roles)) {
             abort(403, 'No tienes permisos para acceder a este recurso');
         }
 
         return $next($request);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

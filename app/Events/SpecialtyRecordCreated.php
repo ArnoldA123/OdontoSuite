@@ -16,6 +16,7 @@ class SpecialtyRecordCreated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $record;
+
     public $specialty;
 
     public function __construct($record, string $specialty)
@@ -45,4 +46,3 @@ class SpecialtyRecordCreated implements ShouldBroadcast
         ];
     }
 }
-

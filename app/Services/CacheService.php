@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\DentalChair;
 use App\Models\AppointmentType;
+use App\Models\DentalChair;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 class CacheService
 {
     /**
-     * Get active professionals with cache
+     * Get active professionals with cache.
      */
     public static function getActiveProfessionals(): array
     {
@@ -25,7 +25,7 @@ class CacheService
     }
 
     /**
-     * Get active dental chairs with cache
+     * Get active dental chairs with cache.
      */
     public static function getActiveDentalChairs(): array
     {
@@ -39,7 +39,7 @@ class CacheService
     }
 
     /**
-     * Get active appointment types with cache
+     * Get active appointment types with cache.
      */
     public static function getActiveAppointmentTypes(): array
     {
@@ -53,7 +53,7 @@ class CacheService
     }
 
     /**
-     * Clear all reference data cache
+     * Clear all reference data cache.
      */
     public static function clearReferenceDataCache(): void
     {
@@ -63,7 +63,7 @@ class CacheService
     }
 
     /**
-     * Clear dashboard cache
+     * Clear dashboard cache.
      */
     public static function clearDashboardCache(): void
     {
@@ -78,7 +78,7 @@ class CacheService
     }
 
     /**
-     * Clear all cache
+     * Clear all cache.
      */
     public static function clearAllCache(): void
     {

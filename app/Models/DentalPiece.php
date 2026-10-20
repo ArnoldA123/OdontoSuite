@@ -19,13 +19,13 @@ class DentalPiece extends Model
         'is_permanent',
         'description',
         'surfaces',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'surfaces' => 'array',
         'is_permanent' => 'boolean',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     // Relaciones

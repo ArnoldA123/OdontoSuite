@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -136,6 +136,7 @@ class User extends Authenticatable
         }
 
         $first = $this->specialties()->first();
+
         return $first?->code;
     }
 
@@ -203,7 +204,7 @@ class User extends Authenticatable
      */
     public function canManageAppointments(): bool
     {
-        return !in_array($this->role, ['finanzas']);
+        return ! in_array($this->role, ['finanzas']);
     }
 
     /**

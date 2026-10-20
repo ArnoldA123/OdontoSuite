@@ -44,4 +44,3 @@ class ReminderSent implements ShouldBroadcast
         ];
     }
 }
-

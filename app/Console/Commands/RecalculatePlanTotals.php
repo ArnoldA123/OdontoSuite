@@ -26,6 +26,7 @@ class RecalculatePlanTotals extends Command
 
         if ($plans->isEmpty()) {
             $this->warn('No se encontraron planes para recalcular.');
+
             return self::SUCCESS;
         }
 

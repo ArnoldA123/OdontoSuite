@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 class ProductController extends Controller
 {
     /**
-     * GET /api/products/search?q=...&limit=20
+     * GET /api/products/search?q=...&limit=20.
      *
      * Devuelve los primeros N productos activos que matchean el termino
      * de busqueda por nombre, codigo o codigo de barras. Usado por el
@@ -35,7 +35,7 @@ class ProductController extends Controller
         $query = Product::query()->where('is_active', true);
 
         if ($term !== '') {
-            $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $term) . '%';
+            $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $term).'%';
             $query->where(function ($q) use ($like) {
                 $q->where('name', 'like', $like)
                     ->orWhere('code', 'like', $like)
@@ -49,7 +49,8 @@ class ProductController extends Controller
                 ->limit($limit)
                 ->get(['id', 'name', 'code', 'unit', 'cost_price', 'sale_price', 'stock_quantity']);
         } catch (\Throwable $e) {
-            Log::error('ProductController@search: ' . $e->getMessage());
+            Log::error('ProductController@search: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al buscar productos'], 500);
         }
 

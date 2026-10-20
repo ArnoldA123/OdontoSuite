@@ -3,14 +3,12 @@
 namespace App\Services\Reports;
 
 use App\Models\DentalChair;
-use App\Models\Appointment;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class UtilizationReportService
 {
     /**
-     * Get utilization report data
+     * Get utilization report data.
      */
     public function getReportData(array $filters = []): array
     {
@@ -26,13 +24,13 @@ class UtilizationReportService
                 $q->where('user_id', $professionalId);
             }
         }])
-        ->with(['appointments' => function ($q) use ($startDate, $endDate, $professionalId) {
-            $q->whereBetween('scheduled_at', [$startDate, $endDate]);
+            ->with(['appointments' => function ($q) use ($startDate, $endDate, $professionalId) {
+                $q->whereBetween('scheduled_at', [$startDate, $endDate]);
 
-            if ($professionalId) {
-                $q->where('user_id', $professionalId);
-            }
-        }]);
+                if ($professionalId) {
+                    $q->where('user_id', $professionalId);
+                }
+            }]);
 
         if ($environmentId) {
             $query->where('id', $environmentId);
@@ -69,7 +67,7 @@ class UtilizationReportService
                 'total_revenue' => round($totalRevenue, 2),
                 'average_per_appointment' => $completedAppointments > 0 ? round($totalRevenue / $completedAppointments, 2) : 0,
                 'is_active' => $environment->is_active ? 'Activo' : 'Inactivo',
-                'created_at' => Carbon::parse($environment->created_at)->format('d/m/Y H:i')
+                'created_at' => Carbon::parse($environment->created_at)->format('d/m/Y H:i'),
             ];
         });
 
@@ -91,13 +89,13 @@ class UtilizationReportService
                 ['key' => 'total_revenue', 'label' => 'Ingresos Totales (S/)'],
                 ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
                 ['key' => 'is_active', 'label' => 'Activo'],
-                ['key' => 'created_at', 'label' => 'Fecha de Creación']
-            ]
+                ['key' => 'created_at', 'label' => 'Fecha de Creación'],
+            ],
         ];
     }
 
     /**
-     * Get total available hours
+     * Get total available hours.
      */
     private function getTotalAvailableHours(string $startDate, string $endDate): float
     {
@@ -113,14 +111,14 @@ class UtilizationReportService
     }
 
     /**
-     * Get status text in Spanish
+     * Get status text in Spanish.
      */
     private function getStatusText(string $status): string
     {
         $statuses = [
             'active' => 'Activo',
             'inactive' => 'Inactivo',
-            'maintenance' => 'Mantenimiento'
+            'maintenance' => 'Mantenimiento',
         ];
 
         return $statuses[$status] ?? $status;

@@ -4,8 +4,8 @@ namespace App\Events;
 
 use App\Models\Transaction;
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -18,6 +18,7 @@ class PaymentRegistered implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $transaction;
+
     public $sessionId;
 
     public function __construct(Transaction $transaction, $sessionId = null)
@@ -54,4 +55,3 @@ class PaymentRegistered implements ShouldBroadcast
         ];
     }
 }
-

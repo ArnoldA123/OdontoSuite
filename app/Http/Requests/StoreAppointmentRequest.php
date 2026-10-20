@@ -79,10 +79,10 @@ class StoreAppointmentRequest extends FormRequest
                         $minutesDifference = $now->diffInMinutes($scheduledAt, false);
 
                         if ($minutesDifference < 1) {
-                            $fail('La fecha y hora de la cita debe ser al menos 1 minuto en el futuro. Fecha seleccionada: ' . $scheduledAt->format('Y-m-d H:i:s') . ' (' . $scheduledAt->timezone->getName() . '), Hora actual: ' . $now->format('Y-m-d H:i:s') . ' (' . $now->timezone->getName() . '), Diferencia: ' . $minutesDifference . ' minutos');
+                            $fail('La fecha y hora de la cita debe ser al menos 1 minuto en el futuro. Fecha seleccionada: '.$scheduledAt->format('Y-m-d H:i:s').' ('.$scheduledAt->timezone->getName().'), Hora actual: '.$now->format('Y-m-d H:i:s').' ('.$now->timezone->getName().'), Diferencia: '.$minutesDifference.' minutos');
                         }
                     } catch (\Exception $e) {
-                        $fail('La fecha y hora proporcionada no es válida: ' . $e->getMessage());
+                        $fail('La fecha y hora proporcionada no es válida: '.$e->getMessage());
                     }
                 },
             ],

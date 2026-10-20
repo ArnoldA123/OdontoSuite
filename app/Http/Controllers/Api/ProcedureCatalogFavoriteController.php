@@ -7,7 +7,6 @@ use App\Http\Requests\ReorderProcedureFavoritesRequest;
 use App\Models\ProcedureCatalog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +34,8 @@ class ProcedureCatalogFavoriteController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return response()->json(['message' => 'Procedimiento no encontrado o inactivo'], 404);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogFavoriteController@store: ' . $e->getMessage());
+            Log::error('ProcedureCatalogFavoriteController@store: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al marcar favorito'], 500);
         }
     }
@@ -50,7 +50,8 @@ class ProcedureCatalogFavoriteController extends Controller
                 'meta' => ['message' => 'Favorito eliminado'],
             ]);
         } catch (\Throwable $e) {
-            Log::error('ProcedureCatalogFavoriteController@destroy: ' . $e->getMessage());
+            Log::error('ProcedureCatalogFavoriteController@destroy: '.$e->getMessage());
+
             return response()->json(['message' => 'Error al eliminar favorito'], 500);
         }
     }
@@ -78,6 +79,7 @@ class ProcedureCatalogFavoriteController extends Controller
     public function index(): JsonResponse
     {
         $user = Auth::user();
+
         return response()->json([
             'data' => $this->loadAllFavorites($user),
             'meta' => ['total' => $user->favoriteProcedures()->count()],

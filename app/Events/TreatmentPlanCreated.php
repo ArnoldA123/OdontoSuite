@@ -43,4 +43,3 @@ class TreatmentPlanCreated implements ShouldBroadcast
         ];
     }
 }
-

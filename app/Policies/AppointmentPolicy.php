@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Appointment;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AppointmentPolicy
 {
@@ -14,7 +13,7 @@ class AppointmentPolicy
     public function viewAny(User $user): bool
     {
         // Todos los roles excepto finanzas pueden ver citas
-        return !in_array($user->role, ['finanzas']);
+        return ! in_array($user->role, ['finanzas']);
     }
 
     /**
@@ -23,7 +22,7 @@ class AppointmentPolicy
     public function view(User $user, Appointment $appointment): bool
     {
         // Todos los roles excepto finanzas pueden ver citas
-        return !in_array($user->role, ['finanzas']);
+        return ! in_array($user->role, ['finanzas']);
     }
 
     /**
@@ -38,7 +37,7 @@ class AppointmentPolicy
             'odontologo',
             'implantologo',
             'tecnico_dental',
-            'asistente'
+            'asistente',
         ]);
     }
 

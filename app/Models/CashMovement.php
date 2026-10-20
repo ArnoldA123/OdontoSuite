@@ -28,7 +28,7 @@ class CashMovement extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'metadata' => 'array'
+        'metadata' => 'array',
     ];
 
     // Relaciones

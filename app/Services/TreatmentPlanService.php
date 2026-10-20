@@ -2,14 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\TreatmentPlan;
-use App\Models\TreatmentPlanItem;
 use App\Events\TreatmentPlanCreated;
 use App\Events\TreatmentPlanUpdated;
-use App\Events\TreatmentPlanDeleted;
+use App\Models\TreatmentPlan;
+use App\Models\TreatmentPlanItem;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class TreatmentPlanService
@@ -43,6 +42,7 @@ class TreatmentPlanService
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
             }
+
             return $plan;
         });
     }
@@ -76,6 +76,7 @@ class TreatmentPlanService
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
             }
+
             return $plan;
         });
     }
@@ -135,6 +136,7 @@ class TreatmentPlanService
             Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
         }
+
         return $plan;
     }
 
@@ -147,7 +149,7 @@ class TreatmentPlanService
             unset($newPlanData['id'], $newPlanData['created_at'], $newPlanData['updated_at']);
 
             $newPlanData['plan_number'] = $this->generatePlanNumber();
-            $newPlanData['title'] = $originalPlan->title . ' (Copia)';
+            $newPlanData['title'] = $originalPlan->title.' (Copia)';
             $newPlanData['status'] = 'draft';
             $newPlanData['created_by'] = Auth::id();
             $newPlanData['last_activity_at'] = now();
@@ -178,6 +180,7 @@ class TreatmentPlanService
                 Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
 
             }
+
             return $newPlan;
         });
     }
@@ -210,7 +213,7 @@ class TreatmentPlanService
     private function generatePlanNumber(): string
     {
         do {
-            $number = 'TP-' . date('Y') . '-' . strtoupper(Str::random(6));
+            $number = 'TP-'.date('Y').'-'.strtoupper(Str::random(6));
         } while (TreatmentPlan::where('plan_number', $number)->exists());
 
         return $number;
@@ -259,7 +262,7 @@ class TreatmentPlanService
         }
 
         if (isset($filters['patient_name']) && $filters['patient_name'] !== '') {
-            $needle = '%' . $filters['patient_name'] . '%';
+            $needle = '%'.$filters['patient_name'].'%';
             $query->whereHas('patient', function ($q) use ($needle) {
                 $q->where('first_name', 'like', $needle)
                     ->orWhere('last_name', 'like', $needle)
@@ -268,7 +271,7 @@ class TreatmentPlanService
         }
 
         if (isset($filters['branch_id'])) {
-            $query->whereHas('patient', fn($q) => $q->where('branch_id', $filters['branch_id']));
+            $query->whereHas('patient', fn ($q) => $q->where('branch_id', $filters['branch_id']));
         }
 
         return $query->orderByDesc('last_activity_at')

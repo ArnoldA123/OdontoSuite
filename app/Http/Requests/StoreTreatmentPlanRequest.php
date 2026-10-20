@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 class StoreTreatmentPlanRequest extends FormRequest
 {
     use LocalizedErrors;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -35,19 +36,19 @@ class StoreTreatmentPlanRequest extends FormRequest
                 'title' => Str::limit(strip_tags($this->title), 200),
             ]);
         }
-        
+
         if ($this->has('description')) {
             $this->merge([
                 'description' => strip_tags($this->description),
             ]);
         }
-        
+
         if ($this->has('notes')) {
             $this->merge([
                 'notes' => Str::limit(strip_tags($this->notes), 1000),
             ]);
         }
-        
+
         if ($this->has('patient_notes')) {
             $this->merge([
                 'patient_notes' => Str::limit(strip_tags($this->patient_notes), 1000),

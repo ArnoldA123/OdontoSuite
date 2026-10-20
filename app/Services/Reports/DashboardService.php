@@ -4,17 +4,16 @@ namespace App\Services\Reports;
 
 use App\Models\Appointment;
 use App\Models\Patient;
-use App\Models\User;
-use App\Models\DentalChair;
 use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
     /**
-     * Get dashboard data
+     * Get dashboard data.
      */
     public function getDashboardData(array $filters = []): array
     {
@@ -24,11 +23,11 @@ class DashboardService
         $environmentId = $filters['environment_id'] ?? null;
 
         // Create cache key based on filters
-        $cacheKey = 'dashboard_data_' . md5(serialize([
+        $cacheKey = 'dashboard_data_'.md5(serialize([
             'start_date' => $startDate,
             'end_date' => $endDate,
             'professional_id' => $professionalId,
-            'environment_id' => $environmentId
+            'environment_id' => $environmentId,
         ]));
 
         return Cache::remember($cacheKey, 300, function () use ($startDate, $endDate, $professionalId, $environmentId) {
@@ -39,14 +38,14 @@ class DashboardService
                 'occupancyRate' => $this->getOccupancyRate($startDate, $endDate, $professionalId, $environmentId),
                 'appointmentsByDay' => $this->getAppointmentsByDay($startDate, $endDate, $professionalId, $environmentId),
                 'revenueByMonth' => $this->getRevenueByMonth($startDate, $endDate, $professionalId, $environmentId),
-                'professionalPerformance' => $this->getProfessionalPerformance($startDate, $endDate, $professionalId, $environmentId)
+                'professionalPerformance' => $this->getProfessionalPerformance($startDate, $endDate, $professionalId, $environmentId),
             ];
         });
     }
 
     /**
      * Clear dashboard cache
-     * This should be called when relevant data changes (appointments, patients, transactions, etc.)
+     * This should be called when relevant data changes (appointments, patients, transactions, etc.).
      */
     public function clearCache(): void
     {
@@ -55,7 +54,7 @@ class DashboardService
     }
 
     /**
-     * Clear cache for specific filters
+     * Clear cache for specific filters.
      */
     public function clearCacheForFilters(array $filters = []): void
     {
@@ -64,30 +63,30 @@ class DashboardService
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
 
-        $cacheKey = 'dashboard_data_' . md5(serialize([
+        $cacheKey = 'dashboard_data_'.md5(serialize([
             'start_date' => $startDate,
             'end_date' => $endDate,
             'professional_id' => $professionalId,
-            'environment_id' => $environmentId
+            'environment_id' => $environmentId,
         ]));
 
         Cache::forget($cacheKey);
     }
 
     /**
-     * Get report data for export
+     * Get report data for export.
      */
     public function getReportData(array $filters = []): array
     {
         $dashboardData = $this->getDashboardData($filters);
 
         // Si hay datos de rendimiento por profesional, exportarlos en formato tabular
-        if (!empty($dashboardData['professionalPerformance'])) {
+        if (! empty($dashboardData['professionalPerformance'])) {
             $columns = [
                 ['key' => 'profesional', 'label' => 'Profesional'],
                 ['key' => 'citas', 'label' => 'Citas'],
                 ['key' => 'ingresos', 'label' => 'Ingresos (S/)'],
-                ['key' => 'promedio_por_cita', 'label' => 'Promedio por Cita (S/)']
+                ['key' => 'promedio_por_cita', 'label' => 'Promedio por Cita (S/)'],
             ];
 
             $data = [];
@@ -96,7 +95,7 @@ class DashboardService
                     'profesional' => $professional['name'],
                     'citas' => $professional['appointments'],
                     'ingresos' => number_format($professional['revenue'], 2),
-                    'promedio_por_cita' => number_format($professional['averagePerAppointment'], 2)
+                    'promedio_por_cita' => number_format($professional['averagePerAppointment'], 2),
                 ];
             }
 
@@ -105,37 +104,37 @@ class DashboardService
                 'profesional' => '--- RESUMEN ---',
                 'citas' => '',
                 'ingresos' => '',
-                'promedio_por_cita' => ''
+                'promedio_por_cita' => '',
             ];
             $data[] = [
                 'profesional' => 'Total Citas',
                 'citas' => $dashboardData['totalAppointments'],
                 'ingresos' => '',
-                'promedio_por_cita' => ''
+                'promedio_por_cita' => '',
             ];
             $data[] = [
                 'profesional' => 'Total Pacientes',
                 'citas' => $dashboardData['totalPatients'],
                 'ingresos' => '',
-                'promedio_por_cita' => ''
+                'promedio_por_cita' => '',
             ];
             $data[] = [
                 'profesional' => 'Ingresos Totales',
                 'citas' => '',
                 'ingresos' => number_format($dashboardData['totalRevenue'], 2),
-                'promedio_por_cita' => ''
+                'promedio_por_cita' => '',
             ];
             $data[] = [
                 'profesional' => 'Tasa de Ocupación',
-                'citas' => $dashboardData['occupancyRate'] . '%',
+                'citas' => $dashboardData['occupancyRate'].'%',
                 'ingresos' => '',
-                'promedio_por_cita' => ''
+                'promedio_por_cita' => '',
             ];
         } else {
             // Si no hay datos de profesionales, usar formato de métricas
             $columns = [
                 ['key' => 'metric', 'label' => 'Métrica'],
-                ['key' => 'value', 'label' => 'Valor']
+                ['key' => 'value', 'label' => 'Valor'],
             ];
 
             $data = [];
@@ -147,20 +146,20 @@ class DashboardService
 
         return [
             'data' => $data,
-            'columns' => $columns
+            'columns' => $columns,
         ];
     }
 
     /**
      * Get total appointments
-     * Solo cuenta citas con pacientes activos para consistencia
+     * Solo cuenta citas con pacientes activos para consistencia.
      */
     private function getTotalAppointments(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): int
     {
         $query = Appointment::whereHas('patient', function ($q) {
             $q->where('is_active', true);
         })
-        ->whereBetween('scheduled_at', [$startDate, $endDate]);
+            ->whereBetween('scheduled_at', [$startDate, $endDate]);
 
         if ($professionalId) {
             $query->where('user_id', $professionalId);
@@ -176,7 +175,7 @@ class DashboardService
     /**
      * Get total patients
      * Cuenta todos los pacientes activos persistentes en la BD
-     * Si hay filtros de profesional/ambiente, filtra por pacientes con citas en ese rango
+     * Si hay filtros de profesional/ambiente, filtra por pacientes con citas en ese rango.
      */
     private function getTotalPatients(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): int
     {
@@ -205,7 +204,7 @@ class DashboardService
     /**
      * Get total revenue
      * Usa TRANSACCIONES reales de la BD (Transaction model con status='completed' y type='payment')
-     * Solo cuenta transacciones con pacientes activos para consistencia
+     * Solo cuenta transacciones con pacientes activos para consistencia.
      */
     private function getTotalRevenue(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {
@@ -236,7 +235,7 @@ class DashboardService
     }
 
     /**
-     * Get occupancy rate
+     * Get occupancy rate.
      */
     private function getOccupancyRate(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {
@@ -251,7 +250,7 @@ class DashboardService
     }
 
     /**
-     * Get total available hours
+     * Get total available hours.
      */
     private function getTotalAvailableHours(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {
@@ -268,15 +267,15 @@ class DashboardService
 
     /**
      * Get used hours
-     * Solo cuenta citas con pacientes activos para consistencia
+     * Solo cuenta citas con pacientes activos para consistencia.
      */
     private function getUsedHours(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): float
     {
         $query = Appointment::whereHas('patient', function ($q) {
             $q->where('is_active', true);
         })
-        ->whereBetween('scheduled_at', [$startDate, $endDate])
-        ->where('status', '!=', 'cancelled');
+            ->whereBetween('scheduled_at', [$startDate, $endDate])
+            ->where('status', '!=', 'cancelled');
 
         if ($professionalId) {
             $query->where('user_id', $professionalId);
@@ -292,7 +291,7 @@ class DashboardService
     /**
      * Get appointments by day
      * Solo cuenta citas con pacientes activos para consistencia
-     * Retorna formato: [{date: 'YYYY-MM-DD', count: number}]
+     * Retorna formato: [{date: 'YYYY-MM-DD', count: number}].
      */
     private function getAppointmentsByDay(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -300,12 +299,12 @@ class DashboardService
             DB::raw('DATE(scheduled_at) as date'),
             DB::raw('COUNT(*) as count')
         )
-        ->whereHas('patient', function ($q) {
-            $q->where('is_active', true);
-        })
-        ->whereBetween('scheduled_at', [$startDate, $endDate])
-        ->groupBy(DB::raw('DATE(scheduled_at)'))
-        ->orderBy('date');
+            ->whereHas('patient', function ($q) {
+                $q->where('is_active', true);
+            })
+            ->whereBetween('scheduled_at', [$startDate, $endDate])
+            ->groupBy(DB::raw('DATE(scheduled_at)'))
+            ->orderBy('date');
 
         if ($professionalId) {
             $query->where('user_id', $professionalId);
@@ -321,7 +320,7 @@ class DashboardService
         return $results->map(function ($item) {
             return [
                 'date' => is_string($item->date) ? $item->date : Carbon::parse($item->date)->format('Y-m-d'),
-                'count' => (int) $item->count
+                'count' => (int) $item->count,
             ];
         })->toArray();
     }
@@ -329,7 +328,7 @@ class DashboardService
     /**
      * Get revenue by month
      * Usa TRANSACCIONES reales agrupadas por mes
-     * Solo cuenta transacciones con pacientes activos para consistencia
+     * Solo cuenta transacciones con pacientes activos para consistencia.
      */
     private function getRevenueByMonth(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -338,15 +337,15 @@ class DashboardService
             DB::raw('MONTH(created_at) as month'),
             DB::raw('SUM(amount) as revenue')
         )
-        ->where('type', 'payment')
-        ->where('status', 'completed')
-        ->whereHas('patient', function ($q) {
-            $q->where('is_active', true);
-        })
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->groupBy(DB::raw('YEAR(created_at)'), DB::raw('MONTH(created_at)'))
-        ->orderBy('year')
-        ->orderBy('month');
+            ->where('type', 'payment')
+            ->where('status', 'completed')
+            ->whereHas('patient', function ($q) {
+                $q->where('is_active', true);
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->groupBy(DB::raw('YEAR(created_at)'), DB::raw('MONTH(created_at)'))
+            ->orderBy('year')
+            ->orderBy('month');
 
         // Aplicar filtros por profesional/ambiente a través de appointments
         if ($professionalId || $environmentId) {
@@ -369,14 +368,14 @@ class DashboardService
         return $results->map(function ($item) {
             return [
                 'month' => Carbon::create($item->year, $item->month)->format('M Y'),
-                'revenue' => round((float) $item->revenue, 2)
+                'revenue' => round((float) $item->revenue, 2),
             ];
         })->toArray();
     }
 
     /**
      * Get professional performance
-     * Incluye todos los roles profesionales y usa TRANSACCIONES reales
+     * Incluye todos los roles profesionales y usa TRANSACCIONES reales.
      */
     private function getProfessionalPerformance(string $startDate, string $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -421,7 +420,7 @@ class DashboardService
             // INGRESOS 2: Transacciones SIN appointment_id, pero del paciente atendido por este profesional en el rango
             // (atribución por relación paciente->citas con este profesional en el mismo rango)
             $revenueFromPatientOnlyTransactions = 0.0;
-            if (!empty($patientIdsOfThisProfessional)) {
+            if (! empty($patientIdsOfThisProfessional)) {
                 $revenueFromPatientOnlyTransactions = Transaction::where('type', 'payment')
                     ->where('status', 'completed')
                     ->whereNull('appointment_id')
@@ -453,7 +452,7 @@ class DashboardService
                 'name' => $professional->name,
                 'appointments' => $appointmentCount,
                 'revenue' => round((float) $totalRevenue, 2),
-                'averagePerAppointment' => round($averagePerAppointment, 2)
+                'averagePerAppointment' => round($averagePerAppointment, 2),
             ];
         })->toArray();
     }

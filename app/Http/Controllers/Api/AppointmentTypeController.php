@@ -6,11 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\AppointmentType;
 use App\Models\AuditLog;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentTypeController extends Controller
 {
@@ -37,7 +37,7 @@ class AppointmentTypeController extends Controller
             'requires_confirmation' => 'boolean',
             'requires_materials' => 'boolean',
             'is_consultation_mode' => 'boolean',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
     }
 
@@ -82,13 +82,13 @@ class AppointmentTypeController extends Controller
             return response()->json([
                 'data' => $types,
                 'meta' => [
-                    'total' => $types->count()
-                ]
+                    'total' => $types->count(),
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener tipos de cita',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -104,7 +104,7 @@ class AppointmentTypeController extends Controller
             $validated = $request->validate($this->storeRules());
 
             $validated['is_active'] = $validated['is_active'] ?? true;
-            
+
             // Map duration_minutes to default_duration_minutes if needed
             if (isset($validated['duration_minutes'])) {
                 $validated['default_duration_minutes'] = $validated['duration_minutes'];
@@ -141,18 +141,18 @@ class AppointmentTypeController extends Controller
             return response()->json([
                 'data' => $type,
                 'meta' => [
-                    'message' => 'Tipo de cita creado exitosamente'
-                ]
+                    'message' => 'Tipo de cita creado exitosamente',
+                ],
             ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al crear tipo de cita',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -165,9 +165,9 @@ class AppointmentTypeController extends Controller
         $type = AppointmentType::with([
             'auditLogs' => function ($query) {
                 $query->with('user:id,name,email')
-                      ->orderBy('created_at', 'desc')
-                      ->limit(50);
-            }
+                    ->orderBy('created_at', 'desc')
+                    ->limit(50);
+            },
         ])->find($id);
 
         if (! $type) {
@@ -175,7 +175,7 @@ class AppointmentTypeController extends Controller
         }
 
         return response()->json([
-            'data' => $type
+            'data' => $type,
         ]);
     }
 
@@ -246,18 +246,18 @@ class AppointmentTypeController extends Controller
             return response()->json([
                 'data' => $type,
                 'meta' => [
-                    'message' => 'Tipo de cita actualizado exitosamente'
-                ]
+                    'message' => 'Tipo de cita actualizado exitosamente',
+                ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar tipo de cita',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -321,13 +321,13 @@ class AppointmentTypeController extends Controller
 
             return response()->json([
                 'meta' => [
-                    'message' => 'Tipo de cita eliminado exitosamente'
-                ]
+                    'message' => 'Tipo de cita eliminado exitosamente',
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar tipo de cita',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -338,7 +338,7 @@ class AppointmentTypeController extends Controller
     private function notFoundResponse(): JsonResponse
     {
         return response()->json([
-            'message' => 'Tipo de cita no encontrado'
+            'message' => 'Tipo de cita no encontrado',
         ], 404);
     }
 
@@ -355,14 +355,15 @@ class AppointmentTypeController extends Controller
             return response()->json([
                 'data' => $types,
                 'meta' => [
-                    'total' => $types->count()
-                ]
+                    'total' => $types->count(),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error en AppointmentTypeController@active: ' . $e->getMessage());
+            Log::error('Error en AppointmentTypeController@active: '.$e->getMessage());
+
             return response()->json([
                 'message' => 'Error al obtener tipos de cita activos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -377,20 +378,20 @@ class AppointmentTypeController extends Controller
 
             $types = AppointmentType::where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('description', 'like', "%{$query}%");
+                    ->orWhere('description', 'like', "%{$query}%");
             })->get();
 
             return response()->json([
                 'data' => $types,
                 'meta' => [
                     'total' => $types->count(),
-                    'query' => $query
-                ]
+                    'query' => $query,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al buscar tipos de cita',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

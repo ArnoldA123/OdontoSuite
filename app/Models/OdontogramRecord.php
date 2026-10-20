@@ -20,7 +20,7 @@ class OdontogramRecord extends Model
         'treatment_notes',
         'color',
         'appointment_id',
-        'created_by'
+        'created_by',
     ];
 
     // Relaciones
