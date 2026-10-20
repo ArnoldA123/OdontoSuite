@@ -1020,9 +1020,20 @@ const getPageDescription = () => {
     '/treatment-plans': 'Gestión de planes de tratamiento',
     '/quotations': 'Presupuestos y cotizaciones',
     '/medical-records': 'Historias clínicas de pacientes',
+    '/medical-records/': 'Historia clínica del paciente',
     '/specialty-records': 'Registros de especialidades odontológicas'
   }
-  return descriptions[route.path] || null
+  const exact = descriptions[route.path]
+
+  if (exact) return exact
+
+  // Keys ending in `/` describe a detail route (`/medical-records/12`); an
+  // exact-match lookup left the topbar subtitle empty there.
+  const prefix = Object.keys(descriptions).find(
+    key => key.endsWith('/') && route.path.startsWith(key)
+  )
+
+  return prefix ? descriptions[prefix] : null
 }
 
 // Sidebar functions

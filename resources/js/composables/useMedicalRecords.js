@@ -191,11 +191,6 @@ export function useMedicalRecords() {
     )
   }
 
-  // Compatibility shim for the pre-redesign page; removed once the page reads
-  // the attachments surface directly.
-  const getAttachmentsByCategory = (patientId, category = null) =>
-    getAttachments(patientId, category)
-
   const uploadAttachment = async payload =>
     write(async () => {
       const response = await post('/api/medical-records/attachments', payload, {
@@ -271,7 +266,6 @@ export function useMedicalRecords() {
     deleteEvolution,
 
     getAttachments,
-    getAttachmentsByCategory,
     uploadAttachment,
     deleteAttachment,
 
