@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class PendingPaymentsController extends Controller
 {
@@ -118,10 +119,12 @@ class PendingPaymentsController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los pagos pendientes', [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'message' => 'Error al obtener los pagos pendientes',
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ], 500);
         }
     }
@@ -216,9 +219,13 @@ class PendingPaymentsController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
+            Log::error('No se pudo procesar el pago pendiente', [
+                'exception' => $e,
+                'appointment_id' => $id,
+            ]);
+
             return response()->json([
                 'message' => 'Error al procesar el pago pendiente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
