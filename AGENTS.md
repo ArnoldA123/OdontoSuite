@@ -383,7 +383,8 @@ documentada y no bloquea producción.
   forma aditiva `q`, `is_active`, `procedures_count`, `professionals_count` y
   `meta.kpis` (población sin filtros) a `GET /api/specialties`, y conteos a
   `GET /api/specialties/{id}`; sin rutas, migraciones, modelos ni controllers
-  nuevos. Las especialidades no se eliminan: se desactivan, porque
+  nuevos. El `code` es inmutable en `PUT` (se descarta del payload, igual que en
+  métodos de pago). Las especialidades no se eliminan: se desactivan, porque
   `procedure_catalog.specialty_id` y `user_specialties` las referencian. La
   entrada clínica "Especialidades" (`/specialty-records`) no cambia; la nueva
   entrada del sidebar se llama "Catálogo de Especialidades". §4 y §5

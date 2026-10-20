@@ -94,9 +94,7 @@ class SpecialtyController extends Controller
     {
         $specialty = Specialty::findOrFail($id);
 
-        $validated = $request->validate($this->updateRules($this->storeRules(), [], [
-            'code' => "sometimes|string|max:50|unique:specialties,code,{$id}",
-        ]));
+        $validated = $request->validate($this->updateRules($this->storeRules(), ['code']));
 
         $specialty->update($validated);
 

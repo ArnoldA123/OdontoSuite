@@ -217,4 +217,23 @@ class SpecialtyIndexContractTest extends TestCase
             'is_active' => false,
         ]);
     }
+
+    public function test_update_ignores_attempts_to_change_the_code(): void
+    {
+        $specialty = $this->specialty(['code' => 'general', 'name' => 'Odontología general']);
+
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->putJson("/api/specialties/{$specialty->id}", [
+                'code' => 'renombrada',
+                'name' => 'Odontología integral',
+            ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('specialties', [
+            'id' => $specialty->id,
+            'code' => 'general',
+            'name' => 'Odontología integral',
+        ]);
+        $this->assertDatabaseMissing('specialties', ['code' => 'renombrada']);
+    }
 }
