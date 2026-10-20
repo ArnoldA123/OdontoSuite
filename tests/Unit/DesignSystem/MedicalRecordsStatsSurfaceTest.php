@@ -11,12 +11,11 @@ use PHPUnit\Framework\TestCase;
  * The surface used to be built on five keys the backend never returned
  * (`last_updated`, `days_since_creation`, `evolutions_by_month`,
  * `attachments_by_type`, `recent_activity`), so every block rendered empty.
- * This contract pins the replacement: the four real counters as the dashboard
- * KPI anatomy (`data-stat` hooks over `total_records`, `total_evolutions`,
- * `total_attachments`, `pending_follow_ups`), the real last-evolution /
- * specialty / attachment-category payloads, the shared loading and empty
- * primitives, and the specialty label map that turns backend codes into
- * human copy.
+ * This contract pins the replacement: the real last-evolution / specialty /
+ * attachment-category payloads, the shared loading and empty primitives, and
+ * the specialty label map that turns backend codes into human copy. The four
+ * totals live once, in the page hero strip; this surface owns the detail and
+ * must not repeat them.
  *
  * Every assertion is static source grep: the behavior lives in
  * tests/js/smoke/medical-records.test.js. Removing a hook, resurrecting an
@@ -43,9 +42,6 @@ class MedicalRecordsStatsSurfaceTest extends TestCase
         'rehabilitacion' => 'Rehabilitación',
         'odontopediatria' => 'Odontopediatría',
     ];
-
-    /** Backend counters the KPI strip owns, one per hook. */
-    private const KPI_HOOKS = ['records', 'evolutions', 'attachments', 'follow-ups'];
 
     /** Backend keys the surface must read instead of the invented ones. */
     private const REAL_CONTRACT_KEYS = [
@@ -136,56 +132,31 @@ class MedicalRecordsStatsSurfaceTest extends TestCase
     }
 
     /**
-     * S1 - four KPI cards on the dashboard anatomy, one per real counter:
-     * label in uppercase secondary type, numeral in `text-label`, never a
-     * colored ramp, and a one-line caption per card.
+     * S1 - one surface per datum. The page hero already renders the four
+     * counters; repeating them inside the Estadísticas tab is the duplication
+     * the dashboard hierarchy redesign eliminated (D8/R1). This surface owns
+     * the detail blocks only.
      */
-    public function test_kpi_strip_pins_the_four_real_counters(): void
+    public function test_surface_keeps_the_totals_in_the_page_strip(): void
     {
         $source = $this->componentSource();
 
         $this->assertSame(
-            4,
+            0,
             preg_match_all('~<UiCard\b~', $source),
-            'MedicalRecordStats.vue must render exactly four <UiCard> blocks in the KPI strip (S1).'
+            'MedicalRecordStats.vue must not re-render the page KPI cards (S1: one surface per datum).'
         );
 
         $this->assertSame(
-            4,
-            preg_match_all('~variant="glass"~', $source),
-            'Every KPI card must use `variant="glass"` (S1 KPI anatomy).'
-        );
-
-        foreach (self::KPI_HOOKS as $hook) {
-            $this->assertMatchesRegularExpression(
-                '~data-stat="'.preg_quote($hook, '~').'"~',
-                $source,
-                sprintf('MedicalRecordStats.vue must expose the `data-stat="%s"` hook (S1).', $hook)
-            );
-        }
-
-        $this->assertSame(
-            4,
+            0,
             preg_match_all('~data-stat="~', $source),
-            'The surface must expose exactly the four KPI hooks, no more (S1).'
+            'MedicalRecordStats.vue must not duplicate the hero `data-stat` hooks (S1).'
         );
 
         $this->assertSame(
-            4,
-            substr_count($source, 'text-xs font-medium text-theme-secondary uppercase'),
-            'Every KPI label must use the shared uppercase secondary-type recipe (S1 KPI anatomy).'
-        );
-
-        $this->assertSame(
-            4,
-            substr_count($source, 'text-2xl font-bold text-label tabular-nums'),
-            'Every KPI numeral must use `text-2xl font-bold text-label tabular-nums`; no colored ramp (S1).'
-        );
-
-        $this->assertSame(
-            4,
+            0,
             preg_match_all('~data-kpi-caption="~', $source),
-            'Every KPI card must carry a one-line caption stating its scope (S1).'
+            'MedicalRecordStats.vue must not duplicate the hero KPI captions (S1).'
         );
 
         $this->assertDoesNotMatchRegularExpression(

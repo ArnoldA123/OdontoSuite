@@ -7,129 +7,12 @@
       data-state="empty-stats"
       motif
       title="Sin actividad en esta historia"
-      description="Cuando se registren evoluciones, adjuntos o seguimientos, sus totales aparecerán aquí."
+      description="Cuando se registren evoluciones, adjuntos o seguimientos, su detalle aparecerá aquí."
     />
 
     <template v-else>
-      <!-- KPI strip: dashboard anatomy over the four counters the API returns. -->
-      <section data-stats-block="totals" class="space-y-4">
-        <div class="flex items-baseline gap-3">
-          <h2 class="text-xl font-semibold text-label">Resumen de la historia</h2>
-          <p class="text-sm text-theme-secondary">Los totales de esta historia clínica</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-stat-card="records"
-            class="relative h-full flex flex-col"
-            :style="cardSurfaceStyle"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Historias
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  aria-live="polite"
-                  data-stat="records"
-                >
-                  {{ totalRecords }}
-                </p>
-                <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="records">
-                  Historias activas del paciente
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-stat-card="evolutions"
-            class="relative h-full flex flex-col"
-            :style="cardSurfaceStyle"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Evoluciones
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  aria-live="polite"
-                  data-stat="evolutions"
-                >
-                  {{ totalEvolutions }}
-                </p>
-                <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="evolutions">
-                  Consultas registradas
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-stat-card="attachments"
-            class="relative h-full flex flex-col"
-            :style="cardSurfaceStyle"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Adjuntos
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  aria-live="polite"
-                  data-stat="attachments"
-                >
-                  {{ totalAttachments }}
-                </p>
-                <p
-                  class="mt-1 text-xs text-theme-secondary truncate"
-                  data-kpi-caption="attachments"
-                >
-                  Archivos del expediente
-                </p>
-              </div>
-            </div>
-          </UiCard>
-
-          <UiCard
-            variant="glass"
-            padding="sm"
-            data-stat-card="follow-ups"
-            class="relative h-full flex flex-col"
-            :style="cardSurfaceStyle"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <p class="text-xs font-medium text-theme-secondary uppercase whitespace-nowrap">
-                  Seguimientos pendientes
-                </p>
-                <p
-                  class="mt-2 text-2xl font-bold text-label tabular-nums leading-none truncate"
-                  aria-live="polite"
-                  data-stat="follow-ups"
-                >
-                  {{ pendingFollowUps }}
-                </p>
-                <p class="mt-1 text-xs text-theme-secondary truncate" data-kpi-caption="follow-ups">
-                  Pendientes de seguimiento
-                </p>
-              </div>
-            </div>
-          </UiCard>
-        </div>
-      </section>
-
       <!-- Last evolution: the newest entry the backend aggregates by date. -->
-      <section data-stats-block="last-evolution" class="space-y-3 border-t border-hairline pt-5">
+      <section data-stats-block="last-evolution" class="space-y-3">
         <div class="flex items-baseline gap-3">
           <h2 class="text-lg font-semibold text-label">Última evolución</h2>
           <p class="text-sm text-theme-secondary">La entrada más reciente de la historia</p>
@@ -232,7 +115,6 @@
 import { computed } from 'vue'
 import LoadingSpinner from '../../../components/ui/LoadingSpinner.vue'
 import UiBadge from '../../../components/ui/Badge.vue'
-import UiCard from '../../../components/ui/Card.vue'
 import UiSectionEmpty from '../../../components/ui/UiSectionEmpty.vue'
 
 const props = defineProps({
@@ -262,11 +144,6 @@ const CATEGORY_LABELS = {
   foto_clinica: 'Foto clínica',
   documento: 'Documento',
   otro: 'Otro'
-}
-
-const cardSurfaceStyle = {
-  boxShadow: 'var(--elevation-2)',
-  borderColor: 'var(--color-hairline)'
 }
 
 const totalRecords = computed(() => Number(props.stats?.total_records) || 0)
