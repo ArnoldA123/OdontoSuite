@@ -13,6 +13,15 @@ use PHPUnit\Framework\TestCase;
  */
 class CredentialsDocumentationTest extends TestCase
 {
+    /**
+     * One row of the credentials table: name | email | `username` | role.
+     *
+     * The cells tolerate the padding Prettier adds when it aligns a markdown
+     * table (`| `elizabet`   |`). The rule this guards is the table structure,
+     * never its whitespace.
+     */
+    private const USER_ROW = '/^\|[^|]*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|[^|]*\|/m';
+
     private static function credentialsPath(): string
     {
         return realpath(__DIR__.'/../../..').'/CREDENTIALS.md';
@@ -97,19 +106,19 @@ class CredentialsDocumentationTest extends TestCase
     private static function documentedUsernames(): array
     {
         preg_match_all(
-            '/^\| .+ \| .+ \| `([^`]+)` \| .+ \|/m',
+            self::USER_ROW,
             (string) file_get_contents(self::credentialsPath()),
             $matches
         );
 
-        return $matches[1];
+        return $matches[2];
     }
 
     /** @return array<string, string> username => email */
     private static function documentedUsernameEmailPairs(): array
     {
         preg_match_all(
-            '/^\| .+ \| ([^|]+) \| `([^`]+)` \| .+ \|/m',
+            self::USER_ROW,
             (string) file_get_contents(self::credentialsPath()),
             $matches,
             PREG_SET_ORDER
@@ -180,7 +189,11 @@ class CredentialsDocumentationTest extends TestCase
     {
         $content = file_get_contents(self::credentialsPath());
         $this->assertStringContainsString('Matriz de Permisos', $content);
-        $this->assertStringContainsString('| Funcionalidad |', $content);
+        $this->assertMatchesRegularExpression(
+            '/^\|\s*Funcionalidad\s*\|/m',
+            $content,
+            'CREDENTIALS.md must document the permission matrix header'
+        );
     }
 
     /** @test */
@@ -197,7 +210,7 @@ class CredentialsDocumentationTest extends TestCase
         $content = file_get_contents(self::credentialsPath());
         // Cuenta filas de tabla que contienen backtick (username en formato `username`).
         // Ejemplo: "| Elizabet Cunia Cruz | elizabet+administrador@test.com | `elizabet` | administrador |"
-        preg_match_all('/^\| .+ \| .+ \| `[^`]+` \| .+ \|/m', $content, $matches);
+        preg_match_all(self::USER_ROW, $content, $matches);
         $this->assertGreaterThanOrEqual(15, count($matches[0]), 'CREDENTIALS.md should document at least 15 users');
     }
 

@@ -1,6 +1,7 @@
 # Guía de Instalación - OdontoSuite
 
-Guía completa paso a paso para instalar y configurar OdontoSuite en tu computadora.
+Guía completa paso a paso para instalar y configurar OdontoSuite en tu
+computadora.
 
 ---
 
@@ -29,6 +30,7 @@ Guía completa paso a paso para instalar y configurar OdontoSuite en tu computad
 Antes de comenzar, asegúrate de tener instalado:
 
 ### Requisitos Mínimos:
+
 - **PHP**: 8.2 o superior
 - **Composer**: 2.0 o superior
 - **Node.js**: 22 o superior (versión fijada en `.nvmrc`)
@@ -37,6 +39,7 @@ Antes de comenzar, asegúrate de tener instalado:
 - **Git**: Para clonar el repositorio (opcional)
 
 ### Extensiones PHP Requeridas:
+
 - OpenSSL
 - PDO
 - Mbstring
@@ -55,6 +58,7 @@ Antes de comenzar, asegúrate de tener instalado:
 ### Windows
 
 #### 1. Instalar PHP
+
 1. Descarga PHP desde [php.net](https://windows.php.net/download/)
 2. Extrae el archivo ZIP en `C:\php`
 3. Agrega `C:\php` a las variables de entorno PATH
@@ -64,7 +68,9 @@ Antes de comenzar, asegúrate de tener instalado:
    ```
 
 #### 2. Instalar Composer
-1. Descarga el instalador desde [getcomposer.org](https://getcomposer.org/download/)
+
+1. Descarga el instalador desde
+   [getcomposer.org](https://getcomposer.org/download/)
 2. Ejecuta el instalador y sigue las instrucciones
 3. Verifica la instalación:
    ```bash
@@ -72,6 +78,7 @@ Antes de comenzar, asegúrate de tener instalado:
    ```
 
 #### 3. Instalar Node.js y pnpm
+
 1. Descarga Node.js 22 desde [nodejs.org](https://nodejs.org/)
 2. Ejecuta el instalador
 3. Habilita pnpm (Node incluye Corepack):
@@ -85,6 +92,7 @@ Antes de comenzar, asegúrate de tener instalado:
    ```
 
 #### 4. Instalar MySQL
+
 1. Descarga MySQL desde [mysql.com](https://dev.mysql.com/downloads/installer/)
 2. Ejecuta el instalador y configura una contraseña para el usuario `root`
 3. Verifica la instalación:
@@ -224,7 +232,8 @@ DB_USERNAME=odontosuite_user
 DB_PASSWORD=tu_password_segura
 ```
 
-**Nota:** Si usas el usuario `root`, cambia `DB_USERNAME=root` y `DB_PASSWORD=tu_password_de_root`.
+**Nota:** Si usas el usuario `root`, cambia `DB_USERNAME=root` y
+`DB_PASSWORD=tu_password_de_root`.
 
 ---
 
@@ -311,7 +320,8 @@ OPENAI_MAX_TOKENS=1000
 OPENAI_TIMEOUT=30
 ```
 
-**Nota:** Para desarrollo local, puedes dejar las variables de Reverb y OpenAI vacías o con valores de prueba.
+**Nota:** Para desarrollo local, puedes dejar las variables de Reverb y OpenAI
+vacías o con valores de prueba.
 
 ---
 
@@ -323,7 +333,8 @@ OPENAI_TIMEOUT=30
 php artisan db:show
 ```
 
-Si ves información de tu base de datos, la conexión está correcta. Si hay errores, revisa la configuración en `.env`.
+Si ves información de tu base de datos, la conexión está correcta. Si hay
+errores, revisa la configuración en `.env`.
 
 ---
 
@@ -337,6 +348,7 @@ php artisan migrate
 ```
 
 **Qué hace esto:**
+
 - Crea todas las tablas vacías (users, patients, appointments, etc.)
 - Establece las relaciones entre tablas
 - Crea los índices necesarios
@@ -344,6 +356,7 @@ php artisan migrate
 **Tiempo estimado:** 30 segundos - 2 minutos
 
 **Si hay errores:**
+
 - Verifica que la base de datos existe
 - Verifica las credenciales en `.env`
 - Asegúrate de que MySQL esté corriendo
@@ -369,13 +382,15 @@ php artisan db:seed
 
 **Credenciales demo** (el campo de login es el **usuario**, no el email; todas
 usan la contraseña `password123`):
+
 - **Administrador:** `elizabet`
 - **Recepcionista:** `recepcionista_test`
 - **Odontólogo:** `ever_odontologo`
 
 Lista completa de los usuarios demo en [CREDENTIALS.md](CREDENTIALS.md).
 
-**⚠️ IMPORTANTE:** Son cuentas de desarrollo creadas por seeders públicos. No las uses en producción.
+**⚠️ IMPORTANTE:** Son cuentas de desarrollo creadas por seeders públicos. No
+las uses en producción.
 
 ---
 
@@ -389,7 +404,8 @@ El frontend necesita compilarse para que funcione correctamente.
 pnpm dev
 ```
 
-Deja este comando corriendo en una terminal. Se recompilará automáticamente cuando hagas cambios.
+Deja este comando corriendo en una terminal. Se recompilará automáticamente
+cuando hagas cambios.
 
 ### Opción 2: Modo Producción (compilación optimizada)
 
@@ -447,7 +463,8 @@ Abre otra terminal y ejecuta:
 php artisan reverb:start
 ```
 
-Esto habilita las funcionalidades en tiempo real (notificaciones, actualizaciones en vivo).
+Esto habilita las funcionalidades en tiempo real (notificaciones,
+actualizaciones en vivo).
 
 ### Paso 3: Iniciar Vite (si estás en desarrollo)
 
@@ -478,7 +495,9 @@ Deberías ver la página de login de OdontoSuite.
 
 ### Paso 2: Iniciar sesión
 
-Usa las credenciales del administrador (el campo de login es el **usuario**, no el email):
+Usa las credenciales del administrador (el campo de login es el **usuario**, no
+el email):
+
 - **Usuario:** `elizabet`
 - **Contraseña:** `password123`
 
@@ -496,6 +515,7 @@ Usa las credenciales del administrador (el campo de login es el **usuario**, no 
 ### Error: "Class 'PDO' not found"
 
 **Solución:**
+
 ```bash
 # Linux
 sudo apt install php8.2-pdo php8.2-mysql
@@ -507,14 +527,16 @@ brew install php@8.2
 ### Error: "SQLSTATE[HY000] [2002] No connection could be made"
 
 **Solución:**
+
 1. Verifica que MySQL esté corriendo:
+
    ```bash
    # Windows
    net start MySQL80
-   
+
    # Linux
    sudo systemctl start mysql
-   
+
    # macOS
    brew services start mysql
    ```
@@ -524,6 +546,7 @@ brew install php@8.2
 ### Error: "The stream or file could not be opened"
 
 **Solución:**
+
 ```bash
 # Linux/macOS
 chmod -R 775 storage bootstrap/cache
@@ -534,6 +557,7 @@ chmod -R 775 storage bootstrap/cache
 ### Error: "Vite manifest not found"
 
 **Solución:**
+
 ```bash
 # Compila los assets
 pnpm build
@@ -545,6 +569,7 @@ pnpm dev
 ### Error: "APP_KEY is not set"
 
 **Solución:**
+
 ```bash
 php artisan key:generate
 ```
@@ -552,6 +577,7 @@ php artisan key:generate
 ### Error al ejecutar migraciones
 
 **Solución:**
+
 ```bash
 # Ver estado de migraciones
 php artisan migrate:status
@@ -563,6 +589,7 @@ php artisan migrate:fresh --seed
 ### Puerto 8000 ya está en uso
 
 **Solución:**
+
 ```bash
 # Usar otro puerto
 php artisan serve --port=8001
@@ -573,6 +600,7 @@ Luego accede a: `http://localhost:8001`
 ### Error: "pnpm install" falla
 
 **Solución:**
+
 ```bash
 # Limpiar la caché local de pnpm
 pnpm store prune
@@ -588,17 +616,19 @@ El repo contiene rutas que superan los 260 caracteres. `LongPathsEnabled=1` en
 el registro de Windows **no basta**: git necesita su propio opt-in.
 
 **Solución:**
+
 ```bash
 git config core.longpaths true
 ```
 
 ### Los tests con base de datos fallan ("no such column", esquema incompleto)
 
-`php artisan test` a secas corre con SQLite `:memory:`, que **no** puede construir
-el esquema del proyecto (decisión del repo: `migrate:fresh` es solo-MySQL).
-Corre la suite contra un motor real.
+`php artisan test` a secas corre con SQLite `:memory:`, que **no** puede
+construir el esquema del proyecto (decisión del repo: `migrate:fresh` es
+solo-MySQL). Corre la suite contra un motor real.
 
 **Solución (MySQL 8 local vía Docker, puerto 3307):**
+
 ```bash
 docker compose up -d --wait mysql
 php artisan test --configuration=phpunit.mysql.xml
@@ -706,4 +736,5 @@ Marca cada paso cuando lo completes:
 
 ---
 
-**¡Felicitaciones! 🎉 Si completaste todos los pasos, OdontoSuite está listo para usar.**
+**¡Felicitaciones! 🎉 Si completaste todos los pasos, OdontoSuite está listo
+para usar.**

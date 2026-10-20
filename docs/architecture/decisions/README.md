@@ -5,11 +5,11 @@ material architectural decision, its context, and its consequences.
 
 ## Index
 
-| ADR | Title | Status |
-|---|---|---|
-| [0007](./0007-user-specialty-source-of-truth.md) | User specialty source-of-truth — pivot over JSON | Accepted |
-| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation | Accepted |
-| 0009 *(pending — slice 05)* | Migration drift: additive-only policy + driver-conditional guards | Accepted 2026-08-05 |
+| ADR                                                  | Title                                                             | Status              |
+| ---------------------------------------------------- | ----------------------------------------------------------------- | ------------------- |
+| [0007](./0007-user-specialty-source-of-truth.md)     | User specialty source-of-truth — pivot over JSON                  | Accepted            |
+| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                  | Accepted            |
+| 0009 _(pending — slice 05)_                          | Migration drift: additive-only policy + driver-conditional guards | Accepted 2026-08-05 |
 
 ## Active change: `bugfix-2026-08` migration-drift subsection
 
@@ -23,10 +23,10 @@ driver-conditional guard precedent (set by slice 02 in
 
 New migrations introduced by slice 05:
 
-- `2026_08_05_030000_drop_legacy_specialties_json_column.php` — drops the
-  legacy `users.specialties` JSON column (reversible via `down()`).
-  Filename uses the `drop_legacy_*` prefix which is the only carve-out from
-  the additive-only policy.
+- `2026_08_05_030000_drop_legacy_specialties_json_column.php` — drops the legacy
+  `users.specialties` JSON column (reversible via `down()`). Filename uses the
+  `drop_legacy_*` prefix which is the only carve-out from the additive-only
+  policy.
 
 See `openspec/changes/bugfix-2026-08/findings-map.md` for the full per-slice
 migration inventory.
