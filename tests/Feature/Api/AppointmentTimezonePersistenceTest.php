@@ -189,4 +189,20 @@ class AppointmentTimezonePersistenceTest extends TestCase
         $response->assertOk();
         $this->assertRowHoldsSlot($appointment->id, $slot);
     }
+
+    public function test_reschedule_with_naive_local_datetime_keeps_the_wall_clock(): void
+    {
+        $dentist = $this->dentist();
+        $appointment = $this->appointmentFor($dentist, $this->localSlot()->addDays(2));
+        $slot = $this->localSlot();
+
+        $response = $this->actingAs($this->actor(), 'sanctum')
+            ->patchJson("/api/appointments/{$appointment->id}/reschedule", [
+                'scheduled_at' => $slot->format('Y-m-d\TH:i:s'),
+                'duration_minutes' => self::DURATION,
+            ]);
+
+        $response->assertOk();
+        $this->assertRowHoldsSlot($appointment->id, $slot);
+    }
 }
