@@ -54,6 +54,25 @@ export function useTreatmentPlans() {
     }
   }
 
+  const summary = ref(null)
+  const summaryLoading = ref(false)
+
+  /**
+   * Aggregates over the whole table for the KPI strip. Kept separate from the
+   * paginated list on purpose: the strip must never summarize the visible page.
+   */
+  const getSummary = async () => {
+    try {
+      summaryLoading.value = true
+      const response = await get('/api/treatment-plans/summary')
+      summary.value = response?.data ?? null
+
+      return summary.value
+    } finally {
+      summaryLoading.value = false
+    }
+  }
+
   const getPlan = async id => {
     try {
       loading.value = true
@@ -269,6 +288,8 @@ export function useTreatmentPlans() {
     loading,
     error,
     pagination,
+    summary,
+    summaryLoading,
 
     // Computed
     hasPlans,
@@ -277,6 +298,7 @@ export function useTreatmentPlans() {
 
     // Métodos
     getPlans,
+    getSummary,
     getPlan,
     createPlan,
     updatePlan,
