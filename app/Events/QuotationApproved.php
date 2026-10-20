@@ -3,8 +3,8 @@
 namespace App\Events;
 
 use App\Models\Quotation;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -26,8 +26,7 @@ class QuotationApproved implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('quotations'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('quotations'),
         ];
     }
 

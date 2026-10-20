@@ -118,7 +118,7 @@ export function useWebSocketNotifications() {
       }
 
       // Canal de presupuestos
-      const quotationsChannel = channel('quotations')
+      const quotationsChannel = privateChannel('quotations')
       if (quotationsChannel) {
         quotationsChannel
           .listen('.quotation.created', e => handleEvent('quotation.created', e))

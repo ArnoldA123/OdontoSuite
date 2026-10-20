@@ -1169,7 +1169,7 @@ export default {
           }
 
           // Canal de presupuestos
-          quotationsChannel = channel('quotations')
+          quotationsChannel = privateChannel('quotations')
           if (quotationsChannel) {
             quotationsChannel
               .listen('.quotation.created', async e => {

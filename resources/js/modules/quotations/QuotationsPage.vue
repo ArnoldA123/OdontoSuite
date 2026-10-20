@@ -434,7 +434,7 @@ const api = useApi()
 const toast = useToast()
 const { confirm } = useConfirm()
 const { user } = useAuth()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 const {
   quotations,
   loading,
@@ -701,7 +701,7 @@ onMounted(() => {
   refresh()
 
   try {
-    quotationsChannel = channel('quotations')
+    quotationsChannel = privateChannel('quotations')
     if (quotationsChannel) {
       quotationsChannel
         .listen('.quotation.created', async () => {
