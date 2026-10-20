@@ -442,7 +442,10 @@ documentada y no bloquea producción.
   `ExpireQuotationsCommandTest`, `QuotationBroadcastChannelsTest`,
   `QuotationRejectedEventTest`, `BroadcastingAuthChannelsTest` extendido y los
   smokes JS del canal privado, del deep link y de las acciones del paciente.
-  Guard `scripts/audit/doc-drift.mjs` en verde.
+  Follow-up de #196/#236: los nueve handlers de `QuotationController` registran
+  la excepción y responden un mensaje genérico (ya no exponen `error`), y un id
+  inexistente responde 404 en vez de 500 (`QuotationErrorEnvelopeTest`). Guard
+  `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero
