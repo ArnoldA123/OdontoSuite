@@ -100,7 +100,7 @@ class CashRegisterRedesignContractTest extends TestCase
         $this->assertMatchesRegularExpression(
             '/if\s*\(canViewPendingPayments\.value\)\s*items\.push\(\{\s*id:\s*.payments./',
             $page,
-            'The Cobros tab MUST be gated: pending payments are admin/finanzas only.'
+            'The Cobros tab MUST be gated: pending payments are administrador/finanzas/recepcionista only.'
         );
         $this->assertMatchesRegularExpression(
             '/if\s*\(canViewReports\.value\)\s*items\.push\(\{\s*id:\s*.reports./',
