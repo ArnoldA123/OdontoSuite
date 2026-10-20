@@ -122,6 +122,13 @@ class MedicalRecordIndexTest extends TestCase
             'clinical_evolution_id' => $evolutions->last()->id,
             'is_active' => false,
         ]);
+        // A file uploaded from the Adjuntos tab carries no evolution link; it
+        // still belongs to the patient's history and must be counted.
+        \App\Models\ClinicalAttachment::factory()->create([
+            'patient_id' => $record->patient_id,
+            'clinical_evolution_id' => null,
+            'is_active' => true,
+        ]);
 
         $response = $this->actingAs($user, 'sanctum')
             ->getJson('/api/medical-records?patient_id='.$record->patient_id);
@@ -130,7 +137,7 @@ class MedicalRecordIndexTest extends TestCase
         $row = $response->json('data.0');
 
         $this->assertSame(2, $row['evolutions_count']);
-        $this->assertSame(1, $row['attachments_count']);
+        $this->assertSame(2, $row['attachments_count']);
         $this->assertSame($record->patient_id, $row['patient']['id']);
     }
 }

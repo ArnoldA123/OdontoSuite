@@ -422,4 +422,33 @@ class MedicalRecordsAppShellTest extends ModuleAppShellTestCase
             'The entrance must render through `revealStyle()` so a block without a spring paints its final state (MRC-SHELL-001).'
         );
     }
+
+    /**
+     * MRC-SHELL-008 — the detail modal forwards its footer actions. It emits
+     * `addEvolution` / `uploadAttachment`; an unbound listener left both
+     * buttons inert, and editing from the detail stacked the form on top of
+     * the open detail.
+     */
+    public function test_detail_footer_actions_reach_the_page(): void
+    {
+        $src = $this->pageSource();
+
+        $this->assertMatchesRegularExpression(
+            '~@add-evolution="handleDetailAddEvolution"~',
+            $src,
+            'The page must handle the detail `addEvolution` emit (MRC-SHELL-008).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~@upload-attachment="handleDetailUpload"~',
+            $src,
+            'The page must handle the detail `uploadAttachment` emit (MRC-SHELL-008).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~const editRecord = record => \{\s*(?://[^\n]*\n\s*)*showDetailModal\.value = false~',
+            $src,
+            'Editing from the detail must close the detail modal first (MRC-SHELL-008).'
+        );
+    }
 }

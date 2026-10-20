@@ -31,11 +31,10 @@ class MedicalRecordController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = MedicalRecord::with(['patient', 'createdBy'])->withCount([
-                'evolutions',
-                'attachments' => fn ($attachments) => $attachments
-                    ->where('clinical_attachments.is_active', true),
-            ]);
+            // Attachments belong to the patient, not to an evolution: a file
+            // uploaded from the Adjuntos tab has no clinical_evolution_id and
+            // would never reach the record through the hasManyThrough.
+            $query = MedicalRecord::with(['patient', 'createdBy'])->withCount('evolutions');
 
             if ($request->filled('patient_id')) {
                 $query->where('patient_id', $request->input('patient_id'));
@@ -68,8 +67,21 @@ class MedicalRecordController extends Controller
             $perPage = max(1, min((int) $request->input('per_page', 10), 50));
             $records = $query->orderBy('first_visit_date', 'desc')->paginate($perPage);
 
+            $attachmentCounts = ClinicalAttachment::whereIn(
+                'patient_id',
+                collect($records->items())->pluck('patient_id')->unique()->all()
+            )
+                ->where('is_active', true)
+                ->selectRaw('patient_id, count(*) as total')
+                ->groupBy('patient_id')
+                ->pluck('total', 'patient_id');
+
+            $items = collect($records->items())->each(function ($record) use ($attachmentCounts) {
+                $record->attachments_count = (int) ($attachmentCounts[$record->patient_id] ?? 0);
+            });
+
             return response()->json([
-                'data' => $records->items(),
+                'data' => $items->all(),
                 'meta' => [
                     'total' => $records->total(),
                     'current_page' => $records->currentPage(),
