@@ -174,7 +174,9 @@ class CashRegisterService
             'opening_amount' => 0,
             'total_income' => 0,
             'total_expenses' => 0,
-            'total_movements' => 0,
+            'cash_in' => 0,
+            'cash_out' => 0,
+            'net_flow' => 0,
             'expected_amount' => 0,
             'transactions_count' => 0,
             'movements_count' => 0,
@@ -188,33 +190,11 @@ class CashRegisterService
      */
     public function getSessionSummary(CashRegisterSession $session): array
     {
-        // Obtener todas las transacciones de la sesión (con logging para debug)
-        $allTransactions = Transaction::where('cash_register_session_id', $session->id)->get();
+        $transactions = Transaction::with('paymentMethod')
+            ->where('cash_register_session_id', $session->id)
+            ->where('status', 'completed')
+            ->get();
 
-        \Log::info('getSessionSummary: Transacciones encontradas', [
-            'session_id' => $session->id,
-            'total_transactions' => $allTransactions->count(),
-            'transactions_by_type' => $allTransactions->groupBy('type')->map->count(),
-            'transactions_by_status' => $allTransactions->groupBy('status')->map->count(),
-        ]);
-
-        // Filtrar solo las completadas
-        $transactions = $allTransactions->where('status', 'completed');
-
-        \Log::info('getSessionSummary: Transacciones completadas', [
-            'completed_count' => $transactions->count(),
-            'by_type' => $transactions->groupBy('type')->map(function ($group) {
-                return [
-                    'count' => $group->count(),
-                    'total' => $group->sum('amount'),
-                ];
-            }),
-        ]);
-
-        $movements = $session->movements;
-
-        // Calcular totales de manera más explícita
-        // Buscar tanto 'payment' como 'income' para compatibilidad
         $paymentTransactions = $transactions->filter(function ($t) {
             return in_array($t->type, ['payment', 'income']);
         });
@@ -222,25 +202,19 @@ class CashRegisterService
             return in_array($t->type, ['refund', 'expense']);
         });
 
-        $totalIncome = $paymentTransactions->sum('amount');
-        $totalExpenses = $refundTransactions->sum('amount');
-
-        \Log::info('getSessionSummary: Totales calculados', [
-            'total_income' => $totalIncome,
-            'total_expenses' => $totalExpenses,
-            'payment_count' => $paymentTransactions->count(),
-            'refund_count' => $refundTransactions->count(),
-        ]);
+        $flow = $this->cashFlow($session);
 
         $summary = [
             'session' => $session,
             'opening_amount' => $session->opening_amount ?? 0,
-            'total_income' => $totalIncome,
-            'total_expenses' => $totalExpenses,
-            'total_movements' => $movements->sum('amount'),
+            'total_income' => round((float) $paymentTransactions->sum('amount'), 2),
+            'total_expenses' => round((float) $refundTransactions->sum('amount'), 2),
+            'cash_in' => $flow['cash_in'],
+            'cash_out' => $flow['cash_out'],
+            'net_flow' => round($flow['cash_in'] - $flow['cash_out'], 2),
             'expected_amount' => $this->calculateExpectedAmount($session),
             'transactions_count' => $transactions->count(),
-            'movements_count' => $movements->count(),
+            'movements_count' => $session->movements()->count(),
             'by_payment_method' => $this->getSummaryByPaymentMethod($transactions),
             'by_hour' => $this->getSummaryByHour($transactions),
         ];
@@ -307,26 +281,57 @@ class CashRegisterService
     }
 
     /**
-     * Calculate expected amount for closing.
-     * Uses cash movements only (transactions already create movements via TransactionService).
+     * Reference this service stamps on the opening snapshot.
+     */
+    private function openingReference(CashRegisterSession $session): string
+    {
+        return CashMovement::openingReference((int) $session->id);
+    }
+
+    /**
+     * Reference this service stamps on the closing snapshot.
+     */
+    private function closingReference(CashRegisterSession $session): string
+    {
+        return CashMovement::closingReference((int) $session->id);
+    }
+
+    /**
+     * Physical cash flows of the session: the manual movements plus the rows
+     * TransactionService derives from transactions.
+     *
+     * The opening and closing rows are snapshots of the drawer, not flows:
+     * `opening_amount` already counts the first and `closing_amount` records
+     * the count, so neither may enter the equation. `adjustment` rows stay out
+     * too: the closing snapshot is their only writer today and a manual
+     * adjustment carries no defined sign.
+     *
+     * @return array{cash_in: float, cash_out: float}
+     */
+    private function cashFlow(CashRegisterSession $session): array
+    {
+        $snapshots = [$this->openingReference($session), $this->closingReference($session)];
+
+        $flows = $session->movements()
+            ->where(function ($query) use ($snapshots) {
+                $query->whereNotIn('reference', $snapshots)->orWhereNull('reference');
+            })
+            ->get(['type', 'amount']);
+
+        return [
+            'cash_in' => round((float) $flows->whereIn('type', ['income', 'deposit'])->sum('amount'), 2),
+            'cash_out' => round((float) $flows->whereIn('type', ['expense', 'withdrawal'])->sum('amount'), 2),
+        ];
+    }
+
+    /**
+     * Cash position the drawer should hold at closing.
      */
     private function calculateExpectedAmount(CashRegisterSession $session): float
     {
-        $openingAmount = (float) $session->opening_amount;
+        $flow = $this->cashFlow($session);
 
-        $incomeMovements = (float) $session->movements()
-            ->where('type', 'income')
-            ->sum('amount');
-
-        $expenseMovements = (float) $session->movements()
-            ->where('type', 'expense')
-            ->sum('amount');
-
-        $withdrawalMovements = (float) $session->movements()
-            ->where('type', 'withdrawal')
-            ->sum('amount');
-
-        return round($openingAmount + $incomeMovements - $expenseMovements - $withdrawalMovements, 2);
+        return round((float) $session->opening_amount + $flow['cash_in'] - $flow['cash_out'], 2);
     }
 
     /**
@@ -343,13 +348,17 @@ class CashRegisterService
      */
     private function getSummaryByPaymentMethod($transactions): array
     {
-        return $transactions->groupBy('payment_method_id')
+        return $transactions
+            ->groupBy('payment_method_id')
             ->map(function ($group) {
                 return [
+                    'payment_method_id' => $group->first()->payment_method_id,
+                    'payment_method' => $group->first()->paymentMethod?->name ?? 'Sin método',
                     'count' => $group->count(),
-                    'total' => $group->sum('amount'),
+                    'total' => round((float) $group->sum('amount'), 2),
                 ];
             })
+            ->values()
             ->toArray();
     }
 
@@ -358,15 +367,19 @@ class CashRegisterService
      */
     private function getSummaryByHour($transactions): array
     {
-        return $transactions->groupBy(function ($transaction) {
-            return Carbon::parse($transaction->created_at)->format('H');
-        })
-            ->map(function ($group) {
+        return $transactions
+            ->groupBy(function ($transaction) {
+                return Carbon::parse($transaction->created_at)->format('H');
+            })
+            ->sortKeys()
+            ->map(function ($group, $hour) {
                 return [
+                    'hour' => (string) $hour,
                     'count' => $group->count(),
-                    'total' => $group->sum('amount'),
+                    'total' => round((float) $group->sum('amount'), 2),
                 ];
             })
+            ->values()
             ->toArray();
     }
 }

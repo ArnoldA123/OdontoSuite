@@ -203,9 +203,12 @@ export function useApi() {
       }
     }
 
+    const method = options.method || 'GET'
+
     const response = await fetch(fullUrl, {
-      method: options.method || 'GET',
-      headers: { ...getHeaders(), ...(options.headers || {}) }
+      method,
+      headers: { ...getHeaders(), ...(options.headers || {}) },
+      body: method === 'GET' || options.data == null ? undefined : JSON.stringify(options.data)
     })
 
     if (response.status === 401) {
@@ -281,11 +284,11 @@ export function useApi() {
 
   return {
     get,
+    download,
     post,
     put,
     patch,
     delete: del,
-    download,
     setToken,
     normalizeError
   }

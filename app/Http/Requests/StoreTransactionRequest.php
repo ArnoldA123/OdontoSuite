@@ -102,6 +102,7 @@ class StoreTransactionRequest extends FormRequest
                 'nullable',
                 'numeric',
                 'min:0',
+                'lte:amount',
             ],
             'discount_authorized_by' => [
                 'nullable',

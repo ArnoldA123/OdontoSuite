@@ -161,6 +161,12 @@ class CashMovementController extends Controller
                 ], 422);
             }
 
+            if ($cashMovement->isDrawerSnapshot()) {
+                return response()->json([
+                    'message' => 'No se pueden modificar los movimientos de apertura o cierre de caja',
+                ], 422);
+            }
+
             $validated = $request->validate([
                 'description' => 'sometimes|string|max:255',
                 'notes' => 'nullable|string|max:500',
@@ -203,8 +209,8 @@ class CashMovementController extends Controller
                 ], 422);
             }
 
-            // Don't allow deletion of system movements (opening/closing)
-            if (in_array($cashMovement->type, ['opening', 'closing'])) {
+            // Don't allow deletion of the drawer snapshots (opening/closing)
+            if ($cashMovement->isDrawerSnapshot()) {
                 return response()->json([
                     'message' => 'No se pueden eliminar movimientos del sistema',
                 ], 422);

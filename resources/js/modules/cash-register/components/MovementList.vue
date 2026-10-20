@@ -1,317 +1,107 @@
 <template>
-  <div class="movement-list bg-canvas">
-    <!-- Filtros -->
-    <div class="mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Desde</label>
-          <input
-            v-model="filters.date_from"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Fecha Hasta</label>
-          <input
-            v-model="filters.date_to"
-            type="date"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-theme-primary mb-1">Tipo</label>
-          <select
-            v-model="filters.type"
-            class="block w-full px-3 py-2 border border-hairline rounded-md shadow-sm bg-theme-surface-elevated text-theme-primary focus:outline-none sm:text-sm"
-          >
-            <option value="">Todos</option>
-            <option value="income">Ingreso</option>
-            <option value="expense">Egreso</option>
-            <option value="opening">Apertura</option>
-            <option value="closing">Cierre</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex justify-between items-center mt-4">
-        <Button variant="secondary" :loading="loading" @click="applyFilters">
-          <MagnifyingGlassIcon class="w-4 h-4 mr-2" />
-          Filtrar
-        </Button>
-
-        <div class="flex space-x-2">
-          <Button variant="secondary" :loading="exporting" @click="exportToExcel">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            Excel
-          </Button>
-
-          <Button variant="secondary" :loading="exporting" @click="exportToPDF">
-            <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-            PDF
-          </Button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Resumen de Totales -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-      <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <ArrowUpIcon class="w-6 h-6 text-green-600" />
-          </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-green-600">Total Ingresos</p>
-            <p class="text-2xl font-bold text-green-900 tabular-nums">
-              {{ formatCurrency(totals.income) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <ArrowDownIcon class="w-6 h-6 text-red-600" />
-          </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-red-600">Total Egresos</p>
-            <p class="text-2xl font-bold text-red-900 tabular-nums">
-              {{ formatCurrency(totals.expense) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <BanknotesIcon class="w-6 h-6 text-accent" />
-          </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-accent">Apertura</p>
-            <p class="text-2xl font-bold text-primary-800 tabular-nums">
-              {{ formatCurrency(totals.opening) }}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="bg-primary-50 border border-primary-200 rounded-lg p-4">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <XMarkIcon class="w-6 h-6 text-accent" />
-          </div>
-          <div class="ml-3">
-            <p class="text-sm font-medium text-accent">Cierre</p>
-            <p class="text-2xl font-bold text-accent-active tabular-nums">
-              {{ formatCurrency(totals.closing) }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla de Movimientos -->
-    <div class="bg-theme-surface-elevated shadow-sm rounded-lg overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-hairline">
-          <thead class="bg-theme-surface">
-            <tr>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Hora
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Tipo
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Descripción
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Referencia
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-right text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Monto
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Usuario
-              </th>
-              <th
-                scope="col"
-                class="px-6 py-3 text-left text-xs font-medium text-theme-secondary uppercase tracking-wider"
-              >
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-theme-surface-elevated divide-y divide-hairline">
-            <tr v-if="loading" class="animate-pulse">
-              <td colspan="7" class="px-6 py-4 text-center">
-                <UiLoadingSpinner size="md" variant="primary" text="Cargando movimientos..." />
-              </td>
-            </tr>
-
-            <tr v-else-if="movements.length === 0">
-              <td colspan="7" class="px-6 py-4 text-center text-theme-secondary">
-                No hay movimientos registrados
-              </td>
-            </tr>
-
-            <tr
-              v-for="movement in movements"
-              v-else
-              :key="movement.id"
-              class="hover:bg-theme-surface"
-            >
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ formatTime(movement.created_at) }}
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap">
-                <UiStatusBadge
-                  :variant="getTypeVariant(movement.type)"
-                  :label="getTypeText(movement.type)"
-                />
-              </td>
-
-              <td class="px-6 py-4">
-                <div class="text-sm text-theme-primary">
-                  {{ movement.description }}
-                </div>
-                <div v-if="movement.notes" class="text-sm text-theme-secondary">
-                  {{ movement.notes }}
-                </div>
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ movement.reference || '-' }}
-              </td>
-
-              <td
-                class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium tabular-nums"
-                :class="getAmountClass(movement.type)"
-                :aria-label="`${getAmountPrefix(movement.type)}${formatCurrency(movement.amount)} soles`"
-              >
-                {{ getAmountPrefix(movement.type) }}{{ formatCurrency(movement.amount) }}
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-theme-primary">
-                {{ movement.created_by?.name || 'Sistema' }}
-              </td>
-
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <button
-                    class="text-accent hover:text-primary-700"
-                    title="Ver detalle"
-                    @click="viewMovement(movement)"
-                  >
-                    <EyeIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    v-if="canEdit(movement)"
-                    class="text-yellow-600 hover:text-yellow-900"
-                    title="Editar"
-                    @click="editMovement(movement)"
-                  >
-                    <PencilIcon class="w-4 h-4" />
-                  </button>
-
-                  <button
-                    v-if="canDelete(movement)"
-                    class="text-red-600 hover:text-red-900"
-                    title="Eliminar"
-                    @click="deleteMovement(movement)"
-                  >
-                    <TrashIcon class="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Paginación -->
-    <div v-if="pagination && pagination.total > 0" class="mt-6 flex items-center justify-between">
-      <div class="text-sm text-theme-primary">
-        Mostrando {{ (pagination.current_page - 1) * pagination.per_page + 1 }} a
-        <span class="tabular-nums">
-          {{ Math.min(pagination.current_page * pagination.per_page, pagination.total) }}
-        </span>
-        de
-        <span class="tabular-nums">{{ pagination.total }}</span>
-        resultados
-      </div>
-
-      <div class="flex space-x-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          :disabled="pagination.current_page <= 1"
-          @click="loadPage(pagination.current_page - 1)"
+  <div class="space-y-6 bg-canvas" data-movement-list>
+    <section aria-label="Totales de movimientos" class="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <UiCard
+        v-for="total in totals"
+        :key="total.key"
+        variant="glass"
+        padding="sm"
+        :data-movement-total="total.key"
+        :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+      >
+        <p class="text-xs font-medium uppercase text-theme-secondary">{{ total.label }}</p>
+        <p
+          class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+          data-movement-total-value
         >
-          Anterior
-        </Button>
+          {{ total.value }}
+        </p>
+        <p class="mt-1 text-xs text-theme-secondary">{{ total.caption }}</p>
+      </UiCard>
+    </section>
 
-        <span class="px-3 py-2 text-sm text-theme-primary tabular-nums">
-          Página {{ pagination.current_page }} de {{ pagination.last_page }}
-        </span>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+        Movimientos del turno
+      </p>
+      <UiButton
+        variant="secondary"
+        size="sm"
+        :loading="loading"
+        data-movement-refresh
+        @click="reload"
+      >
+        <template #icon-left>
+          <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+        </template>
+        Actualizar
+      </UiButton>
+    </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          :disabled="pagination.current_page >= pagination.last_page"
-          @click="loadPage(pagination.current_page + 1)"
+    <UiDataTable
+      :data="movements"
+      :columns="columns"
+      :loading="loading"
+      :pagination="false"
+      searchable
+      empty-title="Sin movimientos"
+      empty-description="Los movimientos del turno aparecerán aquí."
+      row-key="id"
+      data-movement-table
+    >
+      <template #cell-created_at="{ value }">
+        {{ formatTime(value) }}
+      </template>
+
+      <template #cell-type="{ row }">
+        <UiStatusBadge :variant="typeVariant(row.type)" :label="typeLabel(row.type)" />
+      </template>
+
+      <template #cell-description="{ row }">
+        <p class="text-sm text-theme-primary">{{ row.description }}</p>
+        <p v-if="row.notes" class="text-xs text-theme-secondary">{{ row.notes }}</p>
+      </template>
+
+      <template #cell-reference="{ value }">
+        {{ value || '—' }}
+      </template>
+
+      <template #cell-amount="{ row }">
+        <span
+          class="tabular-nums"
+          :class="amountTone(row.type)"
+          :aria-label="`${amountPrefix(row.type)}${formatCurrency(row.amount)} soles`"
         >
-          Siguiente
-        </Button>
-      </div>
+          {{ amountPrefix(row.type) }}{{ formatCurrency(row.amount) }}
+        </span>
+      </template>
+
+      <template #cell-created_by="{ row }">
+        {{ row.created_by?.name || 'Sistema' }}
+      </template>
+    </UiDataTable>
+
+    <div v-if="pagination && pagination.last_page > 1" data-movement-pagination>
+      <UiPagination
+        :current-page="pagination.current_page"
+        :total-pages="pagination.last_page"
+        :total="pagination.total"
+        :per-page="pagination.per_page"
+        @page-change="loadPage"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import Button from '@/components/ui/Button.vue'
+import { computed } from 'vue'
+import UiButton from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
+import UiDataTable from '@/components/ui/DataTable.vue'
+import UiPagination from '@/components/ui/Pagination.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
-import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import { usePermissions } from '@/composables/usePermissions'
 import { formatCurrency } from '@/composables/useFormatters'
-import {
-  MagnifyingGlassIcon,
-  DocumentArrowDownIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  BanknotesIcon,
-  XMarkIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon
-} from '@heroicons/vue/24/outline'
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   movements: {
@@ -332,178 +122,88 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['refresh', 'edit', 'delete'])
+const emit = defineEmits(['refresh'])
 
-const { can } = usePermissions()
+const columns = [
+  { key: 'created_at', label: 'Hora' },
+  { key: 'type', label: 'Tipo' },
+  { key: 'description', label: 'Descripción' },
+  { key: 'reference', label: 'Referencia' },
+  { key: 'amount', label: 'Monto', align: 'right' },
+  { key: 'created_by', label: 'Usuario' }
+]
 
-// Estado
-const filters = ref({
-  date_from: '',
-  date_to: '',
-  type: ''
-})
+const TYPE_LABELS = {
+  income: 'Ingreso',
+  expense: 'Egreso',
+  opening: 'Apertura',
+  closing: 'Cierre',
+  withdrawal: 'Retiro',
+  deposit: 'Depósito',
+  adjustment: 'Ajuste'
+}
 
-const exporting = ref(false)
+const TYPE_VARIANTS = {
+  income: 'success',
+  expense: 'error',
+  opening: 'info',
+  closing: 'info',
+  withdrawal: 'warning',
+  deposit: 'success',
+  adjustment: 'neutral'
+}
 
-// Computed
-const totals = computed(() => {
-  // Si tenemos resumen de la sesión, usarlo directamente
-  if (props.summary) {
-    return {
-      income: parseFloat(props.summary.total_income || 0),
-      expense: parseFloat(props.summary.total_expenses || 0),
-      opening: parseFloat(props.summary.opening_amount || 0),
-      closing: 0 // El cierre se calcula al cerrar la sesión
-    }
+const totals = computed(() => [
+  {
+    key: 'cash_in',
+    label: 'Ingresos de efectivo',
+    value: props.summary ? formatCurrency(props.summary.cash_in) : 'N/D',
+    caption: 'Cobros y depósitos'
+  },
+  {
+    key: 'cash_out',
+    label: 'Egresos de efectivo',
+    value: props.summary ? formatCurrency(props.summary.cash_out) : 'N/D',
+    caption: 'Gastos y retiros'
+  },
+  {
+    key: 'net_flow',
+    label: 'Flujo neto',
+    value: props.summary ? formatCurrency(props.summary.net_flow) : 'N/D',
+    caption: 'Entradas menos salidas'
   }
+])
 
-  // Si no hay resumen, calcular desde los movimientos
-  const income = props.movements
-    .filter(m => ['income', 'opening'].includes(m.type))
-    .reduce((sum, m) => {
-      const amount = parseFloat(m.amount) || 0
-      return sum + amount
-    }, 0)
+const reload = () => emit('refresh')
 
-  const expense = props.movements
-    .filter(m => ['expense', 'closing'].includes(m.type))
-    .reduce((sum, m) => {
-      const amount = parseFloat(m.amount) || 0
-      return sum + amount
-    }, 0)
-
-  const opening = props.movements
-    .filter(m => m.type === 'opening')
-    .reduce((sum, m) => {
-      const amount = parseFloat(m.amount) || 0
-      return sum + amount
-    }, 0)
-
-  const closing = props.movements
-    .filter(m => m.type === 'closing')
-    .reduce((sum, m) => {
-      const amount = parseFloat(m.amount) || 0
-      return sum + amount
-    }, 0)
-
-  return {
-    income: isNaN(income) ? 0 : income,
-    expense: isNaN(expense) ? 0 : expense,
-    opening: isNaN(opening) ? 0 : opening,
-    closing: isNaN(closing) ? 0 : closing
-  }
-})
-
-// Métodos
-const applyFilters = () => {
-  emit('refresh', filters.value)
-}
-
-const loadPage = page => {
-  emit('refresh', { ...filters.value, page })
-}
-
-const viewMovement = () => {
-  // Implementar vista de detalle
-}
-
-const editMovement = movement => {
-  emit('edit', movement)
-}
-
-const deleteMovement = async movement => {
-  const ok = await confirm({
-    title: 'Eliminar movimiento',
-    message: '¿Está seguro de eliminar este movimiento?',
-    confirmText: 'Eliminar',
-    variant: 'danger'
-  })
-  if (!ok) return
-  emit('delete', movement)
-}
-
-const exportToExcel = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a Excel
-  } catch (error) {
-    // La exportación a Excel aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
-
-const exportToPDF = async () => {
-  exporting.value = true
-  try {
-    // Implementar exportación a PDF
-  } catch (error) {
-    // La exportación a PDF aún no está implementada
-  } finally {
-    exporting.value = false
-  }
-}
+const loadPage = page => emit('refresh', { page })
 
 const formatTime = dateTime => {
-  return new Date(dateTime).toLocaleTimeString('es-PE', {
+  const date = new Date(dateTime)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleTimeString('es-PE', {
     hour: '2-digit',
     minute: '2-digit'
   })
 }
 
-// formatCurrency is imported from useFormatters (PAGOS-MNY-002 canonicalization).
+const typeLabel = type => TYPE_LABELS[type] || type
 
-const getTypeText = type => {
-  const texts = {
-    income: 'Ingreso',
-    expense: 'Egreso',
-    opening: 'Apertura',
-    closing: 'Cierre',
-    withdrawal: 'Retiro',
-    deposit: 'Depósito',
-    adjustment: 'Ajuste'
-  }
-  return texts[type] || type
-}
+const typeVariant = type => TYPE_VARIANTS[type] || 'neutral'
 
-const getTypeVariant = type => {
-  const variants = {
-    income: 'success',
-    expense: 'error',
-    opening: 'info',
-    closing: 'info',
-    withdrawal: 'warning',
-    deposit: 'success',
-    adjustment: 'neutral'
-  }
-  return variants[type] || 'neutral'
-}
+const isInflow = type => ['income', 'opening', 'deposit'].includes(type)
 
-const getAmountClass = type => {
-  if (['income', 'opening', 'deposit'].includes(type)) {
-    return 'text-green-600'
-  } else if (['expense', 'closing', 'withdrawal'].includes(type)) {
-    return 'text-red-600'
-  }
+const isOutflow = type => ['expense', 'closing', 'withdrawal'].includes(type)
+
+const amountTone = type => {
+  if (isInflow(type)) return 'text-systemGreen-600'
+  if (isOutflow(type)) return 'text-systemRed-600'
   return 'text-theme-secondary'
 }
 
-const getAmountPrefix = type => {
-  if (['income', 'opening', 'deposit'].includes(type)) {
-    return '+'
-  } else if (['expense', 'closing', 'withdrawal'].includes(type)) {
-    return '-'
-  }
+const amountPrefix = type => {
+  if (isInflow(type)) return '+'
+  if (isOutflow(type)) return '-'
   return ''
-}
-
-const canEdit = movement => {
-  // Solo se pueden editar movimientos que no sean del sistema
-  return !['opening', 'closing'].includes(movement.type) && can.value?.manageCashRegister
-}
-
-const canDelete = movement => {
-  // Solo se pueden eliminar movimientos que no sean del sistema
-  return !['opening', 'closing'].includes(movement.type) && can.value?.manageCashRegister
 }
 </script>

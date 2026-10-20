@@ -1,214 +1,269 @@
 <template>
   <AppLayout>
-    <div class="cash-register-page bg-canvas">
-      <!-- Header Section -->
-      <PageHeader
-        title="Gestión de Caja"
-        subtitle="Administra las sesiones de caja y transacciones"
-        class="mb-6"
+    <div class="space-y-6">
+      <header
+        data-caja-hero
+        class="p-6 md:p-8"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-2);
+        "
       >
-        <template #actions>
-          <UiStatusBadge
-            :variant="sessionStatusVariant"
-            :label="sessionStatusText"
-            size="md"
-            show-dot
-          />
-          <UiButton
-            v-if="canOpen"
-            variant="primary"
-            :loading="loading"
-            @click="showOpenModal = true"
-          >
-            <PlusIcon class="w-4 h-4 mr-2" />
-            Abrir Caja
-          </UiButton>
-          <UiButton
-            v-if="canClose"
-            variant="danger"
-            :loading="loading"
-            @click="showCloseModal = true"
-          >
-            <XMarkIcon class="w-4 h-4 mr-2" />
-            Cerrar Caja
-          </UiButton>
-        </template>
-      </PageHeader>
-
-      <!-- Dashboard en Tiempo Real -->
-      <div
-        v-if="hasActiveSession"
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-      >
-        <!-- Monto de Apertura -->
-        <UiCard variant="glass">
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-systemBlue-100 rounded-xl flex items-center justify-center">
-              <BanknotesIcon class="w-6 h-6 text-systemBlue-600" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-theme-secondary">Apertura</p>
-              <p class="text-2xl font-bold text-theme-primary tabular-nums">
-                {{ formatCurrency(summary?.opening_amount) }}
-              </p>
-            </div>
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="min-w-0">
+            <p
+              class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+              data-hero-eyebrow
+            >
+              Operación
+            </p>
+            <h2 class="mt-2 text-4xl font-semibold text-label" data-hero-title>Caja</h2>
+            <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
+              Sesiones, cobros y movimientos del turno
+            </p>
           </div>
-        </UiCard>
-
-        <!-- Total Ingresos -->
-        <UiCard variant="glass">
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-systemGreen-100 rounded-xl flex items-center justify-center">
-              <ArrowUpIcon class="w-6 h-6 text-systemGreen-600" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-theme-secondary">Ingresos</p>
-              <p class="text-2xl font-bold text-systemGreen-600 tabular-nums">
-                {{ formatCurrency(summary?.total_income) }}
-              </p>
-            </div>
-          </div>
-        </UiCard>
-
-        <!-- Total Egresos -->
-        <UiCard variant="glass">
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-systemRed-100 rounded-xl flex items-center justify-center">
-              <ArrowDownIcon class="w-6 h-6 text-systemRed-600" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-theme-secondary">Egresos</p>
-              <p class="text-2xl font-bold text-systemRed-600 tabular-nums">
-                {{ formatCurrency(summary?.total_expenses) }}
-              </p>
-            </div>
-          </div>
-        </UiCard>
-
-        <!-- Saldo Actual -->
-        <UiCard variant="glass">
-          <div class="flex items-center">
-            <div class="w-12 h-12 bg-systemBlue-100 rounded-xl flex items-center justify-center">
-              <BanknotesIcon class="w-6 h-6 text-systemBlue-600" />
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-theme-secondary">Saldo Actual</p>
-              <p class="text-2xl font-bold text-systemBlue-600 tabular-nums">
-                {{ formatCurrency(realTimeTotals?.currentBalance) }}
-              </p>
-            </div>
-          </div>
-        </UiCard>
-      </div>
-
-      <!-- Tabs de Navegación -->
-      <div class="mb-6">
-        <UiTabs v-model="activeTab" :tabs="tabs" />
-      </div>
-
-      <!-- Contenido de las Tabs -->
-      <div class="space-y-6">
-        <!-- Tab: Pagos -->
-        <div v-if="activeTab === 'payments'">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-theme-primary">Cobros de Pacientes</h2>
-            <UiButton variant="primary" @click="showPaymentModal = true">
-              <PlusIcon class="w-4 h-4 mr-2" />
-              Registrar Cobro
+          <div class="flex flex-wrap items-center gap-3 md:justify-end">
+            <UiStatusBadge
+              data-hero-state
+              :variant="sessionStatusVariant"
+              :label="sessionStatusText"
+              size="md"
+              show-dot
+            />
+            <UiButton
+              v-if="canOpen"
+              variant="primary"
+              data-hero-action="open"
+              @click="showOpenModal = true"
+            >
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Abrir caja
+            </UiButton>
+            <UiButton
+              v-if="canClose"
+              variant="danger"
+              data-hero-action="close"
+              @click="showCloseModal = true"
+            >
+              <template #icon-left>
+                <LockClosedIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Cerrar caja
             </UiButton>
           </div>
-
-          <PendingPaymentsList
-            :key="pendingPaymentsKey"
-            @payment="handlePaymentFromList"
-            @payments-loaded="handlePendingPaymentsLoaded"
-          />
         </div>
+      </header>
 
-        <!-- Tab: Cobros -->
-        <div v-if="activeTab === 'transactions'">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-theme-primary">Transacciones</h2>
+      <div
+        v-if="loadError"
+        role="alert"
+        data-caja-error
+        class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+        style="
+          background: var(--color-canvas);
+          border: 1px solid var(--color-hairline);
+          border-radius: var(--radius-panel);
+          box-shadow: var(--elevation-1);
+        "
+      >
+        <p class="text-sm text-systemRed-600">No se pudo cargar la caja: {{ loadError }}</p>
+        <UiButton variant="secondary" size="sm" data-caja-retry @click="reloadSession">
+          Reintentar
+        </UiButton>
+      </div>
+
+      <section
+        aria-label="Resumen de caja"
+        class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
+      >
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="opening"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Apertura</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            data-kpi-value="opening"
+          >
+            {{ kpiOpening }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="opening">Monto inicial</p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="income"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Cobros</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            data-kpi-value="income"
+          >
+            {{ kpiIncome }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="income">Ventas cobradas</p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="expenses"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Egresos</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            data-kpi-value="expenses"
+          >
+            {{ kpiExpenses }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="expenses">Reembolsos</p>
+        </UiCard>
+
+        <UiCard
+          variant="glass"
+          padding="sm"
+          data-kpi-card="expected"
+          :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
+        >
+          <p class="text-xs font-medium uppercase text-theme-secondary">Saldo esperado</p>
+          <p
+            class="mt-2 text-2xl font-bold leading-none text-label tabular-nums"
+            data-kpi-value="expected"
+          >
+            {{ kpiExpected }}
+          </p>
+          <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="expected">
+            Apertura + movimientos
+          </p>
+        </UiCard>
+      </section>
+
+      <UiTabs v-model="activeTab" :tabs="tabs" data-caja-tabs />
+
+      <div v-if="activeTab === 'payments'">
+        <CashSectionHeader
+          title="Cobros de pacientes"
+          caption="Citas completadas con saldo pendiente"
+        >
+          <template #actions>
+            <UiButton variant="primary" data-section-action="payment" @click="openPaymentModal()">
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Registrar cobro
+            </UiButton>
+          </template>
+        </CashSectionHeader>
+
+        <PendingPaymentsList
+          :key="pendingPaymentsKey"
+          @payment="handlePaymentFromList"
+          @payments-loaded="handlePendingPaymentsLoaded"
+        />
+      </div>
+
+      <div v-if="activeTab === 'transactions'">
+        <CashSectionHeader title="Transacciones" caption="Cobros y reembolsos de la sesión">
+          <template #actions>
             <UiButton
               v-if="canCreateTransaction"
               variant="primary"
+              data-section-action="transaction"
               :disabled="!hasActiveSession"
               @click="showTransactionModal = true"
             >
-              <PlusIcon class="w-4 h-4 mr-2" />
-              Nueva Transacción
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Nueva transacción
             </UiButton>
-          </div>
+          </template>
+        </CashSectionHeader>
 
-          <TransactionList
-            :transactions="transactions"
-            :loading="loading"
-            :pagination="pagination"
-            @refresh="loadTransactions"
-            @edit="editTransaction"
-            @void="voidTransaction"
-            @receipt="generateReceipt"
-          />
-        </div>
+        <TransactionList
+          :transactions="transactions"
+          :loading="transactionsLoading"
+          :pagination="pagination"
+          :can-void="canVoid"
+          @refresh="loadTransactions"
+          @void="voidTransaction"
+          @receipt="downloadReceipt"
+        />
+      </div>
 
-        <!-- Tab: Movimientos -->
-        <div v-if="activeTab === 'movements'">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-theme-primary">Movimientos de Caja</h2>
+      <div v-if="activeTab === 'movements'">
+        <CashSectionHeader
+          title="Movimientos de caja"
+          caption="Entradas, salidas y retiros del turno"
+        >
+          <template #actions>
             <UiButton
               v-if="canCreateMovement"
               variant="primary"
+              data-section-action="movement"
               :disabled="!hasActiveSession"
               @click="showMovementModal = true"
             >
-              <PlusIcon class="w-4 h-4 mr-2" />
-              Nuevo Movimiento
+              <template #icon-left>
+                <PlusIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Nuevo movimiento
             </UiButton>
-          </div>
+          </template>
+        </CashSectionHeader>
 
-          <MovementList
-            :movements="movements"
-            :loading="loading"
-            :pagination="movementPagination"
-            :summary="summary"
-            @refresh="loadMovements"
-          />
-        </div>
-
-        <!-- Tab: Historial -->
-        <div v-if="activeTab === 'history'">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-theme-primary">Historial de Sesiones</h2>
-            <UiButton variant="secondary" :loading="loading" @click="loadSessions">
-              <ArrowPathIcon class="w-4 h-4 mr-2" />
-              Actualizar
-            </UiButton>
-          </div>
-
-          <SessionList
-            :sessions="sessions"
-            :loading="loading"
-            :pagination="sessionPagination"
-            @refresh="loadSessions"
-            @view="viewSession"
-          />
-        </div>
-
-        <!-- Tab: Reportes -->
-        <div v-if="activeTab === 'reports'">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-theme-primary">Reportes de Caja</h2>
-            <UiButton variant="primary" :loading="loading" @click="generateReport">
-              <DocumentArrowDownIcon class="w-4 h-4 mr-2" />
-              Generar Reporte
-            </UiButton>
-          </div>
-
-          <CashReports :summary="summary" :loading="loading" @export="exportReport" />
-        </div>
+        <MovementList
+          :movements="movements"
+          :loading="movementsLoading"
+          :pagination="movementPagination"
+          :summary="summary"
+          @refresh="loadMovements"
+        />
       </div>
 
-      <!-- Modales (slice 07 / T-07.19: unify modal contract on v-model) -->
+      <div v-if="activeTab === 'history'">
+        <CashSectionHeader title="Historial de sesiones" caption="Turnos abiertos y cerrados">
+          <template #actions>
+            <UiButton
+              variant="secondary"
+              data-section-action="refresh-sessions"
+              :loading="sessionsLoading"
+              @click="loadSessions()"
+            >
+              <template #icon-left>
+                <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Actualizar
+            </UiButton>
+          </template>
+        </CashSectionHeader>
+
+        <SessionList
+          :sessions="sessions"
+          :loading="sessionsLoading"
+          :pagination="sessionPagination"
+          @refresh="loadSessions"
+        />
+      </div>
+
+      <div v-if="activeTab === 'reports'">
+        <CashSectionHeader
+          title="Reportes de caja"
+          caption="Cierre y ventas por período"
+        ></CashSectionHeader>
+
+        <CashReports />
+      </div>
+
       <OpenCashModal v-model="showOpenModal" @success="handleOpenSuccess" />
 
       <CloseCashModal
@@ -226,14 +281,6 @@
         @success="handleMovementSuccess"
       />
 
-      <ReceiptPreview
-        v-model="showReceiptModal"
-        :transaction="selectedTransaction"
-        @print="handlePrint"
-        @download="handleDownload"
-      />
-
-      <!-- Modal de Pagos -->
       <PaymentModal
         v-model="showPaymentModal"
         :selected-patient="selectedPaymentPatient"
@@ -247,7 +294,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { useCashRegister } from '@/composables/useCashRegister'
 import { useTransactions } from '@/composables/useTransactions'
@@ -257,11 +304,11 @@ import { useApi } from '@/composables/useApi'
 import { useConfirm } from '@/composables/useConfirm'
 import { formatCurrency } from '@/composables/useFormatters'
 
-// Components
-import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
+import UiCard from '@/components/ui/Card.vue'
 import UiTabs from '@/components/ui/Tabs.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import CashSectionHeader from './components/CashSectionHeader.vue'
 import TransactionList from './components/TransactionList.vue'
 import MovementList from './components/MovementList.vue'
 import SessionList from './components/SessionList.vue'
@@ -272,31 +319,19 @@ import OpenCashModal from './components/OpenCashModal.vue'
 import CloseCashModal from './components/CloseCashModal.vue'
 import TransactionModal from './components/TransactionModal.vue'
 import MovementModal from './components/MovementModal.vue'
-import ReceiptPreview from '@/components/ui/ReceiptPreview.vue'
 
-// Icons
-import {
-  PlusIcon,
-  XMarkIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-  BanknotesIcon,
-  ArrowPathIcon,
-  DocumentArrowDownIcon
-} from '@heroicons/vue/24/outline'
+import { PlusIcon, LockClosedIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 
-// Composables
 const {
   currentSession,
   summary,
-  loading,
+  loading: sessionLoading,
+  error: loadError,
   hasActiveSession,
   isOpen,
   isClosed,
-  realTimeTotals,
   loadCurrentSession,
-  getSessions,
-  setupWebSocketSubscriptions
+  getSessions
 } = useCashRegister()
 
 const {
@@ -306,21 +341,20 @@ const {
   voidTransaction: voidTransactionApi
 } = useTransactions()
 
-const { createTransaction: canCreateTransaction, createMovement: canCreateMovement } =
-  usePermissions()
-const { get } = useApi()
+const { can } = usePermissions()
+const { get, download } = useApi()
 const toast = useToast()
 const { confirm } = useConfirm()
 
-// Estado
-const activeTab = ref('payments')
+const activeTab = ref('transactions')
 const showOpenModal = ref(false)
 const showCloseModal = ref(false)
 const showPaymentModal = ref(false)
 const showTransactionModal = ref(false)
 const showMovementModal = ref(false)
-const showReceiptModal = ref(false)
-const selectedTransaction = ref(null)
+const transactionsLoading = ref(false)
+const movementsLoading = ref(false)
+const sessionsLoading = ref(false)
 const selectedPaymentPatient = ref(null)
 const selectedPaymentAppointment = ref(null)
 const pendingPaymentsList = ref([])
@@ -330,18 +364,26 @@ const sessionPagination = ref(null)
 const movements = ref([])
 const movementPagination = ref(null)
 
-// Tabs
-const tabs = ref([
-  { id: 'payments', label: 'Cobros', icon: BanknotesIcon },
-  { id: 'transactions', label: 'Transacciones', icon: BanknotesIcon },
-  { id: 'movements', label: 'Movimientos', icon: ArrowUpIcon },
-  { id: 'history', label: 'Historial', icon: DocumentArrowDownIcon },
-  { id: 'reports', label: 'Reportes', icon: DocumentArrowDownIcon }
-])
+const canCreateTransaction = computed(() => can.createTransaction.value)
+const canCreateMovement = computed(() => can.createMovement.value)
+const canVoid = computed(() => can.voidTransaction.value)
+const canViewReports = computed(() => can.viewCashReports.value)
+const canViewPendingPayments = computed(() => can.manageCashRegister.value)
 
-// Computed
-// Session state drives the <UiStatusBadge> variant (PR-pagos-05a): the
-// hardcoded green/red dot classes are owned by the badge primitive now.
+const tabs = computed(() => {
+  const items = []
+  if (canViewPendingPayments.value) items.push({ id: 'payments', label: 'Cobros' })
+  items.push({ id: 'transactions', label: 'Transacciones' })
+  items.push({ id: 'movements', label: 'Movimientos' })
+  items.push({ id: 'history', label: 'Historial' })
+  if (canViewReports.value) items.push({ id: 'reports', label: 'Reportes' })
+  return items
+})
+
+if (canViewPendingPayments.value) {
+  activeTab.value = 'payments'
+}
+
 const sessionStatusVariant = computed(() => {
   if (isOpen.value) return 'success'
   if (isClosed.value) return 'error'
@@ -349,106 +391,125 @@ const sessionStatusVariant = computed(() => {
 })
 
 const sessionStatusText = computed(() => {
-  if (isOpen.value) return 'Sesión Abierta'
-  if (isClosed.value) return 'Sesión Cerrada'
-  return 'Sin Sesión'
+  if (isOpen.value) return 'Sesión abierta'
+  if (isClosed.value) return 'Sesión cerrada'
+  return 'Sin sesión'
 })
 
-const canOpen = computed(() => {
-  return !hasActiveSession.value && !loading.value
+const canOpen = computed(() => !hasActiveSession.value && !sessionLoading.value)
+const canClose = computed(() => isOpen.value && !sessionLoading.value)
+
+const kpiOpening = computed(() =>
+  summary.value ? formatCurrency(summary.value.opening_amount) : 'N/D'
+)
+const kpiIncome = computed(() =>
+  summary.value ? formatCurrency(summary.value.total_income) : 'N/D'
+)
+const kpiExpenses = computed(() =>
+  summary.value ? formatCurrency(summary.value.total_expenses) : 'N/D'
+)
+const kpiExpected = computed(() =>
+  summary.value ? formatCurrency(summary.value.expected_amount) : 'N/D'
+)
+
+const pendingPatientsForModal = computed(() => {
+  const uniquePatients = new Map()
+  pendingPaymentsList.value.forEach(payment => {
+    if (!uniquePatients.has(payment.patient.id)) {
+      uniquePatients.set(payment.patient.id, payment.patient)
+    }
+  })
+  return Array.from(uniquePatients.values())
 })
 
-const canClose = computed(() => {
-  return isOpen.value && !loading.value
-})
+const reloadSession = async () => {
+  await loadCurrentSession()
+  if (hasActiveSession.value) {
+    await Promise.all([loadTransactions(), loadMovements()])
+  }
+}
 
-// Métodos
-const loadTransactions = async () => {
+const loadTransactions = async (filters = {}) => {
   if (!hasActiveSession.value) {
     return
   }
 
+  transactionsLoading.value = true
   try {
-    loading.value = true
-
     const response = await getTransactions({
-      cash_register_session_id: currentSession.value.id
+      cash_register_session_id: currentSession.value.id,
+      ...filters
     })
-
     transactions.value = response.data || []
     pagination.value = response.meta || null
   } catch (error) {
     toast.error('Error al cargar transacciones')
   } finally {
-    loading.value = false
+    transactionsLoading.value = false
   }
 }
 
-const loadMovements = async () => {
+const loadMovements = async (filters = {}) => {
   if (!hasActiveSession.value) {
     return
   }
 
+  movementsLoading.value = true
   try {
-    const response = await get(`/api/cash-register/sessions/${currentSession.value.id}/movements`)
-
+    const response = await get(`/api/cash-register/sessions/${currentSession.value.id}/movements`, {
+      params: filters
+    })
     movements.value = response.data || []
     movementPagination.value = response.meta || null
   } catch (error) {
     toast.error('Error al cargar movimientos')
+  } finally {
+    movementsLoading.value = false
   }
 }
 
-const loadSessions = async () => {
+const sessionFilters = ref({})
+
+const loadSessions = async (filters = sessionFilters.value) => {
+  sessionFilters.value = filters
+  sessionsLoading.value = true
   try {
-    const response = await getSessions()
+    const response = await getSessions(filters)
     sessions.value = response.data || []
     sessionPagination.value = response.meta || null
   } catch (error) {
     toast.error('Error al cargar sesiones')
+  } finally {
+    sessionsLoading.value = false
   }
 }
 
 const handleOpenSuccess = session => {
-  currentSession.value = session
   showOpenModal.value = false
+
+  if (session) {
+    currentSession.value = session
+  }
 
   toast.success('Sesión de caja abierta exitosamente')
 
-  // Los eventos WebSocket se manejan automáticamente en useCashRegister
-  loadTransactions()
-  loadMovements()
+  reloadSession()
 }
 
 const handleCloseSuccess = async () => {
-  currentSession.value = null
   showCloseModal.value = false
-
   toast.success('Sesión de caja cerrada exitosamente')
-
-  // Los eventos WebSocket se manejan automáticamente en useCashRegister
-  await loadSessions()
+  await Promise.all([loadCurrentSession(), loadSessions()])
 }
 
 const handleTransactionSuccess = async () => {
   toast.success('Transacción registrada exitosamente')
-
-  // Pequeño delay para asegurar que la BD se haya actualizado
-  await new Promise(resolve => setTimeout(resolve, 300))
-
-  // Recargar sesión para actualizar el resumen (incluye las tarjetas)
-  await loadCurrentSession()
-
-  // Recargar lista de transacciones
-  await loadTransactions()
-  // Recargar movimientos para mantener consistencia
-  await loadMovements()
+  await reloadSession()
 }
 
 const handleMovementSuccess = async () => {
   toast.success('Movimiento registrado exitosamente')
-  await loadCurrentSession()
-  await loadMovements()
+  await Promise.all([loadCurrentSession(), loadMovements()])
 }
 
 const handlePaymentSuccess = async paymentData => {
@@ -462,33 +523,21 @@ const handlePaymentSuccess = async paymentData => {
       `N° Transacción: ${transactionNumber}`,
     {
       duration: 7000,
-      title: '✓ Cobro Exitoso'
+      title: 'Cobro registrado'
     }
   )
 
-  // Pequeño delay para asegurar que la BD se haya actualizado
-  await new Promise(resolve => setTimeout(resolve, 500))
-
-  // Forzar actualización de datos de caja
-  await loadCurrentSession()
-
-  // Esperar un tick adicional para asegurar que Vue procese los cambios
-  await new Promise(resolve => setTimeout(resolve, 100))
-
-  // Recargar listas
-  await loadTransactions()
-  await loadMovements()
-
-  reloadPendingPayments()
-}
-
-// Método para recargar pagos pendientes
-const reloadPendingPayments = () => {
+  await reloadSession()
   pendingPaymentsKey.value++
 }
 
+const openPaymentModal = () => {
+  selectedPaymentPatient.value = null
+  selectedPaymentAppointment.value = null
+  showPaymentModal.value = true
+}
+
 const handlePaymentFromList = payment => {
-  // Pre-llenar el modal con los datos del pago pendiente
   selectedPaymentPatient.value = {
     id: payment.patient.id,
     name: payment.patient.name,
@@ -510,51 +559,11 @@ const handlePendingPaymentsLoaded = payments => {
   pendingPaymentsList.value = payments
 }
 
-const pendingPatientsForModal = computed(() => {
-  // Extraer pacientes únicos de los pagos pendientes
-  const uniquePatients = new Map()
-  pendingPaymentsList.value.forEach(payment => {
-    if (!uniquePatients.has(payment.patient.id)) {
-      uniquePatients.set(payment.patient.id, payment.patient)
-    }
-  })
-  return Array.from(uniquePatients.values())
-})
-
 const handlePaymentModalClose = () => {
-  // v-model handles the boolean now; only the cleanup of the selected
-  // patient/appointment refs remains.
   setTimeout(() => {
     selectedPaymentPatient.value = null
     selectedPaymentAppointment.value = null
   }, 300)
-}
-
-const editTransaction = () => {
-  // Implementar edición de transacción
-}
-
-const generateReport = async () => {
-  loading.value = true
-  try {
-    const response = await get('/api/cash-register/reports/period', {
-      params: {
-        start_date: new Date().toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0]
-      }
-    })
-
-    summary.value = response.data
-    toast.success('Reporte generado exitosamente')
-  } catch (error) {
-    toast.error('Error al generar reporte')
-  } finally {
-    loading.value = false
-  }
-}
-
-const exportReport = async () => {
-  // Este método será llamado por CashReports
 }
 
 const voidTransaction = async transaction => {
@@ -569,41 +578,30 @@ const voidTransaction = async transaction => {
   try {
     await voidTransactionApi(transaction.id, 'Anulación manual')
     toast.success('Transacción anulada exitosamente')
-    loadTransactions()
+    await reloadSession()
   } catch (error) {
     toast.error('Error al anular transacción')
   }
 }
 
-const generateReceipt = transaction => {
-  selectedTransaction.value = transaction
-  showReceiptModal.value = true
+const downloadReceipt = async transaction => {
+  try {
+    const { blob } = await download(`/api/transactions/${transaction.id}/receipt`, {
+      method: 'POST'
+    })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank', 'noopener')
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  } catch (error) {
+    toast.error('No se pudo descargar el comprobante')
+  }
 }
 
-const handlePrint = () => {
-  toast.info('Imprimiendo comprobante...')
-}
-
-const handleDownload = () => {
-  toast.info('Descargando comprobante...')
-}
-
-// formatCurrency is imported from useFormatters (PR-pagos-01 canonicalization).
-
-// Lifecycle
 onMounted(async () => {
   await loadCurrentSession()
   if (hasActiveSession.value) {
-    await loadTransactions()
-    await loadMovements()
+    await Promise.all([loadTransactions(), loadMovements()])
   }
   await loadSessions()
-
-  // Configurar WebSockets para actualizaciones en tiempo real
-  setupWebSocketSubscriptions()
-})
-
-onUnmounted(() => {
-  // La limpieza de WebSockets se maneja automáticamente en useCashRegister
 })
 </script>
