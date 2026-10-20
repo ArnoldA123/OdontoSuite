@@ -209,6 +209,46 @@ describe('procedure stats charts (T3 / S5)', () => {
     expect(chartMock.destroy).toHaveBeenCalledTimes(2)
   })
 
+  it('shortens the axis labels only when the rendered canvas is narrow', async () => {
+    const longNamePayload = {
+      ...payload,
+      top_procedures: [
+        {
+          procedure_id: 9,
+          code: 'P-009',
+          name: 'Brackets metálicos, control mensual',
+          usage_count: 2,
+          total_quantity: 2,
+          total_revenue: 360
+        }
+      ]
+    }
+    getMock.mockResolvedValue({ data: longNamePayload })
+
+    const setCanvasWidth = width =>
+      Object.defineProperty(HTMLCanvasElement.prototype, 'clientWidth', {
+        configurable: true,
+        get: () => width
+      })
+
+    try {
+      // jsdom has no layout: a canvas reads 0 without an explicit width, and
+      // 0 must fall back to the desktop budget instead of the narrow one.
+      setCanvasWidth(320)
+      let wrapper = await mountPage()
+      expect(chartMock.instances[0].config.data.labels).toEqual(['Brackets metáli…'])
+      wrapper.unmount()
+
+      chartMock.instances.length = 0
+      setCanvasWidth(800)
+      wrapper = await mountPage()
+      expect(chartMock.instances[0].config.data.labels).toEqual(['Brackets metálicos, control…'])
+      wrapper.unmount()
+    } finally {
+      delete HTMLCanvasElement.prototype.clientWidth
+    }
+  })
+
   it('creates no charts and no canvases when the period is empty', async () => {
     getMock.mockResolvedValue({ data: emptyPayload })
 
