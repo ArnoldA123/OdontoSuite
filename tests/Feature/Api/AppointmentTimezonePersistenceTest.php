@@ -21,7 +21,8 @@ use Tests\TestCase;
  * inputs must keep their wall clock, which is the regression case these tests
  * pin alongside the offset case.
  *
- * Requires the MySQL runner (phpunit.mysql.xml) — see AGENTS.md §6 (decision #79).
+ * Needs a real schema, so Tests\TestCase skips it on any non-MySQL runner
+ * (issue #170); run it with phpunit.mysql.xml — see AGENTS.md §6 (decision #79).
  */
 class AppointmentTimezonePersistenceTest extends TestCase
 {
@@ -182,6 +183,22 @@ class AppointmentTimezonePersistenceTest extends TestCase
         $response = $this->actingAs($this->actor(), 'sanctum')
             ->patchJson("/api/appointments/{$appointment->id}/reschedule", [
                 'scheduled_at' => $offsetIso,
+                'duration_minutes' => self::DURATION,
+            ]);
+
+        $response->assertOk();
+        $this->assertRowHoldsSlot($appointment->id, $slot);
+    }
+
+    public function test_reschedule_with_naive_local_datetime_keeps_the_wall_clock(): void
+    {
+        $dentist = $this->dentist();
+        $appointment = $this->appointmentFor($dentist, $this->localSlot()->addDays(2));
+        $slot = $this->localSlot();
+
+        $response = $this->actingAs($this->actor(), 'sanctum')
+            ->patchJson("/api/appointments/{$appointment->id}/reschedule", [
+                'scheduled_at' => $slot->format('Y-m-d\TH:i:s'),
                 'duration_minutes' => self::DURATION,
             ]);
 
