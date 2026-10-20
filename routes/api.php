@@ -230,6 +230,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Planes de tratamiento (clínicos y admin)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
+        Route::get('treatment-plans/summary', [TreatmentPlanController::class, 'summary']);
         Route::apiResource('treatment-plans', TreatmentPlanController::class);
         Route::post('treatment-plans/{id}/change-status', [TreatmentPlanController::class, 'changeStatus']);
         Route::post('treatment-plans/{id}/duplicate', [TreatmentPlanController::class, 'duplicate']);
