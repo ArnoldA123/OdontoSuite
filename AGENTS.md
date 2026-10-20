@@ -126,7 +126,7 @@ database/
                            #   DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
+  api.php                  # 199 rutas API (medido con php artisan route:list --json: uris api/…; 212 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -375,6 +375,18 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (treatment-plans-ui-redesign)** — Planes de tratamiento pasa al
+  lenguaje del dashboard en sus cuatro superficies (lista y kanban, modal de
+  alta/edición, detalle del plan y tarjetas/columnas/badge): hero band, tira de
+  cuatro KPIs, tarjeta de filtros con presets y estados de carga, error con
+  reintento y vacío compartido. Añade `GET /api/treatment-plans/summary` para
+  que los KPIs resuman la tabla completa y no la página visible, más los filtros
+  de índice `statuses` (lista) y `overdue`, que hacen funcionar los presets
+  Activos/Vencidos (antes enviaban `status=active|overdue` y nunca filtraban).
+  §4 sincronizado: 199 rutas API, 212 totales con web. Sin migraciones ni
+  primitivas UI nuevas. Tests: `TreatmentPlansSummaryTest`,
+  `TreatmentPlansIndexFiltersTest`, `TreatmentPlansAppShellTest` y smokes JS del
+  módulo. Guard `scripts/audit/doc-drift.mjs` en verde.
 - **2026-10-20 (follow-ups #169/#170/#171 de citas)** — La ventana de lista de
   espera se compara por fecha completa (`whereDate` en ambos bordes): un
   `preferred_end_date` a medianoche cubre su día y el día de inicio cuenta
