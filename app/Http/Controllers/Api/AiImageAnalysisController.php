@@ -329,15 +329,6 @@ class AiImageAnalysisController extends Controller
      */
     public function analyzeUploadedImage(Request $request): JsonResponse
     {
-        // Log de datos recibidos para debugging
-        Log::info('Datos recibidos en analyzeUploadedImage:', [
-            'patient_id' => $request->patient_id,
-            'category' => $request->category,
-            'description' => $request->description,
-            'has_image' => $request->hasFile('image'),
-            'image_size' => $request->file('image') ? $request->file('image')->getSize() : null,
-        ]);
-
         $request->validate([
             'patient_id' => 'required|integer|exists:patients,id',
             'image' => 'required|image|max:20480', // 20MB
