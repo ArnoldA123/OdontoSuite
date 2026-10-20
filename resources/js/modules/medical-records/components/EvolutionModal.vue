@@ -270,6 +270,72 @@
         </div>
       </fieldset>
 
+      <fieldset
+        data-evolution-section="clinical-measurements"
+        class="space-y-4 rounded-ios border border-[color:var(--color-hairline)] p-4"
+      >
+        <legend class="px-1 text-sm font-semibold text-label">Mediciones clínicas</legend>
+        <p class="text-xs text-theme-secondary">
+          Opcionales. La profundidad y la recesión se registran en milímetros; el índice de placa,
+          en porcentaje; la movilidad, en grados de Miller (0 a 3).
+        </p>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <UiInput
+            v-model="form.clinical_measurements.pocket_depth_mm"
+            data-evolution-field="pocket_depth_mm"
+            label="Profundidad de sondaje"
+            type="number"
+            step="0.1"
+            min="0"
+            max="20"
+            placeholder="3.5"
+            hint="mm"
+            :error="fieldError('clinical_measurements.pocket_depth_mm')"
+          />
+          <UiInput
+            v-model="form.clinical_measurements.gingival_recession_mm"
+            data-evolution-field="gingival_recession_mm"
+            label="Recesión gingival"
+            type="number"
+            step="0.1"
+            min="0"
+            max="20"
+            placeholder="1.0"
+            hint="mm"
+            :error="fieldError('clinical_measurements.gingival_recession_mm')"
+          />
+          <UiInput
+            v-model="form.clinical_measurements.plaque_index_percent"
+            data-evolution-field="plaque_index_percent"
+            label="Índice de placa"
+            type="number"
+            min="0"
+            max="100"
+            placeholder="35"
+            hint="%"
+            :error="fieldError('clinical_measurements.plaque_index_percent')"
+          />
+          <UiInput
+            v-model="form.clinical_measurements.tooth_mobility"
+            data-evolution-field="tooth_mobility"
+            label="Movilidad dental"
+            type="number"
+            min="0"
+            max="3"
+            placeholder="0"
+            hint="Grado de Miller (0 a 3)"
+            :error="fieldError('clinical_measurements.tooth_mobility')"
+          />
+          <UiSelect
+            v-model="form.clinical_measurements.bleeding_on_probing"
+            data-evolution-field="bleeding_on_probing"
+            label="Sangrado al sondaje"
+            :options="bleedingOptions"
+            :error="fieldError('clinical_measurements.bleeding_on_probing')"
+          />
+        </div>
+      </fieldset>
+
       <div
         class="flex flex-wrap items-center justify-end gap-3 border-t border-[color:var(--color-hairline)] pt-4"
       >
@@ -291,6 +357,7 @@ import { useToast } from '@/composables/useToast'
 import UiButton from '@/components/ui/Button.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiModal from '@/components/ui/Modal.vue'
+import UiSelect from '@/components/ui/Select.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 const props = defineProps({
@@ -333,6 +400,21 @@ const dateOnly = value => {
 
 const vitalSignValue = value => (value === null || value === undefined ? '' : String(value))
 
+const bleedingValue = value => {
+  if (value === true) return 'true'
+  if (value === false) return 'false'
+
+  return ''
+}
+
+// Tri-state on purpose: an unticked checkbox cannot tell "not recorded" from
+// "no bleeding", and both are different clinical findings.
+const bleedingOptions = [
+  { value: '', label: 'Sin registrar' },
+  { value: 'true', label: 'Sí' },
+  { value: 'false', label: 'No' }
+]
+
 const emptyForm = () => ({
   evolution_date: today,
   subjective: '',
@@ -351,6 +433,13 @@ const emptyForm = () => ({
     heart_rate: '',
     temperature: '',
     respiratory_rate: ''
+  },
+  clinical_measurements: {
+    pocket_depth_mm: '',
+    gingival_recession_mm: '',
+    plaque_index_percent: '',
+    tooth_mobility: '',
+    bleeding_on_probing: ''
   }
 })
 
@@ -373,6 +462,13 @@ const evolutionToForm = evolution => ({
     heart_rate: vitalSignValue(evolution.vital_signs?.heart_rate),
     temperature: vitalSignValue(evolution.vital_signs?.temperature),
     respiratory_rate: vitalSignValue(evolution.vital_signs?.respiratory_rate)
+  },
+  clinical_measurements: {
+    pocket_depth_mm: vitalSignValue(evolution.clinical_measurements?.pocket_depth_mm),
+    gingival_recession_mm: vitalSignValue(evolution.clinical_measurements?.gingival_recession_mm),
+    plaque_index_percent: vitalSignValue(evolution.clinical_measurements?.plaque_index_percent),
+    tooth_mobility: vitalSignValue(evolution.clinical_measurements?.tooth_mobility),
+    bleeding_on_probing: bleedingValue(evolution.clinical_measurements?.bleeding_on_probing)
   }
 })
 
@@ -436,6 +532,25 @@ const buildVitalSigns = () => {
   return Object.keys(payload).length > 0 ? payload : null
 }
 
+const buildClinicalMeasurements = () => {
+  const measurements = form.value.clinical_measurements
+  const payload = {}
+  const pocketDepth = numericSign(measurements.pocket_depth_mm)
+  const gingivalRecession = numericSign(measurements.gingival_recession_mm)
+  const plaqueIndex = numericSign(measurements.plaque_index_percent)
+  const toothMobility = numericSign(measurements.tooth_mobility)
+
+  if (pocketDepth !== null) payload.pocket_depth_mm = pocketDepth
+  if (gingivalRecession !== null) payload.gingival_recession_mm = gingivalRecession
+  if (plaqueIndex !== null) payload.plaque_index_percent = plaqueIndex
+  if (toothMobility !== null) payload.tooth_mobility = toothMobility
+  if (measurements.bleeding_on_probing !== '') {
+    payload.bleeding_on_probing = measurements.bleeding_on_probing === 'true'
+  }
+
+  return Object.keys(payload).length > 0 ? payload : null
+}
+
 const buildPayload = () => ({
   evolution_date: form.value.evolution_date || today,
   subjective: text(form.value.subjective),
@@ -449,7 +564,8 @@ const buildPayload = () => ({
   next_appointment_notes: text(form.value.next_appointment_notes),
   requires_follow_up: form.value.requires_follow_up,
   follow_up_date: form.value.requires_follow_up ? form.value.follow_up_date || null : null,
-  vital_signs: buildVitalSigns()
+  vital_signs: buildVitalSigns(),
+  clinical_measurements: buildClinicalMeasurements()
 })
 
 const submitEvolution = async () => {

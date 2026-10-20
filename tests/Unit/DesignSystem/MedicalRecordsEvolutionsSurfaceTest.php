@@ -84,6 +84,15 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
         'next_appointment_notes',
     ];
 
+    /** `clinical_measurements` contract from issue #222 (units in the name). */
+    private const CLINICAL_MEASUREMENTS = [
+        'pocket_depth_mm',
+        'gingival_recession_mm',
+        'plaque_index_percent',
+        'bleeding_on_probing',
+        'tooth_mobility',
+    ];
+
     /** @return array<string, array{0: string}> */
     public static function surfaceProvider(): array
     {
@@ -418,11 +427,77 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
         // Vital signs mirror the column types: blood pressure is a string
         // (`120/80`), the other three are numeric measurements.
         $this->assertStringContainsString('data-evolution-field="blood_pressure"', $template);
+        $vitalSignsStart = strpos($template, 'data-evolution-section="vital-signs"');
+        $this->assertNotFalse($vitalSignsStart, 'The vital-signs fieldset must exist (EVO-R-009).');
+        $vitalSignsBlock = substr(
+            $template,
+            (int) $vitalSignsStart,
+            (int) strpos($template, '</fieldset>', (int) $vitalSignsStart) - (int) $vitalSignsStart
+        );
         $this->assertSame(
             3,
-            substr_count($template, 'type="number"'),
+            substr_count($vitalSignsBlock, 'type="number"'),
             'Heart rate, temperature and respiratory rate are numeric inputs (EVO-R-009).'
         );
+    }
+
+    /**
+     * EVO-R-011 — the modal captures the `clinical_measurements` contract
+     * (issue #222): five unit-bearing keys, each with its own field hook, and
+     * the tri-state bleeding selector instead of an ambiguous checkbox.
+     */
+    public function test_modal_captures_the_clinical_measurements_contract(): void
+    {
+        $source = $this->modal();
+        $template = $this->templateOf($source, 'EvolutionModal.vue');
+
+        $this->assertStringContainsString('data-evolution-section="clinical-measurements"', $template);
+
+        foreach (self::CLINICAL_MEASUREMENTS as $key) {
+            $this->assertStringContainsString(
+                sprintf('data-evolution-field="%s"', $key),
+                $template,
+                sprintf('The modal must capture `clinical_measurements.%s` (EVO-R-011).', $key)
+            );
+            $this->assertStringContainsString(
+                sprintf('form.clinical_measurements.%s', $key),
+                $template,
+                sprintf('The `%s` field must be bound to the form model (EVO-R-011).', $key)
+            );
+        }
+
+        $this->assertStringContainsString('clinical_measurements: buildClinicalMeasurements()', $source);
+        $this->assertStringContainsString('bleedingOptions', $source);
+        $this->assertStringContainsString('<UiSelect', $template);
+    }
+
+    /**
+     * EVO-R-012 — the timeline renders every recorded measurement with units,
+     * including the `false` bleeding finding (not recorded is a different
+     * result from "no bleeding").
+     */
+    public function test_timeline_renders_the_clinical_measurements(): void
+    {
+        $source = $this->timeline();
+        $template = $this->templateOf($source, 'EvolutionTimeline.vue');
+
+        $this->assertStringContainsString('data-evolution-measurements', $template);
+        $this->assertStringContainsString('clinicalMeasurements(evolution)', $template);
+
+        foreach (self::CLINICAL_MEASUREMENTS as $key) {
+            $this->assertStringContainsString(
+                sprintf("'%s'", $key),
+                $source,
+                sprintf('The timeline must map `%s` to a labelled chip (EVO-R-012).', $key)
+            );
+        }
+
+        $this->assertStringContainsString("label: 'Sondaje'", $source);
+        $this->assertStringContainsString("label: 'Recesión'", $source);
+        $this->assertStringContainsString("label: 'Índice de placa'", $source);
+        $this->assertStringContainsString("suffix: ' mm'", $source);
+        $this->assertStringContainsString("suffix: ' %'", $source);
+        $this->assertStringContainsString("value ? 'Sí' : 'No'", $source);
     }
 
     /**
