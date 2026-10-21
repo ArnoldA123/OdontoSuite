@@ -757,7 +757,7 @@ onBeforeUnmount(() => {
 
   if (echo) {
     try {
-      echo.leave('quotations')
+      echo.leave('private-quotations')
     } catch {
       // The channel was already closed; nothing to clean up.
     }

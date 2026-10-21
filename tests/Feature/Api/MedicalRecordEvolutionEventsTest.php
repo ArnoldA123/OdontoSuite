@@ -51,7 +51,7 @@ class MedicalRecordEvolutionEventsTest extends TestCase
             return $event->evolution->id === $evolution->id
                 && $event->evolution->medical_record_id === $record->id
                 && $event->broadcastAs() === 'clinical-evolution.updated'
-                && $event->broadcastOn()[0]->name === 'medical-records'
+                && $event->broadcastOn()[0]->name === 'private-medical-records'
                 && $serialized['medical_record']['id'] === $record->id
                 && $serialized['medical_record']['patient_id'] === $record->patient_id;
         });
@@ -74,7 +74,7 @@ class MedicalRecordEvolutionEventsTest extends TestCase
 
             return $event->evolution->id === $evolution->id
                 && $event->broadcastAs() === 'clinical-evolution.deleted'
-                && $event->broadcastOn()[0]->name === 'medical-records'
+                && $event->broadcastOn()[0]->name === 'private-medical-records'
                 && $payload['evolution_id'] === $evolution->id
                 && $payload['medical_record_id'] === $record->id
                 && $payload['patient_id'] === $record->patient_id;

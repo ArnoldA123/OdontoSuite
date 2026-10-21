@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\TreatmentPlan;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -27,7 +26,7 @@ class TreatmentPlanUpdated implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('treatment-plans'),
+            new PrivateChannel('treatment-plans'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

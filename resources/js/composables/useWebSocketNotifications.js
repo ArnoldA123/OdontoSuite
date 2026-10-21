@@ -10,7 +10,7 @@ import { NotificationService } from '@/services/NotificationService'
  */
 export function useWebSocketNotifications() {
   const route = useRoute()
-  const { channel, privateChannel, echo } = useEcho()
+  const { privateChannel, echo } = useEcho()
   const { addNotification } = useNotifications()
   const { error: showErrorToast } = useToast()
 
@@ -93,13 +93,13 @@ export function useWebSocketNotifications() {
   const setupSubscriptions = () => {
     try {
       // Canal de citas
-      const appointmentsChannel = channel('appointments')
+      const appointmentsChannel = privateChannel('appointments')
       if (appointmentsChannel) {
         appointmentsChannel
           .listen('.appointment.created', e => handleEvent('appointment.created', e))
           .listen('.appointment.updated', e => handleEvent('appointment.updated', e))
           .listen('.appointment.deleted', e => handleEvent('appointment.deleted', e))
-        channels.appointments = appointmentsChannel
+        channels['private-appointments'] = appointmentsChannel
       }
 
       // Canal de pacientes
@@ -109,17 +109,17 @@ export function useWebSocketNotifications() {
           .listen('.patient.created', e => handleEvent('patient.created', e))
           .listen('.patient.updated', e => handleEvent('patient.updated', e))
           .listen('.patient.deleted', e => handleEvent('patient.deleted', e))
-        channels.patients = patientsChannel
+        channels['private-patients'] = patientsChannel
       }
 
       // Canal de planes de tratamiento
-      const treatmentPlansChannel = channel('treatment-plans')
+      const treatmentPlansChannel = privateChannel('treatment-plans')
       if (treatmentPlansChannel) {
         treatmentPlansChannel
           .listen('.treatment-plan.created', e => handleEvent('treatment-plan.created', e))
           .listen('.treatment-plan.updated', e => handleEvent('treatment-plan.updated', e))
           .listen('.treatment-plan.deleted', e => handleEvent('treatment-plan.deleted', e))
-        channels.treatmentPlans = treatmentPlansChannel
+        channels['private-treatment-plans'] = treatmentPlansChannel
       }
 
       // Canal de presupuestos
@@ -130,11 +130,11 @@ export function useWebSocketNotifications() {
           .listen('.quotation.updated', e => handleEvent('quotation.updated', e))
           .listen('.quotation.approved', e => handleEvent('quotation.approved', e))
           .listen('.quotation.rejected', e => handleEvent('quotation.rejected', e))
-        channels.quotations = quotationsChannel
+        channels['private-quotations'] = quotationsChannel
       }
 
       // Canal de historias clínicas
-      const medicalRecordsChannel = channel('medical-records')
+      const medicalRecordsChannel = privateChannel('medical-records')
       if (medicalRecordsChannel) {
         medicalRecordsChannel
           .listen('.medical-record.created', e => handleEvent('medical-record.created', e))
@@ -143,42 +143,42 @@ export function useWebSocketNotifications() {
           .listen('.clinical-attachment.created', e =>
             handleEvent('clinical-attachment.created', e)
           )
-        channels.medicalRecords = medicalRecordsChannel
+        channels['private-medical-records'] = medicalRecordsChannel
       }
 
       // Canal de registros de especialidades
-      const specialtyRecordsChannel = channel('specialty-records')
+      const specialtyRecordsChannel = privateChannel('specialty-records')
       if (specialtyRecordsChannel) {
         specialtyRecordsChannel
           .listen('.specialty-record.created', e => handleEvent('specialty-record.created', e))
           .listen('.specialty-record.updated', e => handleEvent('specialty-record.updated', e))
-        channels.specialtyRecords = specialtyRecordsChannel
+        channels['private-specialty-records'] = specialtyRecordsChannel
       }
 
       // Canal de caja
-      const cashRegisterChannel = channel('cash-register')
+      const cashRegisterChannel = privateChannel('cash-register')
       if (cashRegisterChannel) {
         cashRegisterChannel
           .listen('.payment.registered', e => handleEvent('payment.registered', e))
           .listen('.cash-session.opened', e => handleEvent('cash-session.opened', e))
           .listen('.cash-session.closed', e => handleEvent('cash-session.closed', e))
-        channels.cashRegister = cashRegisterChannel
+        channels['private-cash-register'] = cashRegisterChannel
       }
 
       // Canal de recordatorios
-      const remindersChannel = channel('reminders')
+      const remindersChannel = privateChannel('reminders')
       if (remindersChannel) {
         remindersChannel.listen('.reminder.sent', e => handleEvent('reminder.sent', e))
-        channels.reminders = remindersChannel
+        channels['private-reminders'] = remindersChannel
       }
 
       // Canal de catalogo de procedimientos (Sprint 3 fix IM-4)
-      const procedureCatalogChannel = channel('procedure-catalog')
+      const procedureCatalogChannel = privateChannel('procedure-catalog')
       if (procedureCatalogChannel) {
         procedureCatalogChannel.listen('.procedure.catalog.deactivated', e =>
           handleEvent('procedure.catalog.deactivated', e)
         )
-        channels.procedureCatalog = procedureCatalogChannel
+        channels['private-procedure-catalog'] = procedureCatalogChannel
       }
     } catch (error) {
       console.error('[WebSocket] setupSubscriptions failed', error)
@@ -192,8 +192,10 @@ export function useWebSocketNotifications() {
   const cleanup = () => {
     if (echo) {
       try {
-        Object.keys(channels).forEach(channelName => {
-          echo.leave(channelName.replace(/([A-Z])/g, '-$1').toLowerCase())
+        // The keys are the wire names (`private-*`): Echo's leave() does not
+        // add the private prefix, so leaving the base name is a no-op.
+        Object.keys(channels).forEach(wireName => {
+          echo.leave(wireName)
         })
       } catch (e) {
         console.error('[WebSocket] cleanup failed', e)

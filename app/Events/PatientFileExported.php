@@ -4,7 +4,6 @@ namespace App\Events;
 
 use App\Models\Patient;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -26,7 +25,7 @@ class PatientFileExported implements ShouldBroadcast
     {
         $channels = [new PrivateChannel('dashboard-updates')];
         if ($this->user) {
-            $channels[] = new Channel('user.'.$this->user->id);
+            $channels[] = new PrivateChannel('user.'.$this->user->id);
         }
 
         return $channels;

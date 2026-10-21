@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\Transaction;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -27,7 +26,7 @@ class TransactionCreated implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('transactions'),
+            new PrivateChannel('transactions'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

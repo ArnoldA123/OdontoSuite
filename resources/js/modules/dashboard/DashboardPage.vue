@@ -755,7 +755,7 @@ const { get } = useApi()
 const { can } = usePermissions()
 const { currentSession, hasActiveSession, isOpen, realTimeTotals, loadCurrentSession } =
   useCashRegister()
-const { channel, privateChannel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 
 // State
 const loading = ref(false)
@@ -1498,7 +1498,7 @@ onMounted(async () => {
         .listen('.patient.deleted', () => debouncedLoadDashboardData())
     }
 
-    appointmentsChannel = channel('appointments')
+    appointmentsChannel = privateChannel('appointments')
     if (appointmentsChannel) {
       appointmentsChannel
         .listen('.appointment.created', e => {
@@ -1526,7 +1526,7 @@ onMounted(async () => {
         })
     }
 
-    cashRegisterChannel = channel('cash-register')
+    cashRegisterChannel = privateChannel('cash-register')
     if (cashRegisterChannel) {
       cashRegisterChannel
         .listen('.cash-session.opened', async () => {
@@ -1558,8 +1558,8 @@ onUnmounted(() => {
       // so the leave must name the wire channel.
       echo.leave('private-dashboard-updates')
       echo.leave('private-patients')
-      echo.leave('appointments')
-      echo.leave('cash-register')
+      echo.leave('private-appointments')
+      echo.leave('private-cash-register')
     } catch (e) {
       // teardown is best-effort
     }
