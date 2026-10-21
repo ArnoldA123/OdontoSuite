@@ -74,11 +74,13 @@ try {
       countDir('app/Http/Controllers/Api/Reports', '.php'),
     models: countDir('app/Models', '.php'),
     migrations: countDir('database/migrations', '.php'),
+    events: countDir('app/Events', '.php'),
     deprecatedEvents: readdirSync(resolve(ROOT, 'app/Events'))
       .filter(f => f.endsWith('.php'))
       .filter(f => read(`app/Events/${f}`).includes('@deprecated')).length,
     listenerClasses: countDir('app/Listeners', '.php'),
     cableos: countMatches(providerSrc, /Event::listen\(/g),
+    composables: countDir('resources/js/composables', '.js'),
     softDeletes: readdirSync(resolve(ROOT, 'app/Models'))
       .filter(f => f.endsWith('.php'))
       .filter(f => read(`app/Models/${f}`).includes('SoftDeletes')).length,
@@ -114,10 +116,12 @@ const structural = (id, label, pass, evidence) => {
   })
 }
 
+// §4 writes "N activos" and §8 writes "activos: N"; both are counting lines,
+// so the pattern accepts either order and allOccurrences reads the first defined group.
 numeric(
   'seeders',
-  'active seeders (§4 "N activos")',
-  allOccurrences(/(\d+)\s+activos/),
+  'active seeders (§4 "N activos", §8 "activos: N")',
+  allOccurrences(/(\d+)\s+activos\b|activos:\s*(\d+)/i),
   measured.seeders,
   'grep -c "::class," database/seeders/DatabaseSeeder.php'
 )
@@ -158,6 +162,15 @@ numeric(
   measured.migrations,
   'ls database/migrations/*.php'
 )
+// §6 also says "0 eventos `@deprecated` huérfanos": that phrase is not a
+// population count, so the lookahead keeps it out of the events check.
+numeric(
+  'events',
+  'event classes (§4/§6 "N eventos")',
+  allOccurrences(/(\d+)\s+eventos(?!\s+`@deprecated`)/),
+  measured.events,
+  'ls app/Events/*.php'
+)
 numeric(
   'deprecated-events',
   'orphan @deprecated events (§6)',
@@ -178,6 +191,13 @@ numeric(
   allOccurrences(/(\d+)\s+cableos/),
   measured.cableos,
   'grep -c "Event::listen" app/Providers/AppServiceProvider.php'
+)
+numeric(
+  'composables',
+  'composables (§4 "N composables")',
+  allOccurrences(/(\d+)\s+composables/),
+  measured.composables,
+  'ls resources/js/composables/*.js'
 )
 numeric(
   'api-routes',

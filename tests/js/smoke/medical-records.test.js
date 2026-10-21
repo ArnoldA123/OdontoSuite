@@ -20,25 +20,29 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
     normalizeError: () => ''
   })
 }))
-vi.mock('../../../resources/js/composables/useEcho', () => ({
-  useEcho: () => ({
-    echo: { leave: () => {} },
-    channel: () => {
-      const channel = {
-        listen: (name, handler) => {
-          harness.listeners[name] = handler
-          return channel
-        }
+vi.mock('../../../resources/js/composables/useEcho', () => {
+  // #249: medical-records is a private channel, so the page subscribes with
+  // `privateChannel`. The harness records the listeners there; the assertion
+  // that matters is that a live event still reaches the timeline.
+  const makeChannel = () => {
+    const channel = {
+      listen: (name, handler) => {
+        harness.listeners[name] = handler
+        return channel
       }
-      return channel
-    },
-    privateChannel: () => {
-      const channel = { listen: () => channel }
-      return channel
-    },
-    connectionStatus: { value: 'connected' }
-  })
-}))
+    }
+    return channel
+  }
+
+  return {
+    useEcho: () => ({
+      echo: { leave: () => {} },
+      channel: makeChannel,
+      privateChannel: makeChannel,
+      connectionStatus: { value: 'connected' }
+    })
+  }
+})
 vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))

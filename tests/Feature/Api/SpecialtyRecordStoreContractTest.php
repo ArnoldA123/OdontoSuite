@@ -15,9 +15,9 @@ use Tests\TestCase;
  * The redesigned interface creates one record per specialty, so every POST the
  * form can send must succeed. Two rules were broken before this test existed:
  * `rehabilitacion` required a `restoration_type` column that does not exist and
- * `cirugia_oral` required a `surgery_date` column that does not exist, while
- * implantology, endodontics and rehabilitation skipped the NOT NULL
- * `dental_piece_id`.
+ * `cirugia_oral` required a `surgery_date` column that did not exist then (the
+ * column arrived as an optional field in #246), while implantology, endodontics
+ * and rehabilitation skipped the NOT NULL `dental_piece_id`.
  *
  * Each case posts the minimal payload the form produces (piece selector
  * included) and asserts the row landed in its own table.
@@ -124,7 +124,7 @@ class SpecialtyRecordStoreContractTest extends TestCase
         ]);
     }
 
-    public function test_oral_surgery_accepts_the_site_instead_of_a_missing_surgery_date(): void
+    public function test_oral_surgery_accepts_the_surgical_site_and_the_procedure_type(): void
     {
         $this->create([
             'specialty' => 'cirugia_oral',

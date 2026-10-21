@@ -348,11 +348,11 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
         foreach ($channels as $channelName) {
             $this->assertTrue(
                 (bool) preg_match(
-                    "/channel\\s*\\(\\s*['\"]".preg_quote($channelName, '/')."['\"]\\s*\\)/",
+                    "/privateChannel\\s*\\(\\s*['\"]".preg_quote($channelName, '/')."['\"]\\s*\\)/",
                     $src
                 ),
                 sprintf(
-                    '%s MUST keep `channel(\'%s\')` subscription (PAC-RT-001). '
+                    '%s MUST keep `privateChannel(\'%s\')` subscription (PAC-RT-001). '
                         .'The Echo channels are the realtime pipe for cross-module patient events; '
                         .'a `<script>` edit that accidentally removes a subscription silently breaks '
                         .'cross-tab realtime updates.',

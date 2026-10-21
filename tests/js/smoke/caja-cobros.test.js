@@ -130,12 +130,41 @@ const submitPayment = async () => {
   await flushPromises()
 }
 
+const pickAdHocPatient = async label => {
+  const rows = [...document.querySelectorAll('[data-payment-patient-selector] .cursor-pointer')]
+  const row = rows.find(item => item.textContent.includes(label))
+  expect(row, `patient "${label}" must be listed by PatientSelector`).toBeTruthy()
+  row.click()
+  await flushPromises()
+}
+
+const anaPatient = {
+  id: 5,
+  first_name: 'Ana',
+  last_name: 'Torres',
+  document_number: '45123456',
+  phone: '999888777'
+}
+
+const patientsWithoutPendingPayments = [
+  {
+    id: 42,
+    first_name: 'Luis',
+    last_name: 'Paredes',
+    document_number: '70000001',
+    phone: '988777666'
+  }
+]
+
 beforeEach(() => {
   harness.apiGet.mockReset()
   harness.apiPost.mockReset()
   harness.apiGet.mockImplementation(url => {
     if (url === '/api/payment-methods/active') {
       return Promise.resolve({ data: [paymentMethod] })
+    }
+    if (url === '/api/patients') {
+      return Promise.resolve({ data: [anaPatient] })
     }
     return Promise.resolve({ data: [], meta: { total: 0 } })
   })
@@ -317,7 +346,7 @@ describe('PaymentModal', () => {
   it('falls back to the transactions endpoint for an ad-hoc charge', async () => {
     await mountPaymentModal({ selectedPatient: null, selectedAppointment: null })
 
-    await chooseOption('patient', 'Ana Torres')
+    await pickAdHocPatient('Ana Torres')
     const concept = document.querySelector('[data-payment-concept] input')
     concept.value = 'Limpieza'
     concept.dispatchEvent(new Event('input'))
@@ -347,6 +376,50 @@ describe('PaymentModal', () => {
       transactionNumber: 'TX-91',
       patient: { id: 5, name: 'Ana Torres' },
       paymentMethod: { name: 'Efectivo' }
+    })
+  })
+
+  it('lets an ad-hoc charge pick a patient with no pending payments', async () => {
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [paymentMethod] })
+      }
+      if (url === '/api/patients') {
+        return Promise.resolve({ data: patientsWithoutPendingPayments })
+      }
+      return Promise.resolve({ data: [] })
+    })
+
+    await mountPaymentModal({
+      selectedPatient: null,
+      selectedAppointment: null,
+      pendingPatients: []
+    })
+
+    expect(document.querySelector('[data-payment-patient-selector]')).not.toBeNull()
+
+    await pickAdHocPatient('Luis Paredes')
+    const concept = document.querySelector('[data-payment-concept] input')
+    concept.value = 'Venta de producto'
+    concept.dispatchEvent(new Event('input'))
+    await flushPromises()
+    const amount = document.querySelector('[data-payment-amount] input')
+    amount.value = '35'
+    amount.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    await chooseOption('method', 'Efectivo')
+    await submitPayment()
+
+    expect(document.body.textContent).toContain('Luis Paredes')
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    const [url, payload] = harness.apiPost.mock.calls[0]
+    expect(url).toBe('/api/transactions')
+    expect(payload).toMatchObject({
+      patient_id: 42,
+      amount: 35,
+      description: 'Venta de producto',
+      payment_method_id: 1
     })
   })
 

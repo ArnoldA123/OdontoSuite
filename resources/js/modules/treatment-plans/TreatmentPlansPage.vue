@@ -425,7 +425,7 @@ import {
 
 const OPEN_STATUSES = ['draft', 'proposed', 'approved', 'in_progress']
 
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 const toast = useToast()
 const { user } = useAuth()
 const {
@@ -703,7 +703,7 @@ onMounted(() => {
   document.addEventListener('keydown', onKeydown)
 
   try {
-    treatmentPlansChannel = channel('treatment-plans')
+    treatmentPlansChannel = privateChannel('treatment-plans')
     if (treatmentPlansChannel) {
       treatmentPlansChannel
         .listen('.treatment-plan.created', async () => {
@@ -734,7 +734,7 @@ onUnmounted(() => {
   document.removeEventListener('keydown', onKeydown)
   if (echo) {
     try {
-      echo.leave('treatment-plans')
+      echo.leave('private-treatment-plans')
     } catch (e) {
       // El canal ya estaba cerrado, nada que limpiar
     }

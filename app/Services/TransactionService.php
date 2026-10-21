@@ -13,6 +13,7 @@ use App\Models\Patient;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -88,10 +89,18 @@ class TransactionService
     }
 
     /**
-     * Void a transaction (only for administrators).
+     * Void a transaction.
+     *
+     * Issue #192, decision B: only an administrador may void. The route already
+     * answers 403 for the other cash roles; the guard here keeps the contract
+     * when the service is called without going through that route.
      */
     public function voidTransaction(int $transactionId, string $reason): Transaction
     {
+        if (Auth::user()?->role !== 'administrador') {
+            throw new AuthorizationException('Solo un administrador puede anular transacciones.');
+        }
+
         $transaction = Transaction::findOrFail($transactionId);
 
         if ($transaction->status === 'voided') {

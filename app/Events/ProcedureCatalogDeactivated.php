@@ -4,7 +4,6 @@ namespace App\Events;
 
 use App\Models\ProcedureCatalog;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -34,7 +33,7 @@ class ProcedureCatalogDeactivated implements ShouldBroadcast
     {
         return [
             new PrivateChannel('dashboard-updates'),
-            new Channel('procedure-catalog'),
+            new PrivateChannel('procedure-catalog'),
         ];
     }
 

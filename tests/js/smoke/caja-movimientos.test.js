@@ -262,6 +262,28 @@ describe('Caja movement modal contract', () => {
     wrapper.unmount()
   })
 
+  it('offers no adjustment in the manual type or concept selects', async () => {
+    const wrapper = await mountModal()
+
+    for (const name of ['type', 'concept']) {
+      const trigger = field(name).querySelector('button[aria-haspopup="true"]')
+      expect(trigger, `select "${name}" must render a trigger`).toBeTruthy()
+      trigger.click()
+      await flushPromises()
+
+      const labels = [...field(name).querySelectorAll('[role="listbox"] button')].map(button =>
+        button.textContent.trim()
+      )
+      expect(labels.length).toBeGreaterThan(0)
+      expect(labels).not.toContain('Ajuste')
+      expect(trigger.getAttribute('aria-expanded')).toBe('true')
+      trigger.click()
+      await flushPromises()
+    }
+
+    wrapper.unmount()
+  })
+
   it('speaks the v-model contract with the shared UiModal and UiSelect primitives', async () => {
     const wrapper = await mountModal()
 

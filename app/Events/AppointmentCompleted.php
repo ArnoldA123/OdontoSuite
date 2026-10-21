@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\Appointment;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -19,7 +18,7 @@ class AppointmentCompleted implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('appointments'),
+            new PrivateChannel('appointments'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

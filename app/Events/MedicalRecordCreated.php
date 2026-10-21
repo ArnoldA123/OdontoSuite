@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\MedicalRecord;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -27,7 +26,7 @@ class MedicalRecordCreated implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('medical-records'),
+            new PrivateChannel('medical-records'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

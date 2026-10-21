@@ -1,26 +1,8 @@
 <template>
-  <div
-    data-plan-detail
-    role="dialog"
-    aria-modal="true"
-    :aria-labelledby="headingId"
-    class="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-    @click="closeModal"
-  >
-    <div
-      class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-panel)]"
-      style="
-        background: var(--color-surface-elevated);
-        border: 1px solid var(--color-hairline);
-        box-shadow: var(--elevation-2);
-      "
-      @click.stop
-    >
+  <UiModal model-value size="4xl" :labelledby="headingId" data-plan-detail @close="closeModal">
+    <template #header>
       <!-- Header band: identity first, then the status and the plan flags. -->
-      <header
-        class="flex flex-wrap items-start justify-between gap-4 p-6"
-        style="border-bottom: 1px solid var(--color-hairline)"
-      >
+      <header class="flex flex-wrap items-start justify-between gap-4">
         <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
             Plan de tratamiento
@@ -70,271 +52,259 @@
           </template>
         </UiButton>
       </header>
+    </template>
 
-      <!-- Body: one block per information group, same order as before. -->
-      <div class="flex-1 space-y-4 overflow-y-auto p-6" data-detail-body>
-        <!-- Paciente -->
-        <section
-          class="rounded-[var(--radius-control)] bg-canvas p-4"
-          style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
-          data-detail-section="patient"
-        >
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-            Paciente
-          </h3>
-          <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Nombre</dt>
-              <dd class="mt-1 truncate text-sm text-theme-primary" data-detail-field="patient_name">
-                {{ patientName }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Email</dt>
-              <dd
-                class="mt-1 truncate text-sm text-theme-primary"
-                data-detail-field="patient_email"
-              >
-                {{ plan.patient?.email || 'No especificado' }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Teléfono</dt>
-              <dd
-                class="mt-1 text-sm text-theme-primary tabular-nums"
-                data-detail-field="patient_phone"
-              >
-                {{ plan.patient?.phone || 'No especificado' }}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Detalles del plan -->
-        <section
-          class="rounded-[var(--radius-control)] p-4"
-          style="border: 1px solid var(--color-hairline)"
-          data-detail-section="plan"
-        >
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-            Detalles del Plan
-          </h3>
-          <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div class="min-w-0 sm:col-span-2">
-              <dt class="text-xs font-medium text-theme-secondary">Descripción</dt>
-              <dd
-                class="mt-1 whitespace-pre-wrap text-sm text-theme-primary"
-                data-detail-field="description"
-              >
-                {{ plan.description || 'Sin descripción' }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Duración estimada</dt>
-              <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="weeks">
-                {{ durationLabel }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Fases</dt>
-              <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="phases">
-                {{ phaseLabel }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Fecha de inicio</dt>
-              <dd
-                class="mt-1 text-sm text-theme-primary tabular-nums"
-                data-detail-field="start_date"
-              >
-                {{ formatDate(plan.start_date) }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Fecha de fin</dt>
-              <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="end_date">
-                {{ formatDate(plan.end_date) }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Requiere anestesia</dt>
-              <dd
-                class="mt-1 text-sm font-medium"
-                :class="plan.requires_anesthesia ? 'text-systemRed-600' : 'text-theme-secondary'"
-                data-detail-field="anesthesia"
-              >
-                {{ plan.requires_anesthesia ? 'Sí' : 'No' }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-xs font-medium text-theme-secondary">Tratamiento urgente</dt>
-              <dd
-                class="mt-1 text-sm font-medium"
-                :class="plan.is_urgent ? 'text-systemRed-600' : 'text-theme-secondary'"
-                data-detail-field="urgent"
-              >
-                {{ plan.is_urgent ? 'Sí' : 'No' }}
-              </dd>
-            </div>
-          </dl>
-        </section>
-
-        <!-- Procedimientos: horizontal scroll keeps the columns readable on mobile. -->
-        <section
-          class="rounded-[var(--radius-control)] p-4"
-          style="border: 1px solid var(--color-hairline)"
-          data-detail-section="procedures"
-        >
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-            Procedimientos
-          </h3>
-          <div v-if="items.length" class="mt-3 overflow-x-auto">
-            <table class="w-full min-w-[640px] text-sm">
-              <caption class="sr-only">Procedimientos del plan</caption>
-              <thead>
-                <tr
-                  class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
-                  style="border-bottom: 1px solid var(--color-hairline)"
-                >
-                  <th scope="col" class="px-3 py-2 text-left">Procedimiento</th>
-                  <th scope="col" class="px-3 py-2 text-left">Fase</th>
-                  <th scope="col" class="px-3 py-2 text-right">Cantidad</th>
-                  <th scope="col" class="px-3 py-2 text-right">Costo unit.</th>
-                  <th scope="col" class="px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="item in items"
-                  :key="item.id"
-                  data-detail-item
-                  style="border-bottom: 1px solid var(--color-hairline)"
-                >
-                  <td class="px-3 py-3">
-                    <p class="font-medium text-theme-primary">
-                      {{ item.procedure_name || item.description || 'Procedimiento' }}
-                    </p>
-                    <p
-                      v-if="item.procedure_description || item.specialty || item.category"
-                      class="mt-1 text-xs text-theme-secondary"
-                    >
-                      {{ item.procedure_description || item.specialty || item.category }}
-                    </p>
-                  </td>
-                  <td class="px-3 py-3 text-theme-secondary tabular-nums">
-                    {{ item.phase_number ? `Fase ${item.phase_number}` : '—' }}
-                  </td>
-                  <td class="px-3 py-3 text-right text-theme-primary tabular-nums">
-                    {{ item.quantity }}
-                  </td>
-                  <td class="px-3 py-3 text-right text-theme-primary tabular-nums">
-                    {{ formatCurrency(item.unit_cost) }}
-                  </td>
-                  <td class="px-3 py-3 text-right font-medium text-theme-primary tabular-nums">
-                    {{ formatCurrency(itemTotal(item)) }}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr
-                  class="bg-canvas"
-                  style="
-                    background: var(--color-canvas);
-                    border-top: 1px solid var(--color-hairline);
-                  "
-                >
-                  <td colspan="4" class="px-3 py-3 text-right font-semibold text-theme-primary">
-                    Total
-                  </td>
-                  <td
-                    class="px-3 py-3 text-right font-semibold text-theme-primary tabular-nums"
-                    data-detail-total
-                  >
-                    {{ formatCurrency(plan.final_cost ?? plan.total_cost) }}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+    <!-- Body: one block per information group, same order as before. -->
+    <div class="space-y-4" data-detail-body>
+      <!-- Paciente -->
+      <section
+        class="rounded-[var(--radius-control)] bg-canvas p-4"
+        style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+        data-detail-section="patient"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Paciente</h3>
+        <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Nombre</dt>
+            <dd class="mt-1 truncate text-sm text-theme-primary" data-detail-field="patient_name">
+              {{ patientName }}
+            </dd>
           </div>
-          <p v-else class="mt-3 text-sm text-theme-secondary" data-detail-empty="procedures">
-            No hay procedimientos en este plan
-          </p>
-        </section>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Email</dt>
+            <dd class="mt-1 truncate text-sm text-theme-primary" data-detail-field="patient_email">
+              {{ plan.patient?.email || 'No especificado' }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Teléfono</dt>
+            <dd
+              class="mt-1 text-sm text-theme-primary tabular-nums"
+              data-detail-field="patient_phone"
+            >
+              {{ plan.patient?.phone || 'No especificado' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-        <!-- Notas -->
-        <section
-          v-if="plan.notes || plan.patient_notes"
-          class="rounded-[var(--radius-control)] p-4"
-          style="border: 1px solid var(--color-hairline)"
-          data-detail-section="notes"
-        >
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Notas</h3>
-          <div class="mt-3 space-y-3">
-            <div
-              v-if="plan.notes"
-              class="rounded-[var(--radius-control)] bg-canvas p-3"
-              style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
-              data-detail-field="notes"
+      <!-- Detalles del plan -->
+      <section
+        class="rounded-[var(--radius-control)] p-4"
+        style="border: 1px solid var(--color-hairline)"
+        data-detail-section="plan"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Detalles del Plan
+        </h3>
+        <dl class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="min-w-0 sm:col-span-2">
+            <dt class="text-xs font-medium text-theme-secondary">Descripción</dt>
+            <dd
+              class="mt-1 whitespace-pre-wrap text-sm text-theme-primary"
+              data-detail-field="description"
             >
-              <h4 class="text-xs font-medium text-theme-secondary">Notas internas</h4>
-              <p class="mt-1 whitespace-pre-wrap text-sm text-theme-primary">{{ plan.notes }}</p>
-            </div>
-            <div
-              v-if="plan.patient_notes"
-              class="rounded-[var(--radius-control)] bg-canvas p-3"
-              style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
-              data-detail-field="patient_notes"
+              {{ plan.description || 'Sin descripción' }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Duración estimada</dt>
+            <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="weeks">
+              {{ durationLabel }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Fases</dt>
+            <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="phases">
+              {{ phaseLabel }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Fecha de inicio</dt>
+            <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="start_date">
+              {{ formatDate(plan.start_date) }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Fecha de fin</dt>
+            <dd class="mt-1 text-sm text-theme-primary tabular-nums" data-detail-field="end_date">
+              {{ formatDate(plan.end_date) }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Requiere anestesia</dt>
+            <dd
+              class="mt-1 text-sm font-medium"
+              :class="plan.requires_anesthesia ? 'text-systemRed-600' : 'text-theme-secondary'"
+              data-detail-field="anesthesia"
             >
-              <h4 class="text-xs font-medium text-theme-secondary">Notas para el paciente</h4>
-              <p class="mt-1 whitespace-pre-wrap text-sm text-theme-primary">
-                {{ plan.patient_notes }}
+              {{ plan.requires_anesthesia ? 'Sí' : 'No' }}
+            </dd>
+          </div>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-theme-secondary">Tratamiento urgente</dt>
+            <dd
+              class="mt-1 text-sm font-medium"
+              :class="plan.is_urgent ? 'text-systemRed-600' : 'text-theme-secondary'"
+              data-detail-field="urgent"
+            >
+              {{ plan.is_urgent ? 'Sí' : 'No' }}
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Procedimientos: horizontal scroll keeps the columns readable on mobile. -->
+      <section
+        class="rounded-[var(--radius-control)] p-4"
+        style="border: 1px solid var(--color-hairline)"
+        data-detail-section="procedures"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Procedimientos
+        </h3>
+        <div v-if="items.length" class="mt-3 overflow-x-auto">
+          <table class="w-full min-w-[640px] text-sm">
+            <caption class="sr-only">Procedimientos del plan</caption>
+            <thead>
+              <tr
+                class="text-xs font-medium uppercase tracking-wide text-theme-secondary"
+                style="border-bottom: 1px solid var(--color-hairline)"
+              >
+                <th scope="col" class="px-3 py-2 text-left">Procedimiento</th>
+                <th scope="col" class="px-3 py-2 text-left">Fase</th>
+                <th scope="col" class="px-3 py-2 text-right">Cantidad</th>
+                <th scope="col" class="px-3 py-2 text-right">Costo unit.</th>
+                <th scope="col" class="px-3 py-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in items"
+                :key="item.id"
+                data-detail-item
+                style="border-bottom: 1px solid var(--color-hairline)"
+              >
+                <td class="px-3 py-3">
+                  <p class="font-medium text-theme-primary">
+                    {{ item.procedure_name || item.description || 'Procedimiento' }}
+                  </p>
+                  <p
+                    v-if="item.procedure_description || item.specialty || item.category"
+                    class="mt-1 text-xs text-theme-secondary"
+                  >
+                    {{ item.procedure_description || item.specialty || item.category }}
+                  </p>
+                </td>
+                <td class="px-3 py-3 text-theme-secondary tabular-nums">
+                  {{ item.phase_number ? `Fase ${item.phase_number}` : '—' }}
+                </td>
+                <td class="px-3 py-3 text-right text-theme-primary tabular-nums">
+                  {{ item.quantity }}
+                </td>
+                <td class="px-3 py-3 text-right text-theme-primary tabular-nums">
+                  {{ formatCurrency(item.unit_cost) }}
+                </td>
+                <td class="px-3 py-3 text-right font-medium text-theme-primary tabular-nums">
+                  {{ formatCurrency(itemTotal(item)) }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr
+                class="bg-canvas"
+                style="background: var(--color-canvas); border-top: 1px solid var(--color-hairline)"
+              >
+                <td colspan="4" class="px-3 py-3 text-right font-semibold text-theme-primary">
+                  Total
+                </td>
+                <td
+                  class="px-3 py-3 text-right font-semibold text-theme-primary tabular-nums"
+                  data-detail-total
+                >
+                  {{ formatCurrency(plan.final_cost ?? plan.total_cost) }}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p v-else class="mt-3 text-sm text-theme-secondary" data-detail-empty="procedures">
+          No hay procedimientos en este plan
+        </p>
+      </section>
+
+      <!-- Notas -->
+      <section
+        v-if="plan.notes || plan.patient_notes"
+        class="rounded-[var(--radius-control)] p-4"
+        style="border: 1px solid var(--color-hairline)"
+        data-detail-section="notes"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Notas</h3>
+        <div class="mt-3 space-y-3">
+          <div
+            v-if="plan.notes"
+            class="rounded-[var(--radius-control)] bg-canvas p-3"
+            style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+            data-detail-field="notes"
+          >
+            <h4 class="text-xs font-medium text-theme-secondary">Notas internas</h4>
+            <p class="mt-1 whitespace-pre-wrap text-sm text-theme-primary">{{ plan.notes }}</p>
+          </div>
+          <div
+            v-if="plan.patient_notes"
+            class="rounded-[var(--radius-control)] bg-canvas p-3"
+            style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+            data-detail-field="patient_notes"
+          >
+            <h4 class="text-xs font-medium text-theme-secondary">Notas para el paciente</h4>
+            <p class="mt-1 whitespace-pre-wrap text-sm text-theme-primary">
+              {{ plan.patient_notes }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Presupuestos asociados -->
+      <section
+        v-if="quotations.length"
+        class="rounded-[var(--radius-control)] p-4"
+        style="border: 1px solid var(--color-hairline)"
+        data-detail-section="quotations"
+      >
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Presupuestos Asociados
+        </h3>
+        <ul class="mt-3 space-y-2">
+          <li
+            v-for="quotation in quotations"
+            :key="quotation.id"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] bg-canvas p-3"
+            style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
+            data-detail-quotation
+          >
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-theme-primary tabular-nums">
+                {{ quotation.quotation_number || `Presupuesto #${quotation.id}` }}
+              </p>
+              <p class="mt-1 text-xs text-theme-secondary tabular-nums">
+                {{ formatDate(quotation.quotation_date) }}
               </p>
             </div>
-          </div>
-        </section>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-semibold text-theme-primary tabular-nums">
+                {{ formatCurrency(quotation.total_amount ?? quotation.total) }}
+              </span>
+              <QuotationStatusBadge :status="quotation.status" />
+            </div>
+          </li>
+        </ul>
+      </section>
+    </div>
 
-        <!-- Presupuestos asociados -->
-        <section
-          v-if="quotations.length"
-          class="rounded-[var(--radius-control)] p-4"
-          style="border: 1px solid var(--color-hairline)"
-          data-detail-section="quotations"
-        >
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-            Presupuestos Asociados
-          </h3>
-          <ul class="mt-3 space-y-2">
-            <li
-              v-for="quotation in quotations"
-              :key="quotation.id"
-              class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] bg-canvas p-3"
-              style="background: var(--color-canvas); border: 1px solid var(--color-hairline)"
-              data-detail-quotation
-            >
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-theme-primary tabular-nums">
-                  {{ quotation.quotation_number || `Presupuesto #${quotation.id}` }}
-                </p>
-                <p class="mt-1 text-xs text-theme-secondary tabular-nums">
-                  {{ formatDate(quotation.quotation_date) }}
-                </p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-sm font-semibold text-theme-primary tabular-nums">
-                  {{ formatCurrency(quotation.total_amount ?? quotation.total) }}
-                </span>
-                <QuotationStatusBadge :status="quotation.status" />
-              </div>
-            </li>
-          </ul>
-        </section>
-      </div>
-
+    <template #footer>
       <!-- Footer: audit line plus the three actions the page wires. -->
-      <footer
-        class="flex flex-wrap items-center justify-between gap-4 p-6"
-        style="border-top: 1px solid var(--color-hairline)"
-      >
+      <div class="flex w-full flex-wrap items-center justify-between gap-4">
         <p class="text-xs text-theme-secondary" data-detail-created-by>
           Creado el {{ formatDateTime(plan.created_at) }} por {{ createdByLabel }}
         </p>
@@ -353,15 +323,16 @@
           </UiButton>
           <UiButton variant="primary" data-action="close" @click="closeModal">Cerrar</UiButton>
         </div>
-      </footer>
-    </div>
-  </div>
+      </div>
+    </template>
+  </UiModal>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed } from 'vue'
 import { DocumentDuplicateIcon, PencilIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { formatCurrency } from '@/composables/useFormatters'
+import UiModal from '@/components/ui/Modal.vue'
 import PlanStatusBadge from './PlanStatusBadge.vue'
 import QuotationStatusBadge from '@/modules/quotations/components/QuotationStatusBadge.vue'
 
@@ -444,13 +415,4 @@ const formatDateTime = date => {
     minute: '2-digit'
   })
 }
-
-// Escape closes the overlay: the dialog owns its own dismissal so it stays
-// usable when mounted outside the page keyboard handler.
-const onKeydown = event => {
-  if (event.key === 'Escape') closeModal()
-}
-
-onMounted(() => document.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
