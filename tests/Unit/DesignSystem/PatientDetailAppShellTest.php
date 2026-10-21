@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pacientes-03 — PatientDetailAppShellTest.
  *
@@ -85,9 +87,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * per DLR-CORE-001 + `canvasRoutes` (PR0 landed). The page file does
      * NOT need a direct `bg-canvas` reference. We pin the `<AppLayout>`
      * reference instead.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_page_references_canvas_token(string $path): void
     {
         $src = self::readSource($path);
@@ -124,9 +125,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * The Edit modal at line 706+ still carries `border-theme` literals
      * (header divider + 2 raw `<select>` chromes) and is PR-pacientes-04
      * scope.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_border_theme_literal(string $path): void
     {
         $src = self::readSource($path);
@@ -153,9 +153,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * tab strip + audit tab content). The Edit modal at line 706+ still
      * has `focus:ring-primary-500 focus:border-transparent` on its raw
      * `<select>` chrome and is PR-pacientes-04 scope.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_focus_ring_alias(string $path): void
     {
         $src = self::readSource($path);
@@ -180,9 +179,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * owns the active state via its own `bg-systemBlue-500` indicator bar
      * + `text-systemBlue-600` text color; no legacy alias should leak
      * into the polished file.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_no_border_accent_active_indicator(string $path): void
     {
         $src = self::readSource($path);
@@ -215,9 +213,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * (v-model binding is the sole contract). UiTabs uses `v-model` to
      * propagate the active tab id back to the parent; the inline click
      * handler would silently double-update the ref.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_uses_ui_tabs(string $path): void
     {
         $src = self::readSource($path);
@@ -269,9 +266,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * `createTreatmentPlan`, `createQuotation`, `createMedicalRecord`,
      * `createSpecialtyRecord`). The template wires each tab's "Nuevo X"
      * button to those functions; neither side may be edited.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_cross_category_deep_links_preserved(string $path): void
     {
         $src = self::readSource($path);
@@ -314,9 +310,8 @@ class PatientDetailAppShellTest extends ModuleAppShellTestCase
      * buttons in sync with cross-module events; a `<script>` edit that
      * accidentally removes a subscription silently breaks cross-tab
      * realtime updates.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_echo_channels_preserved(string $path): void
     {
         $src = self::readSource($path);

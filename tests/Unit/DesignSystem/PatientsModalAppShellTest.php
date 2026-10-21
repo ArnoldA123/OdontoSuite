@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pacientes-02 — PatientsModalAppShellTest.
  *
@@ -104,9 +106,8 @@ class PatientsModalAppShellTest extends ModuleAppShellTestCase
      * background per DLR-CORE-001). The page file does NOT need to
      * reference `bg-canvas` / `var(--color-canvas)` directly — only the
      * AppLayout does. We pin the `<AppLayout>` reference instead.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_page_references_canvas_token(string $path): void
     {
         $src = self::pageSource();

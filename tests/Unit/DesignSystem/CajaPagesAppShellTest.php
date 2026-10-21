@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pagos-05a/b — CajaPagesAppShellTest. Pins the Apple-language surface for
  * the 5 PAGOS pages (Caja hub + ready-to-bill + quotations + admin CRUD list)
@@ -65,9 +67,8 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
      * raw Tailwind reds, and every `<style>` block (which is where the
      * `hover-lift` keyframes and the global `* { transition }` rule lived).
      * `<UiButton>` is the only button primitive left.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_pages_apple_language_surface(string $path): void
     {
         $src = self::readSource($path);
@@ -110,9 +111,8 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
     /**
      * PAGOS-MNY-002 — no file redeclares the canonical PEN formatter, and any
      * file that renders `formatCurrency(...)` imports it from `useFormatters`.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_pages_no_local_intl_pen_format(string $path): void
     {
         $src = self::readSource($path);

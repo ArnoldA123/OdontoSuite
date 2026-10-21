@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -106,9 +107,7 @@ JS;
     // Phase 1.1 — pure math (shapeMorphMath.js)
     // -----------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function math_module_exports_required_kernels(): void
     {
         $this->assertFileExists(self::mathPath(), 'shapeMorphMath.js must exist (RED → GREEN contract)');
@@ -129,9 +128,7 @@ JS;
         $this->assertTrue($r['hasDwellRemaining'], 'shapeMorphMath must export dwellRemaining');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function validate_transition_allows_idle_to_validating(): void
     {
         $body = <<<'JS'
@@ -144,9 +141,7 @@ JS;
         $this->assertTrue((bool) $r['ok'], 'idle → validating must be allowed (canonical first transition)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function validate_transition_blocks_validating_to_authenticating_before_dwell(): void
     {
         $body = <<<'JS'
@@ -160,9 +155,7 @@ JS;
         $this->assertFalse((bool) $r['blocked'], 'validating → authenticating must be blocked before dwell elapses');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function validate_transition_blocks_idle_to_idle(): void
     {
         $body = <<<'JS'
@@ -175,9 +168,7 @@ JS;
         $this->assertFalse((bool) $r['blocked'], 'idle → idle must be blocked (no-op self-transition)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function validate_transition_blocks_terminal_state_transitions(): void
     {
         $body = <<<'JS'
@@ -197,8 +188,6 @@ JS;
     }
 
     /**
-     * @test
-     *
      * The pure rule blocks `error → idle`, so NOTHING can reach `idle` from a
      * terminal state through `transition()`. The sanctioned exit is
      * `useShapeMorph.release()` — pinned by
@@ -213,6 +202,7 @@ JS;
      * path ended up bypassing the machine with a raw `state.value` write. The
      * name now states what the assertion actually pins.
      */
+    #[Test]
     public function validate_transition_blocks_error_to_idle(): void
     {
         // The composable's cancel() is the only legal exit from a terminal
@@ -231,9 +221,7 @@ JS;
         $this->assertFalse((bool) $r['blocked'], 'pure-math validateTransition must block error → idle (only cancel() may force it)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function validate_transition_blocks_unknown_state_strings(): void
     {
         $body = <<<'JS'
@@ -252,9 +240,7 @@ JS;
         $this->assertFalse((bool) $r['garbageTo'], 'empty to-state must be blocked');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function clamp_intensity_returns_zero_for_zero_input(): void
     {
         $body = <<<'JS'
@@ -269,9 +255,7 @@ JS;
         $this->assertEqualsWithDelta(0.0, (float) $r['negative'], 1e-9, 'clampIntensity(-0.5) must clamp to 0');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function clamp_intensity_caps_at_one(): void
     {
         $body = <<<'JS'
@@ -286,9 +270,7 @@ JS;
         $this->assertEqualsWithDelta(1.0, (float) $r['above'], 1e-9, 'clampIntensity(2.5) must clamp to 1');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function dwell_remaining_returns_zero_when_elapsed(): void
     {
         $body = <<<'JS'
@@ -302,9 +284,7 @@ JS;
         $this->assertEqualsWithDelta(0.0, (float) $r['remaining'], 1e-9, 'dwellRemaining must return 0 once dwell has elapsed');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function dwell_remaining_returns_positive_when_active(): void
     {
         $body = <<<'JS'
@@ -339,9 +319,7 @@ JS;
     // wraps `ref` and exposes the value as a getter, the shim works.)
     // -----------------------------------------------------------------
 
-    /**
-     * @test
-     */
+    #[Test]
     public function use_shape_morph_initial_state_is_idle(): void
     {
         $this->assertFileExists(self::composablePath(), 'useShapeMorph.js must exist (RED → GREEN contract)');
@@ -356,9 +334,7 @@ JS;
         $this->assertSame('idle', (string) $r['initialState'], 'useShapeMorph initial state must be idle');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function transition_returns_false_for_invalid(): void
     {
         $body = <<<'JS'
@@ -372,9 +348,7 @@ JS;
         $this->assertFalse((bool) $r['blocked'], 'transition(idle → idle) must return false (blocked by validateTransition)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function cancel_returns_to_idle(): void
     {
         $body = <<<'JS'
@@ -390,9 +364,7 @@ JS;
         $this->assertSame('idle', (string) $r['stateAfterCancel'], 'cancel() from validating must return to idle');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function cancel_blocks_terminal_states(): void
     {
         $body = <<<'JS'
@@ -410,14 +382,13 @@ JS;
     }
 
     /**
-     * @test
-     *
      * `release()` is the state machine's own door out of a terminal state, and
      * the only sanctioned one. It exists because the docstring and the test name
      * above promised that `cancel()` could force a terminal state back to idle
      * while the implementation refused — so the failure path bypassed the
      * machine instead of fixing the contract.
      */
+    #[Test]
     public function release_is_the_only_exit_from_a_terminal_state(): void
     {
         $body = <<<'JS'
@@ -444,9 +415,7 @@ JS;
         $this->assertFalse((bool) $r['terminalIdle'], 'isTerminalState(idle) must be false');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function timer_clears_on_unmount(): void
     {
         // Source-grep fallback: the `onUnmounted` hook is a Vue runtime API
@@ -476,14 +445,13 @@ JS;
     }
 
     /**
-     * @test
-     *
      * LoginPage must NOT assign `state.value` directly: that bypasses every
      * rule in shapeMorphMath and leaves the machine desynchronised. Two
      * reviewers independently flagged such a write (R4-001 resilience WARNING,
      * R3-004 reliability). This is a source-level pin for a runtime property
      * the pure-math suite cannot observe.
      */
+    #[Test]
     public function login_page_never_writes_the_machine_state_directly(): void
     {
         $loginPath = self::projectRootPath().'/resources/js/modules/auth/LoginPage.vue';

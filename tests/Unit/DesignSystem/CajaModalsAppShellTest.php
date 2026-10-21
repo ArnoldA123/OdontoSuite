@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pagos-03b — CajaModalsAppShellTest. Asserts PAGOS-MOD-001 +
  * PAGOS-MNY-002 + PAGOS-CON-001 across the 4 Caja modal `.vue` files
@@ -31,9 +33,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
      * The Caja redesign (2026-10) replaced the bespoke `show`/`close` pair with
      * the shared `<UiModal>` contract; the status pill these modals used to
      * paint now lives in the page hero band.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_modals_combined_primitive_and_contract_rules(string $path): void
     {
         $src = self::readSource($path);
@@ -73,9 +74,8 @@ class CajaModalsAppShellTest extends ModuleAppShellTestCase
 
     /**
      * PAGOS-MNY-002 — no local `Intl.NumberFormat('es-PE', { currency: 'PEN' })`.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_modals_no_local_intl_pen_format(string $path): void
     {
         $src = self::readSource($path);

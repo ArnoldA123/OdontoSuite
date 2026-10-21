@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -135,9 +136,8 @@ JS;
      * immediately (no debounce). Given an empty username and a
      * "non-empty" rule, the call to `validateField('username')` MUST
      * set `errors.username = 'required'` synchronously.
-     *
-     * @test
      */
+    #[Test]
     public function validate_field_runs_immediately(): void
     {
         $body = <<<'JS'
@@ -161,9 +161,8 @@ JS;
      * TRIANGULATE: debounce timer MUST reset on rapid input changes.
      * Two form changes within 100ms → only one validate fires, at the
      * end of the second timer window (250ms after the last change).
-     *
-     * @test
      */
+    #[Test]
     public function debounce_resets_on_rapid_input(): void
     {
         $body = <<<'JS'
@@ -202,9 +201,8 @@ JS;
     /**
      * TRIANGULATE: when a rule returns null (passes), `successes[field]`
      * MUST be `true` IMMEDIATELY (spec V2). No debounce on success.
-     *
-     * @test
      */
+    #[Test]
     public function success_immediate_when_rule_passes(): void
     {
         $body = <<<'JS'
@@ -228,9 +226,8 @@ JS;
     /**
      * TRIANGULATE: clearField MUST reset both `errors[field]` to ''
      * and `successes[field]` to false (spec V5).
-     *
-     * @test
      */
+    #[Test]
     public function clear_field_resets_both_states(): void
     {
         $body = <<<'JS'
@@ -264,9 +261,8 @@ JS;
     /**
      * TRIANGULATE: validateAll MUST return false if ANY field has an
      * error, true only if ALL pass (spec V5).
-     *
-     * @test
      */
+    #[Test]
     public function validate_all_returns_false_when_any_field_errors(): void
     {
         $body = <<<'JS'
@@ -301,9 +297,8 @@ JS;
      * TRIANGULATE (timing): the debounce window MUST be ~250ms with
      * ±50ms tolerance for CI jitter (spec V1). Wall-clock delta between
      * schedule and execution must fall in [200ms, 300ms].
-     *
-     * @test
      */
+    #[Test]
     public function debounce_is_250ms_within_50ms_tolerance(): void
     {
         $body = <<<'JS'

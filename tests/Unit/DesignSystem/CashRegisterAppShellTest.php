@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pagos-02b — CashRegisterAppShellTest.
  *
@@ -51,9 +53,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         ];
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_list_files_no_local_intl_pen_format(string $path): void
     {
         $source = self::readSource($path);
@@ -76,9 +76,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_list_files_no_raw_money_input(string $path): void
     {
         $source = self::readSource($path);
@@ -98,9 +96,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_list_files_tabular_nums_scope_and_aria(string $path): void
     {
         $source = self::readSource($path);
@@ -145,9 +141,7 @@ class CashRegisterAppShellTest extends ModuleAppShellTestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_list_files_no_legacy_status_pill_classes(string $path): void
     {
         $source = self::readSource($path);

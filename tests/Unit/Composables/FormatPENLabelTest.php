@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -56,7 +57,7 @@ class FormatPENLabelTest extends TestCase
     // Layer 1 — Module surface
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function helper_module_file_exists(): void
     {
         $this->assertFileExists(
@@ -65,7 +66,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function helper_module_exports_format_pen_label(): void
     {
         $exports = self::loadHelperExports();
@@ -82,7 +83,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function helper_module_exports_format_currency(): void
     {
         // PR-pagos-01: formatCurrency is the canonical name; useFormatters.js
@@ -112,51 +113,51 @@ class FormatPENLabelTest extends TestCase
     // emit a regular space, others NBSP).
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_positive_amount(): void
     {
         $out = self::normalize(self::callHelper(759));
         $this->assertSame('S/ 759.00', $out, 'formatPENLabel(759) must render exactly one S/ prefix');
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_negative_amount_with_minus_sign(): void
     {
         $out = self::normalize(self::callHelper(-5));
         $this->assertSame('-S/ 5.00', $out, 'formatPENLabel(-5) must render -S/ 5.00');
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_zero(): void
     {
         $this->assertSame('S/ 0.00', self::normalize(self::callHelper(0)));
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_null_as_zero(): void
     {
         $this->assertSame('S/ 0.00', self::normalize(self::callHelper(null)));
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_undefined_as_zero(): void
     {
         $this->assertSame('S/ 0.00', self::normalize(self::callHelper('undefined-as-value')));
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_numeric_string(): void
     {
         $this->assertSame('S/ 123.45', self::normalize(self::callHelper('123.45')));
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_renders_non_numeric_string_as_zero_without_throw(): void
     {
         $this->assertSame('S/ 0.00', self::normalize(self::callHelper('not-a-number')));
     }
 
-    /** @test */
+    #[Test]
     public function format_pen_label_emits_exactly_one_slash_prefix(): void
     {
         // Regression guard: even after triangulation, no call to the
@@ -173,7 +174,7 @@ class FormatPENLabelTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function test_format_currency_emits_soles_prefix_for_pen(): void
     {
         // PR-pagos-01: the canonical formatCurrency helper must emit the
@@ -212,7 +213,7 @@ class FormatPENLabelTest extends TestCase
     // Layer 3 — Source contract (static scans)
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function dashboard_page_no_longer_concatenates_literal_slash_before_format(): void
     {
         $source = self::readFile(self::dashboardPath());
@@ -240,7 +241,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function session_list_no_longer_concatenates_literal_slash_before_format(): void
     {
         $source = self::readFile(self::sessionListPath());
@@ -267,7 +268,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function slice_files_do_not_call_intl_pen_format_directly(): void
     {
         // Scoped to PR1's two owned files. Other components that still
@@ -298,7 +299,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function slice_files_no_longer_contain_literal_slash_before_currency_format(): void
     {
         // Scoped to PR1's two owned files: DashboardPage.vue and SessionList.vue.
@@ -340,7 +341,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function dashboard_and_session_list_no_longer_reference_format_currency(): void
     {
         // Belt-and-suspenders: after the slice, no .vue/.js file under
@@ -371,7 +372,7 @@ class FormatPENLabelTest extends TestCase
     // for in-field display, not a currency formatter.
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_format_currency_exists_at_exactly_one_location(): void
     {
         // After migration, the canonical location (useFormatters.js) is
@@ -408,7 +409,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_format_currency_input_sites_import_from_canon(): void
     {
         // Every PR-pagos-01 migrated file MUST import formatCurrency from
@@ -454,7 +455,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_currency_input_formatter_unchanged(): void
     {
         // CurrencyInput.vue uses its own `Intl.NumberFormat('es-PE', ...)`
@@ -490,7 +491,7 @@ class FormatPENLabelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_four_migrated_files_drop_local_format_currency_declaration(): void
     {
         // The four PR-pagos-01 migrated files MUST NOT declare their own

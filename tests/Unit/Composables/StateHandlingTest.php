@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -82,7 +83,8 @@ JS;
         return json_decode(substr($output, $jsonStart), true);
     }
 
-    /** @test FF-003 */
+    /** FF-003 */
+    #[Test]
     public function use_toast_returns_toasts_as_ref_not_plain_array(): void
     {
         $result = self::evalModule(
@@ -107,7 +109,8 @@ JS
         );
     }
 
-    /** @test FF-003 */
+    /** FF-003 */
+    #[Test]
     public function use_toast_exposes_global_toasts_as_ref_too(): void
     {
         $result = self::evalModule(
@@ -128,7 +131,8 @@ JS
         );
     }
 
-    /** @test FF-006 */
+    /** FF-006 */
+    #[Test]
     public function use_ai_analysis_upload_and_analyze_does_not_pass_ignored_headers_argument(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useAiAnalysis.js');
@@ -145,7 +149,8 @@ JS
         );
     }
 
-    /** @test FF-006 */
+    /** FF-006 */
+    #[Test]
     public function use_ai_analysis_upload_and_analyze_calls_post_with_two_arguments(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useAiAnalysis.js');
@@ -159,7 +164,8 @@ JS
         );
     }
 
-    /** @test FF-007 */
+    /** FF-007 */
+    #[Test]
     public function use_cash_register_keeps_subscription_handlers_at_module_level(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useCashRegister.js');
@@ -180,7 +186,8 @@ JS
         );
     }
 
-    /** @test FF-007 */
+    /** FF-007 */
+    #[Test]
     public function use_cash_register_singleton_guards_repeat_setup_calls(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useCashRegister.js');
@@ -195,7 +202,8 @@ JS
         );
     }
 
-    /** @test FF-013 */
+    /** FF-013 */
+    #[Test]
     public function use_notifications_does_not_crash_when_local_storage_is_undefined(): void
     {
         // Simulate SSR / non-browser environment by deleting both
@@ -250,7 +258,8 @@ JS;
         );
     }
 
-    /** @test FF-013 */
+    /** FF-013 */
+    #[Test]
     public function use_notifications_load_from_storage_is_guarded(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useNotifications.js');
@@ -279,7 +288,8 @@ JS;
         );
     }
 
-    /** @test FF-009 */
+    /** FF-009 */
+    #[Test]
     public function app_js_does_not_call_use_echo_before_auth(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/app.js');
@@ -315,7 +325,8 @@ JS;
         );
     }
 
-    /** @test FF-005 */
+    /** FF-005 */
+    #[Test]
     public function bootstrap_js_no_longer_imports_axios(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/bootstrap.js');
@@ -333,7 +344,8 @@ JS;
         );
     }
 
-    /** @test FF-016 */
+    /** FF-016 */
+    #[Test]
     public function router_auth_uses_use_auth_for_authentication_check(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/router/auth.js');

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,7 +23,8 @@ class DeferredStateHandlingTest extends TestCase
         return dirname(__DIR__, 3);
     }
 
-    /** @test T-08.12 */
+    /** T-08.12 */
+    #[Test]
     public function use_notifications_exposes_a_visibility_auto_refresh_helper(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useNotifications.js');
@@ -58,7 +60,8 @@ class DeferredStateHandlingTest extends TestCase
         );
     }
 
-    /** @test T-08.14 */
+    /** T-08.14 */
+    #[Test]
     public function use_api_exposes_a_normalize_error_helper(): void
     {
         $source = file_get_contents(self::projectRootPath().'/resources/js/composables/useApi.js');
