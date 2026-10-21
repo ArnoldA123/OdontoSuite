@@ -52,20 +52,20 @@ build.
 
 ## 2. Stack
 
-| Capa            | Tecnología                                 | Versión     |
-| --------------- | ------------------------------------------ | ----------- |
-| Backend         | Laravel                                    | 12          |
-| Frontend        | Vue 3 (Composition API + `<script setup>`) | 3.3         |
-| Build           | Vite                                       | 5           |
-| Estilos         | Tailwind 3 + design tokens                 | 3.3         |
-| DB              | MySQL / MariaDB                            | 8.0 / 10.3+ |
-| Auth            | Sanctum (bearer tokens)                    | 4           |
-| Real-time       | Reverb + Laravel Echo                      | 1.6 / 1.16  |
-| Calendario      | FullCalendar                               | 6           |
-| Gráficos        | Chart.js                                   | 4           |
-| PDF             | DomPDF                                     | 3           |
-| Excel           | maatwebsite/excel                          | 1.1         |
-| Package manager | **pnpm** (NUNCA npm)                       | 11          |
+| Capa            | Tecnología                                            | Versión      |
+| --------------- | ----------------------------------------------------- | ------------ |
+| Backend         | Laravel                                               | 12           |
+| Frontend        | Vue 3 (Composition API + `<script setup>`)            | 3.3          |
+| Build           | Vite                                                  | 5            |
+| Estilos         | Tailwind 3 + design tokens                            | 3.3          |
+| DB              | MySQL / MariaDB                                       | 8.0 / 10.3+  |
+| Auth            | Sanctum (bearer tokens)                               | 4            |
+| Real-time       | Reverb + Laravel Echo                                 | 1.6 / 1.16   |
+| Calendario      | FullCalendar                                          | 6            |
+| Gráficos        | Chart.js                                              | 4            |
+| PDF             | DomPDF                                                | 3            |
+| Export          | CSV (`fputcsv`) + SpreadsheetML `.xls` + PDF (DomPDF) | sin librería |
+| Package manager | **pnpm** (NUNCA npm)                                  | 11           |
 
 ---
 
@@ -101,14 +101,14 @@ app/
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 50 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 34 eventos (10 con listener cableado + 22 con consumer WS, 2 sin dispatch)
+  Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 23 composables singleton
+  composables/             # 39 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
@@ -134,7 +134,7 @@ tests/
   Feature/Api/             # AuthTest (rate limiting, login)
 docs/
   mejoras/                 # 3 planes cerrados (ver §9)
-  decisions/               # 2 ADRs (0007-user-specialty-source-of-truth, 0008-procedure-catalog-legacy-specialty)
+  architecture/decisions/  # índice de ADRs (README.md); cuerpos 0007/0008 pendientes (#264)
 
 .github/workflows/
   ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
@@ -181,7 +181,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 33 controllers API, 34 eventos (10 listener classes / 13 cableos
+- 50 modelos, 33 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -214,16 +214,21 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   construye en SQLite: eliminar `transactions.type` choca con el índice
   `idx_transactions_patient_type_status` (`no such column: type`), y las
   migraciones aplicadas no se reescriben. La suite con base de datos corre con
-  `php artisan test --configuration=phpunit.mysql.xml` contra un motor real
-  (local: MySQL/MariaDB de XAMPP por socket; CI: service MySQL 8.0).
+  `vendor/bin/phpunit -c phpunit.mysql.xml` contra un motor real (local:
+  MySQL/MariaDB de XAMPP por socket; CI: service MySQL 8.0). La variante
+  `php artisan test --configuration=phpunit.mysql.xml` no es equivalente: con la
+  ruta relativa artisan acaba ejecutando `phpunit.xml` —el archivo que fija el
+  motor no se usa—, PHPUnit responde
+  `WARN Option --configuration cannot be used more than once` y el comando sale
+  con código 1 aunque todos los tests pasen (la invocación completa está en §8).
   `php artisan test` a secas (SQLite `:memory:`) no puede construir el esquema:
   todo test que usa `RefreshDatabase`, `DatabaseMigrations`,
   `DatabaseTruncation` o `DatabaseTransactions` se reporta como **skipped**, no
   como failed, por `Tests\TestCase::setUpTraits()` vía
   `Tests\Support\MysqlRunner` (#170), así que ese runner solo muestra
-  regresiones reales. **El número de fallos no se cita aquí a propósito**
-  (deriva con cada migración). Lo ejecutable que fija esta declaración:
-  `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest` y
+  regresiones reales. **El número de tests saltados no se cita aquí a
+  propósito** (deriva con cada migración). Lo ejecutable que fija esta
+  declaración: `tests/Unit/Tooling/SqliteMigrateFreshDeclarationTest` y
   `tests/Unit/Tooling/MysqlRunnerGateTest`.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con
   `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del
@@ -245,12 +250,8 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline).
   Requieren refactor del controller.
 
-### 🐛 Bugs conocidos
+### 🔧 Notas de entorno
 
-- `php artisan test` local: fallan todos los tests que tocan la BD por el DDL de
-  SQLite no soportado (ver §6 Pendiente). Preexistente, no es de código actual.
-  En CI la suite corre sobre MySQL real; su estado se observa en los runs del
-  workflow, no se afirma aquí.
 - El `.env` tiene `BROADCAST_CONNECTION=reverb`. Para tests locales sin servidor
   Reverb, usar `BROADCAST_CONNECTION=null` (ya configurado en `phpunit.xml`).
 
@@ -307,21 +308,21 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 8. Troubleshooting
 
-| Problema                                                | Solución                                                                                                                                                                                                                                                                                                                                |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                                                                               |
-| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                                                                              |
-| Tests con BD fallan por DDL de SQLite                   | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6) y, desde #170, esos tests se reportan como **skipped**, no como failed. Camino soportado: php artisan test --configuration=phpunit.mysql.xml contra motor real; alternativo: docker compose up -d mysql + php artisan test --group=mysql. |
-| Varias sesiones o worktrees corren tests a la vez       | Cada worktree usa su propia base de test (`DB_DATABASE=odontosuite_<worktree>_test`) y nadie recrea una base compartida mientras otra suite corre: un `migrate:fresh` sobre la base de otro proceso la deja sin tablas y su suite falla en el bootstrap. CI conserva `odontosuite_test` porque su runner es aislado.                    |
-| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo).                                                       |
-| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                     |
-| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                           |
-| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                                     |
-| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 14.                                                                                                                                                                                                                                                                                |
-| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                  |
-| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                               |
-| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                    |
-| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                           |
+| Problema                                                | Solución                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm` o `yarn` reclamando                               | Usar `pnpm` exclusivamente. AGENTS.md §2.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `vite.config.js` no resuelve `@/`                       | Alias ya está configurado (M-3 fix). Si se rompe, revisar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Tests con BD fallan por DDL de SQLite                   | Por diseño (#79): migrate:fresh es solo-MySQL; con SQLite el esquema no se construye (ver §6) y, desde #170, esos tests se reportan como **skipped**, no como failed. Camino soportado: `vendor/bin/phpunit -c phpunit.mysql.xml` contra motor real; `php artisan test --configuration=phpunit.mysql.xml` no sirve para esto: con la ruta relativa artisan ejecuta `phpunit.xml` en vez del archivo indicado, PHPUnit avisa `Option --configuration cannot be used more than once` y sale con código 1 aunque todos los tests pasen. El MariaDB de XAMPP tiene `skip-networking`, así que el destino se fija por entorno: `DB_HOST=localhost DB_PORT=3306 DB_SOCKET=/opt/lampp/var/mysql/mysql.sock DB_USERNAME=root DB_PASSWORD=<from .env> DB_DATABASE=odontosuite_<worktree>_test vendor/bin/phpunit -c phpunit.mysql.xml`. Alternativo: `docker compose up -d mysql` + `php artisan test --group=mysql`. |
+| Varias sesiones o worktrees corren tests a la vez       | Cada worktree usa su propia base de test (`DB_DATABASE=odontosuite_<worktree>_test`) y nadie recrea una base compartida mientras otra suite corre: un `migrate:fresh` sobre la base de otro proceso la deja sin tablas y su suite falla en el bootstrap. CI conserva `odontosuite_test` porque su runner es aislado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `git checkout-index failed`                             | **Windows + rutas largas.** El repo tiene rutas que superan los 260 caracteres (`openspec/changes/archive/<nombre-largo>/specs/...`). `LongPathsEnabled=1` en el registro **no basta**: git necesita su propio opt-in. Ejecutar `git config core.longpaths true` (local al repo).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Pusher TypeError en tests                               | `phpunit.xml` tiene `BROADCAST_CONNECTION=null` (ya configurado). Si falta, agregar `env name="BROADCAST_CONNECTION" value="null"`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `composer dev` no levanta Vite                          | Verificar que el script usa `pnpm dev` (no `npm run dev`). Sprint 1 DM-1 fix.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Email no se envía                                       | Verificar `MAIL_MAILER` en `.env`. Default `log` (escribe a `storage/logs/laravel.log`). Para producción: SMTP/SES.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `php artisan migrate:fresh --seed` falla                | Verificar conexión MySQL en `.env`. Seeders activos: 15.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ---
 
@@ -339,10 +340,14 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### Decisiones de diseño (ADRs)
 
-| ADR                                                         | Contenido                                                                                                                   |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `docs/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
-| `docs/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
+| ADR                                                                      | Contenido                                                                                                                   |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
+| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
+
+> **Estado**: los dos ADR de la tabla todavía no tienen cuerpo escrito en el
+> repo: por ahora solo existe el índice `docs/architecture/decisions/README.md`,
+> con esos enlaces pendientes. El trabajo está registrado en #264.
 
 ---
 
@@ -369,13 +374,38 @@ OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 33 controllers API, 50
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
-resueltos), CI/CD con GitHub Actions, 19 tests estructurales + 52 tests que
-pasan. La deuda restante (tests que tocan la BD y fallan en SQLite local) está
+resueltos), CI/CD con GitHub Actions, y la suite PHP corre contra un motor MySQL
+real (local y en CI): su tamaño no se cita aquí porque cambia con cada test. La
+deuda restante (tests que tocan la BD y se saltan en SQLite local) está
 documentada y no bloquea producción.
 
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (auditoría de deriva de AGENTS.md)** — El documento describía un
+  stack y unos conteos que el código ya no tenía: `34 eventos` (son 36) y
+  `23 composables` (son 39); una fila `maatwebsite/excel 1.1` en §2 cuando el
+  paquete salió de `composer.json` (los exports reales son CSV con `fputcsv`,
+  SpreadsheetML `.xls` y PDF con DomPDF); los ADR en `docs/decisions/` cuando el
+  índice vive en `docs/architecture/decisions/` y los cuerpos 0007/0008 todavía
+  no existen; y en §6/§8 el camino MySQL
+  `php artisan test --configuration=phpunit.mysql.xml`, que no funciona: con la
+  ruta relativa artisan termina ejecutando `phpunit.xml` en vez del archivo
+  indicado, PHPUnit avisa `Option --configuration cannot be used more than once`
+  y el comando sale con código 1 aunque todo pase, así que la invocación
+  documentada pasa a `vendor/bin/phpunit -c phpunit.mysql.xml` con el destino
+  MySQL fijado por entorno. §11 deja de citar un tamaño de suite volátil y §6
+  deja de decir que los tests con BD fallan en SQLite (desde #170 se saltan, con
+  el runner MySQL como veredicto), mientras §8 cuenta 15 seeders y no 14. El
+  guard `scripts/audit/doc-drift.mjs` pasa de 12 a 14 chequeos (eventos y
+  composables) y el de seeders ya lee también la forma posfija `activos: N` de
+  §8, no solo la de §4. Los cuerpos e índice de los ADR quedan en #264, la
+  duplicación muerta de `ClinicalAttachmentService` en #265, el
+  `MedicalRecord::attachments()` sin filtro `is_active` en #266 y las cuatro
+  dependencias de frontend sin consumidores en #267. Sin rutas, migraciones,
+  modelos ni primitivas UI nuevas: los conteos de §4/§5/§6 que siguen siendo
+  ciertos no se tocan.
 
 - **2026-10-20 (follow-ups de UI #239/#242/#243)** — `AiAnalysisButton` se
   retira con su smoke y su contrato de design system: el flujo de análisis se
