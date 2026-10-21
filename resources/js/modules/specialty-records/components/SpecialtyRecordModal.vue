@@ -42,6 +42,34 @@
         </div>
       </fieldset>
 
+      <fieldset v-if="form.specialty" class="space-y-4" data-form-section="procedure">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Procedimiento
+        </legend>
+
+        <div class="space-y-2" data-field="procedure_id">
+          <div v-if="form.procedure_id" class="flex justify-end">
+            <UiButton
+              type="button"
+              variant="ghost"
+              size="xs"
+              data-procedure-clear
+              @click="clearProcedure"
+            >
+              Quitar
+            </UiButton>
+          </div>
+          <ProcedureCatalogPicker
+            v-model="form.procedure_id"
+            :specialty="form.specialty"
+            data-procedure-picker
+          />
+          <p v-if="errors.procedure_id" class="text-xs text-systemRed-700">
+            {{ errors.procedure_id }}
+          </p>
+        </div>
+      </fieldset>
+
       <fieldset class="space-y-4" data-form-section="clinical">
         <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
           Datos clínicos
@@ -152,6 +180,7 @@ import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSpecialtyRecords } from '@/composables/useSpecialtyRecords'
 import { useToast } from '@/composables/useToast'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
+import ProcedureCatalogPicker from '@/components/procedures/ProcedureCatalogPicker.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiInput from '@/components/ui/Input.vue'
 import UiModal from '@/components/ui/Modal.vue'
@@ -258,16 +287,31 @@ const patientId = computed(
   () => props.patient?.id ?? props.record?.patient_id ?? selectedPatient.value?.id ?? null
 )
 
+const text = value => (value === null || value === undefined ? '' : String(value).trim())
+
+const toNumberOrNull = value => {
+  const raw = text(value)
+
+  if (raw === '') return null
+
+  const numeric = Number(value)
+
+  return Number.isFinite(numeric) ? numeric : null
+}
+
 const toInputValue = (field, value) => {
+  if (field.type === 'procedure') return toNumberOrNull(value)
   if (value === null || value === undefined) return ''
   if (field.type === 'date') return dateInputValue(value)
 
   return String(value)
 }
 
+const emptyValue = field => (field.type === 'procedure' ? null : '')
+
 const buildForm = specialty => {
   const values = Object.fromEntries(
-    formFields(getSpecialtyDefinition(specialty)).map(field => [field.key, ''])
+    formFields(getSpecialtyDefinition(specialty)).map(field => [field.key, emptyValue(field)])
   )
 
   if (!props.isEdit) return { specialty: specialty || '', ...values }
@@ -290,8 +334,11 @@ const noteFields = computed(() => formFields(definition.value, 'notes'))
 const optionsFor = field =>
   field.required ? field.options : [{ value: '', label: 'Sin definir' }, ...field.options]
 
-const text = value => (value === null || value === undefined ? '' : String(value).trim())
 const fieldLength = key => text(form.value[key]).length
+
+const clearProcedure = () => {
+  form.value.procedure_id = null
+}
 
 const onPatientSelected = patient => {
   selectedPatient.value = patient
@@ -360,16 +407,6 @@ const validate = () => {
   return Object.keys(next).length === 0
 }
 
-const toNumberOrNull = value => {
-  const raw = text(value)
-
-  if (raw === '') return null
-
-  const numeric = Number(value)
-
-  return Number.isFinite(numeric) ? numeric : null
-}
-
 const buildPayload = () => {
   const payload = { specialty: form.value.specialty }
 
@@ -379,7 +416,7 @@ const buildPayload = () => {
   if (!props.isEdit) payload.patient_id = patientId.value
 
   for (const field of definition.value?.formFields ?? []) {
-    if (field.type === 'number' || field.type === 'dental-piece') {
+    if (field.type === 'number' || field.type === 'dental-piece' || field.type === 'procedure') {
       payload[field.key] = toNumberOrNull(form.value[field.key])
       continue
     }
