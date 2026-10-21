@@ -2,7 +2,7 @@
 
 > **Lee este archivo primero antes de tocar el proyecto.** Contiene quickstart,
 > stack, comandos, estructura, convenciones, troubleshooting y planes cerrados.
-> Actualizado al 2026-09-18 tras el fix de #21 (docs drift: §4, §6, §11, §12 con
+> Actualizado al 2026-10-21 tras el fix de #21 (docs drift: §4, §6, §11, §12 con
 > valores medidos).
 
 ---
@@ -175,9 +175,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ---
 
-## 6. Estado del proyecto (actualizado 2026-06-11)
+## 6. Estado del proyecto (actualizado 2026-10-21)
 
-### ✅ Todo funcional (3 planes cerrados, 22 hallazgos resueltos)
+### ✅ Todo funcional (3 planes cerrados, 66 hallazgos resueltos)
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
@@ -202,7 +202,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Recordatorios de confirmación agendados en el flujo real de citas (#154):
   crear y reprogramar agendan 24h/48h/72h, cancelar cancela los pendientes y
   `reminders:reconcile` (horario) repara huecos y cubre citas previas
-- AGENTS.md actualizado (236 líneas)
+- AGENTS.md sincronizado con el código (guard `scripts/audit/doc-drift.mjs`)
 - `composer dev` usa `pnpm dev`
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
   frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
