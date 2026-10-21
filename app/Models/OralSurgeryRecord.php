@@ -18,6 +18,7 @@ class OralSurgeryRecord extends Model
         'created_by',
         'procedure_type',
         'surgery_site',
+        'surgery_date',
         'surgery_start_time',
         'surgery_end_time',
         'surgery_duration_minutes',
@@ -43,6 +44,7 @@ class OralSurgeryRecord extends Model
     ];
 
     protected $casts = [
+        'surgery_date' => 'date',
         'surgery_start_time' => 'string',
         'surgery_end_time' => 'string',
         'surgery_duration_minutes' => 'integer',

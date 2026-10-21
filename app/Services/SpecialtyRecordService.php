@@ -129,7 +129,8 @@ class SpecialtyRecordService
     {
         return OralSurgeryRecord::with(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('surgery_date')
+            ->orderByDesc('created_at')
             ->get();
     }
 

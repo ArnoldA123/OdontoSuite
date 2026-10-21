@@ -160,6 +160,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'cirugia_oral' => [
                 'procedure_type' => 'required|string|max:50',
                 'surgery_site' => 'required|string|max:100',
+                'surgery_date' => 'sometimes|nullable|date|before_or_equal:today',
                 'surgery_duration_minutes' => 'sometimes|nullable|integer|min:1|max:480',
                 'anesthesia_type' => 'sometimes|nullable|string|max:200',
                 'surgical_technique' => 'sometimes|nullable|string|max:2000',
@@ -207,6 +208,8 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'material_type.required' => 'El tipo de material es obligatorio',
             'procedure_type.required' => 'El tipo de procedimiento es obligatorio',
             'surgery_site.required' => 'El sitio quirúrgico es obligatorio',
+            'surgery_date.date' => 'La fecha de la cirugía no es una fecha válida',
+            'surgery_date.before_or_equal' => 'La fecha de la cirugía no puede ser futura',
         ];
     }
 }
