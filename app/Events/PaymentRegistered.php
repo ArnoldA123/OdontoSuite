@@ -31,7 +31,7 @@ class PaymentRegistered implements ShouldBroadcast
     {
         $channels = [
             new Channel('cash-register'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('dashboard-updates'),
         ];
 
         // Canal privado para la sesión específica

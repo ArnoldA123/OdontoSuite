@@ -573,6 +573,15 @@ documentada y no bloquea producción.
   la excepción y responden un mensaje genérico (ya no exponen `error`), y un id
   inexistente responde 404 en vez de 500 (`QuotationErrorEnvelopeTest`). Guard
   `scripts/audit/doc-drift.mjs` en verde.
+- **2026-10-20 (canal privado del dashboard #183)** — `dashboard-updates` deja
+  de ser un canal público de Reverb: los 18 eventos que aún publicaban en él
+  usan `PrivateChannel`, `POST /api/broadcasting/auth` autoriza el canal solo
+  para los 7 roles con acceso al dashboard (y rechaza roles nuevos o anónimos),
+  y el consumidor del panel se suscribe con `privateChannel` y libera
+  `private-dashboard-updates`. Caja conserva sus canales (`cash-register`,
+  `cash-session.*`). Los presupuestos ya viajaban por
+  `PrivateChannel('quotations')` (#200-#204). `sdd:check-events` sigue en 0
+  huérfanos. Sin rutas, migraciones ni conteos nuevos.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero

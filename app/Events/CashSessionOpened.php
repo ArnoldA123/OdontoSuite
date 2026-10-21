@@ -5,6 +5,7 @@ namespace App\Events;
 use App\Models\CashRegisterSession;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -27,7 +28,7 @@ class CashSessionOpened implements ShouldBroadcast
     {
         return [
             new Channel('cash-register'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('dashboard-updates'),
         ];
     }
 
