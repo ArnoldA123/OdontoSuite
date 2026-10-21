@@ -232,23 +232,28 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `tests/Unit/Tooling/MysqlRunnerGateTest`.
 - **0 eventos `@deprecated` huérfanos** en `app/Events/` (medido con
   `grep -rl '@deprecated' app/Events | wc -l`). Los únicos `@deprecated` del
-  dominio están a nivel de campo: `User.php:125` (`specialty` legacy, ADR-0007)
-  y `ProcedureCatalog.php:24` (`legacy_specialty`, ADR-0008).
+  dominio están a nivel de campo: `User::$specialty` (`specialty` legacy,
+  ADR-0007) y `ProcedureCatalog::$legacy_specialty` (`legacy_specialty`,
+  ADR-0008). Se nombra el símbolo y no su línea: el ancla numérica envejecía con
+  cada refactor.
 - **Reminders con CRUD real, WaitingList eliminada.** `ReminderController` y
   `ReminderTemplateController` implementan CRUD completo desde el slice 03.
   `WaitingListController` no existe: fue eliminado en el slice 04 y sus
   endpoints devuelven 404 (guardado por `StubsRemovedEndpointsTest`).
 - **`User::specialty` (string legacy)**: conservado como display denormalizado.
   Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó
-  cast JSON inexistente. Ver ADR-0007.
+  cast JSON inexistente. La decisión vive en §9; su cuerpo de ADR está pendiente
+  (#264).
 - **`procedure_catalog.legacy_specialty`**: conservado en BD por compatibilidad.
-  Sprint 2 DM-7 lo deprecó formalmente, creó accessor `specialty_code`. Plan de
-  drop documentado en ADR-0008.
-- **3 FormRequests no migrables** (documentado en Sprint 5 del plan de
-  inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline),
-  `StoreQuotationRequest` (requiere `patient_id` que rompe path
-  `generateQuotation`), `StoreSpecialtyRecordRequest` (omite 14 campos inline).
-  Requieren refactor del controller.
+  Sprint 2 DM-7 lo deprecó formalmente, creó accessor `specialty_code`. El plan
+  de drop está descrito en §9 y su cuerpo de ADR sigue pendiente (#264).
+- **2 FormRequests no migrables** (documentado en Sprint 5 del plan de
+  inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline) y
+  `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del
+  controller. `StoreQuotationRequest` salió de la lista: declara `patient_id`
+  como `sometimes|nullable` y `QuotationController@store` deriva el paciente
+  desde `treatment_plan_id`, así que el bloqueo del path `generateQuotation`
+  (fix C-1 del Sprint 0) ya no existe.
 
 ### 🔧 Notas de entorno
 
@@ -322,7 +327,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008, cuerpo pendiente en #264). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ---
 
@@ -382,6 +387,24 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (deuda de §6 y troubleshooting de §8, segunda pasada)** — La
+  auditoría anterior corrigió lo que el guard podía medir y dejó sin
+  re-verificar la lista `⚠️ Pendiente` ni las filas de §8. Medido ahora:
+  `StoreQuotationRequest` ya no bloquea el path `generateQuotation` —declara
+  `patient_id` como `sometimes|nullable` y `QuotationController@store` deriva el
+  paciente desde `treatment_plan_id`, el fix C-1 del Sprint 0—, así que la lista
+  baja de 3 a 2 FormRequests no migrables. Las referencias a ADR-0007/0008 en §6
+  y §8 dejan de sugerir cuerpos escritos: ahora apuntan a §9 y a #264. Los
+  anclajes por número de línea (`User.php:125`, `ProcedureCatalog.php:24`) pasan
+  a nombrar el símbolo, porque el número envejecía con cada refactor. Verificado
+  sin cambios: los tres guards `SqliteMigrateFreshDeclarationTest`,
+  `MysqlRunnerGateTest` y `StubsRemovedEndpointsTest` existen, los dos accessors
+  `specialty_code` están, `User` no castea `specialty` a JSON, el alias `@` de
+  `vite.config.js` apunta a `/resources/js`, `.env.example` trae
+  `MAIL_MAILER=log` y `BROADCAST_CONNECTION=reverb`, `phpunit.xml` trae
+  `APP_KEY` y la ruta `appointments/{appointment}/generate-quotation` sigue
+  publicada.
 
 - **2026-10-21 (auditoría de deriva de AGENTS.md)** — El documento describía un
   stack y unos conteos que el código ya no tenía: `34 eventos` (son 36) y
