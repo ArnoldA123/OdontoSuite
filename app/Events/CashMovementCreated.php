@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\CashMovement;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -30,7 +29,7 @@ class CashMovementCreated implements ShouldBroadcast
     public function broadcastOn()
     {
         $channels = [
-            new Channel('cash-register'),
+            new PrivateChannel('cash-register'),
         ];
 
         // Canal privado para la sesión específica

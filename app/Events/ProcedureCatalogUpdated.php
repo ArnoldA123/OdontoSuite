@@ -4,8 +4,8 @@ namespace App\Events;
 
 use App\Models\ProcedureCatalog;
 use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -31,7 +31,7 @@ class ProcedureCatalogUpdated implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [new Channel('procedure-catalog')];
+        return [new PrivateChannel('procedure-catalog')];
     }
 
     public function broadcastAs(): string
