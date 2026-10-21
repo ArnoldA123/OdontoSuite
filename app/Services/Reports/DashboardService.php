@@ -5,15 +5,17 @@ namespace App\Services\Reports;
 use App\Models\Appointment;
 use App\Models\DentalChair;
 use App\Models\Patient;
-use App\Models\Transaction;
 use App\Models\User;
+use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
+    use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
     /**
@@ -48,6 +50,7 @@ class DashboardService
                 'totalPatients' => $this->getTotalPatients($startDate, $endDate, $professionalId, $environmentId),
                 'newPatients' => $this->getNewPatients($startDate, $endDate),
                 'totalRevenue' => $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId),
+                'totalRefunds' => $this->getTotalRefunds($startDate, $endDate, $professionalId, $environmentId),
                 'occupancyRate' => $this->getOccupancyRate($startDate, $endDate, $professionalId, $environmentId),
                 'usedHours' => round($this->getUsedHours($startDate, $endDate, $professionalId, $environmentId), 2),
                 'availableHours' => $this->getTotalAvailableHours($startDate, $endDate, $environmentId),
@@ -106,7 +109,8 @@ class DashboardService
             'Citas del período' => $dashboardData['totalAppointments'],
             'Pacientes atendidos' => $dashboardData['totalPatients'],
             'Pacientes nuevos' => $dashboardData['newPatients'],
-            'Ingresos cobrados (S/)' => number_format($dashboardData['totalRevenue'], 2, '.', ''),
+            'Ingresos netos (S/)' => number_format($dashboardData['totalRevenue'], 2, '.', ''),
+            'Devoluciones (S/)' => number_format($dashboardData['totalRefunds'], 2, '.', ''),
             'Horas ocupadas' => number_format($dashboardData['usedHours'], 2, '.', ''),
             'Horas disponibles' => number_format($dashboardData['availableHours'], 2, '.', ''),
             'Tasa de ocupación (%)' => $dashboardData['occupancyRate'],
@@ -188,13 +192,24 @@ class DashboardService
     }
 
     /**
-     * Money actually collected in the period (D1).
+     * Net money of the period: completed payments minus completed refunds (D1, S4).
      */
     private function getTotalRevenue(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
     {
-        $query = Transaction::where('type', 'payment')
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate]);
+        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId))['net'];
+    }
+
+    /**
+     * Refunded money of the period as a positive amount (S4).
+     */
+    private function getTotalRefunds(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
+    {
+        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId))['refunds'];
+    }
+
+    private function revenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
+    {
+        $query = $this->moneyTransactions($startDate, $endDate);
 
         if ($professionalId || $environmentId) {
             $query->whereHas('appointment', function ($subQ) use ($professionalId, $environmentId) {
@@ -208,7 +223,7 @@ class DashboardService
             });
         }
 
-        return (float) $query->sum('amount');
+        return $query;
     }
 
     /**
@@ -287,19 +302,18 @@ class DashboardService
     }
 
     /**
-     * Collected revenue per month for the period chart.
+     * Net money per month for the period chart, refunds reported next to it (S4).
      */
     private function getRevenueByMonth(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
-        $query = Transaction::select(
-            DB::raw('YEAR(created_at) as year'),
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('SUM(amount) as revenue')
-        )
-            ->where('type', 'payment')
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->groupBy(DB::raw('YEAR(created_at)'), DB::raw('MONTH(created_at)'))
+        $query = $this->moneyTransactions($startDate, $endDate)
+            ->select(
+                DB::raw('YEAR(transactions.created_at) as year'),
+                DB::raw('MONTH(transactions.created_at) as month'),
+                DB::raw($this->netTotalsSql().' as revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
+            )
+            ->groupBy(DB::raw('YEAR(transactions.created_at)'), DB::raw('MONTH(transactions.created_at)'))
             ->orderBy('year')
             ->orderBy('month');
 
@@ -319,6 +333,7 @@ class DashboardService
             return [
                 'month' => Carbon::create($item->year, $item->month)->format('M Y'),
                 'revenue' => round((float) $item->revenue, 2),
+                'refunds' => round((float) $item->refunds, 2),
             ];
         })->toArray();
     }
@@ -326,10 +341,11 @@ class DashboardService
     /**
      * Per-professional performance.
      *
-     * Revenue is attributed once (D2): only payments linked through
-     * `appointment_id` to an appointment of that professional. Payments without
-     * an appointment stay in the clinic total and are never redistributed, so
-     * the sum of this column cannot exceed the clinic's collected revenue.
+     * Revenue is attributed once (D2): only money linked through
+     * `appointment_id` to an appointment of that professional. Payments and
+     * refunds without an appointment stay in the clinic total and are never
+     * redistributed, so the sum of this column cannot exceed the clinic's net
+     * revenue (S4).
      */
     private function getProfessionalPerformance(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
@@ -357,26 +373,30 @@ class DashboardService
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
 
-        $revenueByProfessional = Transaction::query()
+        $moneyByProfessional = $this->moneyTransactions($startDate, $endDate)
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
-            ->where('transactions.type', 'payment')
-            ->where('transactions.status', 'completed')
-            ->whereBetween('transactions.created_at', [$startDate, $endDate])
             ->whereIn('appointments.user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('appointments.dental_chair_id', $environmentId))
             ->groupBy('appointments.user_id')
-            ->select('appointments.user_id', DB::raw('SUM(transactions.amount) as revenue'))
-            ->pluck('revenue', 'user_id');
+            ->select(
+                'appointments.user_id',
+                DB::raw($this->netTotalsSql().' as revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
+            )
+            ->get()
+            ->keyBy('user_id');
 
-        return $professionals->map(function ($professional) use ($appointmentsByProfessional, $revenueByProfessional) {
+        return $professionals->map(function ($professional) use ($appointmentsByProfessional, $moneyByProfessional) {
             $appointmentCount = (int) ($appointmentsByProfessional[$professional->id] ?? 0);
-            $revenue = (float) ($revenueByProfessional[$professional->id] ?? 0);
+            $money = $moneyByProfessional[$professional->id] ?? null;
+            $revenue = (float) ($money->revenue ?? 0);
 
             return [
                 'id' => $professional->id,
                 'name' => $professional->name,
                 'appointments' => $appointmentCount,
                 'revenue' => round($revenue, 2),
+                'refunds' => round((float) ($money->refunds ?? 0), 2),
                 'averagePerAppointment' => $appointmentCount > 0 ? round($revenue / $appointmentCount, 2) : 0,
             ];
         })->toArray();

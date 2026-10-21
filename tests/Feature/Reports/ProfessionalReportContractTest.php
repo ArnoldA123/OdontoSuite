@@ -11,6 +11,10 @@ use Carbon\Carbon;
  * The population is the dashboard's clinical roles, status counters come from
  * their own aggregate (never from a collection pre-filtered to `completed`),
  * and revenue is money collected through `transactions.appointment_id`.
+ *
+ * Money follows the net rule of odd/tasks/reports-net-refunds.md (S1-S4):
+ * `total_revenue` is payments minus refunds and `refunds` reports the positive
+ * refunded amount with the same attribution key.
  */
 class ProfessionalReportContractTest extends ReportContractTestCase
 {
@@ -42,6 +46,10 @@ class ProfessionalReportContractTest extends ReportContractTestCase
         $this->payment($admin, $patient, 200.00, '2024-03-07 11:30:00', $otherCompleted);
         // D2: a payment without an appointment belongs to no professional.
         $this->payment($admin, $patient, 50.00, '2024-03-07 12:00:00');
+        // S4: refunds subtract from the same row and are reported as a positive
+        // amount, using the same appointment key as the payments.
+        $this->payment($admin, $patient, 80.00, '2024-03-08 19:00:00', $completed, 'completed', 'refund');
+        $this->payment($admin, $patient, 20.00, '2024-03-07 12:30:00', $otherCompleted, 'completed', 'refund');
 
         $response = $this->report($admin, 'professionals', [
             'start_date' => self::START,
@@ -63,24 +71,37 @@ class ProfessionalReportContractTest extends ReportContractTestCase
         $this->assertSame(1, $doctorRow['completed_appointments']);
         $this->assertSame(1, $doctorRow['cancelled_appointments'], 'D7: cancelled appointments must be counted, not read off a completed-only collection.');
         $this->assertSame(1, $doctorRow['no_show_appointments'], 'D7: no-show appointments must be counted, not read off a completed-only collection.');
-        $this->assertEqualsWithDelta(300.00, (float) $doctorRow['total_revenue'], 0.001, 'D1: revenue is collected money, not the 25000 catalog price.');
-        $this->assertEqualsWithDelta(300.00, (float) $doctorRow['average_per_appointment'], 0.001);
+        $this->assertEqualsWithDelta(220.00, (float) $doctorRow['total_revenue'], 0.001, 'D1 + S4: 300.00 collected minus 80.00 refunded, never the 25000 catalog price.');
+        $this->assertEqualsWithDelta(80.00, (float) $doctorRow['refunds'], 0.001, 'S4: refunds are a positive amount on their own key.');
+        $this->assertEqualsWithDelta(220.00, (float) $doctorRow['average_per_appointment'], 0.001);
         $this->assertEqualsWithDelta(33.33, (float) $doctorRow['completion_rate'], 0.001);
 
         $otherRow = $rows[$otherDoctor->id];
 
         $this->assertSame(1, $otherRow['total_appointments']);
-        $this->assertEqualsWithDelta(200.00, (float) $otherRow['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(180.00, (float) $otherRow['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(20.00, (float) $otherRow['refunds'], 0.001);
 
         $assistantRow = $rows[$assistant->id];
 
         $this->assertSame(0, $assistantRow['total_appointments']);
         $this->assertEqualsWithDelta(0.0, (float) $assistantRow['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $assistantRow['refunds'], 0.001);
 
-        $this->assertEqualsWithDelta(500.00, (float) $rows->sum('total_revenue'), 0.001);
+        $this->assertEqualsWithDelta(400.00, (float) $rows->sum('total_revenue'), 0.001);
+        $this->assertEqualsWithDelta(100.00, (float) $rows->sum('refunds'), 0.001);
         $this->assertSame(
-            ['id', 'name', 'username', 'email', 'phone', 'specialty', 'total_appointments', 'completed_appointments', 'cancelled_appointments', 'no_show_appointments', 'total_revenue', 'average_per_appointment', 'completion_rate', 'is_active', 'created_at'],
-            array_column($response->json('columns'), 'key')
+            ['id', 'name', 'username', 'email', 'phone', 'specialty', 'total_appointments', 'completed_appointments', 'cancelled_appointments', 'no_show_appointments', 'total_revenue', 'refunds', 'average_per_appointment', 'completion_rate', 'is_active', 'created_at'],
+            array_column($response->json('columns'), 'key'),
+            'S4: the refunded amount sits next to the net figure.'
+        );
+        $this->assertSame(
+            'Ingresos netos (S/)',
+            collect($response->json('columns'))->firstWhere('key', 'total_revenue')['label']
+        );
+        $this->assertSame(
+            'Devoluciones (S/)',
+            collect($response->json('columns'))->firstWhere('key', 'refunds')['label']
         );
     }
 }

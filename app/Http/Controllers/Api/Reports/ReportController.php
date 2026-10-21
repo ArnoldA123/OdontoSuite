@@ -326,6 +326,10 @@ class ReportController extends Controller
     /**
      * Rows as printed: report rows plus the period summary when the service
      * provides one (revenue), so exports and the screen tell the same story.
+     *
+     * The summary row is key-driven: every column takes the summary value that
+     * carries its own key, so a report that publishes `refunds` exports it
+     * without touching this method (S4).
      */
     private function exportRows(array $data): array
     {
@@ -336,14 +340,20 @@ class ReportController extends Controller
             return $rows;
         }
 
-        $keys = array_column($data['columns'], 'key');
-        $summaryRow = array_fill_keys($keys, '');
+        $summaryRow = [];
 
-        $summaryRow[$keys[0]] = 'Resumen del período';
-        $summaryRow[$keys[1]] = $summary['period'] ?? '';
-        $summaryRow[$keys[2]] = $summary['appointments_count'] ?? 0;
-        $summaryRow[$keys[3]] = $summary['total_revenue'] ?? 0;
-        $summaryRow[$keys[4]] = $summary['average_per_appointment'] ?? 0;
+        foreach ($data['columns'] as $column) {
+            $key = $column['key'];
+            $summaryRow[$key] = array_key_exists($key, $summary) ? $summary[$key] : '';
+        }
+
+        $label = 'Resumen del período';
+
+        if (isset($summary['period'])) {
+            $label .= ' '.$summary['period'];
+        }
+
+        $summaryRow[array_key_first($summaryRow)] = $label;
 
         $rows[] = $summaryRow;
 

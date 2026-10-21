@@ -11,6 +11,10 @@ use Carbon\Carbon;
  * Available hours are real chair hours (working days only, active chairs only),
  * the numerator counts appointments that occupied the chair, and revenue is the
  * money collected against that chair.
+ *
+ * Money follows the net rule of odd/tasks/reports-net-refunds.md (S1-S4):
+ * `total_revenue` is payments minus refunds attributed through the chair's
+ * appointments, and `refunds` reports the positive refunded amount.
  */
 class UtilizationReportContractTest extends ReportContractTestCase
 {
@@ -32,6 +36,9 @@ class UtilizationReportContractTest extends ReportContractTestCase
 
         $this->payment($admin, $patient, 300.00, '2024-03-08 18:30:00', $completed);
         $this->payment($admin, $patient, 50.00, '2024-03-07 10:00:00');
+        // S4: the refund is attributed through the same appointment key, so it
+        // lands in the chair's net figure and its own refunds column.
+        $this->payment($admin, $patient, 80.00, '2024-03-08 19:00:00', $completed, 'completed', 'refund');
 
         $response = $this->report($admin, 'utilization', [
             'start_date' => '2024-03-04',
@@ -54,8 +61,9 @@ class UtilizationReportContractTest extends ReportContractTestCase
         $this->assertEqualsWithDelta(1.0, (float) $activeRow['total_hours_used'], 0.001, 'D5: cancelled and no-show appointments never occupy the chair.');
         $this->assertEqualsWithDelta(40.0, (float) $activeRow['total_hours_available'], 0.001, 'D4: five working days x 8 hours, weekends excluded.');
         $this->assertEqualsWithDelta(2.5, (float) $activeRow['utilization_rate'], 0.001);
-        $this->assertEqualsWithDelta(300.00, (float) $activeRow['total_revenue'], 0.001, 'D1: collected money, not the 25000 catalog price.');
-        $this->assertEqualsWithDelta(300.00, (float) $activeRow['average_per_appointment'], 0.001);
+        $this->assertEqualsWithDelta(220.00, (float) $activeRow['total_revenue'], 0.001, 'D1 + S4: 300.00 collected minus 80.00 refunded, never the 25000 catalog price.');
+        $this->assertEqualsWithDelta(80.00, (float) $activeRow['refunds'], 0.001, 'S4: refunds are a positive amount on their own key.');
+        $this->assertEqualsWithDelta(220.00, (float) $activeRow['average_per_appointment'], 0.001);
 
         $inactiveRow = $rows[$inactiveChair->id];
 
@@ -67,10 +75,29 @@ class UtilizationReportContractTest extends ReportContractTestCase
         );
         $this->assertEqualsWithDelta(0.0, (float) $inactiveRow['utilization_rate'], 0.001);
         $this->assertEqualsWithDelta(0.0, (float) $inactiveRow['total_revenue'], 0.001);
+        $this->assertEqualsWithDelta(0.0, (float) $inactiveRow['refunds'], 0.001);
+
+        foreach ($rows as $row) {
+            $this->assertGreaterThanOrEqual(0, (float) $row['refunds'], 'S4: refunds are always a positive amount.');
+            $this->assertGreaterThanOrEqual(
+                0,
+                (float) $row['total_revenue'] + (float) $row['refunds'],
+                'S4: net + refunds is the gross collected and can never be negative.'
+            );
+        }
 
         $this->assertSame(
-            ['id', 'name', 'code', 'description', 'status', 'total_appointments', 'completed_appointments', 'cancelled_appointments', 'no_show_appointments', 'total_hours_used', 'total_hours_available', 'utilization_rate', 'total_revenue', 'average_per_appointment', 'is_active', 'created_at'],
-            array_column($response->json('columns'), 'key')
+            ['id', 'name', 'code', 'description', 'status', 'total_appointments', 'completed_appointments', 'cancelled_appointments', 'no_show_appointments', 'total_hours_used', 'total_hours_available', 'utilization_rate', 'total_revenue', 'refunds', 'average_per_appointment', 'is_active', 'created_at'],
+            array_column($response->json('columns'), 'key'),
+            'S4: the refunded amount sits next to the net figure.'
+        );
+        $this->assertSame(
+            'Ingresos netos (S/)',
+            collect($response->json('columns'))->firstWhere('key', 'total_revenue')['label']
+        );
+        $this->assertSame(
+            'Devoluciones (S/)',
+            collect($response->json('columns'))->firstWhere('key', 'refunds')['label']
         );
     }
 }
