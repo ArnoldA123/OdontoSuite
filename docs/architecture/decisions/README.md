@@ -5,28 +5,32 @@ material architectural decision, its context, and its consequences.
 
 ## Index
 
-| ADR                                                  | Title                                                             | Status              |
-| ---------------------------------------------------- | ----------------------------------------------------------------- | ------------------- |
-| [0007](./0007-user-specialty-source-of-truth.md)     | User specialty source-of-truth — pivot over JSON                  | Accepted            |
-| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                  | Accepted            |
-| 0009 _(pending — slice 05)_                          | Migration drift: additive-only policy + driver-conditional guards | Accepted 2026-08-05 |
+| ADR                                                  | Title                                                             | Status                          |
+| ---------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- |
+| [0007](./0007-user-specialty-source-of-truth.md)     | User specialty source-of-truth — pivot over JSON                  | Accepted                        |
+| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                  | Accepted (drop pending)         |
+| 0009                                                 | Migration drift: additive-only policy + driver-conditional guards | Accepted 2026-08-05 — see below |
 
-## Active change: `bugfix-2026-08` migration-drift subsection
+0009 has no separate body yet. Its decision is enforced by
+`tests/Unit/SddCheckMigrationsTest.php`, which scans `database/migrations/` and
+fails on the forbidden patterns the policy names. The policy belongs to the
+closed change `bugfix-2026-08` (slice 05); treat its spec as the historical
+record, not as pending work.
 
-Per the slice 05 spec, every new migration in `bugfix-2026-08` MUST follow the
-additive-only policy enforced by `tests/Unit/SddCheckMigrationsTest.php`. The
-driver-conditional guard precedent (set by slice 02 in
-`2025_10_14_123001_fix_appointments_status_enum.php`) is now extended to:
+## Historical notes
 
-- `2026_06_02_173228_fix_appointments_timezone_offset.php` — wrapped in
-  `DB::getDriverName() === 'sqlite' return;` guard.
+The additive-only policy arrived with `bugfix-2026-08`, archived under
+`openspec/changes/archive/bugfix-2026-08/`. Those migrations are already applied
+and are not rewritten; the per-slice inventory lives in the archived change, not
+here.
 
-New migrations introduced by slice 05:
+## Conventions
 
-- `2026_08_05_030000_drop_legacy_specialties_json_column.php` — drops the legacy
-  `users.specialties` JSON column (reversible via `down()`). Filename uses the
-  `drop_legacy_*` prefix which is the only carve-out from the additive-only
-  policy.
-
-See `openspec/changes/bugfix-2026-08/findings-map.md` for the full per-slice
-migration inventory.
+- Files are numbered and named `NNNN-kebab-case-title.md`.
+- Status is one of `Proposed`, `Accepted`, `Accepted (deprecation in force)`,
+  `Superseded by ADR-NNNN`, `Rejected`.
+- Every decision recorded here describes the code as it is. A decision that is
+  planned but not implemented belongs in an issue, not in an ADR.
+- `docs/architecture/decisions/README.md` is the only index. A row may point to
+  a file that must exist, or carry no link when the decision is enforced by code
+  or tests.
