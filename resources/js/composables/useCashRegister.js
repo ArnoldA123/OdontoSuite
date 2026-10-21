@@ -28,7 +28,7 @@ const normalizeSummary = payload => ({
 
 export function useCashRegister() {
   const { get, post } = useApi()
-  const { channel, privateChannel } = useEcho()
+  const { echo, privateChannel } = useEcho()
 
   // Estado reactivo
   const currentSession = ref(null)
@@ -198,8 +198,10 @@ export function useCashRegister() {
     cleanupWebSocketSubscriptions()
 
     try {
-      // Canal público para caja registradora — bound exactly once.
-      cashRegisterChannel = channel('cash-register')
+      // Canal privado de caja (#249): el handshake de
+      // /api/broadcasting/auth exige un rol de caja antes de entregar
+      // sesiones, cobros y movimientos. Bound exactly once.
+      cashRegisterChannel = privateChannel('cash-register')
       if (cashRegisterChannel) {
         cashRegisterChannel
           .listen('.cash-session.opened', async e => {
@@ -289,13 +291,17 @@ export function useCashRegister() {
   // Limpiar suscripciones WebSocket
   const cleanupWebSocketSubscriptions = () => {
     try {
-      if (cashSessionChannel && currentSession.value?.id) {
-        // Laravel Echo maneja automáticamente el leave cuando se desuscribe
-        cashSessionChannel = null
+      if (echo) {
+        // Echo's leave() does not add the private prefix: name the wire
+        // channel that was actually joined (#249). `subscribedSessionId`
+        // still holds the session we are tearing down, because the watch
+        // that calls this already moved `currentSession` to the new one.
+        echo.leave('private-cash-register')
+        if (subscribedSessionId) {
+          echo.leave(`private-cash-session.${subscribedSessionId}`)
+        }
       }
-      // Public cash-register channel is intentionally kept because it
-      // outlives the active session: the SPA wants to know about
-      // session open/close events even when no session is active.
+      cashSessionChannel = null
       cashRegisterChannel = null
       subscribedSessionId = null
       subscriberCount = 0

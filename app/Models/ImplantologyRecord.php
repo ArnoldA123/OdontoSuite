@@ -13,6 +13,7 @@ class ImplantologyRecord extends Model
     protected $fillable = [
         'patient_id',
         'appointment_id',
+        'procedure_id',
         'dental_piece_id',
         'created_by',
         'implant_brand',
@@ -52,6 +53,14 @@ class ImplantologyRecord extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Catalog procedure this record executed (issue #247).
+     */
+    public function procedure(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureCatalog::class, 'procedure_id');
     }
 
     public function dentalPiece(): BelongsTo

@@ -30,6 +30,17 @@ class CashReportController extends Controller
         return response()->json(['data' => $report]);
     }
 
+    /**
+     * Period cash report (issue #197, decision A).
+     *
+     * Population: completed transactions created inside `[start_date, end_date]`
+     * feed the sales block, the payment methods analysis and the top of
+     * transactions. The session block keeps the sessions that registered a
+     * transaction or a movement inside that range, so a session crossing
+     * midnight is attributed to the days where it actually produced activity
+     * and the block reconciles with the sales block. The `population` key of the
+     * payload states the same contract for clients.
+     */
     public function period(Request $request): JsonResponse
     {
         $startDate = $request->input('start_date', now()->subDays(30)->toDateString());

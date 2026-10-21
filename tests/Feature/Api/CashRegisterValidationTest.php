@@ -50,7 +50,8 @@ class CashRegisterValidationTest extends TestCase
     {
         // Per the spec T-02.11, StoreCashMovementRequest must exist with:
         // - branch_id (nullable, exists:branches,id)
-        // - concept (in:opening_balance,sale_refund,withdrawal,deposit,adjustment)
+        // - concept (in:opening_balance,sale_refund,withdrawal,deposit)
+        // Issue #195, decision B: `adjustment` left the manual whitelist.
         $this->assertTrue(
             class_exists(StoreCashMovementRequest::class),
             'StoreCashMovementRequest class must exist (T-02.11)'
@@ -67,7 +68,7 @@ class CashRegisterValidationTest extends TestCase
         $this->assertStringContainsString('sale_refund', $rules['concept']);
         $this->assertStringContainsString('withdrawal', $rules['concept']);
         $this->assertStringContainsString('deposit', $rules['concept']);
-        $this->assertStringContainsString('adjustment', $rules['concept']);
+        $this->assertStringNotContainsString('adjustment', $rules['concept']);
     }
 
     public function test_store_treatment_plan_rules_include_branch_id(): void

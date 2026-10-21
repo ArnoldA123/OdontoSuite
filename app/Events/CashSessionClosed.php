@@ -3,7 +3,6 @@
 namespace App\Events;
 
 use App\Models\CashRegisterSession;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -27,7 +26,7 @@ class CashSessionClosed implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('cash-register'),
+            new PrivateChannel('cash-register'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

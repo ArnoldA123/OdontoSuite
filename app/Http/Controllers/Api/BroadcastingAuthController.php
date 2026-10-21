@@ -13,9 +13,92 @@ use Illuminate\Support\Facades\Log;
  * Extracted from the inline closure in routes/api.php so the broadcasting
  * auth handler can be unit-tested, type-hinted, and so the HTTP semantics
  * can be tightened (503 instead of 500 when Reverb is misconfigured).
+ *
+ * Issue #249: this handler is the effective authorization authority for every
+ * private channel. Each domain channel accepts exactly the roles that already
+ * have read access to its domain in routes/api.php; routes/channels.php mirrors
+ * the same rules as documentation.
  */
 class BroadcastingAuthController extends Controller
 {
+    /**
+     * Every authenticated role. Listed explicitly so a new role stays out of a
+     * channel until someone decides otherwise.
+     *
+     * @var string[]
+     */
+    private const ALL_ROLES = [
+        'administrador', 'recepcionista', 'odontologo', 'implantologo',
+        'tecnico_dental', 'asistente', 'finanzas',
+    ];
+
+    /**
+     * Roles with access to appointments and reminders
+     * (routes/api.php, "Citas (todos los roles excepto finanzas)").
+     *
+     * @var string[]
+     */
+    private const APPOINTMENT_ROLES = [
+        'administrador', 'recepcionista', 'odontologo',
+        'implantologo', 'tecnico_dental', 'asistente',
+    ];
+
+    /**
+     * Roles with read access to medical records.
+     *
+     * @var string[]
+     */
+    private const MEDICAL_RECORD_ROLES = [
+        'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente',
+    ];
+
+    /**
+     * Roles with access to treatment plans and specialty records.
+     *
+     * @var string[]
+     */
+    private const SPECIALIST_ROLES = [
+        'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
+    ];
+
+    /**
+     * Roles that operate the cash register.
+     *
+     * @var string[]
+     */
+    private const CASH_ROLES = ['administrador', 'finanzas', 'recepcionista'];
+
+    /**
+     * Roles with quotation read access (issue #200-#204).
+     *
+     * @var string[]
+     */
+    private const QUOTATION_ROLES = [
+        'administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista',
+    ];
+
+    /**
+     * Exact channel name => roles allowed to subscribe.
+     *
+     * @var array<string, string[]>
+     */
+    private const ROLE_CHANNELS = [
+        // Issue #249: domain channels that used to be public.
+        'appointments' => self::APPOINTMENT_ROLES,
+        'reminders' => self::APPOINTMENT_ROLES,
+        'medical-records' => self::MEDICAL_RECORD_ROLES,
+        'specialty-records' => self::SPECIALIST_ROLES,
+        'treatment-plans' => self::SPECIALIST_ROLES,
+        'cash-register' => self::CASH_ROLES,
+        'transactions' => self::CASH_ROLES,
+        'procedure-catalog' => self::ALL_ROLES,
+        'users' => ['administrador'],
+        // Closed before #249.
+        'dashboard-updates' => self::ALL_ROLES,
+        'quotations' => self::QUOTATION_ROLES,
+        'patients' => self::ALL_ROLES,
+    ];
+
     public function __invoke(Request $request): JsonResponse
     {
         try {
@@ -36,7 +119,10 @@ class BroadcastingAuthController extends Controller
             $authorized = false;
 
             if (preg_match('/^cash-session\.(\d+)$/', $cleanChannelName, $matches)) {
-                $authorized = true;
+                // Issue #249: the session payload carries payments and ledger
+                // movements, so only the roles that operate the cash register
+                // may subscribe. It used to accept any authenticated user.
+                $authorized = in_array($user->role ?? null, self::CASH_ROLES, true);
             } elseif (preg_match('/^App\.Models\.User\.(\d+)$/', $cleanChannelName, $matches)) {
                 $userId = $matches[1];
                 $authorized = (int) $user->id === (int) $userId;
@@ -44,35 +130,15 @@ class BroadcastingAuthController extends Controller
                 $userId = $matches[1];
                 $authorized = (int) $user->id === (int) $userId;
             } elseif (preg_match('/^appointment\.(\d+)$/', $cleanChannelName)) {
-                $authorized = in_array($user->role ?? null, [
-                    'administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'recepcionista',
-                ], true);
+                $authorized = in_array($user->role ?? null, self::APPOINTMENT_ROLES, true);
             } elseif (preg_match('/^cash-register\.(\d+|global)$/', $cleanChannelName)) {
-                $authorized = in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
-            } elseif ($cleanChannelName === 'dashboard-updates') {
-                // Canal del panel de operaciones (#183): publicaba citas,
-                // pacientes, transacciones y estadísticas sin verificar
-                // identidad. Toda la clínica con acceso al dashboard entra;
-                // un rol nuevo queda fuera hasta que se agregue explícitamente.
-                $authorized = in_array($user->role ?? null, [
-                    'administrador', 'recepcionista', 'odontologo', 'implantologo',
-                    'tecnico_dental', 'asistente', 'finanzas',
-                ], true);
-            } elseif ($cleanChannelName === 'quotations') {
-                // Canal con datos del paciente y montos: solo los roles con
-                // lectura de presupuestos (routes/api.php). Cualquier rol
-                // nuevo queda fuera hasta que se agregue explicitamente.
-                $authorized = in_array($user->role ?? null, [
-                    'administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista',
-                ], true);
-            } elseif ($cleanChannelName === 'patients') {
-                // Canal con datos clínicos del paciente: solo roles con
-                // acceso a la ficha (PatientPolicy::viewAny). Cualquier rol
-                // nuevo queda fuera hasta que se agregue explícitamente.
-                $authorized = in_array($user->role ?? null, [
-                    'administrador', 'recepcionista', 'odontologo', 'implantologo',
-                    'tecnico_dental', 'asistente', 'finanzas',
-                ], true);
+                $authorized = in_array($user->role ?? null, self::CASH_ROLES, true);
+            } elseif (array_key_exists($cleanChannelName, self::ROLE_CHANNELS)) {
+                // Issue #249: domain channels carry patient data, clinical
+                // records and amounts, so the handshake mirrors the read
+                // authorization of the matching routes/api.php group. A role
+                // that is not listed stays out until someone adds it.
+                $authorized = in_array($user->role ?? null, self::ROLE_CHANNELS[$cleanChannelName], true);
             } else {
                 Log::warning('Broadcasting auth: Canal no reconocido', ['channel' => $cleanChannelName]);
 

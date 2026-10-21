@@ -253,7 +253,10 @@
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <div>
-                <h1 :class="pageOwnsTitle ? 'sr-only' : 'text-xl font-semibold text-theme-primary'">
+                <h1
+                  v-if="!pageOwnsHeading"
+                  :class="pageOwnsTitle ? 'sr-only' : 'text-xl font-semibold text-theme-primary'"
+                >
                   {{ getPageTitle() }}
                 </h1>
                 <p
@@ -1054,14 +1057,20 @@ const pageTitledRoutes = [
   '/treatment-plans'
 ]
 
-// Detail-only surfaces: the list route keeps the topbar title, while the detail
-// page renders its own page heading (ProfessionalDetailPage).
-const pageTitledDetailPrefixes = ['/professionals/']
+// Detail surfaces whose page renders its own <h1> naming the entity it shows
+// (an appointment type, a catalog procedure, a professional). The topbar drops
+// its heading there so the document keeps one <h1>, and the visible one is the
+// page's. List routes keep their own ownership rules below.
+const pageOwnedHeadingPrefixes = ['/appointment-types/', '/procedure-catalog/', '/professionals/']
+
+const pageOwnsHeading = computed(() =>
+  pageOwnedHeadingPrefixes.some(prefix => route.path.startsWith(prefix))
+)
 
 const pageOwnsTitle = computed(
   () =>
     pageTitledRoutes.some(path => route.path === path || route.path.startsWith(`${path}/`)) ||
-    pageTitledDetailPrefixes.some(prefix => route.path.startsWith(prefix))
+    pageOwnsHeading.value
 )
 
 const getPageDescription = () => {
