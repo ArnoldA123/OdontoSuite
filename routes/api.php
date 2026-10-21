@@ -292,14 +292,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // mismo mostrador, asi que tambien viven aqui; movimientos, reportes de
     // caja y Mercado Pago siguen en administrador/finanzas.
     Route::middleware('role:administrador,finanzas,recepcionista')->group(function () {
+        // Issue #192, decision B: voiding a transaction rewrites the cash
+        // ledger, so it belongs to administrador alone. The UI already hid the
+        // button from the other cash roles; the route and the service now agree
+        // with it. Declared before apiResource so `{transaction}` does not
+        // swallow the fixed segment.
+        Route::middleware(['role:administrador', 'cash.session'])
+            ->post('transactions/{transaction}/void', [TransactionController::class, 'void']);
+
         // Transacciones requieren sesion de caja abierta.
         // Slice 01 / T-01.1: register `transactions/list` BEFORE apiResource so
         // the fixed segment is not swallowed by `{transaction}` model binding.
-        // Verify-correction slice: register `void` and `receipt` BEFORE apiResource
-        // so the fixed segments are not swallowed by `{transaction}` model binding.
+        // Verify-correction slice: register `receipt` BEFORE apiResource so the
+        // fixed segment is not swallowed by `{transaction}` model binding.
         Route::middleware('cash.session')->group(function () {
             Route::get('transactions/list', [TransactionController::class, 'list']);
-            Route::post('transactions/{transaction}/void', [TransactionController::class, 'void']);
             Route::post('transactions/{transaction}/receipt', [TransactionController::class, 'generateReceipt']);
             Route::apiResource('transactions', TransactionController::class);
         });
