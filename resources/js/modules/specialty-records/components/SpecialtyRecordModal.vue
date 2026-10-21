@@ -422,6 +422,11 @@ const buildPayload = () => {
     }
 
     const value = text(form.value[field.key])
+
+    // Status columns are NOT NULL with a database default: an untouched select
+    // is left out so the default (create) or the stored value (update) stands.
+    if (field.key === definition.value?.statusField && value === '') continue
+
     payload[field.key] = value === '' ? null : value
   }
 
