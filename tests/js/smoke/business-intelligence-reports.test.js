@@ -171,6 +171,12 @@ const selectOption = async (wrapper, containerSelector, label) => {
 const lastReportCall = () =>
   getMock.mock.calls.filter(([url]) => String(url).startsWith('/api/reports/')).at(-1)
 
+// A single flushPromises() only covers one macrotask; the report chain ends in
+// nextTick + renderCharts, so a response slower than that under load left the
+// assertion reading the previous state and produced a false red without a
+// usable diagnostic (issue #250). Wait for the observable state instead.
+const REPORT_SETTLE = { timeout: 3000, interval: 25 }
+
 describe('business intelligence reports and states (T7)', () => {
   beforeEach(() => {
     signInAs('administrador')
@@ -235,7 +241,9 @@ describe('business intelligence reports and states (T7)', () => {
 
     failAppointments = true
     await wrapper.find('[data-filters-apply]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-state="error"]').exists()).toBe(true)
+    }, REPORT_SETTLE)
 
     const alert = wrapper.find('[data-state="error"]')
     expect(alert.exists()).toBe(true)
@@ -247,10 +255,72 @@ describe('business intelligence reports and states (T7)', () => {
 
     failAppointments = false
     await wrapper.find('[data-retry]').trigger('click')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Lucía Ramos')
+    }, REPORT_SETTLE)
+
+    expect(wrapper.find('[data-state="error"]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the newest report when an older response resolves later', async () => {
+    let resolveAppointments
+    getMock.mockImplementation(url => {
+      if (url === '/api/reports/appointments') {
+        return new Promise(resolve => {
+          resolveAppointments = () => resolve(appointmentsPayload)
+        })
+      }
+      return baseResponses(url)
+    })
+
+    const wrapper = await mountPage()
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Citas')
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Ingresos')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
+    }, REPORT_SETTLE)
+
+    resolveAppointments()
+    await flushPromises()
+    await flushPromises()
+
+    const table = wrapper.find('[data-report-table]')
+    expect(table.text()).toContain('Por Tipo de Cita')
+    expect(table.text()).not.toContain('Lucía Ramos')
+    expect(wrapper.find('[data-bi-loading]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('ignores an error from a superseded report request', async () => {
+    let rejectAppointments
+    getMock.mockImplementation(url => {
+      if (url === '/api/reports/appointments') {
+        return new Promise((_, reject) => {
+          rejectAppointments = () =>
+            reject({ status: 500, response: { data: { message: 'boom' } } })
+        })
+      }
+      return baseResponses(url)
+    })
+
+    const wrapper = await mountPage()
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Citas')
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Ingresos')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
+    }, REPORT_SETTLE)
+
+    rejectAppointments()
+    await flushPromises()
     await flushPromises()
 
     expect(wrapper.find('[data-state="error"]').exists()).toBe(false)
-    expect(wrapper.find('[data-report-table]').text()).toContain('Lucía Ramos')
+    expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
 
     wrapper.unmount()
   })

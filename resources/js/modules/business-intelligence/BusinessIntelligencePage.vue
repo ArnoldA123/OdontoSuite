@@ -617,6 +617,7 @@ const dailyRevenueChartRef = ref(null)
 
 let chartInstances = []
 let chartRenderToken = 0
+let reportRequestId = 0
 let disposed = false
 
 const isDashboard = computed(() => selectedReport.value === 'dashboard')
@@ -879,36 +880,51 @@ const renderCharts = async () => {
 const reportErrorMessage = err => normalizeError(err, FALLBACK_ERROR) || FALLBACK_ERROR
 
 const loadReport = async () => {
+  // Only the newest request may write report state: a slow response must not
+  // overwrite a selection the user made after it.
+  const requestId = ++reportRequestId
+  const isCurrent = () => requestId === reportRequestId
   loading.value = true
   error.value = null
 
   try {
     if (isDashboard.value) {
       const response = await get(DASHBOARD_ENDPOINT, { params: appliedParams() })
+      if (!isCurrent()) {
+        return
+      }
       dashboard.value = normalizeDashboard(response?.data)
       reportRows.value = []
       reportColumns.value = []
       revenueSummary.value = null
     } else {
-      const response = await get(`/api/reports/${selectedReport.value}`, {
+      const report = selectedReport.value
+      const response = await get(`/api/reports/${report}`, {
         params: appliedParams()
       })
+      if (!isCurrent()) {
+        return
+      }
       reportRows.value = Array.isArray(response?.data) ? response.data : []
       reportColumns.value = Array.isArray(response?.columns) ? response.columns : []
-      revenueSummary.value =
-        selectedReport.value === 'revenue' ? (response?.meta?.summary ?? null) : null
-      if (selectedReport.value === 'revenue') {
+      revenueSummary.value = report === 'revenue' ? (response?.meta?.summary ?? null) : null
+      if (report === 'revenue') {
         revenueDimension.value = availableRevenueDimensions.value[0] || REVENUE_DIMENSIONS[0]
       }
       dashboard.value = { ...EMPTY_DASHBOARD }
     }
   } catch (err) {
+    if (!isCurrent()) {
+      return
+    }
     error.value = reportErrorMessage(err)
     clearData()
   } finally {
-    loading.value = false
-    await nextTick()
-    await renderCharts()
+    if (isCurrent()) {
+      loading.value = false
+      await nextTick()
+      await renderCharts()
+    }
   }
 }
 
