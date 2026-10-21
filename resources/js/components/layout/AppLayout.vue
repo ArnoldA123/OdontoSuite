@@ -1052,8 +1052,14 @@ const pageTitledRoutes = [
   '/treatment-plans'
 ]
 
-const pageOwnsTitle = computed(() =>
-  pageTitledRoutes.some(path => route.path === path || route.path.startsWith(`${path}/`))
+// Detail-only surfaces: the list route keeps the topbar title, while the detail
+// page renders its own page heading (ProfessionalDetailPage).
+const pageTitledDetailPrefixes = ['/professionals/']
+
+const pageOwnsTitle = computed(
+  () =>
+    pageTitledRoutes.some(path => route.path === path || route.path.startsWith(`${path}/`)) ||
+    pageTitledDetailPrefixes.some(prefix => route.path.startsWith(prefix))
 )
 
 const getPageDescription = () => {

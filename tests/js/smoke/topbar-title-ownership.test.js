@@ -91,6 +91,7 @@ describe('topbar title ownership (issue #208)', () => {
     '/settings/branches/3',
     '/environments',
     '/environments/3',
+    '/professionals/7',
     '/specialty-records',
     '/treatment-plans',
     '/quotations',

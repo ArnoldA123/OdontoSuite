@@ -198,6 +198,34 @@ describe('treatment-plans page', () => {
     wrapper.unmount()
   })
 
+  it('keeps the open plan form untouched when the page shortcut fires', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.get('[data-action="edit"]').trigger('click')
+    await flushPromises()
+
+    const titleInput = document.querySelector('[data-plan-field="title"] input')
+    expect(titleInput.value).toBe('Rehabilitación oral')
+
+    titleInput.value = 'Rehabilitación superior'
+    titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    // Focus outside an input, so the page shortcut is eligible: re-opening the
+    // overlay here would drop the selected plan and re-initialize the form.
+    const shortcutTarget = document.querySelector('[data-plan-submit]')
+    shortcutTarget.focus()
+    shortcutTarget.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }))
+    await flushPromises()
+
+    expect(document.querySelector('[data-plan-title]').textContent).toContain('Editar Plan')
+    expect(document.querySelector('[data-plan-field="title"] input').value).toBe(
+      'Rehabilitación superior'
+    )
+
+    wrapper.unmount()
+  })
+
   it('does not let the page Escape shortcut bypass the plan dirty guard', async () => {
     const wrapper = await mountPage()
 

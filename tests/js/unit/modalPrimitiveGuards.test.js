@@ -64,6 +64,31 @@ describe('Modal root hooks (issue #177)', () => {
   })
 })
 
+describe('Modal open paths (issue #177)', () => {
+  it('arms the focus trap when the modal opens through v-model', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
+      configurable: true,
+      get() {
+        return this.parentElement
+      }
+    })
+
+    const wrapper = mount(Modal, {
+      props: { modelValue: false, title: 'Modal' },
+      attachTo: document.body
+    })
+    await flushPromises()
+    expect(document.activeElement).toBe(document.body)
+
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(document.activeElement.getAttribute('aria-label')).toBe('Cerrar modal')
+
+    wrapper.unmount()
+  })
+})
+
 describe('Modal cancellable close (issue #177)', () => {
   it('keeps the modal open when the guard refuses the close', async () => {
     const beforeClose = vi.fn(async () => false)

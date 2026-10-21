@@ -101,7 +101,7 @@ const releaseScrollLock = () => {
 </script>
 
 <script setup>
-import { computed, ref, watch, onMounted, onBeforeUnmount, useId, useSlots } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, useId, useSlots, nextTick } from 'vue'
 import { useFocusTrap } from '../../composables/useFocusTrap'
 
 const props = defineProps({
@@ -276,7 +276,10 @@ watch(
       mountModal(modalToken)
       lockScroll()
       emit('open')
-      focusTrap.activate(modalRef.value)
+      // The watcher runs before the render that mounts the dialog, so the ref is
+      // still empty here; arming the trap on the next tick keeps v-model opens
+      // (the repo's other pattern) as trapped as static mounts already were.
+      nextTick(() => focusTrap.activate(modalRef.value))
     } else {
       unmountModal(modalToken)
       unlockScroll()

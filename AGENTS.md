@@ -376,6 +376,16 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (cierre de hallazgos de #177/#208)** — El atajo `n` de la página
+  de planes queda inerte con un overlay abierto (reinicializaba el formulario en
+  edición y perdía los cambios), `UiModal` arma la trampa de foco también cuando
+  se abre por `v-model` (antes el `activate` corría con la ref todavía vacía) y
+  `/professionals/:id` entra en las rutas cuyo título visible pertenece a la
+  página. Los hallazgos fuera de alcance quedaron registrados como issues #242
+  (`TreatmentPlanDetail` a `UiModal`) y #243 (dos `<h1>` en rutas de detalle).
+  Tests: `modalPrimitiveGuards` (14), `treatment-plans` (9) y
+  `topbar-title-ownership` (27). Sin rutas, modelos ni migraciones nuevas.
+
 - **2026-10-20 (corrección de #177 tras verificación independiente)** — El botón
   de envío de los dos diálogos migrados vuelve a ser `type="submit"` con
   `form="…"`, así Enter sigue enviando desde cualquier campo; `DataTable` remide
