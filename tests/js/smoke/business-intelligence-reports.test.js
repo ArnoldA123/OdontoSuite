@@ -171,6 +171,12 @@ const selectOption = async (wrapper, containerSelector, label) => {
 const lastReportCall = () =>
   getMock.mock.calls.filter(([url]) => String(url).startsWith('/api/reports/')).at(-1)
 
+// A single flushPromises() only covers one macrotask; the report chain ends in
+// nextTick + renderCharts, so a response slower than that under load left the
+// assertion reading the previous state and produced a false red without a
+// usable diagnostic (issue #250). Wait for the observable state instead.
+const REPORT_SETTLE = { timeout: 3000, interval: 25 }
+
 describe('business intelligence reports and states (T7)', () => {
   beforeEach(() => {
     signInAs('administrador')
@@ -235,7 +241,9 @@ describe('business intelligence reports and states (T7)', () => {
 
     failAppointments = true
     await wrapper.find('[data-filters-apply]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-state="error"]').exists()).toBe(true)
+    }, REPORT_SETTLE)
 
     const alert = wrapper.find('[data-state="error"]')
     expect(alert.exists()).toBe(true)
@@ -247,10 +255,11 @@ describe('business intelligence reports and states (T7)', () => {
 
     failAppointments = false
     await wrapper.find('[data-retry]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Lucía Ramos')
+    }, REPORT_SETTLE)
 
     expect(wrapper.find('[data-state="error"]').exists()).toBe(false)
-    expect(wrapper.find('[data-report-table]').text()).toContain('Lucía Ramos')
 
     wrapper.unmount()
   })
