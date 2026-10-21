@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pacientes-04 -- PatientDetailEditExportAppShellTest.
  *
@@ -95,9 +97,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * per DLR-CORE-001 + canvasRoutes (PR0 landed). The page file does
      * NOT need a direct bg-canvas reference. We pin the AppLayout
      * reference instead.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_page_references_canvas_token(string $path): void
     {
         $src = self::readSource($path);
@@ -122,9 +123,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * `PatientFormModal.vue`; the rule scans the component that owns
      * the form surface. UiModal owns the header divider via its
      * built-in hairline token.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_border_theme_literal(string $path): void
     {
         $modal = self::sharedFormSource();
@@ -149,9 +149,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * form fields) live in `PatientFormModal.vue` now; the rule scans
      * the component so the legacy alias cannot re-enter through the
      * shared surface.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_focus_ring_alias(string $path): void
     {
         $modal = self::sharedFormSource();
@@ -178,9 +177,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * `PatientFormModal.vue` (the component owns the chrome after the
      * consolidation); the negative backdrop rule keeps scanning BOTH
      * files so the legacy chrome cannot re-enter through either surface.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_no_bg_black_bg_opacity_50(string $path): void
     {
         $src = self::readSource($path);
@@ -223,9 +221,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * RE-ANCHOR: scans `PatientFormModal.vue` (the edit surface after
      * the consolidation); a page-level extraction would scan the bare
      * `<PatientFormModal>` tag and pass vacuously.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_no_raw_select(string $path): void
     {
         $modal = self::sharedFormSource();
@@ -251,9 +248,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      *
      * RE-ANCHOR: scans `PatientFormModal.vue` (dropdowns moved with the
      * form).
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_uses_ui_select(string $path): void
     {
         $modal = self::sharedFormSource();
@@ -284,9 +280,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * shared-component usage wired `mode="edit"` + `:patient`, and no
      * leftover `<UiModal>`, `<form>`, `editPatientData` or
      * `updatePatient` markup on the page itself.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_uses_shared_form_modal(string $path): void
     {
         $src = self::readSource($path);
@@ -362,9 +357,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * The UiButton adoption is the minimal change that satisfies
      * PAC-EXP-001 -- the underlying exportPatientFile function stays
      * verbatim (per the binary download pattern preservation rule).
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_export_button_uses_ui_button(string $path): void
     {
         $src = self::readSource($path);
@@ -413,9 +407,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * Wrapping this in useApi() (JSON envelope) would corrupt the
      * binary stream -- the raw fetch + Bearer token pattern is the only
      * safe path. The rule asserts each pattern element is present.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_export_binary_download_pattern_preserved(string $path): void
     {
         $src = self::readSource($path);
@@ -521,9 +514,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      *
      * The endpoint contract is the load-bearing path -- the JSON wrapper
      * from useApi() cannot replace it.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_export_calls_patient_resource_endpoint(string $path): void
     {
         $src = self::readSource($path);
@@ -567,9 +559,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * the rule pins the 422 error envelope rendering (the envelope is
      * surfaced verbatim via useToast) against the component that owns
      * the submit path, so the contract still bites.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_422_duplicate_handled(string $path): void
     {
         $modal = self::sharedFormSource();
@@ -613,9 +604,8 @@ class PatientDetailEditExportAppShellTest extends ModuleAppShellTestCase
      * component (a refactor to axios direct would break the guard rail:
      * useApi() wrapper only; NO axios direct). The axios-negative keeps
      * scanning BOTH files.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_detail_edit_use_api_put_preserved(string $path): void
     {
         $src = self::readSource($path);

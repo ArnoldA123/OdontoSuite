@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -177,7 +178,7 @@ JS;
         return is_array($decoded) ? $decoded : null;
     }
 
-    /** @test */
+    #[Test]
     public function tokens_module_file_exists(): void
     {
         $this->assertFileExists(
@@ -186,7 +187,7 @@ JS;
         );
     }
 
-    /** @test */
+    #[Test]
     public function tokens_module_exports_canonical_keys(): void
     {
         $tokens = self::loadTokens();
@@ -210,7 +211,7 @@ JS;
         }
     }
 
-    /** @test */
+    #[Test]
     public function tokens_colors_include_semantic_states(): void
     {
         $tokens = self::loadTokens();
@@ -257,7 +258,7 @@ JS;
         }
     }
 
-    /** @test */
+    #[Test]
     public function tokens_spacing_and_radius_publish_canonical_steps(): void
     {
         $tokens = self::loadTokens();
@@ -274,7 +275,7 @@ JS;
         $this->assertArrayHasKey('full', $tokens['radius']);
     }
 
-    /** @test */
+    #[Test]
     public function tokens_colors_stay_in_parity_with_tailwind_config_palette(): void
     {
         $tokens = self::loadTokens();
@@ -351,9 +352,8 @@ JS;
      * `getThemeOptions` exports, the `ThemeSelector` UI, the stale
      * `design-system.js` duplicate, and the dead `MobileNavigation`
      * component must all be absent from `resources/`.
-     *
-     * @test
      */
+    #[Test]
     public function theme_machinery_removed(): void
     {
         self::assertResourceGrepReturnsZero(
@@ -366,9 +366,8 @@ JS;
      * Task 1.1.2 — anti-requirement guard. No `@media
      * (prefers-color-scheme: dark)` block may remain anywhere under
      * `resources/` once the design system is light-only.
-     *
-     * @test
      */
+    #[Test]
     public function no_dark_mode_blocks_in_resources(): void
     {
         self::assertResourceGrepReturnsZero(
@@ -385,9 +384,8 @@ JS;
      * no theme key (any flavor) may be written. A stale `theme` key in
      * a user's browser is intentionally inert on next visit; no
      * read-once bootstrap is required.
-     *
-     * @test
      */
+    #[Test]
     public function app_bootstrap_ignores_stale_theme_localstorage_key(): void
     {
         self::assertResourceGrepReturnsZero(
@@ -400,9 +398,8 @@ JS;
      * Task 1.1.4 — guard that `Avatar.vue` no longer carries its own
      * `@media (prefers-color-scheme: dark)` block. The Avatar was the
      * only file under `resources/js/components/ui/` that had one.
-     *
-     * @test
      */
+    #[Test]
     public function avatar_dark_mode_blocks_removed(): void
     {
         self::assertResourceGrepReturnsZero(
@@ -417,9 +414,8 @@ JS;
      * ramps + deprecated alias keys. The new ramps are asserted in
      * tokens_module_exposes_ios_system_color_ramps (Task 1.1.1) and
      * tokens_module_deprecated_aliases_resolve (Task 1.1.9).
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_exposes_ios_ramps_with_aliases(): void
     {
         $tokens = self::loadTokens();
@@ -486,9 +482,8 @@ JS;
      * `terracotta`/`cream`/`clinicalTeal` aliases carry only the steps the
      * 17 un-migrated modules actually consume. No ramp key ends in a
      * dark-suffix anywhere.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_aliases_shape_and_no_dark_suffixes(): void
     {
         $tokens = self::loadTokens();
@@ -530,9 +525,8 @@ JS;
      * Task 1.1.1 — token surface must expose the iOS 13+ system color ramps
      * at steps {50, 100, 500, 600, 700} plus background / label / separator /
      * fill ramps. Each ramp step is a 6-digit lowercase hex literal.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_exposes_ios_system_color_ramps(): void
     {
         $tokens = self::loadTokens();
@@ -567,9 +561,8 @@ JS;
      * Task 1.1.2 — the palette's identity steps match the PALETTE SNAPSHOT.
      * Values come from the constant block at the top of this class, so a
      * palette migration edits one place.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_hex_literals_match_palette_snapshot(): void
     {
         $tokens = self::loadTokens();
@@ -604,9 +597,8 @@ JS;
     /**
      * Task 1.1.3 — radius scale: `ios` (10 px) for cards/buttons/chips,
      * `modal` (14 px) for Modal/Sheet. `lg/2xl/3xl` are removed.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_radius_ios_and_modal(): void
     {
         $tokens = self::loadTokens();
@@ -629,9 +621,8 @@ JS;
     /**
      * Task 1.1.4 — typography.fontFamily.serif is removed. fontFamily.sans
      * remains as a non-empty array starting with -apple-system.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_font_family_sans_only(): void
     {
         $tokens = self::loadTokens();
@@ -658,9 +649,8 @@ JS;
      * Task 1.1.5 — letterSpacing table tuned for SF/system: xs/sm/base/lg = 0,
      * xl = -0.01em, 2xl = -0.015em, 3xl = -0.02em, 4xl/display/hero = -0.022em.
      * No fontSize step sets font-optical-sizing (system font has no opsz axis).
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_letter_spacing_table(): void
     {
         $tokens = self::loadTokens();
@@ -737,9 +727,8 @@ JS;
      * Task 1.1.6 — Newsreader binary + useFontsLoaded composable absent.
      * No `Newsreader`/`useFontsLoaded`/`var(--font-serif)` references remain
      * under `resources/`.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_no_newsreader_no_use_fonts_loaded(): void
     {
         // File absence.
@@ -771,9 +760,8 @@ JS;
      * Task 1.1.7 — forbidden cream / terracotta / clinicalTeal hex literals
      * must not appear anywhere in `resources/` outside the SoT files
      * (tokens.js + tokens.generated.css).
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_no_cream_terracotta_clinical_teal_literals(): void
     {
         // Strip tokens.js + tokens.generated.css (allowed SoT files) from the
@@ -807,9 +795,8 @@ JS;
     /**
      * Task 1.1.8 — anti-requirement guard. No `prefers-color-scheme: dark`
      * block may exist under `resources/` (light-only design system).
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_no_dark_mode_blocks(): void
     {
         self::assertResourceGrepReturnsZero(
@@ -821,9 +808,8 @@ JS;
     /**
      * Task 1.1.9 — deprecated alias keys resolve to iOS system colors. The
      * 17 un-migrated modules' Tailwind classes keep rendering without churn.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_deprecated_aliases_resolve(): void
     {
         $tokens = self::loadTokens();
@@ -876,9 +862,8 @@ JS;
     /**
      * Task 1.1.10 — generated CSS contains no `@font-face` block, no
      * `--font-serif` declaration, and no `newsreader` reference anywhere.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_has_no_font_face_no_font_serif(): void
     {
         $css = self::loadGeneratedCss();
@@ -904,9 +889,8 @@ JS;
     /**
      * Task 1.1.11 — generated CSS `.surface-glass` rgba is white-on-white
      * (rgb(255 255 255 / ...)). Shadow ramp uses rgba(0, 0, 0, ...).
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_surface_glass_uses_white_on_white_and_pure_black_shadow(): void
     {
         $css = self::loadGeneratedCss();
@@ -966,9 +950,8 @@ JS;
      * Task 2.1.4 — motion tokens section remains intact (consumed by
      * useSpring / useSpring2D / generator). The values are unchanged from
      * the previous design; this test guards against accidental removal.
-     *
-     * @test
      */
+    #[Test]
     public function tokens_module_motion_section_present(): void
     {
         $tokens = self::loadTokens();

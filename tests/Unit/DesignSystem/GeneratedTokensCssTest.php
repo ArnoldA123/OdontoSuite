@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\SourceGrep;
 
@@ -94,9 +95,8 @@ class GeneratedTokensCssTest extends TestCase
      * token surface. Nested `:root` selectors inside media queries are
      * allowed (e.g. for prefers-contrast overrides) but the top-level count
      * must be exactly one.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_single_root_block(): void
     {
         $css = self::readGeneratedCss();
@@ -115,9 +115,8 @@ class GeneratedTokensCssTest extends TestCase
      * Task 2.1.6 — anti-requirement guard. No Google Fonts CDN reference may
      * exist anywhere under resources/css, resources/js, or resources/views.
      * The font is self-hosted in public/fonts/.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_has_no_external_font_request(): void
     {
         $root = self::projectRoot();
@@ -136,9 +135,8 @@ class GeneratedTokensCssTest extends TestCase
      * Anti-requirement (ui-refresh-apple-clinical-2026-08, design Decision 6):
      * the @font-face block is GONE. The system font has no FOUT risk; no
      * replacement woff2 binary ships; no replacement composable ships.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_has_no_font_face_block(): void
     {
         $css = self::readGeneratedCss();
@@ -157,9 +155,8 @@ class GeneratedTokensCssTest extends TestCase
      * emissions indicate the generator ran twice or someone hand-edited the
      * file. Nested references inside media queries (e.g. for
      * prefers-reduced-transparency) are allowed and counted separately.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_surface_glass_class_emitted_exactly_once(): void
     {
         $css = self::readGeneratedCss();
@@ -177,9 +174,8 @@ class GeneratedTokensCssTest extends TestCase
     /**
      * Task 2.1.9 — data-card `variant="glass"` is opaque by construction.
      * No `backdrop-filter` declaration may exist in Card.vue.
-     *
-     * @test
      */
+    #[Test]
     public function card_variant_glass_has_no_backdrop_filter(): void
     {
         $cardPath = self::projectRoot().'/resources/js/components/ui/Card.vue';
@@ -197,9 +193,8 @@ class GeneratedTokensCssTest extends TestCase
      * Task 2.1.10 — only Card.vue was historically the data-card surface;
      * no other primitive component may declare its own blur. After PR2 the
      * chrome blur lives only in `.surface-glass` inside the generated CSS.
-     *
-     * @test
      */
+    #[Test]
     public function primitives_have_no_backdrop_filter_outside_chrome(): void
     {
         $uiDir = self::projectRoot().'/resources/js/components/ui';
@@ -219,9 +214,8 @@ class GeneratedTokensCssTest extends TestCase
      * universal selector with a transition declaration may exist across the
      * three CSS surfaces (themes, tokens, utilities). The generator must
      * never emit one; hand-edits must not introduce one.
-     *
-     * @test
      */
+    #[Test]
     public function no_universal_transition_selector_in_css(): void
     {
         $root = self::projectRoot();
@@ -252,9 +246,8 @@ class GeneratedTokensCssTest extends TestCase
      * must equal the union of all hex literals declared in tokens.colors.
      * Catches iCloud-blue drift (a hand-edited hex value that the JS module
      * does not know about) the unit test on tokens.js alone cannot.
-     *
-     * @test
      */
+    #[Test]
     public function generated_css_only_contains_token_hex_literals(): void
     {
         $css = self::readGeneratedCss();
