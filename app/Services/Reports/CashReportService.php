@@ -3,12 +3,14 @@
 namespace App\Services\Reports;
 
 use App\Models\Branch;
+use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\CashRegisterService;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class CashReportService
 {
@@ -55,26 +57,31 @@ class CashReportService
 
     /**
      * Get period cash report.
+     *
+     * Issue #197, decision A: the report has one population. Sales, the payment
+     * methods analysis and the session block all follow completed transactions
+     * created inside `[start, end]`; the block keeps the sessions that had
+     * activity (a transaction or a movement) in that range, so it reconciles
+     * with the sales block even when a session crosses midnight.
      */
     public function getPeriodReport(string $startDate, string $endDate, ?int $branchId = null): array
     {
         $start = Carbon::parse($startDate)->startOfDay();
         $end = Carbon::parse($endDate)->endOfDay();
 
-        $query = CashRegisterSession::with(['user', 'branch'])
-            ->whereBetween('opened_at', [$start, $end]);
-
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
-
-        $sessions = $query->get();
+        $sessions = $this->getSessionsWithActivity($start, $end, $branchId);
         $flow = $this->getFlowTotals($start, $end, $branchId);
 
         $report = [
             'period' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
+            ],
+            'population' => [
+                'basis' => 'transaction_date',
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'description' => 'Transacciones completadas creadas dentro del rango (ventas, mix y top) y sesiones con transacciones o movimientos dentro del rango.',
             ],
             'sessions_count' => $sessions->count(),
             'total_opening_amount' => $sessions->sum('opening_amount'),
@@ -84,13 +91,35 @@ class CashReportService
             'average_difference' => $sessions->avg('difference_amount'),
             'total_income' => $flow['total_income'],
             'total_expenses' => $flow['total_expenses'],
-            'daily_summary' => $this->getDailySummary($start, $end, $branchId),
+            'daily_summary' => $this->getDailySummary($start, $end, $branchId, $sessions),
             'summary_by_branch' => $this->getSummaryByBranch($sessions),
             'summary_by_user' => $this->getSummaryByUser($sessions),
             'payment_methods_analysis' => $this->getPaymentMethodsAnalysis($start, $end, $branchId),
         ];
 
         return $report;
+    }
+
+    /**
+     * Sessions with activity (a transaction or a movement) inside the range.
+     *
+     * One query with two `exists` subqueries keeps the session block at a
+     * single round trip, whatever the number of sessions in the period.
+     */
+    private function getSessionsWithActivity(Carbon $start, Carbon $end, ?int $branchId = null): Collection
+    {
+        return CashRegisterSession::with(['user', 'branch'])
+            ->where(function ($query) use ($start, $end) {
+                $query->whereHas('transactions', function ($transactions) use ($start, $end) {
+                    $transactions->whereBetween('created_at', [$start, $end]);
+                })->orWhereHas('movements', function ($movements) use ($start, $end) {
+                    $movements->whereBetween('created_at', [$start, $end]);
+                });
+            })
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->where('branch_id', $branchId);
+            })
+            ->get();
     }
 
     /**
@@ -262,30 +291,84 @@ class CashReportService
 
     /**
      * Get daily summary.
+     *
+     * No query per day: two grouped queries build the whole range. The first
+     * one groups the completed transactions by day and session, so it feeds
+     * both the sales rows and the session activity; the second one adds the
+     * days whose only activity was a cash movement. The snapshot amounts come
+     * from the session block the period report already loaded.
+     *
+     * @param Collection<int, CashRegisterSession> $sessions
      */
-    private function getDailySummary(Carbon $start, Carbon $end, ?int $branchId = null): array
+    private function getDailySummary(Carbon $start, Carbon $end, ?int $branchId, Collection $sessions): array
     {
+        $transactionDays = Transaction::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->whereHas('cashRegisterSession', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                });
+            })
+            ->selectRaw(
+                'DATE(created_at) as day, cash_register_session_id as session_id, '.
+                "COALESCE(SUM(CASE WHEN type IN ('payment', 'income') THEN amount ELSE 0 END), 0) as total_income, ".
+                "COALESCE(SUM(CASE WHEN type IN ('refund', 'expense') THEN amount ELSE 0 END), 0) as total_expenses"
+            )
+            ->groupByRaw('DATE(created_at), cash_register_session_id')
+            ->get();
+
+        $movementDays = CashMovement::query()
+            ->whereBetween('created_at', [$start, $end])
+            ->when($branchId, function ($query) use ($branchId) {
+                $query->whereHas('cashRegisterSession', function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId);
+                });
+            })
+            ->selectRaw('DATE(created_at) as day, cash_register_session_id as session_id')
+            ->groupByRaw('DATE(created_at), cash_register_session_id')
+            ->get();
+
+        $sessionIdsByDay = [];
+
+        foreach ($transactionDays as $row) {
+            if ($row->session_id !== null) {
+                $sessionIdsByDay[$row->day][(int) $row->session_id] = true;
+            }
+        }
+
+        foreach ($movementDays as $row) {
+            if ($row->session_id !== null) {
+                $sessionIdsByDay[$row->day][(int) $row->session_id] = true;
+            }
+        }
+
+        $salesByDay = $transactionDays->groupBy('day');
+        $sessionsById = $sessions->keyBy('id');
+
         $dailyData = [];
-        $current = $start->copy();
+        $current = $start->copy()->startOfDay();
 
         while ($current->lte($end)) {
-            $dayStart = $current->copy()->startOfDay();
-            $dayEnd = $current->copy()->endOfDay();
+            $date = $current->format('Y-m-d');
 
-            $query = CashRegisterSession::whereBetween('opened_at', [$dayStart, $dayEnd]);
+            $daySessions = collect(array_keys($sessionIdsByDay[$date] ?? []))
+                ->map(function (int $sessionId) use ($sessionsById) {
+                    return $sessionsById->get($sessionId);
+                })
+                ->filter()
+                ->values();
 
-            if ($branchId) {
-                $query->where('branch_id', $branchId);
-            }
-
-            $sessions = $query->get();
+            $daySales = $salesByDay->get($date, collect());
 
             $dailyData[] = [
-                'date' => $current->format('Y-m-d'),
-                'sessions_count' => $sessions->count(),
-                'total_opening' => $sessions->sum('opening_amount'),
-                'total_closing' => $sessions->sum('closing_amount'),
-                'total_difference' => $sessions->sum('difference_amount'),
+                'date' => $date,
+                'sessions_count' => $daySessions->count(),
+                'total_opening' => $daySessions->sum('opening_amount'),
+                'total_closing' => $daySessions->sum('closing_amount'),
+                'total_difference' => $daySessions->sum('difference_amount'),
+                'total_income' => round((float) $daySales->sum('total_income'), 2),
+                'total_expenses' => round((float) $daySales->sum('total_expenses'), 2),
             ];
 
             $current->addDay();
