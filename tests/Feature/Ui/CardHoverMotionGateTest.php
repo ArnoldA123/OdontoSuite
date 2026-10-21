@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Ui;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -38,9 +39,7 @@ class CardHoverMotionGateTest extends TestCase
         return (string) file_get_contents($path);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function card_root_binds_data_hover_attribute(): void
     {
         $source = self::cardSource();
@@ -64,9 +63,7 @@ class CardHoverMotionGateTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function card_has_no_tailwind_scale_on_hover(): void
     {
         $source = self::cardSource();
@@ -92,9 +89,7 @@ class CardHoverMotionGateTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function scoped_hover_transform_is_translate_y_minus_1px(): void
     {
         $source = self::cardSource();
@@ -107,9 +102,7 @@ class CardHoverMotionGateTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function prefers_reduced_motion_gate_nulls_hover_transform(): void
     {
         $source = self::cardSource();

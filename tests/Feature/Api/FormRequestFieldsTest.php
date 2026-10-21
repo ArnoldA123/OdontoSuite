@@ -10,6 +10,7 @@ use App\Http\Requests\StoreSpecialtyRecordRequest;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\StoreTreatmentPlanRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -42,9 +43,7 @@ class FormRequestFieldsTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider formRequestsWithNewFields
-     */
+    #[DataProvider('formRequestsWithNewFields')]
     public function test_new_optional_field_is_declared_in_rules(string $formRequestClass, string $field, string $expectedMarker): void
     {
         $this->assertTrue(class_exists($formRequestClass), "$formRequestClass missing");

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 class ClusterFailuresTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function it_groups_a_synthetic_mysql_output_by_root_cause_signature(): void
     {
         $report = $this->cluster($this->syntheticOutput());
@@ -49,7 +50,7 @@ class ClusterFailuresTest extends TestCase
         $this->assertCount(1, $duplicates['tests']);
     }
 
-    /** @test */
+    #[Test]
     public function it_takes_the_test_location_from_the_first_tests_frame(): void
     {
         $report = $this->cluster($this->syntheticOutput());
@@ -61,7 +62,7 @@ class ClusterFailuresTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function it_falls_back_to_the_header_class_when_the_trace_has_no_tests_frame(): void
     {
         $report = $this->cluster($this->syntheticOutput());
@@ -73,7 +74,7 @@ class ClusterFailuresTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function a_green_run_reports_zero_failures_and_zero_signatures(): void
     {
         $report = $this->cluster("   PASS  Tests\\Unit\\ExampleTest\n  ✓ it works\n\n  Tests:    1 passed\n");

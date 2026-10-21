@@ -4,6 +4,7 @@ namespace Tests\Unit\Events;
 
 use App\Events\PatientFileExported;
 use App\Providers\AppServiceProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -31,7 +32,7 @@ use Tests\TestCase;
  */
 class OrphanEventsDeprecatedTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function events_with_laravel_listener_should_not_be_marked_nf2(): void
     {
         // Every event in this list has a Laravel listener wired in
@@ -56,7 +57,7 @@ class OrphanEventsDeprecatedTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function patient_file_exported_is_cabled_in_service_provider(): void
     {
         $provider = new AppServiceProvider($this->app);
@@ -69,7 +70,7 @@ class OrphanEventsDeprecatedTest extends TestCase
         $this->assertStringContainsString('NotifyPatientFileExported', $bootSource);
     }
 
-    /** @test */
+    #[Test]
     public function payment_received_listener_is_cabled_in_service_provider(): void
     {
         $provider = new AppServiceProvider($this->app);

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Documentation;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,7 +20,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         return realpath(__DIR__.'/../../..');
     }
 
-    /** @test */
+    #[Test]
     public function translation_model_exists(): void
     {
         $path = self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php';
@@ -29,7 +30,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertStringContainsString('extends Model', $content);
     }
 
-    /** @test */
+    #[Test]
     public function translation_model_has_correct_fillable(): void
     {
         $content = file_get_contents(self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php');
@@ -39,7 +40,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function migration_exists_for_translations_table(): void
     {
         $path = self::projectRoot().'/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php';
@@ -50,7 +51,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertStringContainsString("'name'", $content);
     }
 
-    /** @test */
+    #[Test]
     public function migration_has_unique_constraint_on_locale_per_procedure(): void
     {
         $content = file_get_contents(self::projectRoot().'/database/migrations/2026_06_11_003000_create_procedure_catalog_translations_table.php');
@@ -58,7 +59,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertStringContainsString('pc_trans_unique', $content, 'Unique constraint should have explicit index name');
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_model_has_translations_relationship(): void
     {
         $reflection = new \ReflectionClass(\App\Models\ProcedureCatalog::class);
@@ -67,7 +68,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertStringEndsWith('HasMany', $method->getReturnType()->getName());
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_model_has_translate_method(): void
     {
         $reflection = new \ReflectionClass(\App\Models\ProcedureCatalog::class);
@@ -79,7 +80,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertEquals('field', $params[1]->getName());
     }
 
-    /** @test */
+    #[Test]
     public function translate_method_requires_locale_param(): void
     {
         $reflection = new \ReflectionClass(\App\Models\ProcedureCatalog::class);
@@ -89,7 +90,7 @@ class ProcedureCatalogTranslationTest extends TestCase
         $this->assertFalse($params[0]->isOptional(), 'locale parameter should be required');
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_translation_model_table_name_is_correct(): void
     {
         $path = self::projectRoot().'/app/Models/ProcedureCatalogTranslation.php';

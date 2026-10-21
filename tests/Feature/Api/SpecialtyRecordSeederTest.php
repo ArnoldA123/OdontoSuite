@@ -12,6 +12,7 @@ use App\Models\RehabilitationRecord;
 use Database\Seeders\SpecialtyRecordSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -64,7 +65,7 @@ class SpecialtyRecordSeederTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function seeder_creates_records_across_all_five_concrete_models(): void
     {
         $this->seed(\Database\Seeders\RoleBasedUsersSeeder::class);
@@ -100,7 +101,7 @@ class SpecialtyRecordSeederTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function seeder_is_idempotent_on_re_run(): void
     {
         $this->seed(\Database\Seeders\RoleBasedUsersSeeder::class);
@@ -125,7 +126,7 @@ class SpecialtyRecordSeederTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function seeder_early_returns_when_no_dental_pieces_exist(): void
     {
         $this->seed(\Database\Seeders\RoleBasedUsersSeeder::class);

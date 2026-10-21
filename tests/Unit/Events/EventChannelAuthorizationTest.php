@@ -4,6 +4,7 @@ namespace Tests\Unit\Events;
 
 use App\Events\AppointmentCheckedIn;
 use App\Events\PaymentReceived;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -62,7 +63,7 @@ class EventChannelAuthorizationTest extends TestCase
         return false;
     }
 
-    /** @test */
+    #[Test]
     public function routes_channels_php_registers_the_appointment_base_channel(): void
     {
         $source = (string) file_get_contents(base_path('routes/channels.php'));
@@ -85,7 +86,7 @@ class EventChannelAuthorizationTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function routes_channels_php_registers_the_cash_register_base_channel(): void
     {
         $source = (string) file_get_contents(base_path('routes/channels.php'));
@@ -108,7 +109,7 @@ class EventChannelAuthorizationTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function appointment_checked_in_emits_private_channel_with_base_name(): void
     {
         $names = self::emittedPrivateChannelNames(AppointmentCheckedIn::class);
@@ -132,7 +133,7 @@ class EventChannelAuthorizationTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function payment_received_emits_private_channel_with_base_name(): void
     {
         $names = self::emittedPrivateChannelNames(PaymentReceived::class);

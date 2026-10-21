@@ -8,6 +8,7 @@ use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 /**
@@ -18,9 +19,8 @@ use Tests\TestCase;
  * The TransactionController already implements void() and generateReceipt(),
  * and TransactionService already exposes voidTransaction() and generateReceipt().
  * These tests assert the ROUTES are wired so the implementations become reachable.
- *
- * @group mysql
  */
+#[Group('mysql')]
 class TransactionVoidAndReceiptTest extends TestCase
 {
     use RefreshDatabase;
