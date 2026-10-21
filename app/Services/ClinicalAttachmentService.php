@@ -4,8 +4,17 @@ namespace App\Services;
 
 use App\Models\ClinicalAttachment;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
+/**
+ * Creation path for a clinical attachment uploaded from the AI analysis
+ * surface.
+ *
+ * The rest of the attachment lifecycle — listing, updating the description,
+ * deleting the binary — is owned by `MedicalRecordService`, which is the
+ * implementation the endpoints call. Keeping a second `delete()` here (#265)
+ * meant a fix applied to this class could pass its tests and change nothing
+ * observable, so the duplicated operations were removed instead.
+ */
 class ClinicalAttachmentService
 {
     public function store(array $data): ClinicalAttachment
@@ -30,39 +39,6 @@ class ClinicalAttachmentService
             'is_private' => $data['is_private'] ?? false,
             'is_active' => true,
         ]);
-    }
-
-    public function update(int $id, array $data): ClinicalAttachment
-    {
-        $attachment = ClinicalAttachment::findOrFail($id);
-
-        $attachment->update([
-            'description' => $data['description'] ?? $attachment->description,
-            'category' => $data['category'] ?? $attachment->category,
-            'is_private' => $data['is_private'] ?? $attachment->is_private,
-        ]);
-
-        return $attachment;
-    }
-
-    public function delete(int $id): bool
-    {
-        $attachment = ClinicalAttachment::findOrFail($id);
-
-        // Eliminar archivo físico
-        if (Storage::disk('public')->exists($attachment->file_path)) {
-            Storage::disk('public')->delete($attachment->file_path);
-        }
-
-        // Soft delete
-        $attachment->update(['is_active' => false]);
-
-        return true;
-    }
-
-    public function getAttachmentUrl(ClinicalAttachment $attachment): string
-    {
-        return Storage::url($attachment->file_path);
     }
 
     protected function getFileType(string $mimeType): string
