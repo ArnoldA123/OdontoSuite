@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\CashRegisterSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -58,7 +60,8 @@ class CashMovementPermissionTest extends TestCase
         ]);
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function administrador_can_post_cash_movement(): void
     {
         $admin = $this->adminUser();
@@ -80,7 +83,8 @@ class CashMovementPermissionTest extends TestCase
         );
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function finanzas_can_post_cash_movement(): void
     {
         $user = $this->finanzasUser();
@@ -103,10 +107,10 @@ class CashMovementPermissionTest extends TestCase
     }
 
     /**
-     * @test FF-001
-     *
-     * @dataProvider forbiddenRoles
+     * FF-001.
      */
+    #[Test]
+    #[DataProvider('forbiddenRoles')]
     public function non_admin_non_finanzas_cannot_post_cash_movement(string $role): void
     {
         $user = $this->clinicalUser($role);

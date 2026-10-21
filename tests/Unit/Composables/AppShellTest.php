@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\SourceGrep;
 
@@ -51,9 +52,8 @@ class AppShellTest extends TestCase
     /**
      * The literal string `MotionPlugin` MUST NOT appear in
      * resources/js/app.js: the plugin was retired with its dependency.
-     *
-     * @test
      */
+    #[Test]
     public function app_js_does_not_register_motion_plugin(): void
     {
         $this->assertFileExists(
@@ -74,9 +74,8 @@ class AppShellTest extends TestCase
     /**
      * Neither app.js nor package.json MAY reference `@vueuse/motion`:
      * the dependency was removed alongside the plugin registration.
-     *
-     * @test
      */
+    #[Test]
     public function vueuse_motion_dependency_is_retired(): void
     {
         $this->assertFileExists(

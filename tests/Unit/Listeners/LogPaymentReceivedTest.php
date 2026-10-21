@@ -5,6 +5,7 @@ namespace Tests\Unit\Listeners;
 use App\Events\PaymentReceived;
 use App\Listeners\LogPaymentReceived;
 use Illuminate\Support\Facades\Log;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -14,7 +15,7 @@ use Tests\TestCase;
  */
 class LogPaymentReceivedTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function listener_class_exists(): void
     {
         $this->assertTrue(
@@ -23,7 +24,7 @@ class LogPaymentReceivedTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function listener_is_registered_for_payment_received_in_app_service_provider(): void
     {
         $providerPath = app_path('Providers/AppServiceProvider.php');
@@ -41,7 +42,7 @@ class LogPaymentReceivedTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function listener_handle_accepts_payment_received_event(): void
     {
         $reflection = new \ReflectionClass(LogPaymentReceived::class);
@@ -62,7 +63,7 @@ class LogPaymentReceivedTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function listener_wraps_body_in_try_catch_per_agents_md_section_7(): void
     {
         $reflection = new \ReflectionClass(LogPaymentReceived::class);

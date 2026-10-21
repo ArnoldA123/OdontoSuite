@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Documentation;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -27,13 +28,13 @@ class CredentialsDocumentationTest extends TestCase
         return realpath(__DIR__.'/../../..').'/CREDENTIALS.md';
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_file_exists(): void
     {
         $this->assertFileExists(self::credentialsPath());
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_mentions_default_password(): void
     {
         $content = file_get_contents(self::credentialsPath());
@@ -41,14 +42,13 @@ class CredentialsDocumentationTest extends TestCase
     }
 
     /**
-     * @test
-     *
      * CREDENTIALS.md must document every username the SEEDER creates, and no
      * username it does not.
      *
      * It derives BOTH sides. The seeder is the source of truth, and the
      * comparison runs in both directions: nothing missing, nothing invented.
      */
+    #[Test]
     public function credentials_md_matches_the_seeder_username_list(): void
     {
         $documented = self::documentedUsernames();
@@ -73,10 +73,9 @@ class CredentialsDocumentationTest extends TestCase
     }
 
     /**
-     * @test
-     *
      * Every documented email must be the seeder's email for that username.
      */
+    #[Test]
     public function credentials_md_documents_the_seeder_email_for_each_username(): void
     {
         $pairs = self::documentedUsernameEmailPairs();
@@ -170,7 +169,7 @@ class CredentialsDocumentationTest extends TestCase
         return realpath(__DIR__.'/../../..').'/database/seeders/RoleBasedUsersSeeder.php';
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_documents_all_seven_roles(): void
     {
         $content = file_get_contents(self::credentialsPath());
@@ -184,7 +183,7 @@ class CredentialsDocumentationTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_has_permission_matrix(): void
     {
         $content = file_get_contents(self::credentialsPath());
@@ -196,7 +195,7 @@ class CredentialsDocumentationTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_has_login_instructions(): void
     {
         $content = file_get_contents(self::credentialsPath());
@@ -204,7 +203,7 @@ class CredentialsDocumentationTest extends TestCase
         $this->assertStringContainsString('password123', $content);
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_has_at_least_15_user_rows(): void
     {
         $content = file_get_contents(self::credentialsPath());
@@ -214,7 +213,7 @@ class CredentialsDocumentationTest extends TestCase
         $this->assertGreaterThanOrEqual(15, count($matches[0]), 'CREDENTIALS.md should document at least 15 users');
     }
 
-    /** @test */
+    #[Test]
     public function credentials_md_clarifies_login_field_is_username(): void
     {
         $content = file_get_contents(self::credentialsPath());

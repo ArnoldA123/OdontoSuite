@@ -703,7 +703,7 @@ export default {
     const { get, download, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
-    const { channel, privateChannel, echo } = useEcho()
+    const { privateChannel, echo } = useEcho()
     const {
       loading: auditLogsLoading,
       auditLogs,
@@ -1116,7 +1116,7 @@ export default {
           }
 
           // Canal de planes de tratamiento
-          treatmentPlansChannel = channel('treatment-plans')
+          treatmentPlansChannel = privateChannel('treatment-plans')
           if (treatmentPlansChannel) {
             treatmentPlansChannel
               .listen('.treatment-plan.created', async e => {
@@ -1197,7 +1197,7 @@ export default {
           }
 
           // Canal de historias clínicas
-          medicalRecordsChannel = channel('medical-records')
+          medicalRecordsChannel = privateChannel('medical-records')
           if (medicalRecordsChannel) {
             medicalRecordsChannel
               .listen('.medical-record.created', async e => {
@@ -1237,7 +1237,7 @@ export default {
           }
 
           // Canal de registros de especialidades
-          specialtyRecordsChannel = channel('specialty-records')
+          specialtyRecordsChannel = privateChannel('specialty-records')
           if (specialtyRecordsChannel) {
             specialtyRecordsChannel
               .listen('.specialty-record.created', async e => {
@@ -1269,11 +1269,11 @@ export default {
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
-          echo.leave('patients')
-          echo.leave('treatment-plans')
-          echo.leave('quotations')
-          echo.leave('medical-records')
-          echo.leave('specialty-records')
+          echo.leave('private-patients')
+          echo.leave('private-treatment-plans')
+          echo.leave('private-quotations')
+          echo.leave('private-medical-records')
+          echo.leave('private-specialty-records')
         } catch (e) {
           // Los canales ya estaban cerrados, nada que limpiar
         }

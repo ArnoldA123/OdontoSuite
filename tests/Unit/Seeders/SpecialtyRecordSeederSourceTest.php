@@ -7,6 +7,7 @@ use App\Models\ImplantologyRecord;
 use App\Models\OralSurgeryRecord;
 use App\Models\OrthodonticsRecord;
 use App\Models\RehabilitationRecord;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  */
 class SpecialtyRecordSeederSourceTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function seeder_references_five_concrete_models_in_source(): void
     {
         $source = file_get_contents(
@@ -51,7 +52,7 @@ class SpecialtyRecordSeederSourceTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function five_specialty_record_model_classes_exist(): void
     {
         $expected = [

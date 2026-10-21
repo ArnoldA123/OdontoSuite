@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -95,7 +96,7 @@ class SddCheckMigrationsTest extends TestCase
         return $m[1];
     }
 
-    /** @test */
+    #[Test]
     public function no_new_migration_drops_a_column_outside_the_down_method(): void
     {
         $violations = [];
@@ -134,7 +135,7 @@ class SddCheckMigrationsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function no_new_migration_uses_raw_modify_column_without_driver_guard(): void
     {
         $violations = [];
@@ -165,7 +166,7 @@ class SddCheckMigrationsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function no_new_migration_uses_mysql_specific_date_arithmetic_without_driver_guard(): void
     {
         $violations = [];
@@ -192,7 +193,7 @@ class SddCheckMigrationsTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function no_new_migration_drops_a_unique_index_in_up_without_a_followup_recreate(): void
     {
         $violations = [];
@@ -222,9 +223,8 @@ class SddCheckMigrationsTest extends TestCase
      * Guards the guard: the scan window is `>= slice 05`. Pre-slice migration
      * debt must stay out of it, and the cutoff date itself must stay in it
      * (the window is `>=`, not `>`).
-     *
-     * @test
      */
+    #[Test]
     public function guard_only_scans_migrations_added_during_or_after_slice_05(): void
     {
         $guarded = array_map('basename', self::guardedMigrations());
@@ -263,9 +263,8 @@ class SddCheckMigrationsTest extends TestCase
      * See design.md Decision 4 (Eloquent guard scans unconditionally) and
      * the spec scenario `migration-portability Eloquent guard → guard fails if
      * violation is reintroduced`.
-     *
-     * @test
      */
+    #[Test]
     public function no_migration_references_eloquent_models(): void
     {
         $violations = [];
@@ -314,9 +313,8 @@ class SddCheckMigrationsTest extends TestCase
      *
      * See design.md Decision 3 (re-add guard scans unconditionally) and
      * Decision 4 (line-by-line walk, not whole-file regex).
-     *
-     * @test
      */
+    #[Test]
     public function no_migration_re_adds_already_known_column(): void
     {
         $violations = [];

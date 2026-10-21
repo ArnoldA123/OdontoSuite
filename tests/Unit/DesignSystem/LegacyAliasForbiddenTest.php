@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -124,9 +125,8 @@ class LegacyAliasForbiddenTest extends TestCase
      * Sanity unit-test for the whole-token regex. Confirms the negative
      * lookbehind + lookahead excludes modifier variants (e.g.
      * `bg-success-1000` does NOT trigger `bg-success-100`).
-     *
-     * @dataProvider aliasPatternProvider
      */
+    #[DataProvider('aliasPatternProvider')]
     public function test_alias_patterns_are_whole_token(string $alias, string $haystack, bool $expectMatch): void
     {
         $pattern = '/(?<![\w-])'.preg_quote($alias, '/').'(?![\w-])/';
@@ -191,9 +191,8 @@ class LegacyAliasForbiddenTest extends TestCase
     /**
      * Per-file + per-alias assertion: each polished file MUST contain zero
      * whole-token matches against every alias in LEGACY_ALIASES.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_alias_in_polished_file(string $path): void
     {
         $src = file_get_contents($path);

@@ -7,6 +7,7 @@ use App\Models\Specialty;
 use App\Models\User;
 use Database\Seeders\RoleBasedUsersSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -28,7 +29,7 @@ class UserSpecialtySourceOfTruthTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function users_table_does_not_have_a_specialties_json_column(): void
     {
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing('users');
@@ -39,7 +40,7 @@ class UserSpecialtySourceOfTruthTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_model_relationship_returns_pivot_specialties(): void
     {
         $seed = new RoleBasedUsersSeeder;
@@ -63,7 +64,7 @@ class UserSpecialtySourceOfTruthTest extends TestCase
         $this->assertSame(1, (int) $user->fresh()->specialties->first()->pivot->is_primary);
     }
 
-    /** @test */
+    #[Test]
     public function user_resource_exposes_specialties_via_pivot(): void
     {
         $seed = new RoleBasedUsersSeeder;
@@ -87,14 +88,14 @@ class UserSpecialtySourceOfTruthTest extends TestCase
         $this->assertTrue($payload['specialties'][0]['is_primary']);
     }
 
-    /** @test */
+    #[Test]
     public function specialty_legacy_string_remains_on_users_table(): void
     {
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing('users');
         $this->assertContains('specialty', $columns);
     }
 
-    /** @test */
+    #[Test]
     public function user_specialties_pivot_table_has_expected_columns(): void
     {
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing('user_specialties');

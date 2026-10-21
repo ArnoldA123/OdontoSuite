@@ -6,6 +6,8 @@ use App\Models\Patient;
 use Database\Seeders\PatientSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -33,11 +35,10 @@ use Tests\TestCase;
  * SpecialtyRecordSeederTest handles. The purge is transactional and rolls back
  * with the class.
  *
- * `@group mysql`: the migration chain is not portable on SQLite (see
+ * `#[Group('mysql')]`: the migration chain is not portable on SQLite (see
  * AGENTS.md §6), so the class is skipped there and runs in CI on MySQL 8.0.
- *
- * @group mysql
  */
+#[Group('mysql')]
 class PatientSeederTest extends TestCase
 {
     use RefreshDatabase;
@@ -53,9 +54,7 @@ class PatientSeederTest extends TestCase
         DB::table('patients')->delete();
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emails_are_unique(): void
     {
         $this->seed(PatientSeeder::class);
@@ -68,9 +67,7 @@ class PatientSeederTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function phones_are_unique(): void
     {
         $this->seed(PatientSeeder::class);
@@ -82,9 +79,7 @@ class PatientSeederTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function emails_are_position_derived(): void
     {
         $this->seed(PatientSeeder::class);

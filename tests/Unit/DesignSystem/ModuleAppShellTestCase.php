@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -146,9 +147,7 @@ abstract class ModuleAppShellTestCase extends TestCase
         ) ?? $src;
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_page_references_canvas_token(string $path): void
     {
         $src = self::readFile($path);
@@ -166,9 +165,7 @@ abstract class ModuleAppShellTestCase extends TestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_border_theme_literal(string $path): void
     {
         $src = self::readFile($path);
@@ -190,9 +187,7 @@ abstract class ModuleAppShellTestCase extends TestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_focus_ring_consumes_token(string $path): void
     {
         $src = self::readFile($path);
@@ -217,9 +212,7 @@ abstract class ModuleAppShellTestCase extends TestCase
         }
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_focus_ring_alias(string $path): void
     {
         $src = self::readFile($path);
@@ -237,9 +230,7 @@ abstract class ModuleAppShellTestCase extends TestCase
         );
     }
 
-    /**
-     * @dataProvider polishedFileProvider
-     */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_style_scoped(string $path): void
     {
         $src = self::readFile($path);
@@ -261,9 +252,8 @@ abstract class ModuleAppShellTestCase extends TestCase
      * Embedded components (buttons, badges, tiles) share the style-discipline
      * rules of the page shell, minus the canvas-surface rule: a component
      * embedded in a surface never paints the page canvas.
-     *
-     * @dataProvider embeddedFileProvider
      */
+    #[DataProvider('embeddedFileProvider')]
     public function test_embedded_component_style_discipline(?string $path): void
     {
         if ($path === null) {

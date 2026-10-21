@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,7 +38,7 @@ class MySQLTestEngineContractTest extends TestCase
         return $this->root().'/phpunit.mysql.xml';
     }
 
-    /** @test */
+    #[Test]
     public function mysql_runner_is_well_formed_xml(): void
     {
         $path = $this->runnerPath();
@@ -61,7 +62,7 @@ class MySQLTestEngineContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function runner_and_compose_agree_on_the_engine(): void
     {
         $runner = file_get_contents($this->runnerPath());
@@ -119,7 +120,7 @@ class MySQLTestEngineContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function compose_declares_the_health_gate_the_acceptance_criterion_uses(): void
     {
         $compose = $this->compose();

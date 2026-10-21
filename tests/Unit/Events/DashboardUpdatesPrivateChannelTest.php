@@ -22,6 +22,8 @@ use App\Events\TreatmentPlanDeleted;
 use App\Events\TreatmentPlanUpdated;
 use App\Models\Appointment;
 use Illuminate\Broadcasting\PrivateChannel;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -75,11 +77,8 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
         return $data;
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider dashboardEvents
-     */
+    #[Test]
+    #[DataProvider('dashboardEvents')]
     public function dashboard_event_publishes_on_the_private_dashboard_channel(string $eventClass): void
     {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
@@ -96,9 +95,7 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_private_dashboard_channel_carries_the_private_prefix_on_the_wire(): void
     {
         $appointment = new Appointment;
@@ -115,9 +112,7 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
         $this->assertSame('private-dashboard-updates', $dashboard->name);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_event_set_still_covers_the_project_domain(): void
     {
         $this->assertCount(

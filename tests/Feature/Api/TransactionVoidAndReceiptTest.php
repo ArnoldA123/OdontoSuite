@@ -8,6 +8,7 @@ use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 /**
@@ -18,9 +19,8 @@ use Tests\TestCase;
  * The TransactionController already implements void() and generateReceipt(),
  * and TransactionService already exposes voidTransaction() and generateReceipt().
  * These tests assert the ROUTES are wired so the implementations become reachable.
- *
- * @group mysql
  */
+#[Group('mysql')]
 class TransactionVoidAndReceiptTest extends TestCase
 {
     use RefreshDatabase;
@@ -29,6 +29,17 @@ class TransactionVoidAndReceiptTest extends TestCase
     {
         return User::factory()->create([
             'role' => 'finanzas',
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * Issue #192, decision B: voiding moved to administrador alone.
+     */
+    protected function adminUser(): User
+    {
+        return User::factory()->create([
+            'role' => 'administrador',
             'is_active' => true,
         ]);
     }
@@ -70,7 +81,7 @@ class TransactionVoidAndReceiptTest extends TestCase
      */
     public function test_post_void_route_returns_200_and_marks_transaction_voided(): void
     {
-        $user = $this->finanzasUser();
+        $user = $this->adminUser();
         $session = $this->openSessionFor($user);
         $transaction = $this->completedTransaction($session);
 
@@ -95,7 +106,7 @@ class TransactionVoidAndReceiptTest extends TestCase
      */
     public function test_post_void_route_requires_reason(): void
     {
-        $user = $this->finanzasUser();
+        $user = $this->adminUser();
         $session = $this->openSessionFor($user);
         $transaction = $this->completedTransaction($session);
 

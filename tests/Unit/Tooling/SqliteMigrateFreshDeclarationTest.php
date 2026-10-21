@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -11,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  */
 class SqliteMigrateFreshDeclarationTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function sqlite_migrate_fresh_still_fails_on_the_indexed_column_drop(): void
     {
         // Issue #79: el esquema no se construye en SQLite. Este test fija la
@@ -36,7 +37,7 @@ class SqliteMigrateFreshDeclarationTest extends TestCase
         $this->assertStringContainsString('no such column: type', $output);
     }
 
-    /** @test */
+    #[Test]
     public function agents_md_declares_sqlite_migrate_fresh_mysql_only(): void
     {
         $docs = (string) file_get_contents(str_replace('\\', '/', dirname(__DIR__, 3)).'/AGENTS.md');

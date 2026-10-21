@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,7 +35,8 @@ class PermissionsCreateMovementTest extends TestCase
         return $source;
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function use_permissions_exposes_create_movement_in_can_object(): void
     {
         $source = $this->usePermissionsSource();
@@ -50,7 +52,8 @@ class PermissionsCreateMovementTest extends TestCase
         );
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function use_permissions_create_movement_does_not_include_clinical_roles(): void
     {
         $source = $this->usePermissionsSource();
@@ -77,7 +80,8 @@ class PermissionsCreateMovementTest extends TestCase
         );
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function cash_register_page_consumes_create_movement_from_use_permissions(): void
     {
         $page = file_get_contents(self::projectRootPath()

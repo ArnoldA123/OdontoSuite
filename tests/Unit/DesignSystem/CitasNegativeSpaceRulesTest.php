@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -106,9 +107,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
      * The regression from `CalendarPage.vue::getInitialDateForModal`
      * (the line `return date.toISOString().slice(0, 16)`) is the exact
      * bug CITAS-TZ-001 was created to prevent.
-     *
-     * @dataProvider citasPolishedFileProvider
      */
+    #[DataProvider('citasPolishedFileProvider')]
     public function test_no_to_iso_string_on_datetime_local(string $path): void
     {
         $src = self::readSource($path);
@@ -143,9 +143,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
      *
      * The acceptance criterion: zero `findConflicts` / `hasConflict` / `conflicts`
      * references in any of the 5 CITAS modules.
-     *
-     * @dataProvider citasPolishedFileProvider
      */
+    #[DataProvider('citasPolishedFileProvider')]
     public function test_no_client_side_conflict_heuristic(string $path): void
     {
         $src = self::readSource($path);
@@ -208,9 +207,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
      * covers both `ConfirmationToken` (PascalCase, full class name) and the
      * snake_case `confirmation_token` string identifier (which may appear in
      * API responses or DTO mapping).
-     *
-     * @dataProvider citasPolishedFileProvider
      */
+    #[DataProvider('citasPolishedFileProvider')]
     public function test_no_confirmation_token_exposure(string $path): void
     {
         $src = self::readSource($path);
@@ -247,9 +245,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
      * (the legacy class names + snake_case + free-text) and `AppointmentBlock`
      * / `appointment_block` / `appointment block`. Any match implies a UX
      * affordance that the backend does not enforce.
-     *
-     * @dataProvider citasPolishedFileProvider
      */
+    #[DataProvider('citasPolishedFileProvider')]
     public function test_no_work_schedule_or_block_enforcement_ux(string $path): void
     {
         $src = self::readSource($path);
@@ -344,9 +341,8 @@ class CitasNegativeSpaceRulesTest extends TestCase
      * so accidental whitespace-only edits are still detected. The proxy
      * checks the FULL source file (not just the script block) because the
      * script block is the unit of edit; the reactivity is the contract.
-     *
-     * @dataProvider citasPolishedFileProvider
      */
+    #[DataProvider('citasPolishedFileProvider')]
     public function test_script_block_reactivity_signature_preserved(string $path): void
     {
         $src = self::readSource($path);

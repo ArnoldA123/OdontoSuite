@@ -3,6 +3,7 @@
 namespace Tests\Unit\Events;
 
 use App\Events\PaymentReceived;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -14,7 +15,7 @@ use Tests\TestCase;
  */
 class PaymentReceivedChannelTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function payment_received_broadcasts_on_private_channel(): void
     {
         $reflection = new ReflectionClass(PaymentReceived::class);
@@ -27,7 +28,7 @@ class PaymentReceivedChannelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function payment_received_no_longer_marked_nf2_orphan(): void
     {
         // After T-10.3 wires LogPaymentReceived, the NF-2 marker is stale.

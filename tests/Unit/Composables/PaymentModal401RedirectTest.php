@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -45,7 +46,8 @@ class PaymentModal401RedirectTest extends TestCase
         return $source;
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function use_auth_exports_auth_logout_alias(): void
     {
         $source = $this->useAuthSource();
@@ -58,7 +60,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_load_payment_methods_calls_auth_logout_on_401(): void
     {
         $source = $this->paymentModalSource();
@@ -73,7 +76,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_load_payment_methods_routes_to_login_on_401(): void
     {
         $source = $this->paymentModalSource();
@@ -87,7 +91,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_load_payment_methods_toast_on_401_says_session_expired(): void
     {
         $source = $this->paymentModalSource();
@@ -101,7 +106,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_handles_401_in_load_patient_appointments_too(): void
     {
         $source = $this->paymentModalSource();
@@ -115,7 +121,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_handle_submit_also_redirects_on_401(): void
     {
         $source = $this->paymentModalSource();
@@ -129,7 +136,8 @@ class PaymentModal401RedirectTest extends TestCase
         );
     }
 
-    /** @test UXF-021 */
+    /** UXF-021 */
+    #[Test]
     public function payment_modal_handle_session_expired_combines_toast_logout_and_router_push(): void
     {
         $source = $this->paymentModalSource();

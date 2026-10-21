@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 /**
@@ -17,9 +18,8 @@ use Tests\TestCase;
  * El middleware filtraba solo POST/PUT/PATCH mientras routes/api.php mete
  * los resources completos (incluido DELETE) dentro del grupo cash.session.
  * Anular movimientos sin sesión abierta puenteaba el control de caja.
- *
- * @group mysql
  */
+#[Group('mysql')]
 class CashDeleteSessionGateTest extends TestCase
 {
     use RefreshDatabase;

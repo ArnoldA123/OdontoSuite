@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
 
 /**
@@ -30,9 +31,8 @@ use Tests\TestCase;
  *    anchor exists in the base schema).
  *  - The migration source uses `->after('user_agent')` and never uses
  *    `->after('description')` or any other non-existent column.
- *
- * @group mysql
  */
+#[Group('mysql')]
 class AuditLogMigrationTest extends TestCase
 {
     use RefreshDatabase;

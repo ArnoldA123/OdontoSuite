@@ -6,6 +6,7 @@ use App\Models\ProcedureCatalog;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Services\ProcedureCatalogService;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ use Tests\TestCase;
  */
 class ProcedureCatalogFlowTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function procedure_catalog_service_has_all_required_methods(): void
     {
         $reflection = new ReflectionClass(ProcedureCatalogService::class);
@@ -27,7 +28,7 @@ class ProcedureCatalogFlowTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_model_fillable_includes_catalog_fields(): void
     {
         $model = new ProcedureCatalog;
@@ -44,7 +45,7 @@ class ProcedureCatalogFlowTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_model_casts_numeric_and_boolean_fields(): void
     {
         $model = new ProcedureCatalog;
@@ -57,7 +58,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertEquals('boolean', $casts['is_active'] ?? null);
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_has_specialty_relationship(): void
     {
         $model = new ProcedureCatalog;
@@ -66,7 +67,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertTrue(method_exists($model, 'treatmentPlanItems'));
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_specialty_code_accessor_prefers_fk(): void
     {
         // Sprint 2 (DM-7) agrego getSpecialtyCodeAttribute. Aqui validamos
@@ -75,7 +76,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertTrue($reflection->hasMethod('getSpecialtyCodeAttribute'));
     }
 
-    /** @test */
+    #[Test]
     public function specialty_model_has_required_methods_for_catalog(): void
     {
         $reflection = new ReflectionClass(Specialty::class);
@@ -84,7 +85,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertTrue($reflection->hasMethod('scopeActive'));
     }
 
-    /** @test */
+    #[Test]
     public function user_has_favorite_procedures_relation_with_position_pivot(): void
     {
         // La relacion favoriteProcedures() en User usa withPivot('position')
@@ -96,7 +97,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertStringEndsWith('BelongsToMany', $method->getReturnType()->getName());
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_routes_are_registered(): void
     {
         $routes = collect(\Illuminate\Support\Facades\Route::getRoutes())
@@ -106,7 +107,7 @@ class ProcedureCatalogFlowTest extends TestCase
         $this->assertGreaterThanOrEqual(10, $routes->count(), 'Should have at least 10 procedure-catalog routes');
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_routes_have_role_middleware_for_writes(): void
     {
         // POST/PUT/DELETE en procedure-catalog requieren rol administrativo
@@ -125,7 +126,7 @@ class ProcedureCatalogFlowTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function procedure_catalog_favorite_routes_have_clinical_role_middleware(): void
     {
         $favRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())

@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pagos-04 — PaymentModalAppShellTest.
  *
@@ -61,9 +63,8 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
      * submit; status badge for the gateway pill). MercadoPagoCheckout adopts
      * UiButton (already present) + UiStatusBadge variant="info" for the
      * processing state (per design §3.1).
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_payment_modal_combined_primitive_and_format_rules(string $path): void
     {
         $src = self::readSource($path);
@@ -249,9 +250,8 @@ class PaymentModalAppShellTest extends ModuleAppShellTestCase
      * + `test_no_legacy_focus_ring_alias`; this is the same rule, parametrised
      * for the 2-file PaymentModal scope (a focused re-assertion that fires
      * quickly and pinpoints the file if a regression sneaks in).
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_payment_modal_files_no_legacy_chrome(string $path): void
     {
         $src = self::readSource($path);

@@ -286,8 +286,9 @@ class PacientesNegativeSpaceRulesTest extends TestCase
 
         // 4 cross-category channels: must be present in PatientDetailPage.vue
         // (the list page does NOT need them — its detail-tab create buttons
-        // live on the detail page). `quotations` is private because its payload
-        // carries patient data and amounts (#200); the other three stay public.
+        // live on the detail page). Every one of them is private: quotations
+        // carries patient data and amounts (#200) and the other three carry
+        // clinical records, treatment plans and specialty records (#249).
         $crossCategoryChannels = [
             'treatment-plans',
             'medical-records',
@@ -296,7 +297,7 @@ class PacientesNegativeSpaceRulesTest extends TestCase
         foreach ($crossCategoryChannels as $channel) {
             $this->assertTrue(
                 (bool) preg_match(
-                    "#channel\\s*\\(\\s*['\"]".preg_quote($channel, '#')."['\"]\\s*\\)#",
+                    "#privateChannel\\s*\\(\\s*['\"]".preg_quote($channel, '#')."['\"]\\s*\\)#",
                     $detailSrc
                 ),
                 sprintf(

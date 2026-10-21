@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -75,7 +76,8 @@ class ComposablesStandardizationTest extends TestCase
         );
     }
 
-    /** @test T-08.10 */
+    /** T-08.10 */
+    #[Test]
     public function every_list_composable_exposes_loading_and_error(): void
     {
         $report = $this->exposedMembers();
@@ -96,7 +98,8 @@ class ComposablesStandardizationTest extends TestCase
         }
     }
 
-    /** @test T-08.11 */
+    /** T-08.11 */
+    #[Test]
     public function every_list_composable_with_fetcher_exposes_refresh_and_retry(): void
     {
         $report = $this->exposedMembers();
@@ -122,7 +125,8 @@ class ComposablesStandardizationTest extends TestCase
         }
     }
 
-    /** @test T-08.10 */
+    /** T-08.10 */
+    #[Test]
     public function every_list_composable_exposes_data_alias_or_collection(): void
     {
         // At least one of the in-scope composables has a single

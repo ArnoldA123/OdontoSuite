@@ -101,7 +101,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'placement_date' => 'required|date|before_or_equal:today',
                 'healing_date' => 'sometimes|nullable|date|after:placement_date',
                 'loading_date' => 'sometimes|nullable|date|after:healing_date',
-                'status' => 'sometimes|nullable|in:placed,healing,loaded,failed,removed',
+                'status' => 'sometimes|in:placed,healing,loaded,failed,removed',
                 'surgical_notes' => 'sometimes|nullable|string|max:2000',
                 'post_surgical_notes' => 'sometimes|nullable|string|max:2000',
                 'torque_value' => 'sometimes|nullable|numeric|min:0|max:999.99',
@@ -112,7 +112,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'treatment_start_date' => 'required|date|before_or_equal:today',
                 'estimated_completion_date' => 'sometimes|nullable|date|after:treatment_start_date',
                 'actual_completion_date' => 'sometimes|nullable|date|after:treatment_start_date',
-                'treatment_phase' => 'sometimes|nullable|in:initial,active,retention,completed',
+                'treatment_phase' => 'sometimes|in:initial,active,retention,completed',
                 'treatment_objectives' => 'sometimes|nullable|string|max:2000',
                 'current_notes' => 'sometimes|nullable|string|max:2000',
                 'activation_notes' => 'sometimes|nullable|string|max:2000',
@@ -136,7 +136,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'medication_used' => 'sometimes|nullable|string|max:500',
                 'obturation_technique' => 'sometimes|nullable|string|max:200',
                 'obturation_materials' => 'sometimes|nullable|string|max:500',
-                'treatment_status' => 'sometimes|nullable|in:in_progress,completed,failed,retreatment',
+                'treatment_status' => 'sometimes|in:in_progress,completed,failed,retreatment',
                 'treatment_completion_date' => 'sometimes|nullable|date|before_or_equal:today',
             ],
             'rehabilitacion' => [
@@ -146,6 +146,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'laboratory_name' => 'sometimes|nullable|string|max:100',
                 'laboratory_contact' => 'sometimes|nullable|string|max:100',
                 'impression_date' => 'sometimes|nullable|date',
+                'try_in_date' => 'sometimes|nullable|date',
                 'delivery_date' => 'sometimes|nullable|date',
                 'cementation_date' => 'sometimes|nullable|date',
                 'shade_selection' => 'sometimes|nullable|string|max:200',
@@ -154,12 +155,13 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'adjustment_notes' => 'sometimes|nullable|string|max:1000',
                 'cementation_notes' => 'sometimes|nullable|string|max:1000',
                 'patient_satisfaction' => 'sometimes|nullable|string|max:1000',
-                'status' => 'sometimes|nullable|in:impression,laboratory,try_in,delivered,cemented,failed',
+                'status' => 'sometimes|in:impression,laboratory,try_in,delivered,cemented,failed',
                 'follow_up_notes' => 'sometimes|nullable|string|max:1000',
             ],
             'cirugia_oral' => [
                 'procedure_type' => 'required|string|max:50',
                 'surgery_site' => 'required|string|max:100',
+                'surgery_date' => 'sometimes|nullable|date|before_or_equal:today',
                 'surgery_duration_minutes' => 'sometimes|nullable|integer|min:1|max:480',
                 'anesthesia_type' => 'sometimes|nullable|string|max:200',
                 'surgical_technique' => 'sometimes|nullable|string|max:2000',
@@ -172,7 +174,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'recovery_notes' => 'sometimes|nullable|string|max:2000',
                 'follow_up_date' => 'sometimes|nullable|date',
                 'follow_up_notes' => 'sometimes|nullable|string|max:1000',
-                'status' => 'sometimes|nullable|in:scheduled,in_progress,completed,cancelled,complications',
+                'status' => 'sometimes|in:scheduled,in_progress,completed,cancelled,complications',
             ],
             default => []
         };
@@ -207,6 +209,9 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'material_type.required' => 'El tipo de material es obligatorio',
             'procedure_type.required' => 'El tipo de procedimiento es obligatorio',
             'surgery_site.required' => 'El sitio quirúrgico es obligatorio',
+            'surgery_date.date' => 'La fecha de la cirugía no es una fecha válida',
+            'surgery_date.before_or_equal' => 'La fecha de la cirugía no puede ser futura',
+            'try_in_date.date' => 'La fecha de prueba no es una fecha válida',
         ];
     }
 }

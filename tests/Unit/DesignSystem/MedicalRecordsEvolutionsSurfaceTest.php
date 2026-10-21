@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -152,9 +153,8 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     /**
      * EVO-R-001 — the redesign retires the bespoke stylesheet: the surface
      * must ride the shared tokens and primitives instead.
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_surfaces_carry_no_scoped_style_block(string $path): void
     {
         $source = $this->source($path);
@@ -219,9 +219,8 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     /**
      * EVO-R-004 — D4: only validated columns travel to the API. The excluded
      * keys were discarded by the backend and the form showed invented data.
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_surfaces_do_not_resurrect_invented_payload_keys(string $path): void
     {
         $source = $this->source($path);
@@ -550,9 +549,8 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     /**
      * EVO-R-010 — the page shell owns the `<h1>`, and the surface paints no
      * gradient (flat tokens only).
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_surfaces_avoid_page_headings_and_gradients(string $path): void
     {
         $source = $this->source($path);

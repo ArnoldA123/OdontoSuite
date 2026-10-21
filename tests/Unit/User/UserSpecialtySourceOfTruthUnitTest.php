@@ -3,6 +3,7 @@
 namespace Tests\Unit\User;
 
 use App\Models\User;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -13,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  */
 class UserSpecialtySourceOfTruthUnitTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function user_fillable_does_not_include_specialties_json(): void
     {
         $fillable = (new User)->getFillable();
@@ -27,7 +28,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_fillable_keeps_specialty_legacy_string(): void
     {
         $fillable = (new User)->getFillable();
@@ -41,7 +42,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_has_specialties_pivot_relation_method(): void
     {
         $user = new User;
@@ -61,7 +62,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
         $this->assertStringContainsString("belongsToMany(Specialty::class, 'user_specialties')", $source);
     }
 
-    /** @test */
+    #[Test]
     public function user_has_specialty_code_accessor(): void
     {
         $user = new User;
@@ -71,7 +72,7 @@ class UserSpecialtySourceOfTruthUnitTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function user_casts_do_not_include_specialties_json(): void
     {
         $casts = (new User)->getCasts();

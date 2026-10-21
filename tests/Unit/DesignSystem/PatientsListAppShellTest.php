@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+
 /**
  * PR-pacientes-01 — PatientsListAppShellTest.
  *
@@ -585,9 +587,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * canvas background per DLR-CORE-001). The page file does NOT need
      * to reference `bg-canvas` / `var(--color-canvas)` directly — only
      * the AppLayout does. We pin the `<AppLayout>` reference instead.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_page_references_canvas_token(string $path): void
     {
         $src = self::readSource($path);
@@ -622,9 +623,8 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
      * regex via negative lookbehind + lookahead; modifier variants
      * `border-theme-light` etc. are excluded). Only the input source
      * is scoped to the list section.
-     *
-     * @dataProvider polishedFileProvider
      */
+    #[DataProvider('polishedFileProvider')]
     public function test_no_legacy_border_theme_literal(string $path): void
     {
         $src = self::readSource($path);
@@ -695,14 +695,15 @@ class PatientsListAppShellTest extends ModuleAppShellTestCase
             );
         }
 
-        // The `onUnmounted` hook calls `echo.leave('patients')`.
+        // The `onUnmounted` hook calls `echo.leave('private-patients')`:
+        // Echo's leave() does not add the private prefix (#249).
         $this->assertTrue(
             (bool) preg_match(
-                "#echo\.leave\s*\(\s*['\"]patients['\"]\s*\)#",
+                "#echo\.leave\s*\(\s*['\"]private-patients['\"]\s*\)#",
                 $src
             ),
             sprintf(
-                '%s MUST keep `echo.leave(\'patients\')` in the `onUnmounted` hook (PAC-RT-001).',
+                '%s MUST keep `echo.leave(\'private-patients\')` in the `onUnmounted` hook (PAC-RT-001).',
                 $path
             )
         );

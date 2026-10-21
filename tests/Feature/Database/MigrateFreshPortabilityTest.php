@@ -5,6 +5,8 @@ namespace Tests\Feature\Database;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -25,9 +27,8 @@ use Tests\TestCase;
  * The test is intentionally skipped on SQLite because `MODIFY COLUMN` semantics
  * differ between MySQL and SQLite — running this on SQLite would not actually
  * exercise the bug. CI runs MySQL 8.0 (see AGENTS.md §6).
- *
- * @group mysql
  */
+#[Group('mysql')]
 class MigrateFreshPortabilityTest extends TestCase
 {
     protected function setUp(): void
@@ -43,9 +44,8 @@ class MigrateFreshPortabilityTest extends TestCase
      * schema contains the columns and tables that the entire dependency chain
      * depends on (including `patients.deleted_at` and `audit_logs`, which are
      * the unblock criteria for the sibling `hotfix-audit-log-immutable-2026-08`).
-     *
-     * @test
      */
+    #[Test]
     public function migrate_fresh_creates_document_number_deleted_at_and_audit_logs(): void
     {
         $this->artisan('migrate:fresh', ['--seed' => true])->assertSuccessful();

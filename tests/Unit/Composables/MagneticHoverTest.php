@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Composables;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\SourceGrep;
 
@@ -187,9 +188,8 @@ JS;
      * Spec M1 + M2 — offset is clamped to 40% of the smaller dimension.
      * When the cursor is exactly centred, mag = 0 < M, so no clamping
      * applies and dx/dy are both exactly 0.
-     *
-     * @test
      */
+    #[Test]
     public function clamp_returns_zero_when_inside_max_distance(): void
     {
         // Bounds 100x100 anchored at (0,0). Cursor at (50,50) → exact centre.
@@ -208,9 +208,8 @@ JS;
      * ≈ 212.13, which exceeds the 40% cap of M=40. The helper MUST clamp
      * the offset to (40 * 150/212.13, 40 * 150/212.13) ≈ (28.28, 28.28),
      * preserving the direction.
-     *
-     * @test
      */
+    #[Test]
     public function clamp_caps_magnitude_at_max_distance_factor(): void
     {
         // Bounds 100x100 anchored at (0,0); cursor at (200,200) — well outside.
@@ -247,9 +246,8 @@ JS;
      * connection and the button flashes for one frame — the magnetic
      * helper MUST short-circuit and return `(0, 0)` rather than dividing
      * by zero.
-     *
-     * @test
      */
+    #[Test]
     public function clamp_handles_zero_bounds(): void
     {
         $r = self::callOffset(
@@ -270,9 +268,8 @@ JS;
      * with the literal `(prefers-reduced-motion: reduce)` query string.
      * If someone deletes the probe, the bypass silently no-ops at
      * runtime — the most expensive regression.
-     *
-     * @test
      */
+    #[Test]
     public function reduced_motion_bypass_returns_inert(): void
     {
         $this->assertFileExists(
@@ -313,9 +310,8 @@ JS;
      * `data-magnetic` selector AND the `var(--spring-magnet-x)`
      * custom property. Without BOTH, the magnetic effect renders no
      * transform at runtime even though the composable fires.
-     *
-     * @test
      */
+    #[Test]
     public function button_vue_consumes_spring_magnet_vars(): void
     {
         $this->assertFileExists(

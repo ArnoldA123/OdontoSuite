@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -46,9 +47,8 @@ class SddCheckJsComposablesTest extends TestCase
      * Mirrors the stripPatterns recipe from SddCheckMigrationsTest
      * lines 247-252: strip single quotes, double quotes, line comments,
      * and block comments before matching.
-     *
-     * @test
      */
+    #[Test]
     public function no_composable_double_unwraps_response(): void
     {
         $violations = [];

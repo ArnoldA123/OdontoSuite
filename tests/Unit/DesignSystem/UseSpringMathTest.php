@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -83,7 +84,7 @@ JS;
         return $decoded;
     }
 
-    /** @test */
+    #[Test]
     public function math_module_exports_required_kernels(): void
     {
         $body = <<<'JS'
@@ -104,7 +105,7 @@ JS;
         $this->assertTrue($r['hasPrefersReducedMotion'], 'useSpringMath must export prefersReducedMotion');
     }
 
-    /** @test */
+    #[Test]
     public function critically_damped_settles_to_target_with_zero_velocity(): void
     {
         $body = <<<'JS'
@@ -117,7 +118,7 @@ JS;
         $this->assertEqualsWithDelta(0.0, (float) $r['velocity'], 0.5, 'critically-damped spring must end at rest');
     }
 
-    /** @test */
+    #[Test]
     public function under_damped_overshoots_target_at_least_once(): void
     {
         // Sample the integrator at fine granularity; count zero crossings of
@@ -147,7 +148,7 @@ JS;
         $this->assertGreaterThanOrEqual(2, (int) $r['crossings'], 'underdamped spring must cross the target at least twice (got crossings='.$r['crossings'].')');
     }
 
-    /** @test */
+    #[Test]
     public function interrupt_preserves_value_no_discontinuity_jump(): void
     {
         // Animate from 0 to 100; at frame 60, retarget to 50 with no velocity
@@ -166,7 +167,7 @@ JS;
         $this->assertLessThan(5.0, (float) $r['jump'], 'interrupt must not jump the value; got jump='.$r['jump']);
     }
 
-    /** @test */
+    #[Test]
     public function use_spring2_d_x_and_y_are_independent(): void
     {
         // X is animated; Y is held at rest. The Y state must not change when
@@ -187,7 +188,7 @@ JS;
         $this->assertEqualsWithDelta(0.0, (float) $r['y'], 0.0001, 'Y spring must not be affected by X axis advance');
     }
 
-    /** @test */
+    #[Test]
     public function project_and_snap_picks_nearest_snap_point(): void
     {
         $body = <<<'JS'
@@ -213,7 +214,7 @@ JS;
         $this->assertEquals(0, $r['r5'], 'strong negative velocity from 80 should snap to 0');
     }
 
-    /** @test */
+    #[Test]
     public function project_and_snap_uses_ios_deceleration_default(): void
     {
         // With d=0.998: projection = current + (velocity/1000) * 499.
@@ -228,7 +229,7 @@ JS;
         $this->assertEquals(500, $r['snapChoice'], 'default d=0.998 + velocity 1000 from 0 must project to 499 and snap to 500');
     }
 
-    /** @test */
+    #[Test]
     public function project_and_snap_handles_empty_snap_points_as_identity(): void
     {
         $body = <<<'JS'
@@ -241,7 +242,7 @@ JS;
         $this->assertEquals(42, $r['nullSnap'], 'null snap points must return current');
     }
 
-    /** @test */
+    #[Test]
     public function instant_settle_zeros_velocity_and_lands_on_target(): void
     {
         $body = <<<'JS'
@@ -254,7 +255,7 @@ JS;
         $this->assertEquals(0, $r['velocity']);
     }
 
-    /** @test */
+    #[Test]
     public function prefers_reduced_motion_honors_match_media(): void
     {
         $body = <<<'JS'
@@ -283,9 +284,8 @@ JS;
      * the system font has no FOUT risk, no replacement composable ships.
      * The file must be absent from `resources/js/composables/` and the
      * `grep` audit over `resources/` must return zero hits.
-     *
-     * @test
      */
+    #[Test]
     public function use_fonts_loaded_composable_is_absent(): void
     {
         $composablePath = self::projectRootPath().'/resources/js/composables/useFontsLoaded.js';
