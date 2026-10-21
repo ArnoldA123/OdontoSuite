@@ -21,6 +21,7 @@ class RehabilitationRecord extends Model
         'laboratory_name',
         'laboratory_contact',
         'impression_date',
+        'try_in_date',
         'delivery_date',
         'cementation_date',
         'shade_selection',
@@ -37,6 +38,7 @@ class RehabilitationRecord extends Model
 
     protected $casts = [
         'impression_date' => 'date',
+        'try_in_date' => 'date',
         'delivery_date' => 'date',
         'cementation_date' => 'date',
         'measurements' => 'array',

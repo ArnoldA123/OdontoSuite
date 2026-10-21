@@ -146,6 +146,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'laboratory_name' => 'sometimes|nullable|string|max:100',
                 'laboratory_contact' => 'sometimes|nullable|string|max:100',
                 'impression_date' => 'sometimes|nullable|date',
+                'try_in_date' => 'sometimes|nullable|date',
                 'delivery_date' => 'sometimes|nullable|date',
                 'cementation_date' => 'sometimes|nullable|date',
                 'shade_selection' => 'sometimes|nullable|string|max:200',
@@ -210,6 +211,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'surgery_site.required' => 'El sitio quirúrgico es obligatorio',
             'surgery_date.date' => 'La fecha de la cirugía no es una fecha válida',
             'surgery_date.before_or_equal' => 'La fecha de la cirugía no puede ser futura',
+            'try_in_date.date' => 'La fecha de prueba no es una fecha válida',
         ];
     }
 }
