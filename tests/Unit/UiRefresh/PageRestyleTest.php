@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\UiRefresh;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -58,9 +59,8 @@ class PageRestyleTest extends TestCase
      * Task 2.1.1 — LoginPage drops `var(--font-serif)` everywhere. The
      * headline, hero caption, and prefers-contrast block all used the
      * serif family in the previous design; the system font replaces it.
-     *
-     * @test
      */
+    #[Test]
     public function login_page_drops_var_font_serif(): void
     {
         $src = self::read('resources/js/modules/auth/LoginPage.vue');
@@ -78,9 +78,8 @@ class PageRestyleTest extends TestCase
      * state line, not a badge. The header cash pill is gone (D4) and the
      * state line maps Abierta to the green token, Cerrada to the red token
      * and Sin sesión to the neutral theme token.
-     *
-     * @test
      */
+    #[Test]
     public function dashboard_cash_state_tone_matches_state(): void
     {
         $src = self::read('resources/js/modules/dashboard/DashboardPage.vue');
@@ -104,9 +103,8 @@ class PageRestyleTest extends TestCase
      * `text-label` (pure black) — NOT in a colored ramp. iOS clinical
      * stat cards paint big numbers in label color so the stat reads as
      * "information", not "branded metric".
-     *
-     * @test
      */
+    #[Test]
     public function dashboard_stat_number_uses_text_label(): void
     {
         $src = self::read('resources/js/modules/dashboard/DashboardPage.vue');
@@ -134,9 +132,8 @@ class PageRestyleTest extends TestCase
      * Task 2.1.4 — anti-requirement guard. No gradient backgrounds may
      * appear on the dashboard. iOS clinical uses flat surface fills,
      * not the decorative gradient of the previous design.
-     *
-     * @test
      */
+    #[Test]
     public function dashboard_no_linear_gradient(): void
     {
         $src = self::read('resources/js/modules/dashboard/DashboardPage.vue');
@@ -157,9 +154,8 @@ class PageRestyleTest extends TestCase
     /**
      * Task 2.1.5 — 404 page drops `var(--font-serif)` on the headline.
      * The page must render the headline in the system font family.
-     *
-     * @test
      */
+    #[Test]
     public function not_found_page_drops_var_font_serif(): void
     {
         $src = self::read('resources/js/modules/errors/NotFoundPage.vue');

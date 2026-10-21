@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Http\Request;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -95,7 +96,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: adult returns integer
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_includes_age_key_when_birth_date_is_present(): void
     {
         $age = $this->resolveAgeFromAttributes([
@@ -124,7 +125,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: day-of-birth returns 0
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_age_returns_zero_on_day_of_birth(): void
     {
         $age = $this->resolveAgeFromAttributes([
@@ -145,7 +146,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: day-before-first-birthday does NOT falsely increment
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_age_returns_zero_one_day_before_first_birthday(): void
     {
         $age = $this->resolveAgeFromAttributes([
@@ -162,7 +163,7 @@ class PatientResourceAgeTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function resource_age_returns_one_on_first_birthday(): void
     {
         $age = $this->resolveAgeFromAttributes([
@@ -183,7 +184,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: null birth_date returns JSON null
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_age_returns_null_when_birth_date_is_null(): void
     {
         $age = $this->resolveAgeFromAttributes([
@@ -207,7 +208,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: server UTC timezone — identical age across local timezones
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_age_is_identical_across_local_timezones_for_same_utc_day(): void
     {
         $patient = new Patient;
@@ -244,7 +245,7 @@ class PatientResourceAgeTest extends TestCase
     // Spec scenario: source-of-truth — the resource contract exposes `age`
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function resource_array_key_age_is_documented_in_source(): void
     {
         $source = (string) file_get_contents(
@@ -258,7 +259,7 @@ class PatientResourceAgeTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function resource_age_uses_birth_date_and_now(): void
     {
         $source = (string) file_get_contents(

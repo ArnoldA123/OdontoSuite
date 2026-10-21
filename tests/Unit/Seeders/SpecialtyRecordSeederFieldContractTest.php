@@ -7,6 +7,7 @@ use App\Models\ImplantologyRecord;
 use App\Models\OralSurgeryRecord;
 use App\Models\OrthodonticsRecord;
 use App\Models\RehabilitationRecord;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -329,7 +330,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
     // except ImplantologyRecord, which is already aligned)
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_implantology_record_create_keys_are_subset_of_fillable(): void
     {
         $this->assertModelKeysAreSubsetOfFillable(
@@ -338,7 +339,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_orthodontics_record_create_keys_are_subset_of_fillable(): void
     {
         $this->assertModelKeysAreSubsetOfFillable(
@@ -347,7 +348,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_endodontics_record_create_keys_are_subset_of_fillable(): void
     {
         $this->assertModelKeysAreSubsetOfFillable(
@@ -356,7 +357,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_rehabilitation_record_create_keys_are_subset_of_fillable(): void
     {
         $this->assertModelKeysAreSubsetOfFillable(
@@ -365,7 +366,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_oral_surgery_record_create_keys_are_subset_of_fillable(): void
     {
         $this->assertModelKeysAreSubsetOfFillable(
@@ -379,7 +380,7 @@ class SpecialtyRecordSeederFieldContractTest extends TestCase
     // keys that NEVER belong in any of the five `$fillable` arrays
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_seeder_does_not_write_universal_legacy_keys(): void
     {
         $source = $this->seederSourceWithoutComments();

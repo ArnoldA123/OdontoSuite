@@ -4,6 +4,8 @@ namespace Tests\Unit\Policies;
 
 use App\Models\CashMovement;
 use App\Models\User;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -51,7 +53,8 @@ class CashMovementPolicyTest extends TestCase
         return $user;
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function policy_class_exists_with_create_method(): void
     {
         $class = self::policyClass();
@@ -65,7 +68,8 @@ class CashMovementPolicyTest extends TestCase
         );
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function create_returns_true_for_administrador(): void
     {
         $policy = $this->policy();
@@ -75,7 +79,8 @@ class CashMovementPolicyTest extends TestCase
         );
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function create_returns_true_for_finanzas(): void
     {
         $policy = $this->policy();
@@ -86,10 +91,10 @@ class CashMovementPolicyTest extends TestCase
     }
 
     /**
-     * @test FF-001
-     *
-     * @dataProvider nonAllowedRoles
+     * FF-001.
      */
+    #[Test]
+    #[DataProvider('nonAllowedRoles')]
     public function create_returns_false_for_non_allowed_roles(string $role): void
     {
         $policy = $this->policy();
@@ -110,7 +115,8 @@ class CashMovementPolicyTest extends TestCase
         ];
     }
 
-    /** @test FF-001 */
+    /** FF-001 */
+    #[Test]
     public function policy_is_aligned_with_backend_route_middleware(): void
     {
         // The Policy and the route middleware MUST agree on the allowed roles.

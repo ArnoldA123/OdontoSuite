@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Console;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -12,7 +13,7 @@ use Tests\TestCase;
  */
 class SddCheckEventsCommandTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function sdd_check_events_command_is_registered(): void
     {
         $this->assertArrayHasKey(
@@ -22,7 +23,7 @@ class SddCheckEventsCommandTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function sdd_check_events_command_exits_zero_when_all_events_are_wired(): void
     {
         // After T-10.3 + T-10.4 every event either has a listener OR a JS consumer
@@ -37,7 +38,7 @@ class SddCheckEventsCommandTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function sdd_check_events_command_exits_non_zero_for_truly_orphan_event(): void
     {
         // We simulate an orphan event by creating a transient event file in a

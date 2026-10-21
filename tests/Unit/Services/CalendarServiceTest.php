@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\CalendarService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class CalendarServiceTest extends TestCase
@@ -53,7 +54,7 @@ class CalendarServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_day_appointments()
     {
         $date = Carbon::today();
@@ -97,7 +98,7 @@ class CalendarServiceTest extends TestCase
         $this->assertTrue($appointments->contains('id', $appointment2->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_week_appointments()
     {
         $startOfWeek = Carbon::now()->startOfWeek();
@@ -141,7 +142,7 @@ class CalendarServiceTest extends TestCase
         $this->assertTrue($appointments->contains('id', $appointment2->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_month_appointments()
     {
         $startOfMonth = Carbon::now()->startOfMonth();
@@ -185,7 +186,7 @@ class CalendarServiceTest extends TestCase
         $this->assertTrue($appointments->contains('id', $appointment2->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_appointments_in_range()
     {
         $startDate = Carbon::now()->addDays(1);
@@ -230,7 +231,7 @@ class CalendarServiceTest extends TestCase
         $this->assertTrue($appointments->contains('id', $appointment2->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_calendar_data_for_fullcalendar()
     {
         $startDate = Carbon::now()->startOfWeek();
@@ -265,7 +266,7 @@ class CalendarServiceTest extends TestCase
         $this->assertEquals($appointment->notes, $event['extendedProps']['notes']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_calendar_statistics()
     {
         $startDate = Carbon::now()->startOfWeek();
@@ -317,7 +318,7 @@ class CalendarServiceTest extends TestCase
         $this->assertEquals(1, $stats['cancelled_appointments']);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_appointments_by_user()
     {
         $otherUser = User::factory()->create([

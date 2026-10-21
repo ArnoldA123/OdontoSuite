@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Polish;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,7 +37,8 @@ class ApiAndSeedersPolishTest extends TestCase
         return self::projectRootPath().'/routes/api.php';
     }
 
-    /** @test API-022 */
+    /** API-022 */
+    #[Test]
     public function procedure_catalog_destroy_is_soft_deactivate(): void
     {
         $source = file_get_contents(self::appDir().'/ProcedureCatalogController.php');
@@ -50,7 +52,8 @@ class ApiAndSeedersPolishTest extends TestCase
         );
     }
 
-    /** @test API-035 / API-057 */
+    /** API-035 / API-057 */
+    #[Test]
     public function patient_controller_export_accepts_pdf_and_zip(): void
     {
         $source = file_get_contents(self::appDir().'/PatientController.php');
@@ -78,7 +81,8 @@ class ApiAndSeedersPolishTest extends TestCase
         );
     }
 
-    /** @test API-015 */
+    /** API-015 */
+    #[Test]
     public function procedure_catalog_index_supports_specialty_filter(): void
     {
         $controller = file_get_contents(self::appDir().'/ProcedureCatalogController.php');
@@ -101,7 +105,8 @@ class ApiAndSeedersPolishTest extends TestCase
         );
     }
 
-    /** @test BF-005 */
+    /** BF-005 */
+    #[Test]
     public function auth_controller_does_not_expose_orphan_refresh_method(): void
     {
         $source = file_get_contents(self::appDir().'/AuthController.php');
@@ -127,7 +132,8 @@ class ApiAndSeedersPolishTest extends TestCase
         );
     }
 
-    /** @test BF-006 */
+    /** BF-006 */
+    #[Test]
     public function role_controller_is_not_present(): void
     {
         $this->assertFileDoesNotExist(

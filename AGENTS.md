@@ -512,6 +512,18 @@ documentada y no bloquea producción.
   `Storage::fake('public')` y `assertMissing` del `file_path`, segundo borrado
   y 404.
 
+- **2026-10-20 (metadata de PHPUnit en atributos, #237)** — `tests/` deja de
+  declarar metadata en doc-comments: `@test` → `#[Test]` (354 métodos),
+  `@dataProvider foo` → `#[DataProvider('foo')]` (76 métodos) y `@group mysql` →
+  `#[Group('mysql')]` (5 clases). Sin cambios de lógica, providers ni cobertura:
+  `main` reportaba `Tests: 2053, Assertions: 10155, PHPUnit Deprecations: 570` y
+  la rama termina `OK (2054 tests, 10156 assertions)` sin deprecaciones (el test
+  extra es el guard nuevo). `PhpunitAttributesOnlyTest` falla con archivo y
+  línea cuando una anotación vuelve, porque PHPUnit 12 ignora la metadata de
+  doc-comments y PHPUnit 11 ya descarta el provider de un método que lleva
+  cualquier atributo, sin error. `vendor/bin/pint --test` y `prettier --check .`
+  en verde. Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos
+  de §4 no cambian.
 - **2026-10-20 (caja: anulación, movimientos manuales, cobro ad-hoc y reportes —
   #192/#195/#199/#197)** — Cuatro decisiones de contrato del módulo de caja.
   **Anulación**: `POST /api/transactions/{transaction}/void` vuelve a

@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
@@ -73,11 +75,8 @@ class DomainChannelsAuthorizationTest extends TestCase
         return $data;
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider channels
-     */
+    #[Test]
+    #[DataProvider('channels')]
     public function channel_authorizes_exactly_the_roles_with_read_access(
         string $channel,
         array $allowedRoles
@@ -93,11 +92,8 @@ class DomainChannelsAuthorizationTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider channels
-     */
+    #[Test]
+    #[DataProvider('channels')]
     public function channel_rejects_an_unauthenticated_subscriber(string $channel, array $allowedRoles): void
     {
         $this->postJson('/api/broadcasting/auth', [
@@ -106,19 +102,14 @@ class DomainChannelsAuthorizationTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider channels
-     */
+    #[Test]
+    #[DataProvider('channels')]
     public function channel_rejects_a_role_outside_the_allowlist(string $channel, array $allowedRoles): void
     {
         $this->authRequest($this->userWithRole('auditor'), $channel)->assertForbidden();
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_user_channel_accepts_only_its_own_subscriber(): void
     {
         $owner = $this->userWithRole('odontologo');
