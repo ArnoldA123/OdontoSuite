@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 114 migraciones
+  migrations/              # 117 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -387,6 +387,36 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (registros de especialidad — #246/#247)** — El contrato de
+  registros de especialidad deja de mentir sobre lo que guarda. Las cinco tablas
+  (`implantology_records`, `orthodontics_records`, `endodontics_records`,
+  `rehabilitation_records`, `oral_surgery_records`) ganan `procedure_id`
+  nullable con FK a `procedure_catalog` (`nullOnDelete`), el patrón que ya usan
+  `appointments` y `quotations`: `StoreSpecialtyRecordRequest` validaba el campo
+  desde el slice 02 y `validated()` lo descartaba en silencio, así que un POST
+  con `procedure_id` respondía 201 sin vínculo; la API ahora lo persiste y lo
+  devuelve con la relación `procedure` precargada en los cinco listados.
+  `oral_surgery_records` gana `surgery_date` (nullable,
+  `date|before_or_equal:today`): el listado de cirugía oral ordena por esa fecha
+  y no por `created_at`, y las filas existentes se fechan desde
+  `appointments.scheduled_at` con `created_at` como respaldo.
+  `rehabilitation_records` gana `try_in_date` (nullable, `date`), coherente con
+  el estado `try_in` que existía sin fecha; sin backfill, porque las otras
+  fechas del flujo son otros actos clínicos. La interfaz del módulo suma el
+  selector `ProcedureCatalogPicker` para el procedimiento y muestra las dos
+  fechas nuevas en formulario y detalle. §4 sincronizado con el valor medido:
+  117 migraciones. Sin rutas, modelos, controllers ni primitivas UI nuevas:
+  `scripts/audit/doc-drift.mjs` sigue en verde. Tests:
+  `SpecialtyRecordProcedurePersistenceTest` (5),
+  `SpecialtyRecordSurgeryDateTest` (5), `OralSurgeryDateBackfillTest` (1),
+  `SpecialtyRecordTryInDateTest` (4), `SpecialtyRecordShowContractTest` (2) y
+  los unitarios/smoke JS del módulo. En la misma pasada se cierran dos defectos
+  vecinos: `GET /specialty-records/{id}` respondía 500 en ortodoncia porque
+  `show()` precargaba `dentalPiece` en los cinco modelos y esa tabla no tiene la
+  columna (ahora sólo carga la relación donde el modelo la define), y el detalle
+  leía `dentalPiece` mientras Eloquent serializa `dental_piece`, así que la
+  pieza no aparecía nunca.
 
 - **2026-10-21 (deuda de §6 y troubleshooting de §8, segunda pasada)** — La
   auditoría anterior corrigió lo que el guard podía medir y dejó sin
