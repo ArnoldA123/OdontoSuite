@@ -96,7 +96,7 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 32 controllers API (31 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 33 controllers API (32 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 50 modelos Eloquent
@@ -119,14 +119,14 @@ resources/js/
 
 database/
   migrations/              # 114 migraciones
-  seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
-                           #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
-                           #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
-                           #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
-                           #   DentalPieceSeeder, SpecialtyRecordSeeder)
+  seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+                           #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
+                           #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
+                           #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
+                           #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 197 rutas API (medido con php artisan route:list --json: uris api/…; 210 totales con web)
+  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -181,7 +181,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 32 controllers API, 34 eventos (10 listener classes / 13 cableos
+- 50 modelos, 33 controllers API, 34 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -364,7 +364,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 33 controllers API, 50
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -375,6 +375,48 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
+  dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
+  a «Registros de Especialidad» y el catálogo conserva «Catálogo de
+  Especialidades»; sin cambios de rutas ni permisos, con guard
+  `SpecialtiesNavigationDisambiguationTest` (#210). Datos: nuevo
+  `UserSpecialtySeeder` que puebla `user_specialties` desde el `users.specialty`
+  legacy con mapa explícito (`general`→`general`, `orthodontics`→`ortodoncia`,
+  `implantology`→`implantologia`) solo para roles clínicos; tras
+  `migrate --seed` el catálogo muestra profesionales > 0 y
+  `UserSpecialtySeederTest` fija el invariante (#211). Auditoría:
+  `SpecialtyController@store/update` escriben
+  `specialty_created`/`specialty_updated` con actor y snapshot auditable
+  (`code`, `name`, `description`, `is_active`), cubierto por
+  `SpecialtyAuditLogTest` (#213). Rediseño: `/specialty-records` pasa al
+  lenguaje del dashboard (hero band, KPI strip de la especialidad activa,
+  selector de paciente, `UiTabs` con badges de conteo, estados completos y
+  `UiModal` para alta/edición y detalle) y por fin renderiza el payload real de
+  `GET /specialty-records/patient/{id}/all`: antes la página cargaba
+  `allRecords` y pintaba `records`, siempre vacío; además esa ruta estaba
+  sombreada por `/patient/{patientId}/{specialty}` y respondía una lista vacía,
+  y el listado de cirugía oral ordenaba por `surgery_date`, una columna
+  inexistente que producía 500. Se eliminan las claves inglesas y los campos
+  inventados (`title`, `description`, `procedure_date`, `professional_name`,
+  `observations`, `next_appointment`). El contrato de escritura se alinea con el
+  esquema real: `rehabilitacion` exige `prosthesis_type` (no
+  `restoration_type`), `cirugia_oral` exige `surgery_site` (no `surgery_date`,
+  columna inexistente), los enums de estado son los de la BD, `dental_piece_id`
+  es obligatorio donde la tabla lo exige y el nuevo `GET /api/dental-pieces`
+  alimenta el selector de pieza. `UpdateSpecialtyRecordRequest` reutiliza las
+  reglas del alta para que la edición persista todo lo que muestra. En la misma
+  pasada, `/stats` cuenta cada especialidad por el campo de estado que realmente
+  tiene, los 500 del controlador dejan de filtrar el mensaje de la excepción y
+  `notes` sale del contrato porque no existe en ninguna de las cinco tablas. §4
+  sincronizado con valores medidos: 33 controllers API, 198 rutas API, 211
+  totales con web, 15 seeders activos; sin migraciones nuevas (114). Tests:
+  `SpecialtyAuditLogTest`, `UserSpecialtySeederTest`,
+  `SpecialtyRecordStoreContractTest`, `SpecialtyRecordUpdateContractTest`,
+  `SpecialtyRecordReadContractTest`, `DentalPiecesEndpointTest`,
+  `SpecialtyRecordsAppShellTest`, `SpecialtyRecordsRedesignContractTest`,
+  `SpecialtiesNavigationDisambiguationTest`, unit JS de `specialtyRecordMeta` y
+  smoke del módulo.
 
 - **2026-10-20 (seguimientos de historias clínicas #222/#223/#225/#228/#224)** —
   La superficie de evoluciones cierra cuatro huecos del rediseño y gana

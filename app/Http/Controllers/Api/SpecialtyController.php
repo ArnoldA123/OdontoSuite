@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
+use App\Models\AuditLog;
 use App\Models\ProcedureCatalog;
 use App\Models\Specialty;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SpecialtyController extends Controller
 {
@@ -84,6 +86,18 @@ class SpecialtyController extends Controller
 
         $specialty = Specialty::create($validated);
 
+        // Issue #213: the catalog is consumed by procedures and professionals,
+        // so a creation must leave the same trace the sibling masters leave.
+        if (Auth::check()) {
+            AuditLog::log(
+                Auth::user(),
+                'specialty_created',
+                $specialty,
+                [],
+                $this->auditSnapshot($specialty)
+            );
+        }
+
         return response()->json([
             'data' => $specialty,
             'meta' => ['message' => 'Especialidad creada exitosamente'],
@@ -96,12 +110,41 @@ class SpecialtyController extends Controller
 
         $validated = $request->validate($this->updateRules($this->storeRules(), ['code']));
 
+        $oldValues = $this->auditSnapshot($specialty);
+
         $specialty->update($validated);
+        $specialty->refresh();
+
+        if (Auth::check()) {
+            AuditLog::log(
+                Auth::user(),
+                'specialty_updated',
+                $specialty,
+                $oldValues,
+                $this->auditSnapshot($specialty)
+            );
+        }
 
         return response()->json([
             'data' => $specialty,
             'meta' => ['message' => 'Especialidad actualizada exitosamente'],
         ]);
+    }
+
+    /**
+     * Fields the audit trail owns. The code is included because it identifies
+     * the row for the CSV import, even though it is immutable on edit.
+     *
+     * @return array<string, mixed>
+     */
+    private function auditSnapshot(Specialty $specialty): array
+    {
+        return [
+            'code' => $specialty->code,
+            'name' => $specialty->name,
+            'description' => $specialty->description,
+            'is_active' => (bool) $specialty->is_active,
+        ];
     }
 
     /**

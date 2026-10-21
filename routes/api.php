@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CashReportController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
+use App\Http\Controllers\Api\DentalPieceController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
@@ -277,9 +278,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Registros de especialidades (solo especialistas)
     Route::middleware('role:administrador,odontologo,implantologo,tecnico_dental')->group(function () {
         Route::apiResource('specialty-records', SpecialtyRecordController::class); // Generic resource, specific methods handle specialty type
-        Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
+        // The aggregate route MUST be declared before `{specialty}`: the
+        // parameter matches the literal `all` and used to answer an empty list.
         Route::get('specialty-records/patient/{patientId}/all', [SpecialtyRecordController::class, 'getAllByPatient']);
         Route::get('specialty-records/patient/{patientId}/{specialty}/stats', [SpecialtyRecordController::class, 'getStats']);
+        Route::get('specialty-records/patient/{patientId}/{specialty}', [SpecialtyRecordController::class, 'getByPatient']);
+        Route::get('dental-pieces', [DentalPieceController::class, 'index']);
     });
 
     // Sistema de caja. Issue #55: recepcion opera caja (sesiones y

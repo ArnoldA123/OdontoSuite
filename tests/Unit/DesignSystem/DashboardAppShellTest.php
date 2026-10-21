@@ -1812,7 +1812,7 @@ class DashboardAppShellTest extends TestCase
         $source = (string) self::readFile(self::projectRootPath().self::APP_LAYOUT_FILE);
         // T6 — the payment-methods entry carries the accent every sibling
         // label already had. Route path and permission keys stay ASCII.
-        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Especialidades', 'Análisis IA'];
+        $labels = ['Dashboard', 'Calendario', 'Pacientes', 'Profesionales', 'Ambientes', 'Tipos de Cita', 'Sucursales', 'Métodos de Pago', 'Catálogo de Procedimientos', 'Mis Procedimientos', 'Business Intelligence', 'Caja', 'Planes de Tratamiento', 'Presupuestos', 'Historias Clínicas', 'Registros de Especialidad', 'Análisis IA'];
         $positions = array_map(fn (string $label): int => strpos($source, "name: '{$label}'"), $labels);
         $this->assertCount(17, array_filter($positions, fn (int|false $position): bool => $position !== false));
         $sorted = $positions;

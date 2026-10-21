@@ -856,8 +856,10 @@ const navigation = computed(() => {
     },
     {
       // Catálogo maestro de especialidades (admin). La etiqueta difiere de la
-      // entrada clínica "Especialidades" (/specialty-records) a propósito:
-      // esta administra la taxonomía, aquella captura registros por paciente.
+      // entrada clínica "Registros de Especialidad" (/specialty-records) a
+      // propósito: esta administra la taxonomía, aquella captura registros por
+      // paciente. Issue #210: ninguna de las dos usa la etiqueta desnuda
+      // "Especialidades", que no decía cuál superficie abría.
       name: 'Catálogo de Especialidades',
       to: '/specialties',
       icon: TagIcon,
@@ -947,7 +949,7 @@ const navigation = computed(() => {
       badge: null
     },
     {
-      name: 'Especialidades',
+      name: 'Registros de Especialidad',
       to: '/specialty-records',
       icon: AcademicCapIcon,
       roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'],
