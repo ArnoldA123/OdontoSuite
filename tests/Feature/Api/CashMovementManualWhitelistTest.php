@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\CashRegisterSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -102,9 +103,7 @@ class CashMovementManualWhitelistTest extends TestCase
             ->assertJsonValidationErrors('concept');
     }
 
-    /**
-     * @dataProvider acceptedManualTypes
-     */
+    #[DataProvider('acceptedManualTypes')]
     public function test_the_four_signed_types_are_still_accepted(string $type, string $concept): void
     {
         $before = $this->movementCount();

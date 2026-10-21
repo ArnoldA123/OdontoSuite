@@ -40,6 +40,8 @@ use App\Models\TreatmentPlan;
 use App\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -106,11 +108,8 @@ class DomainChannelsPrivateTest extends TestCase
         return $data;
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider domainChannelEvents
-     */
+    #[Test]
+    #[DataProvider('domainChannelEvents')]
     public function domain_event_publishes_on_the_private_variant_of_its_channel(
         string $eventClass,
         string $channel
@@ -130,9 +129,7 @@ class DomainChannelsPrivateTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function no_event_under_app_events_instantiates_the_public_channel_class(): void
     {
         $offenders = [];
@@ -156,9 +153,7 @@ class DomainChannelsPrivateTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function patient_file_exported_targets_the_exporting_user_privately(): void
     {
         $patient = new Patient;
@@ -178,9 +173,7 @@ class DomainChannelsPrivateTest extends TestCase
         $this->assertSame('private-user.456', $userChannel->name);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function every_closed_channel_carries_the_private_prefix_on_the_wire(): void
     {
         $channels = [
@@ -215,9 +208,7 @@ class DomainChannelsPrivateTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function the_guard_still_covers_every_measured_publisher(): void
     {
         $this->assertCount(
