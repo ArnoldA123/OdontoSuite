@@ -116,6 +116,33 @@ class TreatmentPlansAppShellTest extends ModuleAppShellTestCase
     }
 
     /**
+     * #242 - the detail dialog rides `UiModal`, so it must not keep a hand-rolled
+     * overlay, backdrop, dialog role or document-level Escape listener of its
+     * own: those belong to the primitive and its shared modal stack.
+     */
+    public function test_plan_detail_rides_the_modal_primitive(): void
+    {
+        $src = $this->readSource(self::DETAIL_PATH);
+
+        $this->assertStringContainsString(
+            '<UiModal',
+            $src,
+            'TreatmentPlanDetail.vue must mount the dialog through `UiModal` (#242).'
+        );
+
+        foreach (['fixed inset-0', 'backdrop-blur', 'role="dialog"', "document.addEventListener('keydown'"] as $ownContract) {
+            $this->assertStringNotContainsString(
+                $ownContract,
+                $src,
+                sprintf(
+                    'TreatmentPlanDetail.vue must not hand-build `%s`; UiModal owns the dialog contract (#242).',
+                    $ownContract
+                )
+            );
+        }
+    }
+
+    /**
      * S1/S5 - no touched surface keeps a `<style scoped>` block: the dashboard
      * recipe rides utility classes plus the global token CSS.
      */

@@ -399,6 +399,24 @@ documentada y no bloquea producción.
   `Storage::fake('public')` y `assertMissing` del `file_path`, segundo borrado
   y 404.
 
+- **2026-10-20 (follow-ups de UI #239/#242/#243)** — `AiAnalysisButton` se
+  retira con su smoke y su contrato de design system: el flujo de análisis se
+  inicia solo desde `/ai-analysis` y el componente llevaba sin consumidor desde
+  el rediseño de historias clínicas (#239). `TreatmentPlanDetail` pasa a
+  `UiModal`: deja de declarar overlay, backdrop, `role="dialog"` y listener de
+  Escape propios, conserva el hook `data-plan-detail` (ahora en el backdrop
+  teleportado), la cabecera, las acciones y el `aria-labelledby`, y entra en la
+  pila compartida — un formulario abierto encima cierra solo y el bloqueo de
+  scroll se coordina (#242). En `/appointment-types/:id`,
+  `/procedure-catalog/:id` y `/professionals/:id` el topbar deja de renderizar
+  su `<h1>` oculto porque la página de detalle nombra la entidad en su propio
+  `<h1>`: cada documento queda con un solo encabezado, y visible (#243). Sin
+  rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: smoke del detalle reescrito contra la primitiva (6), guard
+  `test_plan_detail_rides_the_modal_primitive`, `page-header-hierarchy.test.js`
+  con las tres rutas de detalle (6) y `topbar-title-ownership.test.js` (28).
+  Guard `scripts/audit/doc-drift.mjs` en verde.
+
 - **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
   dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
   a «Registros de Especialidad» y el catálogo conserva «Catálogo de
