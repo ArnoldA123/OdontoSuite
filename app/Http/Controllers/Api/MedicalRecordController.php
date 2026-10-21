@@ -374,7 +374,7 @@ class MedicalRecordController extends Controller
                 'appointment_id' => 'nullable|exists:appointments,id',
                 'clinical_evolution_id' => 'nullable|exists:clinical_evolutions,id',
                 'file' => 'required|file|max:10240', // 10MB max
-                'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro',
+                'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro,general',
                 'description' => 'nullable|string',
                 'is_private' => 'boolean',
             ]);
