@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\CashRegisterSession;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -47,9 +48,7 @@ class CashSessionOwnershipTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider sessionReadSurfaceProvider
-     */
+    #[DataProvider('sessionReadSurfaceProvider')]
     public function test_a_peer_cannot_read_another_users_session(string $uri, string $kind): void
     {
         $owner = $this->user('recepcionista');

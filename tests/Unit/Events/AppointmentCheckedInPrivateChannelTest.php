@@ -4,6 +4,7 @@ namespace Tests\Unit\Events;
 
 use App\Events\AppointmentCheckedIn;
 use Illuminate\Broadcasting\PrivateChannel;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -18,7 +19,7 @@ use Tests\TestCase;
  */
 class AppointmentCheckedInPrivateChannelTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function appointment_checked_in_broadcasts_on_private_channel(): void
     {
         $reflection = new ReflectionClass(AppointmentCheckedIn::class);
@@ -32,7 +33,7 @@ class AppointmentCheckedInPrivateChannelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function appointment_checked_in_does_not_use_public_channel_class(): void
     {
         $reflection = new ReflectionClass(AppointmentCheckedIn::class);
@@ -51,7 +52,7 @@ class AppointmentCheckedInPrivateChannelTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function appointment_checked_in_no_longer_marked_nf2_orphan(): void
     {
         // The NF-2 marker was stale: the event is now wired (private channel

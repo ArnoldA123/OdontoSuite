@@ -6,6 +6,8 @@ use App\Events\PatientCreated;
 use App\Events\PatientDeleted;
 use App\Events\PatientUpdated;
 use Illuminate\Broadcasting\PrivateChannel;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -37,11 +39,8 @@ class PatientEventsPrivateChannelTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider patientEvents
-     */
+    #[Test]
+    #[DataProvider('patientEvents')]
     public function patient_event_broadcasts_on_the_private_patients_channel(string $eventClass): void
     {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
@@ -58,11 +57,8 @@ class PatientEventsPrivateChannelTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider patientEvents
-     */
+    #[Test]
+    #[DataProvider('patientEvents')]
     public function patient_event_never_uses_the_public_channel_class(string $eventClass): void
     {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
@@ -79,11 +75,8 @@ class PatientEventsPrivateChannelTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider patientEvents
-     */
+    #[Test]
+    #[DataProvider('patientEvents')]
     public function patient_event_no_longer_publishes_to_the_public_dashboard_channel(string $eventClass): void
     {
         $source = file_get_contents((new ReflectionClass($eventClass))->getFileName());
@@ -95,11 +88,8 @@ class PatientEventsPrivateChannelTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider patientEvents
-     */
+    #[Test]
+    #[DataProvider('patientEvents')]
     public function patient_event_channel_resolves_to_the_private_wire_name(string $eventClass): void
     {
         $patient = new \App\Models\Patient;

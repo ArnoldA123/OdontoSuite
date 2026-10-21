@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Symfony\Component\Process\Process;
@@ -18,7 +19,7 @@ use Tests\TestCase as ProjectTestCase;
  */
 class MysqlRunnerGateTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function only_the_mysql_driver_satisfies_the_runner_gate(): void
     {
         $this->assertTrue(MysqlRunner::isActive('mysql'));
@@ -31,7 +32,7 @@ class MysqlRunnerGateTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function every_schema_owning_test_trait_is_detected(): void
     {
         $this->assertTrue(
@@ -48,7 +49,7 @@ class MysqlRunnerGateTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function the_project_test_case_applies_the_gate_before_the_trait_hooks(): void
     {
         $method = new ReflectionMethod(ProjectTestCase::class, 'setUpTraits');
@@ -60,7 +61,7 @@ class MysqlRunnerGateTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function a_database_test_on_sqlite_is_reported_as_skipped_not_failed(): void
     {
         [$status, $output] = $this->runOnSqlite(

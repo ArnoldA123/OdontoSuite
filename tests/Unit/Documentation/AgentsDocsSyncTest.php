@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Documentation;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,7 +41,8 @@ class AgentsDocsSyncTest extends TestCase
         return file_get_contents(self::projectRootPath().'/app/Providers/AppServiceProvider.php');
     }
 
-    /** @test BF-017 */
+    /** BF-017 */
+    #[Test]
     public function agents_md_documents_payment_method_seeder(): void
     {
         // DatabaseSeeder.php uses PaymentMethodSeeder (line 22). AGENTS.md
@@ -57,7 +59,8 @@ class AgentsDocsSyncTest extends TestCase
         );
     }
 
-    /** @test BF-020 */
+    /** BF-020 */
+    #[Test]
     public function agents_md_listener_count_matches_app_service_provider(): void
     {
         // AppServiceProvider.php currently wires N Event::listen calls.
@@ -86,7 +89,8 @@ class AgentsDocsSyncTest extends TestCase
         );
     }
 
-    /** @test BF-027 */
+    /** BF-027 */
+    #[Test]
     public function agents_md_offers_workaround_for_sqlite_test_failures(): void
     {
         // The 28 SQLite pre-existing failures are documented as tech debt
@@ -103,7 +107,8 @@ class AgentsDocsSyncTest extends TestCase
         );
     }
 
-    /** @test BF-028 */
+    /** BF-028 */
+    #[Test]
     public function composer_dev_script_uses_pnpm_not_npm(): void
     {
         // composer.json scripts.dev must invoke `pnpm dev`, not `npm run dev`.
@@ -122,7 +127,8 @@ class AgentsDocsSyncTest extends TestCase
         );
     }
 
-    /** @test BF-017 */
+    /** BF-017 */
+    #[Test]
     public function agents_md_seeder_count_matches_database_seeder_call_count(): void
     {
         // The expected count is DERIVED from DatabaseSeeder.php, never hardcoded.

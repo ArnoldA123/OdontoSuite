@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -47,11 +49,8 @@ use PHPUnit\Framework\TestCase;
  */
 class AuditBaselineGuardTest extends TestCase
 {
-    /**
-     * @test
-     *
-     * @dataProvider envFileVariants
-     */
+    #[Test]
+    #[DataProvider('envFileVariants')]
     public function database_guard_decides_the_way_the_framework_reads_the_file(
         string $contents,
         string $expectedDecision
@@ -66,7 +65,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_there_is_no_env_file_to_read(): void
     {
         $decision = $this->guardDecision(null);
@@ -79,7 +78,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function guard_proceeds_only_for_a_database_the_suite_will_not_wipe(): void
     {
         $decision = $this->guardDecision("DB_DATABASE=odontosuite\n");
@@ -93,7 +92,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_an_exported_value_names_the_test_database(): void
     {
         // The residual fail-open the second verification found: the file says the
@@ -111,7 +110,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_the_sources_disagree_and_either_names_the_test_database(): void
     {
         $decision = $this->guardDecision("DB_DATABASE=odontosuite_test\n", 'odontosuite');
@@ -126,7 +125,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_an_exported_value_differs_only_in_case(): void
     {
         // The provider's refuter corroborated this as critical and
@@ -144,7 +143,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_a_connection_url_names_the_test_database(): void
     {
         // The source the review found missing: `config/database.php` maps
@@ -164,7 +163,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_an_exported_url_names_the_test_database(): void
     {
         $decision = $this->guardDecision(
@@ -181,7 +180,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function database_guard_refuses_when_a_url_carries_no_readable_database(): void
     {
         // The remedy the review asked for: refuse when the URL source is present
@@ -196,9 +195,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function database_guard_follows_the_framework_resolution_not_the_static_sources(): void
     {
         // Issue #41. The env file names a database the suite will not wipe and no
@@ -216,9 +213,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function database_guard_proceeds_only_when_the_framework_resolves_another_database(): void
     {
         $decision = $this->guardDecision("DB_DATABASE=odontosuite\n", null, null, 'echo odontosuite');
@@ -227,9 +222,7 @@ class AuditBaselineGuardTest extends TestCase
         $this->assertSame('proceed', $decision['decision'] ?? '(no decision reported)');
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function database_guard_refuses_when_the_framework_cannot_answer(): void
     {
         // A guard that cannot see the resolution has proven nothing, and the
@@ -244,9 +237,7 @@ class AuditBaselineGuardTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function database_guard_hands_the_probe_the_run_environment(): void
     {
         // The probe reads the connection-defining keys back, so this pins the

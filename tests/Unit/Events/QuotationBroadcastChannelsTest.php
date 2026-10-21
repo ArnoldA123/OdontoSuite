@@ -8,6 +8,8 @@ use App\Events\QuotationRejected;
 use App\Events\QuotationUpdated;
 use App\Models\Quotation;
 use Illuminate\Broadcasting\PrivateChannel;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -35,11 +37,8 @@ class QuotationBroadcastChannelsTest extends TestCase
         ];
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider quotationEvents
-     */
+    #[Test]
+    #[DataProvider('quotationEvents')]
     public function quotation_event_broadcasts_on_the_private_quotations_channel(
         string $eventClass,
         array $constructorArguments
@@ -55,11 +54,8 @@ class QuotationBroadcastChannelsTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider quotationEvents
-     */
+    #[Test]
+    #[DataProvider('quotationEvents')]
     public function quotation_event_no_longer_publishes_to_the_public_dashboard_channel(
         string $eventClass,
         array $constructorArguments
@@ -73,11 +69,8 @@ class QuotationBroadcastChannelsTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider quotationEvents
-     */
+    #[Test]
+    #[DataProvider('quotationEvents')]
     public function quotation_event_never_uses_the_public_channel_class(
         string $eventClass,
         array $constructorArguments

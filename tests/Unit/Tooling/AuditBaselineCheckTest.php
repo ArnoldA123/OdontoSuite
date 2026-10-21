@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Tooling;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -37,7 +39,7 @@ use PHPUnit\Framework\TestCase;
  */
 class AuditBaselineCheckTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function check_refuses_a_missing_file_with_exit_2(): void
     {
         $missing = sys_get_temp_dir().'/baseline-missing-'.uniqid('', true).'.md';
@@ -48,7 +50,7 @@ class AuditBaselineCheckTest extends TestCase
         $this->assertStringContainsString('no such file', implode("\n", $result['lines']));
     }
 
-    /** @test */
+    #[Test]
     public function check_ignores_tree_state_counters(): void
     {
         // Accepted: these describe the tree at capture time, so a later run
@@ -71,7 +73,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function check_reports_a_counter_that_differs(): void
     {
         $target = $this->claimedDocument(['models' => 7]);
@@ -87,7 +89,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function check_fails_closed_when_both_sides_are_unmeasured(): void
     {
         // A gate that fails leaves its record empty. Two runs that both
@@ -107,7 +109,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function check_fails_when_only_the_new_measurement_is_unmeasured(): void
     {
         $target = $this->claimedDocument(['eslint_errors' => 5]);
@@ -122,7 +124,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function read_counters_prefers_the_counters_block_over_an_unrelated_one(): void
     {
         $this->requireNode();
@@ -147,7 +149,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function read_counters_still_reads_a_single_bare_block(): void
     {
         $this->requireNode();
@@ -167,7 +169,7 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function read_counters_refuses_a_document_without_a_usable_block(): void
     {
         $path = sys_get_temp_dir().'/baseline-noblock-'.uniqid('', true).'.md';
@@ -184,11 +186,8 @@ class AuditBaselineCheckTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     *
-     * @dataProvider maskSecretsCases
-     */
+    #[Test]
+    #[DataProvider('maskSecretsCases')]
     public function mask_secrets_masks_the_whole_password(string $input, string $expected): void
     {
         $path = sys_get_temp_dir().'/baseline-mask-'.uniqid('', true).'.txt';
