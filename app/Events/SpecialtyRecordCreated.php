@@ -2,7 +2,6 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -29,7 +28,7 @@ class SpecialtyRecordCreated implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('specialty-records'),
+            new PrivateChannel('specialty-records'),
             new PrivateChannel('dashboard-updates'),
         ];
     }

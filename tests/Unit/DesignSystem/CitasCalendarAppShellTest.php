@@ -474,11 +474,13 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
         $src = self::readSource($path);
         $this->assertNotNull($src, sprintf('%s must be readable.', $path));
 
-        // 1) The `appointments` channel is fetched via the `channel('appointments')` helper.
+        // 1) The `appointments` channel is fetched via the
+        // `privateChannel('appointments')` helper (#249: the server rejects
+        // unauthenticated subscribers).
         $this->assertTrue(
-            (bool) preg_match("#channel\s*\(\s*['\"]appointments['\"]\s*\)#", $src),
+            (bool) preg_match("#privateChannel\s*\(\s*['\"]appointments['\"]\s*\)#", $src),
             sprintf(
-                '%s MUST keep `channel(\'appointments\')` subscription (CITAS-RT-001). '
+                '%s MUST keep `privateChannel(\'appointments\')` subscription (CITAS-RT-001). '
                 .'The Echo channel name is the canonical realtime pipe for appointment events.',
                 $path
             )
@@ -505,14 +507,15 @@ class CitasCalendarAppShellTest extends ModuleAppShellTestCase
             );
         }
 
-        // 3) The `onUnmounted` hook calls `echo.leave('appointments')`.
+        // 3) The `onUnmounted` hook calls `echo.leave('private-appointments')`:
+        // Echo's leave() does not add the private prefix (#249).
         $this->assertTrue(
             (bool) preg_match(
-                "#echo\.leave\s*\(\s*['\"]appointments['\"]\s*\)#",
+                "#echo\.leave\s*\(\s*['\"]private-appointments['\"]\s*\)#",
                 $src
             ),
             sprintf(
-                '%s MUST keep `echo.leave(\'appointments\')` in the `onUnmounted` hook (CITAS-RT-001). '
+                '%s MUST keep `echo.leave(\'private-appointments\')` in the `onUnmounted` hook (CITAS-RT-001). '
                 .'Without the leave call, switching routes leaks an Echo subscription.',
                 $path
             )

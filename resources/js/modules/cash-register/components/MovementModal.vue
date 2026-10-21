@@ -145,16 +145,17 @@ const TYPE_OPTIONS = [
   { label: 'Ingreso', value: 'income' },
   { label: 'Egreso', value: 'expense' },
   { label: 'Retiro', value: 'withdrawal' },
-  { label: 'Depósito', value: 'deposit' },
-  { label: 'Ajuste', value: 'adjustment' }
+  { label: 'Depósito', value: 'deposit' }
 ]
 
+// Issue #195: `adjustment` is out of the manual catalog. The ledger cannot
+// sign it, so a manual adjustment moved no figure; the closing snapshot keeps
+// writing its own row from the service.
 const CONCEPT_OPTIONS = [
   { label: 'Saldo de apertura', value: 'opening_balance' },
   { label: 'Devolución de venta', value: 'sale_refund' },
   { label: 'Retiro', value: 'withdrawal' },
-  { label: 'Depósito', value: 'deposit' },
-  { label: 'Ajuste', value: 'adjustment' }
+  { label: 'Depósito', value: 'deposit' }
 ]
 
 const TYPE_LABELS = {

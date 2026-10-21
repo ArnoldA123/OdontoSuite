@@ -91,12 +91,10 @@ describe('topbar title ownership (issue #208)', () => {
     '/settings/branches/3',
     '/environments',
     '/environments/3',
-    '/professionals/7',
     '/specialty-records',
     '/treatment-plans',
     '/quotations',
     '/procedure-catalog',
-    '/procedure-catalog/12',
     '/procedure-stats',
     '/my-procedures',
     '/reception-procedures',
@@ -134,6 +132,19 @@ describe('topbar title ownership (issue #208)', () => {
     const heading = topbarHeading(wrapper)
     expect(heading.exists()).toBe(true)
     expect(heading.classes()).not.toContain('sr-only')
+
+    wrapper.unmount()
+  })
+
+  // Issue #243 — the detail page names the entity in its own <h1>, so the
+  // topbar renders no heading at all instead of a second, hidden one.
+  const detailRoutes = ['/appointment-types/7', '/procedure-catalog/12', '/professionals/7']
+
+  it.each(detailRoutes)('renders no heading in the topbar on %s', async path => {
+    const wrapper = await mountShell(path)
+
+    expect(topbar(wrapper).attributes('data-topbar-title-owner')).toBe('page')
+    expect(topbarHeading(wrapper).exists()).toBe(false)
 
     wrapper.unmount()
   })
