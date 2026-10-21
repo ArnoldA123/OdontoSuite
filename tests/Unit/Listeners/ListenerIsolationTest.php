@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Listeners;
 
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionClass;
 use Tests\TestCase;
 
@@ -12,11 +14,8 @@ use Tests\TestCase;
  */
 class ListenerIsolationTest extends TestCase
 {
-    /**
-     * @dataProvider listenerClassProvider
-     *
-     * @test
-     */
+    #[Test]
+    #[DataProvider('listenerClassProvider')]
     public function listener_handle_is_wrapped_in_try_catch(string $listenerClass): void
     {
         if (! class_exists($listenerClass)) {

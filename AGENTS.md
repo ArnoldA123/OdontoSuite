@@ -377,6 +377,15 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (metadata de PHPUnit en atributos, #237)** — `tests/` deja de
+  declarar metadata en doc-comments: `@test` → `#[Test]` (344 métodos),
+  `@dataProvider foo` → `#[DataProvider('foo')]` (71 métodos) y `@group mysql`
+  → `#[Group('mysql')]` (5 clases). Sin cambios de lógica, providers ni
+  cobertura: `vendor/bin/phpunit --configuration=phpunit.mysql.xml` reportaba
+  `Tests: 1956, Assertions: 9745, PHPUnit Deprecations: 560` y ahora termina
+  `OK (1956 tests, 9745 assertions)` sin deprecaciones. `vendor/bin/pint --test`
+  en verde. Sin rutas, modelos, migraciones ni primitivas UI nuevas: los
+  conteos de §4 no cambian.
 - **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
   dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
   a «Registros de Especialidad» y el catálogo conserva «Catálogo de

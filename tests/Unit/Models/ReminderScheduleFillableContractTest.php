@@ -4,6 +4,7 @@ namespace Tests\Unit\Models;
 
 use App\Models\ReminderSchedule;
 use App\Services\ReminderService;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 
@@ -78,7 +79,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     // $fillable contract
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_fillable_matches_canonical_schema_columns(): void
     {
         $declared = $this->fillable();
@@ -94,7 +95,7 @@ class ReminderScheduleFillableContractTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function test_fillable_contains_hours_before_and_no_phantoms(): void
     {
         $declared = $this->fillable();
@@ -111,7 +112,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     // ReminderService source contract
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_service_writes_hours_before_only(): void
     {
         $source = $this->serviceSourceRaw();
@@ -125,7 +126,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     // scopeOfType removal
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_scope_of_type_is_removed(): void
     {
         $this->assertFalse(
@@ -143,7 +144,7 @@ class ReminderScheduleFillableContractTest extends TestCase
     // Service contract sanity check
     // -------------------------------------------------------------------
 
-    /** @test */
+    #[Test]
     public function test_service_exposes_required_methods(): void
     {
         $this->assertTrue(method_exists(ReminderService::class, 'scheduleReminder'), 'ReminderService::scheduleReminder() must exist.');

@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AppointmentTest extends TestCase
@@ -47,7 +48,7 @@ class AppointmentTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_an_appointment()
     {
         // Both `ends_at` and `created_by` are NOT NULL without a default, so a
@@ -76,7 +77,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals('Test appointment', $appointment->notes);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_user()
     {
         $appointment = Appointment::factory()->create([
@@ -87,7 +88,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals($this->user->id, $appointment->user->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_patient()
     {
         $appointment = Appointment::factory()->create([
@@ -98,7 +99,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals($this->patient->id, $appointment->patient->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_a_dental_chair()
     {
         $appointment = Appointment::factory()->create([
@@ -109,7 +110,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals($this->dentalChair->id, $appointment->dentalChair->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_belongs_to_an_appointment_type()
     {
         $appointment = Appointment::factory()->create([
@@ -120,7 +121,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals($this->appointmentType->id, $appointment->appointmentType->id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_scheduled_appointments()
     {
         // Create appointments with different statuses
@@ -144,7 +145,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($scheduledAppointments->contains('id', $cancelledAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_completed_appointments()
     {
         // Create appointments with different statuses
@@ -168,7 +169,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($completedAppointments->contains('id', $cancelledAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_cancelled_appointments()
     {
         // Create appointments with different statuses
@@ -192,7 +193,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($cancelledAppointments->contains('id', $completedAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_appointments_for_date()
     {
         $date = Carbon::today();
@@ -214,7 +215,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($todayAppointments->contains('id', $tomorrowAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_appointments_for_date_range()
     {
         $startDate = Carbon::today();
@@ -237,7 +238,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($rangeAppointments->contains('id', $outOfRangeAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_appointments_for_user()
     {
         $otherUser = User::factory()->create([
@@ -262,7 +263,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($userAppointments->contains('id', $otherUserAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_scope_appointments_for_patient()
     {
         $otherPatient = Patient::factory()->create([
@@ -286,7 +287,7 @@ class AppointmentTest extends TestCase
         $this->assertFalse($patientAppointments->contains('id', $otherPatientAppointment->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_calculate_end_time()
     {
         $scheduledAt = Carbon::now()->setTime(9, 0);
@@ -303,7 +304,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals($expectedEndTime, $actualEndTime);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_formatted_duration()
     {
         $appointment = Appointment::factory()->create([
@@ -313,7 +314,7 @@ class AppointmentTest extends TestCase
         $this->assertEquals('1h 30m', $appointment->formatted_duration);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_formatted_scheduled_time()
     {
         $scheduledAt = Carbon::now()->setTime(14, 30);

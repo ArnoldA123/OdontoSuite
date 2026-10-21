@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Models;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -29,9 +30,7 @@ class SoftDeletesTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider modelProvider
-     */
+    #[DataProvider('modelProvider')]
     public function test_models_use_soft_deletes(array $models): void
     {
         foreach ($models as $model) {

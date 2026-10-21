@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Migrations;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 class MigrationsDriverGuardTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function timezone_offset_migration_is_driver_guarded_after_slice_05(): void
     {
         $file = realpath(__DIR__.'/../../../database/migrations/2026_06_02_173228_fix_appointments_timezone_offset.php');
@@ -38,7 +39,7 @@ class MigrationsDriverGuardTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function status_enum_migration_remains_driver_guarded(): void
     {
         $file = realpath(__DIR__.'/../../../database/migrations/2025_10_14_123001_fix_appointments_status_enum.php');
