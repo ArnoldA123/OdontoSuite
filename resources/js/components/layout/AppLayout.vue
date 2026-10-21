@@ -247,15 +247,21 @@
       <header
         class="surface-glass relative z-30 shadow-subtle chrome-fade-bottom"
         data-app-chrome="topbar"
+        :data-topbar-title-owner="pageOwnsTitle ? 'page' : 'topbar'"
       >
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex justify-between items-center py-4">
             <div class="flex items-center gap-4">
               <div>
-                <h1 class="text-xl font-semibold text-theme-primary">
+                <h1 :class="pageOwnsTitle ? 'sr-only' : 'text-xl font-semibold text-theme-primary'">
                   {{ getPageTitle() }}
                 </h1>
-                <p v-if="getPageDescription()" class="text-sm text-theme-secondary mt-1">
+                <p
+                  v-if="getPageDescription()"
+                  data-topbar-context
+                  class="text-theme-secondary"
+                  :class="pageOwnsTitle ? 'text-xs' : 'mt-1 text-sm'"
+                >
                   {{ getPageDescription() }}
                 </p>
               </div>
@@ -1022,6 +1028,39 @@ const getPageTitle = () => {
   const currentItem = navigation.value.find(item => isActiveNavPath(route.path, item.to))
   return currentItem ? currentItem.name : 'OdontoSuite'
 }
+
+// Surfaces whose page renders its own visible title: the hero band on the
+// redesigned modules, PageHeader on the older ones. There the topbar keeps its
+// <h1> for the document outline but hides it from sight, so the hero is the only
+// visible page title; the short description stays as context.
+const pageTitledRoutes = [
+  '/ai-analysis',
+  '/appointment-types',
+  '/business-intelligence',
+  '/cash-register',
+  '/cash-register/ready-to-bill',
+  '/environments',
+  '/my-procedures',
+  '/procedure-catalog',
+  '/procedure-stats',
+  '/quotations',
+  '/reception-procedures',
+  '/settings/branches',
+  '/settings/payment-methods',
+  '/specialties',
+  '/specialty-records',
+  '/treatment-plans'
+]
+
+// Detail-only surfaces: the list route keeps the topbar title, while the detail
+// page renders its own page heading (ProfessionalDetailPage).
+const pageTitledDetailPrefixes = ['/professionals/']
+
+const pageOwnsTitle = computed(
+  () =>
+    pageTitledRoutes.some(path => route.path === path || route.path.startsWith(`${path}/`)) ||
+    pageTitledDetailPrefixes.some(prefix => route.path.startsWith(prefix))
+)
 
 const getPageDescription = () => {
   const descriptions = {

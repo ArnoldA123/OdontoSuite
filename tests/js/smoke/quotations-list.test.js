@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
+// Local calendar key: `toISOString` shifts to UTC and, from 19:00 in UTC-5,
+// yields tomorrow's date, so the "Vence en N días" badge drifted by one.
 const addDays = days => {
   const date = new Date()
   date.setDate(date.getDate() + days)
 
-  return date.toISOString().slice(0, 10)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 const rows = [

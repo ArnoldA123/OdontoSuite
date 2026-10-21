@@ -376,6 +376,58 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (cierre de hallazgos de #177/#208)** — El atajo `n` de la página
+  de planes queda inerte con un overlay abierto (reinicializaba el formulario en
+  edición y perdía los cambios), `UiModal` arma la trampa de foco también cuando
+  se abre por `v-model` (antes el `activate` corría con la ref todavía vacía) y
+  `/professionals/:id` entra en las rutas cuyo título visible pertenece a la
+  página. Los hallazgos fuera de alcance quedaron registrados como issues #242
+  (`TreatmentPlanDetail` a `UiModal`) y #243 (dos `<h1>` en rutas de detalle).
+  Tests: `modalPrimitiveGuards` (14), `treatment-plans` (9) y
+  `topbar-title-ownership` (27). Sin rutas, modelos ni migraciones nuevas.
+
+- **2026-10-20 (corrección de #177 tras verificación independiente)** — El botón
+  de envío de los dos diálogos migrados vuelve a ser `type="submit"` con
+  `form="…"`, así Enter sigue enviando desde cualquier campo; `DataTable` remide
+  el overflow cuando cambia el conjunto de columnas, no solo los datos. Tests:
+  asociación del submit (5 en `treatment-plan-modal`, 4 en
+  `create-patient-inline`), remedición por columnas (6) y guardias de la
+  primitiva (13).
+
+- **2026-10-20 (UiModal: hooks de raíz y cierre cancelable)** — `Modal.vue`
+  reenvía `$attrs` al nodo raíz teleportado (`inheritAttrs: false` +
+  `v-bind="$attrs"`), acepta `beforeClose` (al devolver `false` veta el cierre y
+  solo corre una vez mientras está pendiente) y `labelledby` para que un
+  consumidor con header propio conserve `aria-labelledby`. Los modales anidados
+  comparten una pila: solo el superior responde a Escape y al backdrop, el
+  bloqueo de scroll usa un contador y `useFocusTrap` deja que solo la trampa
+  superior mueva el foco. `TreatmentPlanModal` y `CreatePatientInline` dejan de
+  duplicar overlay, backdrop y foco, y `TreatmentPlansPage` deja de cerrar el
+  modal con su atajo de Escape para no saltarse la guardia de cambios. Sin
+  rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `modalPrimitiveGuards.test.js` (10),
+  `treatment-plan-modal.test.js` (4), `create-patient-inline.test.js` (3) y el
+  guard de Escape de página en `treatment-plans.test.js`.
+
+- **2026-10-20 (topbar sin título duplicado)** — En las rutas cuya página ya
+  renderiza su propio título (hero band de las superficies rediseñadas o
+  `PageHeader`), el topbar de `AppLayout` deja de pintar el título visible:
+  conserva su `<h1>` como `sr-only` y publica la descripción corta como contexto
+  (`data-topbar-title-owner` y `data-topbar-context`). Las rutas sin título
+  propio (calendario, pacientes, dashboard, historias) siguen mostrando el
+  título del topbar sin cambios. Sin rutas, navegación funcional, modelos,
+  migraciones ni primitivas UI nuevas: los conteos de §4 no cambian. Tests:
+  `topbar-title-ownership.test.js` (26).
+
+- **2026-10-20 (UiDataTable: affordance de scroll horizontal)** —
+  `DataTable.vue` mide el overflow de su viewport interno y, cuando la tabla
+  excede el ancho, pinta un degradado en el borde oculto y el aviso «Desliza
+  para ver más columnas» (`data-table-scroll`, `data-table-scroll-edge`,
+  `data-table-scroll-affordance`); al llegar al final el aviso desaparece y el
+  degradado cambia de lado. El scroll sigue siendo interno al primitivo (un
+  único `overflow-x-auto`), así que ninguna página gana overflow de documento.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `data-table-scroll-affordance.test.js` (5).
 - **2026-10-20 (deuda del design system: #218/#219/#221/#205)** — El plugin de
   Tailwind registra las utilidades token que los módulos ya hablaban
   (`text-label`, `border-hairline`, `bg-canvas`, `bg-systemBackground`,
