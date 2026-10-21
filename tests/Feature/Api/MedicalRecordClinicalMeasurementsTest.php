@@ -39,6 +39,19 @@ class MedicalRecordClinicalMeasurementsTest extends TestCase
         return MedicalRecord::factory()->create();
     }
 
+    /**
+     * MySQL stores a JSON object with its own key order (keys sorted by
+     * length, then alphabetically), so an exact comparison against the request
+     * order fails on MySQL 8 while passing on MariaDB. Sort both sides before
+     * the strict comparison: the values and their types still have to match.
+     */
+    private function sorted(array $measurements): array
+    {
+        ksort($measurements);
+
+        return $measurements;
+    }
+
     public function test_clinician_can_record_the_full_measurement_contract(): void
     {
         $record = $this->record();
@@ -60,7 +73,10 @@ class MedicalRecordClinicalMeasurementsTest extends TestCase
         $this->assertSame($measurements, $response->json('data.clinical_measurements'));
 
         $evolution = ClinicalEvolution::firstOrFail();
-        $this->assertSame($measurements, $evolution->clinical_measurements);
+        $this->assertSame(
+            $this->sorted($measurements),
+            $this->sorted($evolution->clinical_measurements)
+        );
     }
 
     public function test_measurements_are_optional(): void
@@ -140,11 +156,14 @@ class MedicalRecordClinicalMeasurementsTest extends TestCase
             ->assertJsonPath('data.clinical_measurements.tooth_mobility', 0);
 
         $evolution->refresh();
-        $this->assertSame([
-            'pocket_depth_mm' => 3.5,
-            'bleeding_on_probing' => false,
-            'tooth_mobility' => 0,
-        ], $evolution->clinical_measurements);
+        $this->assertSame(
+            $this->sorted([
+                'pocket_depth_mm' => 3.5,
+                'bleeding_on_probing' => false,
+                'tooth_mobility' => 0,
+            ]),
+            $this->sorted($evolution->clinical_measurements)
+        );
 
         $this->actingAs($user, 'sanctum')
             ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
