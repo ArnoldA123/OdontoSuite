@@ -31,8 +31,9 @@ use PHPUnit\Framework\TestCase;
  *   - EVO-R-003  delete is confirmed through `useConfirm()`, never a bare
  *                global `confirm()`.
  *   - EVO-R-004  no invented payload key reaches the API (decision D4): the
- *                modal writes the real SOAP columns and nothing else, and it
- *                does not expose `specialty` (the backend infers it).
+ *                modal writes the real SOAP columns and nothing else. The
+ *                specialty moved from "inferred, never exposed" to a catalog
+ *                selector in issue #225 (see EVO-R-013).
  *   - EVO-R-005  the timeline renders the four SOAP blocks from the real
  *                columns, plus the real clinical rows and vital signs.
  *   - EVO-R-006  loading uses `LoadingSpinner`, empty uses `UiSectionEmpty`
@@ -48,6 +49,13 @@ use PHPUnit\Framework\TestCase;
  *                confirmation on success.
  *   - EVO-R-010  neither surface owns the page `<h1>` and neither paints a
  *                gradient (the shell keeps the single page title).
+ *   - EVO-R-011  the modal captures the `clinical_measurements` contract
+ *                (issue #222): five unit-bearing keys with their own hooks.
+ *   - EVO-R-012  the timeline renders every recorded measurement, units
+ *                included, and keeps a `false` bleeding finding.
+ *   - EVO-R-013  the specialty is editable from the `specialties` catalog
+ *                (issue #225), never as a free string, and the timeline labels
+ *                the stored code with the catalog name.
  *
  * DOM behavior lives in `tests/js/smoke/medical-records.test.js`; this file
  * pins the contract statically so a regression fails without a browser.
@@ -82,6 +90,15 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
         'prescriptions',
         'recommendations',
         'next_appointment_notes',
+    ];
+
+    /** `clinical_measurements` contract from issue #222 (units in the name). */
+    private const CLINICAL_MEASUREMENTS = [
+        'pocket_depth_mm',
+        'gingival_recession_mm',
+        'plaque_index_percent',
+        'bleeding_on_probing',
+        'tooth_mobility',
     ];
 
     /** @return array<string, array{0: string}> */
@@ -219,20 +236,45 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     }
 
     /**
-     * EVO-R-004 (edit mode) — `specialty` is filled by the backend from the
-     * authenticated user, so the form must not offer it.
+     * EVO-R-013 — issue #225: the specialty is editable, but only from the
+     * catalog the page loads (`GET /api/specialties/active`). The form omits
+     * the key when it has no value so an unrelated edit preserves the stored
+     * code, and the timeline labels that code with the catalog name.
      */
-    public function test_modal_does_not_expose_the_specialty_field(): void
+    public function test_modal_exposes_the_specialty_catalog_selector(): void
     {
         $source = $this->modal();
+        $template = $this->templateOf($source, 'EvolutionModal.vue');
 
-        $this->assertStringNotContainsString('data-evolution-field="specialty"', $source);
-        $this->assertStringNotContainsString('form.specialty', $source);
-        $this->assertStringContainsString(
-            'evolution.specialty',
-            $this->timeline(),
-            'The timeline reads the specialty the backend inferred (EVO-R-004).'
+        $this->assertStringContainsString('data-evolution-field="specialty"', $template);
+        $this->assertStringContainsString('form.specialty', $template);
+        $this->assertStringContainsString(':options="specialtyOptions"', $template);
+        $this->assertMatchesRegularExpression(
+            '/specialties:\s*\{[^}]*type:\s*Array[^}]*\}/s',
+            $source,
+            'The modal declares the `specialties` prop the page passes (EVO-R-013).'
         );
+        $this->assertStringContainsString('specialtyOptions', $source);
+        $this->assertStringContainsString('payload.specialty = specialty', $source);
+        $this->assertStringContainsString('isCatalogValue', $source);
+
+        $page = $this->source('/resources/js/modules/medical-records/MedicalRecordsPage.vue');
+        $this->assertStringContainsString('getSpecialties()', $page);
+        $this->assertStringContainsString(':specialties="specialties"', $page);
+    }
+
+    /**
+     * EVO-R-013 — the timeline shows the catalog name and keeps the raw code
+     * for historical values the catalog no longer has.
+     */
+    public function test_timeline_labels_the_specialty_from_the_catalog(): void
+    {
+        $source = $this->timeline();
+
+        $this->assertStringContainsString('specialtyLabel(evolution)', $source);
+        $this->assertStringContainsString('props.specialties.find', $source);
+        $this->assertStringContainsString("'Sin especialidad'", $source);
+        $this->assertStringContainsString('data-evolution-specialty', $source);
     }
 
     /**
@@ -418,11 +460,77 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
         // Vital signs mirror the column types: blood pressure is a string
         // (`120/80`), the other three are numeric measurements.
         $this->assertStringContainsString('data-evolution-field="blood_pressure"', $template);
+        $vitalSignsStart = strpos($template, 'data-evolution-section="vital-signs"');
+        $this->assertNotFalse($vitalSignsStart, 'The vital-signs fieldset must exist (EVO-R-009).');
+        $vitalSignsBlock = substr(
+            $template,
+            (int) $vitalSignsStart,
+            (int) strpos($template, '</fieldset>', (int) $vitalSignsStart) - (int) $vitalSignsStart
+        );
         $this->assertSame(
             3,
-            substr_count($template, 'type="number"'),
+            substr_count($vitalSignsBlock, 'type="number"'),
             'Heart rate, temperature and respiratory rate are numeric inputs (EVO-R-009).'
         );
+    }
+
+    /**
+     * EVO-R-011 — the modal captures the `clinical_measurements` contract
+     * (issue #222): five unit-bearing keys, each with its own field hook, and
+     * the tri-state bleeding selector instead of an ambiguous checkbox.
+     */
+    public function test_modal_captures_the_clinical_measurements_contract(): void
+    {
+        $source = $this->modal();
+        $template = $this->templateOf($source, 'EvolutionModal.vue');
+
+        $this->assertStringContainsString('data-evolution-section="clinical-measurements"', $template);
+
+        foreach (self::CLINICAL_MEASUREMENTS as $key) {
+            $this->assertStringContainsString(
+                sprintf('data-evolution-field="%s"', $key),
+                $template,
+                sprintf('The modal must capture `clinical_measurements.%s` (EVO-R-011).', $key)
+            );
+            $this->assertStringContainsString(
+                sprintf('form.clinical_measurements.%s', $key),
+                $template,
+                sprintf('The `%s` field must be bound to the form model (EVO-R-011).', $key)
+            );
+        }
+
+        $this->assertStringContainsString('clinical_measurements: buildClinicalMeasurements()', $source);
+        $this->assertStringContainsString('bleedingOptions', $source);
+        $this->assertStringContainsString('<UiSelect', $template);
+    }
+
+    /**
+     * EVO-R-012 — the timeline renders every recorded measurement with units,
+     * including the `false` bleeding finding (not recorded is a different
+     * result from "no bleeding").
+     */
+    public function test_timeline_renders_the_clinical_measurements(): void
+    {
+        $source = $this->timeline();
+        $template = $this->templateOf($source, 'EvolutionTimeline.vue');
+
+        $this->assertStringContainsString('data-evolution-measurements', $template);
+        $this->assertStringContainsString('clinicalMeasurements(evolution)', $template);
+
+        foreach (self::CLINICAL_MEASUREMENTS as $key) {
+            $this->assertStringContainsString(
+                sprintf("'%s'", $key),
+                $source,
+                sprintf('The timeline must map `%s` to a labelled chip (EVO-R-012).', $key)
+            );
+        }
+
+        $this->assertStringContainsString("label: 'Sondaje'", $source);
+        $this->assertStringContainsString("label: 'Recesión'", $source);
+        $this->assertStringContainsString("label: 'Índice de placa'", $source);
+        $this->assertStringContainsString("suffix: ' mm'", $source);
+        $this->assertStringContainsString("suffix: ' %'", $source);
+        $this->assertStringContainsString("value ? 'Sí' : 'No'", $source);
     }
 
     /**

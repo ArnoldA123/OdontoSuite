@@ -423,6 +423,15 @@
                   {{ recordNumbersLabel }}
                 </span>
               </p>
+              <div v-if="records.length > 1" class="mt-3 w-full sm:w-80" data-record-selector>
+                <UiSelect
+                  :model-value="currentRecord?.id"
+                  :options="recordOptions"
+                  label="Historia activa"
+                  size="sm"
+                  @update:model-value="selectRecord"
+                />
+              </div>
             </div>
             <UiButton variant="secondary" size="sm" data-clear-selection @click="clearSelection">
               <template #icon-left>
@@ -434,6 +443,18 @@
         </UiCard>
 
         <UiCard variant="glass">
+          <div
+            class="flex flex-wrap items-center justify-between gap-2 px-1 pb-3"
+            data-active-record-header
+          >
+            <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Historia activa
+            </p>
+            <p class="text-sm font-semibold text-label tabular-nums" data-active-record-label>
+              {{ currentRecord?.record_number || 'Sin historia registrada' }}
+            </p>
+          </div>
+
           <UiTabs v-model="activeTab" :tabs="tabs" aria-label="Superficies de la historia clínica">
             <template #general>
               <div v-if="activeTab === 'general'" class="space-y-4" data-surface="general">
@@ -502,6 +523,8 @@
                 <EvolutionTimeline
                   v-else
                   :evolutions="evolutions"
+                  :specialties="specialties"
+                  :record="currentRecord"
                   :loading="loadingBySurface.evolutions"
                   @add="openEvolutionModal"
                   @edit="editEvolution"
@@ -526,6 +549,7 @@
                 <AttachmentGallery
                   v-else
                   :attachments="attachments"
+                  :record="currentRecord"
                   :loading="loadingBySurface.attachments"
                   @upload="openUploadModal"
                   @delete="handleDeleteAttachment"
@@ -535,6 +559,11 @@
 
             <template #stats>
               <div v-if="activeTab === 'stats'" data-surface="stats">
+                <p class="mb-3 text-xs text-theme-secondary" data-stats-scope>
+                  Las estadísticas resumen todo el expediente del paciente, no una historia
+                  concreta.
+                </p>
+
                 <UiSectionEmpty
                   v-if="errors.stats"
                   data-state="error-stats"
@@ -575,6 +604,7 @@
       v-if="showEvolutionModal && currentRecord"
       :record="currentRecord"
       :evolution="selectedEvolution"
+      :specialties="specialties"
       @close="closeEvolutionModal"
       @saved="handleEvolutionSaved"
     />
@@ -633,12 +663,15 @@ const {
   evolutions,
   attachments,
   stats,
+  specialties,
   loadingBySurface,
   errors,
   getRecords,
+  getAllRecords,
   getRecord,
   getEvolutions,
   getAttachments,
+  getSpecialties,
   getStats,
   deleteRecord,
   deleteEvolution,
@@ -690,6 +723,13 @@ const patientName = patient => {
 }
 
 const selectedPatientName = computed(() => patientName(selectedPatient.value))
+
+const recordOptions = computed(() =>
+  records.value.map(record => ({
+    value: record.id,
+    label: `${record.record_number} · ${formatDate(record.first_visit_date)}${record.is_active ? '' : ' (inactiva)'}`
+  }))
+)
 const recordNumbersLabel = computed(() => {
   const numbers = records.value.map(record => record.record_number).filter(Boolean)
   return numbers.length > 0 ? numbers.join(' · ') : 'Sin historia registrada'
@@ -744,6 +784,17 @@ const onSearchInput = () => {
 // ---------------------------------------------------------------------------
 // Workspace: one patient, four surfaces, partial-failure tolerance.
 // ---------------------------------------------------------------------------
+// Changing the active history reloads the timeline it owns. Attachments and
+// stats are patient-scoped on purpose and say so on their surfaces.
+const selectRecord = async recordId => {
+  const record = records.value.find(entry => entry.id === Number(recordId))
+
+  if (!record || record.id === currentRecord.value?.id) return
+
+  currentRecord.value = record
+  await loadEvolutions()
+}
+
 const loadEvolutions = async () => {
   if (!currentRecord.value?.id) return
 
@@ -785,9 +836,10 @@ const syncCurrentRecord = ({ preferLatest = false } = {}) => {
 
 const loadWorkspace = async (patient, record = null) => {
   const surfaces = [
-    getRecords({ patient_id: patient.id, status: 'all', per_page: 50 }),
+    getAllRecords({ patient_id: patient.id, status: 'all' }),
     getAttachments(patient.id),
-    getStats(patient.id)
+    getStats(patient.id),
+    getSpecialties()
   ]
 
   // The deep link already knows which record it opened; the landing path
@@ -809,7 +861,7 @@ const refreshWorkspace = async ({ preferLatest = false } = {}) => {
   if (!selectedPatient.value) return
 
   try {
-    await getRecords({ patient_id: selectedPatient.value.id, status: 'all', per_page: 50 })
+    await getAllRecords({ patient_id: selectedPatient.value.id, status: 'all' })
   } catch {
     // errors.records drives the panel retry block.
   }
@@ -909,7 +961,7 @@ const retryRecords = async () => {
   }
 
   try {
-    await getRecords({ patient_id: selectedPatient.value.id, status: 'all', per_page: 50 })
+    await getAllRecords({ patient_id: selectedPatient.value.id, status: 'all' })
     syncCurrentRecord()
   } catch {
     // errors.records stays set for the panel.
@@ -1105,6 +1157,41 @@ const subscribeToMedicalRecords = () => {
         await loadEvolutions()
         await loadStats()
         toast.success('Nueva evolución clínica agregada')
+      })
+      .listen('.clinical-evolution.updated', async event => {
+        const patientId =
+          event?.evolution?.medical_record?.patient_id ?? event?.evolution?.patient_id
+
+        if (!belongsToSelection(patientId)) return
+
+        const updated = event.evolution
+        const index = evolutions.value.findIndex(evolution => evolution.id === updated.id)
+
+        if (index !== -1) {
+          evolutions.value[index] = updated
+        } else if (Number(updated.medical_record_id) === Number(currentRecord.value?.id)) {
+          await loadEvolutions()
+        }
+
+        await loadStats()
+        toast.success('Evolución clínica actualizada')
+      })
+      .listen('.clinical-evolution.deleted', async event => {
+        const patientId = event?.patient_id ?? event?.evolution?.patient_id
+
+        if (!belongsToSelection(patientId)) return
+
+        const evolutionId = event?.evolution_id ?? event?.evolution?.id
+        const recordId = event?.medical_record_id ?? event?.evolution?.medical_record_id
+
+        if (recordId !== undefined && Number(recordId) === Number(currentRecord.value?.id)) {
+          evolutions.value = evolutions.value.filter(evolution => evolution.id !== evolutionId)
+        } else if (recordId === undefined) {
+          await loadEvolutions()
+        }
+
+        await loadStats()
+        toast.success('Evolución clínica eliminada')
       })
       .listen('.clinical-attachment.created', async event => {
         const patientId =

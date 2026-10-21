@@ -376,6 +376,25 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (seguimientos de historias clínicas #222/#223/#225/#228/#224)** —
+  La superficie de evoluciones cierra cuatro huecos del rediseño y gana
+  cobertura de flujos. `clinical_measurements` pasa a tener un contrato plano
+  (`pocket_depth_mm`, `gingival_recession_mm`, `plaque_index_percent`,
+  `bleeding_on_probing`, `tooth_mobility`), validado en `StoreEvolutionRequest`
+  y capturado/mostrado en el modal y el timeline. Editar y borrar una evolución
+  emiten `ClinicalEvolutionUpdated` / `ClinicalEvolutionDeleted` (canal
+  `medical-records`; el payload de borrado lleva `medical_record_id` y
+  `patient_id`) y el cliente refresca sólo al paciente seleccionado. La
+  especialidad de una evolución se valida contra el catálogo `specialties` y se
+  corrige desde un selector; el timeline muestra el nombre con fallback al
+  `code`. El workspace carga todas las historias del paciente paginando el
+  índice y ofrece selector de historia cuando hay más de una: Evoluciones la
+  sigue, Adjuntos y Estadísticas siguen al paciente y lo declaran. Nuevo
+  `tests/js/smoke/medical-records-flows.test.js` (alta de historia con 422 por
+  campo, evolución con seguimiento, borrado confirmado y adjunto con límite de
+  10 MB) sobre `pnpm test:js`, que ya corre en el job `quality`. Sin rutas,
+  migraciones, modelos ni primitivas UI nuevas: los conteos de §4 no cambian y
+  `scripts/audit/doc-drift.mjs` sigue en verde.
 - **2026-10-20 (cierre de hallazgos de #177/#208)** — El atajo `n` de la página
   de planes queda inerte con un overlay abierto (reinicializaba el formulario en
   edición y perdía los cambios), `UiModal` arma la trampa de foco también cuando
