@@ -8,7 +8,7 @@ material architectural decision, its context, and its consequences.
 | ADR                                                  | Title                                                             | Status                          |
 | ---------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------- |
 | [0007](./0007-user-specialty-source-of-truth.md)     | User specialty source-of-truth — pivot over JSON                  | Accepted                        |
-| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                  | Accepted (drop pending)         |
+| [0008](./0008-procedure-catalog-legacy-specialty.md) | Procedure catalog `legacy_specialty` deprecation                  | Accepted (deprecation in force) |
 | 0009                                                 | Migration drift: additive-only policy + driver-conditional guards | Accepted 2026-08-05 — see below |
 
 0009 has no separate body yet. Its decision is enforced by

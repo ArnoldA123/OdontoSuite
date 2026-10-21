@@ -1,9 +1,12 @@
 # ADR-0008 — `procedure_catalog.legacy_specialty` deprecation
 
-- **Status:** Accepted (deprecation in force; column drop pending)
+- **Status:** Accepted (deprecation in force)
 - **Decided:** 2026-06-11 (Sprint 2, DM-7 of `plan-mejoras-futuras-2026-06`)
 - **Body recorded:** 2026-10-21 (issue #264)
 - **Supersedes:** nothing. **Superseded by:** nothing.
+
+The column drop this deprecation prepares is planned work, not a different
+status: see [Planned drop](#planned-drop).
 
 ## Context
 
