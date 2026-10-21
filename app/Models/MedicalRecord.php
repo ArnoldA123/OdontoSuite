@@ -58,8 +58,12 @@ class MedicalRecord extends Model
 
     public function attachments(): HasManyThrough
     {
-        // Attachments are related through clinical_evolutions
-        // Get all attachment IDs from related evolutions
+        // Attachments are related through clinical_evolutions.
+        //
+        // Archived rows stay in the database as the audit marker (#244) but
+        // their binary is gone from the public disk, so the relation — the
+        // model's public contract — never offers one: a consumer that forgets
+        // to filter would hand out a `/storage/...` URL that answers 404.
         return $this->hasManyThrough(
             ClinicalAttachment::class,
             ClinicalEvolution::class,
@@ -67,7 +71,7 @@ class MedicalRecord extends Model
             'clinical_evolution_id', // Foreign key on clinical_attachments table
             'id', // Local key on medical_records table
             'id' // Local key on clinical_evolutions table
-        );
+        )->where('clinical_attachments.is_active', true);
     }
 
     // Scopes

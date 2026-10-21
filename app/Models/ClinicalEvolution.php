@@ -65,7 +65,12 @@ class ClinicalEvolution extends Model
 
     public function attachments(): HasMany
     {
-        return $this->hasMany(ClinicalAttachment::class);
+        // Archived rows are the audit marker of a deleted binary (#244): the
+        // row survives, the file does not. Serving them would give the client
+        // a `/storage/...` URL that answers 404, so the relation exposes only
+        // the attachments whose file still exists.
+        return $this->hasMany(ClinicalAttachment::class)
+            ->where('clinical_attachments.is_active', true);
     }
 
     // Scopes
