@@ -232,6 +232,8 @@ describe('specialty record form smoke', () => {
 
   beforeEach(() => {
     document.body.innerHTML = ''
+    harness.apiPost.mockClear()
+    harness.apiPut.mockClear()
     localStorage.clear()
     localStorage.setItem(
       'user',
@@ -316,6 +318,45 @@ describe('specialty record form smoke', () => {
     expect(harness.apiPut.mock.calls[0][0]).toBe('/api/specialty-records/41')
     expect(harness.apiPut.mock.calls[0][1].procedure_id).toBe(12)
     expect(harness.apiPut.mock.calls[0][1].patient_id).toBeUndefined()
+
+    wrapper.unmount()
+  })
+  it('omits the untouched status so the database default applies', async () => {
+    const wrapper = await mountModal()
+
+    await setInput('procedure_type', 'Extracción')
+    await setInput('surgery_site', 'Tercer molar')
+    await submit()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    expect(harness.apiPost.mock.calls[0][1]).not.toHaveProperty('status')
+
+    wrapper.unmount()
+  })
+
+  it('sends the status once the user picks one', async () => {
+    const wrapper = await mountModal()
+
+    await setInput('procedure_type', 'Extracción')
+    await setInput('surgery_site', 'Tercer molar')
+
+    const trigger = document.querySelector('[data-field="status"] button')
+
+    expect(trigger).toBeTruthy()
+    trigger.click()
+    await flushPromises()
+
+    const option = [...document.querySelectorAll('[role="listbox"] button')].find(
+      entry => entry.textContent.trim() === 'Completada'
+    )
+
+    expect(option).toBeTruthy()
+    option.click()
+    await flushPromises()
+
+    await submit()
+
+    expect(harness.apiPost.mock.calls[0][1].status).toBe('completed')
 
     wrapper.unmount()
   })
