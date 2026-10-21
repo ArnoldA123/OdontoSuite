@@ -12,6 +12,7 @@ use App\Services\CashRegisterService;
 use App\Services\TransactionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -94,6 +95,19 @@ class CashReportPopulationTest extends TestCase
         $response->assertOk();
 
         return $response->json('data');
+    }
+
+    private function queryCount(string $start, string $end): int
+    {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->periodReport($start, $end);
+
+        $count = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        return $count;
     }
 
     public function test_the_period_report_declares_its_population(): void
@@ -179,5 +193,43 @@ class CashReportPopulationTest extends TestCase
             'The daily rows must reconcile with the period expenses.'
         );
         $this->assertSame(1, $report['sessions_count']);
+    }
+
+    public function test_the_query_count_does_not_grow_with_the_number_of_sessions(): void
+    {
+        $seedDay = '2026-03-10';
+
+        $baselineSession = $this->openSessionAt($seedDay.' 09:00:00', 10.0);
+        Carbon::setTestNow($seedDay.' 10:00:00');
+        $this->register(20.0);
+        $this->register(15.0);
+
+        $start = '2026-03-10';
+        $end = '2026-03-12';
+
+        // The service allows one open session per user and branch: close the
+        // baseline before the loop opens the additional sessions.
+        app(CashRegisterService::class)->closeSession($baselineSession->id, [
+            'closing_amount' => 35.0,
+        ]);
+
+        $baseline = $this->queryCount($start, $end);
+
+        for ($i = 0; $i < 8; $i++) {
+            $session = $this->openSessionAt($seedDay.' 12:00:00');
+            Carbon::setTestNow($seedDay.' 12:30:00');
+            $this->register(5.0 + $i);
+            app(CashRegisterService::class)->closeSession($session->id, [
+                'closing_amount' => 5.0 + $i,
+            ]);
+        }
+
+        $withMoreSessions = $this->queryCount($start, $end);
+
+        $this->assertLessThanOrEqual(
+            $baseline + 2,
+            $withMoreSessions,
+            "The period report ran {$withMoreSessions} queries with more sessions and {$baseline} with fewer; the mix or the hour buckets still query per session."
+        );
     }
 }

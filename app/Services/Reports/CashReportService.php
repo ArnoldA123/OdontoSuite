@@ -2,12 +2,10 @@
 
 namespace App\Services\Reports;
 
-use App\Models\Branch;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
-use App\Models\User;
 use App\Services\CashRegisterService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -174,33 +172,42 @@ class CashReportService
     }
 
     /**
-     * Get summary by payment method. Percentages divide by the mix total.
+     * Completed transactions of the given session block.
+     *
+     * @param Collection<int, CashRegisterSession> $sessions
      */
-    private function getSummaryByPaymentMethod($sessions): array
+    private function completedTransactionsIn(Collection $sessions)
     {
-        $paymentMethods = PaymentMethod::all();
-        $summary = [];
+        return Transaction::query()
+            ->whereIn('cash_register_session_id', $sessions->pluck('id')->all())
+            ->where('status', 'completed');
+    }
 
-        foreach ($paymentMethods as $method) {
-            $total = 0;
-            $count = 0;
+    /**
+     * Get summary by payment method. Percentages divide by the mix total.
+     *
+     * One grouped query for the whole block instead of one query per session
+     * and payment method; every payment method keeps its row, used or not.
+     */
+    private function getSummaryByPaymentMethod(Collection $sessions): array
+    {
+        $totals = $this->completedTransactionsIn($sessions)
+            ->selectRaw('payment_method_id, COUNT(*) as aggregate_count, COALESCE(SUM(amount), 0) as aggregate_total')
+            ->groupBy('payment_method_id')
+            ->get()
+            ->keyBy('payment_method_id');
 
-            foreach ($sessions as $session) {
-                $transactions = Transaction::where('cash_register_session_id', $session->id)
-                    ->where('payment_method_id', $method->id)
-                    ->where('status', 'completed')
-                    ->get();
+        $summary = PaymentMethod::all()
+            ->map(function (PaymentMethod $method) use ($totals) {
+                $row = $totals->get($method->id);
 
-                $total += $transactions->sum('amount');
-                $count += $transactions->count();
-            }
-
-            $summary[] = [
-                'payment_method' => $method->name,
-                'count' => $count,
-                'total' => $total,
-            ];
-        }
+                return [
+                    'payment_method' => $method->name,
+                    'count' => (int) ($row->aggregate_count ?? 0),
+                    'total' => (float) ($row->aggregate_total ?? 0),
+                ];
+            })
+            ->all();
 
         $mixTotal = array_sum(array_column($summary, 'total'));
 
@@ -213,30 +220,27 @@ class CashReportService
 
     /**
      * Get summary by hour, bucketed from completed transactions.
+     *
+     * One grouped query, and the 24 buckets are always returned in order so the
+     * consumer can chart the shape of the day.
      */
-    private function getSummaryByHour($sessions): array
+    private function getSummaryByHour(Collection $sessions): array
     {
-        $buckets = array_fill(0, 24, ['count' => 0, 'total' => 0.0]);
-
-        foreach ($sessions as $session) {
-            $transactions = Transaction::where('cash_register_session_id', $session->id)
-                ->where('status', 'completed')
-                ->get();
-
-            foreach ($transactions as $transaction) {
-                $hour = (int) $transaction->created_at->format('H');
-                $buckets[$hour]['count']++;
-                $buckets[$hour]['total'] += (float) $transaction->amount;
-            }
-        }
+        $buckets = $this->completedTransactionsIn($sessions)
+            ->selectRaw('HOUR(created_at) as bucket_hour, COUNT(*) as aggregate_count, COALESCE(SUM(amount), 0) as aggregate_total')
+            ->groupByRaw('HOUR(created_at)')
+            ->get()
+            ->keyBy('bucket_hour');
 
         $hourlyData = [];
 
-        foreach ($buckets as $hour => $bucket) {
+        for ($hour = 0; $hour < 24; $hour++) {
+            $bucket = $buckets->get($hour);
+
             $hourlyData[] = [
                 'hour' => $hour,
-                'count' => $bucket['count'],
-                'total' => round($bucket['total'], 2),
+                'count' => (int) ($bucket->aggregate_count ?? 0),
+                'total' => round((float) ($bucket->aggregate_total ?? 0), 2),
             ];
         }
 
@@ -272,21 +276,18 @@ class CashReportService
 
     /**
      * Get top transactions.
+     *
+     * One query over the whole block; the ordering and the limit belong to the
+     * database so only ten rows ever travel.
      */
-    private function getTopTransactions($sessions): array
+    private function getTopTransactions(Collection $sessions): array
     {
-        $allTransactions = collect();
-
-        foreach ($sessions as $session) {
-            $transactions = Transaction::where('cash_register_session_id', $session->id)
-                ->where('status', 'completed')
-                ->with(['patient', 'paymentMethod'])
-                ->get();
-
-            $allTransactions = $allTransactions->merge($transactions);
-        }
-
-        return $allTransactions->sortByDesc('amount')->take(10)->values()->toArray();
+        return $this->completedTransactionsIn($sessions)
+            ->with(['patient', 'paymentMethod'])
+            ->orderByDesc('amount')
+            ->limit(10)
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -378,16 +379,14 @@ class CashReportService
     }
 
     /**
-     * Get summary by branch.
+     * Get summary by branch, read from the relations the block already loaded.
      */
-    private function getSummaryByBranch($sessions): array
+    private function getSummaryByBranch(Collection $sessions): array
     {
         return $sessions->groupBy('branch_id')
-            ->map(function ($group, $branchId) {
-                $branch = Branch::find($branchId);
-
+            ->map(function (Collection $group) {
                 return [
-                    'branch' => $branch ? $branch->name : 'Sucursal no encontrada',
+                    'branch' => $group->first()->branch?->name ?? 'Sucursal no encontrada',
                     'sessions_count' => $group->count(),
                     'total_opening' => $group->sum('opening_amount'),
                     'total_closing' => $group->sum('closing_amount'),
@@ -399,16 +398,14 @@ class CashReportService
     }
 
     /**
-     * Get summary by user.
+     * Get summary by user, read from the relations the block already loaded.
      */
-    private function getSummaryByUser($sessions): array
+    private function getSummaryByUser(Collection $sessions): array
     {
         return $sessions->groupBy('user_id')
-            ->map(function ($group, $userId) {
-                $user = User::find($userId);
-
+            ->map(function (Collection $group) {
                 return [
-                    'user' => $user ? $user->name : 'Usuario no encontrado',
+                    'user' => $group->first()->user?->name ?? 'Usuario no encontrado',
                     'sessions_count' => $group->count(),
                     'total_opening' => $group->sum('opening_amount'),
                     'total_closing' => $group->sum('closing_amount'),
