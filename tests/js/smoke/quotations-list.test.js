@@ -2,11 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
+// Local calendar key: `toISOString` shifts to UTC and, from 19:00 in UTC-5,
+// yields tomorrow's date, so the "Vence en N días" badge drifted by one.
 const addDays = days => {
   const date = new Date()
   date.setDate(date.getDate() + days)
 
-  return date.toISOString().slice(0, 10)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 const rows = [
@@ -96,19 +101,21 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/quotations/QuotationsPage.vue'
 
-const mountPage = async () => {
+const mountPageAt = async path => {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
   })
-  await router.push('/quotations')
+  await router.push(path)
   await router.isReady()
 
   const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
   await flushPromises()
 
-  return wrapper
+  return { wrapper, router }
 }
+
+const mountPage = async () => (await mountPageAt('/quotations')).wrapper
 
 describe('quotations list redesign', () => {
   beforeEach(() => {
@@ -170,5 +177,22 @@ describe('quotations list redesign', () => {
     expect(wrapper.findAll('[data-row-action="pdf"]')).toHaveLength(3)
 
     wrapper.unmount()
+  })
+
+  it('opens the detail named by the open query and drops it on close', async () => {
+    const { wrapper, router } = await mountPageAt('/quotations?open=1')
+
+    const detail = document.body.querySelector('[data-quotation-detail]')
+    expect(detail).not.toBeNull()
+    expect(detail.textContent).toContain('Ana Torres')
+
+    document.body.querySelector('[aria-label="Cerrar modal"]').click()
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/quotations')
+    expect(router.currentRoute.value.query.open).toBeUndefined()
+
+    wrapper.unmount()
+    document.body.innerHTML = ''
   })
 })

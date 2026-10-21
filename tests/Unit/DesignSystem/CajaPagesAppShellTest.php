@@ -392,10 +392,10 @@ class CajaPagesAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertMatchesRegularExpression(
-            "/quotationsChannel\\s*=\\s*channel\\(\\s*['\"]quotations['\"]/",
+            "/quotationsChannel\\s*=\\s*privateChannel\\(\\s*['\"]quotations['\"]/",
             $src,
-            sprintf('%s MUST keep the named `quotations` Echo channel subscription '
-                .'(PAGOS-RT-001).', $path)
+            sprintf('%s MUST keep the named `quotations` Echo channel subscription, and it MUST ride '
+                .'the private variant: the payload carries patient data and amounts (PAGOS-RT-001).', $path)
         );
     }
 

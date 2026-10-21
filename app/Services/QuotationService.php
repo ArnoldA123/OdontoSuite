@@ -4,19 +4,28 @@ namespace App\Services;
 
 use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
+use App\Events\QuotationRejected;
 use App\Events\QuotationUpdated;
 use App\Models\Quotation;
 use App\Models\QuotationApproval;
 use App\Models\QuotationItem;
 use App\Models\TreatmentPlan;
+use App\Support\QuotationText;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class QuotationService
 {
+    /**
+     * Statuses that still owe a patient decision: only these may move to
+     * `approved` or `rejected`.
+     */
+    private const DECISION_PENDING = ['sent', 'viewed'];
+
     /**
      * Generar presupuesto desde un plan de tratamiento.
      */
@@ -179,18 +188,23 @@ class QuotationService
         return DB::transaction(function () use ($id, $approvalData) {
             $quotation = Quotation::findOrFail($id);
 
+            $this->assertDecisionPending($quotation, 'aprobar');
+
             $quotation->update(['status' => 'approved']);
 
-            // Crear registro de aprobación
-            QuotationApproval::create([
-                'quotation_id' => $id,
-                'patient_id' => $quotation->patient_id,
-                'approval_status' => 'approved',
-                'approval_date' => now(),
-                'approval_method' => 'manual',
-                'patient_notes' => $approvalData['notes'] ?? null,
-                'signature_data' => $approvalData['patient_signature'] ?? null,
-            ]);
+            // One current approval per quotation: the transition guard above is
+            // what prevents re-approvals from accumulating rows.
+            QuotationApproval::updateOrCreate(
+                ['quotation_id' => $id],
+                [
+                    'patient_id' => $quotation->patient_id,
+                    'approval_status' => 'approved',
+                    'approval_date' => now(),
+                    'approval_method' => 'manual',
+                    'patient_notes' => $approvalData['notes'] ?? null,
+                    'signature_data' => $approvalData['patient_signature'] ?? null,
+                ]
+            );
 
             $quotation->refresh();
             $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy', 'approvals']);
@@ -217,14 +231,24 @@ class QuotationService
      */
     public function rejectQuotation(int $id, string $reason): Quotation
     {
-        $quotation = Quotation::findOrFail($id);
+        return DB::transaction(function () use ($id, $reason) {
+            $quotation = Quotation::findOrFail($id);
 
-        $quotation->update([
-            'status' => 'rejected',
-            'notes' => $quotation->notes."\n\nRechazado: ".$reason,
-        ]);
+            $this->assertDecisionPending($quotation, 'rechazar');
 
-        return $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
+            $quotation->update([
+                'status' => 'rejected',
+                'notes' => QuotationText::appendRejection($quotation->notes, $reason),
+            ]);
+
+            try {
+                event(new QuotationRejected($quotation, $reason));
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+            }
+
+            return $quotation->load(['items', 'patient', 'treatmentPlan', 'createdBy']);
+        });
     }
 
     /**
@@ -234,9 +258,45 @@ class QuotationService
     {
         $quotation = Quotation::with(['items', 'patient', 'treatmentPlan', 'createdBy'])->findOrFail($id);
 
+        $this->markViewed($quotation);
+
         $pdf = Pdf::loadView('reports.quotation', compact('quotation'));
 
         return $pdf->output();
+    }
+
+    /**
+     * The first export is what exposes the quotation to the patient, so it is
+     * the writer of the `viewed` state. Idempotent: only `sent` transitions.
+     */
+    private function markViewed(Quotation $quotation): void
+    {
+        if ($quotation->status !== 'sent') {
+            return;
+        }
+
+        $quotation->update(['status' => 'viewed']);
+
+        try {
+            event(new QuotationUpdated($quotation));
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function assertDecisionPending(Quotation $quotation, string $action): void
+    {
+        if (in_array($quotation->status, self::DECISION_PENDING, true)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'status' => sprintf(
+                'Solo se puede %s un presupuesto enviado o visto. Estado actual: %s.',
+                $action,
+                $quotation->status
+            ),
+        ]);
     }
 
     /**
@@ -325,11 +385,9 @@ class QuotationService
         }
 
         if (isset($filters['expired'])) {
-            if ($filters['expired']) {
-                $query->where('valid_until', '<', now()->toDateString());
-            } else {
-                $query->where('valid_until', '>=', now()->toDateString());
-            }
+            // The state is authoritative; `valid_until` only drives the
+            // in-page expiry badge and the `quotations:expire` sweep.
+            $query->where('status', filter_var($filters['expired'], FILTER_VALIDATE_BOOLEAN) ? '=' : '!=', 'expired');
         }
 
         if (isset($filters['branch_id'])) {

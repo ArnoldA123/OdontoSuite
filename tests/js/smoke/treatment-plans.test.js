@@ -72,6 +72,26 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 
+// The plan modal asks the shared confirm prompt before discarding edits; the
+// page-level regression below only needs to know that the prompt ran.
+const confirmMock = vi.hoisted(() => vi.fn())
+vi.mock('../../../resources/js/composables/useConfirm', async () => {
+  const { ref } = await import('vue')
+  return {
+    confirmIsOpen: ref(false),
+    confirmTitle: ref(''),
+    confirmMessage: ref(''),
+    confirmConfirmText: ref(''),
+    confirmCancelText: ref(''),
+    confirmVariant: ref('default'),
+    useConfirm: () => ({
+      confirm: confirmMock,
+      handleConfirm: () => {},
+      handleCancel: () => {}
+    })
+  }
+})
+
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/treatment-plans/TreatmentPlansPage.vue'
 import TreatmentPlanCard from '../../../resources/js/modules/treatment-plans/components/TreatmentPlanCard.vue'
@@ -94,6 +114,8 @@ const lastSummaryRequest = () => [...requests].reverse().find(r => r.url.include
 describe('treatment-plans page', () => {
   beforeEach(() => {
     requests.length = 0
+    confirmMock.mockReset()
+    confirmMock.mockResolvedValue(true)
   })
 
   it('mounts TreatmentPlansPage.vue and renders content', async () => {
@@ -172,6 +194,67 @@ describe('treatment-plans page', () => {
 
     expect(wrapper.find('[data-plan-list]').exists()).toBe(false)
     expect(wrapper.find('[data-kanban-column]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('keeps the open plan form untouched when the page shortcut fires', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.get('[data-action="edit"]').trigger('click')
+    await flushPromises()
+
+    const titleInput = document.querySelector('[data-plan-field="title"] input')
+    expect(titleInput.value).toBe('Rehabilitación oral')
+
+    titleInput.value = 'Rehabilitación superior'
+    titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    // Focus outside an input, so the page shortcut is eligible: re-opening the
+    // overlay here would drop the selected plan and re-initialize the form.
+    const shortcutTarget = document.querySelector('[data-plan-submit]')
+    shortcutTarget.focus()
+    shortcutTarget.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }))
+    await flushPromises()
+
+    expect(document.querySelector('[data-plan-title]').textContent).toContain('Editar Plan')
+    expect(document.querySelector('[data-plan-field="title"] input').value).toBe(
+      'Rehabilitación superior'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('does not let the page Escape shortcut bypass the plan dirty guard', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.get('[data-create-plan]').trigger('click')
+    await flushPromises()
+
+    const titleInput = document.querySelector('[data-plan-field="title"] input')
+    expect(titleInput, 'the create modal must render its title field').toBeTruthy()
+
+    // Clean form: Escape belongs to the modal and closes it without a prompt.
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+    expect(confirmMock).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-plan-modal]')).toBeNull()
+
+    await wrapper.get('[data-create-plan]').trigger('click')
+    await flushPromises()
+
+    const editedTitle = document.querySelector('[data-plan-field="title"] input')
+    editedTitle.value = 'Rehabilitación superior'
+    editedTitle.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    confirmMock.mockResolvedValueOnce(false)
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await flushPromises()
+
+    expect(confirmMock).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('[data-plan-modal]')).toBeTruthy()
 
     wrapper.unmount()
   })

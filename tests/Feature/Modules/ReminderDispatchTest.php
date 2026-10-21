@@ -53,7 +53,22 @@ class ReminderDispatchTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // The queue windows are exact offsets from now(), so a real clock gives
+        // the boundary case zero margin: any stall beyond the service's 1s
+        // grace period drops the row and turns the case into a false red
+        // (issue #206). A frozen clock makes every case derive from a stable
+        // instant, including the 48h case that shares the same subtraction.
+        Carbon::setTestNow(Carbon::parse('2026-03-10 09:00:00'));
+
         $this->service = $this->app->make(ReminderService::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
     }
 
     private function odontologo(): User

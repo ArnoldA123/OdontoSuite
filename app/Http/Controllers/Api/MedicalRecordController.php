@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\ClinicalAttachmentCreated;
 use App\Events\ClinicalEvolutionCreated;
+use App\Events\ClinicalEvolutionDeleted;
+use App\Events\ClinicalEvolutionUpdated;
 use App\Events\MedicalRecordCreated;
 use App\Events\MedicalRecordUpdated;
 use App\Http\Controllers\Controller;
@@ -301,6 +303,10 @@ class MedicalRecordController extends Controller
         try {
             $evolution = $this->medicalRecordService->updateEvolution($id, $request->validated());
 
+            // Emitir evento de WebSocket: otra pestaña o profesional refresca
+            // su timeline sin esperar el pull manual (issue #223).
+            event(new ClinicalEvolutionUpdated($evolution));
+
             return response()->json([
                 'data' => $evolution,
                 'meta' => [
@@ -330,7 +336,15 @@ class MedicalRecordController extends Controller
     public function deleteEvolution(int $id): JsonResponse
     {
         try {
-            $this->medicalRecordService->deleteEvolution($id);
+            // El modelo se conserva en memoria para el broadcast: despues del
+            // soft delete la fila ya no es legible para el cliente.
+            $evolution = ClinicalEvolution::findOrFail($id);
+
+            $this->medicalRecordService->deleteEvolution($evolution->id);
+
+            // Emitir evento de WebSocket con el medical_record_id necesario
+            // para que el cliente filtre el borrado (issue #223).
+            event(new ClinicalEvolutionDeleted($evolution));
 
             return response()->json([
                 'meta' => [
@@ -360,7 +374,7 @@ class MedicalRecordController extends Controller
                 'appointment_id' => 'nullable|exists:appointments,id',
                 'clinical_evolution_id' => 'nullable|exists:clinical_evolutions,id',
                 'file' => 'required|file|max:10240', // 10MB max
-                'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro',
+                'category' => 'nullable|string|in:radiografia,foto_clinica,documento,otro,general',
                 'description' => 'nullable|string',
                 'is_private' => 'boolean',
             ]);

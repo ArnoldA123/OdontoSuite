@@ -32,6 +32,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/ai-analysis/AiAnalysisPage.vue'
 import AiAnalysisModal from '../../../resources/js/modules/ai-analysis/components/AiAnalysisModal.vue'
+import { useToast, globalToasts } from '../../../resources/js/composables/useToast'
 
 const STATS = {
   total_analyses: 12,
@@ -67,6 +68,8 @@ const listResponse = (items = [row()], meta = {}) => ({
 
 const requestedUrls = () => getMock.mock.calls.map(([url]) => String(url))
 
+const errorToasts = () => globalToasts.value.filter(toast => toast.type === 'error')
+
 const mountPage = async () => {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -80,6 +83,7 @@ const mountPage = async () => {
 }
 
 beforeEach(() => {
+  useToast().clearAll()
   getMock.mockReset()
   getMock.mockImplementation(async url => {
     if (String(url).startsWith('/api/ai-analysis/stats')) {
@@ -233,6 +237,11 @@ describe('ai-analysis states', () => {
     expect(error.attributes('role')).toBe('alert')
     expect(error.text()).toContain('No se pudieron cargar los análisis.')
 
+    // One notice per context: the inline retry block is the only error surface.
+    expect(errorToasts()).toHaveLength(0)
+    expect(wrapper.text()).not.toContain('Error al obtener análisis')
+    expect(wrapper.text()).not.toContain('Error al obtener estadísticas')
+
     getMock.mockImplementation(async url => {
       if (String(url).startsWith('/api/ai-analysis/stats')) {
         return { data: STATS }
@@ -245,6 +254,7 @@ describe('ai-analysis states', () => {
 
     expect(wrapper.find('[data-state="error"]').exists()).toBe(false)
     expect(wrapper.find('[data-ai-table]').exists()).toBe(true)
+    expect(errorToasts()).toHaveLength(0)
 
     wrapper.unmount()
   })
