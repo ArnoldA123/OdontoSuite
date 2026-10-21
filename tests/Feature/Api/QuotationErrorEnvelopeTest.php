@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use App\Services\QuotationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -13,6 +14,12 @@ use Tests\TestCase;
  */
 class QuotationErrorEnvelopeTest extends TestCase
 {
+    // These tests build users and resolve 404s against the real schema. Without
+    // the trait the SQLite runner has no tables and the whole file dies with a
+    // QueryException instead of being skipped like every other DB-backed test
+    // (#170).
+    use RefreshDatabase;
+
     private function admin(): User
     {
         return User::factory()->create([
