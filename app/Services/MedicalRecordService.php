@@ -159,6 +159,11 @@ class MedicalRecordService
 
     /**
      * Eliminar archivo adjunto.
+     *
+     * Contract (#244): the binary is deleted from the `public` disk and the row
+     * is kept as the archive marker instead of being removed, so the clinical
+     * audit trail survives the file. Safe to call twice: a missing file is not
+     * an error.
      */
     public function deleteAttachment(int $attachmentId): bool
     {

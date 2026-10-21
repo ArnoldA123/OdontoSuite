@@ -377,6 +377,28 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-21 (adjuntos clínicos — #244)** — `DELETE
+  /api/medical-records/attachments/{attachment}` delega en
+  `MedicalRecordService::deleteAttachment()` en vez de duplicar media lógica:
+  borra el binario del disco `public` y conserva la fila como marcador de
+  archivo (`is_active = false`), que es donde vive el rastro auditable — nombre
+  original, tipo, tamaño, categoría, descripción, quién y cuándo. Antes el
+  endpoint solo marcaba la fila, así que cada adjunto eliminado desde
+  `/medical-records` dejaba su archivo huérfano en
+  `storage/app/public/clinical-attachments/`: disco que crece sin límite y un
+  binario clínico todavía servido por `/storage/...` sin forma de alcanzarlo
+  desde la aplicación. Repetir el borrado es un no-op (204) y un id inexistente
+  sigue respondiendo 404 con el mismo envelope. Consecuencia asumida del
+  contrato: un análisis de IA ya guardado sobre ese adjunto pierde su miniatura,
+  porque `AiImageAnalysisResource` construye la URL desde
+  `clinical_attachment.file_path`; el hallazgo del análisis se conserva.
+  `ClinicalAttachmentService::delete()`
+  repite esa lógica y sigue sin llamadas (hallazgo fuera de alcance de #244).
+  Sin rutas, migraciones, modelos ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `MedicalRecordAttachmentTest` (7, MySQL) cubre borrado con
+  `Storage::fake('public')` y `assertMissing` del `file_path`, segundo borrado y
+  404.
+
 - **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
   dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
   a «Registros de Especialidad» y el catálogo conserva «Catálogo de

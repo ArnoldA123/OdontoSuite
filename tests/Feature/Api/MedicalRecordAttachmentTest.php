@@ -56,6 +56,75 @@ class MedicalRecordAttachmentTest extends TestCase
         $response->assertNoContent();
     }
 
+    /**
+     * #244: deleting an attachment owns the whole contract, so the stored
+     * binary goes away too. A file left behind is unreachable from the app
+     * and still served by the public disk. The row survives as the archive
+     * marker for the clinical audit trail.
+     */
+    public function test_deleting_an_attachment_removes_the_stored_file(): void
+    {
+        Storage::fake('public');
+
+        $attachment = $this->attachmentWithStoredFile();
+
+        $this->actingAs($this->clinician(), 'sanctum')
+            ->deleteJson("/api/medical-records/attachments/{$attachment->id}")
+            ->assertNoContent();
+
+        Storage::disk('public')->assertMissing($attachment->file_path);
+        $this->assertDatabaseHas('clinical_attachments', [
+            'id' => $attachment->id,
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Deleting an already deleted attachment is a no-op: the row is still
+     * there, the binary is already gone, and a second call must not fail.
+     */
+    public function test_deleting_an_already_deleted_attachment_returns_204(): void
+    {
+        Storage::fake('public');
+
+        $attachment = $this->attachmentWithStoredFile();
+        $user = $this->clinician();
+        $url = "/api/medical-records/attachments/{$attachment->id}";
+
+        $this->actingAs($user, 'sanctum')->deleteJson($url)->assertNoContent();
+        $this->actingAs($user, 'sanctum')->deleteJson($url)->assertNoContent();
+
+        Storage::disk('public')->assertMissing($attachment->file_path);
+        $this->assertDatabaseHas('clinical_attachments', [
+            'id' => $attachment->id,
+            'is_active' => false,
+            'deleted_at' => null,
+        ]);
+    }
+
+    /**
+     * Contract that already held before the endpoint delegated to the service:
+     * an unknown id is a 404 with the same envelope, not a 500.
+     */
+    public function test_deleting_a_missing_attachment_returns_404(): void
+    {
+        $this->actingAs($this->clinician(), 'sanctum')
+            ->deleteJson('/api/medical-records/attachments/999999')
+            ->assertNotFound()
+            ->assertJson(['message' => 'Adjunto no encontrado']);
+    }
+
+    protected function attachmentWithStoredFile(): ClinicalAttachment
+    {
+        $medicalRecord = MedicalRecord::factory()->create();
+        $attachment = ClinicalAttachment::factory()->create([
+            'patient_id' => $medicalRecord->patient_id,
+        ]);
+        Storage::disk('public')->put($attachment->file_path, 'contenido clinico');
+
+        return $attachment;
+    }
+
     public function test_upload_without_a_category_uses_the_general_default(): void
     {
         Storage::fake('public');
