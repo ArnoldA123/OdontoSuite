@@ -64,6 +64,13 @@ const DENTAL_PIECE_FIELD = Object.freeze({
   required: true
 })
 
+const PROCEDURE_FIELD = Object.freeze({
+  key: 'procedure_id',
+  label: 'Procedimiento',
+  type: 'procedure',
+  section: 'procedure'
+})
+
 const IMPLANTOLOGY_STATUS_LABELS = Object.freeze({
   placed: 'Colocado',
   healing: 'En cicatrización',
@@ -112,6 +119,7 @@ const ORAL_SURGERY_STATUS_LABELS = Object.freeze({
 })
 
 const IMPLANTOLOGY_FIELDS = [
+  PROCEDURE_FIELD,
   DENTAL_PIECE_FIELD,
   textField('implant_brand', 'Marca', { required: true, max: 100 }),
   textField('implant_model', 'Modelo', { required: true, max: 100 }),
@@ -131,6 +139,7 @@ const IMPLANTOLOGY_FIELDS = [
 ]
 
 const ORTHODONTICS_FIELDS = [
+  PROCEDURE_FIELD,
   textField('treatment_type', 'Tipo de tratamiento', { required: true, max: 50 }),
   textField('appliance_type', 'Tipo de aparatología', { max: 100 }),
   dateField('treatment_start_date', 'Inicio del tratamiento', { required: true }),
@@ -146,6 +155,7 @@ const ORTHODONTICS_FIELDS = [
 ]
 
 const ENDODONTICS_FIELDS = [
+  PROCEDURE_FIELD,
   DENTAL_PIECE_FIELD,
   textField('tooth_number', 'Diente', { required: true, max: 10 }),
   numberField('canal_count', 'Conductos', { required: true, min: 1, max: 4, step: 1 }),
@@ -165,6 +175,7 @@ const ENDODONTICS_FIELDS = [
 ]
 
 const REHABILITATION_FIELDS = [
+  PROCEDURE_FIELD,
   DENTAL_PIECE_FIELD,
   selectField('prosthesis_type', 'Tipo de prótesis', PROSTHESIS_TYPE_LABELS, { required: true }),
   textField('material_type', 'Material', { required: true, max: 50 }),
@@ -172,6 +183,7 @@ const REHABILITATION_FIELDS = [
   textField('laboratory_name', 'Laboratorio', { max: 100 }),
   textField('laboratory_contact', 'Contacto del laboratorio', { max: 100 }),
   dateField('impression_date', 'Fecha de impresión'),
+  dateField('try_in_date', 'Fecha de prueba'),
   dateField('delivery_date', 'Fecha de entrega'),
   dateField('cementation_date', 'Fecha de cementado'),
   selectField('status', 'Estado', REHABILITATION_STATUS_LABELS),
@@ -184,8 +196,10 @@ const REHABILITATION_FIELDS = [
 ]
 
 const ORAL_SURGERY_FIELDS = [
+  PROCEDURE_FIELD,
   textField('procedure_type', 'Tipo de procedimiento', { required: true, max: 50 }),
   textField('surgery_site', 'Sitio quirúrgico', { required: true, max: 100 }),
+  dateField('surgery_date', 'Fecha de la cirugía'),
   numberField('surgery_duration_minutes', 'Duración (min)', { min: 1, max: 480, step: 1 }),
   textField('anesthesia_type', 'Anestesia', { max: 200 }),
   textField('surgical_technique', 'Técnica quirúrgica', { max: 2000 }),
@@ -231,6 +245,7 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
         id: 'implant',
         label: 'Implante',
         fields: Object.freeze([
+          'procedure_id',
           'dental_piece_id',
           'implant_brand',
           'implant_model',
@@ -280,7 +295,12 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
       {
         id: 'treatment',
         label: 'Tratamiento',
-        fields: Object.freeze(['treatment_type', 'appliance_type', 'treatment_phase'])
+        fields: Object.freeze([
+          'procedure_id',
+          'treatment_type',
+          'appliance_type',
+          'treatment_phase'
+        ])
       },
       {
         id: 'timeline',
@@ -333,6 +353,7 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
         id: 'diagnosis',
         label: 'Diagnóstico',
         fields: Object.freeze([
+          'procedure_id',
           'dental_piece_id',
           'tooth_number',
           'canal_count',
@@ -394,6 +415,7 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
         id: 'restoration',
         label: 'Restauración',
         fields: Object.freeze([
+          'procedure_id',
           'dental_piece_id',
           'prosthesis_type',
           'material_type',
@@ -408,7 +430,12 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
       {
         id: 'timeline',
         label: 'Fechas',
-        fields: Object.freeze(['impression_date', 'delivery_date', 'cementation_date'])
+        fields: Object.freeze([
+          'impression_date',
+          'try_in_date',
+          'delivery_date',
+          'cementation_date'
+        ])
       },
       {
         id: 'notes',
@@ -430,7 +457,7 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
     label: 'Cirugía Oral',
     icon: ScissorsIcon,
     roles: Object.freeze(['administrador', 'odontologo']),
-    dateField: 'follow_up_date',
+    dateField: 'surgery_date',
     statusField: 'status',
     statusLabels: ORAL_SURGERY_STATUS_LABELS,
     statusVariants: Object.freeze({
@@ -448,8 +475,10 @@ export const SPECIALTY_RECORD_DEFINITIONS = Object.freeze([
         id: 'procedure',
         label: 'Procedimiento',
         fields: Object.freeze([
+          'procedure_id',
           'procedure_type',
           'surgery_site',
+          'surgery_date',
           'surgical_technique',
           'anesthesia_type',
           'surgery_duration_minutes',
@@ -579,13 +608,21 @@ function resolveField(definition, key) {
 
 function formatFieldValue(field, value, record) {
   if (field.type === 'dental-piece') {
-    const piece = record?.dentalPiece
+    const piece = record?.dental_piece
 
     if (!piece) return ''
 
     return [piece.fdi_number ? `#${piece.fdi_number}` : '', piece.name ?? '']
       .filter(Boolean)
       .join(' · ')
+  }
+
+  if (field.type === 'procedure') {
+    const procedure = record?.procedure
+
+    if (!procedure) return ''
+
+    return [procedure.code ?? '', procedure.name ?? ''].filter(Boolean).join(' · ')
   }
 
   if (value === null || value === undefined) return ''

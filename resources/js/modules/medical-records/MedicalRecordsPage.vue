@@ -683,7 +683,7 @@ const route = useRoute()
 const router = useRouter()
 const { get } = useApi()
 const toast = useToast()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 
 // Landing state.
 const searchTerm = ref('')
@@ -1124,7 +1124,7 @@ const belongsToSelection = patientId =>
 
 const subscribeToMedicalRecords = () => {
   try {
-    medicalRecordsChannel = channel('medical-records')
+    medicalRecordsChannel = privateChannel('medical-records')
 
     if (!medicalRecordsChannel) return
 
@@ -1290,7 +1290,7 @@ onUnmounted(() => {
 
   if (echo) {
     try {
-      echo.leave('medical-records')
+      echo.leave('private-medical-records')
     } catch {
       // The channel was already closed; nothing to clean up.
     }

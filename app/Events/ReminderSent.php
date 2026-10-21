@@ -3,8 +3,8 @@
 namespace App\Events;
 
 use App\Models\ReminderSchedule;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -27,8 +27,8 @@ class ReminderSent implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('reminders'),
-            new Channel('appointments'),
+            new PrivateChannel('reminders'),
+            new PrivateChannel('appointments'),
         ];
     }
 

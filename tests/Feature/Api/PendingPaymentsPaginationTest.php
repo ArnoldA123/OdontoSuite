@@ -97,9 +97,23 @@ class PendingPaymentsPaginationTest extends TestCase
             'last_name' => 'Torres',
         ]);
 
+        // The other two patients carry pinned names on purpose. `faker->firstName()`
+        // in es_ES returns a name containing "ana" about 3% of the time (Ana,
+        // Juana, Diana, Adriana, Mariana, Aitana), so a generated name silently
+        // turned the assertion below into "one of three random names matched".
+        // The test needs exactly one patient behind the term.
+        $bruno = Patient::factory()->create([
+            'first_name' => 'Bruno',
+            'last_name' => 'Ferrer',
+        ]);
+        $carla = Patient::factory()->create([
+            'first_name' => 'Carla',
+            'last_name' => 'Ruiz',
+        ]);
+
         $this->completedAppointment(now()->subDay()->setTime(9, 0), $ana);
-        $this->completedAppointment(now()->subDays(2)->setTime(9, 0));
-        $this->completedAppointment(now()->subDays(3)->setTime(9, 0));
+        $this->completedAppointment(now()->subDays(2)->setTime(9, 0), $bruno);
+        $this->completedAppointment(now()->subDays(3)->setTime(9, 0), $carla);
 
         $payload = $this->fetch('?search=Ana&per_page=1');
 

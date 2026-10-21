@@ -309,7 +309,7 @@ import {
 
 const router = useRouter()
 const { user } = useAuth()
-const { channel, echo } = useEcho()
+const { privateChannel, echo } = useEcho()
 const { confirm } = useConfirm()
 const { handleError } = useErrorHandler()
 const toast = useToast()
@@ -487,7 +487,7 @@ const relayRecordEvent = async (event, prefix) => {
 
 const subscribeToRecords = () => {
   try {
-    recordsChannel = channel('specialty-records')
+    recordsChannel = privateChannel('specialty-records')
   } catch {
     recordsChannel = null
   }
@@ -508,7 +508,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   try {
-    echo?.leave?.('specialty-records')
+    echo?.leave?.('private-specialty-records')
   } catch {
     recordsChannel = null
   }

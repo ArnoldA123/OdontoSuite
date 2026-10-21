@@ -13,6 +13,7 @@ class OrthodonticsRecord extends Model
     protected $fillable = [
         'patient_id',
         'appointment_id',
+        'procedure_id',
         'created_by',
         'treatment_type',
         'appliance_type',
@@ -49,6 +50,14 @@ class OrthodonticsRecord extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * Catalog procedure this record executed (issue #247).
+     */
+    public function procedure(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureCatalog::class, 'procedure_id');
     }
 
     public function createdBy(): BelongsTo

@@ -1,11 +1,13 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { defineComponent, h, ref } from 'vue'
 
-// Treatment plan detail overlay (treatment-plans-ui-redesign T5). Pins the
-// behaviour the page depends on: the plan object renders as the only data
-// source, every amount goes through the shared formatCurrency helper, and the
-// three footer actions keep emitting `edit`/`duplicate`/`close` with the plan.
+// Treatment plan detail overlay (treatment-plans-ui-redesign T5, issue #242).
+// The dialog now rides the shared UiModal primitive: the `data-plan-detail`
+// hook lives on the teleported backdrop, the panel owns the dialog semantics
+// and the heading label, and Escape/backdrop dismissal belongs to the
+// primitive's stack. Every DOM assertion reads <body>, where UiModal teleports.
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: async () => ({ data: [] }),
@@ -29,6 +31,7 @@ vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
 import uiComponents from '../../../resources/js/plugins/ui-components'
+import UiModal from '../../../resources/js/components/ui/Modal.vue'
 import { formatCurrency } from '../../../resources/js/composables/useFormatters'
 import Detail from '../../../resources/js/modules/treatment-plans/components/TreatmentPlanDetail.vue'
 
@@ -85,110 +88,172 @@ const plan = {
   ]
 }
 
-const mountDetail = (overrides = {}) => {
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
-  })
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
+})
 
-  return mount(Detail, {
-    props: { plan: { ...plan, ...overrides } },
-    global: { plugins: [router, uiComponents] }
-  })
+// UiModal teleports the dialog to <body>, outside the wrapper's tree, so the
+// helpers below read the rendered document.
+const root = () => document.querySelector('[data-plan-detail]')
+const dialog = () => document.querySelector('[data-plan-detail] [role="dialog"]')
+const query = selector => document.querySelector(selector)
+const queryAll = selector => [...document.querySelectorAll(selector)]
+
+const pressEscape = () => {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 }
+
+const mountDetail = (overrides = {}) =>
+  mount(Detail, {
+    props: { plan: { ...plan, ...overrides } },
+    global: { plugins: [router, uiComponents] },
+    attachTo: document.body
+  })
 
 // formatCurrency may emit non-breaking spaces; compare condensed text only.
 const flat = value => value.replace(/\s+/g, ' ').trim()
 
-describe('treatment plan detail smoke', () => {
-  it('renders the plan identity as an accessible dialog', () => {
-    const wrapper = mountDetail()
+let wrapper = null
 
-    const root = wrapper.get('[data-plan-detail]')
-    expect(root.attributes('role')).toBe('dialog')
-    expect(root.attributes('aria-modal')).toBe('true')
-
-    const heading = wrapper.get('[data-detail-title]')
-    expect(heading.text()).toBe('Rehabilitación oral integral')
-    expect(root.attributes('aria-labelledby')).toBe(heading.attributes('id'))
-
-    expect(flat(wrapper.text())).toContain('PT-2026-0042')
-    expect(flat(wrapper.text())).toContain('Lucía Ramírez')
-    expect(flat(wrapper.text())).toContain('lucia@test.com')
-    expect(flat(wrapper.text())).toContain('987654321')
-    expect(wrapper.get('[data-flag="overdue"]').text()).toBe('Vencido')
-    expect(wrapper.get('[data-flag="urgent"]').text()).toBe('Urgente')
-
+afterEach(() => {
+  if (wrapper) {
     wrapper.unmount()
+    wrapper = null
+  }
+  document.body.innerHTML = ''
+})
+
+describe('treatment plan detail smoke', () => {
+  it('renders the plan identity as an accessible dialog on the modal primitive', () => {
+    wrapper = mountDetail()
+
+    expect(root(), 'the detail hook must be the modal root').toBeTruthy()
+    expect(root().getAttribute('role')).toBeNull()
+
+    const panel = dialog()
+    expect(panel, 'UiModal must own the dialog role').toBeTruthy()
+    expect(panel.getAttribute('aria-modal')).toBe('true')
+
+    const heading = query('[data-detail-title]')
+    expect(heading.textContent).toBe('Rehabilitación oral integral')
+    expect(panel.getAttribute('aria-labelledby')).toBe(heading.getAttribute('id'))
+
+    expect(flat(root().textContent)).toContain('PT-2026-0042')
+    expect(flat(root().textContent)).toContain('Lucía Ramírez')
+    expect(flat(root().textContent)).toContain('lucia@test.com')
+    expect(flat(root().textContent)).toContain('987654321')
+    expect(flat(query('[data-flag="overdue"]').textContent)).toBe('Vencido')
+    expect(flat(query('[data-flag="urgent"]').textContent)).toBe('Urgente')
   })
 
   it('formats the plan total and every line amount through formatCurrency', () => {
-    const wrapper = mountDetail()
+    wrapper = mountDetail()
 
-    expect(flat(wrapper.get('[data-detail-total]').text())).toBe(
+    expect(flat(query('[data-detail-total]').textContent)).toBe(
       flat(formatCurrency(plan.final_cost))
     )
 
-    const rows = wrapper.findAll('[data-detail-item]')
+    const rows = queryAll('[data-detail-item]')
     expect(rows).toHaveLength(2)
-    expect(flat(rows[0].text())).toContain('Corona de zirconio')
-    expect(flat(rows[0].text())).toContain('Fase 1')
-    expect(flat(rows[0].text())).toContain(flat(formatCurrency(500)))
-    expect(flat(rows[0].text())).toContain(flat(formatCurrency(1000)))
-    expect(flat(rows[1].text())).toContain(flat(formatCurrency(250.5)))
+    expect(flat(rows[0].textContent)).toContain('Corona de zirconio')
+    expect(flat(rows[0].textContent)).toContain('Fase 1')
+    expect(flat(rows[0].textContent)).toContain(flat(formatCurrency(500)))
+    expect(flat(rows[0].textContent)).toContain(flat(formatCurrency(1000)))
+    expect(flat(rows[1].textContent)).toContain(flat(formatCurrency(250.5)))
 
-    expect(flat(wrapper.get('[data-detail-quotation]').text())).toContain('COT-0007')
-    expect(flat(wrapper.get('[data-detail-quotation]').text())).toContain(
+    expect(flat(query('[data-detail-quotation]').textContent)).toContain('COT-0007')
+    expect(flat(query('[data-detail-quotation]').textContent)).toContain(
       flat(formatCurrency(1250.5))
     )
-
-    wrapper.unmount()
   })
 
   it('emits edit, duplicate and close from the footer actions', async () => {
-    const wrapper = mountDetail()
+    wrapper = mountDetail()
 
-    await wrapper.get('[data-action="edit"]').trigger('click')
+    query('[data-action="edit"]').click()
     await flushPromises()
-    await wrapper.get('[data-action="duplicate"]').trigger('click')
+    query('[data-action="duplicate"]').click()
     await flushPromises()
-    await wrapper.get('[data-action="close"]').trigger('click')
+    query('[data-action="close"]').click()
     await flushPromises()
 
     expect(wrapper.emitted('edit')).toEqual([[plan]])
     expect(wrapper.emitted('duplicate')).toEqual([[plan]])
     expect(wrapper.emitted('close')).toHaveLength(1)
-
-    wrapper.unmount()
   })
 
   it('dismisses on Escape and on backdrop click but not on panel clicks', async () => {
-    const wrapper = mountDetail()
+    wrapper = mountDetail()
 
-    await wrapper.get('[data-detail-body]').trigger('click')
+    dialog().click()
     await flushPromises()
     expect(wrapper.emitted('close')).toBeUndefined()
 
-    await wrapper.trigger('click')
+    root().click()
     await flushPromises()
     expect(wrapper.emitted('close')).toHaveLength(1)
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    pressEscape()
     await flushPromises()
     expect(wrapper.emitted('close')).toHaveLength(2)
+  })
 
-    wrapper.unmount()
+  it('lets an inner modal own Escape while the detail stays open', async () => {
+    const closed = ref(0)
+    let openInner = () => {}
+
+    const Host = defineComponent({
+      setup() {
+        const inner = ref(false)
+        openInner = () => {
+          inner.value = true
+        }
+
+        return () =>
+          h('div', [
+            h(Detail, {
+              plan,
+              onClose: () => {
+                closed.value += 1
+              }
+            }),
+            h(
+              UiModal,
+              {
+                modelValue: inner.value,
+                'onUpdate:modelValue': value => {
+                  inner.value = value
+                },
+                title: 'Editar plan',
+                'data-inner-modal': ''
+              },
+              { default: () => h('p', 'inner') }
+            )
+          ])
+      }
+    })
+
+    wrapper = mount(Host, { global: { plugins: [router, uiComponents] }, attachTo: document.body })
+    await flushPromises()
+
+    openInner()
+    await flushPromises()
+    expect(document.querySelector('[data-inner-modal] [role="dialog"]')).toBeTruthy()
+
+    pressEscape()
+    await flushPromises()
+
+    expect(document.querySelector('[data-inner-modal]')).toBeNull()
+    expect(root(), 'the detail must survive the inner close').toBeTruthy()
+    expect(closed.value).toBe(0)
   })
 
   it('falls back to explicit placeholders when optional data is missing', () => {
-    const wrapper = mountDetail({ items: [], quotations: [], notes: null, patient_notes: null })
+    wrapper = mountDetail({ items: [], quotations: [], notes: null, patient_notes: null })
 
-    expect(wrapper.get('[data-detail-empty="procedures"]').text()).toContain(
-      'No hay procedimientos'
-    )
-    expect(wrapper.find('[data-detail-section="quotations"]').exists()).toBe(false)
-    expect(wrapper.find('[data-detail-field="notes"]').exists()).toBe(false)
-
-    wrapper.unmount()
+    expect(query('[data-detail-empty="procedures"]').textContent).toContain('No hay procedimientos')
+    expect(query('[data-detail-section="quotations"]')).toBeNull()
+    expect(query('[data-detail-field="notes"]')).toBeNull()
   })
 })

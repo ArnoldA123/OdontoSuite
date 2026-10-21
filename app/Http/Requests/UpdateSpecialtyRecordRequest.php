@@ -34,7 +34,33 @@ class UpdateSpecialtyRecordRequest extends StoreSpecialtyRecordRequest
             $rules[$field] = $this->optional($rule);
         }
 
+        // Status columns are NOT NULL with a database default: relaxing them to
+        // nullable would turn a cleared status into a 500 on update.
+        foreach (['status', 'treatment_phase', 'treatment_status'] as $field) {
+            if (isset($rules[$field])) {
+                $rules[$field] = $this->withoutNullable($rules[$field]);
+            }
+        }
+
         return $rules;
+    }
+
+    /**
+     * @param  string|array<int, string> $rule
+     * @return string|array<int, string>
+     */
+    private function withoutNullable(string|array $rule): string|array
+    {
+        if (is_array($rule)) {
+            return array_values(array_filter($rule, static fn (string $segment): bool => $segment !== 'nullable'));
+        }
+
+        $segments = array_values(array_filter(
+            explode('|', $rule),
+            static fn (string $segment): bool => $segment !== 'nullable'
+        ));
+
+        return implode('|', $segments);
     }
 
     /**
