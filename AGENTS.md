@@ -134,7 +134,7 @@ tests/
   Feature/Api/             # AuthTest (rate limiting, login)
 docs/
   mejoras/                 # 3 planes cerrados (ver §9)
-  architecture/decisions/  # índice de ADRs (README.md); cuerpos 0007/0008 pendientes (#264)
+  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007 y 0008
 
 .github/workflows/
   ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
@@ -242,11 +242,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   endpoints devuelven 404 (guardado por `StubsRemovedEndpointsTest`).
 - **`User::specialty` (string legacy)**: conservado como display denormalizado.
   Sprint 2 DM-6 lo deprecó formalmente, creó accessor `specialty_code`, eliminó
-  cast JSON inexistente. La decisión vive en §9; su cuerpo de ADR está pendiente
-  (#264).
+  cast JSON inexistente. La decisión y su contrato de lectura viven en ADR-0007.
 - **`procedure_catalog.legacy_specialty`**: conservado en BD por compatibilidad.
   Sprint 2 DM-7 lo deprecó formalmente, creó accessor `specialty_code`. El plan
-  de drop está descrito en §9 y su cuerpo de ADR sigue pendiente (#264).
+  de drop está descrito en ADR-0008.
 - **2 FormRequests no migrables** (documentado en Sprint 5 del plan de
   inconsistencias): `StoreAppointmentRequest` (omite 4 campos inline) y
   `StoreSpecialtyRecordRequest` (omite 14 campos inline). Requieren refactor del
@@ -327,7 +326,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | Frontend no encuentra módulo                            | `pnpm install` y reiniciar `pnpm dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | WebSocket no conecta                                    | Verificar `php artisan reverb:start` corriendo y `BROADCAST_CONNECTION=reverb` en `.env`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | CI falla por `MissingAppKeyException`                   | `phpunit.xml` ya tiene `APP_KEY` configurado (Sprint 4 IM-1 fix). Si falta, agregar.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008, cuerpo pendiente en #264). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `procedure_catalog.legacy_specialty` aparece en queries | Campo deprecado (ADR-0008). Usar `specialty_code` accessor o `$pc->specialty->code`. Drop futuro documentado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ---
 
@@ -350,9 +349,10 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 | `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
 | `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
 
-> **Estado**: los dos ADR de la tabla todavía no tienen cuerpo escrito en el
-> repo: por ahora solo existe el índice `docs/architecture/decisions/README.md`,
-> con esos enlaces pendientes. El trabajo está registrado en #264.
+> **Estado**: los dos ADR de la tabla están escritos y el índice resuelve sus
+> enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
+> integridad la fija
+> `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
 
 ---
 
@@ -387,6 +387,30 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (ADR 0007/0008 y los seguimientos de adjuntos y dependencias,**
+  **#264/#265/#266/#267)** — Los dos ADR de §9 dejan de ser una fila sin cuerpo:
+  `0007-user-specialty-source-of-truth.md` y
+  `0008-procedure-catalog-legacy-specialty.md` describen contexto, decisión,
+  alternativas y consecuencias, con las rutas que citan verificadas contra el
+  repositorio. El índice pierde la fila `0009 (pending — slice 05)` —esa
+  decisión la fija `tests/Unit/SddCheckMigrationsTest.php`, no un documento
+  pendiente— y cambia la sección del change archivado por una nota histórica.
+  Nuevo guard `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`:
+  todo enlace del índice resuelve en disco, todo cuerpo de la carpeta está
+  indexado y ningún `docs/decisions/` sobrevive fuera del changelog. En la misma
+  sesión, dos unidades de comportamiento: `MedicalRecord::attachments()` y
+  `ClinicalEvolution::attachments()` dejan de ofrecer filas archivadas (el
+  binario ya no existe desde #244 y la URL `/storage/...` respondía 404), y
+  `ClinicalAttachmentService` pierde `update()`, `delete()` y
+  `getAttachmentUrl()` —sin llamadas, y con un `delete()` que duplicaba el de
+  `MedicalRecordService`— conservando `store()`, que sí usa
+  `POST /api/ai-analysis/upload-and-analyze`; un guard estático impide la
+  segunda implementación. Del mismo lote, `package.json` deja de declarar
+  `xlsx`, `html2canvas`, `jspdf` y `vue-chartjs`, sin consumidor en
+  `resources/js` ni en `vite.config.js`. Sin rutas, migraciones, modelos ni
+  primitivas UI nuevas: los conteos de §4 no cambian y el guard
+  `scripts/audit/doc-drift.mjs` sigue en 14 chequeos verdes.
 
 - **2026-10-21 (canales de dominio privados, #249)** — Los 27 eventos que aún
   publicaban en canales públicos de Reverb (`appointments`, `reminders`,
