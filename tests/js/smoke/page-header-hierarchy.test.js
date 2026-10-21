@@ -77,16 +77,23 @@ const PROFESSIONAL = {
 
 const detailRoutes = [
   {
+    pattern: '/appointment-types/:id',
     path: '/appointment-types/7',
     component: AppointmentTypeDetailPage,
     heading: APPOINTMENT_TYPE.name
   },
   {
+    pattern: '/procedure-catalog/:id',
     path: '/procedure-catalog/7',
     component: ProcedureCatalogDetailPage,
     heading: PROCEDURE.name
   },
-  { path: '/professionals/7', component: ProfessionalDetailPage, heading: PROFESSIONAL.name }
+  {
+    pattern: '/professionals/:id',
+    path: '/professionals/7',
+    component: ProfessionalDetailPage,
+    heading: PROFESSIONAL.name
+  }
 ]
 
 // Module pages mount their own AppLayout (app.js renders the page, not the
@@ -148,22 +155,25 @@ describe('PageHeader heading hierarchy (issue #164)', () => {
 })
 
 describe('detail route heading hierarchy (issue #243)', () => {
-  it.each(detailRoutes)('renders exactly one h1 on $path', async ({ path, component, heading }) => {
-    const wrapper = await mountPageAt(path, component, `${path.split('/7')[0]}/:id`)
+  it.each(detailRoutes)(
+    'renders exactly one h1 on $path',
+    async ({ pattern, path, component, heading }) => {
+      const wrapper = await mountPageAt(path, component, pattern)
 
-    expect(topbar(wrapper).attributes('data-topbar-title-owner')).toBe('page')
-    expect(
-      topbar(wrapper).find('h1').exists(),
-      'the topbar must not paint a second heading on a detail route'
-    ).toBe(false)
+      expect(topbar(wrapper).attributes('data-topbar-title-owner')).toBe('page')
+      expect(
+        topbar(wrapper).find('h1').exists(),
+        'the topbar must not paint a second heading on a detail route'
+      ).toBe(false)
 
-    const headings = wrapper.findAll('h1')
-    expect(headings).toHaveLength(1)
-    expect(headings[0].text()).toBe(heading)
-    expect(headings[0].classes()).not.toContain('sr-only')
+      const headings = wrapper.findAll('h1')
+      expect(headings).toHaveLength(1)
+      expect(headings[0].text()).toBe(heading)
+      expect(headings[0].classes()).not.toContain('sr-only')
 
-    wrapper.unmount()
-  })
+      wrapper.unmount()
+    }
+  )
 
   it('keeps the single topbar h1 on a shell-owned route', async () => {
     const wrapper = await mountPage()
