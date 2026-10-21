@@ -13,9 +13,6 @@ use App\Events\MedicalRecordUpdated;
 use App\Events\PatientFileExported;
 use App\Events\PaymentRegistered;
 use App\Events\ProcedureCatalogDeactivated;
-use App\Events\QuotationApproved;
-use App\Events\QuotationCreated;
-use App\Events\QuotationUpdated;
 use App\Events\SpecialtyRecordCreated;
 use App\Events\SpecialtyRecordUpdated;
 use App\Events\TransactionCreated;
@@ -31,7 +28,7 @@ use Tests\TestCase;
 /**
  * Issue #183 — `dashboard-updates` must not be a public channel.
  *
- * It is the widest channel in the project: 21 events publish appointments,
+ * It is the widest channel in the project: 18 events publish appointments,
  * patients, transactions, cash sessions, quotations and record changes, and a
  * public channel verifies nothing, so anyone holding the Reverb app key could
  * subscribe and receive live domain payloads. The guard is source-level (no
@@ -60,9 +57,6 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
             PatientFileExported::class,
             PaymentRegistered::class,
             ProcedureCatalogDeactivated::class,
-            QuotationApproved::class,
-            QuotationCreated::class,
-            QuotationUpdated::class,
             SpecialtyRecordCreated::class,
             SpecialtyRecordUpdated::class,
             TransactionCreated::class,
@@ -127,9 +121,9 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
     public function the_event_set_still_covers_the_project_domain(): void
     {
         $this->assertCount(
-            21,
+            18,
             self::dashboardEvents(),
-            'The dashboard fan-out MUST keep all 21 publishers; add new ones to this provider so they inherit the private guard.'
+            'The dashboard fan-out MUST keep all 18 publishers; add new ones to this provider so they inherit the private guard.'
         );
     }
 }
