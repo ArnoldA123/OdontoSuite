@@ -264,6 +264,67 @@ describe('business intelligence reports and states (T7)', () => {
     wrapper.unmount()
   })
 
+  it('keeps the newest report when an older response resolves later', async () => {
+    let resolveAppointments
+    getMock.mockImplementation(url => {
+      if (url === '/api/reports/appointments') {
+        return new Promise(resolve => {
+          resolveAppointments = () => resolve(appointmentsPayload)
+        })
+      }
+      return baseResponses(url)
+    })
+
+    const wrapper = await mountPage()
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Citas')
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Ingresos')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
+    }, REPORT_SETTLE)
+
+    resolveAppointments()
+    await flushPromises()
+    await flushPromises()
+
+    const table = wrapper.find('[data-report-table]')
+    expect(table.text()).toContain('Por Tipo de Cita')
+    expect(table.text()).not.toContain('Lucía Ramos')
+    expect(wrapper.find('[data-bi-loading]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('ignores an error from a superseded report request', async () => {
+    let rejectAppointments
+    getMock.mockImplementation(url => {
+      if (url === '/api/reports/appointments') {
+        return new Promise((_, reject) => {
+          rejectAppointments = () =>
+            reject({ status: 500, response: { data: { message: 'boom' } } })
+        })
+      }
+      return baseResponses(url)
+    })
+
+    const wrapper = await mountPage()
+
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Citas')
+    await selectOption(wrapper, '[data-filters-report]', 'Reporte de Ingresos')
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
+    }, REPORT_SETTLE)
+
+    rejectAppointments()
+    await flushPromises()
+    await flushPromises()
+
+    expect(wrapper.find('[data-state="error"]').exists()).toBe(false)
+    expect(wrapper.find('[data-report-table]').text()).toContain('Por Tipo de Cita')
+
+    wrapper.unmount()
+  })
+
   it('renders the shared empty state and widens the period to ninety days', async () => {
     getMock.mockImplementation(url =>
       url === '/api/reports/appointments'
