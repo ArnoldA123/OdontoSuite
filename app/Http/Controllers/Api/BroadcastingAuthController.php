@@ -119,7 +119,10 @@ class BroadcastingAuthController extends Controller
             $authorized = false;
 
             if (preg_match('/^cash-session\.(\d+)$/', $cleanChannelName, $matches)) {
-                $authorized = true;
+                // Issue #249: the session payload carries payments and ledger
+                // movements, so only the roles that operate the cash register
+                // may subscribe. It used to accept any authenticated user.
+                $authorized = in_array($user->role ?? null, self::CASH_ROLES, true);
             } elseif (preg_match('/^App\.Models\.User\.(\d+)$/', $cleanChannelName, $matches)) {
                 $userId = $matches[1];
                 $authorized = (int) $user->id === (int) $userId;

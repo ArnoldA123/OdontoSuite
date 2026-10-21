@@ -399,10 +399,13 @@ documentada y no bloquea producción.
   `routes/api.php` —citas y recordatorios sin finanzas; historia clínica y
   planes/registros de especialidad solo clínicos; caja y transacciones con
   administrador/finanzas/recepcionista; catálogo con los siete roles; usuarios
-  solo administrador— y `routes/channels.php` lo refleja como documentación.
-  `PatientFileExported` deja de usar `Channel('user.{id}')` y queda en el canal
-  privado del propio usuario exportador que el handler ya conocía. Los ocho
-  consumidores (`useWebSocketNotifications`, `DashboardPage`, `useCashRegister`,
+  solo administrador— y `routes/channels.php` lo refleja como documentación. En
+  la misma pasada, el canal de sesión `cash-session.{id}` —que ya era privado—
+  deja de aceptar a cualquier usuario autenticado y exige los mismos tres roles
+  de caja, porque publica cobros y movimientos del ledger. `PatientFileExported`
+  deja de usar `Channel('user.{id}')` y queda en el canal privado del propio
+  usuario exportador que el handler ya conocía. Los ocho consumidores
+  (`useWebSocketNotifications`, `DashboardPage`, `useCashRegister`,
   `CalendarPage`, `MedicalRecordsPage`, `PatientDetailPage`,
   `TreatmentPlansPage`, `SpecialtyRecordsPage`) se suscriben con
   `privateChannel` y liberan el nombre real (`private-*`): `leave()` de Laravel

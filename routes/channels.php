@@ -166,9 +166,14 @@ Broadcast::channel('users', function ($user) {
 
 // Canal privado para sesiones de caja específicas
 Broadcast::channel('cash-session.{sessionId}', function ($user, $sessionId) {
-    // Verificar que el usuario tenga acceso a esta sesión
-    // Por ahora permitimos acceso si el usuario está autenticado
-    return $user !== null;
+    // El canal de sesión publica cobros y movimientos del ledger, así que
+    // exige los mismos roles que operan la caja (#249). Antes aceptaba a
+    // cualquier usuario autenticado.
+    if ($user === null) {
+        return false;
+    }
+
+    return in_array($user->role ?? null, ['administrador', 'finanzas', 'recepcionista'], true);
 });
 
 // Slice 10 (T-10.4): private channel para AppointmentCheckedIn.

@@ -57,6 +57,9 @@ class DomainChannelsAuthorizationTest extends TestCase
             ],
             'cash-register' => ['administrador', 'finanzas', 'recepcionista'],
             'transactions' => ['administrador', 'finanzas', 'recepcionista'],
+            // The per-session channel publishes payments and ledger
+            // movements; it used to accept any authenticated user.
+            'cash-session.7' => ['administrador', 'finanzas', 'recepcionista'],
             'procedure-catalog' => self::ROLES,
             'users' => ['administrador'],
         ];
