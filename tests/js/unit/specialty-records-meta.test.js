@@ -363,3 +363,18 @@ describe('specialty records vocabulary', () => {
     expect(detailSections(definition, {})).toEqual([])
   })
 })
+
+describe('specialty record relations', () => {
+  it('renders the dental piece the API serializes as dental_piece', () => {
+    const sections = detailSections(getSpecialtyDefinition('endodoncia'), {
+      tooth_number: '16',
+      dental_piece_id: 4,
+      dental_piece: { id: 4, fdi_number: '16', name: 'Primer molar superior derecho' }
+    })
+    const piece = sections
+      .find(section => section.id === 'diagnosis')
+      .fields.find(field => field.key === 'dental_piece_id')
+
+    expect(piece.value).toBe('#16 · Primer molar superior derecho')
+  })
+})

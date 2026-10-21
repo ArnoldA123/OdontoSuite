@@ -608,7 +608,7 @@ function resolveField(definition, key) {
 
 function formatFieldValue(field, value, record) {
   if (field.type === 'dental-piece') {
-    const piece = record?.dentalPiece
+    const piece = record?.dental_piece
 
     if (!piece) return ''
 
