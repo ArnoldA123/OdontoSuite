@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\SourceGrep;
 
@@ -71,9 +72,7 @@ class LoginPageRenderTest extends TestCase
         return SourceGrep::count($pattern, ...$paths);
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_exactly_one_h1(): void
     {
         $this->assertFileExists(
@@ -92,9 +91,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_username_field_has_username_autocomplete(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -110,9 +107,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_password_field_has_current_password_autocomplete(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -124,9 +119,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_aria_live_region_for_errors(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -141,9 +134,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_no_animated_background_blobs(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -165,9 +156,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_references_no_stock_photography(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -188,9 +177,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_hosts_one_aria_hidden_parallax_backdrop(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -210,9 +197,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_no_hand_written_hex_literals(): void
     {
         $path = self::loginPagePath();
@@ -224,9 +209,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function not_found_page_has_escape_link_to_login(): void
     {
         $this->assertFileExists(
@@ -255,9 +238,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function not_found_page_has_exactly_one_h1(): void
     {
         $source = (string) file_get_contents(self::notFoundPath());
@@ -270,9 +251,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function not_found_page_references_committed_image(): void
     {
         $source = (string) file_get_contents(self::notFoundPath());
@@ -291,9 +270,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function not_found_page_has_no_hand_written_hex_literals(): void
     {
         $count = self::grepCount('#[0-9a-fA-F]{6}', self::notFoundPath());
@@ -304,9 +281,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function reset_password_modal_has_no_reset_token_in_ui(): void
     {
         $source = (string) file_get_contents(self::resetModalPath());
@@ -331,9 +306,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function auth_and_errors_modules_have_no_hand_written_hex_literals(): void
     {
         $authCount = self::grepCount('#[0-9a-fA-F]{6}', self::projectRootPath().self::AUTH_DIR_REL);
@@ -351,9 +324,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function auth_and_errors_modules_do_not_reference_gitignored_pexels_directory(): void
     {
         // Scope: the two module directories this PR3 slice owns.
@@ -473,9 +444,7 @@ class LoginPageRenderTest extends TestCase
     // refactors do not break the suite.
     // ====================================================================
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_floating_login_card(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -500,9 +469,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_footer_with_terms_and_contact(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -519,9 +486,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_has_no_image_fallback_machinery(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -537,9 +502,7 @@ class LoginPageRenderTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_overlays_do_not_fetch_dashboard_stats(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -555,9 +518,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_overlays_do_not_fetch_appointments_today(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -569,9 +530,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_overlays_do_not_fetch_users_active(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -583,9 +542,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_references_no_api_paths(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -597,9 +554,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_uses_shape_morph_composable(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -611,9 +566,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_submit_button_has_four_polymorphic_states(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -630,9 +583,7 @@ class LoginPageRenderTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_form_card_has_form_and_summary_states(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -657,9 +608,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_prefers_reduced_motion_collapses_polymorphism(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -680,8 +629,9 @@ class LoginPageRenderTest extends TestCase
     }
 
     /**
-     * @test (bonus)
+     * (bonus).
      */
+    #[Test]
     public function login_page_prefers_reduced_transparency_flattens_outer_card(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -703,9 +653,7 @@ class LoginPageRenderTest extends TestCase
     // not regress into a vertically scrolling login.
     // ====================================================================
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_constrains_card_to_viewport_height(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -717,9 +665,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_card_scrolls_internally(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -736,9 +682,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_shell_uses_viewport_height(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -750,9 +694,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_condenses_card_below_768(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -774,9 +716,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_card_is_a_keyboard_reachable_labelled_scroll_region(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -798,9 +738,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_announces_valid_state_through_a_polite_live_region(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -822,9 +760,7 @@ class LoginPageRenderTest extends TestCase
         );
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_min_length_rules_admit_seeded_credentials(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
@@ -867,9 +803,7 @@ class LoginPageRenderTest extends TestCase
         }
     }
 
-    /**
-     * @test
-     */
+    #[Test]
     public function login_page_centers_the_card_on_desktop(): void
     {
         $source = (string) file_get_contents(self::loginPagePath());
