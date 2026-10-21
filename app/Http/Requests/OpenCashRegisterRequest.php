@@ -84,7 +84,7 @@ class OpenCashRegisterRequest extends FormRequest
             if ($existingSession) {
                 $validator->errors()->add(
                     'session',
-                    'Ya existe una sesión de caja abierta para esta sucursal.'
+                    'Ya existe una sesión de caja abierta para este usuario y sucursal.'
                 );
             }
         });

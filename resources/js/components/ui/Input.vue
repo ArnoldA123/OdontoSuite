@@ -13,7 +13,26 @@
       </div>
 
       <!-- Input field -->
+      <textarea
+        v-if="type === 'textarea'"
+        :id="inputId"
+        :value="modelValue"
+        :placeholder="floatingLabel ? '' : placeholder"
+        :disabled="disabled"
+        :autocomplete="autocomplete"
+        :readonly="readonly"
+        :required="required"
+        :rows="rows"
+        :class="inputClasses"
+        :aria-describedby="hintId"
+        :aria-invalid="!!error"
+        @input="handleInput"
+        @focus="handleFocus"
+        @blur="handleBlur"
+        @keydown="handleKeydown"
+      />
       <input
+        v-else
         :id="inputId"
         :type="type"
         :value="modelValue"
@@ -90,11 +109,13 @@ const props = defineProps({
         'search',
         'date',
         'time',
-        'datetime-local'
+        'datetime-local',
+        'textarea'
       ].includes(value)
   },
   modelValue: [String, Number],
   placeholder: String,
+  rows: { type: Number, default: 3 },
   autocomplete: String,
   disabled: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },

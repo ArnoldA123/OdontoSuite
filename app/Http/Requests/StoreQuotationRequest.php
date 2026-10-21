@@ -3,9 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\LocalizedErrors;
+use App\Http\Requests\Concerns\SanitizesQuotationText;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 /**
  * FormRequest for creating a Quotation.
@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
  */
 class StoreQuotationRequest extends FormRequest
 {
-    use LocalizedErrors;
+    use LocalizedErrors, SanitizesQuotationText;
 
     /**
      * Determine if the user is authorized to make this request.
@@ -27,24 +27,6 @@ class StoreQuotationRequest extends FormRequest
     public function authorize(): bool
     {
         return in_array(Auth::user()->role, ['administrador', 'finanzas', 'odontologo', 'implantologo']);
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('terms_conditions')) {
-            $this->merge([
-                'terms_conditions' => Str::limit(strip_tags($this->terms_conditions), 2000),
-            ]);
-        }
-
-        if ($this->has('notes')) {
-            $this->merge([
-                'notes' => Str::limit(strip_tags($this->notes), 1000),
-            ]);
-        }
     }
 
     /**

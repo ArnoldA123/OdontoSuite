@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Http\Resources\AiImageAnalysisResource;
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
+use App\Models\User;
+use App\Support\DateFilter;
+use App\Support\PerPage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -405,31 +409,38 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener análisis por paciente.
      */
-    public function getAnalysisByPatient(int $patientId, array $filters = []): array
+    public function getAnalysisByPatient(int $patientId, array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'requestedBy', 'reviewedBy'])
             ->where('patient_id', $patientId);
 
-        if (isset($filters['status'])) {
+        if ($viewer) {
+            $query->visibleTo($viewer);
+        }
+
+        if (isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['reviewed'])) {
-            $query->where('reviewed', $filters['reviewed']);
+        if (isset($filters['reviewed']) && $filters['reviewed'] !== '') {
+            $query->where('reviewed', filter_var($filters['reviewed'], FILTER_VALIDATE_BOOLEAN));
         }
 
-        if (isset($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+        $dateFrom = DateFilter::normalize($filters['date_from'] ?? null);
+        if ($dateFrom !== null) {
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
-        if (isset($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+        $dateTo = DateFilter::normalize($filters['date_to'] ?? null);
+        if ($dateTo !== null) {
+            $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $analyses = $query->orderBy('created_at', 'desc')->paginate(15);
+        $analyses = $query->orderBy('created_at', 'desc')
+            ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
-            'data' => $analyses->items(),
+            'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
             'meta' => [
                 'current_page' => $analyses->currentPage(),
                 'last_page' => $analyses->lastPage(),
@@ -442,24 +453,29 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener análisis pendientes de revisión.
      */
-    public function getPendingAnalyses(array $filters = []): array
+    public function getPendingAnalyses(array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy'])
             ->where('status', 'completed')
             ->where('reviewed', false);
 
-        if (isset($filters['requested_by'])) {
-            $query->where('requested_by', $filters['requested_by']);
+        if ($viewer) {
+            $query->visibleTo($viewer);
         }
 
-        if (isset($filters['patient_id'])) {
-            $query->where('patient_id', $filters['patient_id']);
+        if (isset($filters['requested_by']) && is_numeric($filters['requested_by'])) {
+            $query->where('requested_by', (int) $filters['requested_by']);
         }
 
-        $analyses = $query->orderBy('created_at', 'desc')->paginate(15);
+        if (isset($filters['patient_id']) && is_numeric($filters['patient_id'])) {
+            $query->where('patient_id', (int) $filters['patient_id']);
+        }
+
+        $analyses = $query->orderBy('created_at', 'desc')
+            ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
         return [
-            'data' => $analyses->items(),
+            'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
             'meta' => [
                 'current_page' => $analyses->currentPage(),
                 'last_page' => $analyses->lastPage(),
@@ -472,43 +488,37 @@ Responde únicamente en formato JSON válido.';
     /**
      * Obtener estadísticas de uso de IA.
      */
-    public function getUsageStats(array $filters = []): array
+    public function getUsageStats(array $filters = [], ?User $viewer = null): array
     {
-        try {
-            $query = AiImageAnalysis::query();
+        // A failing metrics query must surface as a 500, never as a zeroed
+        // dashboard: "0 analyses" and "the query broke" are different facts and
+        // the surface already distinguishes empty from error.
+        $query = AiImageAnalysis::query();
 
-            if (isset($filters['date_from'])) {
-                $query->whereDate('created_at', '>=', $filters['date_from']);
-            }
-
-            if (isset($filters['date_to'])) {
-                $query->whereDate('created_at', '<=', $filters['date_to']);
-            }
-
-            $totalAnalyses = $query->count();
-            $completedAnalyses = $query->clone()->where('status', 'completed')->count();
-            $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
-            $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
-
-            return [
-                'total_analyses' => $totalAnalyses,
-                'completed_analyses' => $completedAnalyses,
-                'reviewed_analyses' => $reviewedAnalyses,
-                'pending_review' => $pendingReview,
-                'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
-                'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
-            ];
-        } catch (\Exception $e) {
-            Log::error('Error in getUsageStats: '.$e->getMessage());
-
-            return [
-                'total_analyses' => 0,
-                'completed_analyses' => 0,
-                'reviewed_analyses' => 0,
-                'pending_review' => 0,
-                'completion_rate' => 0,
-                'review_rate' => 0,
-            ];
+        if ($viewer) {
+            $query->visibleTo($viewer);
         }
+
+        if ($dateFrom = DateFilter::normalize($filters['date_from'] ?? null)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        if ($dateTo = DateFilter::normalize($filters['date_to'] ?? null)) {
+            $query->whereDate('created_at', '<=', $dateTo);
+        }
+
+        $totalAnalyses = $query->count();
+        $completedAnalyses = $query->clone()->where('status', 'completed')->count();
+        $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
+        $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
+
+        return [
+            'total_analyses' => $totalAnalyses,
+            'completed_analyses' => $completedAnalyses,
+            'reviewed_analyses' => $reviewedAnalyses,
+            'pending_review' => $pendingReview,
+            'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
+            'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
+        ];
     }
 }

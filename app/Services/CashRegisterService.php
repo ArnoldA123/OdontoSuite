@@ -147,7 +147,11 @@ class CashRegisterService
     {
         $query = CashRegisterSession::where('status', 'open');
 
-        if (! $this->userCanManageCashRegister()) {
+        // Cash follow-up S3: owner-or-administrador, the rule
+        // CashRegisterPolicy::view already enforces (#193). The previous guard
+        // used userCanManageCashRegister(), which admits the three cash roles
+        // and therefore never scoped anything.
+        if (Auth::user()?->role !== 'administrador') {
             $query->where('user_id', Auth::id());
         }
 
