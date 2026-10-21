@@ -14,7 +14,13 @@ use Illuminate\Support\Str;
  * validation with NO concept whitelist and no branch_id. This FormRequest
  * centralizes both:
  *  - branch_id → nullable, exists:branches,id
- *  - concept   → required, in:opening_balance,sale_refund,withdrawal,deposit,adjustment
+ *  - concept   → required, in:opening_balance,sale_refund,withdrawal,deposit
+ *
+ * Issue #195, decision B: `adjustment` is gone from both whitelists. The ledger
+ * cannot sign it (`cashFlow()` leaves adjustment rows out of cash_in/cash_out),
+ * so a manual movement of that type would record a correction that changes no
+ * figure. The closing snapshot still writes its own adjustment row through
+ * CashRegisterService::closeSession(), which bypasses this endpoint on purpose.
  *
  * @see openspec/changes/bugfix-2026-08/specs/02-form-requests.md
  */
@@ -68,8 +74,8 @@ class StoreCashMovementRequest extends FormRequest
             'cash_register_session_id' => 'required|exists:cash_register_sessions,id',
             // Slice 02 / T-02.11 — whitelist movement concepts (downstream
             // reports depend on a known catalog).
-            'concept' => 'required|in:opening_balance,sale_refund,withdrawal,deposit,adjustment',
-            'type' => 'required|in:income,expense,withdrawal,deposit,adjustment',
+            'concept' => 'required|in:opening_balance,sale_refund,withdrawal,deposit',
+            'type' => 'required|in:income,expense,withdrawal,deposit',
             'amount' => 'required|numeric|min:0.01',
             'description' => 'required|string|max:255',
             'notes' => 'nullable|string|max:500',
@@ -89,9 +95,9 @@ class StoreCashMovementRequest extends FormRequest
             'cash_register_session_id.required' => 'La sesión de caja es requerida.',
             'cash_register_session_id.exists' => 'La sesión de caja seleccionada no existe.',
             'concept.required' => 'El concepto del movimiento es requerido.',
-            'concept.in' => 'El concepto debe ser uno de: opening_balance, sale_refund, withdrawal, deposit, adjustment.',
+            'concept.in' => 'El concepto debe ser uno de: opening_balance, sale_refund, withdrawal, deposit.',
             'type.required' => 'El tipo de movimiento es requerido.',
-            'type.in' => 'El tipo debe ser income, expense, withdrawal, deposit o adjustment.',
+            'type.in' => 'El tipo debe ser income, expense, withdrawal o deposit.',
             'amount.required' => 'El monto es requerido.',
             'amount.numeric' => 'El monto debe ser un número.',
             'amount.min' => 'El monto debe ser mayor a 0 (mínimo 0.01).',
