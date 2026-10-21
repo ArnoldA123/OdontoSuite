@@ -42,6 +42,7 @@ const dashboardPayload = {
   totalPatients: 27,
   newPatients: 5,
   totalRevenue: 5320.5,
+  totalRefunds: 120,
   occupancyRate: 73.4,
   usedHours: 120,
   availableHours: 160,
@@ -50,8 +51,8 @@ const dashboardPayload = {
     { date: '2026-10-19', count: 5 }
   ],
   revenueByMonth: [
-    { month: '2026-09', revenue: 2100 },
-    { month: '2026-10', revenue: 3220.5 }
+    { month: '2026-09', revenue: 2100, refunds: 0 },
+    { month: '2026-10', revenue: 3220.5, refunds: 120 }
   ],
   professionalPerformance: [
     {
@@ -166,6 +167,8 @@ describe('business intelligence page (T7)', () => {
     expect(wrapper.find('[data-kpi-value="appointments"]').text()).toBe('42')
     expect(wrapper.find('[data-kpi-value="patients"]').text()).toBe('27')
     expect(wrapper.find('[data-kpi-caption="patients"]').text()).toContain('5 nuevos')
+    expect(wrapper.find('[data-kpi-caption="revenue"]').text()).toContain('Devoluciones')
+    expect(wrapper.find('[data-kpi-caption="revenue"]').text()).toMatch(/S\/\s120\.00/)
     expect(wrapper.find('[data-kpi-value="revenue"]').text()).toMatch(/S\/\s5,320\.50/)
     expect(wrapper.find('[data-kpi-value="occupancy"]').text()).toBe('73.4%')
     expect(wrapper.find('[data-kpi-caption="occupancy"]').text()).toContain('120 / 160 h')

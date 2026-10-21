@@ -311,37 +311,37 @@ modulos con WebSocket.
 `resources/js/components/ui/` contiene 33 componentes. Antes de crear un
 componente nuevo o un spinner/spinner/empty-state ad-hoc, busca aqui:
 
-| Componente                            | Cuando usarlo                                                                                                                       |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `Avatar.vue`                          | Mostrar iniciales o imagen de un usuario/paciente en cards y listas                                                                 |
-| `Badge.vue`                           | Etiqueta pequena con color semantico (estado, contador)                                                                             |
-| `Breadcrumbs.vue`                     | Navegacion jerarquica (Patient > PatientDetail > Edit)                                                                              |
-| `Button.vue`                          | Cualquier accion del usuario. 7 variants: primary / secondary / ghost / danger / success / warning / icon. Lleva ripple por defecto |
-| `Card.vue`                            | Contenedor visual. 5 variants: default / glass / flat / elevated / outlined                                                         |
-| `CurrencyInput.vue`                   | Input de monto con formato moneda (PEN/USD) y validacion                                                                            |
-| `DataTable.vue`                       | Tabla con sort, paginacion, seleccion multiple. Para listas > 10 items                                                              |
-| `EmptyState.vue`                      | Estado vacio con icono + titulo + descripcion + CTA                                                                                 |
-| `FileUpload.vue` / `FileUploader.vue` | Subida de archivos (imagenes, PDFs). Usar `FileUploader` para drag & drop                                                           |
-| `Input.vue`                           | Input de texto con floating label y validacion inline                                                                               |
-| `LazyImage.vue`                       | Imagen con lazy-loading nativo y placeholder                                                                                        |
-| `LoadingSpinner.vue`                  | Spinner de 3 anillos concentricos con la paleta correcta. Usar en vez de `border-purple-*` inline                                   |
-| `Modal.vue`                           | Dialog modal con `Teleport` y animacion scale+fade. Es la base de `ConfirmDialog`                                                   |
-| `NotificationToast.vue` / `Toast.vue` | Notificaciones efimeras. `Toast` para uso generico, `NotificationToast` para variantes con icono y color semantico                  |
-| `Pagination.vue`                      | Paginacion numerada, no reinventar                                                                                                  |
-| `PatientSelector.vue`                 | Selector buscable de paciente (reusado en citas, cotizaciones, historias)                                                           |
-| `ProcedureSelector.vue`               | Selector buscable de procedimiento del catalogo                                                                                     |
-| `RadioGroup.vue`                      | Grupo de radios con label y descripcion                                                                                             |
-| `ReceiptPreview.vue`                  | Vista previa de comprobante de pago (PDF)                                                                                           |
-| `RichTextEditor.vue`                  | Editor WYSIWYG para notas clinicas                                                                                                  |
-| `Select.vue`                          | Dropdown nativo estilado con la paleta                                                                                              |
-| `Sheet.vue`                           | Panel lateral deslizante (side panel)                                                                                               |
-| `Skeleton.vue`                        | Placeholder de carga animado. Usar en listas, cards, dashboards                                                                     |
-| `Tabs.vue`                            | Tabs horizontales con contenido lazy                                                                                                |
-| `StatusBadge.vue`                     | Badge de estado con variantes semanticas (`success` / `warning` / `error` / `info` / `neutral`)                                     |
-| `TreatmentPlanSelector.vue`           | Selector buscable de plan de tratamiento                                                                                            |
-| `UiTextarea.vue`                      | Textarea multilinea con validacion y contador                                                                                       |
-| `Pagination.vue`                      | Paginacion (ya listada, no duplicar)                                                                                                |
-| `ReceiptPreview.vue`                  | Vista previa de comprobante (ya listada)                                                                                            |
+| Componente                            | Cuando usarlo                                                                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Avatar.vue`                          | Mostrar iniciales o imagen de un usuario/paciente en cards y listas                                                                                                                                |
+| `Badge.vue`                           | Etiqueta pequena con color semantico (estado, contador)                                                                                                                                            |
+| `Breadcrumbs.vue`                     | Navegacion jerarquica (Patient > PatientDetail > Edit)                                                                                                                                             |
+| `Button.vue`                          | Cualquier accion del usuario. 7 variants: primary / secondary / ghost / danger / success / warning / icon. Lleva ripple por defecto                                                                |
+| `Card.vue`                            | Contenedor visual. 5 variants: default / glass / flat / elevated / outlined                                                                                                                        |
+| `CurrencyInput.vue`                   | Input de monto con formato moneda (PEN/USD) y validacion                                                                                                                                           |
+| `DataTable.vue`                       | Tabla con sort, paginacion, seleccion multiple. Para listas > 10 items                                                                                                                             |
+| `EmptyState.vue`                      | Estado vacio con icono + titulo + descripcion + CTA                                                                                                                                                |
+| `FileUpload.vue` / `FileUploader.vue` | Subida de archivos (imagenes, PDFs). Usar `FileUploader` para drag & drop                                                                                                                          |
+| `Input.vue`                           | Input de texto con floating label y validacion inline                                                                                                                                              |
+| `LazyImage.vue`                       | Imagen con lazy-loading nativo y placeholder                                                                                                                                                       |
+| `LoadingSpinner.vue`                  | Spinner de 3 anillos concentricos con la paleta correcta. Usar en vez de `border-purple-*` inline                                                                                                  |
+| `Modal.vue`                           | Dialog modal con `Teleport` y animacion scale+fade. Reenvia `$attrs` al nodo raiz, acepta `beforeClose` (puede vetar el cierre) y `labelledby` para headers propios. Es la base de `ConfirmDialog` |
+| `NotificationToast.vue` / `Toast.vue` | Notificaciones efimeras. `Toast` para uso generico, `NotificationToast` para variantes con icono y color semantico                                                                                 |
+| `Pagination.vue`                      | Paginacion numerada, no reinventar                                                                                                                                                                 |
+| `PatientSelector.vue`                 | Selector buscable de paciente (reusado en citas, cotizaciones, historias)                                                                                                                          |
+| `ProcedureSelector.vue`               | Selector buscable de procedimiento del catalogo                                                                                                                                                    |
+| `RadioGroup.vue`                      | Grupo de radios con label y descripcion                                                                                                                                                            |
+| `ReceiptPreview.vue`                  | Vista previa de comprobante de pago (PDF)                                                                                                                                                          |
+| `RichTextEditor.vue`                  | Editor WYSIWYG para notas clinicas                                                                                                                                                                 |
+| `Select.vue`                          | Dropdown nativo estilado con la paleta                                                                                                                                                             |
+| `Sheet.vue`                           | Panel lateral deslizante (side panel)                                                                                                                                                              |
+| `Skeleton.vue`                        | Placeholder de carga animado. Usar en listas, cards, dashboards                                                                                                                                    |
+| `Tabs.vue`                            | Tabs horizontales con contenido lazy                                                                                                                                                               |
+| `StatusBadge.vue`                     | Badge de estado con variantes semanticas (`success` / `warning` / `error` / `info` / `neutral`)                                                                                                    |
+| `TreatmentPlanSelector.vue`           | Selector buscable de plan de tratamiento                                                                                                                                                           |
+| `UiTextarea.vue`                      | Textarea multilinea con validacion y contador                                                                                                                                                      |
+| `Pagination.vue`                      | Paginacion (ya listada, no duplicar)                                                                                                                                                               |
+| `ReceiptPreview.vue`                  | Vista previa de comprobante (ya listada)                                                                                                                                                           |
 
 `resources/js/components/layout/` tiene 4 adicionales:
 

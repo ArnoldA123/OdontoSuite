@@ -48,6 +48,21 @@ Broadcast::channel('patients', function ($user) {
     ], true);
 });
 
+// Canal privado de presupuestos: el payload de lectura lleva el modelo
+// completo del presupuesto (datos del paciente y montos), por eso viaja solo
+// por un canal privado y la suscripción exige el handshake de
+// /api/broadcasting/auth. Los roles son los mismos que autorizan la lectura
+// en routes/api.php.
+Broadcast::channel('quotations', function ($user) {
+    if ($user === null) {
+        return false;
+    }
+
+    return in_array($user->role ?? null, [
+        'administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista',
+    ], true);
+});
+
 // Canal privado para sesiones de caja específicas
 Broadcast::channel('cash-session.{sessionId}', function ($user, $sessionId) {
     // Verificar que el usuario tenga acceso a esta sesión

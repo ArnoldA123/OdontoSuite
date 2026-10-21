@@ -76,8 +76,10 @@ const props = defineProps({
     type: String,
     default: ''
   },
+  // `Function` covers functional components such as @heroicons/vue, which Vue
+  // registers as functions even though they are valid `<component :is>` targets.
   icon: {
-    type: [String, Object],
+    type: [String, Object, Function],
     default: null
   },
   illustration: {

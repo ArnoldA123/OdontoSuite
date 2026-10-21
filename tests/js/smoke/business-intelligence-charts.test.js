@@ -65,6 +65,7 @@ const dashboardPayload = {
   totalPatients: 27,
   newPatients: 5,
   totalRevenue: 5320.5,
+  totalRefunds: 120,
   occupancyRate: 73.4,
   usedHours: 120,
   availableHours: 160,
@@ -106,7 +107,8 @@ const revenuePayload = {
   columns: [
     { key: 'type', label: 'Tipo' },
     { key: 'category', label: 'Categoría' },
-    { key: 'total_revenue', label: 'Ingresos Cobrados (S/)' }
+    { key: 'total_revenue', label: 'Ingresos netos (S/)' },
+    { key: 'refunds', label: 'Devoluciones (S/)' }
   ],
   meta: {
     message: 'ok',
@@ -216,7 +218,7 @@ describe('business intelligence charts (T8)', () => {
     expect(appointmentsCanvas.attributes('role')).toBe('img')
     expect(appointmentsCanvas.attributes('aria-label')).toBe('Citas por día')
     expect(revenueCanvas.attributes('role')).toBe('img')
-    expect(revenueCanvas.attributes('aria-label')).toBe('Ingresos cobrados por mes')
+    expect(revenueCanvas.attributes('aria-label')).toBe('Ingresos netos por mes')
     expect(appointmentsCanvas.element.closest('.h-64')).toBeTruthy()
     expect(revenueCanvas.element.closest('.h-64')).toBeTruthy()
 
@@ -278,7 +280,7 @@ describe('business intelligence charts (T8)', () => {
 
     const chartCanvas = wrapper.find('canvas[data-chart="revenue-by-day"]')
     expect(chartCanvas.attributes('role')).toBe('img')
-    expect(chartCanvas.attributes('aria-label')).toBe('Ingresos cobrados por día')
+    expect(chartCanvas.attributes('aria-label')).toBe('Ingresos netos por día')
     expect(wrapper.find('canvas[data-chart="appointments-by-day"]').exists()).toBe(false)
 
     wrapper.unmount()

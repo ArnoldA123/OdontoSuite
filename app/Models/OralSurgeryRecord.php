@@ -17,20 +17,16 @@ class OralSurgeryRecord extends Model
         'created_by',
         'procedure_type',
         'surgery_site',
-        'surgery_date',
         'surgery_start_time',
         'surgery_end_time',
         'surgery_duration_minutes',
         'anesthesia_type',
-        'anesthesia_duration_minutes',
+        'anesthesia_amount',
         'surgical_technique',
-        'incision_type',
+        'surgical_notes',
         'sutures_used',
-        'suture_material',
-        'suture_technique',
         'suture_count',
         'complications',
-        'bleeding_control',
         'hemostasis_method',
         'post_surgical_instructions',
         'medications_prescribed',
@@ -38,20 +34,17 @@ class OralSurgeryRecord extends Model
         'healing_assessment',
         'suture_removal_date',
         'final_assessment',
-        'follow_up_notes',
         'recovery_notes',
         'vital_signs',
         'follow_up_date',
+        'follow_up_notes',
         'status',
     ];
 
     protected $casts = [
-        'surgery_date' => 'date',
-        'suture_removal_date' => 'date',
         'surgery_start_time' => 'string',
         'surgery_end_time' => 'string',
         'surgery_duration_minutes' => 'integer',
-        'anesthesia_duration_minutes' => 'integer',
         'suture_count' => 'integer',
     ];
 
@@ -97,9 +90,9 @@ class OralSurgeryRecord extends Model
         return $query->where('status', 'completed');
     }
 
-    public function scopeInRecovery($query)
+    public function scopeCancelled($query)
     {
-        return $query->where('status', 'in_recovery');
+        return $query->where('status', 'cancelled');
     }
 
     public function scopeWithComplications($query)
@@ -114,9 +107,8 @@ class OralSurgeryRecord extends Model
             'scheduled' => 'Programada',
             'in_progress' => 'En Progreso',
             'completed' => 'Completada',
-            'in_recovery' => 'En Recuperación',
-            'follow_up' => 'Seguimiento',
-            'healed' => 'Curada',
+            'cancelled' => 'Cancelada',
+            'complications' => 'Con Complicaciones',
         ];
 
         return $labels[$this->status] ?? $this->status;

@@ -173,7 +173,7 @@ class BusinessIntelligenceRenderTest extends TestCase
 
         $this->assertIsArray($summary);
         $this->assertEqualsCanonicalizing(
-            ['appointments_count', 'total_revenue', 'average_per_appointment', 'period'],
+            ['appointments_count', 'total_revenue', 'refunds', 'average_per_appointment', 'period'],
             array_keys($summary)
         );
         $this->assertSame(1, $summary['appointments_count']);

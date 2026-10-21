@@ -2,6 +2,16 @@ import { ref, computed } from 'vue'
 import { useApi } from './useApi'
 import { useToast } from './useToast'
 
+/**
+ * Data layer for the AI analysis module.
+ *
+ * One notice per context: this composable never announces an error that a
+ * consumer surface already paints. Reads rethrow so the page owns its retry
+ * block, `uploadAndAnalyze` stays silent because `AiAnalysisSheet` renders the
+ * inline message, and `getAnalysisByAttachment` still resolves `null` for "no
+ * analysis yet". Only actions with no consumer error surface (`analyzeImage`,
+ * `reviewAnalysis`, `deleteAnalysis`) keep the error toast.
+ */
 export function useAiAnalysis() {
   const { get, post, delete: del } = useApi()
   const { success, error } = useToast()
@@ -54,9 +64,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis/patient/${patientId}?${params}`)
       analyses.value = response.data
       return response
-    } catch (err) {
-      error('Error al obtener análisis del paciente')
-      throw err
     } finally {
       loading.value = false
     }
@@ -72,9 +79,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis/pending?${params}`)
       analyses.value = response.data
       return response
-    } catch (err) {
-      error('Error al obtener análisis pendientes')
-      throw err
     } finally {
       loading.value = false
     }
@@ -90,9 +94,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis?${params}`)
       analyses.value = response.data
       return response
-    } catch (err) {
-      error('Error al obtener análisis')
-      throw err
     } finally {
       loading.value = false
     }
@@ -107,9 +108,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis/${id}`)
       analysis.value = response.data
       return response.data
-    } catch (err) {
-      error('Error al obtener análisis')
-      throw err
     } finally {
       loading.value = false
     }
@@ -146,9 +144,6 @@ export function useAiAnalysis() {
       const response = await get(`/api/ai-analysis/stats?${params}`)
       stats.value = response.data
       return response.data
-    } catch (err) {
-      error('Error al obtener estadísticas')
-      throw err
     } finally {
       loading.value = false
     }
@@ -199,9 +194,6 @@ export function useAiAnalysis() {
 
       success('Análisis completado exitosamente')
       return response.data
-    } catch (err) {
-      error(err.response?.data?.message || 'Error al analizar la imagen')
-      throw err
     } finally {
       loading.value = false
     }

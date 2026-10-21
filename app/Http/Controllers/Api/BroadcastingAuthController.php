@@ -58,6 +58,13 @@ class BroadcastingAuthController extends Controller
                     'administrador', 'recepcionista', 'odontologo', 'implantologo',
                     'tecnico_dental', 'asistente', 'finanzas',
                 ], true);
+            } elseif ($cleanChannelName === 'quotations') {
+                // Canal con datos del paciente y montos: solo los roles con
+                // lectura de presupuestos (routes/api.php). Cualquier rol
+                // nuevo queda fuera hasta que se agregue explicitamente.
+                $authorized = in_array($user->role ?? null, [
+                    'administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista',
+                ], true);
             } elseif ($cleanChannelName === 'patients') {
                 // Canal con datos clínicos del paciente: solo roles con
                 // acceso a la ficha (PatientPolicy::viewAny). Cualquier rol

@@ -252,7 +252,7 @@
             data-kpi-card="revenue"
             :style="{ boxShadow: 'var(--elevation-2)', borderColor: 'var(--color-hairline)' }"
           >
-            <p class="text-xs font-medium uppercase text-theme-secondary">Ingresos cobrados</p>
+            <p class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</p>
             <p
               class="mt-2 text-2xl font-bold leading-none text-systemGreen-600 tabular-nums"
               data-kpi-value="revenue"
@@ -260,7 +260,7 @@
               {{ formatCurrency(dashboard.totalRevenue) }}
             </p>
             <p class="mt-1 text-xs text-theme-secondary" data-kpi-caption="revenue">
-              Pagos completados
+              Devoluciones {{ formatCurrency(dashboard.totalRefunds) }}
             </p>
           </UiCard>
 
@@ -314,14 +314,14 @@
             data-chart-card="revenue-by-month"
           >
             <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Cobrados por Mes</h2>
+              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Mes</h2>
             </template>
             <div class="h-64">
               <canvas
                 ref="revenueChartRef"
                 data-chart="revenue-by-month"
                 role="img"
-                aria-label="Ingresos cobrados por mes"
+                aria-label="Ingresos netos por mes"
               />
             </div>
           </UiCard>
@@ -332,7 +332,7 @@
             <template #header>
               <h2 class="text-lg font-semibold text-theme-primary">Resumen del período</h2>
             </template>
-            <dl class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <dl class="grid grid-cols-1 gap-4 md:grid-cols-4">
               <div>
                 <dt class="text-xs font-medium uppercase text-theme-secondary">
                   Citas completadas
@@ -345,14 +345,21 @@
                 </dd>
               </div>
               <div>
-                <dt class="text-xs font-medium uppercase text-theme-secondary">
-                  Ingresos cobrados
-                </dt>
+                <dt class="text-xs font-medium uppercase text-theme-secondary">Ingresos netos</dt>
                 <dd
                   class="mt-1 text-xl font-semibold text-label tabular-nums"
                   data-revenue-summary="revenue"
                 >
                   {{ formatCurrency(revenueSummary.total_revenue) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium uppercase text-theme-secondary">Devoluciones</dt>
+                <dd
+                  class="mt-1 text-xl font-semibold text-label tabular-nums"
+                  data-revenue-summary="refunds"
+                >
+                  {{ formatCurrency(revenueSummary.refunds) }}
                 </dd>
               </div>
               <div>
@@ -378,14 +385,14 @@
         >
           <UiCard variant="glass" data-chart-card="revenue-by-day">
             <template #header>
-              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Cobrados por Día</h2>
+              <h2 class="text-lg font-semibold text-theme-primary">Ingresos Netos por Día</h2>
             </template>
             <div class="h-64">
               <canvas
                 ref="dailyRevenueChartRef"
                 data-chart="revenue-by-day"
                 role="img"
-                aria-label="Ingresos cobrados por día"
+                aria-label="Ingresos netos por día"
               />
             </div>
           </UiCard>
@@ -486,7 +493,13 @@ import DashboardSectionError from '../dashboard/DashboardSectionError.vue'
 
 const DASHBOARD_ENDPOINT = '/api/reports/dashboard'
 const FALLBACK_ERROR = 'Revisa tu conexión y vuelve a intentarlo.'
-const MONEY_KEYS = new Set(['price', 'total_spent', 'total_revenue', 'average_per_appointment'])
+const MONEY_KEYS = new Set([
+  'price',
+  'total_spent',
+  'total_revenue',
+  'refunds',
+  'average_per_appointment'
+])
 const EXPORT_EXTENSIONS = { excel: 'xls', csv: 'csv', pdf: 'pdf' }
 
 const EMPTY_DASHBOARD = {
@@ -494,6 +507,7 @@ const EMPTY_DASHBOARD = {
   totalPatients: 0,
   newPatients: 0,
   totalRevenue: 0,
+  totalRefunds: 0,
   occupancyRate: 0,
   usedHours: 0,
   availableHours: 0,
@@ -538,7 +552,13 @@ const professionalColumns = [
   { key: 'appointments', label: 'Citas', align: 'right' },
   {
     key: 'revenue',
-    label: 'Ingresos cobrados',
+    label: 'Ingresos netos',
+    align: 'right',
+    formatter: value => formatCurrency(value)
+  },
+  {
+    key: 'refunds',
+    label: 'Devoluciones',
     align: 'right',
     formatter: value => formatCurrency(value)
   },
@@ -680,6 +700,7 @@ const normalizeDashboard = payload => ({
   totalPatients: Number(payload?.totalPatients ?? 0),
   newPatients: Number(payload?.newPatients ?? 0),
   totalRevenue: Number(payload?.totalRevenue ?? 0),
+  totalRefunds: Number(payload?.totalRefunds ?? 0),
   occupancyRate: Number(payload?.occupancyRate ?? 0),
   usedHours: Number(payload?.usedHours ?? 0),
   availableHours: Number(payload?.availableHours ?? 0),
@@ -746,7 +767,7 @@ const revenueByMonthChartConfig = () => ({
     labels: dashboard.value.revenueByMonth.map(item => item.month),
     datasets: [
       {
-        label: 'Ingresos cobrados (S/)',
+        label: 'Ingresos netos (S/)',
         data: dashboard.value.revenueByMonth.map(item => Number(item.revenue || 0)),
         backgroundColor: `${colors.systemGreen[500]}cc`,
         borderColor: colors.systemGreen[500],
@@ -770,7 +791,7 @@ const revenueByDayChartConfig = () => ({
     labels: porDiaRows.value.map(row => row.category),
     datasets: [
       {
-        label: 'Ingresos cobrados (S/)',
+        label: 'Ingresos netos (S/)',
         data: porDiaRows.value.map(row => Number(row.total_revenue || 0)),
         backgroundColor: `${colors.accent[500]}cc`,
         borderColor: colors.accent[500],

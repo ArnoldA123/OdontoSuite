@@ -889,7 +889,7 @@ const createCountUp = (readTarget, format = value => Math.round(value)) => {
  * `completed` / `cancelled` so no raw cash key can ride this map.
  */
 const APPOINTMENT_STATUS = {
-  scheduled: { text: 'Programada', variant: 'secondary', outcome: 'pending' },
+  scheduled: { text: 'Programada', variant: 'neutral', outcome: 'pending' },
   confirmed: { text: 'Confirmada', variant: 'success', outcome: 'pending' },
   in_consultation: { text: 'En Consulta', variant: 'warning', outcome: 'pending' },
   completed: { text: 'Completada', variant: 'primary', outcome: 'completed' },
@@ -898,7 +898,7 @@ const APPOINTMENT_STATUS = {
 }
 
 const appointmentStatusMeta = status =>
-  APPOINTMENT_STATUS[status] || { text: status, variant: 'secondary', outcome: 'pending' }
+  APPOINTMENT_STATUS[status] || { text: status, variant: 'neutral', outcome: 'pending' }
 
 /**
  * WU1 - the three day counts, derived from the SAME list the agenda

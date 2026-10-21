@@ -3,7 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Appointment;
-use App\Models\Transaction;
+use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class RevenueReportService
 {
+    use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
     private const SUMMARY_GROUP = 'Sin cita asociada';
@@ -18,9 +19,9 @@ class RevenueReportService
     /**
      * Revenue report.
      *
-     * Money means collected payments (D1) and each payment lands in exactly one
-     * row of every cut, so the column adds up to the summary instead of double
-     * counting the clinic total (D8).
+     * Money is net (D1, S4): completed payments minus completed refunds. Each
+     * movement lands in exactly one row of every cut, so the columns add up to
+     * the summary instead of double counting the clinic total (D8).
      */
     public function getReportData(array $filters = []): array
     {
@@ -28,7 +29,7 @@ class RevenueReportService
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
 
-        $totalRevenue = (float) $this->revenueQuery($startDate, $endDate, $professionalId, $environmentId)->sum('transactions.amount');
+        $totals = $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId));
         $completedAppointments = $this->completedAppointments($startDate, $endDate, $professionalId, $environmentId);
 
         $data = [];
@@ -42,32 +43,38 @@ class RevenueReportService
 
         foreach ($cuts as $type => $rows) {
             foreach ($rows as $row) {
+                $appointments = (int) $row->appointments_count;
+                $net = round((float) $row->total_revenue, 2);
+
                 $data[] = [
                     'type' => $type,
                     'category' => $row->category,
-                    'appointments_count' => (int) $row->appointments_count,
-                    'total_revenue' => round((float) $row->total_revenue, 2),
-                    'average_per_appointment' => $row->appointments_count > 0
-                        ? round((float) $row->total_revenue / (int) $row->appointments_count, 2)
+                    'appointments_count' => $appointments,
+                    'total_revenue' => $net,
+                    'refunds' => round((float) $row->refunds, 2),
+                    'average_per_appointment' => $appointments > 0
+                        ? round($net / $appointments, 2)
                         : 0,
                 ];
             }
         }
 
-        // Residual: payments whose appointment no longer resolves (missing or
+        // Residual: money whose appointment no longer resolves (missing or
         // soft-deleted). Each cut above adds up to the attributed total on its
         // own, so the unlinked money is one extra group, never subtracted from a
-        // cut that already balances.
-        $attributed = (float) $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
-            ->sum('transactions.amount');
-        $residual = round($totalRevenue - $attributed, 2);
+        // cut that already balances. Refunds follow the same key as payments,
+        // so they can land here too.
+        $attributed = $this->moneyTotals($this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId));
+        $residualNet = round($totals['net'] - $attributed['net'], 2);
+        $residualRefunds = round($totals['refunds'] - $attributed['refunds'], 2);
 
-        if (abs($residual) >= 0.01) {
+        if (abs($residualNet) >= 0.01 || abs($residualRefunds) >= 0.01) {
             $data[] = [
                 'type' => self::SUMMARY_GROUP,
-                'category' => 'Pagos sin cita resoluble',
+                'category' => 'Movimientos sin cita resoluble',
                 'appointments_count' => 0,
-                'total_revenue' => $residual,
+                'total_revenue' => $residualNet,
+                'refunds' => $residualRefunds,
                 'average_per_appointment' => 0,
             ];
         }
@@ -78,34 +85,25 @@ class RevenueReportService
                 ['key' => 'type', 'label' => 'Tipo'],
                 ['key' => 'category', 'label' => 'Categoría'],
                 ['key' => 'appointments_count', 'label' => 'Número de Citas'],
-                ['key' => 'total_revenue', 'label' => 'Ingresos Cobrados (S/)'],
+                ['key' => 'total_revenue', 'label' => 'Ingresos netos (S/)'],
+                ['key' => 'refunds', 'label' => 'Devoluciones (S/)'],
                 ['key' => 'average_per_appointment', 'label' => 'Promedio por Cita (S/)'],
             ],
             'summary' => [
                 'appointments_count' => $completedAppointments,
-                'total_revenue' => round($totalRevenue, 2),
+                'total_revenue' => $totals['net'],
+                'refunds' => $totals['refunds'],
                 'average_per_appointment' => $completedAppointments > 0
-                    ? round($totalRevenue / $completedAppointments, 2)
+                    ? round($totals['net'] / $completedAppointments, 2)
                     : 0,
                 'period' => $this->periodLabel($startDate, $endDate),
             ],
         ];
     }
 
-    /**
-     * Completed payments inside the period.
-     */
-    private function baseRevenueQuery(Carbon $startDate, Carbon $endDate): Builder
-    {
-        return Transaction::query()
-            ->where('transactions.type', 'payment')
-            ->where('transactions.status', 'completed')
-            ->whereBetween('transactions.created_at', [$startDate, $endDate]);
-    }
-
     private function revenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
     {
-        $query = $this->baseRevenueQuery($startDate, $endDate);
+        $query = $this->moneyTransactions($startDate, $endDate);
 
         if ($professionalId || $environmentId) {
             $query->whereHas('appointment', function ($subQ) use ($professionalId, $environmentId) {
@@ -124,7 +122,7 @@ class RevenueReportService
 
     private function joinedRevenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
     {
-        return $this->baseRevenueQuery($startDate, $endDate)
+        return $this->moneyTransactions($startDate, $endDate)
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
             ->when($professionalId, fn (Builder $q) => $q->where('appointments.user_id', $professionalId))
             ->when($environmentId, fn (Builder $q) => $q->where('appointments.dental_chair_id', $environmentId));
@@ -135,11 +133,12 @@ class RevenueReportService
         return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
             ->join('appointment_types', 'appointment_types.id', '=', 'appointments.appointment_type_id')
             ->groupBy('appointment_types.name')
-            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
+            ->orderByDesc(DB::raw($this->netTotalsSql()))
             ->select(
                 'appointment_types.name as category',
-                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
-                DB::raw('SUM(transactions.amount) as total_revenue')
+                DB::raw($this->paidAppointmentsSql().' as appointments_count'),
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
             )
             ->get()
             ->all();
@@ -150,11 +149,12 @@ class RevenueReportService
         return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
             ->join('users', 'users.id', '=', 'appointments.user_id')
             ->groupBy('users.name')
-            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
+            ->orderByDesc(DB::raw($this->netTotalsSql()))
             ->select(
                 'users.name as category',
-                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
-                DB::raw('SUM(transactions.amount) as total_revenue')
+                DB::raw($this->paidAppointmentsSql().' as appointments_count'),
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
             )
             ->get()
             ->all();
@@ -165,11 +165,12 @@ class RevenueReportService
         return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
             ->join('dental_chairs', 'dental_chairs.id', '=', 'appointments.dental_chair_id')
             ->groupBy('dental_chairs.name')
-            ->orderByDesc(DB::raw('SUM(transactions.amount)'))
+            ->orderByDesc(DB::raw($this->netTotalsSql()))
             ->select(
                 'dental_chairs.name as category',
-                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
-                DB::raw('SUM(transactions.amount) as total_revenue')
+                DB::raw($this->paidAppointmentsSql().' as appointments_count'),
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
             )
             ->get()
             ->all();
@@ -177,13 +178,16 @@ class RevenueReportService
 
     private function revenueByDay(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
     {
+        // The day cut feeds a time series, so it keeps chronological order;
+        // the other cuts rank by money.
         return $this->joinedRevenueQuery($startDate, $endDate, $professionalId, $environmentId)
             ->groupBy(DB::raw('DATE(transactions.created_at)'))
             ->orderBy(DB::raw('DATE(transactions.created_at)'))
             ->select(
                 DB::raw('DATE(transactions.created_at) as category'),
-                DB::raw('COUNT(DISTINCT transactions.appointment_id) as appointments_count'),
-                DB::raw('SUM(transactions.amount) as total_revenue')
+                DB::raw($this->paidAppointmentsSql().' as appointments_count'),
+                DB::raw($this->netTotalsSql().' as total_revenue'),
+                DB::raw($this->refundTotalsSql().' as refunds')
             )
             ->get()
             ->all();

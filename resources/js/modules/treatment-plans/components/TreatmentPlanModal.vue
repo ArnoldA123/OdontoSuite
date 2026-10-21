@@ -1,26 +1,14 @@
 <template>
-  <div
+  <UiModal
     data-plan-modal
-    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm sm:items-center sm:p-6"
-    @click.self="handleClose"
+    model-value
+    size="4xl"
+    :labelledby="titleId"
+    :before-close="confirmClose"
+    @close="emit('close')"
   >
-    <div
-      role="dialog"
-      aria-modal="true"
-      :aria-labelledby="titleId"
-      tabindex="-1"
-      class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-panel)]"
-      style="
-        background: var(--color-surface-elevated);
-        border: 1px solid var(--color-hairline);
-        box-shadow: var(--elevation-2);
-      "
-      @click.stop
-    >
-      <header
-        class="flex items-start justify-between gap-4 p-5 md:p-6"
-        style="border-bottom: 1px solid var(--color-hairline)"
-      >
+    <template #header>
+      <div class="flex w-full items-start justify-between gap-4">
         <div class="min-w-0">
           <p class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
             Plan de tratamiento
@@ -44,370 +32,354 @@
           size="sm"
           aria-label="Cerrar plan"
           data-plan-close
-          @click="handleClose"
+          @click="requestClose"
         >
           <XMarkIcon class="h-5 w-5" aria-hidden="true" />
         </UiButton>
-      </header>
+      </div>
+    </template>
 
-      <form class="flex min-h-0 flex-1 flex-col" novalidate @submit.prevent="handleSubmit">
-        <div
-          class="flex-1 space-y-4 overflow-y-auto p-4 md:p-6"
-          style="background: var(--color-canvas)"
-        >
-          <!-- Patient + core plan identity -->
-          <UiCard variant="glass" padding="md">
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-              Paciente y plan
-            </h3>
+    <form id="treatment-plan-form" class="space-y-4" novalidate @submit.prevent="handleSubmit">
+      <!-- Patient + core plan identity -->
+      <UiCard variant="glass" padding="md">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Paciente y plan
+        </h3>
 
-            <div class="mt-4 space-y-4">
-              <div data-plan-field="patient">
-                <PatientSelector
-                  v-model="selectedPatient"
-                  @patient-selected="handlePatientChange"
-                  @create-patient="openCreatePatient"
-                />
-                <p
-                  v-if="errors.patient_id"
-                  role="alert"
-                  class="mt-2 text-sm font-medium text-systemRed-600"
-                  data-plan-error="patient_id"
-                >
-                  {{ errors.patient_id }}
-                </p>
-              </div>
+        <div class="mt-4 space-y-4">
+          <div data-plan-field="patient">
+            <PatientSelector
+              v-model="selectedPatient"
+              @patient-selected="handlePatientChange"
+              @create-patient="openCreatePatient"
+            />
+            <p
+              v-if="errors.patient_id"
+              role="alert"
+              class="mt-2 text-sm font-medium text-systemRed-600"
+              data-plan-error="patient_id"
+            >
+              {{ errors.patient_id }}
+            </p>
+          </div>
 
-              <div ref="titleField" data-plan-field="title">
-                <UiInput
-                  v-model="form.title"
-                  label="Título del plan"
-                  required
-                  placeholder="Ej: Rehabilitación completa superior"
-                  :error="errors.title"
-                />
-              </div>
+          <div ref="titleField" data-plan-field="title">
+            <UiInput
+              v-model="form.title"
+              label="Título del plan"
+              required
+              placeholder="Ej: Rehabilitación completa superior"
+              :error="errors.title"
+            />
+          </div>
 
-              <div data-plan-field="description">
-                <label
-                  class="mb-2 block text-sm font-medium text-theme-primary"
-                  for="plan-description"
-                >
-                  Descripción
-                </label>
-                <UiTextarea
-                  id="plan-description"
-                  v-model="form.description"
-                  :rows="2"
-                  placeholder="Descripción general del plan (opcional)..."
-                />
-              </div>
-            </div>
-          </UiCard>
+          <div data-plan-field="description">
+            <label class="mb-2 block text-sm font-medium text-theme-primary" for="plan-description">
+              Descripción
+            </label>
+            <UiTextarea
+              id="plan-description"
+              v-model="form.description"
+              :rows="2"
+              placeholder="Descripción general del plan (opcional)..."
+            />
+          </div>
+        </div>
+      </UiCard>
 
-          <!-- Scheduling + flags -->
-          <UiCard variant="glass" padding="md">
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-              Configuración y fechas
-            </h3>
+      <!-- Scheduling + flags -->
+      <UiCard variant="glass" padding="md">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Configuración y fechas
+        </h3>
 
-            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <UiInput
-                v-model="form.estimated_duration_weeks"
-                data-plan-field="estimated_duration_weeks"
-                type="number"
-                label="Duración estimada (semanas)"
-                min="1"
-                max="104"
-              />
-              <UiInput
-                v-model="form.start_date"
-                data-plan-field="start_date"
-                type="date"
-                label="Fecha de inicio"
-              />
-              <UiInput
-                v-model="form.end_date"
-                data-plan-field="end_date"
-                type="date"
-                label="Fecha de fin"
-              />
-              <UiInput
-                v-model="form.phases_count"
-                data-plan-field="phases_count"
-                type="number"
-                label="N° de fases"
-                min="1"
-                max="10"
-              />
-            </div>
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <UiInput
+            v-model="form.estimated_duration_weeks"
+            data-plan-field="estimated_duration_weeks"
+            type="number"
+            label="Duración estimada (semanas)"
+            min="1"
+            max="104"
+          />
+          <UiInput
+            v-model="form.start_date"
+            data-plan-field="start_date"
+            type="date"
+            label="Fecha de inicio"
+          />
+          <UiInput
+            v-model="form.end_date"
+            data-plan-field="end_date"
+            type="date"
+            label="Fecha de fin"
+          />
+          <UiInput
+            v-model="form.phases_count"
+            data-plan-field="phases_count"
+            type="number"
+            label="N° de fases"
+            min="1"
+            max="10"
+          />
+        </div>
 
-            <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label
-                class="flex cursor-pointer items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5"
-                style="
-                  border: 1px solid var(--color-hairline);
-                  background: var(--color-surface-elevated);
-                "
-              >
-                <input
-                  v-model="form.requires_anesthesia"
-                  type="checkbox"
-                  class="h-4 w-4"
-                  style="accent-color: var(--color-accent)"
-                />
-                <span class="text-sm font-medium text-theme-primary">Requiere anestesia</span>
-              </label>
-
-              <label
-                class="flex cursor-pointer items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5"
-                style="
-                  border: 1px solid var(--color-hairline);
-                  background: var(--color-surface-elevated);
-                "
-              >
-                <input
-                  v-model="form.is_urgent"
-                  type="checkbox"
-                  class="h-4 w-4"
-                  style="accent-color: var(--color-system-red-500)"
-                />
-                <span class="text-sm font-semibold text-systemRed-600">Urgente</span>
-              </label>
-            </div>
-          </UiCard>
-
-          <!-- Procedures editor -->
-          <UiCard variant="glass" padding="md">
-            <div class="flex items-center justify-between gap-3">
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-                Procedimientos
-              </h3>
-              <span
-                class="inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums text-theme-secondary"
-                style="border: 1px solid var(--color-hairline)"
-                data-plan-item-count
-              >
-                {{ form.items.length }}
-              </span>
-            </div>
-
-            <div class="mt-4 space-y-3">
-              <div
-                v-for="(item, index) in form.items"
-                :key="index"
-                data-plan-item
-                class="rounded-[var(--radius-control)] p-3"
-                style="
-                  border: 1px solid var(--color-hairline);
-                  background: var(--color-surface-elevated);
-                "
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex min-w-0 items-center gap-2">
-                    <span
-                      class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums text-theme-secondary"
-                      style="border: 1px solid var(--color-hairline)"
-                    >
-                      {{ index + 1 }}
-                    </span>
-                    <span class="truncate text-sm font-medium text-theme-primary">
-                      {{ item.procedure_name || 'Nuevo procedimiento' }}
-                    </span>
-                  </div>
-
-                  <div class="flex flex-shrink-0 items-center gap-3">
-                    <span
-                      class="text-sm font-semibold tabular-nums text-label"
-                      :data-plan-item-total="index"
-                    >
-                      {{ formatCurrency(lineTotal(item)) }}
-                    </span>
-                    <UiButton
-                      variant="icon"
-                      size="xs"
-                      aria-label="Quitar procedimiento"
-                      :disabled="form.items.length === 1"
-                      @click="removeItem(index)"
-                    >
-                      <TrashIcon class="h-4 w-4" aria-hidden="true" />
-                    </UiButton>
-                  </div>
-                </div>
-
-                <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div class="md:col-span-3" data-plan-item-field="name">
-                    <UiInput
-                      v-model="item.procedure_name"
-                      size="sm"
-                      label="Procedimiento"
-                      placeholder="Ej: Limpieza, Corona, Endodoncia"
-                      :error="errors[`items.${index}.procedure_name`]"
-                    />
-                  </div>
-
-                  <div class="md:col-span-3" data-plan-item-field="description">
-                    <UiInput
-                      v-model="item.description"
-                      size="sm"
-                      label="Descripción breve (opcional)"
-                      placeholder="Detalle del procedimiento"
-                    />
-                  </div>
-
-                  <div data-plan-item-field="quantity">
-                    <UiInput
-                      v-model="item.quantity"
-                      size="sm"
-                      type="number"
-                      label="Cantidad"
-                      min="0.01"
-                      step="0.01"
-                    />
-                  </div>
-
-                  <div data-plan-item-field="unit_cost">
-                    <UiInput
-                      v-model="item.unit_cost"
-                      size="sm"
-                      type="number"
-                      label="Precio unitario"
-                      min="0"
-                      step="0.01"
-                      :error="errors[`items.${index}.unit_cost`]"
-                    >
-                      <template #prefix>
-                        <span class="text-xs text-theme-secondary">S/</span>
-                      </template>
-                    </UiInput>
-                  </div>
-
-                  <div data-plan-item-field="phase_number">
-                    <UiInput
-                      v-model="item.phase_number"
-                      size="sm"
-                      type="number"
-                      label="Fase"
-                      min="1"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <UiButton variant="secondary" size="sm" class="mt-4" @click="addItem">
-              <template #icon-left>
-                <PlusIcon class="h-4 w-4" aria-hidden="true" />
-              </template>
-              Agregar procedimiento
-            </UiButton>
-          </UiCard>
-
-          <!-- Notes -->
-          <UiCard variant="glass" padding="md">
-            <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
-              Notas
-            </h3>
-
-            <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label class="mb-2 block text-sm font-medium text-theme-primary" for="plan-notes">
-                  Notas internas (equipo)
-                </label>
-                <UiTextarea
-                  id="plan-notes"
-                  v-model="form.notes"
-                  :rows="3"
-                  placeholder="Notas para el equipo médico..."
-                />
-              </div>
-
-              <div>
-                <label
-                  class="mb-2 block text-sm font-medium text-theme-primary"
-                  for="plan-patient-notes"
-                >
-                  Notas para el paciente
-                </label>
-                <UiTextarea
-                  id="plan-patient-notes"
-                  v-model="form.patient_notes"
-                  :rows="3"
-                  placeholder="Información que verá el paciente..."
-                />
-              </div>
-            </div>
-          </UiCard>
-
-          <!-- Backend errors without a field -->
-          <div
-            v-if="errors._general"
-            role="alert"
-            class="flex items-center gap-3 rounded-[var(--radius-panel)] bg-systemRed-50 p-4 text-sm text-systemRed-700"
-            style="border: 1px solid var(--color-hairline)"
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5"
+            style="
+              border: 1px solid var(--color-hairline);
+              background: var(--color-surface-elevated);
+            "
           >
-            <ExclamationCircleIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-            <span>{{ errors._general }}</span>
+            <input
+              v-model="form.requires_anesthesia"
+              type="checkbox"
+              class="h-4 w-4"
+              style="accent-color: var(--color-accent)"
+            />
+            <span class="text-sm font-medium text-theme-primary">Requiere anestesia</span>
+          </label>
+
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5"
+            style="
+              border: 1px solid var(--color-hairline);
+              background: var(--color-surface-elevated);
+            "
+          >
+            <input
+              v-model="form.is_urgent"
+              type="checkbox"
+              class="h-4 w-4"
+              style="accent-color: var(--color-system-red-500)"
+            />
+            <span class="text-sm font-semibold text-systemRed-600">Urgente</span>
+          </label>
+        </div>
+      </UiCard>
+
+      <!-- Procedures editor -->
+      <UiCard variant="glass" padding="md">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+            Procedimientos
+          </h3>
+          <span
+            class="inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums text-theme-secondary"
+            style="border: 1px solid var(--color-hairline)"
+            data-plan-item-count
+          >
+            {{ form.items.length }}
+          </span>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div
+            v-for="(item, index) in form.items"
+            :key="index"
+            data-plan-item
+            class="rounded-[var(--radius-control)] p-3"
+            style="
+              border: 1px solid var(--color-hairline);
+              background: var(--color-surface-elevated);
+            "
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex min-w-0 items-center gap-2">
+                <span
+                  class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums text-theme-secondary"
+                  style="border: 1px solid var(--color-hairline)"
+                >
+                  {{ index + 1 }}
+                </span>
+                <span class="truncate text-sm font-medium text-theme-primary">
+                  {{ item.procedure_name || 'Nuevo procedimiento' }}
+                </span>
+              </div>
+
+              <div class="flex flex-shrink-0 items-center gap-3">
+                <span
+                  class="text-sm font-semibold tabular-nums text-label"
+                  :data-plan-item-total="index"
+                >
+                  {{ formatCurrency(lineTotal(item)) }}
+                </span>
+                <UiButton
+                  variant="icon"
+                  size="xs"
+                  aria-label="Quitar procedimiento"
+                  :disabled="form.items.length === 1"
+                  @click="removeItem(index)"
+                >
+                  <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                </UiButton>
+              </div>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div class="md:col-span-3" data-plan-item-field="name">
+                <UiInput
+                  v-model="item.procedure_name"
+                  size="sm"
+                  label="Procedimiento"
+                  placeholder="Ej: Limpieza, Corona, Endodoncia"
+                  :error="errors[`items.${index}.procedure_name`]"
+                />
+              </div>
+
+              <div class="md:col-span-3" data-plan-item-field="description">
+                <UiInput
+                  v-model="item.description"
+                  size="sm"
+                  label="Descripción breve (opcional)"
+                  placeholder="Detalle del procedimiento"
+                />
+              </div>
+
+              <div data-plan-item-field="quantity">
+                <UiInput
+                  v-model="item.quantity"
+                  size="sm"
+                  type="number"
+                  label="Cantidad"
+                  min="0.01"
+                  step="0.01"
+                />
+              </div>
+
+              <div data-plan-item-field="unit_cost">
+                <UiInput
+                  v-model="item.unit_cost"
+                  size="sm"
+                  type="number"
+                  label="Precio unitario"
+                  min="0"
+                  step="0.01"
+                  :error="errors[`items.${index}.unit_cost`]"
+                >
+                  <template #prefix>
+                    <span class="text-xs text-theme-secondary">S/</span>
+                  </template>
+                </UiInput>
+              </div>
+
+              <div data-plan-item-field="phase_number">
+                <UiInput v-model="item.phase_number" size="sm" type="number" label="Fase" min="1" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Pinned footer: live totals + actions -->
-        <footer
-          class="flex flex-wrap items-center justify-between gap-4 p-4 md:px-6"
-          style="
-            background: var(--color-surface-elevated);
-            border-top: 1px solid var(--color-hairline);
-          "
-        >
-          <dl class="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
-            <div class="flex items-baseline gap-2">
-              <dt class="text-theme-secondary">Items</dt>
-              <dd class="font-medium tabular-nums text-label">{{ form.items.length }}</dd>
-            </div>
-            <div class="flex items-baseline gap-2">
-              <dt class="text-theme-secondary">Subtotal</dt>
-              <dd class="font-medium tabular-nums text-label" data-plan-subtotal>
-                {{ formatCurrency(subtotal) }}
-              </dd>
-            </div>
-            <div class="flex items-baseline gap-2">
-              <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
-                Total
-              </dt>
-              <dd class="text-lg font-bold tabular-nums text-label" data-plan-total>
-                {{ formatCurrency(finalCost) }}
-              </dd>
-            </div>
-          </dl>
+        <UiButton variant="secondary" size="sm" class="mt-4" @click="addItem">
+          <template #icon-left>
+            <PlusIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Agregar procedimiento
+        </UiButton>
+      </UiCard>
 
-          <div class="flex items-center gap-2">
-            <UiButton
-              variant="secondary"
-              type="button"
-              :disabled="loading"
-              data-plan-cancel
-              @click="handleClose"
-            >
-              Cancelar
-            </UiButton>
-            <UiButton variant="primary" type="submit" :loading="loading" data-plan-submit>
-              {{ isEdit ? 'Actualizar' : 'Crear' }} plan
-            </UiButton>
+      <!-- Notes -->
+      <UiCard variant="glass" padding="md">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Notas</h3>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-theme-primary" for="plan-notes">
+              Notas internas (equipo)
+            </label>
+            <UiTextarea
+              id="plan-notes"
+              v-model="form.notes"
+              :rows="3"
+              placeholder="Notas para el equipo médico..."
+            />
           </div>
-        </footer>
-      </form>
-    </div>
 
-    <CreatePatientInline
-      v-if="showCreatePatient"
-      @close="showCreatePatient = false"
-      @created="onPatientCreated"
-    />
-  </div>
+          <div>
+            <label
+              class="mb-2 block text-sm font-medium text-theme-primary"
+              for="plan-patient-notes"
+            >
+              Notas para el paciente
+            </label>
+            <UiTextarea
+              id="plan-patient-notes"
+              v-model="form.patient_notes"
+              :rows="3"
+              placeholder="Información que verá el paciente..."
+            />
+          </div>
+        </div>
+      </UiCard>
+
+      <!-- Backend errors without a field -->
+      <div
+        v-if="errors._general"
+        role="alert"
+        class="flex items-center gap-3 rounded-[var(--radius-panel)] bg-systemRed-50 p-4 text-sm text-systemRed-700"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        <ExclamationCircleIcon class="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+        <span>{{ errors._general }}</span>
+      </div>
+    </form>
+
+    <!-- Pinned footer: live totals + actions -->
+    <template #footer>
+      <div class="flex w-full flex-wrap items-center justify-between gap-4">
+        <dl class="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm">
+          <div class="flex items-baseline gap-2">
+            <dt class="text-theme-secondary">Items</dt>
+            <dd class="font-medium tabular-nums text-label">{{ form.items.length }}</dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-theme-secondary">Subtotal</dt>
+            <dd class="font-medium tabular-nums text-label" data-plan-subtotal>
+              {{ formatCurrency(subtotal) }}
+            </dd>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">Total</dt>
+            <dd class="text-lg font-bold tabular-nums text-label" data-plan-total>
+              {{ formatCurrency(finalCost) }}
+            </dd>
+          </div>
+        </dl>
+
+        <div class="flex items-center gap-2">
+          <UiButton
+            variant="secondary"
+            type="button"
+            :disabled="loading"
+            data-plan-cancel
+            @click="requestClose"
+          >
+            Cancelar
+          </UiButton>
+          <UiButton
+            variant="primary"
+            type="submit"
+            form="treatment-plan-form"
+            :loading="loading"
+            data-plan-submit
+          >
+            {{ isEdit ? 'Actualizar' : 'Crear' }} plan
+          </UiButton>
+        </div>
+      </div>
+    </template>
+  </UiModal>
+
+  <CreatePatientInline
+    v-if="showCreatePatient"
+    @close="showCreatePatient = false"
+    @created="onPatientCreated"
+  />
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useTreatmentPlans } from '@/composables/useTreatmentPlans'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
@@ -416,6 +388,7 @@ import PatientSelector from '@/components/ui/PatientSelector.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiCard from '@/components/ui/Card.vue'
 import UiInput from '@/components/ui/Input.vue'
+import UiModal from '@/components/ui/Modal.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import CreatePatientInline from './CreatePatientInline.vue'
 import { ExclamationCircleIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
@@ -611,16 +584,33 @@ const handleSaveError = err => {
   }
 }
 
-const handleClose = async () => {
-  if (isDirty.value) {
-    const ok = await confirm({
-      title: 'Cambios sin guardar',
-      message: 'Tienes cambios sin guardar. ¿Cerrar de todos modos?',
-      confirmText: 'Cerrar sin guardar',
-      variant: 'danger'
-    })
-    if (!ok) return
-  }
+/**
+ * UiModal owns Escape, the backdrop and the close button, so the dirty guard
+ * moved to `before-close`: returning `false` vetoes the close. The inline
+ * patient dialog and an in-flight save always veto too, matching the old
+ * document-level handler.
+ */
+const confirmClose = async () => {
+  if (showCreatePatient.value) return false
+  if (loading.value) return false
+  if (!isDirty.value) return true
+
+  return confirm({
+    title: 'Cambios sin guardar',
+    message: 'Tienes cambios sin guardar. ¿Cerrar de todos modos?',
+    confirmText: 'Cerrar sin guardar',
+    variant: 'danger'
+  })
+}
+
+/**
+ * The custom header replaces UiModal's own header, so its close button lives
+ * here. It delegates to the same guard before reporting the close the modal
+ * would otherwise emit itself.
+ */
+const requestClose = async () => {
+  const allowed = await confirmClose()
+  if (allowed === false) return
   emit('close')
 }
 
@@ -691,36 +681,10 @@ const initializeForm = () => {
   baseline.value = snapshot()
 }
 
-/**
- * Escape is captured at the document before the page-level shortcut runs, so
- * closing the modal always goes through the dirty guard instead of the page's
- * unguarded `closeModal`. While the inline patient dialog sits on top, Escape
- * only dismisses that layer.
- */
-const onDocumentKeydown = event => {
-  if (event.key !== 'Escape' && event.key !== 'Esc') return
-
-  event.stopPropagation()
-
-  if (showCreatePatient.value) {
-    showCreatePatient.value = false
-    return
-  }
-
-  if (loading.value) return
-
-  handleClose()
-}
-
 watch(() => props.plan, initializeForm, { immediate: true })
 
 onMounted(async () => {
-  document.addEventListener('keydown', onDocumentKeydown, true)
   await nextTick()
   titleField.value?.querySelector('input')?.focus()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', onDocumentKeydown, true)
 })
 </script>

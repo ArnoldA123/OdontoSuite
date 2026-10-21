@@ -112,6 +112,25 @@ class BroadcastingAuthChannelsTest extends TestCase
         ])->assertStatus(401);
     }
 
+    public function test_quotation_read_roles_are_authorized_on_the_private_quotations_channel(): void
+    {
+        foreach ([
+            'administrador', 'finanzas', 'odontologo', 'implantologo', 'recepcionista',
+        ] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-quotations')
+                ->assertOk()
+                ->assertJsonStructure(['auth']);
+        }
+    }
+
+    public function test_private_quotations_channel_rejects_roles_without_quotation_read_access(): void
+    {
+        foreach (['tecnico_dental', 'asistente'] as $role) {
+            $this->authRequest($this->userWithRole($role), 'private-quotations')
+                ->assertForbidden();
+        }
+    }
+
     public function test_events_emit_de_doubled_private_channel_names(): void
     {
         $appointment = new Appointment;

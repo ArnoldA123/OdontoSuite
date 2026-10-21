@@ -22,10 +22,18 @@ const FOCUSABLE_SELECTOR = [
   '[contenteditable]:not([contenteditable="false"])'
 ].join(',')
 
+// One trap per open surface, in activation order. Only the top-most trap may
+// move focus, otherwise a modal stacked on another would have Tab handled twice
+// and jump back to the surface underneath.
+const activeTraps = []
+
 export function useFocusTrap() {
+  const token = Symbol('focus-trap')
   let containerEl = null
   let previouslyFocused = null
   let active = false
+
+  const isTopTrap = () => activeTraps[activeTraps.length - 1] === token
 
   const getFocusable = () => {
     if (!containerEl) return []
@@ -44,7 +52,7 @@ export function useFocusTrap() {
   }
 
   const handleKeydown = event => {
-    if (event.key !== 'Tab' || !active) return
+    if (event.key !== 'Tab' || !active || !isTopTrap()) return
 
     const focusable = getFocusable()
     if (focusable.length === 0) {
@@ -79,6 +87,7 @@ export function useFocusTrap() {
     containerEl = container
     previouslyFocused = document.activeElement
     active = true
+    if (!activeTraps.includes(token)) activeTraps.push(token)
     document.addEventListener('keydown', handleKeydown)
     nextTick(() => focusFirst())
   }
@@ -88,6 +97,8 @@ export function useFocusTrap() {
    */
   const release = () => {
     active = false
+    const index = activeTraps.indexOf(token)
+    if (index !== -1) activeTraps.splice(index, 1)
     document.removeEventListener('keydown', handleKeydown)
     containerEl = null
     if (previouslyFocused && typeof previouslyFocused.focus === 'function') {
