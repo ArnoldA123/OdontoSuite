@@ -225,9 +225,9 @@ class SpecialtyRecordsRedesignContractTest extends TestCase
             'Outcomes MUST be announced through useToast (SRR-005).'
         );
         $this->assertStringContainsString(
-            "channel('specialty-records')",
+            "privateChannel('specialty-records')",
             $page,
-            'The WebSocket subscription to the specialty-records channel MUST survive the redesign (SRR-005).'
+            'The private WebSocket subscription to the specialty-records channel MUST survive the redesign (SRR-005).'
         );
         $this->assertStringContainsString(
             "'.specialty-record.created'",

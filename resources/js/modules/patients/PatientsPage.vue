@@ -917,7 +917,7 @@ export default {
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
-          echo.leave('patients')
+          echo.leave('private-patients')
         } catch (e) {
           // El canal ya estaba cerrado, nada que limpiar
         }

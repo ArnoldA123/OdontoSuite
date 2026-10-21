@@ -661,7 +661,7 @@ export default {
     const { get, del, patch, normalizeError } = useApi()
     const { can } = usePermissions()
     const toast = useToast()
-    const { channel, echo } = useEcho()
+    const { privateChannel, echo } = useEcho()
     const { confirm } = useConfirm()
     const reducedMotion = useReducedMotion()
 
@@ -1227,7 +1227,7 @@ export default {
 
       // Suscribirse a canales WebSocket para actualizaciones en tiempo real
       try {
-        appointmentsChannel = channel('appointments')
+        appointmentsChannel = privateChannel('appointments')
         if (appointmentsChannel) {
           appointmentsChannel
             .listen('.appointment.created', async () => {
@@ -1263,7 +1263,7 @@ export default {
       // Limpiar suscripciones WebSocket
       if (echo) {
         try {
-          echo.leave('appointments')
+          echo.leave('private-appointments')
         } catch (e) {
           // Error al limpiar suscripción, se ignora en desmontaje
         }
