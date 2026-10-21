@@ -405,15 +405,20 @@ class MedicalRecordController extends Controller
     }
 
     /**
-     * Eliminar (soft) un archivo adjunto (slice 01, T-01.3 / API-001).
+     * Eliminar un archivo adjunto.
+     *
+     * Contract (#244): the stored binary is removed from the `public` disk and
+     * the row stays behind as the archive marker (`is_active = false`), so the
+     * clinical audit trail keeps who uploaded what and when without keeping a
+     * file the app can no longer reach. Repeating the call is a no-op.
+     *
      * Returns 204 on success, 403 if caller is not clinical staff (handled
      * at middleware level), 404 if attachment does not exist.
      */
     public function deleteAttachment(int $attachmentId): \Illuminate\Http\Response|JsonResponse
     {
         try {
-            $attachment = ClinicalAttachment::findOrFail($attachmentId);
-            $attachment->update(['is_active' => false]);
+            $this->medicalRecordService->deleteAttachment($attachmentId);
 
             return response()->noContent();
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

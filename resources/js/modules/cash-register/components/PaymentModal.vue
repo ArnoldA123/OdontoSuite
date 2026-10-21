@@ -43,18 +43,29 @@
           </h3>
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
             <div>
-              <UiSelect
-                v-model="formData.patient_id"
-                :options="patientOptions"
-                label="Paciente"
-                placeholder="Seleccionar paciente"
-                :disabled="Boolean(selectedPatient)"
-                :error="fieldError('patient_id')"
-                data-payment-patient
-              />
-              <p v-if="selectedPatient" class="mt-1 text-xs text-theme-secondary">
-                Paciente seleccionado desde cobros pendientes
-              </p>
+              <!-- Issue #199: an ad-hoc charge can pick any patient, not only
+                   the ones with a pending appointment. Coming from a pending
+                   row, the patient stays preset and locked. -->
+              <div v-if="isAdHocPayment" data-payment-patient-selector>
+                <PatientSelector v-model="adHocPatient" />
+                <p v-if="fieldError('patient_id')" class="mt-1 text-sm text-systemRed-600">
+                  {{ fieldError('patient_id') }}
+                </p>
+              </div>
+              <template v-else>
+                <UiSelect
+                  v-model="formData.patient_id"
+                  :options="patientOptions"
+                  label="Paciente"
+                  placeholder="Seleccionar paciente"
+                  :disabled="Boolean(selectedPatient)"
+                  :error="fieldError('patient_id')"
+                  data-payment-patient
+                />
+                <p v-if="selectedPatient" class="mt-1 text-xs text-theme-secondary">
+                  Paciente seleccionado desde cobros pendientes
+                </p>
+              </template>
             </div>
 
             <div>
@@ -226,6 +237,7 @@ import UiTabs from '@/components/ui/Tabs.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import CurrencyInput from '@/components/ui/CurrencyInput.vue'
+import PatientSelector from '@/components/ui/PatientSelector.vue'
 import { useApi } from '@/composables/useApi'
 import { useTransactions } from '@/composables/useTransactions'
 import { useToast } from '@/composables/useToast'
@@ -289,6 +301,11 @@ const formData = ref({
 
 const activeTab = ref('manual')
 const pendingTransactionId = ref(null)
+const adHocPatient = ref(null)
+
+// Issue #199: without a pending row there is no preset patient or appointment,
+// so the modal is an ad-hoc charge and the patient is picked freely.
+const isAdHocPayment = computed(() => !props.selectedPatient && !props.selectedAppointment)
 
 const fieldError = key => {
   const value = errors.value?.[key]
@@ -334,7 +351,7 @@ const summaryPatient = computed(() => {
   const selected = props.pendingPatients.find(
     patient => patient.id === Number(formData.value.patient_id)
   )
-  return selected || props.selectedPatient || null
+  return selected || props.selectedPatient || adHocPatient.value || null
 })
 
 const selectedPaymentMethod = computed(() =>
@@ -583,6 +600,7 @@ const resetForm = () => {
     reference: '',
     notes: ''
   }
+  adHocPatient.value = null
   errors.value = {}
 }
 
@@ -606,6 +624,14 @@ watch(
     }
   }
 )
+
+// The ad-hoc patient object is the source; the payload keeps sending the id.
+watch(adHocPatient, patient => {
+  const id = patient?.id ?? ''
+  if (formData.value.patient_id !== id) {
+    formData.value.patient_id = id
+  }
+})
 
 watch(
   () => props.selectedPatient,

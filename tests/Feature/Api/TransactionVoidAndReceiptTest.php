@@ -33,6 +33,17 @@ class TransactionVoidAndReceiptTest extends TestCase
         ]);
     }
 
+    /**
+     * Issue #192, decision B: voiding moved to administrador alone.
+     */
+    protected function adminUser(): User
+    {
+        return User::factory()->create([
+            'role' => 'administrador',
+            'is_active' => true,
+        ]);
+    }
+
     protected function openSessionFor(User $user): CashRegisterSession
     {
         return CashRegisterSession::factory()->create([
@@ -70,7 +81,7 @@ class TransactionVoidAndReceiptTest extends TestCase
      */
     public function test_post_void_route_returns_200_and_marks_transaction_voided(): void
     {
-        $user = $this->finanzasUser();
+        $user = $this->adminUser();
         $session = $this->openSessionFor($user);
         $transaction = $this->completedTransaction($session);
 
@@ -95,7 +106,7 @@ class TransactionVoidAndReceiptTest extends TestCase
      */
     public function test_post_void_route_requires_reason(): void
     {
-        $user = $this->finanzasUser();
+        $user = $this->adminUser();
         $session = $this->openSessionFor($user);
         $transaction = $this->completedTransaction($session);
 
