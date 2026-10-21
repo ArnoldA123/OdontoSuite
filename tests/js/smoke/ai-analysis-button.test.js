@@ -1,15 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
-const { getMock, allowed } = vi.hoisted(() => ({
+const { getMock, postMock, allowed } = vi.hoisted(() => ({
   getMock: vi.fn(),
+  postMock: vi.fn(),
   allowed: { value: true }
 }))
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
     get: getMock,
-    post: vi.fn(async () => ({ data: {} })),
+    post: postMock,
     put: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
@@ -34,6 +35,15 @@ const attachment = (overrides = {}) => ({
   ...overrides
 })
 
+const existingAnalysis = (overrides = {}) => ({
+  id: 9,
+  status: 'pending',
+  confidence_score: null,
+  reviewed: false,
+  review_decision: null,
+  ...overrides
+})
+
 const mountButton = props =>
   mount(Button, {
     props: { attachmentId: 3, ...props },
@@ -43,6 +53,8 @@ const mountButton = props =>
 beforeEach(() => {
   getMock.mockReset()
   getMock.mockResolvedValue({ data: null })
+  postMock.mockReset()
+  postMock.mockResolvedValue({ data: existingAnalysis({ status: 'processing' }) })
   allowed.value = true
 })
 
@@ -75,6 +87,82 @@ describe('ai-analysis button permission gate', () => {
     await flushPromises()
 
     expect(wrapper.find('button').attributes('disabled')).toBeDefined()
+
+    wrapper.unmount()
+  })
+})
+
+describe('ai-analysis button states', () => {
+  it('shows the analyzing label while the request is in flight', async () => {
+    let resolvePost
+    postMock.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolvePost = resolve
+        })
+    )
+
+    const wrapper = mountButton({ attachment: attachment() })
+    await flushPromises()
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Analizando...')
+
+    resolvePost({ data: existingAnalysis({ status: 'processing' }) })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Procesando')
+
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['pending', 'Pendiente'],
+    ['processing', 'Procesando'],
+    ['completed', 'Completado'],
+    ['failed', 'Fallido']
+  ])('renders the module label for a %s analysis', async (status, label) => {
+    getMock.mockResolvedValue({ data: existingAnalysis({ status }) })
+
+    const wrapper = mountButton({ attachment: attachment() })
+    await flushPromises()
+
+    expect(wrapper.find('button').exists()).toBe(true)
+    expect(wrapper.text()).toContain(label)
+
+    wrapper.unmount()
+  })
+
+  it.each([
+    ['accepted', 'Aceptado'],
+    ['rejected', 'Rechazado'],
+    ['partial', 'Parcial']
+  ])('renders the review decision label for a reviewed %s analysis', async (decision, label) => {
+    getMock.mockResolvedValue({
+      data: existingAnalysis({ status: 'completed', reviewed: true, review_decision: decision })
+    })
+
+    const wrapper = mountButton({ attachment: attachment() })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Completado')
+    expect(wrapper.text()).toContain(label)
+
+    wrapper.unmount()
+  })
+
+  it('emits viewAnalysis when the existing analysis is opened', async () => {
+    getMock.mockResolvedValue({ data: existingAnalysis({ status: 'completed' }) })
+
+    const wrapper = mountButton({ attachment: attachment() })
+    await flushPromises()
+
+    await wrapper.find('button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('viewAnalysis')).toHaveLength(1)
 
     wrapper.unmount()
   })

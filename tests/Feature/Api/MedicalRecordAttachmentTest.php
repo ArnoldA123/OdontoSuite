@@ -6,6 +6,8 @@ use App\Models\ClinicalAttachment;
 use App\Models\MedicalRecord;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -52,6 +54,44 @@ class MedicalRecordAttachmentTest extends TestCase
             ->deleteJson("/api/medical-records/attachments/{$attachment->id}");
 
         $response->assertNoContent();
+    }
+
+    public function test_upload_without_a_category_uses_the_general_default(): void
+    {
+        Storage::fake('public');
+
+        $medicalRecord = MedicalRecord::factory()->create();
+
+        $response = $this->actingAs($this->clinician(), 'sanctum')
+            ->post('/api/medical-records/attachments', [
+                'patient_id' => $medicalRecord->patient_id,
+                'file' => UploadedFile::fake()->create('informe.pdf', 120, 'application/pdf'),
+            ]);
+
+        $response->assertCreated();
+        $this->assertSame('general', $response->json('data.category'));
+    }
+
+    /**
+     * `general` is the service default and the category filter already accepts
+     * it, so the upload must accept it explicitly too instead of rejecting a
+     * value the rest of the contract already uses.
+     */
+    public function test_the_general_category_is_accepted_explicitly(): void
+    {
+        Storage::fake('public');
+
+        $medicalRecord = MedicalRecord::factory()->create();
+
+        $response = $this->actingAs($this->clinician(), 'sanctum')
+            ->post('/api/medical-records/attachments', [
+                'patient_id' => $medicalRecord->patient_id,
+                'category' => 'general',
+                'file' => UploadedFile::fake()->create('informe.pdf', 120, 'application/pdf'),
+            ]);
+
+        $response->assertCreated();
+        $this->assertSame('general', $response->json('data.category'));
     }
 
     public function test_non_clinical_role_returns_403(): void

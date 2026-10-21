@@ -122,6 +122,17 @@ describe('useMedicalRecords', () => {
     expect(store.evolutions.value).toEqual([{ id: 5 }])
   })
 
+  it('loads the active specialty catalog the evolution form validates against', async () => {
+    const payload = [{ id: 1, code: 'endodoncia', name: 'Endodoncia' }]
+    api.get.mockResolvedValueOnce({ data: payload })
+
+    const store = useMedicalRecords()
+    await store.getSpecialties()
+
+    expect(query(0).path).toBe('/api/specialties/active')
+    expect(store.specialties.value).toEqual(payload)
+  })
+
   it('stores the stats payload the panel renders', async () => {
     const payload = { total_evolutions: 3, total_attachments: 2, specialties_involved: [] }
     api.get.mockResolvedValueOnce({ data: payload })
@@ -179,6 +190,7 @@ describe('useMedicalRecords', () => {
     expect(store.meta.value).toBeNull()
     expect(store.evolutions.value).toEqual([])
     expect(store.attachments.value).toEqual([])
+    expect(store.specialties.value).toEqual([])
     expect(store.stats.value).toBeNull()
   })
 })

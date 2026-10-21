@@ -163,6 +163,15 @@ describe('dashboard daily-operations KPI strip (WU1)', () => {
     expect(rowTexts.filter(text => text.includes('Programada'))).toHaveLength(1)
     expect(rowTexts.filter(text => text.includes('En Consulta'))).toHaveLength(1)
 
+    // The scheduled badge rides a real Badge variant; `secondary` is not one
+    // and the validator silently painted the default classes instead.
+    const scheduledRow = wrapper
+      .findAll('[data-appointment-row]')
+      .find(row => row.text().includes('Programada'))
+    expect(
+      scheduledRow.findAll('[data-variant]').map(element => element.attributes('data-variant'))
+    ).toEqual(['neutral'])
+
     wrapper.unmount()
   })
 
