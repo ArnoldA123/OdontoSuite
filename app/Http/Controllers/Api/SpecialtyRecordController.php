@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateSpecialtyRecordRequest;
 use App\Services\SpecialtyRecordService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SpecialtyRecordController extends Controller
 {
@@ -56,9 +57,10 @@ class SpecialtyRecordController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al obtener registros de especialidad', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener registros de especialidad',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -98,9 +100,10 @@ class SpecialtyRecordController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Error al crear registro de especialidad', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al crear registro de especialidad',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -133,9 +136,10 @@ class SpecialtyRecordController extends Controller
                 'data' => $record,
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al obtener registro de especialidad', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener registro de especialidad',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -168,9 +172,10 @@ class SpecialtyRecordController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Error al actualizar registro de especialidad', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al actualizar registro de especialidad',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -198,9 +203,10 @@ class SpecialtyRecordController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Error al eliminar registro de especialidad', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al eliminar registro de especialidad',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -221,9 +227,10 @@ class SpecialtyRecordController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al obtener registros del paciente', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener registros del paciente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -243,9 +250,10 @@ class SpecialtyRecordController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al obtener todos los registros del paciente', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener todos los registros del paciente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -262,9 +270,10 @@ class SpecialtyRecordController extends Controller
                 'data' => $stats,
             ]);
         } catch (\Exception $e) {
+            Log::error('Error al obtener estadísticas', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

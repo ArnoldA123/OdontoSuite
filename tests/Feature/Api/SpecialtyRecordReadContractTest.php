@@ -3,10 +3,13 @@
 namespace Tests\Feature\Api;
 
 use App\Models\DentalPiece;
+use App\Models\EndodonticsRecord;
 use App\Models\ImplantologyRecord;
 use App\Models\OralSurgeryRecord;
 use App\Models\Patient;
+use App\Models\RehabilitationRecord;
 use App\Models\User;
+use App\Services\SpecialtyRecordService;
 use Database\Seeders\DentalPieceSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -70,6 +73,30 @@ class SpecialtyRecordReadContractTest extends TestCase
         ]);
     }
 
+    private function endodontics(string $status): EndodonticsRecord
+    {
+        return EndodonticsRecord::create([
+            'patient_id' => $this->patient->id,
+            'dental_piece_id' => $this->piece->id,
+            'created_by' => $this->admin->id,
+            'tooth_number' => '16',
+            'canal_count' => 3,
+            'treatment_status' => $status,
+        ]);
+    }
+
+    private function rehabilitation(string $status): RehabilitationRecord
+    {
+        return RehabilitationRecord::create([
+            'patient_id' => $this->patient->id,
+            'dental_piece_id' => $this->piece->id,
+            'created_by' => $this->admin->id,
+            'prosthesis_type' => 'crown',
+            'material_type' => 'zirconia',
+            'status' => $status,
+        ]);
+    }
+
     public function test_all_returns_the_five_groups_the_tabs_render(): void
     {
         $this->implantology();
@@ -117,5 +144,44 @@ class SpecialtyRecordReadContractTest extends TestCase
 
         $response->assertOk();
         $this->assertSame(2, $response->json('data.total_records'));
+    }
+
+    public function test_stats_counts_the_status_group_each_specialty_actually_uses(): void
+    {
+        $this->endodontics('in_progress');
+        $this->endodontics('retreatment');
+        $this->endodontics('completed');
+
+        $endodontics = $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/specialty-records/patient/{$this->patient->id}/endodoncia/stats");
+
+        $endodontics->assertOk();
+        $this->assertSame(2, $endodontics->json('data.active_treatments'));
+        $this->assertSame(1, $endodontics->json('data.completed_treatments'));
+
+        $this->rehabilitation('laboratory');
+        $this->rehabilitation('cemented');
+
+        $rehabilitation = $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/specialty-records/patient/{$this->patient->id}/rehabilitacion/stats");
+
+        $rehabilitation->assertOk();
+        $this->assertSame(1, $rehabilitation->json('data.active_treatments'));
+        $this->assertSame(1, $rehabilitation->json('data.completed_treatments'));
+    }
+
+    public function test_a_server_error_does_not_echo_the_exception_message(): void
+    {
+        $this->mock(SpecialtyRecordService::class, function ($mock): void {
+            $mock->shouldReceive('getSpecialtyRecords')
+                ->andThrow(new \RuntimeException('SQLSTATE[HY000] internal detail'));
+        });
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->getJson("/api/specialty-records/patient/{$this->patient->id}/implantologia");
+
+        $response->assertStatus(500);
+        $this->assertStringNotContainsString('SQLSTATE', $response->getContent());
+        $this->assertStringNotContainsString('internal detail', $response->getContent());
     }
 }

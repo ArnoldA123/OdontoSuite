@@ -57,7 +57,6 @@ class StoreSpecialtyRecordRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $textFields = [
-            'notes' => 1000,
             'complications' => 1000,
             'follow_up_notes' => 1000,
         ];
@@ -83,7 +82,6 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'patient_id' => 'required|exists:patients,id',
             'appointment_id' => 'sometimes|nullable|exists:appointments,id',
             'dental_piece_id' => 'sometimes|nullable|exists:dental_pieces,id',
-            'notes' => 'sometimes|nullable|string|max:1000',
             'complications' => 'sometimes|nullable|string|max:1000',
             'follow_up_notes' => 'sometimes|nullable|string|max:1000',
             // Slice 02 / T-02.10 — BF-007 related: optional procedure.

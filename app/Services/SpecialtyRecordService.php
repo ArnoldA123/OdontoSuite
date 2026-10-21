@@ -225,12 +225,31 @@ class SpecialtyRecordService
     {
         $records = $this->getSpecialtyRecords($patientId, $specialty);
 
+        // Each table owns its own status column and enum; a single `status`
+        // lookup returned zero through the other four specialties.
+        [$statusField, $active, $completed] = match ($specialty) {
+            'implantologia' => ['status', ['placed', 'healing'], ['loaded']],
+            'ortodoncia' => ['treatment_phase', ['initial', 'active'], ['completed']],
+            'endodoncia' => ['treatment_status', ['in_progress', 'retreatment'], ['completed']],
+            'rehabilitacion' => [
+                'status',
+                ['impression', 'laboratory', 'try_in'],
+                ['delivered', 'cemented'],
+            ],
+            'cirugia_oral' => ['status', ['scheduled', 'in_progress'], ['completed']],
+            default => [null, [], []],
+        };
+
         return [
             'total_records' => $records->count(),
-            'active_treatments' => $records->where('status', 'in_progress')->count(),
-            'completed_treatments' => $records->where('status', 'completed')->count(),
+            'active_treatments' => $statusField === null
+                ? 0
+                : $records->whereIn($statusField, $active)->count(),
+            'completed_treatments' => $statusField === null
+                ? 0
+                : $records->whereIn($statusField, $completed)->count(),
             'last_record' => $records->first(),
-            'treatment_types' => $records->pluck('treatment_type')->unique()->values()->toArray(),
+            'treatment_types' => $records->pluck('treatment_type')->filter()->unique()->values()->toArray(),
         ];
     }
 

@@ -377,8 +377,8 @@ documentada y no bloquea producción.
 ## 12. Changelog de AGENTS.md
 
 - **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
-  dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa a
-  «Registros de Especialidad» y el catálogo conserva «Catálogo de
+  dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
+  a «Registros de Especialidad» y el catálogo conserva «Catálogo de
   Especialidades»; sin cambios de rutas ni permisos, con guard
   `SpecialtiesNavigationDisambiguationTest` (#210). Datos: nuevo
   `UserSpecialtySeeder` que puebla `user_specialties` desde el `users.specialty`
@@ -399,22 +399,24 @@ documentada y no bloquea producción.
   y el listado de cirugía oral ordenaba por `surgery_date`, una columna
   inexistente que producía 500. Se eliminan las claves inglesas y los campos
   inventados (`title`, `description`, `procedure_date`, `professional_name`,
-  `observations`, `next_appointment`). El contrato de escritura se alinea con
-  el esquema real: `rehabilitacion` exige `prosthesis_type` (no
+  `observations`, `next_appointment`). El contrato de escritura se alinea con el
+  esquema real: `rehabilitacion` exige `prosthesis_type` (no
   `restoration_type`), `cirugia_oral` exige `surgery_site` (no `surgery_date`,
-  columna inexistente), los enums de estado son los de la BD,
-  `dental_piece_id` es obligatorio donde la tabla lo exige y el nuevo
-  `GET /api/dental-pieces` alimenta el selector de pieza.
-  `UpdateSpecialtyRecordRequest` reutiliza las reglas del alta para que la
-  edición persista todo lo que muestra. §4 sincronizado con valores medidos:
-  33 controllers API, 198 rutas API, 211 totales con web, 15 seeders activos;
-  sin migraciones nuevas (114). Tests: `SpecialtyAuditLogTest`,
-  `UserSpecialtySeederTest`, `SpecialtyRecordStoreContractTest`,
-  `SpecialtyRecordUpdateContractTest`, `SpecialtyRecordReadContractTest`,
-  `DentalPiecesEndpointTest`, `SpecialtyRecordsAppShellTest`,
-  `SpecialtyRecordsRedesignContractTest`,
-  `SpecialtiesNavigationDisambiguationTest`, unit JS de `specialtyRecordMeta`
-  y smoke del módulo.
+  columna inexistente), los enums de estado son los de la BD, `dental_piece_id`
+  es obligatorio donde la tabla lo exige y el nuevo `GET /api/dental-pieces`
+  alimenta el selector de pieza. `UpdateSpecialtyRecordRequest` reutiliza las
+  reglas del alta para que la edición persista todo lo que muestra. En la misma
+  pasada, `/stats` cuenta cada especialidad por el campo de estado que realmente
+  tiene, los 500 del controlador dejan de filtrar el mensaje de la excepción y
+  `notes` sale del contrato porque no existe en ninguna de las cinco tablas. §4
+  sincronizado con valores medidos: 33 controllers API, 198 rutas API, 211
+  totales con web, 15 seeders activos; sin migraciones nuevas (114). Tests:
+  `SpecialtyAuditLogTest`, `UserSpecialtySeederTest`,
+  `SpecialtyRecordStoreContractTest`, `SpecialtyRecordUpdateContractTest`,
+  `SpecialtyRecordReadContractTest`, `DentalPiecesEndpointTest`,
+  `SpecialtyRecordsAppShellTest`, `SpecialtyRecordsRedesignContractTest`,
+  `SpecialtiesNavigationDisambiguationTest`, unit JS de `specialtyRecordMeta` y
+  smoke del módulo.
 
 - **2026-10-20 (seguimientos de historias clínicas #222/#223/#225/#228/#224)** —
   La superficie de evoluciones cierra cuatro huecos del rediseño y gana
