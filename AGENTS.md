@@ -388,6 +388,33 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-21 (canales de dominio privados, #249)** — Los 27 eventos que aún
+  publicaban en canales públicos de Reverb (`appointments`, `reminders`,
+  `medical-records`, `specialty-records`, `treatment-plans`, `cash-register`,
+  `transactions`, `procedure-catalog`, `users` y `user.{id}`) pasan a
+  `PrivateChannel`: un canal público no verifica identidad y cualquier cliente
+  con la app key recibía citas, historia clínica, caja, planes, montos y
+  usuarios sin autenticarse. `BroadcastingAuthController` (la autoridad
+  efectiva) autoriza cada canal con los mismos roles que ya exige su lectura en
+  `routes/api.php` —citas y recordatorios sin finanzas; historia clínica y
+  planes/registros de especialidad solo clínicos; caja y transacciones con
+  administrador/finanzas/recepcionista; catálogo con los siete roles; usuarios
+  solo administrador— y `routes/channels.php` lo refleja como documentación.
+  `PatientFileExported` deja de usar `Channel('user.{id}')` y queda en el canal
+  privado del propio usuario exportador que el handler ya conocía. Los ocho
+  consumidores (`useWebSocketNotifications`, `DashboardPage`, `useCashRegister`,
+  `CalendarPage`, `MedicalRecordsPage`, `PatientDetailPage`,
+  `TreatmentPlansPage`, `SpecialtyRecordsPage`) se suscriben con
+  `privateChannel` y liberan el nombre real (`private-*`): `leave()` de Laravel
+  Echo 1.19 no agrega el prefijo, así que el `leave` del nombre base era inerte
+  —se corrige también en `patients` y `quotations`—. Sin rutas, migraciones,
+  modelos ni primitivas UI nuevas: los conteos de §4 no cambian. Tests:
+  `DomainChannelsPrivateTest` (publicadores y nombre en el cable),
+  `DomainChannelsAuthorizationTest` (matriz de roles por canal, 403 al rol fuera
+  de la lista y 401 al anónimo) y
+  `tests/js/unit/domain-channels-private.test.js` (suscripción privada, `leave`
+  del nombre real y guarda estática de consumidores). `sdd:check-events` sigue
+  en 0 huérfanos.
 - **2026-10-21 (registros de especialidad — #246/#247)** — El contrato de
   registros de especialidad deja de mentir sobre lo que guarda. Las cinco tablas
   (`implantology_records`, `orthodontics_records`, `endodontics_records`,
