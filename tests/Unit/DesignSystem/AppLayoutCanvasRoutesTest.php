@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -149,9 +150,7 @@ class AppLayoutCanvasRoutesTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider expectedRouteProvider
-     */
+    #[DataProvider('expectedRouteProvider')]
     public function test_each_expected_route_is_in_canvas_routes(string $route): void
     {
         $src = file_get_contents(self::appLayoutPath());

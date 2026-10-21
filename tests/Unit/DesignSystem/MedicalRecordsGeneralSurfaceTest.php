@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -110,9 +111,8 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
      * Tailwind + design tokens: no scoped style block, no legacy border
      * alias, no legacy focus ring, no page-level `<h1>`, no gradient and no
      * emoji.
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_surface_stays_on_tailwind_and_tokens(string $path): void
     {
         $this->assertFileExists($path);
@@ -153,9 +153,8 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
     /**
      * MRC-GEN-002 — `usePermissions().can` is an object of computed refs; a
      * function call throws at render time (decision D7).
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_permissions_are_read_as_computed_refs(string $path): void
     {
         $this->assertFileExists($path);
@@ -170,9 +169,8 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
 
     /**
      * MRC-GEN-003 — confirmation goes through the shared dialog composable.
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_confirmation_rides_the_shared_dialog(string $path): void
     {
         $this->assertFileExists($path);
@@ -189,9 +187,8 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
      * MRC-GEN-004 — the repaired contract (decision D1). The pre-redesign
      * module read fields the backend never returns and counted relations the
      * index never loads.
-     *
-     * @dataProvider surfaceProvider
      */
+    #[DataProvider('surfaceProvider')]
     public function test_no_invented_fields_survive(string $path): void
     {
         $this->assertFileExists($path);

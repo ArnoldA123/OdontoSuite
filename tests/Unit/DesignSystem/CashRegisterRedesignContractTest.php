@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\DesignSystem;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -109,9 +110,7 @@ class CashRegisterRedesignContractTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider listProvider
-     */
+    #[DataProvider('listProvider')]
     public function test_every_list_is_on_the_table_primitive(string $path): void
     {
         $source = self::read($path);
@@ -141,9 +140,7 @@ class CashRegisterRedesignContractTest extends TestCase
         return $cases;
     }
 
-    /**
-     * @dataProvider modalProvider
-     */
+    #[DataProvider('modalProvider')]
     public function test_every_modal_speaks_the_v_model_contract(string $path): void
     {
         $source = self::read($path);
