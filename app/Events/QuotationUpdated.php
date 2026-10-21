@@ -3,14 +3,15 @@
 namespace App\Events;
 
 use App\Models\Quotation;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sprint 0 fix (NF-2): este evento no tiene listener registrado en AppServiceProvider. Si implementa ShouldBroadcast, igual intenta transmitir por Reverb (sin consumidor registrado en frontend por defecto). Sprint 3 lo cablea correctamente (ver plan-mejoras-futuras-2026-06.md).
+ * Issue #200: el payload lleva datos del paciente y montos, por eso el evento
+ * viaja solo por el canal privado `quotations`.
  */
 class QuotationUpdated implements ShouldBroadcast
 {
@@ -26,8 +27,7 @@ class QuotationUpdated implements ShouldBroadcast
     public function broadcastOn()
     {
         return [
-            new Channel('quotations'),
-            new Channel('dashboard-updates'),
+            new PrivateChannel('quotations'),
         ];
     }
 

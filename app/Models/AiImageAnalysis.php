@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\ClinicalAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +31,15 @@ class AiImageAnalysis extends Model
         'review_notes',
     ];
 
+    /**
+     * Provider artifacts kept for audit only: the exact prompt sent to the
+     * model and its full raw completion never leave the API surface.
+     */
+    protected $hidden = [
+        'prompt_sent',
+        'raw_response',
+    ];
+
     protected $casts = [
         'findings' => 'array',
         'recommendations' => 'array',
@@ -37,6 +48,24 @@ class AiImageAnalysis extends Model
         'reviewed_at' => 'datetime',
         'tokens_used' => 'integer',
     ];
+
+    /**
+     * Scope the rows to what the viewer may read (issue #214): everything for an
+     * administrator, and otherwise the analyses she requested or reviewed plus
+     * the ones of the patients she reaches clinically.
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->role === 'administrador') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $scoped) use ($user): void {
+            $scoped->where('requested_by', $user->id)
+                ->orWhere('reviewed_by', $user->id)
+                ->orWhereIn('patient_id', ClinicalAccess::patientIdsFor($user));
+        });
+    }
 
     // Relaciones
     public function clinicalAttachment(): BelongsTo

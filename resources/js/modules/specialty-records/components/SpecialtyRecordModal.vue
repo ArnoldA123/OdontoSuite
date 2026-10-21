@@ -1,285 +1,181 @@
 <template>
-  <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2 class="modal-title">
-          {{ isEdit ? 'Editar Registro de Especialidad' : 'Nuevo Registro de Especialidad' }}
-        </h2>
-        <button class="modal-close" @click="closeModal">
-          <XMarkIcon class="w-6 h-6" />
-        </button>
-      </div>
+  <UiModal model-value :title="title" size="lg" @close="close">
+    <div class="space-y-6 bg-canvas text-theme-primary" data-specialty-record-form>
+      <fieldset class="space-y-4" data-form-section="patient-specialty">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Paciente y especialidad
+        </legend>
 
-      <form class="modal-body" @submit.prevent="handleSubmit">
-        <div class="form-grid">
-          <!-- Información básica -->
-          <div class="form-section">
-            <h3 class="section-title">Información Básica</h3>
-
-            <div class="form-group">
-              <label class="form-label">Paciente *</label>
-              <PatientSelector
-                v-model="selectedPatient"
-                :error="errors.patient_id"
-                @patient-selected="handlePatientChange"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Especialidad *</label>
-              <select
-                v-model="form.specialty"
-                class="form-input"
-                :class="{ 'border-red-500': errors.specialty }"
-                required
-                @change="handleSpecialtyChange"
-              >
-                <option value="">Seleccionar especialidad</option>
-                <option value="implantology">Implantología</option>
-                <option value="orthodontics">Ortodoncia</option>
-                <option value="endodontics">Endodoncia</option>
-                <option value="rehabilitation">Rehabilitación</option>
-                <option value="oral_surgery">Cirugía Oral</option>
-              </select>
-              <p v-if="errors.specialty" class="form-error">
-                {{ errors.specialty }}
-              </p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Título *</label>
-              <input
-                v-model="form.title"
-                type="text"
-                class="form-input"
-                :class="{ 'border-red-500': errors.title }"
-                placeholder="Ej: Evaluación de implantes"
-                required
-              />
-              <p v-if="errors.title" class="form-error">
-                {{ errors.title }}
-              </p>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Descripción</label>
-              <textarea
-                v-model="form.description"
-                class="form-textarea"
-                rows="3"
-                placeholder="Descripción del registro..."
-              />
-            </div>
+        <div data-field="patient_id">
+          <div
+            v-if="lockedPatient"
+            class="rounded-[var(--radius-panel)] px-3 py-2"
+            style="border: 1px solid var(--color-hairline); background: var(--color-canvas)"
+            data-selected-patient
+          >
+            <p class="text-xs text-theme-secondary">Paciente</p>
+            <p class="text-sm font-semibold text-label">{{ patientName }}</p>
+            <p v-if="patientMeta" class="text-xs text-theme-secondary tabular-nums">
+              {{ patientMeta }}
+            </p>
           </div>
+          <PatientSelector v-else v-model="selectedPatient" @patient-selected="onPatientSelected" />
+          <p v-if="errors.patient_id" class="mt-1 text-xs text-systemRed-700">
+            {{ errors.patient_id }}
+          </p>
+        </div>
 
-          <!-- Campos específicos por especialidad -->
-          <div class="form-section">
-            <h3 class="section-title">Información Específica</h3>
+        <div data-field="specialty">
+          <UiSelect
+            v-model="form.specialty"
+            :options="specialtyOptions"
+            label="Especialidad"
+            placeholder="Selecciona una especialidad"
+            :disabled="isEdit"
+            :error="errors.specialty"
+            data-specialty-select
+            @change="onSpecialtyChange"
+          />
+          <p v-if="isEdit" class="mt-1 text-xs text-theme-secondary">
+            La especialidad no puede cambiarse en un registro existente.
+          </p>
+        </div>
+      </fieldset>
 
-            <!-- Implantología -->
-            <div v-if="form.specialty === 'implantology'" class="specialty-fields">
-              <div class="form-group">
-                <label class="form-label">Número de Implantes</label>
-                <input v-model="form.implant_count" type="number" class="form-input" min="1" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Tipo de Implante</label>
-                <input
-                  v-model="form.implant_type"
-                  type="text"
-                  class="form-input"
-                  placeholder="Marca y modelo del implante"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Posición</label>
-                <input
-                  v-model="form.position"
-                  type="text"
-                  class="form-input"
-                  placeholder="Posición del implante"
-                />
-              </div>
-            </div>
+      <fieldset class="space-y-4" data-form-section="clinical">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Datos clínicos
+        </legend>
 
-            <!-- Ortodoncia -->
-            <div v-else-if="form.specialty === 'orthodontics'" class="specialty-fields">
-              <div class="form-group">
-                <label class="form-label">Tipo de Tratamiento</label>
-                <select v-model="form.treatment_type" class="form-input">
-                  <option value="">Seleccionar tipo</option>
-                  <option value="fixed">Aparatología Fija</option>
-                  <option value="removable">Aparatología Removible</option>
-                  <option value="invisible">Ortodoncia Invisible</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Duración Estimada (meses)</label>
-                <input v-model="form.estimated_duration" type="number" class="form-input" min="1" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Problema Principal</label>
-                <textarea
-                  v-model="form.main_problem"
-                  class="form-textarea"
-                  rows="2"
-                  placeholder="Descripción del problema principal"
-                />
-              </div>
-            </div>
-
-            <!-- Endodoncia -->
-            <div v-else-if="form.specialty === 'endodontics'" class="specialty-fields">
-              <div class="form-group">
-                <label class="form-label">Diente Tratado</label>
-                <input
-                  v-model="form.tooth_number"
-                  type="text"
-                  class="form-input"
-                  placeholder="Número del diente"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Número de Conductos</label>
-                <input v-model="form.canal_count" type="number" class="form-input" min="1" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Material de Obturación</label>
-                <input
-                  v-model="form.obturation_material"
-                  type="text"
-                  class="form-input"
-                  placeholder="Material utilizado"
-                />
-              </div>
-            </div>
-
-            <!-- Rehabilitación -->
-            <div v-else-if="form.specialty === 'rehabilitation'" class="specialty-fields">
-              <div class="form-group">
-                <label class="form-label">Tipo de Prótesis</label>
-                <select v-model="form.prosthesis_type" class="form-input">
-                  <option value="">Seleccionar tipo</option>
-                  <option value="crown">Corona</option>
-                  <option value="bridge">Puente</option>
-                  <option value="denture">Dentadura</option>
-                  <option value="implant_prosthesis">Prótesis sobre Implante</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Material</label>
-                <input
-                  v-model="form.material"
-                  type="text"
-                  class="form-input"
-                  placeholder="Material de la prótesis"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Dientes Involucrados</label>
-                <input
-                  v-model="form.involved_teeth"
-                  type="text"
-                  class="form-input"
-                  placeholder="Números de dientes"
-                />
-              </div>
-            </div>
-
-            <!-- Cirugía Oral -->
-            <div v-else-if="form.specialty === 'oral_surgery'" class="specialty-fields">
-              <div class="form-group">
-                <label class="form-label">Tipo de Cirugía</label>
-                <select v-model="form.surgery_type" class="form-input">
-                  <option value="">Seleccionar tipo</option>
-                  <option value="extraction">Extracción</option>
-                  <option value="wisdom_tooth">Muela del Juicio</option>
-                  <option value="implant_placement">Colocación de Implante</option>
-                  <option value="biopsy">Biopsia</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Anestesia Utilizada</label>
-                <input
-                  v-model="form.anesthesia"
-                  type="text"
-                  class="form-input"
-                  placeholder="Tipo de anestesia"
-                />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Complicaciones</label>
-                <textarea
-                  v-model="form.complications"
-                  class="form-textarea"
-                  rows="2"
-                  placeholder="Complicaciones durante la cirugía"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Información adicional -->
-          <div class="form-section">
-            <h3 class="section-title">Información Adicional</h3>
-
-            <div class="form-group">
-              <label class="form-label">Fecha del Procedimiento</label>
-              <input v-model="form.procedure_date" type="date" class="form-input" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Profesional Responsable</label>
-              <input
-                v-model="form.professional_name"
-                type="text"
-                class="form-input"
-                placeholder="Nombre del profesional"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Observaciones</label>
-              <textarea
-                v-model="form.observations"
-                class="form-textarea"
-                rows="3"
-                placeholder="Observaciones adicionales..."
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Próxima Cita</label>
-              <input v-model="form.next_appointment" type="datetime-local" class="form-input" />
-            </div>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div v-for="field in clinicalFields" :key="field.key" :data-field="field.key">
+            <UiSelect
+              v-if="field.type === 'dental-piece'"
+              v-model="form[field.key]"
+              :options="dentalPieceOptions"
+              :label="field.label"
+              placeholder="Selecciona la pieza"
+              :error="errors[field.key]"
+              data-dental-piece-select
+            />
+            <UiSelect
+              v-else-if="field.type === 'select'"
+              v-model="form[field.key]"
+              :options="optionsFor(field)"
+              :label="field.label"
+              placeholder="Selecciona una opción"
+              :error="errors[field.key]"
+            />
+            <UiInput
+              v-else
+              v-model="form[field.key]"
+              :type="field.type"
+              :label="field.label"
+              :min="field.min"
+              :max="field.type === 'number' ? field.max : undefined"
+              :step="field.step"
+              :error="errors[field.key]"
+            />
           </div>
         </div>
-      </form>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline" :disabled="loading" @click="closeModal">
-          Cancelar
-        </button>
-        <button type="submit" class="btn btn-primary" :disabled="loading" @click="handleSubmit">
-          <CheckIcon class="w-4 h-4 mr-2" />
-          {{ loading ? 'Guardando...' : isEdit ? 'Actualizar' : 'Crear Registro' }}
-        </button>
-      </div>
+        <p v-if="clinicalFields.length === 0" class="text-sm text-theme-secondary">
+          Selecciona una especialidad para ver sus campos clínicos.
+        </p>
+      </fieldset>
+
+      <fieldset class="space-y-4" data-form-section="notes">
+        <legend class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+          Notas
+        </legend>
+
+        <div v-for="field in noteFields" :key="field.key" :data-field="field.key" class="space-y-1">
+          <div class="flex items-baseline justify-between gap-3">
+            <label class="block text-sm font-medium text-theme-primary">{{ field.label }}</label>
+            <span class="text-xs text-theme-secondary tabular-nums">
+              {{ fieldLength(field.key) }}/{{ field.max }}
+            </span>
+          </div>
+          <UiTextarea
+            v-model="form[field.key]"
+            :rows="3"
+            :error="!!errors[field.key]"
+            :aria-label="field.label"
+          />
+          <p v-if="errors[field.key]" class="text-xs text-systemRed-700">{{ errors[field.key] }}</p>
+        </div>
+
+        <p v-if="noteFields.length === 0" class="text-sm text-theme-secondary">
+          Esta especialidad no tiene notas adicionales.
+        </p>
+      </fieldset>
+
+      <p
+        v-if="generalError"
+        role="alert"
+        data-modal-error
+        class="rounded-[var(--radius-panel)] bg-systemRed-50 p-3 text-sm text-systemRed-700"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        {{ generalError }}
+      </p>
     </div>
-  </div>
+
+    <template #footer>
+      <UiButton
+        type="button"
+        variant="secondary"
+        :disabled="saving"
+        data-modal-cancel
+        @click="close"
+      >
+        Cancelar
+      </UiButton>
+      <UiButton
+        type="button"
+        :loading="saving"
+        :disabled="saving"
+        data-modal-submit
+        @click="onSubmit"
+      >
+        {{ isEdit ? 'Actualizar' : 'Crear registro' }}
+      </UiButton>
+    </template>
+  </UiModal>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useApi } from '@/composables/useApi'
+import { useAuth } from '@/composables/useAuth'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useSpecialtyRecords } from '@/composables/useSpecialtyRecords'
 import { useToast } from '@/composables/useToast'
 import PatientSelector from '@/components/ui/PatientSelector.vue'
-import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import UiButton from '@/components/ui/Button.vue'
+import UiInput from '@/components/ui/Input.vue'
+import UiModal from '@/components/ui/Modal.vue'
+import UiSelect from '@/components/ui/Select.vue'
+import UiTextarea from '@/components/ui/UiTextarea.vue'
+import {
+  dateInputValue,
+  definitionsForRole,
+  formFields,
+  getSpecialtyDefinition
+} from '../specialtyRecordMeta'
 
 const props = defineProps({
   record: {
     type: Object,
     default: null
+  },
+  patient: {
+    type: Object,
+    default: null
+  },
+  specialty: {
+    type: String,
+    default: ''
   },
   isEdit: {
     type: Boolean,
@@ -289,229 +185,259 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
-const { createRecord, updateRecord, loading } = useSpecialtyRecords()
+const { get } = useApi()
+const { user } = useAuth()
+const { handleError } = useErrorHandler()
 const toast = useToast()
+const { createRecord, updateRecord } = useSpecialtyRecords()
 
-const selectedPatient = ref(null)
-
-const form = ref({
-  patient_id: '',
-  specialty: '',
-  title: '',
-  description: '',
-  // Campos específicos por especialidad
-  implant_count: '',
-  implant_type: '',
-  position: '',
-  treatment_type: '',
-  estimated_duration: '',
-  main_problem: '',
-  tooth_number: '',
-  canal_count: '',
-  obturation_material: '',
-  prosthesis_type: '',
-  material: '',
-  involved_teeth: '',
-  surgery_type: '',
-  anesthesia: '',
-  complications: '',
-  // Campos generales
-  procedure_date: '',
-  professional_name: '',
-  observations: '',
-  next_appointment: ''
-})
-
+const selectedPatient = ref(props.patient ?? null)
 const errors = ref({})
+const generalError = ref('')
+const saving = ref(false)
+const dentalPieces = ref([])
+const dentalPiecesError = ref(false)
 
-const handlePatientChange = patient => {
-  selectedPatient.value = patient
-  form.value.patient_id = patient?.id || ''
-}
+const definition = computed(() => getSpecialtyDefinition(props.specialty))
 
-const handleSpecialtyChange = () => {
-  // Limpiar campos específicos cuando cambia la especialidad
-  const specialtyFields = [
-    'implant_count',
-    'implant_type',
-    'position',
-    'treatment_type',
-    'estimated_duration',
-    'main_problem',
-    'tooth_number',
-    'canal_count',
-    'obturation_material',
-    'prosthesis_type',
-    'material',
-    'involved_teeth',
-    'surgery_type',
-    'anesthesia',
-    'complications'
-  ]
+const title = computed(() =>
+  definition.value
+    ? `${props.isEdit ? 'Editar' : 'Nuevo'} registro de ${definition.value.label}`
+    : 'Registro de especialidad'
+)
 
-  specialtyFields.forEach(field => {
-    form.value[field] = ''
-  })
-}
+const specialtyOptions = computed(() =>
+  definitionsForRole(user.value?.role).map(entry => ({ value: entry.key, label: entry.label }))
+)
 
-const handleSubmit = async () => {
+const dentalPieceOptions = computed(() =>
+  dentalPieces.value.map(piece => ({
+    value: String(piece.id),
+    label: [piece.fdi_number ? `#${piece.fdi_number}` : '', piece.name ?? '']
+      .filter(Boolean)
+      .join(' · ')
+  }))
+)
+
+const loadDentalPieces = async () => {
   try {
-    errors.value = {}
-
-    // Validaciones básicas
-    if (!form.value.patient_id || form.value.patient_id === '') {
-      errors.value.patient_id = 'El paciente es obligatorio'
-      return
-    }
-    if (!form.value.specialty) {
-      errors.value.specialty = 'La especialidad es obligatoria'
-      return
-    }
-    if (!form.value.title || form.value.title.trim() === '') {
-      errors.value.title = 'El título es obligatorio'
-      return
-    }
-
-    if (props.isEdit) {
-      await updateRecord(props.record.id, form.value)
-      toast.success('Registro de especialidad actualizado exitosamente')
-    } else {
-      await createRecord(form.value)
-      toast.success('Registro de especialidad creado exitosamente')
-    }
-
-    emit('saved')
-  } catch (err) {
-    if (err.response?.data?.errors) {
-      errors.value = err.response.data.errors
-      const firstField = Object.keys(err.response.data.errors)[0]
-      const firstMessage = err.response.data.errors[firstField]?.[0]
-      if (firstMessage) {
-        toast.error(firstMessage)
-      } else {
-        toast.error('No se pudo guardar el registro. Revisa los campos.')
-      }
-    } else if (err.response?.data?.message) {
-      toast.error(err.response.data.message)
-    } else {
-      toast.error('No se pudo guardar el registro. Intenta nuevamente.')
-    }
+    const response = await get('/api/dental-pieces')
+    dentalPieces.value = Array.isArray(response?.data) ? response.data : []
+    dentalPiecesError.value = false
+  } catch {
+    dentalPieces.value = []
+    dentalPiecesError.value = true
   }
 }
 
-const closeModal = () => {
+const lockedPatient = computed(() => Boolean(props.patient ?? props.record?.patient))
+
+const currentPatient = computed(
+  () => selectedPatient.value ?? props.patient ?? props.record?.patient
+)
+
+const patientName = computed(() => {
+  const patient = currentPatient.value
+
+  if (!patient) return 'Sin paciente'
+
+  return `${patient.first_name ?? ''} ${patient.last_name ?? ''}`.trim()
+})
+
+const patientMeta = computed(() => {
+  const patient = currentPatient.value
+
+  if (!patient) return ''
+
+  const document = patient.document_number ?? patient.dni ?? ''
+
+  return [document ? `Documento ${document}` : '', patient.phone ?? ''].filter(Boolean).join(' · ')
+})
+
+const patientId = computed(
+  () => props.patient?.id ?? props.record?.patient_id ?? selectedPatient.value?.id ?? null
+)
+
+const toInputValue = (field, value) => {
+  if (value === null || value === undefined) return ''
+  if (field.type === 'date') return dateInputValue(value)
+
+  return String(value)
+}
+
+const buildForm = specialty => {
+  const values = Object.fromEntries(
+    formFields(getSpecialtyDefinition(specialty)).map(field => [field.key, ''])
+  )
+
+  if (!props.isEdit) return { specialty: specialty || '', ...values }
+
+  const filled = Object.fromEntries(
+    formFields(getSpecialtyDefinition(specialty)).map(field => [
+      field.key,
+      toInputValue(field, props.record?.[field.key])
+    ])
+  )
+
+  return { specialty: specialty || '', ...filled }
+}
+
+const form = ref(buildForm(props.specialty))
+
+const clinicalFields = computed(() => formFields(definition.value, 'clinical'))
+const noteFields = computed(() => formFields(definition.value, 'notes'))
+
+const optionsFor = field =>
+  field.required ? field.options : [{ value: '', label: 'Sin definir' }, ...field.options]
+
+const text = value => (value === null || value === undefined ? '' : String(value).trim())
+const fieldLength = key => text(form.value[key]).length
+
+const onPatientSelected = patient => {
+  selectedPatient.value = patient
+
+  if (patient?.id) {
+    const next = { ...errors.value }
+    delete next.patient_id
+    errors.value = next
+  }
+}
+
+const onSpecialtyChange = specialty => {
+  form.value = { ...buildForm(specialty), specialty }
+  errors.value = {}
+
+  const needsPieces = formFields(getSpecialtyDefinition(specialty)).some(
+    field => field.type === 'dental-piece'
+  )
+
+  if (needsPieces && dentalPieces.value.length === 0) loadDentalPieces()
+}
+
+const validate = () => {
+  const next = {}
+
+  if (!patientId.value) next.patient_id = 'Selecciona un paciente'
+  if (!form.value.specialty) next.specialty = 'Selecciona una especialidad'
+
+  formFields(definition.value).forEach(field => {
+    const value = text(form.value[field.key])
+
+    if (field.required && value === '') {
+      next[field.key] = `${field.label} es obligatorio`
+      return
+    }
+
+    if (field.type === 'number') {
+      if (value === '') return
+
+      const numeric = Number(form.value[field.key])
+
+      if (!Number.isFinite(numeric)) {
+        next[field.key] = 'Ingresa un número válido'
+        return
+      }
+
+      if (field.min !== undefined && numeric < field.min) {
+        next[field.key] = `El valor mínimo es ${field.min}`
+        return
+      }
+
+      if (field.max !== undefined && numeric > field.max) {
+        next[field.key] = `El valor máximo es ${field.max}`
+      }
+
+      return
+    }
+
+    if (field.max && value.length > field.max) {
+      next[field.key] = `Máximo ${field.max} caracteres`
+    }
+  })
+
+  errors.value = next
+
+  return Object.keys(next).length === 0
+}
+
+const toNumberOrNull = value => {
+  const raw = text(value)
+
+  if (raw === '') return null
+
+  const numeric = Number(value)
+
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+const buildPayload = () => {
+  const payload = { specialty: form.value.specialty }
+
+  // PUT resolves the record by specialty and id; `patient_id` belongs to the
+  // create contract only. The piece travels with both: the three NOT NULL
+  // tables keep it, and edit can correct it.
+  if (!props.isEdit) payload.patient_id = patientId.value
+
+  for (const field of definition.value?.formFields ?? []) {
+    if (field.type === 'number' || field.type === 'dental-piece') {
+      payload[field.key] = toNumberOrNull(form.value[field.key])
+      continue
+    }
+
+    const value = text(form.value[field.key])
+    payload[field.key] = value === '' ? null : value
+  }
+
+  return payload
+}
+
+const applyServerErrors = bag => {
+  errors.value = Object.fromEntries(
+    Object.entries(bag).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? value[0] : String(value)
+    ])
+  )
+}
+
+const close = () => {
   emit('close')
 }
 
-const initializeForm = () => {
-  if (props.record) {
-    form.value = {
-      patient_id: props.record.patient_id || '',
-      specialty: props.record.specialty || '',
-      title: props.record.title || '',
-      description: props.record.description || '',
-      implant_count: props.record.implant_count || '',
-      implant_type: props.record.implant_type || '',
-      position: props.record.position || '',
-      treatment_type: props.record.treatment_type || '',
-      estimated_duration: props.record.estimated_duration || '',
-      main_problem: props.record.main_problem || '',
-      tooth_number: props.record.tooth_number || '',
-      canal_count: props.record.canal_count || '',
-      obturation_material: props.record.obturation_material || '',
-      prosthesis_type: props.record.prosthesis_type || '',
-      material: props.record.material || '',
-      involved_teeth: props.record.involved_teeth || '',
-      surgery_type: props.record.surgery_type || '',
-      anesthesia: props.record.anesthesia || '',
-      complications: props.record.complications || '',
-      procedure_date: props.record.procedure_date || '',
-      professional_name: props.record.professional_name || '',
-      observations: props.record.observations || '',
-      next_appointment: props.record.next_appointment || ''
+onMounted(() => {
+  const needsPieces = formFields(definition.value).some(field => field.type === 'dental-piece')
+
+  if (needsPieces) loadDentalPieces()
+})
+
+const onSubmit = async () => {
+  if (saving.value) return
+
+  generalError.value = ''
+
+  if (!validate()) return
+
+  saving.value = true
+
+  try {
+    const saved = props.isEdit
+      ? await updateRecord(props.record.id, buildPayload())
+      : await createRecord(buildPayload())
+
+    toast.success(props.isEdit ? 'Registro actualizado' : 'Registro creado')
+    emit('saved', { record: saved, specialty: form.value.specialty })
+  } catch (error) {
+    const serverErrors = error?.response?.data?.errors
+
+    if (serverErrors) {
+      applyServerErrors(serverErrors)
+      handleError(error, 'Revisa los campos marcados')
+    } else {
+      generalError.value = 'No pudimos guardar el registro. Intenta nuevamente.'
+      handleError(error, 'No pudimos guardar el registro')
     }
+  } finally {
+    saving.value = false
   }
 }
-
-onMounted(() => {
-  initializeForm()
-})
 </script>
-
-<style scoped>
-.modal-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-}
-
-.modal-content {
-  @apply bg-theme-surface-elevated rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto;
-}
-
-.modal-header {
-  @apply flex items-center justify-between p-6 border-b border-theme;
-}
-
-.modal-title {
-  @apply text-xl font-semibold text-theme-primary;
-}
-
-.modal-close {
-  @apply p-2 text-theme-secondary hover:text-theme-primary transition-colors;
-}
-
-.modal-body {
-  @apply p-6;
-}
-
-.form-grid {
-  @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
-}
-
-.form-section {
-  @apply space-y-4;
-}
-
-.section-title {
-  @apply text-lg font-medium text-theme-primary border-b border-theme pb-2;
-}
-
-.specialty-fields {
-  @apply space-y-4;
-}
-
-.form-group {
-  @apply space-y-2;
-}
-
-.form-label {
-  @apply block text-sm font-medium text-theme-primary;
-}
-
-.form-input {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-textarea {
-  @apply block w-full px-3 py-2 border border-theme rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none bg-theme-surface-elevated text-theme-primary;
-}
-
-.form-error {
-  @apply text-sm text-red-600;
-}
-
-.modal-footer {
-  @apply flex items-center justify-end space-x-3 p-6 border-t border-theme;
-}
-
-.btn {
-  @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors;
-}
-
-.btn-outline {
-  @apply border border-theme text-theme-primary hover:bg-theme-surface;
-}
-
-.btn-primary {
-  @apply bg-primary-600 text-white hover:bg-primary-700;
-}
-</style>

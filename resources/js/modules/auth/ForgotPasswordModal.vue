@@ -8,7 +8,7 @@
   >
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- Instructions -->
-      <p class="text-sm leading-relaxed text-ink-700">
+      <p class="text-sm leading-relaxed text-theme-secondary">
         Ingresa el correo electrónico asociado a tu cuenta. Si existe, te enviaremos un enlace para
         restablecer tu contraseña.
       </p>
@@ -241,10 +241,6 @@ watch(
 </script>
 
 <style scoped>
-.text-ink-700 {
-  color: var(--color-label-secondary-label);
-}
-
 .success-panel {
   @apply flex items-start gap-3 p-4 rounded-xl;
   background: var(--color-success-50);

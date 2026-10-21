@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreQuotationRequest;
+use App\Http\Requests\UpdateQuotationRequest;
 use App\Services\QuotationService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class QuotationController extends Controller
 {
@@ -38,9 +42,10 @@ class QuotationController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los presupuestos', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener presupuestos',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -53,9 +58,10 @@ class QuotationController extends Controller
         try {
             return response()->json(['data' => $this->quotationService->summary()]);
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener el resumen de presupuestos', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener el resumen de presupuestos',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -63,7 +69,7 @@ class QuotationController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(\App\Http\Requests\StoreQuotationRequest $request): JsonResponse
+    public function store(StoreQuotationRequest $request): JsonResponse
     {
         try {
             $validated = $request->validated();
@@ -106,9 +112,10 @@ class QuotationController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('No se pudo crear el presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al crear presupuesto',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -130,37 +137,24 @@ class QuotationController extends Controller
             return response()->json([
                 'data' => $quotation,
             ]);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo obtener el presupuesto', ['exception' => $e]);
+
             return response()->json([
-                'message' => 'Presupuesto no encontrado',
-                'error' => $e->getMessage(),
-            ], 404);
+                'message' => 'Error al obtener el presupuesto',
+            ], 500);
         }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateQuotationRequest $request, int $id): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'quotation_date' => 'nullable|date',
-                'valid_until' => 'nullable|date|after:quotation_date',
-                'subtotal' => 'nullable|numeric|min:0',
-                'discount_percentage' => 'nullable|numeric|min:0|max:100',
-                'discount_amount' => 'nullable|numeric|min:0',
-                'tax_percentage' => 'nullable|numeric|min:0|max:100',
-                'terms_conditions' => 'nullable|string',
-                'notes' => 'nullable|string',
-                'payment_terms' => 'nullable|array',
-                'items' => 'nullable|array',
-                'items.*.description' => 'required_with:items|string',
-                'items.*.quantity' => 'required_with:items|numeric|min:1',
-                'items.*.unit_price' => 'required_with:items|numeric|min:0',
-            ]);
-
-            $quotation = $this->quotationService->updateQuotation($id, $validated);
+            $quotation = $this->quotationService->updateQuotation($id, $request->validated());
 
             return response()->json([
                 'data' => $quotation,
@@ -173,10 +167,13 @@ class QuotationController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo actualizar el presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al actualizar presupuesto',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -203,10 +200,13 @@ class QuotationController extends Controller
                     'message' => 'Presupuesto eliminado exitosamente',
                 ],
             ]);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo eliminar el presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al eliminar presupuesto',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -235,10 +235,13 @@ class QuotationController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo aprobar el presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al aprobar presupuesto',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -266,10 +269,13 @@ class QuotationController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo rechazar el presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al rechazar presupuesto',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -289,10 +295,13 @@ class QuotationController extends Controller
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             ]);
+        } catch (ModelNotFoundException) {
+            return response()->json(['message' => 'Presupuesto no encontrado'], 404);
         } catch (\Exception $e) {
+            Log::error('No se pudo generar el PDF del presupuesto', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al generar PDF',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -315,9 +324,10 @@ class QuotationController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            Log::error('No se pudieron obtener los presupuestos del paciente', ['exception' => $e]);
+
             return response()->json([
                 'message' => 'Error al obtener presupuestos del paciente',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

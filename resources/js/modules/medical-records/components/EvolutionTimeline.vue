@@ -6,6 +6,13 @@
         <p class="mt-1 text-sm text-theme-secondary">
           El registro SOAP de cada consulta, de la más reciente a la más antigua
         </p>
+        <p
+          v-if="record"
+          class="mt-1 text-xs text-theme-secondary tabular-nums"
+          data-evolution-record
+        >
+          Historia {{ record.record_number }}
+        </p>
       </div>
       <UiButton variant="secondary" size="sm" data-add-evolution @click="emit('add')">
         <template #icon-left>
@@ -52,7 +59,7 @@
                 </p>
                 <span class="text-theme-secondary" aria-hidden="true">·</span>
                 <p class="text-sm text-theme-secondary" data-evolution-specialty>
-                  {{ evolution.specialty || 'Sin especialidad' }}
+                  {{ specialtyLabel(evolution) }}
                 </p>
                 <StatusBadge
                   v-if="evolution.requires_follow_up"
@@ -211,6 +218,28 @@
             </div>
           </div>
 
+          <!-- Clinical measurements: the periodontal contract (issue #222). -->
+          <div
+            v-if="clinicalMeasurements(evolution).length > 0"
+            data-evolution-measurements
+            class="mt-4"
+          >
+            <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+              Mediciones clínicas
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              <span
+                v-for="measure in clinicalMeasurements(evolution)"
+                :key="measure.key"
+                class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--color-hairline)] px-2.5 py-1 text-xs tabular-nums"
+                :data-evolution-measurement="measure.key"
+              >
+                <span class="text-theme-secondary">{{ measure.label }}</span>
+                <span class="font-semibold text-theme-primary">{{ measure.value }}</span>
+              </span>
+            </div>
+          </div>
+
           <!-- Next appointment: instructions that outlive this session. -->
           <div
             v-if="evolution.next_appointment_notes"
@@ -241,10 +270,18 @@ import UiSectionEmpty from '@/components/ui/UiSectionEmpty.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 
-defineProps({
+const props = defineProps({
   evolutions: {
     type: Array,
     default: () => []
+  },
+  specialties: {
+    type: Array,
+    default: () => []
+  },
+  record: {
+    type: Object,
+    default: null
   },
   loading: {
     type: Boolean,
@@ -260,6 +297,16 @@ const { can } = usePermissions()
 // The surface names the four SOAP blocks after the payload columns, so a
 // reader can map every block back to `clinical_evolutions`.
 const formatEvolutionDate = value => formatDateOnly(value) || 'Sin fecha'
+
+// The row stores the catalog code; the timeline shows the human name and
+// falls back to the code for historical values the catalog no longer has.
+const specialtyLabel = evolution => {
+  const code = evolution.specialty
+
+  if (!code) return 'Sin especialidad'
+
+  return props.specialties.find(specialty => specialty.code === code)?.name || code
+}
 
 const authorLabel = evolution => {
   const name = evolution.created_by?.name || evolution.createdBy?.name
@@ -295,6 +342,33 @@ const vitalSigns = evolution => {
       key: sign.key,
       label: sign.label,
       value: `${sign.value}${sign.suffix}`
+    }))
+}
+
+const CLINICAL_MEASUREMENT_SLOTS = [
+  { key: 'pocket_depth_mm', label: 'Sondaje', suffix: ' mm' },
+  { key: 'gingival_recession_mm', label: 'Recesión', suffix: ' mm' },
+  { key: 'plaque_index_percent', label: 'Índice de placa', suffix: ' %' },
+  { key: 'tooth_mobility', label: 'Movilidad', format: value => `Grado ${value}` },
+  {
+    key: 'bleeding_on_probing',
+    label: 'Sangrado al sondaje',
+    format: value => (value ? 'Sí' : 'No')
+  }
+]
+
+const clinicalMeasurements = evolution => {
+  const measurements = evolution.clinical_measurements || {}
+
+  return CLINICAL_MEASUREMENT_SLOTS.map(slot => ({ ...slot, value: measurements[slot.key] }))
+    .filter(
+      measure =>
+        measure.value !== null && measure.value !== undefined && String(measure.value).trim() !== ''
+    )
+    .map(measure => ({
+      key: measure.key,
+      label: measure.label,
+      value: measure.format ? measure.format(measure.value) : `${measure.value}${measure.suffix}`
     }))
 }
 

@@ -41,6 +41,7 @@ import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/ai-analysis/AiAnalysisPage.vue'
 import AiAnalysisModal from '../../../resources/js/modules/ai-analysis/components/AiAnalysisModal.vue'
 import AnalyzingModal from '../../../resources/js/modules/ai-analysis/components/AnalyzingModal.vue'
+import { useToast, globalToasts } from '../../../resources/js/composables/useToast'
 
 const PATIENT = { id: 7, first_name: 'Ana', last_name: 'Torres' }
 
@@ -202,6 +203,7 @@ const selectCategory = async label => {
 let wrapper = null
 
 beforeEach(() => {
+  useToast().clearAll()
   getMock.mockReset()
   postMock.mockReset()
   postMock.mockResolvedValue({ data: { id: 99, status: 'completed' } })
@@ -392,6 +394,14 @@ describe('ai-analysis sheet submit', () => {
     expect(error).not.toBeNull()
     expect(error.getAttribute('role')).toBe('alert')
     expect(error.textContent.trim()).toBe('La IA no pudo procesar la imagen.')
+
+    // One notice per context: the sheet owns the message, so the composable
+    // must not paint a second copy of it as a toast.
+    const occurrences =
+      document.body.textContent.split('La IA no pudo procesar la imagen.').length - 1
+    expect(occurrences).toBe(1)
+    expect(globalToasts.value.filter(toast => toast.type === 'error')).toHaveLength(0)
+
     expect(alertSpy).not.toHaveBeenCalled()
     expect(submitButton().disabled).toBe(false)
     expect(wrapper.findComponent(AnalyzingModal).props('show')).toBe(false)

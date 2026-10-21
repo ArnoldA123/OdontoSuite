@@ -96,12 +96,12 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 32 controllers API (31 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 33 controllers API (32 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 50 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 33 eventos (10 con listener cableado + 21 con consumer WS, 2 sin dispatch)
+  Events/                  # 34 eventos (10 con listener cableado + 22 con consumer WS, 2 sin dispatch)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -119,14 +119,14 @@ resources/js/
 
 database/
   migrations/              # 114 migraciones
-  seeders/                 # 14 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
-                           #   SpecialtySeeder, AppointmentTypeSeeder, EnvironmentSeeder,
-                           #   ProcedureCatalogSeeder, PatientSeeder, SimpleAppointmentsSeeder,
-                           #   ReminderSchedulesSeeder, CashRegisterSeeder, CompletedAppointmentsSeeder,
-                           #   DentalPieceSeeder, SpecialtyRecordSeeder)
+  seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
+                           #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
+                           #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
+                           #   SimpleAppointmentsSeeder, ReminderSchedulesSeeder, CashRegisterSeeder,
+                           #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 201 rutas API (medido con php artisan route:list --json: uris api/…; 214 totales con web)
+  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -181,7 +181,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 32 controllers API, 33 eventos (10 listener classes / 13 cableos
+- 50 modelos, 33 controllers API, 34 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -364,7 +364,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 32 controllers API, 50
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 33 controllers API, 50
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -375,6 +375,153 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (especialidades — #210/#211/#212/#213)** — Cuatro issues del
+  dominio cerrados. Navegación: la entrada clínica de `/specialty-records` pasa
+  a «Registros de Especialidad» y el catálogo conserva «Catálogo de
+  Especialidades»; sin cambios de rutas ni permisos, con guard
+  `SpecialtiesNavigationDisambiguationTest` (#210). Datos: nuevo
+  `UserSpecialtySeeder` que puebla `user_specialties` desde el `users.specialty`
+  legacy con mapa explícito (`general`→`general`, `orthodontics`→`ortodoncia`,
+  `implantology`→`implantologia`) solo para roles clínicos; tras
+  `migrate --seed` el catálogo muestra profesionales > 0 y
+  `UserSpecialtySeederTest` fija el invariante (#211). Auditoría:
+  `SpecialtyController@store/update` escriben
+  `specialty_created`/`specialty_updated` con actor y snapshot auditable
+  (`code`, `name`, `description`, `is_active`), cubierto por
+  `SpecialtyAuditLogTest` (#213). Rediseño: `/specialty-records` pasa al
+  lenguaje del dashboard (hero band, KPI strip de la especialidad activa,
+  selector de paciente, `UiTabs` con badges de conteo, estados completos y
+  `UiModal` para alta/edición y detalle) y por fin renderiza el payload real de
+  `GET /specialty-records/patient/{id}/all`: antes la página cargaba
+  `allRecords` y pintaba `records`, siempre vacío; además esa ruta estaba
+  sombreada por `/patient/{patientId}/{specialty}` y respondía una lista vacía,
+  y el listado de cirugía oral ordenaba por `surgery_date`, una columna
+  inexistente que producía 500. Se eliminan las claves inglesas y los campos
+  inventados (`title`, `description`, `procedure_date`, `professional_name`,
+  `observations`, `next_appointment`). El contrato de escritura se alinea con el
+  esquema real: `rehabilitacion` exige `prosthesis_type` (no
+  `restoration_type`), `cirugia_oral` exige `surgery_site` (no `surgery_date`,
+  columna inexistente), los enums de estado son los de la BD, `dental_piece_id`
+  es obligatorio donde la tabla lo exige y el nuevo `GET /api/dental-pieces`
+  alimenta el selector de pieza. `UpdateSpecialtyRecordRequest` reutiliza las
+  reglas del alta para que la edición persista todo lo que muestra. En la misma
+  pasada, `/stats` cuenta cada especialidad por el campo de estado que realmente
+  tiene, los 500 del controlador dejan de filtrar el mensaje de la excepción y
+  `notes` sale del contrato porque no existe en ninguna de las cinco tablas. §4
+  sincronizado con valores medidos: 33 controllers API, 198 rutas API, 211
+  totales con web, 15 seeders activos; sin migraciones nuevas (114). Tests:
+  `SpecialtyAuditLogTest`, `UserSpecialtySeederTest`,
+  `SpecialtyRecordStoreContractTest`, `SpecialtyRecordUpdateContractTest`,
+  `SpecialtyRecordReadContractTest`, `DentalPiecesEndpointTest`,
+  `SpecialtyRecordsAppShellTest`, `SpecialtyRecordsRedesignContractTest`,
+  `SpecialtiesNavigationDisambiguationTest`, unit JS de `specialtyRecordMeta` y
+  smoke del módulo.
+
+- **2026-10-20 (seguimientos de historias clínicas #222/#223/#225/#228/#224)** —
+  La superficie de evoluciones cierra cuatro huecos del rediseño y gana
+  cobertura de flujos. `clinical_measurements` pasa a tener un contrato plano
+  (`pocket_depth_mm`, `gingival_recession_mm`, `plaque_index_percent`,
+  `bleeding_on_probing`, `tooth_mobility`), validado en `StoreEvolutionRequest`
+  y capturado/mostrado en el modal y el timeline. Editar y borrar una evolución
+  emiten `ClinicalEvolutionUpdated` / `ClinicalEvolutionDeleted` (canal
+  `medical-records`; el payload de borrado lleva `medical_record_id` y
+  `patient_id`) y el cliente refresca sólo al paciente seleccionado. La
+  especialidad de una evolución se valida contra el catálogo `specialties` y se
+  corrige desde un selector; el timeline muestra el nombre con fallback al
+  `code`. El workspace carga todas las historias del paciente paginando el
+  índice y ofrece selector de historia cuando hay más de una: Evoluciones la
+  sigue, Adjuntos y Estadísticas siguen al paciente y lo declaran. Nuevo
+  `tests/js/smoke/medical-records-flows.test.js` (alta de historia con 422 por
+  campo, evolución con seguimiento, borrado confirmado y adjunto con límite de
+  10 MB) sobre `pnpm test:js`, que ya corre en el job `quality`. Sin rutas,
+  migraciones, modelos ni primitivas UI nuevas: los conteos de §4 no cambian y
+  `scripts/audit/doc-drift.mjs` sigue en verde.
+- **2026-10-20 (cierre de hallazgos de #177/#208)** — El atajo `n` de la página
+  de planes queda inerte con un overlay abierto (reinicializaba el formulario en
+  edición y perdía los cambios), `UiModal` arma la trampa de foco también cuando
+  se abre por `v-model` (antes el `activate` corría con la ref todavía vacía) y
+  `/professionals/:id` entra en las rutas cuyo título visible pertenece a la
+  página. Los hallazgos fuera de alcance quedaron registrados como issues #242
+  (`TreatmentPlanDetail` a `UiModal`) y #243 (dos `<h1>` en rutas de detalle).
+  Tests: `modalPrimitiveGuards` (14), `treatment-plans` (9) y
+  `topbar-title-ownership` (27). Sin rutas, modelos ni migraciones nuevas.
+
+- **2026-10-20 (corrección de #177 tras verificación independiente)** — El botón
+  de envío de los dos diálogos migrados vuelve a ser `type="submit"` con
+  `form="…"`, así Enter sigue enviando desde cualquier campo; `DataTable` remide
+  el overflow cuando cambia el conjunto de columnas, no solo los datos. Tests:
+  asociación del submit (5 en `treatment-plan-modal`, 4 en
+  `create-patient-inline`), remedición por columnas (6) y guardias de la
+  primitiva (13).
+
+- **2026-10-20 (UiModal: hooks de raíz y cierre cancelable)** — `Modal.vue`
+  reenvía `$attrs` al nodo raíz teleportado (`inheritAttrs: false` +
+  `v-bind="$attrs"`), acepta `beforeClose` (al devolver `false` veta el cierre y
+  solo corre una vez mientras está pendiente) y `labelledby` para que un
+  consumidor con header propio conserve `aria-labelledby`. Los modales anidados
+  comparten una pila: solo el superior responde a Escape y al backdrop, el
+  bloqueo de scroll usa un contador y `useFocusTrap` deja que solo la trampa
+  superior mueva el foco. `TreatmentPlanModal` y `CreatePatientInline` dejan de
+  duplicar overlay, backdrop y foco, y `TreatmentPlansPage` deja de cerrar el
+  modal con su atajo de Escape para no saltarse la guardia de cambios. Sin
+  rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `modalPrimitiveGuards.test.js` (10),
+  `treatment-plan-modal.test.js` (4), `create-patient-inline.test.js` (3) y el
+  guard de Escape de página en `treatment-plans.test.js`.
+
+- **2026-10-20 (topbar sin título duplicado)** — En las rutas cuya página ya
+  renderiza su propio título (hero band de las superficies rediseñadas o
+  `PageHeader`), el topbar de `AppLayout` deja de pintar el título visible:
+  conserva su `<h1>` como `sr-only` y publica la descripción corta como contexto
+  (`data-topbar-title-owner` y `data-topbar-context`). Las rutas sin título
+  propio (calendario, pacientes, dashboard, historias) siguen mostrando el
+  título del topbar sin cambios. Sin rutas, navegación funcional, modelos,
+  migraciones ni primitivas UI nuevas: los conteos de §4 no cambian. Tests:
+  `topbar-title-ownership.test.js` (26).
+
+- **2026-10-20 (UiDataTable: affordance de scroll horizontal)** —
+  `DataTable.vue` mide el overflow de su viewport interno y, cuando la tabla
+  excede el ancho, pinta un degradado en el borde oculto y el aviso «Desliza
+  para ver más columnas» (`data-table-scroll`, `data-table-scroll-edge`,
+  `data-table-scroll-affordance`); al llegar al final el aviso desaparece y el
+  degradado cambia de lado. El scroll sigue siendo interno al primitivo (un
+  único `overflow-x-auto`), así que ninguna página gana overflow de documento.
+  Sin rutas, modelos, migraciones ni primitivas UI nuevas: los conteos de §4 no
+  cambian. Tests: `data-table-scroll-affordance.test.js` (5).
+- **2026-10-20 (deuda del design system: #218/#219/#221/#205)** — El plugin de
+  Tailwind registra las utilidades token que los módulos ya hablaban
+  (`text-label`, `border-hairline`, `bg-canvas`, `bg-systemBackground`,
+  `text-systemBackground`, `border-separator`, `divide-hairline`, `ring-accent`,
+  `text-accent-hover`); un guard estático en
+  `tests/js/unit/design-token-utilities.test.js` falla si aparece una clase
+  token que Tailwind no puede generar. `UiEmptyState.icon` acepta componentes
+  funcionales de heroicons. `AiAnalysisButton` pasa a `UiButton`/`UiStatusPill`
+  sin `<style scoped>` ni alias legacy, y el guard de app-shell suma el grupo
+  `embeddedFiles` para componentes embebidos. `useAiAnalysis` deja de tostar las
+  lecturas y la subida (el Sheet pinta el error en línea) y conserva el toast
+  solo en las acciones sin superficie de error propia. Sin rutas, modelos,
+  migraciones ni primitivas UI nuevas: los conteos de §4 no cambian.
+
+- **2026-10-20 (caja: rutas honestas, sesión actual y fugas de los 500)** —
+  Cierra los cuatro defectos vecinos detectados al entregar
+  #191/#193/#194/#196/#198. Se retira `POST /cash-register-sessions/{id}/close`
+  (ignoraba su `{id}`, gemelo del `{id}/open` que quitó #194) y
+  `apiResource('cash-register-sessions')` publica sólo `index` y `show`:
+  `store`, `update` y `destroy` no existen en el controlador y respondían 500
+  por método inexistente (ahora 405). `CashRegisterService::getCurrentSession()`
+  acota por usuario salvo `administrador` —regla de `CashRegisterPolicy::view`—
+  porque el guard anterior usaba `userCanManageCashRegister()`, que admite los
+  tres roles de caja y nunca acotaba nada; `GET /cash-register/current` ya no
+  devuelve la caja de otro usuario. El mensaje de `OpenCashRegisterRequest`
+  nombra la regla real (usuario y sucursal). Los cinco `catch` de
+  `CashRegisterController` (`current`, `index`, `show`, `movements`, `summary`)
+  dejan de devolver el mensaje de la excepción: mensaje genérico y `Log::error`,
+  con `ModelNotFoundException` reenviada para conservar el 404. §4 sincronizado
+  con valores medidos: 197 rutas API, 210 totales con web. Tests nuevos:
+  `CashRegisterPhantomRoutesTest` (4), `CashRegisterCurrentSessionScopeTest` (4)
+  y `CashRegisterErrorEnvelopeTest` (5). Guard `scripts/audit/doc-drift.mjs` en
+  verde.
 
 - **2026-10-20 (caja: dureza del backend y cobro en recepción)** — Cierra las
   issues #191, #193, #194, #196 y #198 en dos slices: `fix/caja-hardening`
@@ -398,6 +545,34 @@ documentada y no bloquea producción.
   `PendingPaymentsPaginationTest` (5), `CashRegisterContractWartsTest` (5) y
   `PendingPaymentsRoleAccessTest` (4). Guard `scripts/audit/doc-drift.mjs` en
   verde.
+- **2026-10-20 (endurecimiento del contrato de presupuestos, #200-#204)** — Los
+  tres eventos de presupuesto y el nuevo `QuotationRejected` viajan solo por
+  `PrivateChannel('quotations')`: `BroadcastingAuthController` autoriza
+  exactamente a administrador, finanzas, odontologo, implantologo y
+  recepcionista, y esos eventos dejan de publicarse por el canal público
+  `dashboard-updates` porque su payload lleva datos del paciente y montos (el
+  resto de eventos de ese canal queda para #183). `QuotationService` respeta la
+  máquina de estados: aprobar y rechazar solo desde `sent`/`viewed` (422 con
+  mensaje explícito), una sola fila de aprobación vigente, la descarga del PDF
+  escribe `viewed` y el nuevo comando diario `quotations:expire` escribe
+  `expired`; `index?expired=` y el resumen leen el estado en vez de derivarlo de
+  `valid_until`, mientras el badge de vigencia del front sigue avisando por
+  fecha. El rechazo emite `quotation.rejected` (no `QuotationUpdated`, para no
+  duplicar la notificación) y `NotificationService` lo mapea. El detalle de
+  paciente abre el presupuesto con `/quotations?open=<id>`, usa el vocabulario
+  de estado compartido y descarga con `useApi().download`. `store` y `update`
+  comparten el saneo de texto libre (`App\Support\QuotationText`: sin HTML,
+  topes 2000/1000) y el motivo de rechazo ya no desborda `notes`. Sin rutas,
+  migraciones, modelos ni primitivas UI nuevas: solo el conteo de eventos sube
+  a 34. Tests: `QuotationTextTest`, `QuotationTextHygieneTest`,
+  `QuotationStatusMachineTest`, `QuotationViewedOnPdfTest`,
+  `ExpireQuotationsCommandTest`, `QuotationBroadcastChannelsTest`,
+  `QuotationRejectedEventTest`, `BroadcastingAuthChannelsTest` extendido y los
+  smokes JS del canal privado, del deep link y de las acciones del paciente.
+  Follow-up de #196/#236: los nueve handlers de `QuotationController` registran
+  la excepción y responden un mensaje genérico (ya no exponen `error`), y un id
+  inexistente responde 404 en vez de 500 (`QuotationErrorEnvelopeTest`). Guard
+  `scripts/audit/doc-drift.mjs` en verde.
 
 - **2026-10-20 (historias clínicas)** — Interfaz de `/medical-records`
   rediseñada al lenguaje del dashboard y reparada sobre el contrato real: hero

@@ -57,7 +57,6 @@ class StoreSpecialtyRecordRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $textFields = [
-            'notes' => 1000,
             'complications' => 1000,
             'follow_up_notes' => 1000,
         ];
@@ -83,7 +82,6 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'patient_id' => 'required|exists:patients,id',
             'appointment_id' => 'sometimes|nullable|exists:appointments,id',
             'dental_piece_id' => 'sometimes|nullable|exists:dental_pieces,id',
-            'notes' => 'sometimes|nullable|string|max:1000',
             'complications' => 'sometimes|nullable|string|max:1000',
             'follow_up_notes' => 'sometimes|nullable|string|max:1000',
             // Slice 02 / T-02.10 — BF-007 related: optional procedure.
@@ -93,6 +91,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
         // Reglas específicas por especialidad
         $specialtyRules = match ($specialty) {
             'implantologia' => [
+                'dental_piece_id' => 'required|exists:dental_pieces,id',
                 'implant_brand' => 'required|string|max:100',
                 'implant_model' => 'required|string|max:100',
                 'implant_diameter' => 'required|string|max:20',
@@ -121,6 +120,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'retention_plan' => 'sometimes|nullable|string|max:1000',
             ],
             'endodoncia' => [
+                'dental_piece_id' => 'required|exists:dental_pieces,id',
                 'tooth_number' => 'required|string|max:10',
                 'canal_count' => 'required|integer|min:1|max:4',
                 'canal_lengths' => 'sometimes|nullable|array',
@@ -140,42 +140,39 @@ class StoreSpecialtyRecordRequest extends FormRequest
                 'treatment_completion_date' => 'sometimes|nullable|date|before_or_equal:today',
             ],
             'rehabilitacion' => [
-                'restoration_type' => 'required|string|max:50',
+                'dental_piece_id' => 'required|exists:dental_pieces,id',
+                'prosthesis_type' => 'required|string|max:50',
                 'material_type' => 'required|string|max:50',
-                'color_shade' => 'sometimes|nullable|string|max:20',
                 'laboratory_name' => 'sometimes|nullable|string|max:100',
                 'laboratory_contact' => 'sometimes|nullable|string|max:100',
-                'impression_date' => 'sometimes|nullable|date|before_or_equal:today',
-                'try_in_date' => 'sometimes|nullable|date|after:impression_date',
-                'cementation_date' => 'sometimes|nullable|date|after:try_in_date',
-                'occlusion_type' => 'sometimes|nullable|string|max:50',
-                'bite_registration' => 'sometimes|nullable|string|max:200',
+                'impression_date' => 'sometimes|nullable|date',
+                'delivery_date' => 'sometimes|nullable|date',
+                'cementation_date' => 'sometimes|nullable|date',
                 'shade_selection' => 'sometimes|nullable|string|max:200',
-                'laboratory_notes' => 'sometimes|nullable|string|max:1000',
+                'impression_notes' => 'sometimes|nullable|string|max:1000',
                 'try_in_notes' => 'sometimes|nullable|string|max:1000',
+                'adjustment_notes' => 'sometimes|nullable|string|max:1000',
                 'cementation_notes' => 'sometimes|nullable|string|max:1000',
-                'warranty_period' => 'sometimes|nullable|integer|min:0|max:120',
-                'status' => 'sometimes|nullable|in:in_progress,in_laboratory,ready_for_try_in,try_in_scheduled,completed,failed',
+                'patient_satisfaction' => 'sometimes|nullable|string|max:1000',
+                'status' => 'sometimes|nullable|in:impression,laboratory,try_in,delivered,cemented,failed',
+                'follow_up_notes' => 'sometimes|nullable|string|max:1000',
             ],
             'cirugia_oral' => [
                 'procedure_type' => 'required|string|max:50',
-                'surgery_date' => 'required|date|before_or_equal:today',
+                'surgery_site' => 'required|string|max:100',
                 'surgery_duration_minutes' => 'sometimes|nullable|integer|min:1|max:480',
-                'anesthesia_type' => 'sometimes|nullable|string|max:50',
-                'anesthesia_duration_minutes' => 'sometimes|nullable|integer|min:1|max:480',
-                'surgical_technique' => 'sometimes|nullable|string|max:200',
-                'incision_type' => 'sometimes|nullable|string|max:100',
-                'suture_material' => 'sometimes|nullable|string|max:100',
-                'suture_technique' => 'sometimes|nullable|string|max:100',
+                'anesthesia_type' => 'sometimes|nullable|string|max:200',
+                'surgical_technique' => 'sometimes|nullable|string|max:2000',
+                'sutures_used' => 'sometimes|nullable|string|max:100',
                 'suture_count' => 'sometimes|nullable|integer|min:0|max:50',
-                'bleeding_control' => 'sometimes|nullable|string|max:200',
+                'hemostasis_method' => 'sometimes|nullable|string|max:200',
+                'surgical_notes' => 'sometimes|nullable|string|max:2000',
                 'post_surgical_instructions' => 'sometimes|nullable|string|max:2000',
                 'medications_prescribed' => 'sometimes|nullable|string|max:1000',
-                'follow_up_schedule' => 'sometimes|nullable|string|max:500',
-                'healing_assessment' => 'sometimes|nullable|string|max:1000',
-                'suture_removal_date' => 'sometimes|nullable|date|after:surgery_date',
-                'final_assessment' => 'sometimes|nullable|string|max:1000',
-                'status' => 'sometimes|nullable|in:scheduled,in_progress,completed,in_recovery,follow_up,healed',
+                'recovery_notes' => 'sometimes|nullable|string|max:2000',
+                'follow_up_date' => 'sometimes|nullable|date',
+                'follow_up_notes' => 'sometimes|nullable|string|max:1000',
+                'status' => 'sometimes|nullable|in:scheduled,in_progress,completed,cancelled,complications',
             ],
             default => []
         };
@@ -197,6 +194,7 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'dental_piece_id.exists' => 'La pieza dental seleccionada no existe',
             // Slice 02 / T-02.10 — es message for the new optional field.
             'procedure_id.exists' => 'El procedimiento seleccionado no existe',
+            'dental_piece_id.required' => 'La pieza dental es obligatoria',
             'implant_brand.required' => 'La marca del implante es obligatoria',
             'implant_model.required' => 'El modelo del implante es obligatorio',
             'placement_date.required' => 'La fecha de colocación es obligatoria',
@@ -205,11 +203,10 @@ class StoreSpecialtyRecordRequest extends FormRequest
             'treatment_start_date.required' => 'La fecha de inicio del tratamiento es obligatoria',
             'tooth_number.required' => 'El número de diente es obligatorio',
             'canal_count.required' => 'El número de conductos es obligatorio',
-            'restoration_type.required' => 'El tipo de restauración es obligatorio',
+            'prosthesis_type.required' => 'El tipo de prótesis es obligatorio',
             'material_type.required' => 'El tipo de material es obligatorio',
             'procedure_type.required' => 'El tipo de procedimiento es obligatorio',
-            'surgery_date.required' => 'La fecha de cirugía es obligatoria',
-            'surgery_date.before_or_equal' => 'La fecha de cirugía no puede ser futura',
+            'surgery_site.required' => 'El sitio quirúrgico es obligatorio',
         ];
     }
 }

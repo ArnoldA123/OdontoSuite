@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
 
             // 3. Configuracion clinica
             SpecialtySeeder::class,
+            UserSpecialtySeeder::class, // Issue #211: pivote desde specialty legacy
             AppointmentTypeSeeder::class,
             EnvironmentSeeder::class,
             ProcedureCatalogSeeder::class, // depende de SpecialtySeeder
