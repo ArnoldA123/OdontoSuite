@@ -377,6 +377,28 @@ documentada y no bloquea producción.
 
 ## 12. Changelog de AGENTS.md
 
+- **2026-10-20 (caja: anulación, movimientos manuales, cobro ad-hoc y reportes —
+  #192/#195/#199/#197)** — Cuatro decisiones de contrato del módulo de caja.
+  **Anulación**: `POST /api/transactions/{transaction}/void` vuelve a
+  `role:administrador` y `TransactionService::voidTransaction()` rechaza con 403
+  a cualquier otro rol; finanzas y recepción conservan apertura, cobros y
+  movimientos (#192). **Movimientos manuales**: `adjustment` sale de las
+  whitelists de tipo y concepto en `StoreCashMovementRequest` y del formulario,
+  porque el ledger no puede firmarlo; la fila de cierre la sigue escribiendo
+  `CashRegisterService::closeSession()` directamente al modelo (#195). **Cobro
+  ad-hoc**: `PaymentModal` usa `PatientSelector` cuando no viene de una fila de
+  cobros pendientes, así que una venta de producto o un anticipo eligen
+  cualquier paciente (#199). **Reportes**: el reporte de período declara su
+  población (`population.basis = transaction_date`), el bloque de sesiones son
+  las sesiones con actividad en el rango, `daily_summary` suma
+  `total_income`/`total_expenses` por día y las cuatro agregaciones
+  (`summary_by_payment_method`, `summary_by_hour`, `top_transactions`,
+  `daily_summary`) pasan a una consulta por rango en vez de una por sesión
+  (#197). Sin rutas, migraciones, modelos ni primitivas UI nuevas: los conteos
+  de §4 no cambian. Tests: `TransactionVoidRoleTest`,
+  `CashMovementManualWhitelistTest`, `CashReportPopulationTest`,
+  `CashRegisterValidationTest` actualizado, los 12 casos de
+  `caja-cobros.test.js` y el guard de opciones de `caja-movimientos.test.js`.
 - **2026-10-20 (follow-ups de UI #239/#242/#243)** — `AiAnalysisButton` se
   retira con su smoke y su contrato de design system: el flujo de análisis se
   inicia solo desde `/ai-analysis` y el componente llevaba sin consumidor desde
