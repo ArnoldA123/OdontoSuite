@@ -83,7 +83,7 @@ class SpecialtyRecordService
      */
     private function getImplantologyRecords(int $patientId)
     {
-        return ImplantologyRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
+        return ImplantologyRecord::with(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
             ->orderBy('placement_date', 'desc')
             ->get();
@@ -94,7 +94,7 @@ class SpecialtyRecordService
      */
     private function getOrthodonticsRecords(int $patientId)
     {
-        return OrthodonticsRecord::with(['patient', 'appointment', 'createdBy'])
+        return OrthodonticsRecord::with(['patient', 'appointment', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
             ->orderBy('treatment_start_date', 'desc')
             ->get();
@@ -105,7 +105,7 @@ class SpecialtyRecordService
      */
     private function getEndodonticsRecords(int $patientId)
     {
-        return EndodonticsRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
+        return EndodonticsRecord::with(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -116,7 +116,7 @@ class SpecialtyRecordService
      */
     private function getRehabilitationRecords(int $patientId)
     {
-        return RehabilitationRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
+        return RehabilitationRecord::with(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -127,7 +127,7 @@ class SpecialtyRecordService
      */
     private function getOralSurgeryRecords(int $patientId)
     {
-        return OralSurgeryRecord::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
+        return OralSurgeryRecord::with(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy'])
             ->where('patient_id', $patientId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -156,7 +156,7 @@ class SpecialtyRecordService
         $record = ImplantologyRecord::findOrFail($id);
         $record->update($data);
 
-        return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
+        return $record->load(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy']);
     }
 
     /**
@@ -167,7 +167,7 @@ class SpecialtyRecordService
         $record = OrthodonticsRecord::findOrFail($id);
         $record->update($data);
 
-        return $record->load(['patient', 'appointment', 'createdBy']);
+        return $record->load(['patient', 'appointment', 'procedure', 'createdBy']);
     }
 
     /**
@@ -178,7 +178,7 @@ class SpecialtyRecordService
         $record = EndodonticsRecord::findOrFail($id);
         $record->update($data);
 
-        return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
+        return $record->load(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy']);
     }
 
     /**
@@ -189,7 +189,7 @@ class SpecialtyRecordService
         $record = RehabilitationRecord::findOrFail($id);
         $record->update($data);
 
-        return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
+        return $record->load(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy']);
     }
 
     /**
@@ -200,7 +200,7 @@ class SpecialtyRecordService
         $record = OralSurgeryRecord::findOrFail($id);
         $record->update($data);
 
-        return $record->load(['patient', 'appointment', 'dentalPiece', 'createdBy']);
+        return $record->load(['patient', 'appointment', 'dentalPiece', 'procedure', 'createdBy']);
     }
 
     /**
