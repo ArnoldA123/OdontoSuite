@@ -142,6 +142,26 @@ class SpecialtyRecordProcedurePersistenceTest extends TestCase
             ->assertJsonPath('data.0.procedure.name', 'Extracción simple');
     }
 
+    public function test_show_returns_the_linked_procedure(): void
+    {
+        $created = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/specialty-records', [
+                'specialty' => 'endodoncia',
+                'patient_id' => $this->patient->id,
+                'procedure_id' => $this->procedure->id,
+                ...$this->specialties()['endodoncia']['payload'],
+            ])
+            ->assertCreated()
+            ->json('data');
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/specialty-records/'.$created['id'])
+            ->assertOk()
+            ->assertJsonPath('data.procedure_id', $this->procedure->id)
+            ->assertJsonPath('data.procedure.id', $this->procedure->id)
+            ->assertJsonPath('data.procedure.name', 'Extracción simple');
+    }
+
     public function test_an_unknown_procedure_is_rejected(): void
     {
         $this->actingAs($this->admin, 'sanctum')

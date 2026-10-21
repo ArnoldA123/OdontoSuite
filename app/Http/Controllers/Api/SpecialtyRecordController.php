@@ -119,8 +119,13 @@ class SpecialtyRecordController extends Controller
             // wins. Average cost drops from O(5) round-trips to O(1).
             $record = null;
             foreach (self::SPECIALTY_MODELS as $modelClass) {
-                $record = $modelClass::with(['patient', 'appointment', 'dentalPiece', 'createdBy'])
-                    ->find($id);
+                $record = $modelClass::with([
+                    'patient',
+                    'appointment',
+                    'dentalPiece',
+                    'procedure',
+                    'createdBy',
+                ])->find($id);
                 if ($record) {
                     break;
                 }
