@@ -98,7 +98,7 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = User::query();
+            $query = User::query()->visibleToBranch();
 
             // Filter by role if specified (comma-separated list allowed)
             if ($request->has('role')) {
@@ -190,7 +190,7 @@ class UserController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
-            $user = User::with([
+            $user = User::query()->visibleToBranch()->with([
                 'specialties',
                 'auditLogs' => function ($query) {
                     $query->with('user:id,name,email')
@@ -216,7 +216,7 @@ class UserController extends Controller
     public function update(Request $request, string $id): JsonResponse
     {
         try {
-            $user = User::findOrFail($id);
+            $user = User::query()->visibleToBranch()->findOrFail($id);
 
             if (Auth::id() === $user->id && $request->has('is_active') && ! $request->boolean('is_active')) {
                 return response()->json([
@@ -228,6 +228,10 @@ class UserController extends Controller
                 'username' => 'sometimes|string|max:255|unique:users,username,'.$id,
                 'email' => 'sometimes|email|unique:users,email,'.$id,
             ]));
+
+            // #283 L2: la afiliación a sede se registra aparte del resto del
+            // usuario, para que el traslado aprobado por gerencia tenga traza.
+            $oldBranchId = $user->branch_id ? (int) $user->branch_id : null;
 
             // Capture old values for audit (only relevant fields)
             $oldValues = [
@@ -267,6 +271,19 @@ class UserController extends Controller
                     $oldValues,
                     $newValues
                 );
+
+                $newBranchId = $user->branch_id ? (int) $user->branch_id : null;
+
+                if ($oldBranchId !== $newBranchId) {
+                    AuditLog::log(
+                        Auth::user(),
+                        'user_branch_assigned',
+                        $user,
+                        ['branch_id' => $oldBranchId],
+                        ['branch_id' => $newBranchId],
+                        ['reason' => 'branch_reassignment']
+                    );
+                }
             }
 
             // Emitir evento de WebSocket
@@ -303,7 +320,7 @@ class UserController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         try {
-            $user = User::findOrFail($id);
+            $user = User::query()->visibleToBranch()->findOrFail($id);
 
             if ($request->user()->id === $user->id) {
                 return response()->json([
@@ -398,7 +415,7 @@ class UserController extends Controller
     public function active(): JsonResponse
     {
         try {
-            $users = User::where('is_active', true)
+            $users = User::query()->visibleToBranch()->where('is_active', true)
                 ->whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'])
                 ->select('id', 'name', 'role', 'specialty')
                 ->get();

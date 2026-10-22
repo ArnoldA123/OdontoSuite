@@ -20,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class TransactionService
 {
+    public function __construct(private readonly AccountingLockService $accountingLocks) {}
+
     /**
      * Create a new transaction.
      */
@@ -94,8 +96,12 @@ class TransactionService
      * Issue #192, decision B: only an administrador may void. The route already
      * answers 403 for the other cash roles; the guard here keeps the contract
      * when the service is called without going through that route.
+     *
+     * F3 (#283, S5): a transaction dated inside the accounting lock is refused
+     * unless the actor registers an override reason; the guard runs before the
+     * transaction so the blocked attempt survives it in `audit_logs`.
      */
-    public function voidTransaction(int $transactionId, string $reason): Transaction
+    public function voidTransaction(int $transactionId, string $reason, ?string $lockOverrideReason = null): Transaction
     {
         if (Auth::user()?->role !== 'administrador') {
             throw new AuthorizationException('Solo un administrador puede anular transacciones.');
@@ -115,6 +121,15 @@ class TransactionService
                 'transaction' => ['No se puede anular una transacción de una sesión de caja cerrada.'],
             ]);
         }
+
+        $this->accountingLocks->guard(
+            AccountingLockService::CASH_TRANSACTIONS,
+            $transaction->created_at,
+            $transaction->cashRegisterSession?->branch_id,
+            $transaction,
+            'void',
+            $lockOverrideReason,
+        );
 
         DB::beginTransaction();
 

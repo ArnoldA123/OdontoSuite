@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Models\Transaction;
+use App\Services\AccountingLockService;
 use App\Services\TransactionService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,8 +19,10 @@ class TransactionController extends Controller
 {
     protected $transactionService;
 
-    public function __construct(TransactionService $transactionService)
-    {
+    public function __construct(
+        TransactionService $transactionService,
+        private readonly AccountingLockService $accountingLocks,
+    ) {
         $this->transactionService = $transactionService;
     }
 
@@ -31,6 +36,20 @@ class TransactionController extends Controller
                 'patient_id', 'type', 'payment_method_id', 'status',
                 'date_from', 'date_to', 'cash_register_session_id', 'branch_id',
             ]);
+
+            // #283 S2: la sede autoriza también en la consulta de dinero. Un
+            // usuario restringido queda acotado a su sede y pedir otra responde
+            // 403 antes de llegar aquí.
+            $branchFilter = BranchAccess::effectiveFilter(
+                Auth::user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
+
+            if ($branchFilter === null) {
+                unset($filters['branch_id']);
+            } else {
+                $filters['branch_id'] = $branchFilter;
+            }
 
             // Si no se especifica sesión, usar la sesión activa del usuario
             if (! isset($filters['cash_register_session_id'])) {
@@ -85,11 +104,17 @@ class TransactionController extends Controller
     public function show(Transaction $transaction): JsonResponse
     {
         try {
+            // #283 S3: otra sede responde 404, como el resto de modelos
+            // operativos; la sede de una transacción es la de su cajón.
+            $transaction = Transaction::query()->visibleToBranch()->findOrFail($transaction->id);
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy']);
 
             return response()->json([
                 'data' => $transaction,
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // #283 S3: la transacción de otra sede no se sirve, se responde 404.
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la transacción',
@@ -109,6 +134,15 @@ class TransactionController extends Controller
                 $allowedFields = ['notes', 'reference_number'];
                 $data = $request->only($allowedFields);
 
+                $this->accountingLocks->guard(
+                    AccountingLockService::CASH_TRANSACTIONS,
+                    $transaction->created_at,
+                    $transaction->cashRegisterSession?->branch_id,
+                    $transaction,
+                    'update',
+                    $request->input('lock_override_reason'),
+                );
+
                 $transaction->update($data);
                 $transaction->refresh();
                 $transaction->load(['patient', 'appointment', 'paymentMethod', 'createdBy']);
@@ -127,6 +161,8 @@ class TransactionController extends Controller
             return response()->json([
                 'message' => 'No se puede actualizar esta transacción',
             ], 422);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar la transacción',
@@ -138,7 +174,7 @@ class TransactionController extends Controller
     /**
      * Remove the specified transaction (soft delete).
      */
-    public function destroy(Transaction $transaction): JsonResponse
+    public function destroy(Request $request, Transaction $transaction): JsonResponse
     {
         try {
             if ($transaction->status === 'voided') {
@@ -154,6 +190,15 @@ class TransactionController extends Controller
                 ], 422);
             }
 
+            $this->accountingLocks->guard(
+                AccountingLockService::CASH_TRANSACTIONS,
+                $transaction->created_at,
+                $transaction->cashRegisterSession?->branch_id,
+                $transaction,
+                'delete',
+                $request->input('lock_override_reason'),
+            );
+
             $transaction->delete();
 
             return response()->json([
@@ -162,6 +207,8 @@ class TransactionController extends Controller
                     'message' => 'Transacción eliminada exitosamente',
                 ],
             ]);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar la transacción',
@@ -182,7 +229,8 @@ class TransactionController extends Controller
 
             $voidedTransaction = $this->transactionService->voidTransaction(
                 $transaction->id,
-                $request->input('reason')
+                $request->input('reason'),
+                $request->input('lock_override_reason')
             );
 
             return response()->json([
@@ -191,6 +239,8 @@ class TransactionController extends Controller
                     'message' => 'Transacción anulada exitosamente',
                 ],
             ]);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al anular la transacción',
@@ -227,7 +277,7 @@ class TransactionController extends Controller
     public function list(Request $request): JsonResponse
     {
         try {
-            $query = Transaction::with(['patient', 'paymentMethod'])
+            $query = Transaction::query()->visibleToBranch()->with(['patient', 'paymentMethod'])
                 ->where('status', 'completed');
 
             if ($request->has('patient_id')) {
@@ -240,6 +290,15 @@ class TransactionController extends Controller
 
             if ($request->has('date_to')) {
                 $query->whereDate('created_at', '<=', $request->input('date_to'));
+            }
+
+            $branchFilter = BranchAccess::effectiveFilter(
+                Auth::user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
+
+            if ($branchFilter !== null) {
+                $query->whereHas('patient', fn ($q) => $q->where('branch_id', $branchFilter));
             }
 
             $transactions = $query->orderBy('created_at', 'desc')

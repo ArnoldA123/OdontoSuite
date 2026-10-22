@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopesToBranch;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Appointment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, ScopesToBranch, SoftDeletes;
 
     protected $fillable = [
         'patient_id',

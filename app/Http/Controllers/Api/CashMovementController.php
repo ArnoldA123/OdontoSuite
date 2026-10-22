@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
+use App\Services\AccountingLockService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CashMovementController extends Controller
 {
+    public function __construct(private readonly AccountingLockService $accountingLocks) {}
+
     /**
      * Display a listing of cash movements.
      */
@@ -167,6 +171,15 @@ class CashMovementController extends Controller
                 ], 422);
             }
 
+            $this->accountingLocks->guard(
+                AccountingLockService::CASH_MOVEMENTS,
+                $cashMovement->created_at,
+                $cashMovement->branch_id,
+                $cashMovement,
+                'update',
+                $request->input('lock_override_reason'),
+            );
+
             $validated = $request->validate([
                 'description' => 'sometimes|string|max:255',
                 'notes' => 'nullable|string|max:500',
@@ -181,6 +194,8 @@ class CashMovementController extends Controller
                     'message' => 'Movimiento de caja actualizado exitosamente',
                 ],
             ]);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar el movimiento de caja',
@@ -192,7 +207,7 @@ class CashMovementController extends Controller
     /**
      * Remove the specified cash movement.
      */
-    public function destroy(CashMovement $cashMovement): JsonResponse
+    public function destroy(Request $request, CashMovement $cashMovement): JsonResponse
     {
         try {
             // Check permissions (policy is the single source of the rule)
@@ -216,6 +231,15 @@ class CashMovementController extends Controller
                 ], 422);
             }
 
+            $this->accountingLocks->guard(
+                AccountingLockService::CASH_MOVEMENTS,
+                $cashMovement->created_at,
+                $cashMovement->branch_id,
+                $cashMovement,
+                'delete',
+                $request->input('lock_override_reason'),
+            );
+
             $cashMovement->delete();
 
             return response()->json([
@@ -224,6 +248,8 @@ class CashMovementController extends Controller
                     'message' => 'Movimiento de caja eliminado exitosamente',
                 ],
             ]);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar el movimiento de caja',

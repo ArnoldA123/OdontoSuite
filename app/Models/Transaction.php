@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Authorization\BranchAccess;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Transaction extends Model
 {
@@ -80,6 +82,37 @@ class Transaction extends Model
     }
 
     // Scopes
+    /**
+     * #283 S2/S3 — transactions carry no `branch_id`: the sede is the drawer's.
+     *
+     * A transaction without a cash register session belongs to no sede, so it is
+     * group data and outside the reach of a restricted user, exactly like a row
+     * with a null `branch_id` in the operational models.
+     */
+    public function scopeVisibleToBranch($query, ?User $user = null)
+    {
+        $user ??= Auth::user();
+
+        if (! $user instanceof User || ! BranchAccess::isRestricted($user)) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'cashRegisterSession',
+            fn ($q) => $q->where('branch_id', (int) $user->branch_id),
+        );
+    }
+
+    /**
+     * The sede this transaction belongs to, resolved through its drawer.
+     */
+    public function branchIdForScope(): ?int
+    {
+        $branchId = $this->cashRegisterSession?->branch_id;
+
+        return $branchId === null ? null : (int) $branchId;
+    }
+
     public function scopeByStatus($query, $status)
     {
         return $query->where('status', $status);

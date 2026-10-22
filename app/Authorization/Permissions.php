@@ -170,6 +170,15 @@ final class Permissions
 
     public const MANAGE_BRANCH = 'manage.branch';
 
+    /** #290 S8: the branch tariff agreed for one sede. */
+    public const MANAGE_BRANCH_PRICE = 'manage.branch_price';
+
+    // F3 (#283, S4/S5): administrate the freeze date of a module, and authorise
+    // (with a registered reason) a mutation inside it.
+    public const MANAGE_ACCOUNTING_LOCK = 'manage.accounting_lock';
+
+    public const OVERRIDE_ACCOUNTING_LOCK = 'override.accounting_lock';
+
     public const VIEW_REPORT = 'view.report';
 
     public const EXPORT_REPORT = 'export.report';
@@ -340,6 +349,9 @@ final class Permissions
         self::MANAGE_DENTAL_CHAIR => ['administrador'],
         self::MANAGE_APPOINTMENT_TYPE => ['administrador'],
         self::MANAGE_BRANCH => ['administrador'],
+        self::MANAGE_BRANCH_PRICE => ['administrador'],
+        self::MANAGE_ACCOUNTING_LOCK => ['administrador'],
+        self::OVERRIDE_ACCOUNTING_LOCK => ['administrador'],
         self::VIEW_REPORT => self::FINANCE_ROLES,
         self::EXPORT_REPORT => self::FINANCE_ROLES,
 

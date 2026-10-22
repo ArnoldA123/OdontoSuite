@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseCashRegisterRequest;
 use App\Http\Requests\OpenCashRegisterRequest;
@@ -113,6 +114,11 @@ class CashRegisterController extends Controller
                 'user_id', 'branch_id', 'status', 'date_from', 'date_to',
             ]);
 
+            $filters['branch_id'] = BranchAccess::effectiveFilter(
+                $request->user(),
+                isset($filters['branch_id']) && $filters['branch_id'] !== '' ? (int) $filters['branch_id'] : null,
+            );
+
             $result = $this->cashRegisterService->getSessions($filters);
 
             return response()->json($result);
@@ -141,7 +147,7 @@ class CashRegisterController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $session = CashRegisterSession::with([
+            $session = CashRegisterSession::query()->visibleToBranch()->with([
                 'user', 'branch', 'movements', 'transactions',
             ])->findOrFail($id);
 
@@ -173,7 +179,7 @@ class CashRegisterController extends Controller
     public function movements(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $session = CashRegisterSession::findOrFail($sessionId);
+            $session = CashRegisterSession::query()->visibleToBranch()->findOrFail($sessionId);
 
             if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
                 return $denied;
@@ -244,7 +250,10 @@ class CashRegisterController extends Controller
         try {
             $user = $request->user();
             $date = $request->input('date', now()->toDateString());
-            $branchId = $request->input('branch_id');
+            $branchId = BranchAccess::effectiveFilter(
+                $user,
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
             $userId = $request->input('user_id');
             $isCashManager = in_array($user->role, ['administrador', 'finanzas'], true);
 
@@ -258,8 +267,6 @@ class CashRegisterController extends Controller
 
             if ($branchId) {
                 $query->where('branch_id', $branchId);
-            } elseif ($user->branch_id) {
-                $query->where('branch_id', $user->branch_id);
             }
 
             $session = $query->latest('opened_at')->first();
@@ -294,7 +301,8 @@ class CashRegisterController extends Controller
      */
     public function closureReport(Request $request, int $sessionId)
     {
-        $session = CashRegisterSession::with(['user', 'branch', 'transactions', 'movements'])
+        $session = CashRegisterSession::query()->visibleToBranch()
+            ->with(['user', 'branch', 'transactions', 'movements'])
             ->findOrFail($sessionId);
 
         if ($denied = $this->denyUnlessSessionViewable($request, $session)) {

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +33,16 @@ class PendingPaymentsController extends Controller
                 ->whereDoesntHave('transactions', function ($q) {
                     $q->where('status', '!=', 'voided');
                 });
+
+            // #283 S3: los cobros pendientes son agenda, no ficha compartida.
+            $branchFilter = BranchAccess::effectiveFilter(
+                Auth::user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
+
+            if ($branchFilter !== null) {
+                $query->where('branch_id', $branchFilter);
+            }
 
             // Filtros
             if ($request->filled('search')) {
@@ -174,6 +186,14 @@ class PendingPaymentsController extends Controller
                 ], 404);
             }
 
+            // #283 S6: cobrar la cita de otra sede es 403 y ocurre antes de
+            // crear la transacción, de modo que un rechazo no deja dinero
+            // escrito ni un saldo sin actualizar.
+            BranchAccess::assertBranch(
+                $request->user(),
+                $appointment->branch_id === null ? null : (int) $appointment->branch_id,
+            );
+
             $hasActiveTransaction = $appointment->transactions()
                 ->where('status', '!=', 'voided')
                 ->exists();
@@ -227,6 +247,10 @@ class PendingPaymentsController extends Controller
                 ],
             ], 200);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (AuthorizationException $e) {
+            // #283 S6: cobrar la cita de otra sede se responde 403, no 500, y
+            // ocurre antes de crear la transacción.
             throw $e;
         } catch (\Exception $e) {
             Log::error('No se pudo procesar el pago pendiente', [

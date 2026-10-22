@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuotationRequest;
 use App\Http\Requests\UpdateQuotationRequest;
 use App\Services\QuotationService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,6 +31,13 @@ class QuotationController extends Controller
             $filters = $request->only([
                 'q', 'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id',
             ]);
+
+            // #283 S2: un usuario restringido no enumera otra sede aunque no
+            // envíe el filtro; pedirla explícitamente responde 403.
+            $filters['branch_id'] = BranchAccess::effectiveFilter(
+                $request->user(),
+                isset($filters['branch_id']) && $filters['branch_id'] !== '' ? (int) $filters['branch_id'] : null,
+            );
 
             $result = $this->quotationService->getQuotations($filters);
 
@@ -154,7 +163,17 @@ class QuotationController extends Controller
     public function update(UpdateQuotationRequest $request, int $id): JsonResponse
     {
         try {
-            $quotation = $this->quotationService->updateQuotation($id, $request->validated());
+            $payload = $request->validated();
+
+            // #283 S4: la autorización registrada viaja como motivo explícito y
+            // nunca se escribe como columna del presupuesto.
+            $reason = $request->input('lock_override_reason');
+
+            if (is_string($reason) && trim($reason) !== '') {
+                $payload['lock_override_reason'] = trim($reason);
+            }
+
+            $quotation = $this->quotationService->updateQuotation($id, $payload);
 
             return response()->json([
                 'data' => $quotation,
@@ -169,6 +188,9 @@ class QuotationController extends Controller
             ], 422);
         } catch (ModelNotFoundException) {
             return response()->json(['message' => 'Presupuesto no encontrado'], 404);
+        } catch (AuthorizationException $e) {
+            // #283 S5: el bloqueo contable se responde 403, no 500.
+            throw $e;
         } catch (\Exception $e) {
             Log::error('No se pudo actualizar el presupuesto', ['exception' => $e]);
 

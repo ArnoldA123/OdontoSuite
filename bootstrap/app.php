@@ -18,6 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'throttle.login' => \App\Http\Middleware\ThrottleLoginAttempts::class,
             'cash.session' => \App\Http\Middleware\RequireActiveCashSession::class,
+            'branch.global' => \App\Http\Middleware\RequireGlobalBranchScope::class,
+        ]);
+
+        // #283 S2: la sede autoriza. Se ejecuta después de SubstituteBindings
+        // (el grupo api lo agrega consigo) y before the controller, porque los
+        // controladores atrapan \Exception y responderían 500.
+        $middleware->api(append: [
+            \App\Http\Middleware\EnforceBranchScope::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Authorization\Permissions;
+use App\Http\Controllers\Api\AccountingLockController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AppointmentCustodyController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
+use App\Http\Controllers\Api\ProcedureBranchPriceController;
 use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
 use App\Http\Controllers\Api\ProcedureStatsController;
@@ -105,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Business Intelligence reports (#55/#191: administrador and finanzas).
     Route::middleware('permission:'.Permissions::VIEW_REPORT)->group(function () {
+        // #290 S7: consolidated revenue per sede and per professional.
+        Route::get('reports/consolidated', [ReportController::class, 'consolidated']);
         Route::get('reports/dashboard', [ReportController::class, 'dashboard']);
         Route::get('reports/appointments', [ReportController::class, 'appointments']);
         Route::get('reports/patients', [ReportController::class, 'patients']);
@@ -279,8 +283,28 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Branches (administrator only).
+    // #283 S2: la sede administra su sede; el catálogo de sedes es alcance de
+    // grupo (branch.global rechaza 403 a un administrador con sede asignada).
+    // Branch tariff (#290 S8): the price one sede charges, inside its window.
+    Route::prefix('branches/{branch}/procedure-prices')
+        ->middleware('permission:'.Permissions::MANAGE_BRANCH_PRICE)
+        ->group(function () {
+            Route::get('/', [ProcedureBranchPriceController::class, 'index']);
+            Route::put('/', [ProcedureBranchPriceController::class, 'update']);
+            Route::delete('{priceId}', [ProcedureBranchPriceController::class, 'destroy']);
+        });
+
     Route::apiResource('branches', BranchController::class)
-        ->middleware('permission:'.Permissions::MANAGE_BRANCH);
+        ->middleware(['permission:'.Permissions::MANAGE_BRANCH, 'branch.global']);
+
+    // Accounting lock (F3, #283 S4/S5). One row per module and sede; the global
+    // row (branch_id null) is group scope, so a sede administrator only freezes
+    // their own sede.
+    Route::middleware('permission:'.Permissions::MANAGE_ACCOUNTING_LOCK)->group(function () {
+        Route::get('accounting-locks', [AccountingLockController::class, 'index']);
+        Route::put('accounting-locks/{module}', [AccountingLockController::class, 'update']);
+        Route::delete('accounting-locks/{module}', [AccountingLockController::class, 'destroy']);
+    });
 
     // Treatment plans (clinical roles and administrator).
     Route::middleware('permission:'.Permissions::MANAGE_TREATMENT_PLAN)->group(function () {
@@ -355,8 +379,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // (sessions and transactions, CRED-cash-recep / CRED-tx-recep). Issue #191:
     // pending payments are collected at the same counter. Movements, cash
     // reports and Mercado Pago stay with administrator/finanzas.
+    // `override.accounting_lock` is consumed by AccountingLockService::guard(),
+    // not by a gate of its own: it is declared here so every catalog permission
+    // stays routed (RoutePermissionMatrixTest). The OR is inert today, because
+    // both permissions are administrator-only, and the guard remains the only
+    // place that decides whether a lock can be overridden.
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])
-        ->middleware(['permission:'.Permissions::VOID_TRANSACTION, 'cash.session']);
+        ->middleware([
+            'permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK,
+            'cash.session',
+        ]);
 
     // Transactions require an open cash session (slice 01 / T-01.1 registers
     // `transactions/list` and `receipt` BEFORE apiResource so the fixed

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ReorderProcedureFavoritesRequest;
 use App\Models\ProcedureCatalog;
 use App\Models\User;
+use App\Services\ProcedurePriceResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProcedureCatalogFavoriteController extends Controller
 {
+    public function __construct(private readonly ProcedurePriceResolver $prices) {}
+
     public function store(string $id): JsonResponse
     {
         try {
@@ -86,26 +89,51 @@ class ProcedureCatalogFavoriteController extends Controller
         ]);
     }
 
-    private function loadFavorite(User $user, int $procedureId): ?ProcedureCatalog
+    private function loadFavorite(User $user, int $procedureId): ?array
     {
-        return $user->favoriteProcedures()
+        $procedure = $user->favoriteProcedures()
             ->where('procedure_catalog.id', $procedureId)
             ->with('specialty')
             ->first();
+
+        if ($procedure === null) {
+            return null;
+        }
+
+        $price = $this->prices->resolveForUser($procedure, $user);
+
+        return [
+            'id' => $procedure->id,
+            'code' => $procedure->code,
+            'name' => $procedure->name,
+            'specialty' => $procedure->specialty?->code,
+            'specialty_name' => $procedure->specialty?->name,
+            'default_cost' => $price['price'],
+            'list_cost' => (float) $procedure->default_cost,
+            'price_source' => $price['source'],
+            'default_duration_minutes' => $procedure->default_duration_minutes,
+        ];
     }
 
     private function loadAllFavorites(User $user)
     {
-        return $user->favoriteProcedures()
+        $procedures = $user->favoriteProcedures()
             ->with('specialty')
-            ->get()
+            ->get();
+
+        // #290 S8: el favorito propone el precio de la sede del usuario.
+        $prices = $this->prices->resolveMany($procedures, $this->prices->currentBranchId());
+
+        return $procedures
             ->map(fn (ProcedureCatalog $p) => [
                 'id' => $p->id,
                 'code' => $p->code,
                 'name' => $p->name,
                 'specialty' => $p->specialty?->code,
                 'specialty_name' => $p->specialty?->name,
-                'default_cost' => (float) $p->default_cost,
+                'default_cost' => $prices[$p->id]['price'],
+                'list_cost' => (float) $p->default_cost,
+                'price_source' => $prices[$p->id]['source'],
                 'default_duration_minutes' => $p->default_duration_minutes,
                 'position' => (int) $p->pivot->position,
             ]);
