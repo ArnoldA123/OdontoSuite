@@ -44,7 +44,12 @@ class TreatmentPlanService
             $this->calculateTotals($plan->id);
 
             $plan->refresh();
-            $plan->load(['items', 'patient', 'createdBy', 'citedAnalyses']);
+            $plan->load([
+                'items',
+                'patient',
+                'createdBy',
+                'citedAnalyses' => fn ($query) => $query->citationSummary(),
+            ]);
 
             try {
 
@@ -90,7 +95,12 @@ class TreatmentPlanService
             $this->calculateTotals($id);
 
             $plan->refresh();
-            $plan->load(['items', 'patient', 'createdBy', 'citedAnalyses']);
+            $plan->load([
+                'items',
+                'patient',
+                'createdBy',
+                'citedAnalyses' => fn ($query) => $query->citationSummary(),
+            ]);
 
             try {
 

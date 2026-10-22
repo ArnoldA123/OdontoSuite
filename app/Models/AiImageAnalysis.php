@@ -141,6 +141,24 @@ class AiImageAnalysis extends Model
     }
 
     /**
+     * #296 — the payload of a cited analysis.
+     *
+     * A citation travels inside a clinical document whose reader may not hold
+     * `view.ai_analysis` (the clinical matrix of #283 still lets the laboratory
+     * read the record), so the relation carries the decision, not the provider
+     * artifacts: no findings, tokens, cost or review notes.
+     */
+    public function scopeCitationSummary(Builder $query): Builder
+    {
+        return $query->select([
+            'ai_image_analyses.id',
+            'ai_image_analyses.review_decision',
+            'ai_image_analyses.reviewed_at',
+            'ai_image_analyses.confidence_score',
+        ]);
+    }
+
+    /**
      * #296: annulled analyses leave the working set but keep their row.
      */
     public function scopeActive(Builder $query): Builder

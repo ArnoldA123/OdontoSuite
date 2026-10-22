@@ -59,7 +59,12 @@ class MedicalRecordService
             $this->citations->sync($evolution, $citedAnalysisIds, Auth::user());
         }
 
-        return $evolution->load(['patient', 'appointment', 'createdBy', 'citedAnalyses']);
+        return $evolution->load([
+            'patient',
+            'appointment',
+            'createdBy',
+            'citedAnalyses' => fn ($query) => $query->citationSummary(),
+        ]);
     }
 
     /**

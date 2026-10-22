@@ -204,6 +204,30 @@ class AiAnalysisDecisionSupportTest extends TestCase
         $this->assertDatabaseCount('ai_image_analyses', 0);
     }
 
+    public function test_the_upload_door_links_the_file_to_the_named_act(): void
+    {
+        $this->fakeProvider();
+
+        $patient = $this->patient();
+        $user = $this->clinician($patient);
+        $encounter = $this->encounter($patient, $user);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->post(
+                '/api/ai-analysis/upload-and-analyze',
+                $this->uploadPayload($patient, ['clinical_encounter_id' => $encounter->id]),
+                ['Accept' => 'application/json']
+            );
+
+        $response->assertCreated()
+            ->assertJsonPath('data.clinical_encounter_id', $encounter->id);
+
+        $attachment = ClinicalAttachment::query()->latest('id')->firstOrFail();
+
+        $this->assertSame($encounter->id, $attachment->clinical_encounter_id);
+        $this->assertSame(1, $encounter->attachments()->count());
+    }
+
     public function test_a_rejected_upload_leaves_no_orphan_attachment(): void
     {
         $patient = $this->patient();

@@ -25,6 +25,9 @@ class ClinicalAttachmentService
         return ClinicalAttachment::create([
             'patient_id' => $data['patient_id'],
             'appointment_id' => $data['appointment_id'] ?? null,
+            // #296: the file uploaded from the AI surface belongs to the same act
+            // as the analysis it feeds.
+            'clinical_encounter_id' => $data['clinical_encounter_id'] ?? null,
             'clinical_evolution_id' => $data['clinical_evolution_id'] ?? null,
             'created_by' => $data['created_by'],
             'file_name' => $file->hashName(),

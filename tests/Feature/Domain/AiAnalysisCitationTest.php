@@ -358,4 +358,40 @@ class AiAnalysisCitationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.cited_analyses.0.id', $analysis->id);
     }
+
+    public function test_the_cited_analysis_travels_as_a_decision_not_as_the_whole_row(): void
+    {
+        $doctor = $this->clinician();
+        $patient = Patient::factory()->create();
+        $record = $this->record($patient, $doctor);
+        $analysis = $this->reviewedAnalysis($patient, $doctor);
+        $analysis->update([
+            'findings' => [['diagnosis' => 'Caries oclusal', 'confidence' => 90]],
+            'review_notes' => 'Nota interna del revisor',
+            'tokens_used' => 1234,
+            'estimated_cost' => 0.0123,
+        ]);
+
+        $this->actingAs($doctor)->postJson('/api/medical-records/'.$record->id.'/evolutions', [
+            'subjective' => 'Control',
+            'cited_analysis_ids' => [$analysis->id],
+        ])->assertCreated();
+
+        $response = $this->actingAs($doctor)
+            ->getJson('/api/medical-records/'.$record->id.'/evolutions')
+            ->assertOk();
+
+        $cited = $response->json('data.0.cited_analyses.0');
+
+        $this->assertSame($analysis->id, $cited['id']);
+        $this->assertSame('accepted', $cited['review_decision']);
+        $this->assertArrayHasKey('reviewed_at', $cited);
+        $this->assertArrayHasKey('confidence_score', $cited);
+
+        // A reader of the record may not hold view.ai_analysis (#283 still lets
+        // the laboratory read the record), so provider detail stays out.
+        foreach (['findings', 'review_notes', 'tokens_used', 'estimated_cost', 'prompt_sent', 'raw_response'] as $hidden) {
+            $this->assertArrayNotHasKey($hidden, $cited, "The citation must not publish [{$hidden}].");
+        }
+    }
 }

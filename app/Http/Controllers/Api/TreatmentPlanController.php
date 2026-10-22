@@ -139,7 +139,7 @@ class TreatmentPlanController extends Controller
                 'quotations',
                 'paymentPlans',
                 // #296: the decision-support material the plan cites.
-                'citedAnalyses',
+                'citedAnalyses' => fn ($query) => $query->citationSummary(),
             ])->findOrFail($id);
 
             return response()->json([

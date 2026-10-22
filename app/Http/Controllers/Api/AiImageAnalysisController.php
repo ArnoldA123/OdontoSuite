@@ -459,6 +459,9 @@ class AiImageAnalysisController extends Controller
             // 1. Guardar imagen como ClinicalAttachment
             $attachment = $this->clinicalAttachmentService->store([
                 'patient_id' => $patientId,
+                'clinical_encounter_id' => isset($validated['clinical_encounter_id'])
+                    ? (int) $validated['clinical_encounter_id']
+                    : null,
                 'file' => $validated['image'],
                 'category' => $validated['category'],
                 'description' => $validated['description'] ?? null,
