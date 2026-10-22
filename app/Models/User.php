@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Authorization\Permissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -157,6 +158,24 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
+    }
+
+    /**
+     * Effective permissions granted by the catalog (#280).
+     *
+     * @return list<string>
+     */
+    public function permissions(): array
+    {
+        return Permissions::forRole($this->role);
+    }
+
+    /**
+     * Check a permission through the role matrix, the single source of truth.
+     */
+    public function hasPermission(string $permission): bool
+    {
+        return Permissions::roleHas($this->role, $permission);
     }
 
     /**
