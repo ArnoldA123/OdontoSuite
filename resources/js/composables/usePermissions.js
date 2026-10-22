@@ -25,6 +25,10 @@ const PERMISSION_BY_KEY = {
   manageSchedule: 'manage.appointment',
   checkInAppointment: 'check_in.appointment',
   completeConsultation: 'complete.appointment',
+  // F1 (#281): the professional's desk and the two custody doors it opens.
+  viewMyDay: 'view.my_day',
+  startConsultation: 'start.consultation',
+  announcePatient: 'announce.patient',
 
   // Reports and business intelligence
   viewReports: 'view.report',

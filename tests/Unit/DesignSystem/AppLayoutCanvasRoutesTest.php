@@ -45,6 +45,7 @@ class AppLayoutCanvasRoutesTest extends TestCase
         '/appointment-types',
         '/specialties',
         // Operación
+        '/my-day',
         '/calendar',
         // Clínico
         '/patients',

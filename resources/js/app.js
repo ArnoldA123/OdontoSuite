@@ -58,6 +58,13 @@ const routes = [
     beforeEnter: requireAuth
   },
   {
+    // F1 (#281): the professional's day queue (waiting / attending / upcoming).
+    path: '/my-day',
+    name: 'my-day',
+    component: () => import('./modules/my-day/MyDayPage.vue'),
+    beforeEnter: requireAuth
+  },
+  {
     path: '/appointments/new',
     redirect: { path: '/dashboard', query: { openAppointmentModal: 'true' } }
   },

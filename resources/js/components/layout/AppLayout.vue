@@ -512,7 +512,7 @@ import {
 import ToastContainer from '../ToastContainer.vue'
 import NotificationToast from '../ui/NotificationToast.vue'
 import NotificationCenter from '../NotificationCenter.vue'
-import { BellIcon } from '@heroicons/vue/24/outline'
+import { BellIcon, SunIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -553,6 +553,7 @@ const canvasRoutes = [
   '/appointment-types',
   '/specialties',
   // Operación
+  '/my-day',
   '/calendar',
   // Clínico
   '/patients',
@@ -808,6 +809,15 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // F1 (#281): the professional's desk. The API gates it on `view.my_day`;
+      // the role list below only decides whether the entry is worth showing.
+      name: 'Mi día',
+      to: '/my-day',
+      icon: SunIcon,
+      roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+      badge: null
+    },
+    {
       name: 'Calendario',
       to: '/calendar',
       icon: CalendarIcon,
@@ -1045,6 +1055,7 @@ const pageTitledRoutes = [
   '/cash-register',
   '/cash-register/ready-to-bill',
   '/environments',
+  '/my-day',
   '/my-procedures',
   '/procedure-catalog',
   '/procedure-stats',
@@ -1076,6 +1087,7 @@ const pageOwnsTitle = computed(
 const getPageDescription = () => {
   const descriptions = {
     '/dashboard': 'Operación del día',
+    '/my-day': 'Cola de atención del día',
     '/calendar': 'Gestión de citas y horarios',
     '/patients': 'Base de datos de pacientes',
     '/professionals': 'Gestión de profesionales',
