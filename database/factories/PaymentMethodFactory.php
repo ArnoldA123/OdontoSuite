@@ -20,6 +20,8 @@ class PaymentMethodFactory extends Factory
             // letters+digits tail keeps the shape readable while making a
             // collision negligible for the few rows the suite creates.
             'code' => 'PM-'.strtoupper($this->faker->bothify('???###')),
+            'type' => \App\Models\PaymentMethod::TYPE_CASH,
+            'requires_reference' => false,
             'description' => $this->faker->sentence(),
             'is_active' => true,
             'is_system' => false,

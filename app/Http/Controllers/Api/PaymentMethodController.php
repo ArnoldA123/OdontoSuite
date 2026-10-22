@@ -8,6 +8,7 @@ use App\Models\PaymentMethod;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PaymentMethodController extends Controller
 {
@@ -21,10 +22,12 @@ class PaymentMethodController extends Controller
         return [
             'code' => 'required|string|max:20|unique:payment_methods,code',
             'name' => 'required|string|max:50',
+            'type' => ['sometimes', 'string', Rule::in(PaymentMethod::TYPES)],
             'description' => 'sometimes|nullable|string|max:500',
             'gateway_type' => 'sometimes|nullable|string|in:mercadopago,manual',
             'gateway_config' => 'sometimes|nullable|array',
             'requires_authorization' => 'sometimes|boolean',
+            'requires_reference' => 'sometimes|boolean',
             'allows_change' => 'sometimes|boolean',
             'commission_percentage' => 'sometimes|numeric|min:0|max:100',
             'is_active' => 'sometimes|boolean',
@@ -119,11 +122,13 @@ class PaymentMethodController extends Controller
         try {
             $validated = $request->validate($this->storeRules());
 
+            $validated['type'] = $validated['type'] ?? PaymentMethod::TYPE_CASH;
             $validated['is_active'] = $validated['is_active'] ?? true;
             $validated['is_system'] = false;
             $validated['commission_percentage'] = $validated['commission_percentage'] ?? 0;
             $validated['allows_change'] = $validated['allows_change'] ?? true;
             $validated['requires_authorization'] = $validated['requires_authorization'] ?? false;
+            $validated['requires_reference'] = $validated['requires_reference'] ?? false;
             $validated['gateway_type'] = $validated['gateway_type'] ?? 'manual';
             $validated['gateway_config'] = $validated['gateway_config'] ?? null;
 

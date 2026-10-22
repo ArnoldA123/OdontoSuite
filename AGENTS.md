@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 124 migraciones
+  migrations/              # 125 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -439,6 +439,54 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (presupuestos con IGV explícito e inmutables, y métodos de pago**
+  **con familia y referencia, #289/#291)** — Dos decisiones de dominio sobre
+  dinero. **IGV**: el precio del catálogo y del plan es el precio de venta, así
+  que el impuesto se descompone del importe en vez de sumarse encima. Antes,
+  declarar 18% convertía un procedimiento de S/ 118 en S/ 139.24; ahora
+  `subtotal` (base imponible) + `tax_amount` (IGV) == `total_amount` (precio del
+  paciente), y la tasa por defecto sale de `config/billing.php`
+  (`BILLING_TAX_PERCENTAGE`, 18.00) — una tasa declarada en 0 es el modo exento,
+  no un accidente del default. Una sola implementación
+  (`App\Support\QuotationTax`) alimenta la puerta manual y la del cierre de la
+  atención, y un `PATCH` parcial recalcula desde el bruto y la tasa ya guardados
+  en vez de poner los importes en cero (`updateQuotation` tomaba
+  `subtotal ?? 0`). La decisión vive en ADR-0011. **Inmutabilidad**: `PUT` y
+  `PATCH /api/quotations/{id}` responden 422 para `approved`
+  (`Solo se puede modificar un presupuesto en borrador, enviado o visto. Estado actual: approved.`),
+  `rejected` y `expired`, antes del bloqueo contable y antes de escribir; el
+  snapshot de precios sobrevive al cambio posterior del catálogo o del plan.
+  `draft`, `sent` y `viewed` siguen editables. **Métodos de pago**:
+  `payment_methods` gana `type` (`cash`, `card`, `transfer`, `wallet`) y
+  `requires_reference`; los métodos del sistema quedan Efectivo→`cash`,
+  Transferencia→`transfer`, tarjeta de crédito y débito→`card`, Yape→`wallet`, y
+  los tres medios que dejan voucher o número de operación exigen referencia.
+  `TransactionService::createTransaction` rechaza el cobro con 422
+  (`El método de pago {nombre} exige un número de referencia.`), regla que cubre
+  las dos puertas —`POST /api/transactions` y
+  `POST /api/pending-payments/{id}/pay`, que ahora acepta y guarda
+  `reference_number`— sin escribir transacción, movimiento ni saldo. La
+  conciliación del día separa las familias: `GET /api/cash-reports/daily` añade
+  `reconciliation.cash` y `reconciliation.electronic`, y cada fila de
+  `summary_by_payment_method` y de `payment_methods_analysis` declara su `type`.
+  Las superficies acompañan el cambio de contrato: el modal de presupuestos
+  descompone el IGV en el preview y deja de inventar una tasa 0, el detalle y el
+  PDF parten del precio de lista (`total + descuento`) porque `subtotal` es la
+  base imponible, la UI admin del método suma el selector de familia y el check
+  de referencia, y en caja el método elegido marca la referencia como
+  obligatoria y el 422 cae en el campo. La verificación independiente encontró
+  dos defectos, ambos cerrados aquí: un `PATCH` parcial descontaba dos veces, y
+  el desglose impreso no llegaba al total en presupuestos con descuento. §4
+  sincronizado con el valor medido: 125 migraciones. Sin rutas, controllers,
+  modelos ni primitivas UI nuevas; `scripts/audit/doc-drift.mjs` sigue en verde.
+  Tests: `QuotationTaxPolicyTest` (12), `QuotationImmutabilityTest` (8),
+  `QuotationDocumentBreakdownTest` (4), `PaymentMethodFamilyTest` (8),
+  `PaymentReferenceRequirementTest` (9), `CashReconciliationByFamilyTest` (6), y
+  los smokes de `paymentMethodMeta`, del formulario de métodos, del modal de
+  presupuesto, del detalle y de `caja-cobros` extendidos. Fuera de alcance,
+  documentado en la issue: comprobante de pago/SUNAT (#289) y pago mixto más el
+  gobierno de `requires_authorization`/`allows_change` (#291).
 
 - **2026-10-22 (la sede autoriza: escritorios, bloqueo contable, tarifario y**
   **consolidado, #283/#290)** — La sede deja de ser un filtro de consulta y pasa

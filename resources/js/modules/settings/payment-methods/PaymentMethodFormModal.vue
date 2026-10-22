@@ -76,6 +76,36 @@
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div data-field="type">
+            <UiSelect
+              v-model="form.type"
+              :options="TYPE_OPTIONS"
+              label="Familia de cobro"
+              placeholder="Seleccionar familia"
+              :disabled="saving"
+              :error="errors.type"
+              hint="Decide cómo se concilia el cobro al cierre del día"
+            />
+          </div>
+          <div class="flex items-start gap-3" data-field="requires_reference">
+            <input
+              id="requires_reference"
+              v-model="form.requires_reference"
+              type="checkbox"
+              :disabled="saving"
+              class="w-4 h-4 mt-1 text-systemBlue-600 border-hairline rounded"
+            />
+            <div>
+              <label for="requires_reference" class="text-sm font-medium text-theme-primary">
+                Exige referencia
+              </label>
+              <p class="text-xs text-theme-secondary">
+                Sin voucher o número de operación no se registra el cobro.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="flex items-start gap-3" data-field="requires_authorization">
             <input
               id="requires_authorization"
@@ -210,7 +240,12 @@
 import { computed, reactive, ref } from 'vue'
 import { usePaymentMethods } from '../../../composables/usePaymentMethods'
 import { useToast } from '../../../composables/useToast'
-import { GATEWAY_TYPE_OPTIONS, STATUS_FORM_OPTIONS, hasGateway } from './paymentMethodMeta'
+import {
+  GATEWAY_TYPE_OPTIONS,
+  STATUS_FORM_OPTIONS,
+  TYPE_OPTIONS,
+  hasGateway
+} from './paymentMethodMeta'
 import UiButton from '../../../components/ui/Button.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiModal from '../../../components/ui/Modal.vue'
@@ -241,6 +276,8 @@ const createFormState = method => ({
   name: method?.name || '',
   description: method?.description || '',
   gateway_type: method?.gateway_type || 'manual',
+  type: method?.type || 'cash',
+  requires_reference: Boolean(method?.requires_reference),
   commission_percentage: commissionFrom(method),
   requires_authorization: Boolean(method?.requires_authorization),
   allows_change: method ? Boolean(method.allows_change) : true,
@@ -312,8 +349,10 @@ const buildPayload = () => {
     name: form.name.trim(),
     description: form.description.trim() || null,
     gateway_type: form.gateway_type,
+    type: form.type,
     commission_percentage: commissionValue(),
     requires_authorization: form.requires_authorization,
+    requires_reference: form.requires_reference,
     allows_change: form.allows_change,
     is_active: form.is_active
   }

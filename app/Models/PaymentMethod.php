@@ -12,13 +12,47 @@ class PaymentMethod extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const TYPE_CASH = 'cash';
+
+    public const TYPE_CARD = 'card';
+
+    public const TYPE_TRANSFER = 'transfer';
+
+    public const TYPE_WALLET = 'wallet';
+
+    /**
+     * #291, S3: the behaviour families a method may declare. The daily
+     * reconciliation groups the drawer by these, so the list is closed.
+     *
+     * @var array<int, string>
+     */
+    public const TYPES = [
+        self::TYPE_CASH,
+        self::TYPE_CARD,
+        self::TYPE_TRANSFER,
+        self::TYPE_WALLET,
+    ];
+
+    /**
+     * Families that are not physical money in the drawer.
+     *
+     * @var array<int, string>
+     */
+    public const ELECTRONIC_TYPES = [
+        self::TYPE_CARD,
+        self::TYPE_TRANSFER,
+        self::TYPE_WALLET,
+    ];
+
     protected $fillable = [
         'name',
         'code',
+        'type',
         'description',
         'gateway_type',
         'gateway_config',
         'requires_authorization',
+        'requires_reference',
         'allows_change',
         'commission_percentage',
         'is_active',
@@ -27,11 +61,35 @@ class PaymentMethod extends Model
 
     protected $casts = [
         'requires_authorization' => 'boolean',
+        'requires_reference' => 'boolean',
         'allows_change' => 'boolean',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
         'is_system' => 'boolean',
     ];
+
+    /**
+     * #291, S5: physical cash is what the drawer reconciles by counting; every
+     * other family settles against a bank, a POS or a wallet statement.
+     */
+    public function isCash(): bool
+    {
+        return $this->type === self::TYPE_CASH;
+    }
+
+    public function isElectronic(): bool
+    {
+        return in_array($this->type, self::ELECTRONIC_TYPES, true);
+    }
+
+    /**
+     * #291, S4: a method that demands an operation number cannot book a charge
+     * without one.
+     */
+    public function requiresReference(): bool
+    {
+        return (bool) $this->requires_reference;
+    }
 
     // Relaciones
     public function transactions(): HasMany

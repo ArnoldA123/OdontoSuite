@@ -9,6 +9,9 @@ import {
   getScopeVariant,
   getStatusLabel,
   getStatusVariant,
+  getTypeLabel,
+  getTypeVariant,
+  TYPE_OPTIONS,
   canDelete,
   getDeleteBlockedReason,
   formatCommission
@@ -57,6 +60,25 @@ describe('payment methods vocabulary', () => {
     expect(getStatusVariant(false)).toBe('neutral')
     expect(statusBadgeVariants).toContain(getStatusVariant(true))
     expect(statusBadgeVariants).toContain(getStatusVariant(false))
+  })
+
+  it('keeps the behaviour families of the API in the form options', () => {
+    expect(TYPE_OPTIONS.map(option => option.value)).toEqual(['cash', 'card', 'transfer', 'wallet'])
+  })
+
+  it('labels every payment family and treats only cash as physical money', () => {
+    expect(getTypeLabel('cash')).toBe('Efectivo')
+    expect(getTypeLabel('card')).toBe('Tarjeta')
+    expect(getTypeLabel('transfer')).toBe('Transferencia')
+    expect(getTypeLabel('wallet')).toBe('Billetera digital')
+    expect(getTypeLabel(null)).toBe('Efectivo')
+
+    expect(getTypeVariant('cash')).toBe('neutral')
+    ;['card', 'transfer', 'wallet'].forEach(type => {
+      expect(getTypeVariant(type)).toBe('info')
+    })
+    expect(statusBadgeVariants).toContain(getTypeVariant('cash'))
+    expect(statusBadgeVariants).toContain(getTypeVariant('card'))
   })
 
   it('blocks deletion for system methods and methods with transactions', () => {

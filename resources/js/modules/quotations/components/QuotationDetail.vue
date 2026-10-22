@@ -126,8 +126,8 @@
         <dl class="space-y-2 text-sm">
           <div class="flex items-baseline justify-between gap-3">
             <dt class="text-theme-secondary">Subtotal</dt>
-            <dd class="font-medium text-theme-primary tabular-nums">
-              {{ formatCurrency(quotation.subtotal) }}
+            <dd class="font-medium text-theme-primary tabular-nums" data-detail-subtotal>
+              {{ formatCurrency(listPrice) }}
             </dd>
           </div>
           <div v-if="discountAmount > 0" class="flex items-baseline justify-between gap-3">
@@ -139,6 +139,12 @@
             </dt>
             <dd class="font-medium text-theme-primary tabular-nums">
               {{ formatCurrency(-discountAmount) }}
+            </dd>
+          </div>
+          <div v-if="taxAmount > 0" class="flex items-baseline justify-between gap-3">
+            <dt class="text-theme-secondary">Base imponible</dt>
+            <dd class="font-medium text-theme-primary tabular-nums" data-detail-taxable-base>
+              {{ formatCurrency(taxableBase) }}
             </dd>
           </div>
           <div v-if="taxAmount > 0" class="flex items-baseline justify-between gap-3">
@@ -341,6 +347,12 @@ const positiveAmount = value => {
 const discountAmount = computed(() => positiveAmount(props.quotation.discount_amount))
 const discountPercentage = computed(() => positiveAmount(props.quotation.discount_percentage))
 const taxAmount = computed(() => positiveAmount(props.quotation.tax_amount))
+const taxableBase = computed(() => positiveAmount(props.quotation.subtotal))
+
+// #289: the price includes the IGV, so the list price is the total plus the
+// discount it absorbed; the tax rows break that total down instead of adding.
+const totalAmount = computed(() => positiveAmount(props.quotation.total_amount))
+const listPrice = computed(() => totalAmount.value + discountAmount.value)
 
 const hasTerms = computed(() => Boolean(String(props.quotation.terms_conditions || '').trim()))
 const hasNotes = computed(() => Boolean(String(props.quotation.notes || '').trim()))

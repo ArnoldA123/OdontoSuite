@@ -293,9 +293,19 @@ class TransactionService
             ]);
         }
 
-        if (! isset($data['payment_method_id']) || ! PaymentMethod::find($data['payment_method_id'])) {
+        if (! isset($data['payment_method_id']) || ! $paymentMethod = PaymentMethod::find($data['payment_method_id'])) {
             throw ValidationException::withMessages([
                 'payment_method_id' => ['El método de pago seleccionado no es válido.'],
+            ]);
+        }
+
+        // #291, S4: a method that leaves a voucher or an operation number behind
+        // cannot book the charge without it. The guard lives in the service, so
+        // both cash doors —the cash-register modal and the pending payment—
+        // answer the same rule with the same message.
+        if ($paymentMethod->requiresReference() && trim((string) ($data['reference_number'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'reference_number' => ["El método de pago {$paymentMethod->name} exige un número de referencia."],
             ]);
         }
 

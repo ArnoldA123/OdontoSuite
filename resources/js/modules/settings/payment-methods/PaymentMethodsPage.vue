@@ -230,6 +230,14 @@
             <span class="tabular-nums">{{ formatCommission(row.commission_percentage) }}</span>
           </template>
 
+          <template #cell-family="{ row }">
+            <UiStatusBadge
+              :variant="getTypeVariant(row.type)"
+              :label="getTypeLabel(row.type)"
+              size="sm"
+            />
+          </template>
+
           <template #cell-scope="{ row }">
             <UiStatusBadge
               :variant="getScopeVariant(row.is_system)"
@@ -321,7 +329,9 @@ import {
   getScopeLabel,
   getScopeVariant,
   getStatusLabel,
-  getStatusVariant
+  getStatusVariant,
+  getTypeLabel,
+  getTypeVariant
 } from './paymentMethodMeta'
 
 const router = useRouter()
@@ -344,6 +354,7 @@ const columns = [
   { key: 'name', label: 'Método' },
   { key: 'gateway', label: 'Pasarela' },
   { key: 'commission', label: 'Comisión' },
+  { key: 'family', label: 'Familia' },
   { key: 'scope', label: 'Tipo' },
   { key: 'status', label: 'Estado' }
 ]

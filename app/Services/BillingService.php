@@ -8,6 +8,7 @@ use App\Models\ClinicalEncounter;
 use App\Models\Quotation;
 use App\Models\Transaction;
 use App\Models\TreatmentPlanItem;
+use App\Support\QuotationTax;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -229,6 +230,9 @@ class BillingService
         $executedItems,
         float $subtotal,
     ): Quotation {
+        $taxPercentage = QuotationTax::defaultPercentage();
+        $breakdown = QuotationTax::breakDown($subtotal, 0.0, $taxPercentage);
+
         $quotation = Quotation::create([
             'treatment_plan_id' => $planId,
             'appointment_id' => $appointmentId,
@@ -238,12 +242,12 @@ class BillingService
             'quotation_number' => $this->generateQuotationNumber(),
             'quotation_date' => now()->toDateString(),
             'valid_until' => now()->addDays(30)->toDateString(),
-            'subtotal' => $subtotal,
+            'subtotal' => $breakdown['subtotal'],
             'discount_percentage' => 0,
             'discount_amount' => 0,
-            'tax_percentage' => 0,
-            'tax_amount' => 0,
-            'total_amount' => $subtotal,
+            'tax_percentage' => $taxPercentage,
+            'tax_amount' => $breakdown['tax_amount'],
+            'total_amount' => $breakdown['total_amount'],
             'status' => self::QUOTATION_STATUS_SENT,
             'terms_conditions' => 'Presupuesto generado automáticamente al cierre de la cita.',
             'notes' => null,

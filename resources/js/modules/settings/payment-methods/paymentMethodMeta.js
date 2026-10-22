@@ -3,6 +3,22 @@ export const GATEWAY_TYPE_OPTIONS = Object.freeze([
   { value: 'mercadopago', label: 'Mercado Pago' }
 ])
 
+// #291 — the behaviour families the daily reconciliation groups by. The list
+// mirrors PaymentMethod::TYPES on the API.
+export const TYPE_OPTIONS = Object.freeze([
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'wallet', label: 'Billetera digital' }
+])
+
+const TYPE_LABELS = Object.freeze({
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  transfer: 'Transferencia',
+  wallet: 'Billetera digital'
+})
+
 export const STATUS_FILTER_OPTIONS = Object.freeze([
   { value: '', label: 'Todos los estados' },
   { value: 'true', label: 'Activos' },
@@ -29,6 +45,14 @@ export function hasGateway(gatewayType) {
 
 export function getScopeLabel(isSystem) {
   return isSystem ? 'Sistema' : 'Personalizado'
+}
+
+export function getTypeLabel(type) {
+  return TYPE_LABELS[type] || TYPE_LABELS.cash
+}
+
+export function getTypeVariant(type) {
+  return type === 'cash' ? 'neutral' : 'info'
 }
 
 export function getScopeVariant(isSystem) {

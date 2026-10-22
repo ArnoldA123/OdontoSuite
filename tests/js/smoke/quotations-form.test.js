@@ -100,6 +100,48 @@ describe('quotations edit form', () => {
     expect(row.querySelector('input').value).toBe('Limpieza dental')
   })
 
+  it('breaks the IGV out of the price instead of adding it on top', async () => {
+    await mountForm()
+
+    const rate = root().querySelector('[data-field="tax_percentage"] input')
+    rate.value = '18'
+    rate.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    // Gross 100 at 18%: base 84.75 plus IGV 15.25, and the patient still pays 100.
+    const amount = selector =>
+      root()
+        .querySelector(selector)
+        .textContent.replace(/\u00a0/g, ' ')
+        .trim()
+
+    expect(amount('[data-summary-tax]')).toBe('S/ 15.25')
+    expect(amount('[data-summary-total]')).toBe('S/ 100.00')
+
+    document.querySelector('[data-form-action="submit"]').click()
+    await flushPromises()
+
+    expect(updateQuotation.mock.calls[0][1].tax_percentage).toBe(18)
+  })
+
+  it('keeps a declared rate and omits the field when it is cleared', async () => {
+    await mountForm()
+
+    const rate = root().querySelector('[data-field="tax_percentage"] input')
+    expect(rate.value).toBe('0')
+
+    rate.value = ''
+    rate.dispatchEvent(new Event('input'))
+    await flushPromises()
+
+    document.querySelector('[data-form-action="submit"]').click()
+    await flushPromises()
+
+    const payload = updateQuotation.mock.calls[0][1]
+    expect(payload).not.toHaveProperty('tax_percentage')
+    expect(payload.subtotal).toBe(100)
+  })
+
   it('submits an update payload without patient_id or server-owned amounts', async () => {
     await mountForm()
 
