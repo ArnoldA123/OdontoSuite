@@ -65,6 +65,35 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
 vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
+// #280: the page derives its action gates from user.permissions. Keep a
+// reactive role handle so a test can switch roles without reimporting modules.
+const authRole = vi.hoisted(() => ({ ref: null }))
+vi.mock('../../../resources/js/composables/useAuth', async () => {
+  const { ref, computed } = await import('vue')
+  const { default: rolePermissions } = await import('../support/role-permissions.json')
+  const role = ref('administrador')
+  authRole.ref = role
+  const user = computed(() => ({
+    id: 1,
+    name: 'Test User',
+    role: role.value,
+    permissions: rolePermissions[role.value] ?? []
+  }))
+  return {
+    useAuth: () => ({
+      user,
+      token: computed(() => 'test-token'),
+      isAuthenticated: computed(() => true),
+      isLoading: computed(() => false),
+      login: async () => {},
+      logout: async () => {},
+      authLogout: async () => {},
+      getCurrentUser: async () => {},
+      hasRole: value => role.value === value,
+      hasAnyRole: values => values.includes(role.value)
+    })
+  }
+})
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointments/CalendarPage.vue'
 import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
@@ -75,6 +104,10 @@ const router = createRouter({
   history: createMemoryHistory(),
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
 })
+beforeEach(() => {
+  if (authRole.ref) authRole.ref.value = 'administrador'
+})
+
 describe('appointments smoke', () => {
   it('mounts CalendarPage.vue and renders content', async () => {
     const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
@@ -258,7 +291,7 @@ describe('T8b click-to-create prefill smoke (defect 1)', () => {
   })
 
   it('prefills the slot after a previous edit session (edit data must not leak)', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: 9, role: 'odontologo', name: 'Odonto' }))
+    authRole.ref.value = 'odontologo'
     const wrapper = mountPage()
     await flushPromises()
 
@@ -596,7 +629,7 @@ describe('appointments drag reschedule smoke (T5)', () => {
   })
 
   it('gates dragging on editAppointment permission (T5, finanzas cannot drag)', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: 99, role: 'finanzas', name: 'Fin' }))
+    authRole.ref.value = 'finanzas'
     const wrapper = mountPage()
     await flushPromises()
 
@@ -964,7 +997,7 @@ describe('T7 details modal smoke', () => {
   })
 
   it('binds the appointment into NewAppointmentModal from the Editar action (T7 bugfix)', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: 9, role: 'odontologo', name: 'Odonto' }))
+    authRole.ref.value = 'odontologo'
     const wrapper = mountPage()
     await flushPromises()
     await openDetails(wrapper)
@@ -991,7 +1024,7 @@ describe('T7 details modal smoke', () => {
 
   it('hides Editar from roles without editAppointment and keeps delete gated (T7)', async () => {
     // finanzas: editAppointment false (usePermissions line 30), deleteAppointment false.
-    localStorage.setItem('user', JSON.stringify({ id: 99, role: 'finanzas', name: 'Fin' }))
+    authRole.ref.value = 'finanzas'
     const wrapper = mountPage()
     await flushPromises()
     await openDetails(wrapper)
@@ -1003,7 +1036,7 @@ describe('T7 details modal smoke', () => {
   })
 
   it('routes delete through useConfirm before hitting the API (T7)', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador', name: 'Admin' }))
+    authRole.ref.value = 'administrador'
     const wrapper = mountPage()
     await flushPromises()
     await openDetails(wrapper)
@@ -1125,7 +1158,7 @@ describe('T7 empty range smoke', () => {
   })
 
   it('hides the empty block for roles without createAppointment (T7 gate)', async () => {
-    localStorage.setItem('user', JSON.stringify({ id: 99, role: 'finanzas', name: 'Fin' }))
+    authRole.ref.value = 'finanzas'
     const wrapper = mountPage()
     await flushPromises()
 

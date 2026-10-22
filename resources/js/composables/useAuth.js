@@ -64,6 +64,15 @@ export function useAuth() {
     return roles.includes(user.value?.role)
   }
 
+  // #280: sessions stored before the permissions payload existed would gate
+  // every UI action on an empty set. Refresh once from /api/auth/me instead of
+  // forcing a logout.
+  if (token.value && user.value && !Array.isArray(user.value.permissions)) {
+    getCurrentUser().catch(() => {
+      // A failed refresh keeps the stored session; the next 401 signs out.
+    })
+  }
+
   return {
     user: computed(() => user.value),
     token: computed(() => token.value),

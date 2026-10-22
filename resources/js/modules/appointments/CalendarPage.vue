@@ -518,8 +518,9 @@
           </UiButton>
           <UiButton
             v-if="
-              selectedAppointment.status === 'confirmed' ||
-              selectedAppointment.status === 'scheduled'
+              can.checkInAppointment?.value &&
+              (selectedAppointment.status === 'confirmed' ||
+                selectedAppointment.status === 'scheduled')
             "
             size="sm"
             variant="secondary"
@@ -529,7 +530,9 @@
             Iniciar Consulta
           </UiButton>
           <UiButton
-            v-if="selectedAppointment.status === 'in_consultation'"
+            v-if="
+              can.completeConsultation?.value && selectedAppointment.status === 'in_consultation'
+            "
             size="sm"
             variant="primary"
             data-calendar-action="complete-consultation"
@@ -689,6 +692,12 @@ export default {
     }
 
     const openConsultationWizard = async appointment => {
+      // #280: closing a consultation writes clinical records. The backend
+      // answers 403 without `complete.appointment`; do not offer the flow.
+      if (!can.completeConsultation?.value) {
+        toast.error('No tienes permisos para completar la consulta')
+        return
+      }
       wizardAppointment.value = appointment
       selectedAppointment.value = null
       await openForAppointment(appointment)

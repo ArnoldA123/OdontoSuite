@@ -23,6 +23,30 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
 vi.mock('../../../resources/js/composables/useWebSocketNotifications', () => ({
   useWebSocketNotifications: () => ({})
 }))
+// #280: dashboard gates its surfaces on user.permissions.
+vi.mock('../../../resources/js/composables/useAuth', async () => {
+  const { computed } = await import('vue')
+  const { default: rolePermissions } = await import('../support/role-permissions.json')
+  return {
+    useAuth: () => ({
+      user: computed(() => ({
+        id: 1,
+        name: 'Test User',
+        role: 'administrador',
+        permissions: rolePermissions.administrador
+      })),
+      token: computed(() => 'test-token'),
+      isAuthenticated: computed(() => true),
+      isLoading: computed(() => false),
+      login: async () => {},
+      logout: async () => {},
+      authLogout: async () => {},
+      getCurrentUser: async () => {},
+      hasRole: value => value === 'administrador',
+      hasAnyRole: values => values.includes('administrador')
+    })
+  }
+})
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/dashboard/DashboardPage.vue'
 const router = createRouter({
