@@ -6,10 +6,12 @@ use App\Events\QuotationApproved;
 use App\Events\QuotationCreated;
 use App\Events\QuotationRejected;
 use App\Events\QuotationUpdated;
+use App\Models\ProcedureCatalog;
 use App\Models\Quotation;
 use App\Models\QuotationApproval;
 use App\Models\QuotationItem;
 use App\Models\TreatmentPlan;
+use App\Support\ProcedureSiteRule;
 use App\Support\QuotationTax;
 use App\Support\QuotationText;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -41,7 +43,7 @@ class QuotationService
     public function generateQuotation(int $treatmentPlanId, array $data = []): Quotation
     {
         return DB::transaction(function () use ($treatmentPlanId, $data) {
-            $plan = TreatmentPlan::with(['patient', 'items'])->findOrFail($treatmentPlanId);
+            $plan = TreatmentPlan::with(['patient', 'items.procedureCatalog'])->findOrFail($treatmentPlanId);
 
             $quotationData = [
                 'treatment_plan_id' => $treatmentPlanId,
@@ -69,9 +71,23 @@ class QuotationService
 
             // Crear items del presupuesto
             foreach ($plan->items as $item) {
+                $site = $this->normalizedSite([
+                    'dental_piece_id' => $item->dental_piece_id,
+                    'tooth_surface_id' => $item->tooth_surface_id,
+                    'site_code' => $item->site_code,
+                ]);
+
+                // #293 S2: a line written before the rule still has to name
+                // the site of its procedure before it can become an estimate.
+                ProcedureSiteRule::assertFor($item->procedureCatalog, $site);
+
                 QuotationItem::create([
                     'quotation_id' => $quotation->id,
                     'treatment_plan_item_id' => $item->id,
+                    'procedure_catalog_id' => $item->procedure_catalog_id,
+                    'dental_piece_id' => $site['dental_piece_id'],
+                    'tooth_surface_id' => $site['tooth_surface_id'],
+                    'site_code' => $site['site_code'],
                     'item_name' => $item->procedure_name,
                     'item_description' => $item->procedure_description,
                     'specialty' => $item->specialty,
@@ -115,8 +131,24 @@ class QuotationService
             // Crear items si se proporcionan
             if (isset($data['items']) && is_array($data['items'])) {
                 foreach ($data['items'] as $itemData) {
+                    $procedureId = isset($itemData['procedure_catalog_id']) && $itemData['procedure_catalog_id'] !== ''
+                        ? (int) $itemData['procedure_catalog_id']
+                        : null;
+                    $site = $this->normalizedSite($itemData);
+
+                    // #293 S2: a manual line that names a procedure carries the
+                    // site the procedure applies to, or it is not written.
+                    ProcedureSiteRule::assertFor(
+                        $procedureId !== null ? ProcedureCatalog::find($procedureId) : null,
+                        $site,
+                    );
+
                     QuotationItem::create([
                         'quotation_id' => $quotation->id,
+                        'procedure_catalog_id' => $procedureId,
+                        'dental_piece_id' => $site['dental_piece_id'],
+                        'tooth_surface_id' => $site['tooth_surface_id'],
+                        'site_code' => $site['site_code'],
                         'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
                         'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
                         'specialty' => $itemData['specialty'] ?? null,
@@ -196,8 +228,22 @@ class QuotationService
 
                 // Crear nuevos items
                 foreach ($data['items'] as $itemData) {
+                    $procedureId = isset($itemData['procedure_catalog_id']) && $itemData['procedure_catalog_id'] !== ''
+                        ? (int) $itemData['procedure_catalog_id']
+                        : null;
+                    $site = $this->normalizedSite($itemData);
+
+                    ProcedureSiteRule::assertFor(
+                        $procedureId !== null ? ProcedureCatalog::find($procedureId) : null,
+                        $site,
+                    );
+
                     QuotationItem::create([
                         'quotation_id' => $quotation->id,
+                        'procedure_catalog_id' => $procedureId,
+                        'dental_piece_id' => $site['dental_piece_id'],
+                        'tooth_surface_id' => $site['tooth_surface_id'],
+                        'site_code' => $site['site_code'],
                         'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
                         'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
                         'specialty' => $itemData['specialty'] ?? null,
@@ -355,6 +401,21 @@ class QuotationService
                 'Solo se puede modificar un presupuesto en borrador, enviado o visto. Estado actual: %s.',
                 $quotation->status
             ),
+        ]);
+    }
+
+    /**
+     * Normalize the site columns a line carries into the shape the rule reads.
+     *
+     * @param  array<string, mixed>                                                     $itemData
+     * @return array{dental_piece_id: ?int, tooth_surface_id: ?int, site_code: ?string}
+     */
+    private function normalizedSite(array $itemData): array
+    {
+        return ProcedureSiteRule::normalize([
+            'dental_piece_id' => $itemData['dental_piece_id'] ?? null,
+            'tooth_surface_id' => $itemData['tooth_surface_id'] ?? null,
+            'site_code' => $itemData['site_code'] ?? null,
         ]);
     }
 

@@ -16,6 +16,8 @@ class TreatmentPlanItem extends Model
         'procedure_id',
         'procedure_catalog_id',
         'dental_piece_id',
+        'tooth_surface_id',
+        'site_code',
         'procedure_name',
         'procedure_description',
         'specialty',
@@ -48,6 +50,11 @@ class TreatmentPlanItem extends Model
     public function dentalPiece(): BelongsTo
     {
         return $this->belongsTo(DentalPiece::class);
+    }
+
+    public function toothSurface(): BelongsTo
+    {
+        return $this->belongsTo(ToothSurface::class);
     }
 
     public function procedureCatalog(): BelongsTo

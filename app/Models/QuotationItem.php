@@ -13,6 +13,10 @@ class QuotationItem extends Model
     protected $fillable = [
         'quotation_id',
         'treatment_plan_item_id',
+        'procedure_catalog_id',
+        'dental_piece_id',
+        'tooth_surface_id',
+        'site_code',
         'item_name',
         'item_description',
         'quantity',
@@ -36,5 +40,20 @@ class QuotationItem extends Model
     public function treatmentPlanItem(): BelongsTo
     {
         return $this->belongsTo(TreatmentPlanItem::class);
+    }
+
+    public function procedure(): BelongsTo
+    {
+        return $this->belongsTo(ProcedureCatalog::class, 'procedure_catalog_id');
+    }
+
+    public function dentalPiece(): BelongsTo
+    {
+        return $this->belongsTo(DentalPiece::class);
+    }
+
+    public function toothSurface(): BelongsTo
+    {
+        return $this->belongsTo(ToothSurface::class);
     }
 }

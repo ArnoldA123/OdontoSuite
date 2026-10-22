@@ -55,6 +55,10 @@ class QuotationResource extends JsonResource
                 return $this->items->map(function ($item) {
                     return [
                         'id' => $item->id,
+                        'procedure_catalog_id' => $item->procedure_catalog_id,
+                        'dental_piece_id' => $item->dental_piece_id,
+                        'tooth_surface_id' => $item->tooth_surface_id,
+                        'site_code' => $item->site_code,
                         'description' => $item->description,
                         'quantity' => $item->quantity,
                         'unit_price' => $item->unit_price,

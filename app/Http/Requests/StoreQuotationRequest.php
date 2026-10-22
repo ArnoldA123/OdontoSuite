@@ -51,6 +51,11 @@ class StoreQuotationRequest extends FormRequest
             'items.*.description' => 'required_with:items|string|max:200',
             'items.*.quantity' => 'required_with:items|numeric|min:0.01|max:999.99',
             'items.*.unit_price' => 'required_with:items|numeric|min:0|max:99999.99',
+            // #293 S2: the line names the catalog procedure and its site.
+            'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+            'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+            'items.*.tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+            'items.*.site_code' => 'nullable|string|max:30',
             // Slice 02 / T-02.7 — optional procedure + payment method.
             'procedure_id' => 'nullable|exists:procedure_catalog,id',
             'payment_method_id' => 'nullable|exists:payment_methods,id',

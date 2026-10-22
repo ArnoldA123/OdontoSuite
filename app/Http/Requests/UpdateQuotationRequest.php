@@ -38,6 +38,11 @@ class UpdateQuotationRequest extends FormRequest
             'items.*.description' => 'required_with:items|string',
             'items.*.quantity' => 'required_with:items|numeric|min:1',
             'items.*.unit_price' => 'required_with:items|numeric|min:0',
+            // #293 S2: the line names the catalog procedure and its site.
+            'items.*.procedure_catalog_id' => 'nullable|exists:procedure_catalog,id',
+            'items.*.dental_piece_id' => 'nullable|exists:dental_pieces,id',
+            'items.*.tooth_surface_id' => 'nullable|exists:tooth_surfaces,id',
+            'items.*.site_code' => 'nullable|string|max:30',
         ];
     }
 

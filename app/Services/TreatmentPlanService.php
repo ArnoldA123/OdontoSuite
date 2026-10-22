@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Events\TreatmentPlanCreated;
 use App\Events\TreatmentPlanUpdated;
+use App\Models\ProcedureCatalog;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
+use App\Support\ProcedureSiteRule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -142,6 +144,21 @@ class TreatmentPlanService
     private function persistItem(int $planId, array $itemData): TreatmentPlanItem
     {
         $itemData['treatment_plan_id'] = $planId;
+
+        // #293 S2: a line that names a catalog procedure carries the site the
+        // procedure applies to. Free-text lines keep their payload untouched.
+        if (! empty($itemData['procedure_catalog_id'])) {
+            $procedure = ProcedureCatalog::find($itemData['procedure_catalog_id']);
+            $site = ProcedureSiteRule::normalize([
+                'dental_piece_id' => $itemData['dental_piece_id'] ?? null,
+                'tooth_surface_id' => $itemData['tooth_surface_id'] ?? null,
+                'site_code' => $itemData['site_code'] ?? null,
+            ]);
+
+            ProcedureSiteRule::assertFor($procedure, $site);
+
+            $itemData = array_merge($itemData, $site);
+        }
 
         // Calcular total_cost del item (quantity * unit_cost) si no fue provisto
         if (! isset($itemData['total_cost']) || $itemData['total_cost'] === null) {
