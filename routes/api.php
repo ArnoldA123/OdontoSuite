@@ -1,6 +1,7 @@
 <?php
 
 use App\Authorization\Permissions;
+use App\Http\Controllers\Api\AccountingLockController;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AppointmentCustodyController;
@@ -284,6 +285,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('branches', BranchController::class)
         ->middleware(['permission:'.Permissions::MANAGE_BRANCH, 'branch.global']);
 
+    // Accounting lock (F3, #283 S4/S5). One row per module and sede; the global
+    // row (branch_id null) is group scope, so a sede administrator only freezes
+    // their own sede.
+    Route::middleware('permission:'.Permissions::MANAGE_ACCOUNTING_LOCK)->group(function () {
+        Route::get('accounting-locks', [AccountingLockController::class, 'index']);
+        Route::put('accounting-locks/{module}', [AccountingLockController::class, 'update']);
+        Route::delete('accounting-locks/{module}', [AccountingLockController::class, 'destroy']);
+    });
+
     // Treatment plans (clinical roles and administrator).
     Route::middleware('permission:'.Permissions::MANAGE_TREATMENT_PLAN)->group(function () {
         Route::get('treatment-plans/summary', [TreatmentPlanController::class, 'summary']);
@@ -357,8 +367,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // (sessions and transactions, CRED-cash-recep / CRED-tx-recep). Issue #191:
     // pending payments are collected at the same counter. Movements, cash
     // reports and Mercado Pago stay with administrator/finanzas.
+    // `override.accounting_lock` is consumed by AccountingLockService::guard(),
+    // not by a gate of its own: it is declared here so every catalog permission
+    // stays routed (RoutePermissionMatrixTest). The OR is inert today, because
+    // both permissions are administrator-only, and the guard remains the only
+    // place that decides whether a lock can be overridden.
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])
-        ->middleware(['permission:'.Permissions::VOID_TRANSACTION, 'cash.session']);
+        ->middleware([
+            'permission:'.Permissions::VOID_TRANSACTION,
+            'cash.session',
+        ]);
 
     // Transactions require an open cash session (slice 01 / T-01.1 registers
     // `transactions/list` and `receipt` BEFORE apiResource so the fixed
