@@ -16,7 +16,9 @@
  * `<out>/acceptances.json` as `{ "id": "written reason" }`. A green run with
  * an empty acceptances file means the three sources agree, not that the file
  * was edited to agree: widening one API group must shrink the diff.
- */ // #280: authorization moved from `role:` route lists to the permission catalog
+ */
+
+// #280: authorization moved from `role:` route lists to the permission catalog
 // (App\Authorization\Permissions + tests/Unit/Authorization/RoutePermissionMatrixTest.php).
 // This probe derives expectations from `role:` middleware and is retired for
 // current revisions: refuse to report a false divergence instead.
