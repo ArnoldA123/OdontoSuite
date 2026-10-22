@@ -13,7 +13,10 @@ use Illuminate\Support\Str;
 
 class TreatmentPlanService
 {
-    public function __construct(private readonly AiAnalysisCitationService $citations) {}
+    public function __construct(
+        private readonly AiAnalysisCitationService $citations,
+        private readonly AccountingLockService $accountingLocks,
+    ) {}
 
     public function createPlan(array $data): TreatmentPlan
     {
@@ -37,7 +40,7 @@ class TreatmentPlanService
 
             if (isset($data['items']) && is_array($data['items'])) {
                 foreach ($data['items'] as $itemData) {
-                    $this->addItem($plan->id, $itemData);
+                    $this->persistItem($plan->id, $itemData);
                 }
             }
 
@@ -67,6 +70,11 @@ class TreatmentPlanService
 
     public function updatePlan(int $id, array $data): TreatmentPlan
     {
+        $lockOverrideReason = $data['lock_override_reason'] ?? null;
+        unset($data['lock_override_reason']);
+
+        $this->guardPlan($id, 'update', $lockOverrideReason);
+
         return DB::transaction(function () use ($id, $data) {
             $plan = TreatmentPlan::findOrFail($id);
 
@@ -88,7 +96,7 @@ class TreatmentPlanService
                 // Reemplazar items completos (estrategia simple y consistente con el front)
                 $plan->items()->delete();
                 foreach ($data['items'] as $itemData) {
-                    $this->addItem($plan->id, $itemData);
+                    $this->persistItem($plan->id, $itemData);
                 }
             }
 
@@ -118,6 +126,21 @@ class TreatmentPlanService
 
     public function addItem(int $planId, array $itemData): TreatmentPlanItem
     {
+        $lockOverrideReason = $itemData['lock_override_reason'] ?? null;
+        unset($itemData['lock_override_reason']);
+
+        $this->guardPlan($planId, 'add_item', $lockOverrideReason);
+
+        return $this->persistItem($planId, $itemData);
+    }
+
+    /**
+     * The line itself: shared by the public mutation door and by the creation
+     * paths (new plan, duplicate, item replacement), which are not mutations of
+     * a historical row and therefore do not re-open the lock guard.
+     */
+    private function persistItem(int $planId, array $itemData): TreatmentPlanItem
+    {
         $itemData['treatment_plan_id'] = $planId;
 
         // Calcular total_cost del item (quantity * unit_cost) si no fue provisto
@@ -136,10 +159,12 @@ class TreatmentPlanService
         return $item;
     }
 
-    public function removeItem(int $itemId): bool
+    public function removeItem(int $itemId, ?string $lockOverrideReason = null): bool
     {
         $item = TreatmentPlanItem::findOrFail($itemId);
         $planId = $item->treatment_plan_id;
+
+        $this->guardPlan($planId, 'remove_item', $lockOverrideReason);
 
         $item->delete();
 
@@ -147,6 +172,28 @@ class TreatmentPlanService
         $this->touchPlanActivity($planId);
 
         return true;
+    }
+
+    /**
+     * F3 (#283, S4/S5) — freeze a money mutation of an existing plan.
+     *
+     * Runs before the caller opens its transaction: the blocked attempt must
+     * survive in `audit_logs`, and a rejected write must not roll it back.
+     */
+    private function guardPlan(int $planId, string $action, ?string $overrideReason = null): TreatmentPlan
+    {
+        $plan = TreatmentPlan::findOrFail($planId);
+
+        $this->accountingLocks->guard(
+            AccountingLockService::TREATMENT_PLANS,
+            $plan->start_date ?? $plan->created_at,
+            $plan->branch_id,
+            $plan,
+            $action,
+            $overrideReason,
+        );
+
+        return $plan;
     }
 
     public function changeStatus(int $id, string $status): TreatmentPlan
@@ -195,10 +242,10 @@ class TreatmentPlanService
                 $itemData = $item->toArray();
                 unset($itemData['id'], $itemData['treatment_plan_id'], $itemData['created_at'], $itemData['updated_at']);
                 $itemData['treatment_plan_id'] = $newPlan->id;
-                // total_cost se recalcula en addItem si hace falta
+                // total_cost se recalcula en persistItem si hace falta
                 unset($itemData['total_cost']);
 
-                $this->addItem($newPlan->id, $itemData);
+                $this->persistItem($newPlan->id, $itemData);
             }
 
             $this->calculateTotals($newPlan->id);

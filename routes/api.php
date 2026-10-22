@@ -374,7 +374,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // place that decides whether a lock can be overridden.
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])
         ->middleware([
-            'permission:'.Permissions::VOID_TRANSACTION,
+            'permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK,
             'cash.session',
         ]);
 

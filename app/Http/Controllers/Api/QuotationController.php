@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuotationRequest;
 use App\Http\Requests\UpdateQuotationRequest;
 use App\Services\QuotationService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -162,7 +163,17 @@ class QuotationController extends Controller
     public function update(UpdateQuotationRequest $request, int $id): JsonResponse
     {
         try {
-            $quotation = $this->quotationService->updateQuotation($id, $request->validated());
+            $payload = $request->validated();
+
+            // #283 S4: la autorización registrada viaja como motivo explícito y
+            // nunca se escribe como columna del presupuesto.
+            $reason = $request->input('lock_override_reason');
+
+            if (is_string($reason) && trim($reason) !== '') {
+                $payload['lock_override_reason'] = trim($reason);
+            }
+
+            $quotation = $this->quotationService->updateQuotation($id, $payload);
 
             return response()->json([
                 'data' => $quotation,
@@ -177,6 +188,9 @@ class QuotationController extends Controller
             ], 422);
         } catch (ModelNotFoundException) {
             return response()->json(['message' => 'Presupuesto no encontrado'], 404);
+        } catch (AuthorizationException $e) {
+            // #283 S5: el bloqueo contable se responde 403, no 500.
+            throw $e;
         } catch (\Exception $e) {
             Log::error('No se pudo actualizar el presupuesto', ['exception' => $e]);
 

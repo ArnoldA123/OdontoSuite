@@ -21,6 +21,14 @@ use Illuminate\Validation\ValidationException;
 class QuotationService
 {
     /**
+     * F3 (#283, S4/S5): the accounting lock. The default keeps the service
+     * constructible without the container.
+     */
+    public function __construct(
+        private readonly AccountingLockService $accountingLocks = new AccountingLockService,
+    ) {}
+
+    /**
      * Statuses that still owe a patient decision: only these may move to
      * `approved` or `rejected`.
      */
@@ -134,9 +142,27 @@ class QuotationService
 
     /**
      * Actualizar presupuesto.
+     *
+     * F3 (#283, S4/S5): editing a quotation dated inside the accounting lock is
+     * refused; the guard runs before the transaction so the blocked attempt (or
+     * the registered override) is not rolled back with the rejected write.
      */
     public function updateQuotation(int $id, array $data): Quotation
     {
+        $lockOverrideReason = $data['lock_override_reason'] ?? null;
+        unset($data['lock_override_reason']);
+
+        $quotation = Quotation::findOrFail($id);
+
+        $this->accountingLocks->guard(
+            AccountingLockService::QUOTATIONS,
+            $quotation->quotation_date ?? $quotation->created_at,
+            $quotation->appointment?->branch_id ?? $quotation->patient?->branch_id,
+            $quotation,
+            'update',
+            $lockOverrideReason,
+        );
+
         return DB::transaction(function () use ($id, $data) {
             $quotation = Quotation::findOrFail($id);
 

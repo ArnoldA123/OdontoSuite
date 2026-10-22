@@ -6,6 +6,7 @@ use App\Authorization\BranchAccess;
 use App\Events\TreatmentPlanDeleted;
 use App\Http\Controllers\Controller;
 use App\Services\TreatmentPlanService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -201,7 +202,7 @@ class TreatmentPlanController extends Controller
                 'end_date.after' => 'La fecha de fin debe ser posterior a la fecha de inicio',
             ]);
 
-            $plan = $this->treatmentPlanService->updatePlan($id, $validated);
+            $plan = $this->treatmentPlanService->updatePlan($id, $this->withOverrideReason($request, $validated));
 
             return response()->json([
                 'data' => $plan,
@@ -214,6 +215,9 @@ class TreatmentPlanController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (AuthorizationException $e) {
+            // #283 S5: el bloqueo contable se responde 403, no 500.
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar plan de tratamiento',
@@ -334,7 +338,7 @@ class TreatmentPlanController extends Controller
                 'quantity.min' => 'La cantidad mínima es 0.01',
             ]);
 
-            $item = $this->treatmentPlanService->addItem($id, $validated);
+            $item = $this->treatmentPlanService->addItem($id, $this->withOverrideReason($request, $validated));
 
             return response()->json([
                 'data' => $item,
@@ -347,6 +351,8 @@ class TreatmentPlanController extends Controller
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (AuthorizationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al agregar procedimiento',
@@ -356,18 +362,44 @@ class TreatmentPlanController extends Controller
     }
 
     /**
+     * #283 S4: the registered authorization travels as an explicit reason and
+     * never reaches the model as a column.
+     *
+     * @param  array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function withOverrideReason(Request $request, array $payload): array
+    {
+        $reason = $request->input('lock_override_reason');
+
+        if (is_string($reason) && trim($reason) !== '') {
+            $payload['lock_override_reason'] = trim($reason);
+        }
+
+        return $payload;
+    }
+
+    /**
      * Eliminar item del plan.
      */
-    public function removeItem(int $itemId): JsonResponse
+    public function removeItem(Request $request, int $itemId): JsonResponse
     {
         try {
-            $this->treatmentPlanService->removeItem($itemId);
+            $reason = $request->input('lock_override_reason');
+
+            $this->treatmentPlanService->removeItem(
+                $itemId,
+                is_string($reason) && trim($reason) !== '' ? trim($reason) : null,
+            );
 
             return response()->json([
                 'meta' => [
                     'message' => 'Procedimiento eliminado exitosamente',
                 ],
             ]);
+        } catch (AuthorizationException $e) {
+            // #283 S5: el bloqueo contable se responde 403, no 500.
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al eliminar procedimiento',
