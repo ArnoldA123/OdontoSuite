@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Events\AppointmentCreated;
 use App\Events\AppointmentDeleted;
 use App\Events\AppointmentUpdated;
@@ -104,9 +105,16 @@ class AppointmentController extends Controller
             $query->where('patient_id', $request->get('patient_id'));
         }
 
-        // Multi-tenant: filtrar por branch_id si se envía
-        if ($request->has('branch_id')) {
-            $query->where('branch_id', $request->input('branch_id'));
+        // #283 S2: la sede autoriza, no sólo filtra. Un usuario restringido
+        // queda acotado a su sede aunque no envíe el parámetro, y pedir otra
+        // sede explícitamente responde 403.
+        $branchFilter = BranchAccess::effectiveFilter(
+            Auth::user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
+
+        if ($branchFilter !== null) {
+            $query->where('branch_id', $branchFilter);
         }
 
         $perPage = $request->get('per_page', 20);

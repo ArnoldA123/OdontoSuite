@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopesToBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CashMovement extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, ScopesToBranch, SoftDeletes;
 
     protected $fillable = [
         'cash_register_session_id',

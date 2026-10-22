@@ -141,7 +141,7 @@ class CashRegisterController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         try {
-            $session = CashRegisterSession::with([
+            $session = CashRegisterSession::query()->visibleToBranch()->with([
                 'user', 'branch', 'movements', 'transactions',
             ])->findOrFail($id);
 
@@ -173,7 +173,7 @@ class CashRegisterController extends Controller
     public function movements(Request $request, int $sessionId): JsonResponse
     {
         try {
-            $session = CashRegisterSession::findOrFail($sessionId);
+            $session = CashRegisterSession::query()->visibleToBranch()->findOrFail($sessionId);
 
             if ($denied = $this->denyUnlessSessionViewable($request, $session)) {
                 return $denied;
@@ -294,7 +294,8 @@ class CashRegisterController extends Controller
      */
     public function closureReport(Request $request, int $sessionId)
     {
-        $session = CashRegisterSession::with(['user', 'branch', 'transactions', 'movements'])
+        $session = CashRegisterSession::query()->visibleToBranch()
+            ->with(['user', 'branch', 'transactions', 'movements'])
             ->findOrFail($sessionId);
 
         if ($denied = $this->denyUnlessSessionViewable($request, $session)) {

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Concerns\HasCrudRules;
 use App\Models\Branch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BranchController extends Controller
 {
@@ -42,6 +44,17 @@ class BranchController extends Controller
     {
         try {
             $query = Branch::query();
+
+            // #283 S2 / #290 S6: la sede del usuario acota el catálogo de
+            // sedes. Gerencia (sin sede asignada) ve todas.
+            $branchFilter = BranchAccess::effectiveFilter(
+                Auth::user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
+
+            if ($branchFilter !== null) {
+                $query->whereKey($branchFilter);
+            }
 
             // Filtro por estado (is_active)
             if ($request->has('is_active') && $request->is_active !== '') {
