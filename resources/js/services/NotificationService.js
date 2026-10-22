@@ -166,9 +166,9 @@ export class NotificationService {
         type: 'info',
         category: 'medical-records'
       },
-      'medical-record.updated': {
-        title: 'Historia clínica actualizada',
-        message: `La historia clínica de ${patientName} ha sido actualizada`,
+      'clinical-addendum.created': {
+        title: 'Addendum registrado',
+        message: `Se agregó un addendum a la historia clínica de ${patientName}`,
         type: 'info',
         category: 'medical-records'
       },

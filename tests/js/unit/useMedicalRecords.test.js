@@ -17,9 +17,8 @@ import { useMedicalRecords } from '../../../resources/js/composables/useMedicalR
 /**
  * The composable is the only seam between the Historias clínicas surfaces and
  * the API. These tests pin the endpoint each call reaches and the state each
- * response lands in, because the previous version asked for evolutions with a
- * patient id, never stored the stats payload and exposed no way to delete an
- * evolution.
+ * response lands in. #292: a correction is an addendum appended to the row it
+ * corrects; the original fields are never rewritten.
  */
 describe('useMedicalRecords', () => {
   beforeEach(() => {
@@ -74,6 +73,18 @@ describe('useMedicalRecords', () => {
     expect(store.currentRecord.value).toEqual({ id: 5, record_number: 'HC-1' })
   })
 
+  it('peeks a record without taking over the workspace selection', async () => {
+    const store = useMedicalRecords()
+    api.get.mockResolvedValueOnce({ data: { id: 12, diagnosis: 'Caries', addenda: [] } })
+    await store.getRecord(12)
+    api.get.mockResolvedValueOnce({ data: { id: 99, addenda: [{ id: 1 }] } })
+
+    const peeked = await store.peekRecord(99)
+
+    expect(peeked).toEqual({ id: 99, addenda: [{ id: 1 }] })
+    expect(store.currentRecord.value.id).toBe(12)
+  })
+
   it('asks for evolutions by record id, not by patient id', async () => {
     api.get.mockResolvedValueOnce({ data: [{ id: 9 }] })
 
@@ -96,18 +107,44 @@ describe('useMedicalRecords', () => {
     expect(store.evolutions.value[0]).toEqual({ id: 4, subjective: 'Dolor' })
   })
 
-  it('updates an evolution in place', async () => {
+  it('appends the addendum to the evolution it corrects and keeps the original', async () => {
     const store = useMedicalRecords()
-    api.get.mockResolvedValueOnce({ data: [{ id: 4, subjective: 'Dolor' }] })
+    api.get.mockResolvedValueOnce({ data: [{ id: 4, subjective: 'Dolor', addenda: [] }] })
     await store.getEvolutions(12)
-    api.put.mockResolvedValueOnce({ data: { id: 4, subjective: 'Dolor agudo' } })
-
-    await store.updateEvolution(4, { subjective: 'Dolor agudo' })
-
-    expect(api.put).toHaveBeenCalledWith('/api/medical-records/evolutions/4', {
-      subjective: 'Dolor agudo'
+    api.post.mockResolvedValueOnce({
+      data: { id: 9, reason: 'Error de digitación', content: 'La pieza correcta es la 36' }
     })
-    expect(store.evolutions.value).toEqual([{ id: 4, subjective: 'Dolor agudo' }])
+
+    const addendum = await store.addEvolutionAddendum(4, {
+      reason: 'Error de digitación',
+      content: 'La pieza correcta es la 36'
+    })
+
+    expect(api.post).toHaveBeenCalledWith('/api/medical-records/evolutions/4/addenda', {
+      reason: 'Error de digitación',
+      content: 'La pieza correcta es la 36'
+    })
+    expect(store.evolutions.value[0].subjective).toBe('Dolor')
+    expect(store.evolutions.value[0].addenda).toEqual([addendum])
+  })
+
+  it('appends a record-level addendum to the open history without touching its fields', async () => {
+    const store = useMedicalRecords()
+    api.get.mockResolvedValueOnce({ data: { id: 12, diagnosis: 'Caries', addenda: [] } })
+    await store.getRecord(12)
+    api.post.mockResolvedValueOnce({ data: { id: 10, reason: 'Dato omitido' } })
+
+    const addendum = await store.addRecordAddendum(12, {
+      reason: 'Dato omitido',
+      content: 'Antecedente de penicilina'
+    })
+
+    expect(api.post).toHaveBeenCalledWith('/api/medical-records/12/addenda', {
+      reason: 'Dato omitido',
+      content: 'Antecedente de penicilina'
+    })
+    expect(store.currentRecord.value.diagnosis).toBe('Caries')
+    expect(store.currentRecord.value.addenda).toEqual([addendum])
   })
 
   it('loads the active specialty catalog the evolution form validates against', async () => {

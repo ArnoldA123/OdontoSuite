@@ -275,18 +275,20 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
             $src,
             'The record number and counters must stay on tabular-nums (MRC-GEN-005).'
         );
-        $this->assertStringContainsString(
+        $this->assertStringNotContainsString(
             'useConfirm',
             $src,
-            'The destructive action must confirm through `useConfirm()` (MRC-GEN-003).'
+            'The card no longer holds a destructive action: a history is not deleted (MRC-GEN-003 / #292).'
         );
         $this->assertMatchesRegularExpression(
-            "#defineEmits\(\[ *'view', *'edit', *'delete' *\]\)#",
+            "#defineEmits\(\[ *'view' *\]\)#",
             $src,
-            'The card must keep the `view`/`edit`/`delete` emit contract the shell listens to (MRC-GEN-005).'
+            'The card must keep the `view` emit contract the shell listens to (MRC-GEN-005 / #292).'
         );
+        $this->assertStringNotContainsString('data-record-action="delete"', $src);
+        $this->assertStringNotContainsString('data-record-action="edit"', $src);
 
-        foreach (['viewMedicalRecord', 'editMedicalRecord', 'deleteMedicalRecord'] as $permission) {
+        foreach (['viewMedicalRecord'] as $permission) {
             $this->assertMatchesRegularExpression(
                 '#can\.'.preg_quote($permission, '#').'\?\.value#',
                 $src,
@@ -375,10 +377,13 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
             'The empty hint must be gated by the computed clinical-content check (MRC-GEN-006).'
         );
         $this->assertMatchesRegularExpression(
-            "#defineEmits\(\[ *'close', *'edit', *'addEvolution', *'uploadAttachment' *\]\)#",
+            "#defineEmits\(\[ *'close', *'addendum', *'addEvolution', *'uploadAttachment' *\]\)#",
             $src,
-            'The detail must keep the `close`/`edit`/`addEvolution`/`uploadAttachment` emit contract (MRC-GEN-006).'
+            'The detail must keep the `close`/`addendum`/`addEvolution`/`uploadAttachment` emit contract (MRC-GEN-006 / #292).'
         );
+
+        $this->assertStringContainsString('recordAddenda', $src);
+        $this->assertStringContainsString('data-detail-action="addendum"', $src);
 
         foreach (['editMedicalRecord', 'addEvolution', 'uploadAttachment'] as $permission) {
             $this->assertMatchesRegularExpression(
@@ -408,20 +413,20 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
             'The modal must own a `<form @submit.prevent="onSubmit">` (MRC-GEN-007).'
         );
 
-        $this->assertMatchesRegularExpression(
-            '#record: \{\s*type: Object,\s*default: null#s',
+        $this->assertStringNotContainsString(
+            'isEdit',
             $src,
-            'The modal must declare the nullable `record` prop the shell passes (MRC-GEN-007).'
+            'The modal is create-only: a correction is an addendum (MRC-GEN-007 / #292).'
+        );
+        $this->assertStringNotContainsString(
+            'updateRecord',
+            $src,
+            'The modal must not call the removed update endpoint (MRC-GEN-007 / #292).'
         );
         $this->assertMatchesRegularExpression(
             '#patient: \{\s*type: Object,\s*default: null#s',
             $src,
             'The modal must declare the nullable `patient` prop the shell passes (MRC-GEN-007).'
-        );
-        $this->assertMatchesRegularExpression(
-            '#isEdit: \{\s*type: Boolean,\s*default: false#s',
-            $src,
-            'The modal must declare the `isEdit` prop bound by `:is-edit` (MRC-GEN-007).'
         );
         $this->assertMatchesRegularExpression(
             "#defineEmits\(\[ *'close', *'saved' *\]\)#",
@@ -483,20 +488,15 @@ class MedicalRecordsGeneralSurfaceTest extends TestCase
         );
 
         $this->assertMatchesRegularExpression(
-            '#if \(!props\.isEdit\)\s*\{[^}]*payload\.patient_id#s',
+            '#payload\.patient_id\s*=\s*patientId\.value#',
             $src,
-            '`patient_id` belongs to the create payload only; PUT rejects it (MRC-GEN-007).'
+            '`patient_id` belongs to the create payload (MRC-GEN-007 / #292).'
         );
 
         $this->assertStringContainsString(
             'createRecord',
             $src,
             'The modal must create through `useMedicalRecords().createRecord` (MRC-GEN-007).'
-        );
-        $this->assertStringContainsString(
-            'updateRecord',
-            $src,
-            'The modal must update through `useMedicalRecords().updateRecord` (MRC-GEN-007).'
         );
         $this->assertMatchesRegularExpression(
             '#response\?\.data\?\.errors#',

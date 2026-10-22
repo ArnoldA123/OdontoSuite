@@ -448,14 +448,6 @@
                       <UiButton variant="ghost" size="sm" @click="viewMedicalRecord(record.id)">
                         Ver
                       </UiButton>
-                      <UiButton
-                        v-if="can.editMedicalRecord?.value"
-                        variant="ghost"
-                        size="sm"
-                        @click="editMedicalRecord(record.id)"
-                      >
-                        Editar
-                      </UiButton>
                     </div>
                   </div>
                 </div>
@@ -1008,10 +1000,6 @@ export default {
       router.push(`/medical-records/${id}`)
     }
 
-    const editMedicalRecord = id => {
-      router.push(`/medical-records/${id}?edit=true`)
-    }
-
     const createSpecialtyRecord = () => {
       router.push(`/specialty-records?patient_id=${patient.value.id}`)
     }
@@ -1208,16 +1196,6 @@ export default {
                   }
                 }
               })
-              .listen('.medical-record.updated', async e => {
-                if (e.medical_record.patient_id === patientId) {
-                  const index = medicalRecords.value.findIndex(r => r.id === e.medical_record.id)
-                  if (index !== -1) {
-                    medicalRecords.value[index] = e.medical_record
-                  } else {
-                    await loadMedicalRecords()
-                  }
-                }
-              })
               .listen('.clinical-evolution.created', async e => {
                 if (e.evolution.medical_record?.patient_id === patientId) {
                   await loadMedicalRecords()
@@ -1331,7 +1309,6 @@ export default {
       downloadQuotationPDF,
       createMedicalRecord,
       viewMedicalRecord,
-      editMedicalRecord,
       createSpecialtyRecord,
       viewSpecialtyRecord,
       editSpecialtyRecord,

@@ -1,20 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
-// Issue #225: the evolution specialty is editable, but the form only offers
-// the `specialties` catalog the page loads, and an edit that does not touch it
-// must not rewrite the stored code with a default.
+// Issue #225: the evolution form only offers the `specialties` catalog the page
+// loads, and only a catalog code travels; #292 removed the edit flow, so a
+// correction is an addendum and never rewrites the stored specialty.
 const harness = vi.hoisted(() => ({
   addEvolution: vi.fn(),
-  updateEvolution: vi.fn(),
   success: vi.fn(),
   error: vi.fn()
 }))
 
 vi.mock('../../../resources/js/composables/useMedicalRecords', () => ({
   useMedicalRecords: () => ({
-    addEvolution: harness.addEvolution,
-    updateEvolution: harness.updateEvolution
+    addEvolution: harness.addEvolution
   })
 }))
 vi.mock('../../../resources/js/composables/useToast', () => ({
@@ -83,7 +81,6 @@ describe('evolution specialty selector (#225)', () => {
     )
     vi.clearAllMocks()
     harness.addEvolution.mockResolvedValue({ id: 6 })
-    harness.updateEvolution.mockResolvedValue({ id: 5 })
   })
 
   afterEach(() => {
@@ -101,36 +98,6 @@ describe('evolution specialty selector (#225)', () => {
     expect(harness.addEvolution).toHaveBeenCalledTimes(1)
     const [, payload] = harness.addEvolution.mock.calls[0]
     expect(payload.specialty).toBe('endodoncia')
-
-    wrapper.unmount()
-  })
-
-  it('keeps an unlisted stored code visible and does not resend it untouched', async () => {
-    const wrapper = await mountModal({ evolution })
-
-    const trigger = document.body.querySelector(
-      '[data-evolution-field="specialty"] button[aria-haspopup="true"]'
-    )
-    expect(trigger.textContent).toContain('odontologia_general (actual)')
-
-    await submit()
-
-    expect(harness.updateEvolution).toHaveBeenCalledTimes(1)
-    const [, payload] = harness.updateEvolution.mock.calls[0]
-    expect(payload).not.toHaveProperty('specialty')
-
-    wrapper.unmount()
-  })
-
-  it('sends the corrected code when the stored specialty is replaced', async () => {
-    const wrapper = await mountModal({ evolution })
-
-    await openSelect('specialty')
-    await chooseOption('Periodoncia')
-    await submit()
-
-    const [, payload] = harness.updateEvolution.mock.calls[0]
-    expect(payload.specialty).toBe('periodoncia')
 
     wrapper.unmount()
   })

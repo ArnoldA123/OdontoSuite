@@ -224,7 +224,7 @@
         Cancelar
       </UiButton>
       <UiButton type="button" :loading="saving" data-modal-submit @click="onSubmit">
-        {{ isEdit ? 'Actualizar' : 'Crear historia' }}
+        Crear historia
       </UiButton>
     </template>
   </UiModal>
@@ -241,23 +241,15 @@ import { useMedicalRecords } from '@/composables/useMedicalRecords'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
-  record: {
-    type: Object,
-    default: null
-  },
   patient: {
     type: Object,
     default: null
-  },
-  isEdit: {
-    type: Boolean,
-    default: false
   }
 })
 
 const emit = defineEmits(['close', 'saved'])
 
-const { createRecord, updateRecord, loading } = useMedicalRecords()
+const { createRecord, loading } = useMedicalRecords()
 const toast = useToast()
 
 const chiefComplaintField = {
@@ -442,23 +434,19 @@ const toForm = record => ({
   }
 })
 
-const form = ref(toForm(props.record))
-const selectedPatient = ref(props.patient || props.record?.patient || null)
+const form = ref(toForm())
+const selectedPatient = ref(props.patient || null)
 const errors = ref({})
 const generalError = ref('')
 const saving = ref(false)
 
-const modalTitle = computed(() =>
-  props.isEdit ? 'Editar historia clínica' : 'Nueva historia clínica'
-)
+const modalTitle = computed(() => 'Nueva historia clínica')
 
-// Editing never re-assigns the patient (PUT does not accept `patient_id`), and
-// a create opened from the workspace already carries the selected patient.
-const patientLocked = computed(() => props.isEdit || !!props.patient)
+// A create opened from the workspace already carries the selected patient and
+// does not ask for it again.
+const patientLocked = computed(() => !!props.patient)
 
-const patientId = computed(
-  () => selectedPatient.value?.id ?? props.record?.patient_id ?? props.patient?.id ?? null
-)
+const patientId = computed(() => selectedPatient.value?.id ?? props.patient?.id ?? null)
 
 const selectedPatientLabel = computed(() => {
   const patient = selectedPatient.value
@@ -474,9 +462,7 @@ const selectedPatientDocument = computed(() => {
   return document ? `DNI ${document}` : ''
 })
 
-const recordNumberLabel = computed(() =>
-  props.record?.record_number ? props.record.record_number : 'Se asignará al guardar'
-)
+const recordNumberLabel = computed(() => 'Se asignará al guardar')
 
 const fieldError = key => errors.value[key] || ''
 const fieldLength = key => text(form.value[key]).trim().length
@@ -494,7 +480,7 @@ const onPatientSelected = patient => {
 const validate = () => {
   const next = {}
 
-  if (!props.isEdit && !patientId.value) {
+  if (!patientId.value) {
     next.patient_id = 'Selecciona un paciente'
   }
 
@@ -570,10 +556,7 @@ const buildPayload = () => {
     notes: trimmed('notes')
   }
 
-  // `patient_id` belongs to the create contract only: PUT rejects it.
-  if (!props.isEdit) {
-    payload.patient_id = patientId.value
-  }
+  payload.patient_id = patientId.value
 
   return payload
 }
@@ -597,11 +580,9 @@ const onSubmit = async () => {
   saving.value = true
 
   try {
-    const saved = props.isEdit
-      ? await updateRecord(props.record.id, buildPayload())
-      : await createRecord(buildPayload())
+    const saved = await createRecord(buildPayload())
 
-    toast.success(props.isEdit ? 'Historia clínica actualizada' : 'Historia clínica creada')
+    toast.success('Historia clínica creada')
     emit('saved', saved)
   } catch (error) {
     const serverErrors = error?.response?.data?.errors

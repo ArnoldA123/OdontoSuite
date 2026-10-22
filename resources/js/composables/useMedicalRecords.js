@@ -41,7 +41,7 @@ const buildQuery = params => {
 }
 
 export function useMedicalRecords() {
-  const { get, post, put, delete: del } = useApi()
+  const { get, post, delete: del } = useApi()
 
   const records = ref([])
   const meta = ref(null)
@@ -128,6 +128,14 @@ export function useMedicalRecords() {
     )
   }
 
+  // A read for a surface that must not take over the workspace: the detail can
+  // be opened for a record other than the tab's selected one.
+  const peekRecord = async id => {
+    const response = await get(`/api/medical-records/${id}`)
+
+    return response.data || null
+  }
+
   const getRecord = async id =>
     read(
       'records',
@@ -148,17 +156,26 @@ export function useMedicalRecords() {
       return response.data
     }, 'Error al crear historia clínica')
 
-  const updateRecord = async (id, payload) =>
+  // #292: a record is never updated in place. The only correction is an
+  // addendum, which carries its own author, date and reason.
+  const addRecordAddendum = async (recordId, payload) =>
     write(async () => {
-      const response = await put(`/api/medical-records/${id}`, payload)
-      const updated = response.data
-      const index = records.value.findIndex(record => record.id === id)
+      const response = await post(`/api/medical-records/${recordId}/addenda`, payload)
+      const addendum = response.data
 
-      if (index !== -1) records.value[index] = updated
-      if (currentRecord.value?.id === id) currentRecord.value = updated
+      if (currentRecord.value?.id === recordId) {
+        currentRecord.value = {
+          ...currentRecord.value,
+          addenda: [...(currentRecord.value.addenda || []), addendum]
+        }
+      }
 
-      return updated
-    }, 'Error al actualizar historia clínica')
+      const record = records.value.find(item => item.id === recordId)
+
+      if (record) record.addenda = [...(record.addenda || []), addendum]
+
+      return addendum
+    }, 'Error al registrar el addendum')
 
   const getEvolutions = async recordId =>
     read(
@@ -180,16 +197,16 @@ export function useMedicalRecords() {
       return response.data
     }, 'Error al agregar evolución')
 
-  const updateEvolution = async (id, payload) =>
+  const addEvolutionAddendum = async (evolutionId, payload) =>
     write(async () => {
-      const response = await put(`/api/medical-records/evolutions/${id}`, payload)
-      const updated = response.data
-      const index = evolutions.value.findIndex(evolution => evolution.id === id)
+      const response = await post(`/api/medical-records/evolutions/${evolutionId}/addenda`, payload)
+      const addendum = response.data
+      const evolution = evolutions.value.find(item => item.id === evolutionId)
 
-      if (index !== -1) evolutions.value[index] = updated
+      if (evolution) evolution.addenda = [...(evolution.addenda || []), addendum]
 
-      return updated
-    }, 'Error al actualizar evolución')
+      return addendum
+    }, 'Error al registrar el addendum')
 
   const getAttachments = async (patientId, category = null) => {
     const query = category ? `?category=${encodeURIComponent(category)}` : ''
@@ -288,12 +305,13 @@ export function useMedicalRecords() {
     getRecords,
     getAllRecords,
     getRecord,
+    peekRecord,
     createRecord,
-    updateRecord,
+    addRecordAddendum,
 
     getEvolutions,
     addEvolution,
-    updateEvolution,
+    addEvolutionAddendum,
 
     getAttachments,
     uploadAttachment,

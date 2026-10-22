@@ -83,16 +83,16 @@
 
             <div class="flex flex-wrap items-center gap-2">
               <UiButton
-                v-if="can.editEvolution?.value"
+                v-if="can.addEvolution?.value"
                 variant="ghost"
                 size="sm"
-                data-evolution-edit
-                @click="emit('edit', evolution)"
+                data-evolution-addendum
+                @click="emit('addendum', evolution)"
               >
                 <template #icon-left>
-                  <PencilIcon class="w-4 h-4" aria-hidden="true" />
+                  <PlusIcon class="w-4 h-4" aria-hidden="true" />
                 </template>
-                Editar
+                Addendum
               </UiButton>
             </div>
           </div>
@@ -241,6 +241,30 @@
               {{ evolution.next_appointment_notes }}
             </p>
           </div>
+          <!-- Corrections: the original stays intact, the addendum is what
+               changes the record (#292). -->
+          <div v-if="evolution.addenda?.length" class="mt-4 space-y-2" data-evolution-addenda>
+            <p class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">
+              Addenda
+            </p>
+            <div
+              v-for="addendum in evolution.addenda"
+              :key="addendum.id"
+              class="rounded-ios border border-[color:var(--color-hairline)] p-3"
+              data-addendum
+              :data-addendum-id="addendum.id"
+            >
+              <p class="text-xs text-theme-secondary tabular-nums" data-addendum-meta>
+                {{ addendumDateLabel(addendum) }} · {{ addendumAuthorLabel(addendum) }}
+              </p>
+              <p class="mt-1 text-sm font-medium text-theme-primary" data-addendum-reason>
+                Motivo: {{ addendum.reason }}
+              </p>
+              <p class="mt-1 text-sm whitespace-pre-line text-theme-primary" data-addendum-content>
+                {{ addendum.content }}
+              </p>
+            </div>
+          </div>
         </UiCard>
       </li>
     </ol>
@@ -248,7 +272,7 @@
 </template>
 
 <script setup>
-import { PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon } from '@heroicons/vue/24/outline'
 import { usePermissions } from '@/composables/usePermissions'
 import { formatDateOnly } from '@/utils/formatters'
 import UiButton from '@/components/ui/Button.vue'
@@ -276,7 +300,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add', 'edit'])
+const emit = defineEmits(['add', 'addendum'])
 
 const { can } = usePermissions()
 
@@ -299,6 +323,11 @@ const authorLabel = evolution => {
 
   return name ? `Registrada por ${name}` : 'Registro clínico'
 }
+
+const addendumDateLabel = addendum => formatDateOnly(addendum.created_at) || 'Sin fecha'
+
+const addendumAuthorLabel = addendum =>
+  addendum.author?.name ? `Firmado por ${addendum.author.name}` : 'Firmado por el profesional'
 
 const hasText = value => typeof value === 'string' && value.trim() !== ''
 

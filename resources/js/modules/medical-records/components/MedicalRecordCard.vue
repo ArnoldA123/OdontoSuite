@@ -61,18 +61,6 @@
             </template>
             Ver
           </UiButton>
-          <UiButton
-            v-if="canEdit"
-            variant="ghost"
-            size="sm"
-            data-record-action="edit"
-            @click="emit('edit', record)"
-          >
-            <template #icon-left>
-              <PencilIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Editar
-          </UiButton>
         </div>
       </div>
     </div>
@@ -81,7 +69,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { EyeIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { EyeIcon } from '@heroicons/vue/24/outline'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
@@ -95,13 +83,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'edit'])
+const emit = defineEmits(['view'])
 
 const { can } = usePermissions()
 
 // `can` is an object of computed refs (decision D7), never a function.
 const canView = computed(() => can.viewMedicalRecord?.value ?? false)
-const canEdit = computed(() => can.editMedicalRecord?.value ?? false)
 
 const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
 const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')
