@@ -107,6 +107,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Business Intelligence reports (#55/#191: administrador and finanzas).
     Route::middleware('permission:'.Permissions::VIEW_REPORT)->group(function () {
+        // #290 S7: consolidated revenue per sede and per professional.
+        Route::get('reports/consolidated', [ReportController::class, 'consolidated']);
         Route::get('reports/dashboard', [ReportController::class, 'dashboard']);
         Route::get('reports/appointments', [ReportController::class, 'appointments']);
         Route::get('reports/patients', [ReportController::class, 'patients']);

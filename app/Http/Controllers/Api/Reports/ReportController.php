@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Services\Reports\AppointmentReportService;
+use App\Services\Reports\ConsolidatedReportService;
 use App\Services\Reports\DashboardService;
 use App\Services\Reports\PatientReportService;
 use App\Services\Reports\ProfessionalReportService;
@@ -43,13 +44,16 @@ class ReportController extends Controller
 
     protected $utilizationReportService;
 
+    protected $consolidatedReportService;
+
     public function __construct(
         DashboardService $dashboardService,
         AppointmentReportService $appointmentReportService,
         PatientReportService $patientReportService,
         ProfessionalReportService $professionalReportService,
         RevenueReportService $revenueReportService,
-        UtilizationReportService $utilizationReportService
+        UtilizationReportService $utilizationReportService,
+        ConsolidatedReportService $consolidatedReportService
     ) {
         $this->dashboardService = $dashboardService;
         $this->appointmentReportService = $appointmentReportService;
@@ -57,6 +61,7 @@ class ReportController extends Controller
         $this->professionalReportService = $professionalReportService;
         $this->revenueReportService = $revenueReportService;
         $this->utilizationReportService = $utilizationReportService;
+        $this->consolidatedReportService = $consolidatedReportService;
     }
 
     /**
@@ -142,6 +147,41 @@ class ReportController extends Controller
     /**
      * Export report.
      */
+    /**
+     * Consolidated revenue per sede and per professional (#290 S7).
+     *
+     * The sede filter is the effective one: a restricted user is answered their
+     * own sede and a foreign request is a 403 before the controller runs.
+     */
+    public function consolidated(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date',
+                'branch_id' => 'nullable|integer|exists:branches,id',
+            ]);
+
+            $branchId = \App\Authorization\BranchAccess::effectiveFilter(
+                $request->user(),
+                isset($validated['branch_id']) ? (int) $validated['branch_id'] : null,
+            );
+
+            return response()->json([
+                'data' => $this->consolidatedReportService->getReportData([
+                    'start_date' => $validated['start_date'] ?? null,
+                    'end_date' => $validated['end_date'] ?? null,
+                    'branch_id' => $branchId,
+                ]),
+                'meta' => ['message' => 'Reporte consolidado generado exitosamente'],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('No se pudo generar el reporte consolidado', ['exception' => $e]);
+
+            return response()->json(['message' => 'Error al generar el reporte consolidado'], 500);
+        }
+    }
+
     public function export(Request $request, string $reportType)
     {
         if (! in_array($reportType, self::REPORT_TYPES, true)) {
