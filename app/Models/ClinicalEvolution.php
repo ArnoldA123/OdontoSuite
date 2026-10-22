@@ -72,6 +72,15 @@ class ClinicalEvolution extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Corrections signed against this visit (#292). The evolution itself is
+     * never edited; each addendum carries its own author, date and reason.
+     */
+    public function addenda(): HasMany
+    {
+        return $this->hasMany(ClinicalAddendum::class)->orderBy('created_at');
+    }
+
     public function attachments(): HasMany
     {
         // Archived rows are the audit marker of a deleted binary (#244): the

@@ -56,6 +56,16 @@ class MedicalRecord extends Model
         return $this->hasMany(ClinicalEvolution::class);
     }
 
+    /**
+     * Corrections attached to the history or to any of its evolutions (#292).
+     * The original fields are never rewritten, so this is the record's trail of
+     * amendments.
+     */
+    public function addenda(): HasMany
+    {
+        return $this->hasMany(ClinicalAddendum::class)->orderBy('created_at');
+    }
+
     public function attachments(): HasManyThrough
     {
         // Attachments are related through clinical_evolutions.
