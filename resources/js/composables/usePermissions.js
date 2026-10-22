@@ -1,202 +1,137 @@
 import { computed } from 'vue'
 import { useAuth } from './useAuth'
 
+/**
+ * The SPA never repeats the authorization rule (#280).
+ *
+ * `App\Authorization\Permissions` is the single source of truth: login and
+ * /api/auth/me return the effective permission list for the authenticated
+ * role, and every flag below is a membership check on that list. Adding a
+ * permission here without adding it to the PHP catalog does nothing.
+ */
+const PERMISSION_BY_KEY = {
+  // Patients
+  createPatient: 'create.patient',
+  deletePatient: 'delete.patient',
+  editPatient: 'update.patient',
+  viewPatient: 'view.patient',
+
+  // Appointments and calendar
+  createAppointment: 'manage.appointment',
+  editAppointment: 'manage.appointment',
+  deleteAppointment: 'manage.appointment',
+  viewAppointment: 'manage.appointment',
+  viewCalendar: 'manage.appointment',
+  manageSchedule: 'manage.appointment',
+  checkInAppointment: 'check_in.appointment',
+  completeConsultation: 'complete.appointment',
+
+  // Reports and business intelligence
+  viewReports: 'view.report',
+  exportData: 'export.report',
+
+  // System configuration
+  manageUsers: 'manage.user',
+  manageAppointmentTypes: 'manage.appointment_type',
+  manageEnvironments: 'manage.dental_chair',
+  manageBranches: 'manage.branch',
+  manageConfig: 'manage.config',
+  viewAuditLogs: 'view.audit_log',
+
+  // Procedure catalog
+  manageProcedureCatalog: 'manage.procedure_catalog',
+  viewProcedureCatalog: 'view.procedure_catalog',
+
+  // Reminders
+  manageReminders: 'manage.reminder',
+
+  // Cash register (#55/#191: reception operates the register and collects)
+  openCashRegister: 'open.cash_register',
+  closeCashRegister: 'close.cash_register',
+  viewCashRegister: 'view.cash_register',
+  manageCashRegister: 'manage.cash_register',
+  collectPendingPayments: 'pay.pending_payment',
+  createTransaction: 'create.transaction',
+  createMovement: 'manage.cash_movement',
+  voidTransaction: 'void.transaction',
+  applyDiscount: 'apply.transaction_discount',
+  applyLargeDiscount: 'apply.large_transaction_discount',
+  viewCashReports: 'view.cash_report',
+  exportCashData: 'export.cash_report',
+
+  // Treatment plans
+  createTreatmentPlan: 'manage.treatment_plan',
+  editTreatmentPlan: 'manage.treatment_plan',
+  viewTreatmentPlan: 'manage.treatment_plan',
+  deleteTreatmentPlan: 'manage.treatment_plan',
+  changeTreatmentPlanStatus: 'manage.treatment_plan',
+  duplicateTreatmentPlan: 'manage.treatment_plan',
+
+  // Quotations
+  createQuotation: 'manage.quotation',
+  editQuotation: 'manage.quotation',
+  viewQuotation: 'view.quotation',
+  deleteQuotation: 'manage.quotation',
+  approveQuotation: 'manage.quotation',
+  rejectQuotation: 'manage.quotation',
+  downloadQuotationPDF: 'view.quotation',
+
+  // Medical records
+  createMedicalRecord: 'manage.medical_record',
+  editMedicalRecord: 'manage.medical_record',
+  viewMedicalRecord: 'manage.medical_record',
+  deleteMedicalRecord: 'manage.medical_record',
+  addEvolution: 'manage.evolution',
+  editEvolution: 'manage.evolution',
+  deleteEvolution: 'manage.evolution',
+  uploadAttachment: 'manage.attachment',
+  deleteAttachment: 'manage.attachment',
+
+  // Specialty records
+  createSpecialtyRecord: 'manage.specialty_record',
+  editSpecialtyRecord: 'manage.specialty_record',
+  viewSpecialtyRecord: 'manage.specialty_record',
+  deleteSpecialtyRecord: 'manage.specialty_record',
+
+  // AI assistance
+  'ai-analysis.analyze': 'create.ai_analysis',
+  'ai-analysis.view': 'view.ai_analysis',
+  'ai-analysis.review': 'review.ai_analysis',
+  'ai-analysis.delete': 'delete.ai_analysis',
+  'ai-analysis.stats': 'view.ai_analysis'
+}
+
 export function usePermissions() {
   const { user } = useAuth()
 
-  // Verificación de seguridad para evitar errores cuando user es null
-  const safeUser = computed(() => user.value || {})
+  // Guard against a null user and against a session stored before the
+  // permissions payload existed: both resolve to an empty set.
+  const granted = computed(() => {
+    const permissions = user.value?.permissions
+    return new Set(Array.isArray(permissions) ? permissions : [])
+  })
 
-  const can = {
-    // Gestión de pacientes
-    createPatient: computed(() =>
-      ['administrador', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    deletePatient: computed(() => safeUser.value?.role === 'administrador'),
-    editPatient: computed(() =>
-      [
-        'administrador',
-        'recepcionista',
-        'odontologo',
-        'implantologo',
-        'tecnico_dental',
-        'asistente'
-      ].includes(safeUser.value?.role)
-    ),
-    viewPatient: computed(() => true), // Todos pueden ver pacientes
+  const has = permission => granted.value.has(permission)
 
-    // Gestión de citas
-    createAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-    editAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-    deleteAppointment: computed(() =>
-      ['administrador', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    viewAppointment: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-
-    // Reportes y Business Intelligence
-    viewReports: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    exportData: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-
-    // Configuración del sistema
-    manageUsers: computed(() => safeUser.value?.role === 'administrador'),
-    manageAppointmentTypes: computed(() => safeUser.value?.role === 'administrador'),
-    manageEnvironments: computed(() => safeUser.value?.role === 'administrador'),
-    manageConfig: computed(() => safeUser.value?.role === 'administrador'),
-    viewAuditLogs: computed(() => safeUser.value?.role === 'administrador'),
-
-    // Catálogo de procedimientos
-    manageProcedureCatalog: computed(() => safeUser.value?.role === 'administrador'),
-    viewProcedureCatalog: computed(() => safeUser.value?.role === 'administrador'),
-
-    // Calendario y agenda
-    viewCalendar: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-    manageSchedule: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-
-    // Recordatorios
-    manageReminders: computed(() => !['finanzas'].includes(safeUser.value?.role)),
-
-    // Gestión de caja (issue #55: recepcion opera caja, igual que la API)
-    openCashRegister: computed(() =>
-      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    closeCashRegister: computed(() =>
-      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    viewCashRegister: computed(() =>
-      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    manageCashRegister: computed(() =>
-      ['administrador', 'finanzas'].includes(safeUser.value?.role)
-    ),
-    // Issue #191: recepcion cobra los pagos pendientes en el mostrador.
-    collectPendingPayments: computed(() =>
-      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    createTransaction: computed(() =>
-      ['administrador', 'finanzas', 'recepcionista'].includes(safeUser.value?.role)
-    ),
-    // Slice 09 / FF-001 — RBAC bypass fix. The "Nuevo Movimiento" button in
-    // CashRegisterPage used to render for every role because this permission
-    // was missing. Allowed roles mirror the backend middleware at
-    // routes/api.php:345 (`role:administrador,finanzas`) and the new
-    // CashMovementPolicy::create().
-    createMovement: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    voidTransaction: computed(() => safeUser.value?.role === 'administrador'),
-    applyDiscount: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    applyLargeDiscount: computed(() => safeUser.value?.role === 'administrador'),
-    viewCashReports: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-    exportCashData: computed(() => ['administrador', 'finanzas'].includes(safeUser.value?.role)),
-
-    // Planes de tratamiento
-    createTreatmentPlan: computed(() => isClinical.value || isAdministrador.value),
-    editTreatmentPlan: computed(() => isClinical.value || isAdministrador.value),
-    viewTreatmentPlan: computed(() => isClinical.value || isAdministrador.value),
-    deleteTreatmentPlan: computed(() => isClinical.value || isAdministrador.value),
-    changeTreatmentPlanStatus: computed(() => isClinical.value || isAdministrador.value),
-    duplicateTreatmentPlan: computed(() => isClinical.value || isAdministrador.value),
-
-    // Presupuestos
-    createQuotation: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
-    editQuotation: computed(() => isClinical.value || isFinanzas.value || isAdministrador.value),
-    viewQuotation: computed(
-      () => isClinical.value || isFinanzas.value || isAdministrador.value || isRecepcionista.value
-    ),
-    deleteQuotation: computed(() => isFinanzas.value || isAdministrador.value),
-    approveQuotation: computed(() => isFinanzas.value || isAdministrador.value),
-    rejectQuotation: computed(() => isFinanzas.value || isAdministrador.value),
-    downloadQuotationPDF: computed(
-      () => isClinical.value || isFinanzas.value || isAdministrador.value || isRecepcionista.value
-    ),
-
-    // Historias clínicas
-    createMedicalRecord: computed(() => isClinical.value || isAdministrador.value),
-    editMedicalRecord: computed(() => isClinical.value || isAdministrador.value),
-    viewMedicalRecord: computed(() => isClinical.value || isAdministrador.value),
-    deleteMedicalRecord: computed(() => isClinical.value || isAdministrador.value),
-    addEvolution: computed(() => isClinical.value || isAdministrador.value),
-    editEvolution: computed(() => isClinical.value || isAdministrador.value),
-    deleteEvolution: computed(() => isClinical.value || isAdministrador.value),
-    uploadAttachment: computed(() => isClinical.value || isAdministrador.value),
-    deleteAttachment: computed(() => isClinical.value || isAdministrador.value),
-
-    // Registros de especialidades
-    createSpecialtyRecord: computed(() => {
-      const specialty = safeUser.value?.specialty
-      return (
-        isClinical.value ||
-        isAdministrador.value ||
-        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
-          specialty
-        )
-      )
-    }),
-    editSpecialtyRecord: computed(() => {
-      const specialty = safeUser.value?.specialty
-      return (
-        isClinical.value ||
-        isAdministrador.value ||
-        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
-          specialty
-        )
-      )
-    }),
-    viewSpecialtyRecord: computed(() => isClinical.value || isAdministrador.value),
-    deleteSpecialtyRecord: computed(() => {
-      const specialty = safeUser.value?.specialty
-      return (
-        isClinical.value ||
-        isAdministrador.value ||
-        ['implantologia', 'ortodoncia', 'endodoncia', 'rehabilitacion', 'cirugia_oral'].includes(
-          specialty
-        )
-      )
-    }),
-
-    // IA Asistiva - Solo odontólogos y especialistas
-    'ai-analysis.analyze': computed(() =>
-      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
-        safeUser.value?.role
-      )
-    ),
-    'ai-analysis.view': computed(() =>
-      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
-        safeUser.value?.role
-      )
-    ),
-    'ai-analysis.review': computed(() =>
-      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
-        safeUser.value?.role
-      )
-    ),
-    'ai-analysis.delete': computed(() =>
-      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
-        safeUser.value?.role
-      )
-    ),
-    'ai-analysis.stats': computed(() =>
-      ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'].includes(
-        safeUser.value?.role
-      )
-    )
-  }
-
-  // Métodos de conveniencia para roles específicos
-  const isAdministrador = computed(() => safeUser.value?.role === 'administrador')
-  const isRecepcionista = computed(() => safeUser.value?.role === 'recepcionista')
-  const isClinical = computed(() =>
-    ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'].includes(safeUser.value?.role)
+  const can = Object.fromEntries(
+    Object.entries(PERMISSION_BY_KEY).map(([key, permission]) => [
+      key,
+      computed(() => has(permission))
+    ])
   )
-  const isFinanzas = computed(() => safeUser.value?.role === 'finanzas')
 
-  // Método para verificar múltiples permisos
-  const hasAnyPermission = permissions => {
-    return permissions.some(permission => can[permission]?.value)
-  }
+  // Role helpers describe identity, not authorization. UI gates must use
+  // `can.*`; these stay for copy that names the role.
+  const isAdministrador = computed(() => user.value?.role === 'administrador')
+  const isRecepcionista = computed(() => user.value?.role === 'recepcionista')
+  const isClinical = computed(() =>
+    ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'].includes(user.value?.role)
+  )
+  const isFinanzas = computed(() => user.value?.role === 'finanzas')
 
-  // Método para verificar todos los permisos
-  const hasAllPermissions = permissions => {
-    return permissions.every(permission => can[permission]?.value)
-  }
+  const hasAnyPermission = permissions => permissions.some(permission => can[permission]?.value)
+
+  const hasAllPermissions = permissions => permissions.every(permission => can[permission]?.value)
 
   return {
     can,

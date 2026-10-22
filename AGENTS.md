@@ -267,8 +267,11 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Namespaces: `App\Http\Controllers\Api`, `App\Services`, `App\Models`,
   `App\Http\Middleware`
-- Autorización: `->middleware('role:rol1,rol2,...)` en `routes/api.php`. NO usar
-  Spatie.
+- Autorización: permisos, no roles. `App\Authorization\Permissions` es la única
+  fuente (`verbo.recurso` + matriz rol → permisos); cada ruta declara
+  `->middleware('permission:verbo.recurso')`, nunca `role:...`. El front deriva
+  `usePermissions()` de `user.permissions` (login y `/api/auth/me`), sin repetir
+  la matriz. NO usar Spatie.
 - Roles válidos: `administrador`, `recepcionista`, `odontologo`, `implantologo`,
   `tecnico_dental`, `asistente`, `finanzas`
 - Respuestas JSON: `{data: ..., meta: {message: ...}}` (ver
@@ -387,6 +390,30 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-21 (permisos: catálogo `verbo.recurso` y cierre de la grieta**
+  **clínica, #280)** — La autorización deja de escribirse en tres fuentes
+  divergentes. `app/Authorization/Permissions.php` es la única fuente: catálogo
+  de 68 permisos `verbo.recurso` y matriz rol → permisos. El middleware
+  `permission` (alias `CheckPermission`) reemplaza a `role:` en las 198 rutas
+  API: ninguna conserva listas de roles. `POST /api/auth/login` y
+  `GET /api/auth/me` devuelven `permissions` y
+  `resources/js/composables/usePermissions.js` deriva sus ~60 claves `can.*` de
+  esa lista, sin repetir la matriz; el cierre de consulta del calendario se
+  oculta sin `complete.appointment`. Recepción pierde la escritura clínica por
+  cualquier endpoint, incluido `POST /appointments/{id}/complete`, que escribe
+  `ClinicalEvolution`, plan, materiales y adjuntos; conserva check-in, estado de
+  cita y cobro. `PATCH /appointments/{id}/status` sigue disponible porque no
+  escribe historia clínica. Tests: `PermissionCatalogTest`,
+  `CheckPermissionMiddlewareTest`, `RoutePermissionMatrixTest` (falla con
+  archivo y línea si una ruta vuelve a declarar `role:`),
+  `FrontendPermissionContractTest` (cruza las claves del SPA con el catálogo y
+  el fixture de smoke), `AuthPermissionsPayloadTest` y
+  `tests/js/unit/usePermissions.test.js`. Sin rutas, migraciones, modelos ni
+  primitivas UI nuevas: los conteos de §4 no cambian.
+  `scripts/audit/probe-rbac.mjs` y `probe-rbac-live.mjs` se retiran para
+  revisiones actuales (salen con código 2 y remiten al guard nuevo) porque
+  derivaban su expectativa de `role:`.
 
 - **2026-10-21 (ADR 0007/0008 y los seguimientos de adjuntos y dependencias,**
   **#264/#265/#266/#267)** — Los dos ADR de §9 dejan de ser una fila sin cuerpo:

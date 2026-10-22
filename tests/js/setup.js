@@ -2,6 +2,7 @@
 // Kept intentionally small: only browser APIs jsdom does not implement and
 // that the mounted pages (or their layout) touch during render.
 import { afterAll } from 'vitest'
+import rolePermissions from './support/role-permissions.json'
 
 // Node 26 exposes an experimental `localStorage` global that resolves to
 // `undefined` without `--localstorage-file`, and it shadows the jsdom Storage
@@ -9,9 +10,31 @@ import { afterAll } from 'vitest'
 // in-memory Storage so composables like useAuth() can read/write it.
 {
   const store = new Map()
+
+  // #280: the SPA derives its flags from `user.permissions`, so a stored
+  // session without that payload would hide every action. Smoke fixtures set
+  // { id, role } and expect the previous behavior, so complete the payload from
+  // the generated role matrix (tests/js/support/role-permissions.json). A test
+  // that needs a narrower surface passes `permissions` explicitly.
+  const withPermissions = (key, value) => {
+    if (String(key) !== 'user') return value
+
+    try {
+      const user = JSON.parse(String(value))
+      if (user && typeof user === 'object' && !Array.isArray(user.permissions)) {
+        user.permissions = rolePermissions[user.role] ?? []
+        return JSON.stringify(user)
+      }
+    } catch {
+      // Non-JSON payload: store it untouched.
+    }
+
+    return value
+  }
+
   const storage = {
     getItem: key => (store.has(String(key)) ? store.get(String(key)) : null),
-    setItem: (key, value) => store.set(String(key), String(value)),
+    setItem: (key, value) => store.set(String(key), String(withPermissions(key, value))),
     removeItem: key => store.delete(String(key)),
     clear: () => store.clear(),
     key: index => Array.from(store.keys())[index] ?? null,

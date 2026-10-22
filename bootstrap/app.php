@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
             'throttle.login' => \App\Http\Middleware\ThrottleLoginAttempts::class,
             'cash.session' => \App\Http\Middleware\RequireActiveCashSession::class,
         ]);

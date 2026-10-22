@@ -181,7 +181,7 @@ const emit = defineEmits(['update:modelValue', 'success'])
 const { get } = useApi()
 const { openSession } = useCashRegister()
 const { user: currentUser } = useAuth()
-const { isAdministrador } = usePermissions()
+const { can } = usePermissions()
 const router = useRouter()
 
 const loading = ref(false)
@@ -216,7 +216,7 @@ const branchOptions = computed(() =>
   }))
 )
 
-const canManageBranches = computed(() => isAdministrador.value)
+const canManageBranches = computed(() => can.manageBranches.value)
 
 const canSubmit = computed(
   () => Boolean(form.value.branch_id) && Number(form.value.opening_amount) >= 0 && !loading.value

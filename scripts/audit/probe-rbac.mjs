@@ -17,6 +17,20 @@
  * an empty acceptances file means the three sources agree, not that the file
  * was edited to agree: widening one API group must shrink the diff.
  */
+
+// #280: authorization moved from `role:` route lists to the permission catalog
+// (App\Authorization\Permissions + tests/Unit/Authorization/RoutePermissionMatrixTest.php).
+// This probe derives expectations from `role:` middleware and is retired for
+// current revisions: refuse to report a false divergence instead.
+const ROUTES_SOURCE = readFileSync(new URL('../../routes/api.php', import.meta.url), 'utf8')
+if (!/['"]role:/.test(ROUTES_SOURCE)) {
+  console.error(
+    'probe-rbac: routes/api.php no longer declares `role:` middleware (#280).\n' +
+      'The canonical matrix guard is tests/Unit/Authorization/RoutePermissionMatrixTest.php.'
+  )
+  process.exit(2)
+}
+
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
