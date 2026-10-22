@@ -493,8 +493,6 @@
                     :key="record.id"
                     :record="record"
                     @view="viewRecord"
-                    @edit="editRecord"
-                    @delete="handleDeleteRecord"
                   />
                 </div>
               </div>
@@ -527,8 +525,7 @@
                   :record="currentRecord"
                   :loading="loadingBySurface.evolutions"
                   @add="openEvolutionModal"
-                  @edit="editEvolution"
-                  @delete="handleDeleteEvolution"
+                  @addendum="openEvolutionAddendum"
                 />
               </div>
             </template>
@@ -584,9 +581,7 @@
     <!-- Surface modals. Their internals belong to T4–T7; the shell only hosts them. -->
     <MedicalRecordModal
       v-if="showRecordModal"
-      :record="selectedRecord"
       :patient="selectedPatient"
-      :is-edit="recordModalMode === 'edit'"
       @close="closeRecordModal"
       @saved="handleRecordSaved"
     />
@@ -595,7 +590,7 @@
       v-if="showDetailModal && selectedRecord"
       :record="selectedRecord"
       @close="closeDetailModal"
-      @edit="editRecord"
+      @addendum="openRecordAddendum"
       @add-evolution="handleDetailAddEvolution"
       @upload-attachment="handleDetailUpload"
     />
@@ -603,10 +598,16 @@
     <EvolutionModal
       v-if="showEvolutionModal && currentRecord"
       :record="currentRecord"
-      :evolution="selectedEvolution"
       :specialties="specialties"
       @close="closeEvolutionModal"
       @saved="handleEvolutionSaved"
+    />
+
+    <AddendumModal
+      v-if="showAddendumModal && addendumTarget"
+      :target="addendumTarget"
+      @close="closeAddendumModal"
+      @saved="handleAddendumSaved"
     />
 
     <UploadAttachmentModal
@@ -651,6 +652,7 @@ import MedicalRecordDetail from './components/MedicalRecordDetail.vue'
 import MedicalRecordModal from './components/MedicalRecordModal.vue'
 import EvolutionTimeline from './components/EvolutionTimeline.vue'
 import EvolutionModal from './components/EvolutionModal.vue'
+import AddendumModal from './components/AddendumModal.vue'
 import AttachmentGallery from './components/AttachmentGallery.vue'
 import UploadAttachmentModal from './components/UploadAttachmentModal.vue'
 import MedicalRecordStats from './components/MedicalRecordStats.vue'
@@ -669,12 +671,11 @@ const {
   getRecords,
   getAllRecords,
   getRecord,
+  peekRecord,
   getEvolutions,
   getAttachments,
   getSpecialties,
   getStats,
-  deleteRecord,
-  deleteEvolution,
   deleteAttachment,
   reset
 } = useMedicalRecords()
@@ -708,12 +709,12 @@ const tabs = [
 
 // Surface modals (their internals are T4–T7; the shell only hosts them).
 const showRecordModal = ref(false)
-const recordModalMode = ref('create')
 const showDetailModal = ref(false)
 const showEvolutionModal = ref(false)
 const showUploadModal = ref(false)
+const showAddendumModal = ref(false)
 const selectedRecord = ref(null)
-const selectedEvolution = ref(null)
+const addendumTarget = ref(null)
 
 const patientName = patient => {
   if (!patient) return 'Paciente sin ficha'
@@ -939,11 +940,12 @@ const clearSelection = async () => {
   landingPatient.value = null
   currentRecord.value = null
   selectedRecord.value = null
-  selectedEvolution.value = null
+  addendumTarget.value = null
   showRecordModal.value = false
   showDetailModal.value = false
   showEvolutionModal.value = false
   showUploadModal.value = false
+  showAddendumModal.value = false
 
   // No stale panel survives: the data layer drops every surface and slot.
   reset()
@@ -972,38 +974,6 @@ const retryEvolutions = () => loadEvolutions()
 const retryAttachments = () => loadAttachments()
 const retryStats = () => loadStats()
 
-// Writes: the page owns the toast, the child surfaces own the confirmation.
-const handleDeleteRecord = async recordId => {
-  try {
-    await deleteRecord(recordId)
-    toast.success('Historia clínica eliminada')
-  } catch {
-    toast.error(errors.write || 'No se pudo eliminar la historia clínica')
-
-    return
-  }
-
-  if (!records.value.some(record => record.id === currentRecord.value?.id)) {
-    syncCurrentRecord()
-    await loadEvolutions()
-  }
-
-  await loadStats()
-}
-
-const handleDeleteEvolution = async evolutionId => {
-  try {
-    await deleteEvolution(evolutionId)
-    toast.success('Evolución eliminada')
-  } catch {
-    toast.error(errors.write || 'No se pudo eliminar la evolución')
-
-    return
-  }
-
-  await loadStats()
-}
-
 const handleDeleteAttachment = async attachment => {
   if (!attachment?.id) return
 
@@ -1022,28 +992,30 @@ const handleDeleteAttachment = async attachment => {
 // Modal wiring.
 const openCreateRecord = () => {
   selectedRecord.value = null
-  recordModalMode.value = 'create'
   showRecordModal.value = true
 }
 
-const editRecord = record => {
-  // The detail modal and the form are two surfaces of the same record; leaving
-  // both mounted stacks one dialog on top of the other.
-  showDetailModal.value = false
-  selectedRecord.value = record
-  recordModalMode.value = 'edit'
-  showRecordModal.value = true
-}
-
-const viewRecord = record => {
+const viewRecord = async record => {
   selectedRecord.value = record
   showDetailModal.value = true
+
+  // The index row carries no addenda; the detail reads them from the record so
+  // a correction is visible without leaving the list. A failed refresh keeps
+  // the row that is already on screen.
+  try {
+    const fresh = await peekRecord(record.id)
+
+    if (fresh && showDetailModal.value && selectedRecord.value?.id === record.id) {
+      selectedRecord.value = fresh
+    }
+  } catch {
+    // The detail stays on the list row it already has.
+  }
 }
 
 const closeRecordModal = () => {
   showRecordModal.value = false
   selectedRecord.value = null
-  recordModalMode.value = 'create'
 }
 
 const closeDetailModal = () => {
@@ -1054,18 +1026,55 @@ const closeDetailModal = () => {
 const openEvolutionModal = () => {
   if (!currentRecord.value) return
 
-  selectedEvolution.value = null
-  showEvolutionModal.value = true
-}
-
-const editEvolution = evolution => {
-  selectedEvolution.value = evolution
   showEvolutionModal.value = true
 }
 
 const closeEvolutionModal = () => {
   showEvolutionModal.value = false
-  selectedEvolution.value = null
+}
+
+// #292: a correction is an addendum with its own reason and content; the
+// record or the evolution it references is never rewritten.
+const openRecordAddendum = record => {
+  showDetailModal.value = false
+  addendumTarget.value = {
+    kind: 'record',
+    id: record.id,
+    label: `Historia ${record.record_number || `#${record.id}`}`
+  }
+  showAddendumModal.value = true
+}
+
+const openEvolutionAddendum = evolution => {
+  addendumTarget.value = {
+    kind: 'evolution',
+    id: evolution.id,
+    label: `Evolución del ${formatDate(evolution.evolution_date)}`
+  }
+  showAddendumModal.value = true
+}
+
+const closeAddendumModal = () => {
+  showAddendumModal.value = false
+  addendumTarget.value = null
+}
+
+const handleAddendumSaved = async () => {
+  closeAddendumModal()
+
+  // The addendum travels next to its original: refresh the timeline and, when
+  // the record is open, its addenda list. The write already succeeded; a
+  // failed refresh leaves each surface with its own error slot.
+  try {
+    if (currentRecord.value?.id) {
+      await getRecord(currentRecord.value.id)
+    }
+
+    await loadEvolutions()
+    await loadStats()
+  } catch {
+    // errors.records / errors.evolutions / errors.stats drive the retries.
+  }
 }
 
 const openUploadModal = () => {
@@ -1094,9 +1103,8 @@ const closeUploadModal = () => {
 }
 
 const handleRecordSaved = async () => {
-  const created = recordModalMode.value === 'create'
   closeRecordModal()
-  await refreshWorkspace({ preferLatest: created })
+  await refreshWorkspace({ preferLatest: true })
 }
 
 const handleEvolutionSaved = async () => {
@@ -1135,19 +1143,6 @@ const subscribeToMedicalRecords = () => {
         await refreshWorkspace({ preferLatest: true })
         toast.success('Nueva historia clínica creada')
       })
-      .listen('.medical-record.updated', async event => {
-        if (!belongsToSelection(event?.medical_record?.patient_id)) return
-
-        const index = records.value.findIndex(record => record.id === event.medical_record.id)
-
-        if (index !== -1) {
-          records.value[index] = event.medical_record
-        } else {
-          await refreshWorkspace()
-        }
-
-        toast.success('Historia clínica actualizada')
-      })
       .listen('.clinical-evolution.created', async event => {
         const patientId =
           event?.evolution?.medical_record?.patient_id ?? event?.evolution?.patient_id
@@ -1158,40 +1153,18 @@ const subscribeToMedicalRecords = () => {
         await loadStats()
         toast.success('Nueva evolución clínica agregada')
       })
-      .listen('.clinical-evolution.updated', async event => {
-        const patientId =
-          event?.evolution?.medical_record?.patient_id ?? event?.evolution?.patient_id
+      .listen('.clinical-addendum.created', async event => {
+        const patientId = event?.addendum?.medical_record?.patient_id ?? event?.addendum?.patient_id
 
         if (!belongsToSelection(patientId)) return
 
-        const updated = event.evolution
-        const index = evolutions.value.findIndex(evolution => evolution.id === updated.id)
-
-        if (index !== -1) {
-          evolutions.value[index] = updated
-        } else if (Number(updated.medical_record_id) === Number(currentRecord.value?.id)) {
-          await loadEvolutions()
+        if (currentRecord.value?.id) {
+          await getRecord(currentRecord.value.id)
         }
 
+        await loadEvolutions()
         await loadStats()
-        toast.success('Evolución clínica actualizada')
-      })
-      .listen('.clinical-evolution.deleted', async event => {
-        const patientId = event?.patient_id ?? event?.evolution?.patient_id
-
-        if (!belongsToSelection(patientId)) return
-
-        const evolutionId = event?.evolution_id ?? event?.evolution?.id
-        const recordId = event?.medical_record_id ?? event?.evolution?.medical_record_id
-
-        if (recordId !== undefined && Number(recordId) === Number(currentRecord.value?.id)) {
-          evolutions.value = evolutions.value.filter(evolution => evolution.id !== evolutionId)
-        } else if (recordId === undefined) {
-          await loadEvolutions()
-        }
-
-        await loadStats()
-        toast.success('Evolución clínica eliminada')
+        toast.success('Addendum registrado')
       })
       .listen('.clinical-attachment.created', async event => {
         const patientId =

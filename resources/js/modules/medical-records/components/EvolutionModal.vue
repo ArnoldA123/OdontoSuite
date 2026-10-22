@@ -1,10 +1,5 @@
 <template>
-  <UiModal
-    model-value
-    :title="isEdit ? 'Editar evolución' : 'Nueva evolución'"
-    size="xl"
-    @close="emit('close')"
-  >
+  <UiModal model-value title="Nueva evolución" size="xl" @close="emit('close')">
     <form data-evolution-form class="space-y-5" @submit.prevent="submitEvolution">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <UiInput
@@ -352,7 +347,7 @@
           Cancelar
         </UiButton>
         <UiButton type="submit" :loading="submitting" data-evolution-submit>
-          {{ isEdit ? 'Guardar cambios' : 'Registrar evolución' }}
+          Registrar evolución
         </UiButton>
       </div>
     </form>
@@ -374,10 +369,6 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  evolution: {
-    type: Object,
-    default: null
-  },
   specialties: {
     type: Array,
     default: () => []
@@ -386,10 +377,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
-const { addEvolution, updateEvolution } = useMedicalRecords()
+const { addEvolution } = useMedicalRecords()
 const toast = useToast()
-
-const isEdit = computed(() => Boolean(props.evolution?.id))
 
 const pad = value => String(value).padStart(2, '0')
 
@@ -402,22 +391,6 @@ const addDays = (isoDate, days) => {
   const base = new Date(year, month - 1, day)
 
   return toIsoDate(new Date(base.getFullYear(), base.getMonth(), base.getDate() + days))
-}
-
-const dateOnly = value => {
-  if (value instanceof Date) return toIsoDate(value)
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10)
-
-  return ''
-}
-
-const vitalSignValue = value => (value === null || value === undefined ? '' : String(value))
-
-const bleedingValue = value => {
-  if (value === true) return 'true'
-  if (value === false) return 'false'
-
-  return ''
 }
 
 // Tri-state on purpose: an unticked checkbox cannot tell "not recorded" from
@@ -457,48 +430,9 @@ const emptyForm = () => ({
   }
 })
 
-const evolutionToForm = evolution => ({
-  ...emptyForm(),
-  evolution_date: dateOnly(evolution.evolution_date) || today,
-  specialty: evolution.specialty || '',
-  subjective: evolution.subjective || '',
-  objective: evolution.objective || '',
-  assessment: evolution.assessment || '',
-  plan: evolution.plan || '',
-  procedures_performed: evolution.procedures_performed || '',
-  materials_used: evolution.materials_used || '',
-  prescriptions: evolution.prescriptions || '',
-  recommendations: evolution.recommendations || '',
-  next_appointment_notes: evolution.next_appointment_notes || '',
-  requires_follow_up: Boolean(evolution.requires_follow_up),
-  follow_up_date: dateOnly(evolution.follow_up_date),
-  vital_signs: {
-    blood_pressure: vitalSignValue(evolution.vital_signs?.blood_pressure),
-    heart_rate: vitalSignValue(evolution.vital_signs?.heart_rate),
-    temperature: vitalSignValue(evolution.vital_signs?.temperature),
-    respiratory_rate: vitalSignValue(evolution.vital_signs?.respiratory_rate)
-  },
-  clinical_measurements: {
-    pocket_depth_mm: vitalSignValue(evolution.clinical_measurements?.pocket_depth_mm),
-    gingival_recession_mm: vitalSignValue(evolution.clinical_measurements?.gingival_recession_mm),
-    plaque_index_percent: vitalSignValue(evolution.clinical_measurements?.plaque_index_percent),
-    tooth_mobility: vitalSignValue(evolution.clinical_measurements?.tooth_mobility),
-    bleeding_on_probing: bleedingValue(evolution.clinical_measurements?.bleeding_on_probing)
-  }
-})
-
 const form = ref(emptyForm())
 const errors = ref({})
 const submitting = ref(false)
-
-watch(
-  () => props.evolution,
-  evolution => {
-    form.value = evolution ? evolutionToForm(evolution) : emptyForm()
-    errors.value = {}
-  },
-  { immediate: true }
-)
 
 watch(
   () => form.value.requires_follow_up,
@@ -527,7 +461,7 @@ const specialtyOptions = computed(() => {
 
 const specialtyHint = computed(() =>
   props.specialties.length === 0
-    ? 'El catálogo no está disponible; se conserva la especialidad guardada.'
+    ? 'El catálogo no está disponible; la especialidad se asignará según el usuario.'
     : 'Sólo se aceptan especialidades del catálogo activo.'
 )
 
@@ -606,15 +540,13 @@ const buildPayload = () => {
     clinical_measurements: buildClinicalMeasurements()
   }
 
-  // Omitting the key preserves whatever the row already had: an edit that does
-  // not touch the specialty must not rewrite it, and an unmapped historical
-  // code must not be re-sent (the catalog validation would reject it). Only a
-  // catalog value or an explicit correction travels.
+  // Only a catalog code travels: an empty select means "the service derives it
+  // from the user", and a value the catalog does not know would be rejected.
   const specialty = text(form.value.specialty)
-  const stored = text(props.evolution?.specialty)
-  const isCatalogValue = props.specialties.some(entry => entry.code === specialty)
 
-  if (specialty && (isCatalogValue || specialty !== stored)) payload.specialty = specialty
+  if (specialty && props.specialties.some(entry => entry.code === specialty)) {
+    payload.specialty = specialty
+  }
 
   return payload
 }
@@ -626,15 +558,8 @@ const submitEvolution = async () => {
   errors.value = {}
 
   try {
-    const payload = buildPayload()
-
-    if (isEdit.value) {
-      await updateEvolution(props.evolution.id, payload)
-      toast.success('Evolución actualizada')
-    } else {
-      await addEvolution(props.record.id, payload)
-      toast.success('Evolución registrada')
-    }
+    await addEvolution(props.record.id, buildPayload())
+    toast.success('Evolución registrada')
 
     emit('saved')
   } catch (err) {

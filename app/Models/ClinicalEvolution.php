@@ -2,15 +2,15 @@
 
 namespace App\Models;
 
+use App\Exceptions\Clinical\ClinicalRecordImmutableException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ClinicalEvolution extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'patient_id',
@@ -43,6 +43,12 @@ class ClinicalEvolution extends Model
         'follow_up_date' => 'date',
     ];
 
+    protected static function booted(): void
+    {
+        // #292: a documented visit is evidence; a correction is an addendum.
+        static::deleting(fn () => throw ClinicalRecordImmutableException::clinicalEvolutionNotDeletable());
+    }
+
     // Relaciones
     public function patient(): BelongsTo
     {
@@ -70,6 +76,15 @@ class ClinicalEvolution extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Corrections signed against this visit (#292). The evolution itself is
+     * never edited; each addendum carries its own author, date and reason.
+     */
+    public function addenda(): HasMany
+    {
+        return $this->hasMany(ClinicalAddendum::class)->orderBy('created_at');
     }
 
     public function attachments(): HasMany

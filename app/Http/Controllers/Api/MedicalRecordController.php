@@ -2,29 +2,35 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ClinicalAddendumCreated;
 use App\Events\ClinicalAttachmentCreated;
 use App\Events\ClinicalEvolutionCreated;
-use App\Events\ClinicalEvolutionDeleted;
-use App\Events\ClinicalEvolutionUpdated;
 use App\Events\MedicalRecordCreated;
-use App\Events\MedicalRecordUpdated;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAddendumRequest;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
+use App\Services\ClinicalRecordAuditService;
 use App\Services\MedicalRecordService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class MedicalRecordController extends Controller
 {
     protected $medicalRecordService;
 
-    public function __construct(MedicalRecordService $medicalRecordService)
-    {
+    protected $clinicalRecordAudit;
+
+    public function __construct(
+        MedicalRecordService $medicalRecordService,
+        ClinicalRecordAuditService $clinicalRecordAudit
+    ) {
         $this->medicalRecordService = $medicalRecordService;
+        $this->clinicalRecordAudit = $clinicalRecordAudit;
     }
 
     /**
@@ -81,6 +87,9 @@ class MedicalRecordController extends Controller
             $items = collect($records->items())->each(function ($record) use ($attachmentCounts) {
                 $record->attachments_count = (int) ($attachmentCounts[$record->patient_id] ?? 0);
             });
+
+            // F3 (#292): one read entry per record the page returns.
+            $this->clinicalRecordAudit->recordsViewed($items, ClinicalRecordAuditService::SURFACE_INDEX);
 
             return response()->json([
                 'data' => $items->all(),
@@ -140,95 +149,28 @@ class MedicalRecordController extends Controller
             $record = MedicalRecord::with([
                 'patient',
                 'createdBy',
+                // F3 (#292): the corrections travel with the original so the
+                // client can render them next to the row they amend.
+                'addenda.author',
                 'evolutions' => function ($query) {
-                    $query->orderBy('evolution_date', 'desc');
+                    $query->with('addenda.author')->orderBy('evolution_date', 'desc');
                 },
                 'attachments' => function ($query) {
                     $query->where('is_active', true);
                 },
             ])->findOrFail($id);
 
+            // F3 (#292): opening a history is a clinical read; the audit is not
+            // swallowed, so a history that cannot be recorded is not served.
+            $this->clinicalRecordAudit->recordViewed($record, ClinicalRecordAuditService::SURFACE_RECORD);
+
             return response()->json([
                 'data' => $record,
             ]);
-        } catch (\Exception $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'Historia clínica no encontrada',
-                'error' => $e->getMessage(),
             ], 404);
-        }
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, int $id): JsonResponse
-    {
-        try {
-            $validated = $request->validate([
-                'first_visit_date' => 'nullable|date',
-                'chief_complaint' => 'nullable|string',
-                'medical_history' => 'nullable|string',
-                'dental_history' => 'nullable|string',
-                'allergies' => 'nullable|string',
-                'medications' => 'nullable|string',
-                'systemic_conditions' => 'nullable|string',
-                'family_history' => 'nullable|string',
-                'social_history' => 'nullable|string',
-                'vital_signs' => 'nullable|array',
-                'clinical_examination' => 'nullable|string',
-                'diagnosis' => 'nullable|string',
-                'treatment_plan' => 'nullable|string',
-                'notes' => 'nullable|string',
-            ]);
-
-            $record = MedicalRecord::findOrFail($id);
-            $record->update($validated);
-            $record->refresh();
-
-            // Emitir evento de WebSocket
-            event(new MedicalRecordUpdated($record));
-
-            return response()->json([
-                'data' => $record->load(['patient', 'createdBy']),
-                'meta' => [
-                    'message' => 'Historia clínica actualizada exitosamente',
-                ],
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al actualizar historia clínica',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(int $id): JsonResponse
-    {
-        try {
-            $record = MedicalRecord::findOrFail($id);
-
-            // Marcar como inactivo en lugar de eliminar
-            $record->update(['is_active' => false]);
-
-            return response()->json([
-                'meta' => [
-                    'message' => 'Historia clínica desactivada exitosamente',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al eliminar historia clínica',
-                'error' => $e->getMessage(),
-            ], 500);
         }
     }
 
@@ -271,15 +213,24 @@ class MedicalRecordController extends Controller
     public function getEvolutions(int $id): JsonResponse
     {
         try {
+            // The history is the audited entity: resolve it before the
+            // timeline so an unknown id answers 404 instead of an empty list
+            // with no read trail.
+            $record = MedicalRecord::findOrFail($id);
+
             $evolutions = ClinicalEvolution::with([
                 'patient',
                 'appointment',
                 'createdBy',
                 'attachments',
+                // F3 (#292): the corrections of each visit travel with it.
+                'addenda.author',
             ])
                 ->where('medical_record_id', $id)
                 ->orderBy('evolution_date', 'desc')
                 ->get();
+
+            $this->clinicalRecordAudit->recordViewed($record, ClinicalRecordAuditService::SURFACE_EVOLUTIONS);
 
             return response()->json([
                 'data' => $evolutions,
@@ -287,6 +238,10 @@ class MedicalRecordController extends Controller
                     'total' => $evolutions->count(),
                 ],
             ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Historia clínica no encontrada',
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener evoluciones',
@@ -296,23 +251,62 @@ class MedicalRecordController extends Controller
     }
 
     /**
-     * Actualizar una evolución clínica.
+     * Agregar un addendum a la historia clínica (F3 #292).
+     *
+     * La única escritura posterior al alta: el autor sale de la sesión y el
+     * original no se modifica.
      */
-    public function updateEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
+    public function addRecordAddendum(StoreAddendumRequest $request, int $id): JsonResponse
     {
         try {
-            $evolution = $this->medicalRecordService->updateEvolution($id, $request->validated());
+            $addendum = $this->medicalRecordService->addRecordAddendum($id, $request->validated());
 
-            // Emitir evento de WebSocket: otra pestaña o profesional refresca
-            // su timeline sin esperar el pull manual (issue #223).
-            event(new ClinicalEvolutionUpdated($evolution));
+            event(new ClinicalAddendumCreated($addendum));
 
             return response()->json([
-                'data' => $evolution,
+                'data' => $addendum,
                 'meta' => [
-                    'message' => 'Evolución actualizada exitosamente',
+                    'message' => 'Addendum registrado exitosamente',
                 ],
+            ], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Historia clínica no encontrada',
+            ], 404);
+        } catch (\Exception $e) {
+            // The 500 keeps the diagnosis in the log: the envelope never echoes
+            // the exception, the same rule the other clinical modules follow.
+            Log::error('Error al registrar un addendum clínico', [
+                'exception' => $e->getMessage(),
             ]);
+
+            return response()->json([
+                'message' => 'Error al registrar el addendum',
+            ], 500);
+        }
+    }
+
+    /**
+     * Agregar un addendum a una evolución concreta de la historia (F3 #292).
+     */
+    public function addEvolutionAddendum(StoreAddendumRequest $request, int $evolution): JsonResponse
+    {
+        try {
+            $addendum = $this->medicalRecordService->addEvolutionAddendum($evolution, $request->validated());
+
+            event(new ClinicalAddendumCreated($addendum));
+
+            return response()->json([
+                'data' => $addendum,
+                'meta' => [
+                    'message' => 'Addendum registrado exitosamente',
+                ],
+            ], 201);
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Error de validación',
@@ -323,42 +317,14 @@ class MedicalRecordController extends Controller
                 'message' => 'Evolución no encontrada',
             ], 404);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al actualizar evolución',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Eliminar (soft) una evolución clínica.
-     */
-    public function deleteEvolution(int $id): JsonResponse
-    {
-        try {
-            // El modelo se conserva en memoria para el broadcast: despues del
-            // soft delete la fila ya no es legible para el cliente.
-            $evolution = ClinicalEvolution::findOrFail($id);
-
-            $this->medicalRecordService->deleteEvolution($evolution->id);
-
-            // Emitir evento de WebSocket con el medical_record_id necesario
-            // para que el cliente filtre el borrado (issue #223).
-            event(new ClinicalEvolutionDeleted($evolution));
-
-            return response()->json([
-                'meta' => [
-                    'message' => 'Evolución eliminada exitosamente',
-                ],
+            // The 500 keeps the diagnosis in the log: the envelope never echoes
+            // the exception, the same rule the other clinical modules follow.
+            Log::error('Error al registrar un addendum clínico', [
+                'exception' => $e->getMessage(),
             ]);
-        } catch (ModelNotFoundException $e) {
+
             return response()->json([
-                'message' => 'Evolución no encontrada',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al eliminar evolución',
-                'error' => $e->getMessage(),
+                'message' => 'Error al registrar el addendum',
             ], 500);
         }
     }
@@ -441,6 +407,10 @@ class MedicalRecordController extends Controller
         try {
             $stats = $this->medicalRecordService->getRecordStats($patientId);
 
+            // F3 (#292): the patient's statistics expose clinical content, so
+            // every active history of that patient is recorded as read.
+            $this->clinicalRecordAudit->patientRecordsViewed($patientId, ClinicalRecordAuditService::SURFACE_STATS);
+
             return response()->json([
                 'data' => $stats,
             ]);
@@ -466,6 +436,10 @@ class MedicalRecordController extends Controller
                 $patientId,
                 $validated['category'] ?? null
             );
+
+            // F3 (#292): the attachment list is patient-scoped; record the read
+            // against each active history it belongs to.
+            $this->clinicalRecordAudit->patientRecordsViewed($patientId, ClinicalRecordAuditService::SURFACE_ATTACHMENTS);
 
             return response()->json([
                 'data' => $attachments,

@@ -61,31 +61,6 @@
             </template>
             Ver
           </UiButton>
-          <UiButton
-            v-if="canEdit"
-            variant="ghost"
-            size="sm"
-            data-record-action="edit"
-            @click="emit('edit', record)"
-          >
-            <template #icon-left>
-              <PencilIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Editar
-          </UiButton>
-          <UiButton
-            v-if="canDelete"
-            variant="ghost"
-            size="sm"
-            class="text-systemRed-700 hover:opacity-80"
-            data-record-action="delete"
-            @click="requestDelete"
-          >
-            <template #icon-left>
-              <TrashIcon class="h-4 w-4" aria-hidden="true" />
-            </template>
-            Eliminar
-          </UiButton>
         </div>
       </div>
     </div>
@@ -94,12 +69,11 @@
 
 <script setup>
 import { computed } from 'vue'
-import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { EyeIcon } from '@heroicons/vue/24/outline'
 import UiCard from '@/components/ui/Card.vue'
 import UiButton from '@/components/ui/Button.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { usePermissions } from '@/composables/usePermissions'
-import { useConfirm } from '@/composables/useConfirm'
 import { formatDateOnly } from '@/utils/formatters'
 
 const props = defineProps({
@@ -109,15 +83,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['view', 'edit', 'delete'])
+const emit = defineEmits(['view'])
 
 const { can } = usePermissions()
-const { confirm: confirmDialog } = useConfirm()
 
 // `can` is an object of computed refs (decision D7), never a function.
 const canView = computed(() => can.viewMedicalRecord?.value ?? false)
-const canEdit = computed(() => can.editMedicalRecord?.value ?? false)
-const canDelete = computed(() => can.deleteMedicalRecord?.value ?? false)
 
 const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
 const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')
@@ -134,17 +105,4 @@ const attachmentsCount = computed(() => Number(props.record.attachments_count ??
 
 const statusLabel = computed(() => (props.record.is_active ? 'Activa' : 'Inactiva'))
 const statusVariant = computed(() => (props.record.is_active ? 'success' : 'neutral'))
-
-const requestDelete = async () => {
-  const confirmed = await confirmDialog({
-    title: 'Eliminar historia clínica',
-    message: `La historia ${recordNumberLabel.value} quedará inactiva y saldrá del listado. ¿Deseas continuar?`,
-    confirmText: 'Eliminar',
-    variant: 'danger'
-  })
-
-  if (confirmed) {
-    emit('delete', props.record.id)
-  }
-}
 </script>

@@ -6,8 +6,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Sprint 4 (M-1): tests que verifican que los 15 modelos criticos
+ * Sprint 4 (M-1): tests que verifican que los modelos criticos
  * tienen SoftDeletes aplicado.
+ *
+ * `MedicalRecord` y `ClinicalEvolution` salieron de la lista en F3 (#292): la
+ * historia clinica no se borra, ni siquiera con soft delete. La guarda de esa
+ * decision vive en `ClinicalRecordImmutabilityTest`.
  *
  * Si en el futuro alguien remueve el trait por error, este test falla.
  * No usa BD, solo inspecciona las clases.
@@ -18,11 +22,11 @@ class SoftDeletesTest extends TestCase
     {
         return [
             'Sprint 3 (4 criticos)' => [
-                ['Patient', 'Appointment', 'Transaction', 'MedicalRecord'],
+                ['Patient', 'Appointment', 'Transaction'],
             ],
             'Sprint 4 (11 restantes)' => [
                 [
-                    'ClinicalEvolution', 'ClinicalAttachment', 'Quotation', 'PaymentMethod',
+                    'ClinicalAttachment', 'Quotation', 'PaymentMethod',
                     'PaymentPlan', 'Installment', 'Odontogram', 'Interconsultation',
                     'CashRegisterSession', 'CashMovement', 'TreatmentPlan',
                 ],

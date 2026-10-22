@@ -45,7 +45,7 @@
         :motif="false"
         data-detail-empty
         title="Sin contenido clínico"
-        description="Esta historia todavía no tiene antecedentes, examen ni diagnóstico. Complétala con el botón Editar."
+        description="Esta historia todavía no tiene antecedentes, examen ni diagnóstico. Agrégala con un addendum firmado."
       />
 
       <section v-if="vitalSignChips.length" class="space-y-2" data-detail-section="vital-signs">
@@ -102,6 +102,27 @@
         </h3>
         <p class="text-sm whitespace-pre-line">{{ section.value }}</p>
       </section>
+
+      <section v-if="recordAddenda.length" class="space-y-2" data-detail-section="addenda">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-theme-secondary">Addenda</h3>
+        <div
+          v-for="addendum in recordAddenda"
+          :key="addendum.id"
+          class="rounded-ios border border-[color:var(--color-hairline)] p-3"
+          data-addendum
+          :data-addendum-id="addendum.id"
+        >
+          <p class="text-xs text-theme-secondary tabular-nums" data-addendum-meta>
+            {{ addendumDateLabel(addendum) }} · {{ addendumAuthorLabel(addendum) }}
+          </p>
+          <p class="mt-1 text-sm font-medium text-theme-primary" data-addendum-reason>
+            Motivo: {{ addendum.reason }}
+          </p>
+          <p class="mt-1 text-sm whitespace-pre-line text-theme-primary" data-addendum-content>
+            {{ addendum.content }}
+          </p>
+        </div>
+      </section>
     </div>
 
     <template #footer>
@@ -109,13 +130,13 @@
         v-if="canEdit"
         variant="secondary"
         size="sm"
-        data-detail-action="edit"
-        @click="emit('edit', record)"
+        data-detail-action="addendum"
+        @click="emit('addendum', record)"
       >
         <template #icon-left>
           <PencilIcon class="h-4 w-4" aria-hidden="true" />
         </template>
-        Editar
+        Agregar addendum
       </UiButton>
       <UiButton
         v-if="canAddEvolution"
@@ -162,11 +183,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'edit', 'addEvolution', 'uploadAttachment'])
+const emit = defineEmits(['close', 'addendum', 'addEvolution', 'uploadAttachment'])
 
 const { can } = usePermissions()
 
-// `can` is an object of computed refs (decision D7), never a function.
+// `can` is an object of computed refs (decision D7), never a function. A
+// correction is part of managing the record; it is not an edit of the row.
 const canEdit = computed(() => can.editMedicalRecord?.value ?? false)
 const canAddEvolution = computed(() => can.addEvolution?.value ?? false)
 const canUploadAttachment = computed(() => can.uploadAttachment?.value ?? false)
@@ -196,6 +218,17 @@ const CLINICAL_SECTIONS = [
 ]
 
 const hasText = value => value !== null && value !== undefined && String(value).trim() !== ''
+
+// Corrections attached to the history as a whole; the ones tied to one visit
+// render in that visit's timeline entry instead.
+const recordAddenda = computed(() =>
+  (props.record.addenda || []).filter(addendum => !addendum.clinical_evolution_id)
+)
+
+const addendumDateLabel = addendum => formatDateOnly(addendum.created_at) || 'Sin fecha'
+
+const addendumAuthorLabel = addendum =>
+  addendum.author?.name ? `Firmado por ${addendum.author.name}` : 'Firmado por el profesional'
 
 const recordNumberLabel = computed(() => props.record.record_number || 'Sin número asignado')
 const firstVisitLabel = computed(() => formatDateOnly(props.record.first_visit_date) || 'Sin fecha')

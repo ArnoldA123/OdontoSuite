@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Specialty;
 use App\Models\User;
@@ -68,50 +67,6 @@ class MedicalRecordSpecialtyValidationTest extends TestCase
             ->assertJsonValidationErrors(['specialty']);
 
         $this->assertDatabaseCount('clinical_evolutions', 0);
-    }
-
-    public function test_updating_an_evolution_accepts_only_catalog_codes(): void
-    {
-        $this->specialty('endodoncia', 'Endodoncia');
-        $this->specialty('periodoncia', 'Periodoncia');
-        $record = MedicalRecord::factory()->create();
-        $evolution = ClinicalEvolution::factory()->forRecord($record)->create([
-            'specialty' => 'endodoncia',
-        ]);
-
-        $this->actingAs($this->clinician(), 'sanctum')
-            ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
-                'specialty' => 'periodoncia',
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.specialty', 'periodoncia');
-
-        $this->actingAs($this->clinician(), 'sanctum')
-            ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
-                'specialty' => 'inventada',
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['specialty']);
-
-        $evolution->refresh();
-        $this->assertSame('periodoncia', $evolution->specialty);
-    }
-
-    public function test_omitting_the_specialty_keeps_the_stored_value(): void
-    {
-        $record = MedicalRecord::factory()->create();
-        $evolution = ClinicalEvolution::factory()->forRecord($record)->create([
-            'specialty' => 'odontologia_general',
-        ]);
-
-        $this->actingAs($this->clinician(), 'sanctum')
-            ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
-                'subjective' => 'Sin cambios de especialidad',
-            ])
-            ->assertOk();
-
-        $evolution->refresh();
-        $this->assertSame('odontologia_general', $evolution->specialty);
     }
 
     public function test_an_inactive_catalog_code_still_validates_for_historical_rows(): void

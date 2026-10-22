@@ -99,9 +99,9 @@ app/
   Http/Controllers/Api/    # 35 controllers API (34 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 52 modelos Eloquent
-  Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 37 eventos (10 listener classes, 13 cableos en AppServiceProvider)
+  Models/                  # 53 modelos Eloquent
+  Services/                # 21 services + Reports/ (8 report services)
+  Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 119 migraciones
+  migrations/              # 120 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -126,7 +126,7 @@ database/
                            #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 206 rutas API (medido con php artisan route:list --json: uris api/…; 219 totales con web)
+  api.php                  # 204 rutas API (medido con php artisan route:list --json: uris api/…; 217 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -176,15 +176,20 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ---
 
-## 6. Estado del proyecto (actualizado 2026-10-21)
+## 6. Estado del proyecto (actualizado 2026-10-22)
 
 ### ✅ Todo funcional (3 planes cerrados, 66 hallazgos resueltos)
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 52 modelos, 35 controllers API, 37 eventos (10 listener classes / 13 cableos
+- 53 modelos, 35 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
-- 15 modelos con SoftDeletes
+- 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
+  usan: #292)
+- Historia clínica inmutable (#292): ninguna ruta elimina una historia ni una
+  evolución y el modelo rechaza `deleting`; corregir crea un addendum firmado
+  (autor, fecha, motivo) en `clinical_addenda`, y toda lectura de contenido
+  clínico queda en `audit_logs` (`medical_record_viewed` + `metadata.surface`)
 - Multi-rol con middleware `role:`, `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
 - Calendario con FullCalendar, bloques, waiting list
@@ -214,6 +219,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### ⚠️ Pendiente (cosas que NO se hicieron, documentadas formalmente)
 
+- **Retención y archivo por antigüedad**: la historia se conserva y no se borra,
+  pero todavía no existe el archivo por antigüedad (cinco años activos y quince
+  pasivos) ni la firma digital, que pertenece a F6 con CIE-10.
 - **`migrate:fresh` es solo-MySQL por decisión (#79).** El esquema no se
   construye en SQLite: eliminar `transactions.type` choca con el índice
   `idx_transactions_patient_type_status` (`no such column: type`), y las
@@ -382,7 +390,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 52
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 53
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -394,6 +402,40 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (historia clínica inmutable: addenda, sin borrado y auditoría de
+  lectura, #292)** — La historia clínica deja de poder editarse o eliminarse.
+  Nueva tabla `clinical_addenda` (`medical_record_id` obligatorio,
+  `clinical_evolution_id` nullable, `user_id` autor, `reason` ≤255, `content`)
+  sin `updated_at`; `ClinicalAddendum` rechaza `updating` y `deleting`.
+  `MedicalRecord` y `ClinicalEvolution` pierden `SoftDeletes` y rechazan
+  `deleting` (`ClinicalRecordImmutableException`), así que las columnas
+  `deleted_at` se conservan pero una fila marcada por la regla anterior vuelve a
+  contar en la historia. Rutas: `apiResource('medical-records')` queda en
+  `index/store/show`, desaparecen `PUT/PATCH /medical-records/{id}`,
+  `PUT /medical-records/evolutions/{id}` y los dos `DELETE`; corregir es
+  `POST /medical-records/{id}/addenda` (`manage.medical_record`) y
+  `POST /medical-records/evolutions/{id}/addenda` (`manage.evolution`), con
+  autor de sesión y auditoría `clinical_addendum_created` en la misma
+  transacción. Toda lectura clínica escribe `medical_record_viewed` contra la
+  historia vía `ClinicalRecordAuditService` (superficies `index`, `record`,
+  `evolutions`, `attachments`, `stats`) y no se silencia: si la auditoría falla,
+  la lectura falla. `getEvolutions` responde 404 para una historia inexistente
+  en vez de una lista vacía. Los 500 de las dos puertas de addenda registran la
+  excepción en el log y responden un mensaje genérico. Eventos: se retiran
+  `MedicalRecordUpdated`, `ClinicalEvolutionUpdated` y
+  `ClinicalEvolutionDeleted` y nace `ClinicalAddendumCreated` en el canal
+  privado `medical-records`. La interfaz reemplaza editar/eliminar por «Agregar
+  addendum» y muestra los addenda junto al original en timeline y detalle.
+  Conteos medidos: 53 modelos, 35 eventos, 120 migraciones, 204 rutas API y 217
+  totales, 21 services, 13 modelos con SoftDeletes. Tests:
+  `ClinicalAddendumDomainTest`, `ClinicalRecordImmutabilityTest`,
+  `ClinicalAddendumApiTest`, `MedicalRecordReadAuditTest`,
+  `MedicalRecordEvolutionTest`, `MedicalRecordEvolutionEventsTest` reescritos,
+  `SoftDeletesTest`, `MedicalRecordIndexTest`, `RoutePermissionMatrixTest`,
+  `DomainChannelsPrivateTest`, los guards de `tests/Unit/DesignSystem` de
+  Historias y los smokes JS del módulo (incluido
+  `medical-records-addendum.test.js`).
 
 - **2026-10-22 (atención clínica: entidad del acto, cierre único y urgencia
   sin** **cita, #282)** — La cita deja de cargar el acto clínico. Nueva tabla

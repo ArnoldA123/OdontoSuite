@@ -138,8 +138,8 @@ export function useWebSocketNotifications() {
       if (medicalRecordsChannel) {
         medicalRecordsChannel
           .listen('.medical-record.created', e => handleEvent('medical-record.created', e))
-          .listen('.medical-record.updated', e => handleEvent('medical-record.updated', e))
           .listen('.clinical-evolution.created', e => handleEvent('clinical-evolution.created', e))
+          .listen('.clinical-addendum.created', e => handleEvent('clinical-addendum.created', e))
           .listen('.clinical-attachment.created', e =>
             handleEvent('clinical-attachment.created', e)
           )

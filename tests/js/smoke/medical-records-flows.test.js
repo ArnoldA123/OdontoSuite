@@ -4,10 +4,10 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 
 // Issue #224: the medical-records surfaces had shell-level coverage but no
 // component suite that walks a whole flow. This file mounts the modals and the
-// page against a mocked API and pins the four flows the issue asks for: a 422
-// mapped per field, an evolution with a follow-up date, a confirmed delete and
-// the 10 MB attachment limit. The category filter and the evolutions retry are
-// small enough to cover here too.
+// page against a mocked API and pins the flows the issue asks for: a 422 mapped
+// per field, an evolution with a follow-up date, an addendum signed over the
+// original (#292) and the 10 MB attachment limit. The category filter and the
+// evolutions retry are small enough to cover here too.
 //
 // `useMedicalRecords` is deliberately left real: it is the data layer under
 // test, and every write it makes goes through the mocked `useApi`, so the
@@ -82,6 +82,7 @@ import MedicalRecordsPage from '../../../resources/js/modules/medical-records/Me
 import MedicalRecordModal from '../../../resources/js/modules/medical-records/components/MedicalRecordModal.vue'
 import EvolutionModal from '../../../resources/js/modules/medical-records/components/EvolutionModal.vue'
 import EvolutionTimeline from '../../../resources/js/modules/medical-records/components/EvolutionTimeline.vue'
+import AddendumModal from '../../../resources/js/modules/medical-records/components/AddendumModal.vue'
 import UploadAttachmentModal from '../../../resources/js/modules/medical-records/components/UploadAttachmentModal.vue'
 import AttachmentGallery from '../../../resources/js/modules/medical-records/components/AttachmentGallery.vue'
 
@@ -296,33 +297,65 @@ describe('medical records component flows (#224)', () => {
     })
   })
 
-  describe('borrar una evolución', () => {
-    it('emits the evolution id when the confirmation is accepted', async () => {
-      harness.confirm.mockResolvedValue(true)
-
+  describe('registrar un addendum', () => {
+    it('emits the evolution that needs the correction', async () => {
       const wrapper = await mountInBody(EvolutionTimeline, { evolutions: [evolution] })
 
-      await click('[data-evolution-delete]')
+      await click('[data-evolution-addendum]')
 
-      expect(harness.confirm).toHaveBeenCalledTimes(1)
-      expect(harness.confirm.mock.calls[0][0]).toMatchObject({
-        title: 'Eliminar evolución',
-        variant: 'danger'
-      })
-      expect(wrapper.emitted('delete')).toEqual([[5]])
+      expect(wrapper.emitted('addendum')[0][0]).toMatchObject({ id: 5 })
 
       wrapper.unmount()
     })
 
-    it('emits nothing when the confirmation is dismissed', async () => {
-      harness.confirm.mockResolvedValue(false)
+    it('refuses an empty reason or content before reaching the API', async () => {
+      const wrapper = await mountInBody(AddendumModal, {
+        target: { kind: 'evolution', id: 5, label: 'Evolución del 05/03/2026' }
+      })
 
-      const wrapper = await mountInBody(EvolutionTimeline, { evolutions: [evolution] })
+      await submitForm('[data-addendum-form]')
 
-      await click('[data-evolution-delete]')
+      expect(harness.apiPost).not.toHaveBeenCalled()
+      expect(document.body.textContent).toContain('Escribe el motivo de la corrección')
 
-      expect(harness.confirm).toHaveBeenCalledTimes(1)
-      expect(wrapper.emitted('delete')).toBeUndefined()
+      wrapper.unmount()
+    })
+
+    it('posts a record-level addendum with its reason and content', async () => {
+      harness.apiPost.mockResolvedValue({ data: { id: 31 } })
+
+      const wrapper = await mountInBody(AddendumModal, {
+        target: { kind: 'record', id: 21, label: 'Historia HC-2026-000021' }
+      })
+
+      typeInto('[data-addendum-field="reason"] input', 'Dato omitido')
+      typeInto('#addendum-content', 'Antecedente de penicilina')
+      await submitForm('[data-addendum-form]')
+
+      expect(harness.apiPost).toHaveBeenCalledWith('/api/medical-records/21/addenda', {
+        reason: 'Dato omitido',
+        content: 'Antecedente de penicilina'
+      })
+      expect(wrapper.emitted('saved')).toBeTruthy()
+
+      wrapper.unmount()
+    })
+
+    it('posts an evolution-level addendum on the evolution it corrects', async () => {
+      harness.apiPost.mockResolvedValue({ data: { id: 32 } })
+
+      const wrapper = await mountInBody(AddendumModal, {
+        target: { kind: 'evolution', id: 5, label: 'Evolución del 05/03/2026' }
+      })
+
+      typeInto('[data-addendum-field="reason"] input', 'Error de digitación')
+      typeInto('#addendum-content', 'La pieza correcta es la 36')
+      await submitForm('[data-addendum-form]')
+
+      expect(harness.apiPost).toHaveBeenCalledWith('/api/medical-records/evolutions/5/addenda', {
+        reason: 'Error de digitación',
+        content: 'La pieza correcta es la 36'
+      })
 
       wrapper.unmount()
     })

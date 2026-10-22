@@ -310,21 +310,27 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('quotations/{id}/reject', [QuotationController::class, 'reject']);
     });
 
-    // Medical records (clinical roles only).
+    Route::middleware('permission:'.Permissions::MANAGE_EVOLUTION)->group(function () {
+        Route::post('medical-records/{id}/evolutions', [MedicalRecordController::class, 'addEvolution']);
+        Route::get('medical-records/{id}/evolutions', [MedicalRecordController::class, 'getEvolutions']);
+        // The evolution addendum lives on the fixed `evolutions` segment, so
+        // it is declared next to the other evolution routes and never reaches
+        // the `{medical_record}` binding.
+        Route::post('medical-records/evolutions/{evolution}/addenda', [MedicalRecordController::class, 'addEvolutionAddendum']);
+    });
+
+    // Medical records (clinical roles only). #292: a clinical history is
+    // evidence, so it is neither edited in place nor deleted; the resource
+    // exposes only read, alta and detalle, and the only later write is an
+    // addendum.
     Route::middleware('permission:'.Permissions::MANAGE_MEDICAL_RECORD)->group(function () {
-        Route::apiResource('medical-records', MedicalRecordController::class);
+        Route::apiResource('medical-records', MedicalRecordController::class)
+            ->only(['index', 'store', 'show']);
+        Route::post('medical-records/{id}/addenda', [MedicalRecordController::class, 'addRecordAddendum']);
         Route::get('medical-records/patient/{patientId}/attachments', [MedicalRecordController::class, 'getAttachmentsByCategory']);
     });
     Route::get('medical-records/patient/{patientId}/stats', [MedicalRecordController::class, 'getStats'])
         ->middleware('permission:'.Permissions::VIEW_MEDICAL_RECORD_STATS);
-    Route::middleware('permission:'.Permissions::MANAGE_EVOLUTION)->group(function () {
-        Route::post('medical-records/{id}/evolutions', [MedicalRecordController::class, 'addEvolution']);
-        Route::get('medical-records/{id}/evolutions', [MedicalRecordController::class, 'getEvolutions']);
-        // Evolution writes share the fixed `evolutions` segment, so they are
-        // declared before apiResource for the same reason as attachments.
-        Route::put('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'updateEvolution']);
-        Route::delete('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'deleteEvolution']);
-    });
     Route::middleware('permission:'.Permissions::MANAGE_ATTACHMENT)->group(function () {
         // Slice 01 / T-01.3 (API-001): DELETE attachment. Declared BEFORE
         // apiResource so the fixed `attachments` segment is not swallowed by

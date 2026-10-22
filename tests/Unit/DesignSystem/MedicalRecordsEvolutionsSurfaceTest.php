@@ -27,7 +27,7 @@ use PHPUnit\Framework\TestCase;
  * Rules asserted:
  *
  *   - EVO-R-001  no `<style scoped>` block on either surface (DLR-R-021).
- *   - EVO-R-002  permissions are read as computed refs (`can.editEvolution?.value`),
+ *   - EVO-R-002  permissions are read as computed refs (`can.addEvolution?.value`),
  *                never called as `can('...')` (decision D7).
  *   - EVO-R-003  delete is confirmed through `useConfirm()`, never a bare
  *                global `confirm()`.
@@ -185,35 +185,27 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
             'EvolutionTimeline.vue must read `can.*?.value`, never call `can(...)` (EVO-R-002 / D7).'
         );
         $this->assertStringContainsString('const { can } = usePermissions()', $source);
-        $this->assertStringContainsString('can.editEvolution?.value', $source);
-        $this->assertStringContainsString('can.deleteEvolution?.value', $source);
+        $this->assertStringContainsString('can.addEvolution?.value', $source);
     }
 
     /**
-     * EVO-R-003 — the destructive action goes through the shared dialog, the
-     * same one `PatientsPage` uses.
+     * EVO-R-003 — #292 replaced the destructive action with the addendum: the
+     * timeline never offers to delete or rewrite a signed evolution, and the
+     * correction travels through the shared confirm-free modal.
      */
-    public function test_timeline_confirms_deletion_through_the_shared_dialog(): void
+    public function test_timeline_replaces_deletion_with_the_addendum_action(): void
     {
         $source = $this->timeline();
 
-        $this->assertStringContainsString("import { useConfirm } from '@/composables/useConfirm'", $source);
-        $this->assertStringContainsString('const { confirm } = useConfirm()', $source);
-        $this->assertStringContainsString('await confirm({', $source);
-        $this->assertStringNotContainsString('window.confirm(', $source);
+        $this->assertStringNotContainsString('data-evolution-delete', $source);
+        $this->assertStringNotContainsString('useConfirm', $source);
+        $this->assertStringNotContainsString("emit('delete'", $source);
 
-        // A bare global `confirm(` (no import binding) must not come back: the
-        // only legitimate spellings left are `useConfirm()` and `await confirm(`.
-        $withoutBindings = str_replace(
-            ['useConfirm()', 'await confirm('],
-            ['', ''],
-            $source
-        );
-        $this->assertAbsentPattern(
-            '/(?<![\w.])confirm\s*\(/',
-            $withoutBindings,
-            'EvolutionTimeline.vue must not call a bare `confirm(...)` (EVO-R-003).'
-        );
+        $this->assertStringContainsString('data-evolution-addendum', $source);
+        $this->assertStringContainsString("emit('addendum', evolution)", $source);
+        $this->assertStringContainsString('evolution.addenda', $source);
+        $this->assertStringContainsString('data-addendum-reason', $source);
+        $this->assertStringContainsString('data-addendum-content', $source);
     }
 
     /**
@@ -255,7 +247,6 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
         );
         $this->assertStringContainsString('specialtyOptions', $source);
         $this->assertStringContainsString('payload.specialty = specialty', $source);
-        $this->assertStringContainsString('isCatalogValue', $source);
 
         $page = $this->source('/resources/js/modules/medical-records/MedicalRecordsPage.vue');
         $this->assertStringContainsString('getSpecialties()', $page);
@@ -369,7 +360,7 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
     /**
      * EVO-R-007 — the page shell contract and the edit-mode wiring.
      */
-    public function test_modal_declares_the_create_and_edit_contract(): void
+    public function test_modal_declares_the_create_only_contract(): void
     {
         $source = $this->modal();
 
@@ -384,9 +375,9 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
             'The timeline keeps the `loading` prop the page passes (EVO-R-007).'
         );
         $this->assertStringContainsString(
-            "defineEmits(['add', 'edit', 'delete'])",
+            "defineEmits(['add', 'addendum'])",
             $this->timeline(),
-            'The timeline keeps the add/edit/delete emits the page listens to (EVO-R-007).'
+            'The timeline keeps the add/addendum emits the page listens to (EVO-R-007 / #292).'
         );
 
         $this->assertMatchesRegularExpression(
@@ -394,10 +385,15 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
             $source,
             'The modal keeps the required `record` prop (EVO-R-007).'
         );
-        $this->assertMatchesRegularExpression(
-            '/evolution:\s*\{[^}]*type:\s*Object[^}]*default:\s*null[^}]*\}/s',
+        $this->assertStringNotContainsString(
+            'evolution: {',
             $source,
-            'The modal declares the nullable `evolution` prop that selects edit mode (EVO-R-007).'
+            'The modal is create-only: an evolution is corrected with an addendum, never edited (EVO-R-007 / #292).'
+        );
+        $this->assertStringNotContainsString(
+            'updateEvolution',
+            $source,
+            'The modal must not call the removed update endpoint (EVO-R-007 / #292).'
         );
         $this->assertStringContainsString(
             "defineEmits(['close', 'saved'])",
@@ -405,7 +401,6 @@ class MedicalRecordsEvolutionsSurfaceTest extends TestCase
             'The modal keeps the close/saved emits the page listens to (EVO-R-007).'
         );
 
-        $this->assertStringContainsString('updateEvolution(props.evolution.id', $source);
         $this->assertStringContainsString('addEvolution(props.record.id', $source);
     }
 

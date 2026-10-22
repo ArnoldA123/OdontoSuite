@@ -8,15 +8,13 @@ import { mount, flushPromises } from '@vue/test-utils'
 // five keys.
 const harness = vi.hoisted(() => ({
   addEvolution: vi.fn(),
-  updateEvolution: vi.fn(),
   success: vi.fn(),
   error: vi.fn()
 }))
 
 vi.mock('../../../resources/js/composables/useMedicalRecords', () => ({
   useMedicalRecords: () => ({
-    addEvolution: harness.addEvolution,
-    updateEvolution: harness.updateEvolution
+    addEvolution: harness.addEvolution
   })
 }))
 vi.mock('../../../resources/js/composables/useToast', () => ({
@@ -77,7 +75,6 @@ describe('clinical measurements surface (#222)', () => {
     )
     vi.clearAllMocks()
     harness.addEvolution.mockResolvedValue({ id: 6 })
-    harness.updateEvolution.mockResolvedValue({ id: 5 })
   })
 
   afterEach(() => {
@@ -153,37 +150,6 @@ describe('clinical measurements surface (#222)', () => {
       plaque_index_percent: 42,
       tooth_mobility: 1,
       bleeding_on_probing: true
-    })
-
-    wrapper.unmount()
-  })
-
-  it('prefills the measurements in edit mode and keeps the tri-state value', async () => {
-    const wrapper = mount(EvolutionModal, {
-      props: { record, evolution },
-      global: { plugins: [uiComponents] },
-      attachTo: document.body
-    })
-    await flushPromises()
-
-    expect(
-      document.body.querySelector('[data-evolution-field="pocket_depth_mm"] input').value
-    ).toBe('4.5')
-    expect(document.body.querySelector('[data-evolution-field="tooth_mobility"] input').value).toBe(
-      '2'
-    )
-
-    await submit()
-
-    expect(harness.updateEvolution).toHaveBeenCalledTimes(1)
-    const [evolutionId, payload] = harness.updateEvolution.mock.calls[0]
-    expect(evolutionId).toBe(5)
-    expect(payload.clinical_measurements).toEqual({
-      pocket_depth_mm: 4.5,
-      gingival_recession_mm: 2,
-      plaque_index_percent: 35,
-      tooth_mobility: 2,
-      bleeding_on_probing: false
     })
 
     wrapper.unmount()

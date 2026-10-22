@@ -9,7 +9,6 @@ use App\Events\AppointmentUpdated;
 use App\Events\CashSessionClosed;
 use App\Events\CashSessionOpened;
 use App\Events\MedicalRecordCreated;
-use App\Events\MedicalRecordUpdated;
 use App\Events\PatientFileExported;
 use App\Events\PaymentRegistered;
 use App\Events\ProcedureCatalogDeactivated;
@@ -55,7 +54,6 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
             CashSessionClosed::class,
             CashSessionOpened::class,
             MedicalRecordCreated::class,
-            MedicalRecordUpdated::class,
             PatientFileExported::class,
             PaymentRegistered::class,
             ProcedureCatalogDeactivated::class,
@@ -116,9 +114,9 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
     public function the_event_set_still_covers_the_project_domain(): void
     {
         $this->assertCount(
-            18,
+            17,
             self::dashboardEvents(),
-            'The dashboard fan-out MUST keep all 18 publishers; add new ones to this provider so they inherit the private guard.'
+            'The dashboard fan-out MUST keep all 17 publishers; add new ones to this provider so they inherit the private guard.'
         );
     }
 }

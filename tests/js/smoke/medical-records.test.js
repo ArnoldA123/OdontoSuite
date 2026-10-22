@@ -387,54 +387,36 @@ describe('medical-records shell', () => {
     wrapper.unmount()
   })
 
-  it('refreshes the timeline when another tab updates an evolution', async () => {
+  it('renders a correction another tab signed, without rewriting the evolution', async () => {
     const { wrapper } = await mountPage({ query: { patient_id: '7' } })
     await wrapper.findAll('[role="tab"]')[1].trigger('click')
     await flushPromises()
 
     expect(wrapper.get('[data-evolution-id="5"]').text()).toContain('Dolor')
 
-    await harness.listeners['.clinical-evolution.updated']({
-      evolution: {
-        ...evolution,
-        subjective: 'Dolor agudo al masticar',
-        medical_record_id: 21,
-        medical_record: { id: 21, patient_id: 7 }
+    // The API returns the same evolution plus its addenda, which is exactly
+    // what the page reloads after the broadcast.
+    evolution.addenda = [
+      {
+        id: 31,
+        reason: 'Error de digitación',
+        content: 'La pieza correcta es la 36',
+        created_at: '2026-03-06T10:00:00Z',
+        author: { id: 1, name: 'Ana Odontóloga' }
       }
+    ]
+
+    await harness.listeners['.clinical-addendum.created']({
+      addendum: { id: 31, medical_record_id: 21, medical_record: { id: 21, patient_id: 7 } }
     })
     await flushPromises()
 
-    expect(wrapper.get('[data-evolution-id="5"]').text()).toContain('Dolor agudo al masticar')
+    const entry = wrapper.get('[data-evolution-id="5"]').text()
+    expect(entry).toContain('Dolor')
+    expect(entry).toContain('Motivo: Error de digitación')
+    expect(entry).toContain('La pieza correcta es la 36')
 
-    wrapper.unmount()
-  })
-
-  it('drops a deleted evolution only when the event belongs to the selected patient', async () => {
-    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
-    await wrapper.findAll('[role="tab"]')[1].trigger('click')
-    await flushPromises()
-
-    const callsBefore = calls().length
-
-    await harness.listeners['.clinical-evolution.deleted']({
-      evolution_id: 5,
-      medical_record_id: 21,
-      patient_id: 8
-    })
-    await flushPromises()
-
-    expect(calls().length).toBe(callsBefore)
-    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(true)
-
-    await harness.listeners['.clinical-evolution.deleted']({
-      evolution_id: 5,
-      medical_record_id: 21,
-      patient_id: 7
-    })
-    await flushPromises()
-
-    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(false)
-    expect(calls().some(url => url.includes('/api/medical-records/patient/7/stats'))).toBe(true)
+    evolution.addenda = []
 
     wrapper.unmount()
   })

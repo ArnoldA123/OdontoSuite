@@ -84,10 +84,7 @@ const PERMISSION_BY_KEY = {
   createMedicalRecord: 'manage.medical_record',
   editMedicalRecord: 'manage.medical_record',
   viewMedicalRecord: 'manage.medical_record',
-  deleteMedicalRecord: 'manage.medical_record',
   addEvolution: 'manage.evolution',
-  editEvolution: 'manage.evolution',
-  deleteEvolution: 'manage.evolution',
   uploadAttachment: 'manage.attachment',
   deleteAttachment: 'manage.attachment',
 

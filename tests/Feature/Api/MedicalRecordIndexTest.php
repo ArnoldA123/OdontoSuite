@@ -109,6 +109,8 @@ class MedicalRecordIndexTest extends TestCase
         $record = MedicalRecord::factory()->create();
 
         $evolutions = ClinicalEvolution::factory()->count(2)->forRecord($record)->create();
+        // #292: the clinical history is retained. A row that still carries the
+        // old soft-delete marker is part of the record now, not hidden from it.
         ClinicalEvolution::factory()->count(1)->forRecord($record)
             ->create(['deleted_at' => now()]);
 
@@ -136,7 +138,7 @@ class MedicalRecordIndexTest extends TestCase
         $response->assertOk();
         $row = $response->json('data.0');
 
-        $this->assertSame(2, $row['evolutions_count']);
+        $this->assertSame(3, $row['evolutions_count']);
         $this->assertSame(2, $row['attachments_count']);
         $this->assertSame($record->patient_id, $row['patient']['id']);
     }

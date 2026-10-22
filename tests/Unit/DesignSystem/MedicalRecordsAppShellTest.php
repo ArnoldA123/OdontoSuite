@@ -446,9 +446,21 @@ class MedicalRecordsAppShellTest extends ModuleAppShellTestCase
         );
 
         $this->assertMatchesRegularExpression(
-            '~const editRecord = record => \{\s*(?://[^\n]*\n\s*)*showDetailModal\.value = false~',
+            '~@addendum="openRecordAddendum"~',
             $src,
-            'Editing from the detail must close the detail modal first (MRC-SHELL-008).'
+            'The page must handle the detail `addendum` emit (MRC-SHELL-008 / #292).'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '~const openRecordAddendum = record => \{\s*showDetailModal\.value = false~',
+            $src,
+            'Correcting from the detail must close the detail modal first (MRC-SHELL-008 / #292).'
+        );
+
+        $this->assertStringContainsString(
+            '<AddendumModal',
+            $src,
+            'The page must host the addendum modal the two surfaces open (MRC-SHELL-008 / #292).'
         );
     }
 }
