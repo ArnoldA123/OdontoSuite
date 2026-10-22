@@ -212,6 +212,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // urgency door invents no agenda row (S8).
     Route::post('encounters', [ClinicalEncounterController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_ENCOUNTER);
+    Route::post('encounters/{encounter}/complete', [ClinicalEncounterController::class, 'complete'])
+        ->middleware('permission:'.Permissions::CLOSE_ENCOUNTER);
     Route::post('encounters/{encounter}/void', [ClinicalEncounterController::class, 'void'])
         ->middleware('permission:'.Permissions::VOID_ENCOUNTER);
 

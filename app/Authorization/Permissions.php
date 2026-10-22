@@ -81,6 +81,8 @@ final class Permissions
 
     public const VOID_ENCOUNTER = 'void.encounter';
 
+    public const CLOSE_ENCOUNTER = 'close.encounter';
+
     public const VIEW_MY_DAY = 'view.my_day';
 
     public const VIEW_PRODUCT = 'view.product';
@@ -280,6 +282,7 @@ final class Permissions
         self::COMPLETE_APPOINTMENT => self::MEDICAL_ROLES,
         self::CREATE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VOID_ENCOUNTER => self::MEDICAL_ROLES,
+        self::CLOSE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
         self::MANAGE_REMINDER => self::APPOINTMENT_ROLES,
         self::SEND_REMINDER => self::APPOINTMENT_ROLES,

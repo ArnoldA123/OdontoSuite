@@ -41,7 +41,7 @@ class RoutePermissionMatrixTest extends TestCase
     /** Controller actions that write clinical data. Reception must not reach them. */
     private const CLINICAL_WRITE_ACTIONS = [
         AppointmentCustodyController::class => ['startAttention'],
-        ClinicalEncounterController::class => ['store', 'void'],
+        ClinicalEncounterController::class => ['store', 'complete', 'void'],
         ConsultationController::class => ['complete'],
         MedicalRecordController::class => [
             'store',
