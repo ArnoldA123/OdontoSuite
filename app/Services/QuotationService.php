@@ -142,18 +142,29 @@ class QuotationService
     }
 
     /**
+     * Statuses that still accept edits. An accepted, rejected or expired
+     * quotation is a closed record: its amounts are immutable (#289, S2).
+     */
+    private const EDITABLE = ['draft', 'sent', 'viewed'];
+
+    /**
      * Actualizar presupuesto.
      *
      * F3 (#283, S4/S5): editing a quotation dated inside the accounting lock is
      * refused; the guard runs before the transaction so the blocked attempt (or
      * the registered override) is not rolled back with the rejected write.
-     *     */
+     *
+     * #289, S2: the status guard runs before the lock, because an accepted
+     * estimate is immutable whatever the period says.
+     */
     public function updateQuotation(int $id, array $data): Quotation
     {
         $lockOverrideReason = $data['lock_override_reason'] ?? null;
         unset($data['lock_override_reason']);
 
         $quotation = Quotation::findOrFail($id);
+
+        $this->assertEditable($quotation);
 
         $this->accountingLocks->guard(
             AccountingLockService::QUOTATIONS,
@@ -325,6 +336,23 @@ class QuotationService
             'status' => sprintf(
                 'Solo se puede %s un presupuesto enviado o visto. Estado actual: %s.',
                 $action,
+                $quotation->status
+            ),
+        ]);
+    }
+
+    /**
+     * #289, S2: an accepted, rejected or expired quotation is a closed record.
+     */
+    private function assertEditable(Quotation $quotation): void
+    {
+        if (in_array($quotation->status, self::EDITABLE, true)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'status' => sprintf(
+                'Solo se puede modificar un presupuesto en borrador, enviado o visto. Estado actual: %s.',
                 $quotation->status
             ),
         ]);
