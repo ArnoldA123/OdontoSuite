@@ -12,6 +12,7 @@ class ProcedureMaterial extends Model
 
     protected $fillable = [
         'appointment_id',
+        'clinical_encounter_id',
         'treatment_plan_item_id',
         'product_id',
         'created_by',
@@ -33,6 +34,15 @@ class ProcedureMaterial extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * F2 (#282): the clinical act that consumed these materials. Nullable
+     * because an urgency encounter has no appointment.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
     }
 
     public function product(): BelongsTo

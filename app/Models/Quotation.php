@@ -15,6 +15,7 @@ class Quotation extends Model
     protected $fillable = [
         'treatment_plan_id',
         'appointment_id',
+        'clinical_encounter_id',
         'patient_id',
         'created_by',
         'quotation_number',
@@ -56,6 +57,14 @@ class Quotation extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * F2 (#282): the clinical act that produced this quotation.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
     }
 
     public function patient(): BelongsTo
