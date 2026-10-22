@@ -184,7 +184,7 @@
               min="0"
               max="100"
               step="0.01"
-              hint="Se calcula sobre el subtotal después del descuento."
+              hint="Incluido en el precio: se desglosa del total con descuento. Vacío aplica la tasa configurada."
               :disabled="saving"
               :error="errors.tax_percentage"
             />
@@ -314,7 +314,7 @@ const validUntil = ref('')
 const items = ref([])
 const discountPercentage = ref(0)
 const discountAmount = ref(0)
-const taxPercentage = ref(0)
+const taxPercentage = ref(null)
 const termsConditions = ref('')
 const notes = ref('')
 const errors = ref({})
@@ -348,11 +348,20 @@ const discountTotal = computed(() => {
   return toNumber(discountAmount.value)
 })
 
-const taxTotal = computed(
-  () => (subtotal.value - discountTotal.value) * (toNumber(taxPercentage.value) / 100)
-)
+// #289: the price already includes the IGV, so the preview decomposes the rate
+// out of the net amount exactly like App\Support\QuotationTax does.
+const taxTotal = computed(() => {
+  const net = subtotal.value - discountTotal.value
+  const rate = toNumber(taxPercentage.value)
 
-const total = computed(() => subtotal.value - discountTotal.value + taxTotal.value)
+  if (rate <= 0) return 0
+
+  const base = Math.round((net / (1 + rate / 100)) * 100) / 100
+
+  return Math.round((net - base) * 100) / 100
+})
+
+const total = computed(() => subtotal.value - discountTotal.value)
 
 const patientError = computed(() => errors.value.patient_id || errors.value.patient || '')
 
@@ -407,10 +416,15 @@ const buildPayload = () => {
     subtotal: subtotal.value,
     discount_percentage: toNumber(discountPercentage.value),
     discount_amount: toNumber(discountAmount.value),
-    tax_percentage: toNumber(taxPercentage.value),
     terms_conditions: termsConditions.value,
     notes: notes.value,
     items: buildItemsPayload()
+  }
+
+  // #289: an untouched rate is not declared, so the server applies the billing
+  // policy instead of the form inventing a 0.
+  if (taxPercentage.value !== null && taxPercentage.value !== '') {
+    payload.tax_percentage = toNumber(taxPercentage.value)
   }
 
   if (props.isEdit) return payload
@@ -479,7 +493,7 @@ const initialize = () => {
     items.value = [createEmptyItem()]
     discountPercentage.value = 0
     discountAmount.value = 0
-    taxPercentage.value = 0
+    taxPercentage.value = null
     termsConditions.value = ''
     notes.value = ''
     return
