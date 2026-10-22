@@ -31,7 +31,7 @@
           <label class="mb-1 block text-sm font-medium text-theme-primary">Descripción</label>
           <UiTextarea v-model="form.description" :rows="3" class="w-full" />
         </div>
-        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label class="mb-1 block text-sm font-medium text-theme-primary">Especialidad</label>
             <UiSelect
@@ -40,6 +40,19 @@
               placeholder="Sin especialidad"
               label="Especialidad"
             />
+          </div>
+          <!-- #293 S1: what the procedure applies to (none|tooth|surface|quadrant|arch). -->
+          <div data-field="site_type">
+            <UiSelect
+              v-model="form.site_type"
+              :options="SITE_TYPE_OPTIONS"
+              label="Aplicabilidad"
+              placeholder="Sitio independiente"
+            />
+            <p class="mt-1 text-xs text-theme-secondary">
+              Sobre lo que se realiza el procedimiento. La línea del plan o del presupuesto deberá
+              declararlo.
+            </p>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-theme-primary">Estado</label>
@@ -51,6 +64,72 @@
             />
           </div>
         </div>
+      </section>
+
+      <!-- #293 S7: equivalencias con el nomenclador público (RM 550-2023/MINSA, SIS, otro). -->
+      <section data-form-group="external-codes">
+        <h3 class="text-base font-semibold text-label">Equivalencias</h3>
+        <p class="mt-1 text-sm text-theme-secondary">
+          Códigos del nomenclador público con los que se reconoce este procedimiento.
+        </p>
+
+        <div v-if="form.external_codes.length" class="mt-4 space-y-3">
+          <div
+            v-for="(externalCode, index) in form.external_codes"
+            :key="index"
+            data-external-code-row
+            class="grid grid-cols-1 items-start gap-3 md:grid-cols-[180px_160px_1fr_auto]"
+          >
+            <UiSelect
+              v-model="externalCode.system"
+              :options="externalSystemOptions"
+              label="Sistema"
+            />
+            <UiInput v-model="externalCode.code" label="Código" placeholder="ej. 997301" />
+            <UiInput
+              v-model="externalCode.description"
+              label="Descripción"
+              placeholder="Descripción del nomenclador (opcional)"
+            />
+            <UiButton
+              type="button"
+              variant="icon"
+              size="sm"
+              class="mt-7"
+              aria-label="Quitar equivalencia"
+              :data-external-code-remove="index"
+              @click="removeExternalCode(index)"
+            >
+              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+            </UiButton>
+          </div>
+        </div>
+
+        <p v-else class="mt-4 text-sm text-theme-secondary" data-external-codes-empty>
+          Este procedimiento no declara equivalencias.
+        </p>
+
+        <UiButton
+          type="button"
+          variant="secondary"
+          size="sm"
+          class="mt-3"
+          data-external-code-add
+          @click="addExternalCode"
+        >
+          <template #icon-left>
+            <PlusIcon class="h-4 w-4" aria-hidden="true" />
+          </template>
+          Agregar equivalencia
+        </UiButton>
+
+        <ul
+          v-if="externalCodeErrors.length"
+          data-external-codes-errors
+          class="mt-3 space-y-1 text-xs text-systemRed-600"
+        >
+          <li v-for="(message, index) in externalCodeErrors" :key="index">{{ message }}</li>
+        </ul>
       </section>
 
       <section data-form-group="pricing">
@@ -151,8 +230,10 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { XMarkIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { useProcedureCatalog } from '../../composables/useProcedureCatalog'
 import { useToast } from '../../composables/useToast'
+import { SITE_TYPE_OPTIONS } from './procedureSite'
 import UiModal from '../../components/ui/Modal.vue'
 import UiButton from '../../components/ui/Button.vue'
 import UiInput from '../../components/ui/Input.vue'
@@ -179,6 +260,32 @@ const activeOptions = [
   { value: false, label: 'Inactivo' }
 ]
 
+// #293 S7: the known nomenclators plus any other financiador (the API accepts
+// any slug; `otro` is the generic one the editor offers).
+const externalSystemOptions = [
+  { value: 'minsa_rm550_2023', label: 'MINSA RM 550-2023' },
+  { value: 'sis', label: 'SIS' },
+  { value: 'otro', label: 'Otro' }
+]
+
+const externalCodeErrors = computed(() =>
+  Object.entries(errors.value)
+    .filter(([field]) => field === 'external_codes' || field.startsWith('external_codes.'))
+    .map(([, message]) => message)
+)
+
+const addExternalCode = () => {
+  form.value.external_codes.push({
+    system: 'minsa_rm550_2023',
+    code: '',
+    description: ''
+  })
+}
+
+const removeExternalCode = index => {
+  form.value.external_codes.splice(index, 1)
+}
+
 const specialtyOptions = computed(() => [
   { value: null, label: 'Sin especialidad' },
   ...props.specialties.map(specialty => ({ value: specialty.id, label: specialty.name }))
@@ -189,6 +296,7 @@ const getEmptyForm = () => ({
   name: '',
   description: '',
   specialty_id: null,
+  site_type: 'none',
   default_cost: 0,
   default_duration_minutes: 30,
   requirements: '',
@@ -197,7 +305,8 @@ const getEmptyForm = () => ({
   requires_radiographs: false,
   contraindications: '',
   post_procedure_care: '',
-  is_active: true
+  is_active: true,
+  external_codes: []
 })
 
 const form = ref(getEmptyForm())
@@ -209,6 +318,7 @@ onMounted(() => {
     name: props.procedure.name,
     description: props.procedure.description || '',
     specialty_id: props.procedure.specialty_id ?? null,
+    site_type: props.procedure.site_type ?? 'none',
     default_cost: Number(props.procedure.default_cost ?? 0),
     default_duration_minutes: Number(props.procedure.default_duration_minutes ?? 30),
     requirements: props.procedure.requirements || '',
@@ -217,7 +327,12 @@ onMounted(() => {
     requires_radiographs: Boolean(props.procedure.requires_radiographs),
     contraindications: props.procedure.contraindications || '',
     post_procedure_care: props.procedure.post_procedure_care || '',
-    is_active: Boolean(props.procedure.is_active)
+    is_active: Boolean(props.procedure.is_active),
+    external_codes: (props.procedure.external_codes ?? []).map(externalCode => ({
+      system: externalCode.system,
+      code: externalCode.code ?? '',
+      description: externalCode.description ?? ''
+    }))
   }
 })
 
@@ -245,7 +360,18 @@ const onSubmit = async () => {
   if (!validate()) return
   saving.value = true
   try {
-    const payload = { ...form.value }
+    const payload = {
+      ...form.value,
+      // #293 S7: the editor replaces the whole set, so a blank row would be a
+      // half-declared equivalence; empty rows never travel.
+      external_codes: form.value.external_codes
+        .filter(externalCode => (externalCode.code || '').trim() !== '')
+        .map(externalCode => ({
+          system: externalCode.system,
+          code: externalCode.code.trim(),
+          description: (externalCode.description || '').trim() || null
+        }))
+    }
     let result
     if (isEdit.value) {
       delete payload.code

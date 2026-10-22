@@ -43,7 +43,17 @@
           El paciente y el plan de origen no se modifican en un presupuesto existente.
         </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div data-field="payer_id">
+            <UiSelect
+              v-model="payerId"
+              :options="payerOptions"
+              label="Convenio"
+              placeholder="Sin convenio"
+              :disabled="saving"
+              :error="errors.payer_id"
+            />
+          </div>
           <div data-field="quotation_date">
             <UiInput
               v-model="quotationDate"
@@ -124,6 +134,53 @@
                   {{ formatCurrency(rowTotal(item)) }}
                 </p>
               </div>
+            </div>
+
+            <!-- #293 S1/S2: the line may name a catalog procedure and the site
+                 the procedure applies to. The description stays editable. -->
+            <div class="space-y-3 border-t border-hairline pt-3" :data-item-extra="index">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-xs font-medium text-theme-secondary">
+                  Catálogo y sitio de la atención
+                </p>
+                <UiButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  :disabled="saving"
+                  :data-item-catalog-toggle="index"
+                  @click="toggleCatalog(item)"
+                >
+                  {{ catalogItem === item ? 'Ocultar catálogo' : 'Elegir del catálogo' }}
+                </UiButton>
+              </div>
+
+              <p
+                v-if="item.procedure_catalog_id"
+                class="text-xs text-theme-secondary"
+                :data-item-catalog="index"
+              >
+                Procedimiento del catálogo vinculado. La descripción y el precio siguen siendo
+                editables.
+              </p>
+
+              <div
+                v-if="catalogItem === item"
+                class="rounded-lg border border-hairline p-2"
+                :data-item-catalog-panel="index"
+              >
+                <ProcedureCatalogPicker
+                  :model-value="item.procedure_catalog_id"
+                  @select="procedure => onCatalogPick(item, procedure)"
+                />
+              </div>
+
+              <ProcedureSiteFields
+                :site-type="item.site_type"
+                :model-value="siteOf(item)"
+                :disabled="saving"
+                @update:model-value="site => applySite(item, site)"
+              />
             </div>
           </div>
         </div>
@@ -285,16 +342,25 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useQuotations } from '../../../composables/useQuotations'
+import { useApi } from '../../../composables/useApi'
 import { formatCurrency } from '../../../composables/useFormatters'
 import { calendarDateKey } from '../quotationMeta'
+import {
+  requiredSiteField,
+  siteRequirementMessage,
+  siteTypeOf
+} from '../../procedure-catalog/procedureSite'
 import PatientSelector from '../../../components/ui/PatientSelector.vue'
+import ProcedureCatalogPicker from '../../../components/procedures/ProcedureCatalogPicker.vue'
+import ProcedureSiteFields from '../../../components/procedures/ProcedureSiteFields.vue'
 import TreatmentPlanSelector from '../../../components/ui/TreatmentPlanSelector.vue'
 import RichTextEditor from '../../../components/ui/RichTextEditor.vue'
 import UiButton from '../../../components/ui/Button.vue'
 import UiInput from '../../../components/ui/Input.vue'
 import UiModal from '../../../components/ui/Modal.vue'
+import UiSelect from '../../../components/ui/Select.vue'
 import UiTextarea from '../../../components/ui/UiTextarea.vue'
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
@@ -306,11 +372,14 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const { createQuotation, updateQuotation } = useQuotations()
+const { get } = useApi()
 
 const patient = ref(null)
 const plan = ref(null)
 const quotationDate = ref('')
 const validUntil = ref('')
+const payerId = ref(null)
+const payers = ref([])
 const items = ref([])
 const discountPercentage = ref(0)
 const discountAmount = ref(0)
@@ -330,7 +399,85 @@ const rowTotal = item => toNumber(item?.quantity) * toNumber(item?.unit_price)
 
 const itemDescription = item => String(item?.description ?? '').trim()
 
-const createEmptyItem = () => ({ description: '', quantity: 1, unit_price: 0 })
+const payerOptions = computed(() => [
+  { value: null, label: 'Sin convenio' },
+  ...payers.value.map(payer => ({ value: payer.id, label: payer.name }))
+])
+
+// #293 S1: the catalog picker and the site fields are optional per line, so the
+// panel opens on demand and the free-text description keeps working.
+const catalogItem = ref(null)
+
+const toggleCatalog = item => {
+  catalogItem.value = catalogItem.value === item ? null : item
+}
+
+const siteOf = item => ({
+  dental_piece_id: item.dental_piece_id ?? null,
+  tooth_surface_id: item.tooth_surface_id ?? null,
+  site_code: item.site_code ?? null
+})
+
+const applySite = (item, site) => {
+  item.dental_piece_id = site?.dental_piece_id ?? null
+  item.tooth_surface_id = site?.tooth_surface_id ?? null
+  item.site_code = site?.site_code ?? null
+}
+
+const onCatalogPick = (item, procedure) => {
+  if (!procedure) return
+
+  const previousRequirement = requiredSiteField(item.site_type)
+
+  item.procedure_catalog_id = procedure.id
+  item.description = procedure.name
+  item.unit_price = Number(procedure.default_cost ?? 0)
+  item.site_type = procedure.site_type ?? 'none'
+
+  if (requiredSiteField(item.site_type) !== previousRequirement) {
+    item.dental_piece_id = null
+    item.tooth_surface_id = null
+    item.site_code = null
+  }
+
+  catalogItem.value = null
+}
+
+const loadPayers = async () => {
+  try {
+    const response = await get('/api/payers/active')
+    payers.value = Array.isArray(response?.data) ? response.data : []
+  } catch {
+    payers.value = []
+  }
+}
+
+// A site-requiring procedure without its site is stopped locally; the API stays
+// the authority and its 422 is still shown.
+const missingSiteMessage = () => {
+  const missing = items.value.find(item => {
+    const field = requiredSiteField(item.site_type)
+    return field !== null && !item[field]
+  })
+
+  if (!missing) return ''
+
+  return siteRequirementMessage(
+    itemDescription(missing) || missing.procedure_name,
+    missing.site_type
+  )
+}
+
+const createEmptyItem = () => ({
+  description: '',
+  quantity: 1,
+  unit_price: 0,
+  procedure_catalog_id: null,
+  site_type: 'none',
+  dental_piece_id: null,
+  tooth_surface_id: null,
+  site_code: null
+})
 
 const dateKeyWithOffset = days => {
   const date = new Date()
@@ -374,11 +521,22 @@ const itemsError = computed(() => {
 const buildItemsPayload = () =>
   items.value
     .filter(item => itemDescription(item))
-    .map(item => ({
-      description: itemDescription(item),
-      quantity: toNumber(item.quantity),
-      unit_price: toNumber(item.unit_price)
-    }))
+    .map(item => {
+      const payload = {
+        description: itemDescription(item),
+        quantity: toNumber(item.quantity),
+        unit_price: toNumber(item.unit_price)
+      }
+
+      // #293 S2: the line names the catalog procedure and its site only when it
+      // declares them; a free-text line keeps the payload it always had.
+      if (item.procedure_catalog_id) payload.procedure_catalog_id = item.procedure_catalog_id
+      if (item.dental_piece_id) payload.dental_piece_id = item.dental_piece_id
+      if (item.tooth_surface_id) payload.tooth_surface_id = item.tooth_surface_id
+      if (item.site_code) payload.site_code = item.site_code
+
+      return payload
+    })
 
 const normalizeServerErrors = rawErrors => {
   if (!rawErrors || typeof rawErrors !== 'object') return {}
@@ -405,6 +563,11 @@ const validate = () => {
     nextErrors.valid_until = 'La vigencia no puede terminar antes de la fecha de emisión.'
   }
 
+  const siteMessage = missingSiteMessage()
+  if (siteMessage) {
+    nextErrors._site = siteMessage
+  }
+
   errors.value = nextErrors
   return Object.keys(nextErrors).length === 0
 }
@@ -413,6 +576,7 @@ const buildPayload = () => {
   const payload = {
     quotation_date: quotationDate.value || null,
     valid_until: validUntil.value || null,
+    payer_id: payerId.value || null,
     subtotal: subtotal.value,
     discount_percentage: toNumber(discountPercentage.value),
     discount_amount: toNumber(discountAmount.value),
@@ -440,7 +604,10 @@ const onSubmit = async () => {
   if (saving.value) return
 
   submitError.value = ''
-  if (!validate()) return
+  if (!validate()) {
+    submitError.value = errors.value._site || ''
+    return
+  }
 
   saving.value = true
   try {
@@ -477,7 +644,14 @@ const handlePlanSelected = selectedPlan => {
   items.value = planItems.map(planItem => ({
     description: planItem.procedure_name || planItem.description || '',
     quantity: planItem.quantity,
-    unit_price: planItem.unit_cost || planItem.unit_price || 0
+    unit_price: planItem.unit_cost || planItem.unit_price || 0,
+    procedure_catalog_id: planItem.procedure_catalog_id ?? null,
+    // The plan line declares the site its procedure demanded, so the estimate
+    // inherits it and keeps the same applicability.
+    site_type: siteTypeOf(planItem),
+    dental_piece_id: planItem.dental_piece_id ?? null,
+    tooth_surface_id: planItem.tooth_surface_id ?? null,
+    site_code: planItem.site_code ?? null
   }))
 }
 
@@ -490,6 +664,7 @@ const initialize = () => {
     plan.value = null
     quotationDate.value = dateKeyWithOffset(0)
     validUntil.value = dateKeyWithOffset(30)
+    payerId.value = null
     items.value = [createEmptyItem()]
     discountPercentage.value = 0
     discountAmount.value = 0
@@ -504,10 +679,16 @@ const initialize = () => {
   plan.value = current.treatment_plan || null
   quotationDate.value = calendarDateKey(current.quotation_date) || dateKeyWithOffset(0)
   validUntil.value = calendarDateKey(current.valid_until) || dateKeyWithOffset(30)
+  payerId.value = current.payer_id ?? null
   items.value = (Array.isArray(current.items) ? current.items : []).map(item => ({
-    description: item.item_name || item.item_description || '',
+    description: item.item_name || item.item_description || item.description || '',
     quantity: toNumber(item.quantity),
-    unit_price: toNumber(item.unit_price)
+    unit_price: toNumber(item.unit_price),
+    procedure_catalog_id: item.procedure_catalog_id ?? null,
+    site_type: siteTypeOf(item),
+    dental_piece_id: item.dental_piece_id ?? null,
+    tooth_surface_id: item.tooth_surface_id ?? null,
+    site_code: item.site_code ?? null
   }))
   if (!items.value.length) items.value = [createEmptyItem()]
   discountPercentage.value = toNumber(current.discount_percentage)
@@ -518,4 +699,6 @@ const initialize = () => {
 }
 
 watch(() => props.quotation, initialize, { immediate: true })
+
+onMounted(loadPayers)
 </script>
