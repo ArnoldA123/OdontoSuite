@@ -16,6 +16,7 @@ use App\Services\MedicalRecordService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class MedicalRecordController extends Controller
@@ -278,9 +279,14 @@ class MedicalRecordController extends Controller
                 'message' => 'Historia clínica no encontrada',
             ], 404);
         } catch (\Exception $e) {
+            // The 500 keeps the diagnosis in the log: the envelope never echoes
+            // the exception, the same rule the other clinical modules follow.
+            Log::error('Error al registrar un addendum clínico', [
+                'exception' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al registrar el addendum',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -311,9 +317,14 @@ class MedicalRecordController extends Controller
                 'message' => 'Evolución no encontrada',
             ], 404);
         } catch (\Exception $e) {
+            // The 500 keeps the diagnosis in the log: the envelope never echoes
+            // the exception, the same rule the other clinical modules follow.
+            Log::error('Error al registrar un addendum clínico', [
+                'exception' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'message' => 'Error al registrar el addendum',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }

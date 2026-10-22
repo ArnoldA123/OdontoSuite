@@ -421,17 +421,18 @@ documentada y no bloquea producción.
   historia vía `ClinicalRecordAuditService` (superficies `index`, `record`,
   `evolutions`, `attachments`, `stats`) y no se silencia: si la auditoría falla,
   la lectura falla. `getEvolutions` responde 404 para una historia inexistente
-  en vez de una lista vacía. Eventos: se retiran `MedicalRecordUpdated`,
-  `ClinicalEvolutionUpdated` y `ClinicalEvolutionDeleted` y nace
-  `ClinicalAddendumCreated` en el canal privado `medical-records`. La interfaz
-  reemplaza editar/eliminar por «Agregar addendum» y muestra los addenda junto
-  al original en timeline y detalle. Conteos medidos: 53 modelos, 35 eventos,
-  120 migraciones, 204 rutas API y 217 totales, 21 services, 13 modelos con
-  SoftDeletes. Tests: `ClinicalAddendumDomainTest`,
-  `ClinicalRecordImmutabilityTest`, `ClinicalAddendumApiTest`,
-  `MedicalRecordReadAuditTest`, `MedicalRecordEvolutionTest`,
-  `MedicalRecordEvolutionEventsTest` reescritos, `SoftDeletesTest`,
-  `MedicalRecordIndexTest`, `RoutePermissionMatrixTest`,
+  en vez de una lista vacía. Los 500 de las dos puertas de addenda registran la
+  excepción en el log y responden un mensaje genérico. Eventos: se retiran
+  `MedicalRecordUpdated`, `ClinicalEvolutionUpdated` y
+  `ClinicalEvolutionDeleted` y nace `ClinicalAddendumCreated` en el canal
+  privado `medical-records`. La interfaz reemplaza editar/eliminar por «Agregar
+  addendum» y muestra los addenda junto al original en timeline y detalle.
+  Conteos medidos: 53 modelos, 35 eventos, 120 migraciones, 204 rutas API y 217
+  totales, 21 services, 13 modelos con SoftDeletes. Tests:
+  `ClinicalAddendumDomainTest`, `ClinicalRecordImmutabilityTest`,
+  `ClinicalAddendumApiTest`, `MedicalRecordReadAuditTest`,
+  `MedicalRecordEvolutionTest`, `MedicalRecordEvolutionEventsTest` reescritos,
+  `SoftDeletesTest`, `MedicalRecordIndexTest`, `RoutePermissionMatrixTest`,
   `DomainChannelsPrivateTest`, los guards de `tests/Unit/DesignSystem` de
   Historias y los smokes JS del módulo (incluido
   `medical-records-addendum.test.js`).
