@@ -17,6 +17,17 @@ class ProcedureCatalogResource extends JsonResource
             'specialty' => $this->specialty?->code,
             'specialty_id' => $this->specialty_id,
             'specialty_name' => $this->specialty?->name,
+            // #293 S1: sobre que aplica el procedimiento (none|tooth|surface|quadrant|arch).
+            'site_type' => $this->site_type ?? 'none',
+            // #293 S7: equivalencias con el nomenclador publico; siempre lista.
+            'external_codes' => $this->externalCodes
+                ->map(fn ($externalCode) => [
+                    'system' => $externalCode->system,
+                    'code' => $externalCode->code,
+                    'description' => $externalCode->description,
+                ])
+                ->values()
+                ->all(),
             // 'legacy_specialty' (Sprint 2 DM-7) marcado deprecated. Mantenido
             // para que consumidores existentes no rompan. Usar 'specialty' (FK).
             'legacy_specialty' => $this->legacy_specialty,

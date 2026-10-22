@@ -27,7 +27,15 @@ class ProcedureCatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $filters = $request->only(['q', 'specialty', 'is_active', 'per_page']);
+            $filters = $request->only([
+                'q',
+                'specialty',
+                'site_type',
+                'external_system',
+                'external_code',
+                'is_active',
+                'per_page',
+            ]);
             $page = $this->service->paginate($filters);
 
             return response()->json([
@@ -171,7 +179,7 @@ class ProcedureCatalogController extends Controller
             $procedure = $this->service->create($request->validated());
 
             $this->logAudit('procedure_catalog_created', $procedure, [], $procedure->only([
-                'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost',
+                'code', 'name', 'specialty_id', 'legacy_specialty', 'site_type', 'default_cost',
             ]));
 
             return response()->json([
@@ -191,12 +199,12 @@ class ProcedureCatalogController extends Controller
     {
         try {
             $procedure = $this->service->findOrFail((int) $id);
-            $old = $procedure->only(['code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active']);
+            $old = $procedure->only(['code', 'name', 'specialty_id', 'legacy_specialty', 'site_type', 'default_cost', 'is_active']);
 
             $procedure = $this->service->update($procedure, $request->validated());
 
             $this->logAudit('procedure_catalog_updated', $procedure, $old, $procedure->only([
-                'code', 'name', 'specialty_id', 'legacy_specialty', 'default_cost', 'is_active',
+                'code', 'name', 'specialty_id', 'legacy_specialty', 'site_type', 'default_cost', 'is_active',
             ]));
 
             return response()->json([

@@ -14,10 +14,31 @@ class ProcedureCatalogService
 
     public function paginate(array $filters = []): LengthAwarePaginator
     {
-        $query = ProcedureCatalog::query()->with('specialty');
+        $query = ProcedureCatalog::query()->with(['specialty', 'externalCodes']);
 
         if (! empty($filters['specialty'])) {
             $query->whereHas('specialty', fn ($q) => $q->where('code', $filters['specialty']));
+        }
+
+        if (! empty($filters['site_type'])) {
+            $query->where('site_type', $filters['site_type']);
+        }
+
+        // #293 S7: buscar el procedimiento desde su codigo publico. Sin
+        // `external_system` el codigo se busca en cualquier nomenclador.
+        $externalSystem = $filters['external_system'] ?? null;
+        $externalCode = $filters['external_code'] ?? null;
+
+        if (! empty($externalSystem) || ! empty($externalCode)) {
+            $query->whereHas('externalCodes', function (Builder $q) use ($externalSystem, $externalCode) {
+                if (! empty($externalSystem)) {
+                    $q->where('system', $externalSystem);
+                }
+
+                if (! empty($externalCode)) {
+                    $q->where('code', $externalCode);
+                }
+            });
         }
 
         if (array_key_exists('is_active', $filters) && $filters['is_active'] !== null) {
@@ -158,7 +179,7 @@ class ProcedureCatalogService
 
     public function findOrFail(int $id): ProcedureCatalog
     {
-        return ProcedureCatalog::findOrFail($id);
+        return ProcedureCatalog::with('externalCodes')->findOrFail($id);
     }
 
     /**
@@ -173,7 +194,7 @@ class ProcedureCatalogService
         $perPage = max(1, min($perPage, 100));
 
         $query = ProcedureCatalog::query()
-            ->with('specialty')
+            ->with(['specialty', 'externalCodes'])
             ->active();
 
         if (! empty($filters['specialty'])) {
@@ -234,7 +255,18 @@ class ProcedureCatalogService
 
     public function create(array $data): ProcedureCatalog
     {
-        $procedure = ProcedureCatalog::create($this->normalize($data));
+        $externalCodes = $data['external_codes'] ?? null;
+        $replacesCodes = array_key_exists('external_codes', $data);
+
+        $procedure = DB::transaction(function () use ($data, $externalCodes, $replacesCodes) {
+            $procedure = ProcedureCatalog::create($this->normalize($data));
+
+            if ($replacesCodes) {
+                $this->syncExternalCodes($procedure, $externalCodes);
+            }
+
+            return $procedure;
+        });
 
         $this->fireUpdatedEvent($procedure, 'created', $procedure->getAttributes());
 
@@ -244,7 +276,17 @@ class ProcedureCatalogService
     public function update(ProcedureCatalog $procedure, array $data): ProcedureCatalog
     {
         $before = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
-        $procedure->update($this->normalize($data, isUpdate: true));
+        $replacesCodes = array_key_exists('external_codes', $data);
+        $externalCodes = $data['external_codes'] ?? null;
+
+        DB::transaction(function () use ($procedure, $data, $replacesCodes, $externalCodes) {
+            $procedure->update($this->normalize($data, isUpdate: true));
+
+            if ($replacesCodes) {
+                $this->syncExternalCodes($procedure, $externalCodes);
+            }
+        });
+
         $procedure->refresh();
         $after = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
 
@@ -304,6 +346,36 @@ class ProcedureCatalogService
     }
 
     /**
+     * #293 S7: el alta y la edicion reemplazan el conjunto completo de
+     * equivalencias. `null` o `[]` lo deja vacio.
+     *
+     * @param array<int, array<string, mixed>>|null $codes
+     */
+    private function syncExternalCodes(ProcedureCatalog $procedure, ?array $codes): void
+    {
+        $procedure->externalCodes()->delete();
+
+        $rows = [];
+        foreach ($codes ?? [] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $rows[] = [
+                'system' => $row['system'],
+                'code' => $row['code'],
+                'description' => $row['description'] ?? null,
+            ];
+        }
+
+        if ($rows !== []) {
+            $procedure->externalCodes()->createMany($rows);
+        }
+
+        $procedure->unsetRelation('externalCodes');
+    }
+
+    /**
      * @param  array<string, mixed> $data
      * @return array<string, mixed>
      */
@@ -315,6 +387,7 @@ class ProcedureCatalogService
             'description',
             'specialty_id',
             'legacy_specialty',
+            'site_type',
             'default_cost',
             'default_duration_minutes',
             'requirements',
@@ -338,6 +411,11 @@ class ProcedureCatalogService
             $normalized['is_active'] = $normalized['is_active'] ?? true;
             $normalized['default_cost'] = $normalized['default_cost'] ?? 0;
             $normalized['default_duration_minutes'] = $normalized['default_duration_minutes'] ?? 30;
+            $normalized['site_type'] = $normalized['site_type'] ?? 'none';
+        }
+
+        if (array_key_exists('site_type', $normalized) && ! in_array($normalized['site_type'], ProcedureCatalog::SITE_TYPES, true)) {
+            $normalized['site_type'] = 'none';
         }
 
         if (array_key_exists('steps', $normalized) && is_string($normalized['steps'])) {

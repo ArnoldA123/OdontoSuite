@@ -13,7 +13,17 @@ class ProcedureCatalog extends Model
 {
     use HasFactory;
 
+    /**
+     * #293 S1: superficies sobre las que se ejecuta un procedimiento.
+     * `none` = el acto aplica al paciente completo (sin sitio).
+     */
+    public const SITE_TYPES = ['none', 'tooth', 'surface', 'quadrant', 'arch'];
+
     protected $table = 'procedure_catalog';
+
+    protected $attributes = [
+        'site_type' => 'none',
+    ];
 
     protected $fillable = [
         'code',
@@ -24,6 +34,7 @@ class ProcedureCatalog extends Model
         // Sprint 2 (DM-7): marcado @deprecated. Usar specialty()->code (FK).
         'legacy_specialty',
         'specialty_id',
+        'site_type',
         'default_cost',
         'default_duration_minutes',
         'requirements',
@@ -95,6 +106,16 @@ class ProcedureCatalog extends Model
     public function translations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\ProcedureCatalogTranslation::class, 'procedure_catalog_id');
+    }
+
+    /**
+     * #293 S7: codigos del nomenclador publico (RM 550-2023/MINSA, SIS, ...).
+     */
+    public function externalCodes(): HasMany
+    {
+        return $this->hasMany(ProcedureExternalCode::class, 'procedure_catalog_id')
+            ->orderBy('system')
+            ->orderBy('code');
     }
 
     /**
