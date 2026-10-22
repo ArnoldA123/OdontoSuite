@@ -94,18 +94,6 @@
                 </template>
                 Editar
               </UiButton>
-              <UiButton
-                v-if="can.deleteEvolution?.value"
-                variant="ghost"
-                size="sm"
-                data-evolution-delete
-                @click="confirmDelete(evolution)"
-              >
-                <template #icon-left>
-                  <TrashIcon class="w-4 h-4" aria-hidden="true" />
-                </template>
-                Eliminar
-              </UiButton>
             </div>
           </div>
 
@@ -260,8 +248,7 @@
 </template>
 
 <script setup>
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import { useConfirm } from '@/composables/useConfirm'
+import { PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { usePermissions } from '@/composables/usePermissions'
 import { formatDateOnly } from '@/utils/formatters'
 import UiButton from '@/components/ui/Button.vue'
@@ -289,9 +276,8 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add', 'edit', 'delete'])
+const emit = defineEmits(['add', 'edit'])
 
-const { confirm } = useConfirm()
 const { can } = usePermissions()
 
 // The surface names the four SOAP blocks after the payload columns, so a
@@ -370,18 +356,5 @@ const clinicalMeasurements = evolution => {
       label: measure.label,
       value: measure.format ? measure.format(measure.value) : `${measure.value}${measure.suffix}`
     }))
-}
-
-const confirmDelete = async evolution => {
-  const confirmed = await confirm({
-    title: 'Eliminar evolución',
-    message: `La evolución del ${formatEvolutionDate(evolution.evolution_date)} se moverá al archivo clínico.`,
-    confirmText: 'Eliminar',
-    variant: 'danger'
-  })
-
-  if (confirmed) {
-    emit('delete', evolution.id)
-  }
 }
 </script>

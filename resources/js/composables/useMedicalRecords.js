@@ -160,16 +160,6 @@ export function useMedicalRecords() {
       return updated
     }, 'Error al actualizar historia clínica')
 
-  const deleteRecord = async id =>
-    write(async () => {
-      await del(`/api/medical-records/${id}`)
-      records.value = records.value.filter(record => record.id !== id)
-
-      if (currentRecord.value?.id === id) currentRecord.value = null
-
-      return true
-    }, 'Error al eliminar historia clínica')
-
   const getEvolutions = async recordId =>
     read(
       'evolutions',
@@ -200,14 +190,6 @@ export function useMedicalRecords() {
 
       return updated
     }, 'Error al actualizar evolución')
-
-  const deleteEvolution = async id =>
-    write(async () => {
-      await del(`/api/medical-records/evolutions/${id}`)
-      evolutions.value = evolutions.value.filter(evolution => evolution.id !== id)
-
-      return true
-    }, 'Error al eliminar evolución')
 
   const getAttachments = async (patientId, category = null) => {
     const query = category ? `?category=${encodeURIComponent(category)}` : ''
@@ -308,12 +290,10 @@ export function useMedicalRecords() {
     getRecord,
     createRecord,
     updateRecord,
-    deleteRecord,
 
     getEvolutions,
     addEvolution,
     updateEvolution,
-    deleteEvolution,
 
     getAttachments,
     uploadAttachment,

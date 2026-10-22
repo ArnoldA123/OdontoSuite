@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Api;
 
-use App\Events\ClinicalEvolutionDeleted;
 use App\Events\ClinicalEvolutionUpdated;
 use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
@@ -15,11 +14,9 @@ use Tests\TestCase;
  * Realtime contract for evolution writes (issue #223).
  *
  * The Evoluciones surface already listens for `medical-record.created/updated`
- * and `clinical-evolution.created`, so editing or deleting an evolution left a
- * second tab (or a second professional) on stale data until a manual refresh.
- * These tests pin the two missing broadcasts and the deletion payload the
- * client needs to decide whether it owns the row: `medical_record_id` and
- * `patient_id`.
+ * and `clinical-evolution.created`, so editing an evolution left a second tab
+ * (or a second professional) on stale data until a manual refresh. The deletion
+ * broadcast is gone: an evolution is not deleted (#292).
  */
 class MedicalRecordEvolutionEventsTest extends TestCase
 {
@@ -54,30 +51,6 @@ class MedicalRecordEvolutionEventsTest extends TestCase
                 && $event->broadcastOn()[0]->name === 'private-medical-records'
                 && $serialized['medical_record']['id'] === $record->id
                 && $serialized['medical_record']['patient_id'] === $record->patient_id;
-        });
-    }
-
-    public function test_deleting_an_evolution_broadcasts_its_record_and_patient(): void
-    {
-        Event::fake([ClinicalEvolutionDeleted::class]);
-
-        $user = $this->clinician();
-        $record = MedicalRecord::factory()->create();
-        $evolution = ClinicalEvolution::factory()->forRecord($record)->create();
-
-        $this->actingAs($user, 'sanctum')
-            ->deleteJson("/api/medical-records/evolutions/{$evolution->id}")
-            ->assertOk();
-
-        Event::assertDispatched(ClinicalEvolutionDeleted::class, function ($event) use ($evolution, $record) {
-            $payload = $event->broadcastWith();
-
-            return $event->evolution->id === $evolution->id
-                && $event->broadcastAs() === 'clinical-evolution.deleted'
-                && $event->broadcastOn()[0]->name === 'private-medical-records'
-                && $payload['evolution_id'] === $evolution->id
-                && $payload['medical_record_id'] === $record->id
-                && $payload['patient_id'] === $record->patient_id;
         });
     }
 

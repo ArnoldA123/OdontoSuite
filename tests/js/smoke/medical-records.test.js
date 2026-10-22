@@ -408,34 +408,4 @@ describe('medical-records shell', () => {
 
     wrapper.unmount()
   })
-
-  it('drops a deleted evolution only when the event belongs to the selected patient', async () => {
-    const { wrapper } = await mountPage({ query: { patient_id: '7' } })
-    await wrapper.findAll('[role="tab"]')[1].trigger('click')
-    await flushPromises()
-
-    const callsBefore = calls().length
-
-    await harness.listeners['.clinical-evolution.deleted']({
-      evolution_id: 5,
-      medical_record_id: 21,
-      patient_id: 8
-    })
-    await flushPromises()
-
-    expect(calls().length).toBe(callsBefore)
-    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(true)
-
-    await harness.listeners['.clinical-evolution.deleted']({
-      evolution_id: 5,
-      medical_record_id: 21,
-      patient_id: 7
-    })
-    await flushPromises()
-
-    expect(wrapper.find('[data-evolution-id="5"]').exists()).toBe(false)
-    expect(calls().some(url => url.includes('/api/medical-records/patient/7/stats'))).toBe(true)
-
-    wrapper.unmount()
-  })
 })

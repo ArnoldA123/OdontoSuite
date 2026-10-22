@@ -110,18 +110,6 @@ describe('useMedicalRecords', () => {
     expect(store.evolutions.value).toEqual([{ id: 4, subjective: 'Dolor agudo' }])
   })
 
-  it('deletes an evolution and drops it from the timeline', async () => {
-    const store = useMedicalRecords()
-    api.get.mockResolvedValueOnce({ data: [{ id: 4 }, { id: 5 }] })
-    await store.getEvolutions(12)
-    api.delete.mockResolvedValueOnce({})
-
-    await store.deleteEvolution(4)
-
-    expect(api.delete).toHaveBeenCalledWith('/api/medical-records/evolutions/4')
-    expect(store.evolutions.value).toEqual([{ id: 5 }])
-  })
-
   it('loads the active specialty catalog the evolution form validates against', async () => {
     const payload = [{ id: 1, code: 'endodoncia', name: 'Endodoncia' }]
     api.get.mockResolvedValueOnce({ data: payload })

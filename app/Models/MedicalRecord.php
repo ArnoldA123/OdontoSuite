@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use App\Exceptions\Clinical\ClinicalRecordImmutableException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class MedicalRecord extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'patient_id',
@@ -39,6 +39,13 @@ class MedicalRecord extends Model
         'vital_signs' => 'array',
         'is_active' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        // #292: the history is evidence. Removing the route is not enough; a
+        // controller, a command or a test helper must not erase a signed row.
+        static::deleting(fn () => throw ClinicalRecordImmutableException::medicalRecordNotDeletable());
+    }
 
     // Relaciones
     public function patient(): BelongsTo

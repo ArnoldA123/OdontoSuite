@@ -494,7 +494,6 @@
                     :record="record"
                     @view="viewRecord"
                     @edit="editRecord"
-                    @delete="handleDeleteRecord"
                   />
                 </div>
               </div>
@@ -673,8 +672,6 @@ const {
   getAttachments,
   getSpecialties,
   getStats,
-  deleteRecord,
-  deleteEvolution,
   deleteAttachment,
   reset
 } = useMedicalRecords()
@@ -972,38 +969,6 @@ const retryEvolutions = () => loadEvolutions()
 const retryAttachments = () => loadAttachments()
 const retryStats = () => loadStats()
 
-// Writes: the page owns the toast, the child surfaces own the confirmation.
-const handleDeleteRecord = async recordId => {
-  try {
-    await deleteRecord(recordId)
-    toast.success('Historia clínica eliminada')
-  } catch {
-    toast.error(errors.write || 'No se pudo eliminar la historia clínica')
-
-    return
-  }
-
-  if (!records.value.some(record => record.id === currentRecord.value?.id)) {
-    syncCurrentRecord()
-    await loadEvolutions()
-  }
-
-  await loadStats()
-}
-
-const handleDeleteEvolution = async evolutionId => {
-  try {
-    await deleteEvolution(evolutionId)
-    toast.success('Evolución eliminada')
-  } catch {
-    toast.error(errors.write || 'No se pudo eliminar la evolución')
-
-    return
-  }
-
-  await loadStats()
-}
-
 const handleDeleteAttachment = async attachment => {
   if (!attachment?.id) return
 
@@ -1175,23 +1140,6 @@ const subscribeToMedicalRecords = () => {
 
         await loadStats()
         toast.success('Evolución clínica actualizada')
-      })
-      .listen('.clinical-evolution.deleted', async event => {
-        const patientId = event?.patient_id ?? event?.evolution?.patient_id
-
-        if (!belongsToSelection(patientId)) return
-
-        const evolutionId = event?.evolution_id ?? event?.evolution?.id
-        const recordId = event?.medical_record_id ?? event?.evolution?.medical_record_id
-
-        if (recordId !== undefined && Number(recordId) === Number(currentRecord.value?.id)) {
-          evolutions.value = evolutions.value.filter(evolution => evolution.id !== evolutionId)
-        } else if (recordId === undefined) {
-          await loadEvolutions()
-        }
-
-        await loadStats()
-        toast.success('Evolución clínica eliminada')
       })
       .listen('.clinical-attachment.created', async event => {
         const patientId =

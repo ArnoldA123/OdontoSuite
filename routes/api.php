@@ -310,9 +310,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('quotations/{id}/reject', [QuotationController::class, 'reject']);
     });
 
-    // Medical records (clinical roles only).
+    // Medical records (clinical roles only). #292: no DELETE — a clinical
+    // history is retained and corrected with an addendum, so the resource
+    // exposes only read, alta and detalle.
     Route::middleware('permission:'.Permissions::MANAGE_MEDICAL_RECORD)->group(function () {
-        Route::apiResource('medical-records', MedicalRecordController::class);
+        Route::apiResource('medical-records', MedicalRecordController::class)
+            ->only(['index', 'store', 'show']);
         Route::get('medical-records/patient/{patientId}/attachments', [MedicalRecordController::class, 'getAttachmentsByCategory']);
     });
     Route::get('medical-records/patient/{patientId}/stats', [MedicalRecordController::class, 'getStats'])
@@ -323,7 +326,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Evolution writes share the fixed `evolutions` segment, so they are
         // declared before apiResource for the same reason as attachments.
         Route::put('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'updateEvolution']);
-        Route::delete('medical-records/evolutions/{evolution}', [MedicalRecordController::class, 'deleteEvolution']);
     });
     Route::middleware('permission:'.Permissions::MANAGE_ATTACHMENT)->group(function () {
         // Slice 01 / T-01.3 (API-001): DELETE attachment. Declared BEFORE

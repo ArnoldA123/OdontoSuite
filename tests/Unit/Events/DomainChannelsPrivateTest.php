@@ -11,7 +11,6 @@ use App\Events\CashSessionClosed;
 use App\Events\CashSessionOpened;
 use App\Events\ClinicalAttachmentCreated;
 use App\Events\ClinicalEvolutionCreated;
-use App\Events\ClinicalEvolutionDeleted;
 use App\Events\ClinicalEvolutionUpdated;
 use App\Events\MedicalRecordCreated;
 use App\Events\MedicalRecordUpdated;
@@ -77,7 +76,6 @@ class DomainChannelsPrivateTest extends TestCase
             MedicalRecordUpdated::class => ['medical-records'],
             ClinicalEvolutionCreated::class => ['medical-records'],
             ClinicalEvolutionUpdated::class => ['medical-records'],
-            ClinicalEvolutionDeleted::class => ['medical-records'],
             ClinicalAttachmentCreated::class => ['medical-records'],
             PaymentRegistered::class => ['cash-register'],
             CashSessionOpened::class => ['cash-register'],
@@ -212,12 +210,12 @@ class DomainChannelsPrivateTest extends TestCase
     public function the_guard_still_covers_every_measured_publisher(): void
     {
         $this->assertCount(
-            26,
+            25,
             array_unique(array_map(
                 fn (array $row) => $row[0],
                 self::domainChannelEvents()
             )),
-            'The guard MUST keep the 26 measured publishers; add new ones to this provider.'
+            'The guard MUST keep the 25 measured publishers; add new ones to this provider.'
         );
     }
 

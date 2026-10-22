@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\ClinicalAttachmentCreated;
 use App\Events\ClinicalEvolutionCreated;
-use App\Events\ClinicalEvolutionDeleted;
 use App\Events\ClinicalEvolutionUpdated;
 use App\Events\MedicalRecordCreated;
 use App\Events\MedicalRecordUpdated;
@@ -209,30 +208,6 @@ class MedicalRecordController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(int $id): JsonResponse
-    {
-        try {
-            $record = MedicalRecord::findOrFail($id);
-
-            // Marcar como inactivo en lugar de eliminar
-            $record->update(['is_active' => false]);
-
-            return response()->json([
-                'meta' => [
-                    'message' => 'Historia clínica desactivada exitosamente',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al eliminar historia clínica',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
      * Agregar evolución a la historia clínica.
      */
     public function addEvolution(\App\Http\Requests\StoreEvolutionRequest $request, int $id): JsonResponse
@@ -325,39 +300,6 @@ class MedicalRecordController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al actualizar evolución',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Eliminar (soft) una evolución clínica.
-     */
-    public function deleteEvolution(int $id): JsonResponse
-    {
-        try {
-            // El modelo se conserva en memoria para el broadcast: despues del
-            // soft delete la fila ya no es legible para el cliente.
-            $evolution = ClinicalEvolution::findOrFail($id);
-
-            $this->medicalRecordService->deleteEvolution($evolution->id);
-
-            // Emitir evento de WebSocket con el medical_record_id necesario
-            // para que el cliente filtre el borrado (issue #223).
-            event(new ClinicalEvolutionDeleted($evolution));
-
-            return response()->json([
-                'meta' => [
-                    'message' => 'Evolución eliminada exitosamente',
-                ],
-            ]);
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'Evolución no encontrada',
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error al eliminar evolución',
                 'error' => $e->getMessage(),
             ], 500);
         }

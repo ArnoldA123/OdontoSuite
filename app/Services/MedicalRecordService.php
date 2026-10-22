@@ -150,14 +150,6 @@ class MedicalRecordService
     }
 
     /**
-     * Eliminar (soft) una evolución.
-     */
-    public function deleteEvolution(int $evolutionId): bool
-    {
-        return (bool) ClinicalEvolution::findOrFail($evolutionId)->delete();
-    }
-
-    /**
      * Eliminar archivo adjunto.
      *
      * Contract (#244): the binary is deleted from the `public` disk and the row
