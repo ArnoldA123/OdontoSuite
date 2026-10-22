@@ -132,6 +132,8 @@
               v-model="formData.reference"
               label="Referencia"
               placeholder="Número de operación, voucher, etc."
+              :required="requiresReference"
+              :hint="referenceHint"
               :error="fieldError('reference')"
               data-payment-reference
             />
@@ -358,6 +360,14 @@ const selectedPaymentMethod = computed(() =>
   paymentMethods.value.find(method => method.id === Number(formData.value.payment_method_id))
 )
 
+// #291: a card, a transfer or a wallet leaves a voucher behind, so the method
+// itself decides whether the reference is part of the charge.
+const requiresReference = computed(() => selectedPaymentMethod.value?.requires_reference === true)
+
+const referenceHint = computed(() =>
+  requiresReference.value ? 'Obligatorio para este método de pago.' : ''
+)
+
 const paymentMethodOptions = computed(() =>
   paymentMethods.value.map(method => ({
     value: method.id,
@@ -498,7 +508,13 @@ const handleSubmit = async () => {
     const apiError = error.response?.data
 
     if (apiError?.errors) {
-      errors.value = apiError.errors
+      // #291: the API names the column (`reference_number`); the form names the
+      // input (`reference`). The field error must land where the user types.
+      const mapped = { ...apiError.errors }
+      if (mapped.reference_number && !mapped.reference) {
+        mapped.reference = mapped.reference_number
+      }
+      errors.value = mapped
     } else if (apiError?.message) {
       errors.value = { general: [apiError.message] }
     } else {

@@ -72,6 +72,16 @@ const paymentMethod = {
   commission_percentage: 0
 }
 
+const cardPaymentMethod = {
+  id: 4,
+  name: 'Tarjeta de crédito',
+  description: 'Visa, Mastercard',
+  gateway_type: null,
+  type: 'card',
+  requires_reference: true,
+  commission_percentage: 3.5
+}
+
 const router = createRouter({
   history: createMemoryHistory(),
   routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }]
@@ -316,6 +326,52 @@ describe('PaymentModal', () => {
     const error = document.querySelector('[data-payment-error]')
     expect(error).not.toBeNull()
     expect(error.textContent).toContain('La cita ya tiene una transacción activa.')
+    expect(wrapper.emitted('success')).toBeUndefined()
+  })
+
+  it('asks for the reference when the chosen method demands one', async () => {
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [paymentMethod, cardPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Tarjeta de crédito')
+
+    const reference = document.querySelector('[data-payment-reference]')
+    expect(reference.querySelector('input').required).toBe(true)
+    expect(reference.textContent).toContain('Obligatorio para este método de pago.')
+  })
+
+  it('shows the reference error of the API on the reference field', async () => {
+    harness.apiGet.mockImplementation(url => {
+      if (url === '/api/payment-methods/active') {
+        return Promise.resolve({ data: [cardPaymentMethod] })
+      }
+      return Promise.resolve({ data: [], meta: { total: 0 } })
+    })
+    harness.apiPost.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'El método de pago Tarjeta de crédito exige un número de referencia.',
+          errors: {
+            reference_number: [
+              'El método de pago Tarjeta de crédito exige un número de referencia.'
+            ]
+          }
+        }
+      }
+    })
+
+    await mountPaymentModal()
+    await chooseOption('method', 'Tarjeta de crédito')
+    await submitPayment()
+
+    const reference = document.querySelector('[data-payment-reference]')
+    expect(reference.textContent).toContain('exige un número de referencia')
     expect(wrapper.emitted('success')).toBeUndefined()
   })
 
