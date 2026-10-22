@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Authorization\BranchAccess;
 use App\Models\Branch;
 use App\Models\Concerns\ScopesToBranch;
+use App\Models\Transaction;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -42,21 +43,42 @@ class EnforceBranchScope
             return $next($request);
         }
 
-        // A sede named in the payload is authorization, not a filter: asking to
-        // read or write another sede is a 403 in every method.
-        if ($request->filled('branch_id')) {
-            BranchAccess::assertBranch($user, (int) $request->input('branch_id'));
-        }
+        $write = in_array($request->method(), self::WRITE_METHODS, true);
 
-        if (! in_array($request->method(), self::WRITE_METHODS, true)) {
-            return $next($request);
+        // A sede named in the payload is authorization, not a filter.
+        //
+        //  - A numeric value is always asserted: naming another sede is 403 read
+        //    or write, and an empty filter on a read stays a filter.
+        //  - An explicit null/empty value on PUT/PATCH asks to clear the sede,
+        //    which a restricted user cannot do; the model guard would answer
+        //    that as a 500, so the middleware answers the 403 first.
+        //  - On POST the same value means «no sede provided» and the model
+        //    stamps the actor's sede, which is the create contract.
+        $requested = $request->input('branch_id');
+
+        if ($request->exists('branch_id') && is_numeric($requested)) {
+            BranchAccess::assertBranch($user, (int) $requested);
+        } elseif ($write && in_array($request->method(), ['PUT', 'PATCH'], true) && $request->exists('branch_id')) {
+            BranchAccess::assertBranch($user, null);
         }
 
         foreach ($request->route()?->parameters() ?? [] as $parameter) {
             // A sede addressed by the route (tarifario, bloqueo contable) is a
-            // write target of its own.
+            // target of its own in every method: reading another sede's tariff
+            // is out of reach too.
             if ($parameter instanceof Branch) {
                 BranchAccess::assertBranch($user, $parameter->id);
+
+                continue;
+            }
+
+            if (! $write) {
+                continue;
+            }
+
+            // Transactions have no branch column: their sede is the drawer's.
+            if ($parameter instanceof Transaction) {
+                BranchAccess::assertBranch($user, $parameter->branchIdForScope());
 
                 continue;
             }

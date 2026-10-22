@@ -104,11 +104,17 @@ class TransactionController extends Controller
     public function show(Transaction $transaction): JsonResponse
     {
         try {
+            // #283 S3: otra sede responde 404, como el resto de modelos
+            // operativos; la sede de una transacción es la de su cajón.
+            $transaction = Transaction::query()->visibleToBranch()->findOrFail($transaction->id);
             $transaction->load(['patient', 'appointment', 'treatmentPlan', 'paymentMethod', 'createdBy']);
 
             return response()->json([
                 'data' => $transaction,
             ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // #283 S3: la transacción de otra sede no se sirve, se responde 404.
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al obtener la transacción',
@@ -271,7 +277,7 @@ class TransactionController extends Controller
     public function list(Request $request): JsonResponse
     {
         try {
-            $query = Transaction::with(['patient', 'paymentMethod'])
+            $query = Transaction::query()->visibleToBranch()->with(['patient', 'paymentMethod'])
                 ->where('status', 'completed');
 
             if ($request->has('patient_id')) {

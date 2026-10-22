@@ -306,7 +306,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   y la historia clínica son compartidas entre sedes (ADR-0010); agenda,
   sillones, caja, personal e inventario no lo son. La matriz escritorio ×
   permiso vive en `App\Authorization\Desks` y se publica en
-  `docs/architecture/desks.md`.
+  `docs/architecture/desks.md`. En una escritura `PUT/PATCH`, un `branch_id`
+  nulo es 403 (la sede no se limpia desde una sesión de sede); en `POST` el
+  mismo valor significa «sin sede» y el modelo estampa la del actor.
 - Bloqueo contable (#283): `accounting_locks` guarda `locked_through` por módulo
   (`cash_transactions`, `cash_movements`, `quotations`, `treatment_plans`) y
   sede, con la fila de la sede por encima de la global. Mutar dinero con fecha

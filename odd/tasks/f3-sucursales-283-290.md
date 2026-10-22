@@ -53,6 +53,11 @@ con una regla explícita, escrita y cubierta por test.
   guardas estáticas. Commit: este mismo commit.
 - T7 — verificación: suite MySQL completa, Vitest, Pint, ESLint, Prettier,
   `doc-drift`, revisión nativa y PR.
+- T8 — S3, S6 — cierre de los hallazgos de la verificación independiente:
+  `Transaction` sin alcance por sede (la sede es la de su cajón), cobros
+  pendientes acotados con 403 antes de escribir dinero, lectura del tarifario de
+  otra sede y `branch_id` nulo en una escritura respondiendo 403 en lugar de 500.
+  Commit: `C7`.
 
 ## Contrato decidido
 
@@ -159,7 +164,8 @@ revisión se hace por unidad, no por el acumulado.
 | C3b | `1d56bb9` `feat(cash): refuse money mutations inside the freeze and audit the attempt` | guardas en caja, presupuestos y planes, 403 reenviado en cuatro controladores, pruebas HTTP | 979 |
 | C4 | `780303a` `feat(catalog): give each sede its own tariff inside a validity window` | `procedure_branch_prices`, resolver, controlador, picker y snapshot | 691 |
 | C5 | `7567301` `feat(reports): consolidate revenue per sede and per professional` | servicio consolidado, endpoint y cuadre | 380 |
-| C6 | (este commit) | AGENTS §4/§7/§12, CREDENTIALS, ADR-0010, fixture de permisos y frontera de slices | — |
+| C7 | (este commit) | los hallazgos de la verificación independiente: alcance de `Transaction`, cobros pendientes, lectura del tarifario y `branch_id` nulo | ~450 |
+| C6 | `0107796` | AGENTS §4/§7/§12, CREDENTIALS, ADR-0010, fixture de permisos y frontera de slices | — |
 
 ## Fuera de alcance (declarado)
 
@@ -229,6 +235,22 @@ sedes en `RequireGlobalBranchScope`; y por eso las cuatro puertas de dinero con
 caso en presupuestos y planes, que estaban fuera de su superficie; la decisión
 fue aplicar el reenvío en este carril (su opción 3) y cubrirlo con
 `AccountingLockHttpGuardTest` (403, fila intacta, auditoría).
+
+L9 (verificación independiente). `gentle-ai-verify` sobre `59a0a09..HEAD`
+devolvió S1/S9/S4/S5/S7 PASS, S2/S3/S6 y S8 con hallazgos. Bloqueante: las
+transacciones no tienen `branch_id` y el modelo no usaba el alcance, así que un
+usuario de sede podía leer y actualizar por id una transacción de otra sede. No
+bloqueantes: los cobros pendientes listaban todas las sedes y cobrar una cita
+ajena respondía 500 después de escribir la transacción; la lectura del tarifario
+de otra sede no se rechazaba (el middleware sólo miraba parámetros de ruta en
+escrituras); `branch_id: null` en una escritura caía en el guard del modelo y
+respondía 500; y el controlador del consolidado atrapaba `\Throwable` sin
+reenviar la autorización. Cerrado todo en C7: la sede de una transacción es la de
+su cajón (scope + 404 en lectura, 403 en escritura), los cobros pendientes se
+acotan por sede y se rechazan antes de crear dinero, el middleware afirma la
+`{branch}` de ruta en cualquier método y los `PUT/PATCH` con `branch_id` nulo
+responden 403 (en `POST` ese valor significa «sin sede» y se estampa la del
+actor). `BranchScopeCashSurfaceTest` lo fija (8 tests).
 
 L8 (verificación medida). Suite MySQL completa: `OK (2320 tests, 13676
 assertions)` —2257 de línea base más 63 de la entrega—. `vendor/bin/pint --test`

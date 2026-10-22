@@ -175,6 +175,8 @@ class ReportController extends Controller
                 ]),
                 'meta' => ['message' => 'Reporte consolidado generado exitosamente'],
             ]);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('No se pudo generar el reporte consolidado', ['exception' => $e]);
 
