@@ -109,7 +109,11 @@ describe('quotations edit form', () => {
     await flushPromises()
 
     // Gross 100 at 18%: base 84.75 plus IGV 15.25, and the patient still pays 100.
-    const amount = selector => root().querySelector(selector).textContent.replace(/\u00a0/g, ' ').trim()
+    const amount = selector =>
+      root()
+        .querySelector(selector)
+        .textContent.replace(/\u00a0/g, ' ')
+        .trim()
 
     expect(amount('[data-summary-tax]')).toBe('S/ 15.25')
     expect(amount('[data-summary-total]')).toBe('S/ 100.00')
