@@ -21,6 +21,11 @@ class QuotationItem extends Model
         'item_description',
         'quantity',
         'unit_price',
+        // #293 S4/S6: the evidence of the tariff the line froze.
+        'price_source',
+        'price_row_id',
+        'price_valid_from',
+        'price_valid_to',
         'total_price',
         'specialty',
         'notes',
@@ -29,6 +34,8 @@ class QuotationItem extends Model
     protected $casts = [
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'price_valid_from' => 'date',
+        'price_valid_to' => 'date',
     ];
 
     // Relaciones

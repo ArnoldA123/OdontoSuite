@@ -15,6 +15,7 @@ use App\Support\ProcedureSiteRule;
 use App\Support\QuotationTax;
 use App\Support\QuotationText;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,11 +25,14 @@ use Illuminate\Validation\ValidationException;
 class QuotationService
 {
     /**
-     * F3 (#283, S4/S5): the accounting lock. The default keeps the service
-     * constructible without the container.
+     * F3 (#283, S4/S5): the accounting lock. #293 S4/S6: the tariff resolver is
+     * the only reader of a price, so a line and the document that carries it can
+     * never disagree. The default objects keep the service constructible without
+     * the container.
      */
     public function __construct(
         private readonly AccountingLockService $accountingLocks = new AccountingLockService,
+        private readonly ProcedurePriceResolver $prices = new ProcedurePriceResolver,
     ) {}
 
     /**
@@ -39,37 +43,21 @@ class QuotationService
 
     /**
      * Generar presupuesto desde un plan de tratamiento.
+     *
+     * #293 S4: the emission is the commercial act, so every line is frozen at
+     * the tariff in force on `quotation_date` and the document's gross is the
+     * sum of those lines — never the total the plan carried when it was written.
      */
     public function generateQuotation(int $treatmentPlanId, array $data = []): Quotation
     {
         return DB::transaction(function () use ($treatmentPlanId, $data) {
             $plan = TreatmentPlan::with(['patient', 'items.procedureCatalog'])->findOrFail($treatmentPlanId);
 
-            $quotationData = [
-                'treatment_plan_id' => $treatmentPlanId,
-                'patient_id' => $plan->patient_id,
-                'created_by' => Auth::id(),
-                'quotation_number' => $this->generateQuotationNumber(),
-                'quotation_date' => now()->toDateString(),
-                'valid_until' => now()->addDays(30)->toDateString(),
-                'subtotal' => $plan->total_cost,
-                'discount_percentage' => $data['discount_percentage'] ?? 0,
-                'discount_amount' => $data['discount_amount'] ?? 0,
-                'tax_percentage' => $data['tax_percentage'] ?? QuotationTax::defaultPercentage(),
-                'tax_amount' => 0,
-                'total_amount' => $plan->final_cost,
-                'status' => 'draft',
-                'terms_conditions' => $data['terms_conditions'] ?? '',
-                'notes' => $data['notes'] ?? '',
-                'payment_terms' => $data['payment_terms'] ?? [],
-            ];
+            $issueDate = $this->issueDate($data['quotation_date'] ?? null);
+            $payerId = $data['payer_id'] ?? null;
 
-            // Calcular descuentos e impuestos
-            $this->calculateAmounts($quotationData);
+            $lines = [];
 
-            $quotation = Quotation::create($quotationData);
-
-            // Crear items del presupuesto
             foreach ($plan->items as $item) {
                 $site = $this->normalizedSite([
                     'dental_piece_id' => $item->dental_piece_id,
@@ -81,8 +69,15 @@ class QuotationService
                 // the site of its procedure before it can become an estimate.
                 ProcedureSiteRule::assertFor($item->procedureCatalog, $site);
 
-                QuotationItem::create([
-                    'quotation_id' => $quotation->id,
+                $frozen = $this->freezeLine(
+                    ['quantity' => $item->quantity, 'unit_price' => $item->unit_cost],
+                    $item->procedure_catalog_id,
+                    $plan->branch_id,
+                    $payerId,
+                    $issueDate,
+                );
+
+                $lines[] = array_merge([
                     'treatment_plan_item_id' => $item->id,
                     'procedure_catalog_id' => $item->procedure_catalog_id,
                     'dental_piece_id' => $site['dental_piece_id'],
@@ -92,9 +87,38 @@ class QuotationService
                     'item_description' => $item->procedure_description,
                     'specialty' => $item->specialty,
                     'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_cost,
-                    'total_price' => $item->quantity * $item->unit_cost,
-                ]);
+                ], $frozen);
+            }
+
+            $gross = $this->grossOf($lines);
+
+            $quotationData = [
+                'treatment_plan_id' => $treatmentPlanId,
+                'patient_id' => $plan->patient_id,
+                'payer_id' => $payerId,
+                'created_by' => Auth::id(),
+                'quotation_number' => $this->generateQuotationNumber(),
+                'quotation_date' => $issueDate,
+                'valid_until' => now()->addDays(30)->toDateString(),
+                'subtotal' => $gross,
+                'discount_percentage' => $data['discount_percentage'] ?? 0,
+                'discount_amount' => $data['discount_amount'] ?? 0,
+                'tax_percentage' => $data['tax_percentage'] ?? QuotationTax::defaultPercentage(),
+                'tax_amount' => 0,
+                'total_amount' => $gross,
+                'status' => 'draft',
+                'terms_conditions' => $data['terms_conditions'] ?? '',
+                'notes' => $data['notes'] ?? '',
+                'payment_terms' => $data['payment_terms'] ?? [],
+            ];
+
+            // Calcular descuentos e impuestos
+            $this->calculateAmounts($quotationData);
+
+            $quotation = Quotation::create($quotationData);
+
+            foreach ($lines as $line) {
+                QuotationItem::create($line + ['quotation_id' => $quotation->id]);
             }
 
             $quotation->refresh();
@@ -113,50 +137,47 @@ class QuotationService
 
     /**
      * Crear presupuesto manual.
+     *
+     * #293 S4: the lines are frozen before the document exists, because the
+     * gross the IGV is decomposed from is their sum whenever lines are provided.
      */
     public function createQuotation(array $data): Quotation
     {
         return DB::transaction(function () use ($data) {
+            $issueDate = $this->issueDate($data['quotation_date'] ?? null);
+            $payerId = $data['payer_id'] ?? null;
+            $branchId = $this->referenceBranch(
+                isset($data['treatment_plan_id']) ? (int) $data['treatment_plan_id'] : null
+            );
+
+            $lines = [];
+
+            if (isset($data['items']) && is_array($data['items'])) {
+                foreach ($data['items'] as $itemData) {
+                    $lines[] = $this->manualLine($itemData, $branchId, $payerId, $issueDate);
+                }
+            }
+
+            $data['payer_id'] = $payerId;
             $data['quotation_number'] = $this->generateQuotationNumber();
             $data['created_by'] = Auth::id();
-            $data['quotation_date'] = $data['quotation_date'] ?? now()->toDateString();
+            $data['quotation_date'] = $issueDate;
             $data['valid_until'] = $data['valid_until'] ?? now()->addDays(30)->toDateString();
             $data['status'] = 'draft';
+
+            // The server's number is the sum of the lines: a client cannot
+            // declare a total the document does not describe.
+            if ($lines !== []) {
+                $data['subtotal'] = $this->grossOf($lines);
+            }
 
             // Calcular totales
             $this->calculateAmounts($data);
 
             $quotation = Quotation::create($data);
 
-            // Crear items si se proporcionan
-            if (isset($data['items']) && is_array($data['items'])) {
-                foreach ($data['items'] as $itemData) {
-                    $procedureId = isset($itemData['procedure_catalog_id']) && $itemData['procedure_catalog_id'] !== ''
-                        ? (int) $itemData['procedure_catalog_id']
-                        : null;
-                    $site = $this->normalizedSite($itemData);
-
-                    // #293 S2: a manual line that names a procedure carries the
-                    // site the procedure applies to, or it is not written.
-                    ProcedureSiteRule::assertFor(
-                        $procedureId !== null ? ProcedureCatalog::find($procedureId) : null,
-                        $site,
-                    );
-
-                    QuotationItem::create([
-                        'quotation_id' => $quotation->id,
-                        'procedure_catalog_id' => $procedureId,
-                        'dental_piece_id' => $site['dental_piece_id'],
-                        'tooth_surface_id' => $site['tooth_surface_id'],
-                        'site_code' => $site['site_code'],
-                        'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
-                        'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
-                        'specialty' => $itemData['specialty'] ?? null,
-                        'quantity' => $itemData['quantity'],
-                        'unit_price' => $itemData['unit_price'],
-                        'total_price' => $itemData['quantity'] * $itemData['unit_price'],
-                    ]);
-                }
+            foreach ($lines as $line) {
+                QuotationItem::create($line + ['quotation_id' => $quotation->id]);
             }
 
             $quotation->refresh();
@@ -210,47 +231,48 @@ class QuotationService
         return DB::transaction(function () use ($id, $data) {
             $quotation = Quotation::findOrFail($id);
 
-            // Calcular totales si se modificaron. `subtotal` entra en la lista
-            // porque es el importe bruto del que se descompone todo lo demás.
-            if (isset($data['subtotal'])
+            // #293 S4: an edit is priced on the delivery the estimate already
+            // declared, not on today, so the delivered document keeps the
+            // tariff in force on its own issue date.
+            $issueDate = $quotation->quotation_date?->toDateString() ?? $this->issueDate(null);
+            $payerId = $data['payer_id'] ?? $quotation->payer_id;
+            $branchId = $this->referenceBranch($quotation->treatment_plan_id);
+
+            $lines = null;
+
+            if (isset($data['items']) && is_array($data['items'])) {
+                $lines = [];
+
+                foreach ($data['items'] as $itemData) {
+                    $lines[] = $this->manualLine($itemData, $branchId, $payerId, $issueDate);
+                }
+            }
+
+            // Calcular totales. #293 S4: a changed line changes the document,
+            // so the gross is the frozen sum of the new lines even when the
+            // payload sends no `subtotal`; a partial payload that touches no
+            // line keeps the #289 rule (stored total + discount, applied once).
+            if ($lines !== null) {
+                $data['subtotal'] = $this->grossOf($lines);
+                $this->calculateAmounts($data, $quotation);
+            } elseif (isset($data['subtotal'])
                 || isset($data['discount_percentage'])
                 || isset($data['discount_amount'])
                 || isset($data['tax_percentage'])) {
                 $this->calculateAmounts($data, $quotation);
             }
 
+            $data['payer_id'] = $payerId;
+
             $quotation->update($data);
 
-            // Actualizar items si se proporcionan
-            if (isset($data['items']) && is_array($data['items'])) {
+            if ($lines !== null) {
                 // Eliminar items existentes
                 $quotation->items()->delete();
 
                 // Crear nuevos items
-                foreach ($data['items'] as $itemData) {
-                    $procedureId = isset($itemData['procedure_catalog_id']) && $itemData['procedure_catalog_id'] !== ''
-                        ? (int) $itemData['procedure_catalog_id']
-                        : null;
-                    $site = $this->normalizedSite($itemData);
-
-                    ProcedureSiteRule::assertFor(
-                        $procedureId !== null ? ProcedureCatalog::find($procedureId) : null,
-                        $site,
-                    );
-
-                    QuotationItem::create([
-                        'quotation_id' => $quotation->id,
-                        'procedure_catalog_id' => $procedureId,
-                        'dental_piece_id' => $site['dental_piece_id'],
-                        'tooth_surface_id' => $site['tooth_surface_id'],
-                        'site_code' => $site['site_code'],
-                        'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
-                        'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
-                        'specialty' => $itemData['specialty'] ?? null,
-                        'quantity' => $itemData['quantity'],
-                        'unit_price' => $itemData['unit_price'],
-                        'total_price' => $itemData['quantity'] * $itemData['unit_price'],
-                    ]);
+                foreach ($lines as $line) {
+                    QuotationItem::create($line + ['quotation_id' => $quotation->id]);
                 }
             }
 
@@ -417,6 +439,120 @@ class QuotationService
             'tooth_surface_id' => $itemData['tooth_surface_id'] ?? null,
             'site_code' => $itemData['site_code'] ?? null,
         ]);
+    }
+
+    /**
+     * The row of a manual line, already frozen at the issue date.
+     *
+     * @param  array<string, mixed> $itemData
+     * @return array<string, mixed>
+     */
+    private function manualLine(array $itemData, ?int $branchId, ?int $payerId, string $issueDate): array
+    {
+        $procedureId = isset($itemData['procedure_catalog_id']) && $itemData['procedure_catalog_id'] !== ''
+            ? (int) $itemData['procedure_catalog_id']
+            : null;
+        $site = $this->normalizedSite($itemData);
+
+        // #293 S2: a manual line that names a procedure carries the site the
+        // procedure applies to, or it is not written.
+        ProcedureSiteRule::assertFor(
+            $procedureId !== null ? ProcedureCatalog::find($procedureId) : null,
+            $site,
+        );
+
+        return array_merge([
+            'procedure_catalog_id' => $procedureId,
+            'dental_piece_id' => $site['dental_piece_id'],
+            'tooth_surface_id' => $site['tooth_surface_id'],
+            'site_code' => $site['site_code'],
+            'item_name' => $itemData['description'] ?? $itemData['item_name'] ?? '',
+            'item_description' => $itemData['item_description'] ?? $itemData['description'] ?? '',
+            'specialty' => $itemData['specialty'] ?? null,
+            'quantity' => $itemData['quantity'],
+        ], $this->freezeLine($itemData, $procedureId, $branchId, $payerId, $issueDate));
+    }
+
+    /**
+     * #293 S4/S6 — freeze one line at the tariff in force on the issue date.
+     *
+     * A line without a catalog procedure is free text: it keeps the price it
+     * carries and records no evidence, because no tariff produced it. A line
+     * with one ignores whatever price the client sent and stores what the
+     * cascade resolved, together with the row and the window that applied.
+     *
+     * @param  array<string, mixed>                                                                                                                        $itemData
+     * @return array{unit_price: float, total_price: float, price_source: ?string, price_row_id: ?int, price_valid_from: ?string, price_valid_to: ?string}
+     */
+    private function freezeLine(
+        array $itemData,
+        ?int $procedureCatalogId,
+        ?int $branchId,
+        ?int $payerId,
+        string $issueDate,
+    ): array {
+        $quantity = (float) ($itemData['quantity'] ?? 0);
+        $procedure = $procedureCatalogId !== null ? ProcedureCatalog::find($procedureCatalogId) : null;
+
+        if ($procedure === null) {
+            $unitPrice = round((float) ($itemData['unit_price'] ?? 0), 2);
+
+            return [
+                'unit_price' => $unitPrice,
+                'total_price' => round($quantity * $unitPrice, 2),
+                'price_source' => null,
+                'price_row_id' => null,
+                'price_valid_from' => null,
+                'price_valid_to' => null,
+            ];
+        }
+
+        $resolved = $this->prices->resolve(
+            $procedure,
+            $branchId,
+            Carbon::parse($issueDate),
+            $payerId,
+        );
+
+        return [
+            'unit_price' => $resolved['price'],
+            'total_price' => round($quantity * $resolved['price'], 2),
+            'price_source' => $resolved['source'],
+            'price_row_id' => $resolved['price_id'],
+            'price_valid_from' => $resolved['valid_from'],
+            'price_valid_to' => $resolved['valid_to'],
+        ];
+    }
+
+    /**
+     * The day the tariff is resolved on, as `Y-m-d`.
+     */
+    private function issueDate(mixed $value): string
+    {
+        return Carbon::parse($value ?? now())->toDateString();
+    }
+
+    /**
+     * The sede a line is priced against: the plan's own, or the caller's when
+     * the estimate does not come from a plan.
+     */
+    private function referenceBranch(?int $treatmentPlanId): ?int
+    {
+        if ($treatmentPlanId === null) {
+            return $this->prices->currentBranchId();
+        }
+
+        $branchId = TreatmentPlan::query()->whereKey($treatmentPlanId)->value('branch_id');
+
+        return $branchId !== null ? (int) $branchId : null;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $lines
+     */
+    private function grossOf(array $lines): float
+    {
+        return round(array_sum(array_column($lines, 'total_price')), 2);
     }
 
     /**

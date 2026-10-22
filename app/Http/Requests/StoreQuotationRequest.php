@@ -37,6 +37,8 @@ class StoreQuotationRequest extends FormRequest
         return [
             'treatment_plan_id' => 'sometimes|nullable|exists:treatment_plans,id',
             'patient_id' => 'sometimes|nullable|exists:patients,id',
+            // #293 S3/S4: the estimate names the convenio it was priced under.
+            'payer_id' => 'nullable|exists:payers,id',
             'quotation_date' => 'sometimes|nullable|date|before_or_equal:today',
             'valid_until' => 'sometimes|nullable|date|after:quotation_date',
             'subtotal' => 'required|numeric|min:0|max:999999.99',
@@ -72,6 +74,7 @@ class StoreQuotationRequest extends FormRequest
     {
         return [
             'patient_id.exists' => 'El paciente seleccionado no existe',
+            'payer_id.exists' => 'El convenio seleccionado no existe',
             // BF-009 — no 'patient_id.required' message; rule is sometimes|nullable.
             'treatment_plan_id.exists' => 'El plan de tratamiento seleccionado no existe',
             'subtotal.required' => 'El subtotal es obligatorio',

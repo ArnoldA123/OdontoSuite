@@ -166,11 +166,15 @@ class QuotationIndexSummaryTest extends TestCase
         $this->assertNull($quotation->treatment_plan_id);
         $this->assertSame('draft', $quotation->status);
         $this->assertSame($patient->id, $quotation->patient_id);
-        $this->assertSame('250.00', $quotation->total_amount);
+        // #293 S4: with lines, the document's gross is the sum of the frozen
+        // line totals (2 × 100), not the subtotal the client declared.
+        $this->assertSame('200.00', $quotation->total_amount);
 
         $item = QuotationItem::firstOrFail();
         $this->assertSame('Limpieza dental', $item->item_name);
         $this->assertSame('200.00', $item->total_price);
+        // A free-text line keeps its price and carries no tariff evidence.
+        $this->assertNull($item->price_source);
     }
 
     public function test_approving_a_quotation_persists_the_approval_record(): void

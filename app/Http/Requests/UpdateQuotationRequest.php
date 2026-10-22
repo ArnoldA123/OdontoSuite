@@ -28,6 +28,8 @@ class UpdateQuotationRequest extends FormRequest
             'quotation_date' => 'nullable|date',
             'valid_until' => 'nullable|date|after:quotation_date',
             'subtotal' => 'nullable|numeric|min:0',
+            // #293 S3/S4: the estimate names the convenio it was priced under.
+            'payer_id' => 'nullable|exists:payers,id',
             'discount_percentage' => 'nullable|numeric|min:0|max:100',
             'discount_amount' => 'nullable|numeric|min:0',
             'tax_percentage' => 'nullable|numeric|min:0|max:100',
@@ -50,6 +52,7 @@ class UpdateQuotationRequest extends FormRequest
     {
         return [
             'valid_until.after' => 'La fecha de vencimiento debe ser posterior a la fecha del presupuesto',
+            'payer_id.exists' => 'El convenio seleccionado no existe',
             'terms_conditions.max' => 'Las condiciones no pueden exceder 2000 caracteres',
             'notes.max' => 'Las notas no pueden exceder 1000 caracteres',
         ];

@@ -219,13 +219,25 @@ class ProcedureBranchPriceTest extends TestCase
             'unit_cost' => $applied['price'],
         ]);
 
-        // The tariff changes after the plan was written.
+        // #293 S4 superseded the earlier expectation: the estimate freezes the
+        // tariff in force on its issue date, not the price the plan copied.
         $priceRow->update(['price' => 95.0]);
 
         $this->actingAs($actor, 'sanctum');
         $quotation = app(QuotationService::class)->generateQuotation($plan->id);
         $item = $quotation->items()->firstOrFail();
 
-        $this->assertSame(80.0, (float) $item->unit_price);
+        $this->assertSame(95.0, (float) $item->unit_price);
+        $this->assertSame($priceRow->id, $item->price_row_id);
+        $this->assertSame('95.00', $quotation->fresh()->total_amount);
+
+        // The issued estimate does not follow a later tariff change.
+        $priceRow->update(['price' => 120.0]);
+
+        $still = $quotation->fresh()->items()->firstOrFail();
+
+        $this->assertSame(95.0, (float) $still->unit_price);
+        $this->assertSame($priceRow->id, $still->price_row_id);
+        $this->assertSame('95.00', $quotation->fresh()->total_amount);
     }
 }
