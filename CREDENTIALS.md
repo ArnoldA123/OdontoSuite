@@ -72,7 +72,9 @@ del login es el `username`** (no el email, no el nombre).
 > consultas: ese endpoint escribe historia clínica. Desde #281 la custodia del
 > paciente es explícita: recepción registra la llegada y anuncia, el profesional
 > inicia la atención desde su cola, y cada traspaso queda con autor, hora y
-> puerta.
+> puerta. Desde #282 el acto clínico es una entidad propia
+> (`clinical_encounters`): abrirlo, cerrarlo y anularlo son actos clínicos, y la
+> atención de urgencia existe sin cita.
 
 | Funcionalidad                | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ---------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -92,6 +94,10 @@ del login es el `username`** (no el email, no el nombre).
 | Iniciar atención             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Escritorio Mi día            | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Completar consulta (clínica) | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Abrir atención de urgencia   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Cerrar atención (sin cita)   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Anular atención abierta      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver atenciones clínicas      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | **Reportes/BI**              |
 | Ver reportes                 | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Exportar datos               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |

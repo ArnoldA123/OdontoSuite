@@ -6,11 +6,15 @@ use App\Events\AppointmentCompleted;
 use App\Exceptions\Consultation\AppointmentNotInConsultationException;
 use App\Exceptions\Consultation\InvalidConsultationModeException;
 use App\Exceptions\Consultation\InvalidTreatmentPlanException;
+use App\Exceptions\Consultation\MissingClosedEncounterException;
 use App\Exceptions\Consultation\MissingEvolutionException;
 use App\Exceptions\Consultation\MissingMaterialsException;
+use App\Exceptions\Consultation\NextAppointmentRequiresAppointmentException;
 use App\Exceptions\Consultation\UnexpectedMaterialsException;
+use App\Exceptions\Encounter\EncounterException;
 use App\Models\Appointment;
 use App\Models\ClinicalAttachment;
+use App\Models\ClinicalEncounter;
 use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Odontogram;
@@ -26,6 +30,19 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * F2 (#282) — the single closure of the clinical act.
+ *
+ * `close()` is the only implementation: it closes one encounter and produces
+ * everything the act generated (evolution, findings, procedures, materials,
+ * attachments, amount and quotation) from it. `complete()` is the appointment
+ * adapter that keeps the wizard's contract: it resolves or opens the act of the
+ * appointment and delegates.
+ *
+ * The appointment is a projection: `status`, `completed_at`, `final_amount`
+ * and `consultation_mode` are written here, after the encounter is closed in
+ * the same transaction, and nowhere else.
+ */
 class ConsultationService
 {
     public const MODE_CONSULTATION = 'consultation';
@@ -40,104 +57,140 @@ class ConsultationService
         self::MODE_PLAN_SESSION,
     ];
 
-    public function __construct(private readonly BillingService $billing) {}
+    public function __construct(
+        private readonly BillingService $billing,
+        private readonly ClinicalEncounterService $encounters,
+    ) {}
 
     /**
-     * Punto único de entrada para cerrar una consulta.
+     * Appointment door (`POST /api/appointments/{id}/complete`).
      *
-     * Toda la operación corre dentro de una transacción DB.
-     *
-     * @param array<string, mixed> $payload ver contrato JSON
+     * @param  array<string, mixed>                                                            $payload ver contrato JSON
+     * @return array{appointment: Appointment, encounter: ClinicalEncounter, quotation: mixed}
      */
     public function complete(Appointment $appointment, array $payload): array
     {
-        $result = DB::transaction(function () use ($appointment, $payload) {
-            $this->guardAppointmentIsInConsultation($appointment);
-            $this->validatePayload($appointment, $payload);
+        return DB::transaction(function () use ($appointment, $payload) {
+            $current = $this->lockAppointment($appointment);
+            $this->guardAppointmentIsInConsultation($current);
 
-            $mode = $payload['mode'];
+            $encounter = $this->encounters->openForAppointment($current, Auth::user());
+
+            return $this->close($encounter, $payload);
+        });
+    }
+
+    /**
+     * The single closure. `POST /api/encounters/{id}/complete` calls it
+     * directly; the appointment door reaches it through `complete()`.
+     *
+     * @param  array<string, mixed>                                                             $payload
+     * @return array{appointment: ?Appointment, encounter: ClinicalEncounter, quotation: mixed}
+     */
+    public function close(ClinicalEncounter $encounter, array $payload): array
+    {
+        return DB::transaction(function () use ($encounter, $payload) {
+            $current = $this->lockEncounter($encounter);
+            $this->guardEncounterIsOpen($current);
+
+            $appointment = $current->appointment;
+            $mode = $this->resolveMode($payload);
+            $this->validatePayload($current, $appointment, $mode, $payload);
+
             $user = Auth::user();
             $userId = $user?->id;
 
-            $appointment->consultation_mode = $mode;
-            $appointment->treatment_plan_id = $this->resolvePlanId($appointment, $payload);
+            $record = $this->medicalRecordFor($current->patient_id, $userId);
+            $evolution = $this->persistEvolution($current, $record, $payload['evolution'], $userId);
 
-            $evolution = $this->persistEvolution($appointment, $payload['evolution'], $userId);
+            $this->persistOdontogramRecords($current, $payload['odontogram'] ?? [], $userId);
 
-            $this->persistOdontogramRecords($appointment, $payload['odontogram'] ?? [], $userId);
-
-            $treatmentPlan = $this->upsertTreatmentPlan($appointment, $mode, $payload, $userId);
+            $planId = $this->resolvePlanId($payload);
+            $treatmentPlan = $this->upsertTreatmentPlan($current, $appointment, $mode, $payload, $userId);
             if ($treatmentPlan) {
                 $treatmentPlan->last_activity_at = now();
                 $treatmentPlan->save();
 
-                if ($treatmentPlan->wasRecentlyCreated || $appointment->treatment_plan_id === null) {
-                    $appointment->treatment_plan_id = $treatmentPlan->id;
+                if ($treatmentPlan->wasRecentlyCreated || $planId === null) {
+                    $planId = $treatmentPlan->id;
                 }
             }
 
-            $this->persistProcedureMaterials($appointment, $payload, $userId);
+            $this->persistProcedureMaterials($current, $planId, $payload, $userId);
 
             $attachments = $this->persistAttachments(
-                $appointment,
+                $current,
                 $evolution,
                 $payload['attachments'] ?? [],
                 $userId,
             );
 
-            $appointment->final_amount = $this->calculateFinalAmount($appointment, $treatmentPlan);
-            $appointment->status = 'completed';
-            $appointment->completed_at = now();
-            $appointment->treatment_notes = $payload['evolution']['plan'] ?? $appointment->treatment_notes;
-            $appointment->updated_by = $userId;
-            $appointment->save();
+            $finalAmount = $this->calculateFinalAmount($appointment, $treatmentPlan);
 
-            $this->scheduleFollowUpAppointment($appointment, $payload['next_appointment'] ?? null, $userId);
+            $current->forceFill([
+                'mode' => $mode,
+                'medical_record_id' => $record->id,
+                'treatment_plan_id' => $planId,
+                'final_amount' => $finalAmount,
+                'status' => ClinicalEncounter::STATUS_CLOSED,
+                'closed_at' => now(),
+                'closed_by' => $userId,
+            ])->save();
 
-            $appointment->refresh()->load([
+            if ($appointment !== null) {
+                $this->projectOnAppointment($appointment, $current, $mode, $finalAmount, $payload, $userId);
+                $this->scheduleFollowUpAppointment($appointment, $payload['next_appointment'] ?? null, $userId);
+            }
+
+            $current->refresh()->load([
                 'patient',
                 'user',
-                'appointmentType',
-                'dentalChair',
+                'appointment',
+                'medicalRecord',
                 'treatmentPlan',
                 'clinicalEvolutions',
                 'procedureMaterials.product',
                 'odontogramRecords.dentalPiece',
-                'transactions',
+                'attachments',
                 'quotations',
             ]);
 
-            Log::info('Consultation completed', [
-                'appointment_id' => $appointment->id,
+            Log::info('Clinical encounter closed', [
+                'encounter_id' => $current->id,
+                'appointment_id' => $current->appointment_id,
                 'mode' => $mode,
-                'final_amount' => $appointment->final_amount,
-                'treatment_plan_id' => $appointment->treatment_plan_id,
+                'final_amount' => $current->final_amount,
+                'treatment_plan_id' => $current->treatment_plan_id,
                 'attachments' => count($attachments),
-                'materials' => $appointment->procedureMaterials->count(),
+                'materials' => $current->procedureMaterials->count(),
             ]);
 
             $quotation = null;
-            if ($this->billing->shouldAutoGenerateQuotation($appointment, $payload)) {
-                $quotation = $this->billing->generateQuotationFromAppointment($appointment);
+            if ($this->billing->shouldAutoGenerateQuotation($current, $mode, $payload)) {
+                $quotation = $this->billing->generateQuotationFromEncounter($current);
             }
 
-            try {
-
-                event(new AppointmentCompleted($appointment));
-
-            } catch (\Throwable $e) {
-
-                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
-
+            if ($appointment !== null) {
+                $this->dispatchCompleted($appointment->refresh()->load([
+                    'patient',
+                    'user',
+                    'appointmentType',
+                    'dentalChair',
+                    'treatmentPlan',
+                    'clinicalEvolutions',
+                    'procedureMaterials.product',
+                    'odontogramRecords.dentalPiece',
+                    'transactions',
+                    'quotations',
+                ]));
             }
 
             return [
-                'appointment' => $appointment,
+                'appointment' => $appointment?->refresh(),
+                'encounter' => $current,
                 'quotation' => $quotation,
             ];
         });
-
-        return $result;
     }
 
     /**
@@ -152,15 +205,38 @@ class ConsultationService
     }
 
     /**
+     * An act is closed exactly once. A second call finds a `closed` encounter
+     * and is refused instead of documenting the same act twice.
+     */
+    private function guardEncounterIsOpen(ClinicalEncounter $encounter): void
+    {
+        if (! $encounter->isOpen()) {
+            throw EncounterException::alreadyClosed($encounter->status);
+        }
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
-    private function validatePayload(Appointment $appointment, array $payload): void
+    private function resolveMode(array $payload): string
     {
         $mode = $payload['mode'] ?? null;
         if (! in_array($mode, self::VALID_MODES, true)) {
             throw InvalidConsultationModeException::make($mode);
         }
 
+        return $mode;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function validatePayload(
+        ClinicalEncounter $encounter,
+        ?Appointment $appointment,
+        string $mode,
+        array $payload,
+    ): void {
         $evolution = $payload['evolution'] ?? null;
         if (! is_array($evolution)) {
             throw new MissingEvolutionException;
@@ -180,7 +256,9 @@ class ConsultationService
             throw new UnexpectedMaterialsException;
         }
 
-        $requiresMaterials = (bool) ($appointment->appointmentType?->requires_materials ?? false);
+        // Only an appointment type can demand materials; an urgency act has no
+        // type to ask, so it never requires them.
+        $requiresMaterials = (bool) ($appointment?->appointmentType?->requires_materials ?? false);
         if ($requiresMaterials && $materialsCount === 0 && ! $skipMaterials) {
             throw new MissingMaterialsException(
                 'el tipo de cita requiere registrar materiales o confirmar "skip_materials"'
@@ -195,30 +273,45 @@ class ConsultationService
             }
 
             $plan = TreatmentPlan::find($planId);
-            if (! $plan || $plan->patient_id !== $appointment->patient_id) {
+            if (! $plan || $plan->patient_id !== $encounter->patient_id) {
                 throw InvalidTreatmentPlanException::notFound($planId);
             }
         }
+
+        // Continuity for an act without an appointment belongs to F4 (#284):
+        // `appointments` requires a chair and a type that an urgency act has
+        // no way to know here.
+        if ($appointment === null && ! empty($payload['next_appointment'])) {
+            throw NextAppointmentRequiresAppointmentException::make();
+        }
     }
 
-    /**
-     * @param array<string, mixed> $evolution
-     */
-    private function persistEvolution(Appointment $appointment, array $evolution, ?int $userId): ClinicalEvolution
+    private function medicalRecordFor(int $patientId, ?int $userId): MedicalRecord
     {
-        $record = MedicalRecord::firstOrCreate(
-            ['patient_id' => $appointment->patient_id, 'is_active' => true],
+        return MedicalRecord::firstOrCreate(
+            ['patient_id' => $patientId, 'is_active' => true],
             [
                 'created_by' => $userId,
                 'record_number' => 'HC-'.date('Y').'-'.strtoupper(Str::random(6)),
                 'first_visit_date' => now()->toDateString(),
             ],
         );
+    }
 
+    /**
+     * @param array<string, mixed> $evolution
+     */
+    private function persistEvolution(
+        ClinicalEncounter $encounter,
+        MedicalRecord $record,
+        array $evolution,
+        ?int $userId,
+    ): ClinicalEvolution {
         return ClinicalEvolution::create([
-            'patient_id' => $appointment->patient_id,
+            'patient_id' => $encounter->patient_id,
+            'appointment_id' => $encounter->appointment_id,
+            'clinical_encounter_id' => $encounter->id,
             'medical_record_id' => $record->id,
-            'appointment_id' => $appointment->id,
             'created_by' => $userId,
             'evolution_date' => $evolution['evolution_date'] ?? now()->toDateString(),
             'specialty' => $evolution['specialty'] ?? Auth::user()?->specialty,
@@ -241,14 +334,14 @@ class ConsultationService
     /**
      * @param array<int, array<string, mixed>> $records
      */
-    private function persistOdontogramRecords(Appointment $appointment, array $records, ?int $userId): void
+    private function persistOdontogramRecords(ClinicalEncounter $encounter, array $records, ?int $userId): void
     {
         if (empty($records)) {
             return;
         }
 
         $odontogram = Odontogram::firstOrCreate(
-            ['patient_id' => $appointment->patient_id, 'is_active' => true],
+            ['patient_id' => $encounter->patient_id, 'is_active' => true],
             ['created_by' => $userId],
         );
 
@@ -263,7 +356,8 @@ class ConsultationService
                 'treatment_notes' => $r['notes'] ?? null,
                 'surfaces' => $r['surfaces'] ?? null,
                 'color' => $r['color'] ?? null,
-                'appointment_id' => $appointment->id,
+                'appointment_id' => $encounter->appointment_id,
+                'clinical_encounter_id' => $encounter->id,
                 'created_by' => $userId,
             ]);
         }
@@ -272,8 +366,13 @@ class ConsultationService
     /**
      * @param array<string, mixed> $payload
      */
-    private function upsertTreatmentPlan(Appointment $appointment, string $mode, array $payload, ?int $userId): ?TreatmentPlan
-    {
+    private function upsertTreatmentPlan(
+        ClinicalEncounter $encounter,
+        ?Appointment $appointment,
+        string $mode,
+        array $payload,
+        ?int $userId,
+    ): ?TreatmentPlan {
         $planData = $payload['treatment_plan'] ?? null;
 
         if ($mode === self::MODE_PLAN_SESSION) {
@@ -300,11 +399,11 @@ class ConsultationService
             $itemStatus = $asProposed ? 'proposed' : 'completed';
 
             $plan = TreatmentPlan::create([
-                'patient_id' => $appointment->patient_id,
-                'origin_appointment_id' => $appointment->id,
+                'patient_id' => $encounter->patient_id,
+                'origin_appointment_id' => $encounter->appointment_id,
                 'created_by' => $userId,
                 'plan_number' => $this->generatePlanNumber(),
-                'title' => $planData['title'] ?? $appointment->appointmentType?->name ?? 'Procedimiento',
+                'title' => $planData['title'] ?? $appointment?->appointmentType?->name ?? 'Procedimiento',
                 'description' => $planData['description'] ?? null,
                 'status' => $asProposed ? 'proposed' : 'completed',
                 'start_date' => now()->toDateString(),
@@ -312,7 +411,7 @@ class ConsultationService
                 'notes' => $planData['notes'] ?? null,
             ]);
 
-            foreach ($items as $i => $item) {
+            foreach ($items as $item) {
                 TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
@@ -339,8 +438,8 @@ class ConsultationService
         if ($mode === self::MODE_CONSULTATION && ($planData['as_proposed'] ?? false)) {
             $items = $planData['items'] ?? [];
             $plan = TreatmentPlan::create([
-                'patient_id' => $appointment->patient_id,
-                'origin_appointment_id' => $appointment->id,
+                'patient_id' => $encounter->patient_id,
+                'origin_appointment_id' => $encounter->appointment_id,
                 'created_by' => $userId,
                 'plan_number' => $this->generatePlanNumber(),
                 'title' => $planData['title'] ?? 'Propuesta de tratamiento',
@@ -376,14 +475,18 @@ class ConsultationService
     /**
      * @param array<string, mixed> $payload
      */
-    private function persistProcedureMaterials(Appointment $appointment, array $payload, ?int $userId): void
-    {
+    private function persistProcedureMaterials(
+        ClinicalEncounter $encounter,
+        ?int $planId,
+        array $payload,
+        ?int $userId,
+    ): void {
         $materials = $payload['materials'] ?? [];
         if (empty($materials) || ! is_array($materials)) {
             return;
         }
 
-        $planItemIds = $this->resolvePlanItemIds($appointment);
+        $planItemIds = $this->resolvePlanItemIds($planId);
 
         foreach ($materials as $idx => $m) {
             $productId = $m['product_id'] ?? null;
@@ -399,7 +502,7 @@ class ConsultationService
             $product = Product::find($productId);
             if (! $product) {
                 Log::warning('Consultation: material con product_id inexistente, se omite', [
-                    'appointment_id' => $appointment->id,
+                    'encounter_id' => $encounter->id,
                     'material_index' => $idx,
                     'product_id' => $productId,
                 ]);
@@ -411,7 +514,8 @@ class ConsultationService
             $qty = (float) ($m['quantity_used'] ?? 1);
 
             ProcedureMaterial::create([
-                'appointment_id' => $appointment->id,
+                'appointment_id' => $encounter->appointment_id,
+                'clinical_encounter_id' => $encounter->id,
                 'treatment_plan_item_id' => $this->guessPlanItemId(
                     $m,
                     $planItemIds,
@@ -433,7 +537,7 @@ class ConsultationService
      * @return array<int, ClinicalAttachment>
      */
     private function persistAttachments(
-        Appointment $appointment,
+        ClinicalEncounter $encounter,
         ClinicalEvolution $evolution,
         array $attachments,
         ?int $userId,
@@ -449,8 +553,9 @@ class ConsultationService
             $filePath = $file->storeAs('clinical-attachments', $fileName, 'public');
 
             $created[] = ClinicalAttachment::create([
-                'patient_id' => $appointment->patient_id,
-                'appointment_id' => $appointment->id,
+                'patient_id' => $encounter->patient_id,
+                'appointment_id' => $encounter->appointment_id,
+                'clinical_encounter_id' => $encounter->id,
                 'clinical_evolution_id' => $evolution->id,
                 'created_by' => $userId,
                 'file_name' => $fileName,
@@ -466,6 +571,39 @@ class ConsultationService
         }
 
         return $created;
+    }
+
+    /**
+     * The appointment is the projection of the act, and this is its only pen
+     * (S4): status, close time, amount and mode come from the encounter that
+     * was just closed in this transaction.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function projectOnAppointment(
+        Appointment $appointment,
+        ClinicalEncounter $encounter,
+        string $mode,
+        float $finalAmount,
+        array $payload,
+        ?int $userId,
+    ): void {
+        // S7: an appointment is `completed` only with a closed act. The check
+        // reads the persisted state, not the in-memory model, so it fails if
+        // the closure order is ever broken.
+        if (! $appointment->clinicalEncounters()->where('status', ClinicalEncounter::STATUS_CLOSED)->exists()) {
+            throw MissingClosedEncounterException::make();
+        }
+
+        $appointment->forceFill([
+            'consultation_mode' => $mode,
+            'treatment_plan_id' => $encounter->treatment_plan_id,
+            'final_amount' => $finalAmount,
+            'status' => 'completed',
+            'completed_at' => now(),
+            'treatment_notes' => $payload['evolution']['plan'] ?? $appointment->treatment_notes,
+            'updated_by' => $userId,
+        ])->save();
     }
 
     /**
@@ -491,7 +629,10 @@ class ConsultationService
         ]);
     }
 
-    private function resolvePlanId(Appointment $appointment, array $payload): ?int
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolvePlanId(array $payload): ?int
     {
         $planData = $payload['treatment_plan'] ?? null;
         if (is_array($planData) && ! empty($planData['id'])) {
@@ -501,9 +642,11 @@ class ConsultationService
         return null;
     }
 
-    private function resolvePlanItemIds(Appointment $appointment): array
+    /**
+     * @return array<int, int>
+     */
+    private function resolvePlanItemIds(?int $planId): array
     {
-        $planId = $appointment->treatment_plan_id;
         if (! $planId) {
             return [];
         }
@@ -514,6 +657,10 @@ class ConsultationService
             ->all();
     }
 
+    /**
+     * @param array<string, mixed> $material
+     * @param array<int, int>      $planItemIds
+     */
     private function guessPlanItemId(array $material, array $planItemIds): ?int
     {
         if (empty($planItemIds)) {
@@ -530,7 +677,7 @@ class ConsultationService
         return null;
     }
 
-    private function calculateFinalAmount(Appointment $appointment, ?TreatmentPlan $plan): float
+    private function calculateFinalAmount(?Appointment $appointment, ?TreatmentPlan $plan): float
     {
         if ($plan) {
             $executed = $plan->items()->where('status', 'completed')->get();
@@ -539,7 +686,7 @@ class ConsultationService
             }
         }
 
-        return (float) ($appointment->appointmentType?->price ?? 0);
+        return (float) ($appointment?->appointmentType?->price ?? 0);
     }
 
     private function recalculatePlanTotals(TreatmentPlan $plan): void
@@ -576,5 +723,37 @@ class ConsultationService
         }
 
         return 'other';
+    }
+
+    /**
+     * The closure owns the transition, so the row is re-read under a lock; a
+     * second call must see `closed` and be refused.
+     */
+    private function lockEncounter(ClinicalEncounter $encounter): ClinicalEncounter
+    {
+        return ClinicalEncounter::query()
+            ->whereKey($encounter->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    private function lockAppointment(Appointment $appointment): Appointment
+    {
+        return Appointment::query()
+            ->whereKey($appointment->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    /**
+     * AGENTS.md §7: a failing broadcast must never break the clinical record.
+     */
+    private function dispatchCompleted(Appointment $appointment): void
+    {
+        try {
+            event(new AppointmentCompleted($appointment));
+        } catch (\Throwable $e) {
+            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+        }
     }
 }

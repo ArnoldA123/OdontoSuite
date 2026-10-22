@@ -96,10 +96,10 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 34 controllers API (33 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 35 controllers API (34 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 51 modelos Eloquent
+  Models/                  # 52 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
   Events/                  # 37 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 118 migraciones
+  migrations/              # 119 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -126,7 +126,7 @@ database/
                            #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 201 rutas API (medido con php artisan route:list --json: uris api/…; 214 totales con web)
+  api.php                  # 206 rutas API (medido con php artisan route:list --json: uris api/…; 219 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -182,7 +182,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 51 modelos, 34 controllers API, 37 eventos (10 listener classes / 13 cableos
+- 52 modelos, 35 controllers API, 37 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -204,6 +204,9 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   crear y reprogramar agendan 24h/48h/72h, cancelar cancela los pendientes y
   `reminders:reconcile` (horario) repara huecos y cubre citas previas
 - AGENTS.md sincronizado con el código (guard `scripts/audit/doc-drift.mjs`)
+- Atención clínica como entidad propia (#282): `clinical_encounters` con estado
+  `open → closed | voided`, cierre único, proyección de la cita y urgencia sin
+  cita
 - `composer dev` usa `pnpm dev`
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
   frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
@@ -379,7 +382,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 34 controllers API, 51
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 52
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -391,6 +394,47 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (atención clínica: entidad del acto, cierre único y urgencia
+  sin** **cita, #282)** — La cita deja de cargar el acto clínico. Nueva tabla
+  `clinical_encounters` con estado propio (`open → closed | voided`),
+  profesional, historia clínica, plan e importe, y relación cita 1 → 0..n
+  atenciones. Las cinco filas que produce el cierre (`clinical_evolutions`,
+  `odontogram_records`, `procedure_materials`, `clinical_attachments`,
+  `quotations`) ganan `clinical_encounter_id` y conservan `appointment_id`,
+  porque los lectores actuales consultan por cita;
+  `procedure_materials.appointment_id` pasa a nullable para que una urgencia no
+  necesite agenda. Puertas: `POST /appointments/{id}/start-attention` abre el
+  acto de la cita en la misma transacción de la custodia, `POST /api/encounters`
+  abre la urgencia sin cita (sin fila de agenda),
+  `POST /api/encounters/{id}/void` solo anula una atención abierta y
+  `POST /api/encounters/{id}/complete` cierra con el mismo motor que
+  `POST /api/appointments/{id}/complete`: `ConsultationService::close()` es la
+  única implementación y `complete()` es el adaptador de la cita. La cita queda
+  como proyección de una sola pluma: `status`, `completed_at`, `final_amount` y
+  `consultation_mode` los escribe solo el cierre, que se niega a proyectar si la
+  atención no quedó cerrada. Los estados de custodia siguen sin ser alcanzables
+  por `PATCH /appointments/{id}/status`, y `Store`/`UpdateAppointmentRequest`
+  tampoco aceptan `completed`. `encounters:backfill` da una atención cerrada a
+  cada cita completada histórica y enlaza sus filas clínicas huérfanas; es
+  idempotente (segunda corrida: 0 creadas, 0 enlazadas) y tiene `--dry-run`.
+  `ready-to-bill` no cambia: sigue leyendo la proyección de la cita, con
+  regresión comparada antes y después del backfill. Permisos nuevos:
+  `create.encounter`, `view.encounter`, `close.encounter` y `void.encounter`,
+  todos clínicos. Lectura: `GET /api/encounters` (paciente, cita, estado y
+  ventana de fechas) y `GET /api/encounters/{id}`. §4 sincronizado con valores
+  medidos: 35 controllers API, 52 modelos, 119 migraciones, 206 rutas API y 219
+  totales con web. Sin cambios de UI ni de §5: la issue es `area:backend`.
+  Tests: `ClinicalEncounterDomainTest`, `BackfillClinicalEncountersCommandTest`,
+  `EncounterOpeningTest`, `UrgentEncounterTest`, `ConsultationClosureTest`,
+  `UrgentEncounterClosureTest`, `ReadyToBillRegressionTest`,
+  `EncounterReadSurfaceTest`, y `PermissionCatalogTest` y
+  `RoutePermissionMatrixTest` extendidos. Cuatro decisiones de contrato que el
+  alcance no fijaba: `mode` del acto describe el modo de documentación y la
+  urgencia se reconoce por `appointment_id` nulo; la próxima cita exige cita de
+  origen (continuidad es F4/#284); solo un administrador atribuye la urgencia a
+  otro profesional; y una cotización de urgencia nace con `appointment_id` nulo
+  y `clinical_encounter_id` propio.
 
 - **2026-10-22 (custodia: llegada, anuncio y escritorio Mi día, #281)** — La
   cita deja de usar `in_consultation` para dos actos distintos. `arrived`

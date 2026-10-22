@@ -20,6 +20,7 @@ class OdontogramRecord extends Model
         'treatment_notes',
         'color',
         'appointment_id',
+        'clinical_encounter_id',
         'created_by',
     ];
 
@@ -42,6 +43,14 @@ class OdontogramRecord extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * F2 (#282): the clinical act that recorded this finding.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
     }
 
     public function createdBy(): BelongsTo

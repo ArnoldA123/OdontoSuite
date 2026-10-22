@@ -304,6 +304,26 @@ class Appointment extends Model
     }
 
     /**
+     * F2 (#282): the clinical acts of this appointment. One schedule row may
+     * hold 0..n encounters; a voided act leaves room for the next one.
+     */
+    public function clinicalEncounters(): HasMany
+    {
+        return $this->hasMany(ClinicalEncounter::class);
+    }
+
+    /**
+     * F2 (#282): the act still being documented, if any. The closure resolves
+     * it or opens one for a legacy `in_consultation` row.
+     */
+    public function openClinicalEncounter(): HasOne
+    {
+        return $this->hasOne(ClinicalEncounter::class)
+            ->where('status', ClinicalEncounter::STATUS_OPEN)
+            ->latestOfMany();
+    }
+
+    /**
      * Evoluciones clínicas asociadas a esta cita.
      */
     public function clinicalEvolutions(): HasMany

@@ -16,6 +16,7 @@ class ClinicalAttachment extends Model
     protected $fillable = [
         'patient_id',
         'appointment_id',
+        'clinical_encounter_id',
         'clinical_evolution_id',
         'created_by',
         'file_name',
@@ -47,6 +48,14 @@ class ClinicalAttachment extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * F2 (#282): the clinical act this attachment belongs to.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
     }
 
     public function clinicalEvolution(): BelongsTo

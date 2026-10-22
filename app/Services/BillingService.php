@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Events\QuotationCreated;
 use App\Models\Appointment;
+use App\Models\ClinicalEncounter;
 use App\Models\Quotation;
 use App\Models\Transaction;
 use App\Models\TreatmentPlanItem;
@@ -133,7 +134,7 @@ class BillingService
     }
 
     /**
-     * Genera una Quotation desde una cita cerrada.
+     * Genera una Quotation desde una cita cerrada (ruta manual de caja).
      * Aplica reglas:
      *   - Si la cita ya tiene quotation en status sent/approved/viewed, devuelve la existente.
      *   - Si no, crea una nueva con status 'sent' basada en final_amount y los items del plan.
@@ -160,81 +161,153 @@ class BillingService
                 ? (float) $executedItems->sum(fn ($i) => (float) $i->total_cost)
                 : (float) ($appointment->final_amount ?? 0);
 
-            $quotation = Quotation::create([
-                'treatment_plan_id' => $appointment->treatment_plan_id,
-                'appointment_id' => $appointment->id,
-                'patient_id' => $appointment->patient_id,
-                'created_by' => Auth::id(),
-                'quotation_number' => $this->generateQuotationNumber(),
-                'quotation_date' => now()->toDateString(),
-                'valid_until' => now()->addDays(30)->toDateString(),
-                'subtotal' => $subtotal,
-                'discount_percentage' => 0,
-                'discount_amount' => 0,
-                'tax_percentage' => 0,
-                'tax_amount' => 0,
-                'total_amount' => $subtotal,
-                'status' => self::QUOTATION_STATUS_SENT,
-                'terms_conditions' => 'Presupuesto generado automáticamente al cierre de la cita.',
-                'notes' => null,
-                'payment_terms' => null,
-            ]);
+            $encounterId = $appointment->clinicalEncounters()
+                ->where('status', ClinicalEncounter::STATUS_CLOSED)
+                ->orderByDesc('id')
+                ->value('id');
 
-            foreach ($executedItems as $item) {
-                \App\Models\QuotationItem::create([
-                    'quotation_id' => $quotation->id,
-                    'treatment_plan_item_id' => $item->id,
-                    'item_name' => $item->procedure_name,
-                    'item_description' => $item->procedure_description,
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_cost,
-                    'total_price' => $item->total_cost,
-                    'specialty' => $item->specialty,
-                    'notes' => null,
-                ]);
-            }
-
-            try {
-
-                event(new QuotationCreated($quotation->load(['items', 'patient', 'treatmentPlan'])));
-
-            } catch (\Throwable $e) {
-
-                Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
-
-            }
-
-            return $quotation;
+            return $this->createQuotation(
+                $appointment->patient_id,
+                $appointment->id,
+                $encounterId,
+                $appointment->treatment_plan_id,
+                $executedItems,
+                $subtotal,
+            );
         });
     }
 
     /**
-     * Determina si la cita cerrada debe disparar la auto-generación de Quotation.
+     * F2 (#282) — the quotation produced by the closure of an act.
+     *
+     * `appointment_id` is null for an urgency act and `clinical_encounter_id`
+     * always points at the act that produced it, so the money keeps one owner.
+     */
+    public function generateQuotationFromEncounter(ClinicalEncounter $encounter): Quotation
+    {
+        return DB::transaction(function () use ($encounter) {
+            $encounter->loadMissing('treatmentPlan.items');
+
+            $existing = Quotation::query()
+                ->where('clinical_encounter_id', $encounter->id)
+                ->whereIn('status', ['draft', 'sent', 'viewed', 'approved'])
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $plan = $encounter->treatmentPlan;
+            $executedItems = $plan
+                ? $plan->items->where('status', 'completed')
+                : collect();
+
+            $subtotal = $executedItems->isNotEmpty()
+                ? (float) $executedItems->sum(fn ($i) => (float) $i->total_cost)
+                : (float) ($encounter->final_amount ?? 0);
+
+            return $this->createQuotation(
+                $encounter->patient_id,
+                $encounter->appointment_id,
+                $encounter->id,
+                $encounter->treatment_plan_id,
+                $executedItems,
+                $subtotal,
+            );
+        });
+    }
+
+    /**
+     * One writer for the quotation row, so the manual door and the closure door
+     * cannot drift apart on numbering, status or items.
+     */
+    private function createQuotation(
+        int $patientId,
+        ?int $appointmentId,
+        ?int $encounterId,
+        ?int $planId,
+        $executedItems,
+        float $subtotal,
+    ): Quotation {
+        $quotation = Quotation::create([
+            'treatment_plan_id' => $planId,
+            'appointment_id' => $appointmentId,
+            'clinical_encounter_id' => $encounterId,
+            'patient_id' => $patientId,
+            'created_by' => Auth::id(),
+            'quotation_number' => $this->generateQuotationNumber(),
+            'quotation_date' => now()->toDateString(),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            'subtotal' => $subtotal,
+            'discount_percentage' => 0,
+            'discount_amount' => 0,
+            'tax_percentage' => 0,
+            'tax_amount' => 0,
+            'total_amount' => $subtotal,
+            'status' => self::QUOTATION_STATUS_SENT,
+            'terms_conditions' => 'Presupuesto generado automáticamente al cierre de la cita.',
+            'notes' => null,
+            'payment_terms' => null,
+        ]);
+
+        foreach ($executedItems as $item) {
+            \App\Models\QuotationItem::create([
+                'quotation_id' => $quotation->id,
+                'treatment_plan_item_id' => $item->id,
+                'item_name' => $item->procedure_name,
+                'item_description' => $item->procedure_description,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_cost,
+                'total_price' => $item->total_cost,
+                'specialty' => $item->specialty,
+                'notes' => null,
+            ]);
+        }
+
+        try {
+
+            event(new QuotationCreated($quotation->load(['items', 'patient', 'treatmentPlan'])));
+
+        } catch (\Throwable $e) {
+
+            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
+
+        }
+
+        return $quotation;
+    }
+
+    /**
+     * Determina si la atención cerrada debe disparar la auto-generación de
+     * Quotation.
      * Reglas:
      *   - execution: siempre que tenga final_amount > 0
      *   - plan_session: si el clínico pasó generate_quotation=true (default true) o si hay items completed
      *   - consultation puro: NO (es solo evaluación).
+     *
+     * @param array<string, mixed> $payload
      */
-    public function shouldAutoGenerateQuotation(Appointment $appointment, array $payload): bool
+    public function shouldAutoGenerateQuotation(ClinicalEncounter $encounter, string $mode, array $payload): bool
     {
-        if ((float) ($appointment->final_amount ?? 0) <= 0) {
+        if ((float) ($encounter->final_amount ?? 0) <= 0) {
             return false;
         }
 
-        $mode = $payload['mode'] ?? null;
-        if ($mode === \App\Services\ConsultationService::MODE_CONSULTATION) {
+        if ($mode === ConsultationService::MODE_CONSULTATION) {
             return false;
         }
-        if ($mode === \App\Services\ConsultationService::MODE_EXECUTION) {
+        if ($mode === ConsultationService::MODE_EXECUTION) {
             return true;
         }
-        if ($mode === \App\Services\ConsultationService::MODE_PLAN_SESSION) {
+        if ($mode === ConsultationService::MODE_PLAN_SESSION) {
             if (array_key_exists('generate_quotation', $payload) && $payload['generate_quotation'] === false) {
                 return false;
             }
 
-            return $appointment->treatmentPlan
-                ? $appointment->treatmentPlan->items()->where('status', 'completed')->exists()
+            return $encounter->treatment_plan_id
+                ? TreatmentPlanItem::where('treatment_plan_id', $encounter->treatment_plan_id)
+                    ->where('status', 'completed')
+                    ->exists()
                 : false;
         }
 
