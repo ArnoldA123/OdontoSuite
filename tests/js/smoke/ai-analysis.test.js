@@ -118,6 +118,18 @@ describe('ai-analysis page shell', () => {
     wrapper.unmount()
   })
 
+  it('publishes the static assistive notice in the hero caption area', async () => {
+    const wrapper = await mountPage()
+
+    const notice = wrapper.find('[data-ai-assistive-notice]')
+    expect(notice.exists()).toBe(true)
+    expect(notice.text()).toBe(
+      'Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.'
+    )
+
+    wrapper.unmount()
+  })
+
   it('asks the server for the first page with the default per_page', async () => {
     const wrapper = await mountPage()
 

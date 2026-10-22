@@ -63,6 +63,11 @@ const analysisFixture = (overrides = {}) => ({
     category: 'radiografia'
   },
   requested_by: { id: 2, name: 'Dr. Pérez' },
+  assistive: true,
+  assistive_notice: 'Resultado de apoyo a la decisión asistido por inteligencia artificial.',
+  notice_acknowledged_at: null,
+  notice_acknowledged_by: null,
+  estimated_cost: null,
   ...overrides
 })
 
@@ -125,6 +130,43 @@ describe('ai analysis detail surface', () => {
     expect(wrapper.find('[data-ai-section="recommendations"]').text()).toContain(
       'Sin recomendaciones registradas.'
     )
+
+    wrapper.unmount()
+  })
+
+  it('renders the assistive notice, its declaration and the estimated cost', () => {
+    const wrapper = mountModal(
+      analysisFixture({
+        notice_acknowledged_at: '2026-10-01T10:16:00.000000Z',
+        notice_acknowledged_by: { id: 2, name: 'Dr. Pérez' },
+        estimated_cost: 0.0312
+      })
+    )
+
+    expect(wrapper.find('[data-ai-assistive-notice]').text()).toBe(
+      'Resultado de apoyo a la decisión asistido por inteligencia artificial.'
+    )
+
+    const metadata = wrapper.find('[data-ai-section="metadata"]')
+    expect(metadata.text()).toContain('Aviso al paciente')
+    expect(metadata.text()).toContain('Declarado por')
+    expect(metadata.text()).toContain('Costo estimado')
+    expect(wrapper.find('[data-ai-meta="notice-date"]').text()).toContain('2026')
+    expect(wrapper.find('[data-ai-meta="notice-by"]').text()).toBe('Dr. Pérez')
+    expect(wrapper.find('[data-ai-meta="cost"]').text()).toBe('$0.0312')
+
+    wrapper.unmount()
+  })
+
+  it('falls back to the assistive literal and placeholders without notice data', () => {
+    const wrapper = mountModal(analysisFixture({ assistive_notice: null }))
+
+    expect(wrapper.find('[data-ai-assistive-notice]').text()).toBe(
+      'Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.'
+    )
+    expect(wrapper.find('[data-ai-meta="notice-date"]').text()).toBe('—')
+    expect(wrapper.find('[data-ai-meta="notice-by"]').text()).toBe('—')
+    expect(wrapper.find('[data-ai-meta="cost"]').text()).toBe('—')
 
     wrapper.unmount()
   })

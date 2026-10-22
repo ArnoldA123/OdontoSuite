@@ -571,17 +571,24 @@ class AiAnalysisContractTest extends TestCase
             ->once()
             ->andReturn($attachment);
 
-        $this->mock(AiImageAnalysisService::class)
-            ->shouldReceive('analyzeImage')
-            ->once()
-            ->with($attachment->id)
-            ->andReturn($analysis);
+        $this->mock(AiImageAnalysisService::class, function ($mock) use ($patient, $attachment, $analysis): void {
+            $mock->shouldReceive('assertAnalysisAllowed')
+                ->once()
+                ->with($patient->id, null)
+                ->andReturnNull();
+
+            $mock->shouldReceive('analyzeImage')
+                ->once()
+                ->with($attachment->id, null)
+                ->andReturn($analysis);
+        });
 
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
 
         $response = $this->actingAs($user)->post('/api/ai-analysis/upload-and-analyze', [
             'patient_id' => $patient->id,
             'category' => 'radiografia',
+            'notice_acknowledged' => '1',
             'image' => UploadedFile::fake()->createWithContent('xray.png', $png),
         ]);
 

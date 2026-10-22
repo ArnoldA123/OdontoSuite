@@ -42,6 +42,14 @@
     </template>
 
     <div data-ai-detail class="space-y-6">
+      <p
+        data-ai-assistive-notice
+        class="rounded-[var(--radius-control)] bg-theme-surface p-4 text-sm leading-6 text-theme-primary"
+        style="border: 1px solid var(--color-hairline)"
+      >
+        {{ assistiveNotice }}
+      </p>
+
       <figure
         class="overflow-hidden rounded-[var(--radius-panel)] border border-[var(--color-hairline)]"
       >
@@ -136,6 +144,30 @@
             </dt>
             <dd data-ai-meta="requested-by" class="mt-1 text-sm text-theme-primary">
               {{ requestedByName }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Aviso al paciente
+            </dt>
+            <dd data-ai-meta="notice-date" class="mt-1 text-sm text-theme-primary tabular-nums">
+              {{ noticeAcknowledgedAt }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Declarado por
+            </dt>
+            <dd data-ai-meta="notice-by" class="mt-1 text-sm text-theme-primary">
+              {{ noticeAcknowledgedByName }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+              Costo estimado
+            </dt>
+            <dd data-ai-meta="cost" class="mt-1 text-sm text-theme-primary tabular-nums">
+              {{ estimatedCost }}
             </dd>
           </div>
         </dl>
@@ -422,6 +454,12 @@ const tokensUsed = computed(() => {
 })
 const requestedByName = computed(() => props.analysis.requested_by?.name || '—')
 
+// #296 — the assistive notice travels in the payload; the literal is the
+// fallback for a payload built before the field existed.
+const ASSISTIVE_NOTICE_FALLBACK =
+  'Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.'
+const assistiveNotice = computed(() => props.analysis.assistive_notice || ASSISTIVE_NOTICE_FALLBACK)
+
 const dateFormatter = new Intl.DateTimeFormat('es-ES', {
   day: '2-digit',
   month: 'short',
@@ -439,6 +477,8 @@ const formatDate = value => {
 const createdAt = computed(() => formatDate(props.analysis.created_at))
 const reviewedAt = computed(() => formatDate(props.analysis.reviewed_at))
 const voidedAt = computed(() => formatDate(props.analysis.voided_at))
+const noticeAcknowledgedAt = computed(() => formatDate(props.analysis.notice_acknowledged_at))
+const estimatedCost = computed(() => formatUsd(props.analysis.estimated_cost))
 const reviewDecisionLabel = computed(
   () => REVIEW_DECISION_LABELS[props.analysis.review_decision] || '—'
 )
@@ -446,6 +486,21 @@ const reviewNotesText = computed(() => props.analysis.review_notes || 'Sin notas
 const reviewerName = computed(() => props.analysis.reviewed_by?.name || '—')
 const voidedByName = computed(() => props.analysis.voided_by?.name || '—')
 const voidReasonText = computed(() => props.analysis.void_reason || '—')
+
+const noticeAcknowledgedByName = computed(() => props.analysis.notice_acknowledged_by?.name || '—')
+
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 4,
+  maximumFractionDigits: 4
+})
+
+const formatUsd = value => {
+  if (value === null || value === undefined || value === '') return '—'
+  const numeric = Number(value)
+  return Number.isNaN(numeric) ? '—' : usdFormatter.format(numeric)
+}
 
 const submitReview = () => {
   if (!reviewForm.decision) return

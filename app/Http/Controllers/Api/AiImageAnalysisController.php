@@ -34,8 +34,12 @@ class AiImageAnalysisController extends Controller
 
     /**
      * Solicitar análisis de imagen.
+     *
+     * #296 — the door requires the patient notice; the clinical act is optional
+     * and, when named, it is resolved by the service against the attachment's
+     * patient.
      */
-    public function analyze(int $attachmentId): JsonResponse
+    public function analyze(Request $request, int $attachmentId): JsonResponse
     {
         $attachment = ClinicalAttachment::find($attachmentId);
 
@@ -47,15 +51,22 @@ class AiImageAnalysisController extends Controller
 
         Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $attachment->patient_id]);
 
+        $validated = $request->validate($this->analysisRequestRules(), $this->analysisRequestMessages());
+
         try {
-            $analysis = $this->aiAnalysisService->analyzeImage($attachmentId);
+            $analysis = $this->aiAnalysisService->analyzeImage(
+                $attachmentId,
+                isset($validated['clinical_encounter_id']) ? (int) $validated['clinical_encounter_id'] : null
+            );
 
             return response()->json([
                 'data' => new AiImageAnalysisResource($analysis->load([
                     'clinicalAttachment',
+                    'clinicalEncounter',
                     'patient',
                     'requestedBy',
                     'reviewedBy',
+                    'noticeAcknowledgedBy',
                 ])),
                 'meta' => [
                     'message' => 'Análisis solicitado exitosamente',
@@ -86,10 +97,12 @@ class AiImageAnalysisController extends Controller
         try {
             $analysis = AiImageAnalysis::with([
                 'clinicalAttachment',
+                'clinicalEncounter',
                 'patient',
                 'requestedBy',
                 'reviewedBy',
                 'voidedBy',
+                'noticeAcknowledgedBy',
             ])->find($id);
         } catch (\Exception $e) {
             Log::error('AI analysis lookup failed', ['id' => $id, 'exception' => $e]);
@@ -280,6 +293,7 @@ class AiImageAnalysisController extends Controller
         try {
             $query = AiImageAnalysis::with([
                 'clinicalAttachment',
+                'clinicalEncounter',
                 'patient',
                 'requestedBy',
                 'reviewedBy',
@@ -310,6 +324,10 @@ class AiImageAnalysisController extends Controller
 
             if ($request->filled('requested_by')) {
                 $query->where('requested_by', (int) $request->input('requested_by'));
+            }
+
+            if ($request->filled('clinical_encounter_id')) {
+                $query->where('clinical_encounter_id', (int) $request->input('clinical_encounter_id'));
             }
 
             $dateFrom = DateFilter::normalize($request->input('date_from'));
@@ -413,34 +431,54 @@ class AiImageAnalysisController extends Controller
      */
     public function analyzeUploadedImage(Request $request): JsonResponse
     {
+        // The patient is authorized before the rest of the payload is
+        // validated: an unauthorized caller learns nothing about its shape.
         $request->validate([
             'patient_id' => 'required|integer|exists:patients,id',
+        ]);
+
+        $patientId = (int) $request->input('patient_id');
+
+        Gate::authorize('accessPatient', [AiImageAnalysis::class, $patientId]);
+
+        $validated = $request->validate([
             'image' => 'required|image|max:20480', // 20MB
             'description' => 'nullable|string|max:500',
             'category' => 'required|in:radiografia,foto_clinica',
-        ]);
-
-        Gate::authorize('accessPatient', [AiImageAnalysis::class, (int) $request->patient_id]);
+        ] + $this->analysisRequestRules(), $this->analysisRequestMessages());
 
         try {
+            // #296: the encounter ownership and the daily cap are checked
+            // before the file is stored, so a refused upload leaves no orphan
+            // clinical attachment behind.
+            $this->aiAnalysisService->assertAnalysisAllowed(
+                $patientId,
+                isset($validated['clinical_encounter_id']) ? (int) $validated['clinical_encounter_id'] : null
+            );
+
             // 1. Guardar imagen como ClinicalAttachment
             $attachment = $this->clinicalAttachmentService->store([
-                'patient_id' => $request->patient_id,
-                'file' => $request->file('image'),
-                'category' => $request->category,
-                'description' => $request->description,
+                'patient_id' => $patientId,
+                'file' => $validated['image'],
+                'category' => $validated['category'],
+                'description' => $validated['description'] ?? null,
                 'created_by' => Auth::id(),
             ]);
 
             // 2. Analizar imagen inmediatamente
-            $analysis = $this->aiAnalysisService->analyzeImage($attachment->id);
+            $analysis = $this->aiAnalysisService->analyzeImage(
+                $attachment->id,
+                isset($validated['clinical_encounter_id']) ? (int) $validated['clinical_encounter_id'] : null
+            );
 
             return response()->json([
                 'data' => new AiImageAnalysisResource($analysis->load([
                     'clinicalAttachment',
+                    'clinicalEncounter',
                     'patient',
                     'requestedBy',
                     'reviewedBy',
+                    'noticeAcknowledgedBy',
                 ])),
                 'message' => 'Análisis completado exitosamente.',
                 'meta' => [
@@ -448,6 +486,11 @@ class AiImageAnalysisController extends Controller
                 ],
             ], 201);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error analyzing uploaded image: '.$e->getMessage());
 
@@ -455,5 +498,29 @@ class AiImageAnalysisController extends Controller
                 'message' => 'Error al analizar la imagen.',
             ], 500);
         }
+    }
+
+    /**
+     * #296 — rules shared by both creation doors: the patient notice is a
+     * declaration the professional makes, and the clinical act is optional.
+     *
+     * @return array<string, mixed>
+     */
+    private function analysisRequestRules(): array
+    {
+        return [
+            'notice_acknowledged' => 'accepted',
+            'clinical_encounter_id' => 'nullable|integer|exists:clinical_encounters,id',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function analysisRequestMessages(): array
+    {
+        return [
+            'notice_acknowledged.accepted' => 'Debe declarar que informó al paciente que el resultado es apoyo asistido por IA.',
+        ];
     }
 }

@@ -134,6 +134,14 @@ class ClinicalEncounter extends Model
         return $this->hasMany(Quotation::class);
     }
 
+    /**
+     * #296: the AI analyses that support this act's decisions.
+     */
+    public function aiImageAnalyses(): HasMany
+    {
+        return $this->hasMany(AiImageAnalysis::class);
+    }
+
     public function scopeOpen(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_OPEN);

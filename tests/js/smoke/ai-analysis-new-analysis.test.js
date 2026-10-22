@@ -185,6 +185,15 @@ const submitForm = async () => {
 const submitButton = () => document.querySelector('[data-sheet-submit]')
 const stepError = step => document.querySelector(`[data-step-error="${step}"]`)
 
+const noticeCheckbox = () => document.querySelector('[data-sheet-notice]')
+
+const acceptNotice = async () => {
+  const checkbox = noticeCheckbox()
+  expect(checkbox).not.toBeNull()
+  checkbox.click()
+  await flushPromises()
+}
+
 const openCategoryOptions = async () => {
   document.querySelector('[data-sheet-category] button').click()
   await flushPromises()
@@ -295,7 +304,7 @@ describe('ai-analysis sheet steps', () => {
 })
 
 describe('ai-analysis sheet validation', () => {
-  it('disables the primary action until a patient and an image exist', async () => {
+  it('disables the primary action until a patient, an image and the notice exist', async () => {
     wrapper = await mountPage()
     await openSheet(wrapper)
 
@@ -305,6 +314,9 @@ describe('ai-analysis sheet validation', () => {
     expect(submitButton().disabled).toBe(true)
 
     await click('[data-stub-file-image]')
+    expect(submitButton().disabled).toBe(true)
+
+    await acceptNotice()
     expect(submitButton().disabled).toBe(false)
   })
 
@@ -321,9 +333,15 @@ describe('ai-analysis sheet validation', () => {
     expect(submitButton().disabled).toBe(true)
   })
 
-  it('asks for the patient and the image on an invalid submit', async () => {
+  it('asks for the patient, the image and the patient notice on an invalid submit', async () => {
     wrapper = await mountPage()
     await openSheet(wrapper)
+
+    expect(noticeCheckbox()).not.toBeNull()
+    expect(noticeCheckbox().type).toBe('checkbox')
+    expect(document.body.textContent).toContain(
+      'Informé al paciente que el resultado es apoyo asistido por IA y no sustituye el diagnóstico profesional.'
+    )
 
     await submitForm()
     expect(stepError('patient').textContent.trim()).toBe('Selecciona un paciente.')
@@ -331,6 +349,7 @@ describe('ai-analysis sheet validation', () => {
 
     await click('[data-stub-patient]')
     expect(stepError('patient')).toBeNull()
+    expect(submitButton().disabled).toBe(true)
 
     await submitForm()
     expect(stepError('image').textContent.trim()).toBe('Selecciona una imagen.')
@@ -347,6 +366,7 @@ describe('ai-analysis sheet submit', () => {
     await openSheet(wrapper)
     await click('[data-stub-patient]')
     await click('[data-stub-file-image]')
+    await acceptNotice()
     await selectCategory('Foto clínica')
 
     const textarea = document.querySelector('[data-sheet-description]')
@@ -364,6 +384,8 @@ describe('ai-analysis sheet submit', () => {
     expect(payload.get('patient_id')).toBe('7')
     expect(payload.get('category')).toBe('foto_clinica')
     expect(payload.get('description')).toBe('Dolor en molar inferior')
+    expect(payload.get('notice_acknowledged')).toBe('1')
+    expect(payload.get('clinical_encounter_id')).toBeNull()
     expect(payload.get('image')).toBeInstanceOf(File)
 
     expect(sheet()).toBeNull()
@@ -387,6 +409,7 @@ describe('ai-analysis sheet submit', () => {
     await openSheet(wrapper)
     await click('[data-stub-patient]')
     await click('[data-stub-file-image]')
+    await acceptNotice()
     await click('[data-sheet-submit]')
 
     expect(sheet()).not.toBeNull()

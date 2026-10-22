@@ -28,6 +28,9 @@
             <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
               Análisis asistido de imágenes clínicas con inteligencia artificial
             </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-ai-assistive-notice>
+              Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.
+            </p>
           </div>
           <div
             class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap"
@@ -550,8 +553,19 @@ const handleSheetClose = () => {
   sheetError.value = ''
 }
 
-const handleSheetSubmit = async ({ patientId, file, category, description }) => {
+const handleSheetSubmit = async ({
+  patientId,
+  file,
+  category,
+  description,
+  noticeAcknowledged = false,
+  clinicalEncounterId = null
+}) => {
   if (sheetSubmitting.value) return
+
+  // #296 — the declaration travels with the request and gates it: without it
+  // the professional has not informed the patient the result is assistive.
+  if (!noticeAcknowledged) return
 
   sheetSubmitting.value = true
   sheetError.value = ''
@@ -561,7 +575,13 @@ const handleSheetSubmit = async ({ patientId, file, category, description }) => 
 
   try {
     analysisStatus.value = 'analyzing'
-    const result = await uploadAndAnalyze(patientId, file, description, category)
+    const result = await uploadAndAnalyze(
+      patientId,
+      file,
+      description,
+      category,
+      clinicalEncounterId
+    )
 
     analysisStatus.value = 'completed'
     showAnalyzingModal.value = false
