@@ -60,7 +60,7 @@ class CashReportService
      * drawer, every other family settles against a bank, a POS or a wallet
      * statement. Both blocks add up to the same mix the method summary shows.
      *
-     * @param  array<int, array<string, mixed>>  $summary
+     * @param  array<int, array<string, mixed>>                                                          $summary
      * @return array{cash: array{count: int, total: float}, electronic: array{count: int, total: float}}
      */
     private function getReconciliation(array $summary): array

@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
+/*
  * #291, S3/S4 — every payment method now declares what it is and what it needs.
  *
  * `type` is the behaviour family the daily reconciliation groups by (cash, card,
