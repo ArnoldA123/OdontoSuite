@@ -410,4 +410,43 @@ class ProcedurePriceCascadeTest extends TestCase
         $this->assertDatabaseMissing('procedure_prices', ['id' => $own->id]);
         $this->assertDatabaseHas('procedure_prices', ['id' => $foreign->id]);
     }
+
+    public function test_a_convenio_row_of_another_sede_does_not_apply_in_this_sede(): void
+    {
+        $asked = Branch::factory()->create();
+        $otherSede = Branch::factory()->create();
+        $payer = $this->payer();
+        $procedure = $this->procedure(100.0);
+
+        // The convenio negotiated a price in another sede only.
+        $this->priceRow($procedure, 40.0, ['branch_id' => $otherSede->id, 'payer_id' => $payer->id]);
+        $this->priceRow($procedure, 80.0, ['branch_id' => $asked->id]);
+
+        $resolved = app(ProcedurePriceResolver::class)
+            ->resolve($procedure, $asked->id, null, $payer->id);
+
+        $this->assertSame(80.0, $resolved['price']);
+        $this->assertSame('branch', $resolved['source']);
+    }
+
+    public function test_two_windows_with_the_same_start_are_broken_by_the_newest_row(): void
+    {
+        $branch = Branch::factory()->create();
+        $procedure = $this->procedure(100.0);
+        $start = now()->subMonth()->toDateString();
+
+        $this->priceRow($procedure, 60.0, [
+            'branch_id' => $branch->id,
+            'valid_from' => $start,
+        ]);
+        $newest = $this->priceRow($procedure, 65.0, [
+            'branch_id' => $branch->id,
+            'valid_from' => $start,
+        ]);
+
+        $resolved = app(ProcedurePriceResolver::class)->resolve($procedure, $branch->id);
+
+        $this->assertSame(65.0, $resolved['price']);
+        $this->assertSame($newest->id, $resolved['price_id']);
+    }
 }

@@ -362,4 +362,40 @@ class QuotationPriceFreezeTest extends TestCase
         $this->assertSame('170.00', $updated->fresh()->total_amount);
         $this->assertSame('10.00', $updated->fresh()->discount_amount);
     }
+
+    public function test_changing_only_the_convenio_re_prices_the_lines_on_the_same_issue_date(): void
+    {
+        $branch = Branch::factory()->create();
+        $first = $this->payer('rimac');
+        $second = $this->payer('pacifico');
+        $actor = $this->professional($branch);
+        $procedure = $this->procedure(100.0);
+
+        $this->priceRow($procedure, 80.0, ['branch_id' => $branch->id]);
+        $this->priceRow($procedure, 60.0, ['branch_id' => $branch->id, 'payer_id' => $first->id]);
+        $agreed = $this->priceRow($procedure, 70.0, ['branch_id' => $branch->id, 'payer_id' => $second->id]);
+
+        $quotation = $this->manual($actor, [
+            'subtotal' => 0,
+            'quotation_date' => '2026-01-10',
+            'payer_id' => $first->id,
+            'items' => [$this->line($procedure)],
+        ]);
+
+        $this->assertSame(60.0, (float) $quotation->items()->firstOrFail()->unit_price);
+
+        // Only the convenio changes: no line is sent, and the document cannot
+        // keep a payer its frozen lines do not describe.
+        $updated = app(QuotationService::class)->updateQuotation($quotation->id, [
+            'payer_id' => $second->id,
+        ]);
+
+        $line = $updated->items()->firstOrFail();
+
+        $this->assertSame($second->id, $updated->fresh()->payer_id);
+        $this->assertSame(70.0, (float) $line->unit_price);
+        $this->assertSame('payer_branch', $line->price_source);
+        $this->assertSame($agreed->id, $line->price_row_id);
+        $this->assertSame('70.00', $updated->fresh()->total_amount);
+    }
 }

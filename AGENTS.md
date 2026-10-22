@@ -422,8 +422,6 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 | ADR                                                                      | Contenido                                                                                                                   |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| ADR                                                                      | Contenido                                                                                                                   |
-| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`     | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza. |
 | `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md` | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill. |
 | `docs/architecture/decisions/0010-branch-scope-authorization.md`         | La sede es una dimensión de autorización, no un filtro de consulta.                                                         |

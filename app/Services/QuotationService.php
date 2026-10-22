@@ -252,6 +252,32 @@ class QuotationService
             // so the gross is the frozen sum of the new lines even when the
             // payload sends no `subtotal`; a partial payload that touches no
             // line keeps the #289 rule (stored total + discount, applied once).
+            if ($lines === null && (int) $payerId !== (int) $quotation->payer_id) {
+                // Changing only the convenio cannot leave the lines frozen
+                // under the previous one: the document is re-priced on its own
+                // issue date, which is what keeps the payer and the line
+                // evidence telling the same story.
+                $lines = $quotation->items->map(function (QuotationItem $item) use ($branchId, $payerId, $issueDate) {
+                    $frozen = $this->freezeLine([
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                    ], $item->procedure_catalog_id, $branchId, $payerId, $issueDate);
+
+                    return array_merge([
+                        'treatment_plan_item_id' => $item->treatment_plan_item_id,
+                        'procedure_catalog_id' => $item->procedure_catalog_id,
+                        'dental_piece_id' => $item->dental_piece_id,
+                        'tooth_surface_id' => $item->tooth_surface_id,
+                        'site_code' => $item->site_code,
+                        'item_name' => $item->item_name,
+                        'item_description' => $item->item_description,
+                        'specialty' => $item->specialty,
+                        'quantity' => $item->quantity,
+                        'notes' => $item->notes,
+                    ], $frozen);
+                })->all();
+            }
+
             if ($lines !== null) {
                 $data['subtotal'] = $this->grossOf($lines);
                 $this->calculateAmounts($data, $quotation);
