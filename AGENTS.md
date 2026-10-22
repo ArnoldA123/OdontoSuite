@@ -99,8 +99,8 @@ app/
   Http/Controllers/Api/    # 35 controllers API (34 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 53 modelos Eloquent
-  Services/                # 21 services + Reports/ (8 report services)
+  Models/                  # 54 modelos Eloquent
+  Services/                # 22 services + Reports/ (8 report services)
   Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 120 migraciones
+  migrations/              # 122 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -162,7 +162,7 @@ docs/
 | Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
 | Historias clínicas        | `/medical-records`          | clínicos                         |
 | Registros especialidad    | `/specialty-records`        | clínicos                         |
-| Análisis IA               | `/ai-analysis`              | clínicos                         |
+| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo      |
 | Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
 | Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
 | Recepción procedimientos  | `/reception-procedures`     | recep                            |
@@ -182,7 +182,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 53 modelos, 35 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 54 modelos, 35 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -190,7 +190,19 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   evolución y el modelo rechaza `deleting`; corregir crea un addendum firmado
   (autor, fecha, motivo) en `clinical_addenda`, y toda lectura de contenido
   clínico queda en `audit_logs` (`medical_record_viewed` + `metadata.surface`)
-- Multi-rol con middleware `role:`, `cash.session`
+- Análisis IA como apoyo a la decisión (#296): el análisis cuelga de la atención
+  (`clinical_encounter_id`) además del adjunto y se anula con motivo
+  (`voided_at`/`voided_by`/`void_reason`) sin perder la traza de revisión;
+  `DELETE /api/ai-analysis/{id}` ya no existe y
+  `POST /api/ai-analysis/{id}/void` la reemplaza. Las dos puertas de alta exigen
+  la declaración del aviso al paciente
+  (`notice_acknowledged_at`/`notice_acknowledged_by`) y guardan el costo
+  estimado (`estimated_cost`, USD) con un tope diario por paciente configurable.
+  Un análisis solo entra al registro por una cita revisada
+  (`ai_analysis_citations`, evolución o plan) y `tecnico_dental` recibe 403 en
+  todo el módulo.
+- Multi-rol con middleware `permission:` (alias `CheckPermission`),
+  `cash.session`
 - Multi-sede parcial (filtros en 6 controllers)
 - Calendario con FullCalendar, bloques, waiting list
 - Caja completa (apertura/cierre, movimientos, arqueos, PDF)
@@ -390,7 +402,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 53
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 54
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -402,6 +414,41 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (análisis IA como apoyo a la decisión: revisión obligatoria,**
+  **anulación con traza y costo, #296)** — El análisis deja de ser un documento
+  suelto colgado del adjunto. `ai_image_analyses` gana `clinical_encounter_id`
+  (FK nullable `nullOnDelete`) que se hereda del adjunto o se recibe explícito
+  —422 si la atención es de otro paciente—, y `GET /api/encounters/{id}` publica
+  `ai_analyses` con solo los análisis revisados y vigentes del acto: un análisis
+  sin revisar no aparece en el registro. `DELETE /api/ai-analysis/{id}` deja de
+  existir (405) y nace `POST /api/ai-analysis/{id}/void` con `reason`
+  obligatorio (≤255) que escribe `voided_at`/`voided_by`/`void_reason` y
+  **conserva** `reviewed`, `reviewed_by`, `reviewed_at`, `review_decision` y
+  `review_notes`: la traza de revisión sobrevive a la anulación. Las lecturas
+  (`index`, `pending`, `byPatient`, `byAttachment`, `stats`) excluyen lo
+  anulado, `index?voided=1` lo hace consultable y `stats` lo cuenta aparte. Las
+  dos puertas de alta (`upload-and-analyze` y `analyze/{attachment}`) exigen
+  `notice_acknowledged` y guardan `notice_acknowledged_at`/`_by`; el recurso
+  publica `assistive`, `assistive_notice`, la declaración y `estimated_cost`
+  (USD, `tokens_used / 1000 × services.openai.price_per_1k_tokens`), y
+  `services.openai.daily_analysis_limit_per_patient` (0 = sin tope) rechaza con
+  422 el análisis que exceda el tope diario del paciente. Un alta rechazada ya
+  no deja un adjunto huérfano. Catálogo de permisos: `delete.ai_analysis` pasa a
+  `void.ai_analysis` y las cuatro capacidades de IA dejan de viajar con
+  `TREATMENT_ROLES` —que incluye `tecnico_dental`— para usar `AI_ROLES`;
+  `tecnico_dental` recibe 403 en todo el módulo y la matriz de `CREDENTIALS.md`
+  lo refleja. Nuevo `ai_analysis_citations` (polimórfico: `ClinicalEvolution` o
+  `TreatmentPlan`, `cited_by`, único por par, sin `updated_at`):
+  `cited_analysis_ids` es opcional en el alta de la evolución y en el
+  alta/edición del plan, y la cita se niega si el análisis no existe, es de otro
+  paciente, no se completó, no fue revisado, fue anulado o el autor no puede
+  leer el módulo; un análisis citado tampoco puede anularse. §4 re-medido: 54
+  modelos, 22 services, 122 migraciones; §5: la entrada `/ai-analysis` deja de
+  listar «clínicos». Tests: `AiAnalysisDecisionSupportSchemaTest`,
+  `AiAnalysisRoleScopeTest`, `AiAnalysisDecisionSupportTest`,
+  `AiAnalysisCitationTest`, `EncounterReadSurfaceTest` extendido,
+  `AiAnalysisContractTest` adaptado y los cuatro smokes JS del módulo.
 
 - **2026-10-22 (historia clínica inmutable: addenda, sin borrado y auditoría de
   lectura, #292)** — La historia clínica deja de poder editarse o eliminarse.
@@ -427,8 +474,8 @@ documentada y no bloquea producción.
   `ClinicalEvolutionDeleted` y nace `ClinicalAddendumCreated` en el canal
   privado `medical-records`. La interfaz reemplaza editar/eliminar por «Agregar
   addendum» y muestra los addenda junto al original en timeline y detalle.
-  Conteos medidos: 53 modelos, 35 eventos, 120 migraciones, 204 rutas API y 217
-  totales, 21 services, 13 modelos con SoftDeletes. Tests:
+  Conteos medidos: 54 modelos, 35 eventos, 122 migraciones, 204 rutas API y 217
+  totales, 22 services, 13 modelos con SoftDeletes. Tests:
   `ClinicalAddendumDomainTest`, `ClinicalRecordImmutabilityTest`,
   `ClinicalAddendumApiTest`, `MedicalRecordReadAuditTest`,
   `MedicalRecordEvolutionTest`, `MedicalRecordEvolutionEventsTest` reescritos,
