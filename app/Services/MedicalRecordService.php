@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
+use App\Models\ClinicalAddendum;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
@@ -139,14 +141,63 @@ class MedicalRecordService
     }
 
     /**
-     * Actualizar evolución.
+     * Corregir la historia clínica (F3 #292).
+     *
+     * El original no se toca: la corrección es una nota nueva con autor, fecha
+     * y motivo, y se escribe en la misma transacción que su entrada de
+     * auditoría para que no exista un addendum sin rastro.
      */
-    public function updateEvolution(int $evolutionId, array $data): ClinicalEvolution
+    public function addRecordAddendum(int $recordId, array $data): ClinicalAddendum
+    {
+        $record = MedicalRecord::findOrFail($recordId);
+
+        return $this->createAddendum($record, null, $data);
+    }
+
+    /**
+     * Corregir una evolución concreta de la historia clínica (F3 #292).
+     *
+     * La evolución pertenece obligatoriamente a la historia que firma el
+     * addendum; el vínculo se deriva de la fila, nunca del cuerpo del request.
+     */
+    public function addEvolutionAddendum(int $evolutionId, array $data): ClinicalAddendum
     {
         $evolution = ClinicalEvolution::findOrFail($evolutionId);
-        $evolution->update($data);
+        $record = MedicalRecord::findOrFail($evolution->medical_record_id);
 
-        return $evolution->load(['patient', 'appointment', 'medicalRecord', 'createdBy', 'attachments']);
+        return $this->createAddendum($record, $evolution, $data);
+    }
+
+    private function createAddendum(
+        MedicalRecord $record,
+        ?ClinicalEvolution $evolution,
+        array $data
+    ): ClinicalAddendum {
+        return DB::transaction(function () use ($record, $evolution, $data) {
+            $user = Auth::user();
+
+            $addendum = ClinicalAddendum::create([
+                'medical_record_id' => $record->id,
+                'clinical_evolution_id' => $evolution?->id,
+                'user_id' => $user->id,
+                'reason' => $data['reason'],
+                'content' => $data['content'],
+            ]);
+
+            AuditLog::log(
+                $user,
+                'clinical_addendum_created',
+                $record,
+                [],
+                ['reason' => $data['reason']],
+                [
+                    'clinical_addendum_id' => $addendum->id,
+                    'clinical_evolution_id' => $evolution?->id,
+                ]
+            );
+
+            return $addendum->load('author');
+        });
     }
 
     /**

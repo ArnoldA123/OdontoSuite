@@ -45,13 +45,12 @@ class RoutePermissionMatrixTest extends TestCase
         ConsultationController::class => ['complete'],
         MedicalRecordController::class => [
             'store',
-            'update',
-            'destroy',
             'addEvolution',
-            'updateEvolution',
-            'deleteEvolution',
             'uploadAttachment',
             'deleteAttachment',
+            // #292: the only correction is an addendum, never an in-place edit.
+            'addRecordAddendum',
+            'addEvolutionAddendum',
         ],
         SpecialtyRecordController::class => ['store', 'update', 'destroy'],
         TreatmentPlanController::class => [
@@ -196,7 +195,7 @@ class RoutePermissionMatrixTest extends TestCase
             $checked++;
         }
 
-        $this->assertGreaterThanOrEqual(16, $checked, 'The clinical write surface shrank unexpectedly.');
+        $this->assertSame(21, $checked, 'The clinical write surface changed; update the matrix with it.');
     }
 
     #[Test]

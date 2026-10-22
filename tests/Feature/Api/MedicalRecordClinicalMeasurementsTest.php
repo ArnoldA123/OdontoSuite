@@ -135,44 +135,4 @@ class MedicalRecordClinicalMeasurementsTest extends TestCase
         $response->assertJsonValidationErrors(['clinical_measurements']);
         $this->assertDatabaseCount('clinical_evolutions', 0);
     }
-
-    public function test_updating_an_evolution_validates_and_persists_measurements(): void
-    {
-        $user = $this->clinician();
-        $record = $this->record();
-        $evolution = ClinicalEvolution::factory()->forRecord($record)->create([
-            'clinical_measurements' => ['tooth_mobility' => 1],
-        ]);
-
-        $this->actingAs($user, 'sanctum')
-            ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
-                'clinical_measurements' => [
-                    'pocket_depth_mm' => 3.5,
-                    'bleeding_on_probing' => false,
-                    'tooth_mobility' => 0,
-                ],
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.clinical_measurements.tooth_mobility', 0);
-
-        $evolution->refresh();
-        $this->assertSame(
-            $this->sorted([
-                'pocket_depth_mm' => 3.5,
-                'bleeding_on_probing' => false,
-                'tooth_mobility' => 0,
-            ]),
-            $this->sorted($evolution->clinical_measurements)
-        );
-
-        $this->actingAs($user, 'sanctum')
-            ->putJson("/api/medical-records/evolutions/{$evolution->id}", [
-                'clinical_measurements' => ['plaque_index_percent' => 150],
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['clinical_measurements.plaque_index_percent']);
-
-        $evolution->refresh();
-        $this->assertSame(3.5, $evolution->clinical_measurements['pocket_depth_mm']);
-    }
 }
