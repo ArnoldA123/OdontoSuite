@@ -3,6 +3,7 @@
 namespace Tests\Unit\Authorization;
 
 use App\Authorization\Permissions;
+use App\Http\Controllers\Api\AppointmentCustodyController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\SpecialtyRecordController;
@@ -38,6 +39,7 @@ class RoutePermissionMatrixTest extends TestCase
 
     /** Controller actions that write clinical data. Reception must not reach them. */
     private const CLINICAL_WRITE_ACTIONS = [
+        AppointmentCustodyController::class => ['startAttention'],
         ConsultationController::class => ['complete'],
         MedicalRecordController::class => [
             'store',

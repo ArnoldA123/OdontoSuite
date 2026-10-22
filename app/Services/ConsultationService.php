@@ -141,8 +141,8 @@ class ConsultationService
     }
 
     /**
-     * Marca la cita como en consulta (in_consultation) si aún no lo está.
-     * Devuelve la cita refrescada.
+     * F1 (#281): the closure only accepts an appointment the professional
+     * already started; the arrival lives in `arrived` and is not enough.
      */
     private function guardAppointmentIsInConsultation(Appointment $appointment): void
     {
