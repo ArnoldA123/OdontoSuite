@@ -525,9 +525,27 @@
             size="sm"
             variant="secondary"
             data-calendar-action="check-in"
-            @click="startConsultation(selectedAppointment)"
+            @click="markArrival(selectedAppointment)"
           >
-            Iniciar Consulta
+            Marcar llegada
+          </UiButton>
+          <UiButton
+            v-if="can.announcePatient?.value && selectedAppointment.status === 'arrived'"
+            size="sm"
+            variant="secondary"
+            data-calendar-action="announce"
+            @click="announcePatient(selectedAppointment)"
+          >
+            Anunciar paciente
+          </UiButton>
+          <UiButton
+            v-if="can.startConsultation?.value && selectedAppointment.status === 'arrived'"
+            size="sm"
+            variant="secondary"
+            data-calendar-action="start-attention"
+            @click="startAttention(selectedAppointment)"
+          >
+            Iniciar atención
           </UiButton>
           <UiButton
             v-if="
@@ -679,17 +697,26 @@ export default {
     const selectedAppointment = ref(null)
     const showNewAppointmentModal = ref(false)
     const wizardAppointment = ref(null)
-    const { checkIn, openForAppointment } = useConsultation()
+    const {
+      markArrival: requestArrival,
+      announcePatient: requestAnnouncement,
+      startAttention: requestAttention,
+      openForAppointment
+    } = useConsultation()
 
-    const startConsultation = async appointment => {
+    const runCustodyAction = async (request, appointment) => {
       try {
-        await checkIn(appointment)
+        await request(appointment)
         await loadAppointments()
         selectedAppointment.value = null
       } catch (e) {
         // toast ya se mostró en el composable
       }
     }
+
+    const markArrival = appointment => runCustodyAction(requestArrival, appointment)
+    const announcePatient = appointment => runCustodyAction(requestAnnouncement, appointment)
+    const startAttention = appointment => runCustodyAction(requestAttention, appointment)
 
     const openConsultationWizard = async appointment => {
       // #280: closing a consultation writes clinical records. The backend
@@ -1290,7 +1317,9 @@ export default {
       wizardAppointment,
       editingAppointment,
       openNewAppointmentModal,
-      startConsultation,
+      markArrival,
+      announcePatient,
+      startAttention,
       openConsultationWizard,
       onConsultationCompleted,
       dayHours,

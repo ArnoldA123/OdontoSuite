@@ -64,7 +64,7 @@ class UpdateAppointmentRequest extends FormRequest
             'scheduled_at' => 'sometimes|required|date',
             'duration_minutes' => 'sometimes|required|integer|min:15|max:480',
             // BF-008: canonical enum matches DB (in_consultation is canonical).
-            'status' => 'sometimes|required|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
+            'status' => 'sometimes|required|in:scheduled,confirmed,cancelled,no_show,rescheduled',
             'notes' => 'sometimes|nullable|string|max:1000',
             'treatment_notes' => 'sometimes|nullable|string|max:2000',
             // Slice 02 / T-02.12: ends_at must be after starts_at when both present.

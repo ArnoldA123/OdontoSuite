@@ -96,29 +96,29 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 33 controllers API (32 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 34 controllers API (33 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 50 modelos Eloquent
+  Models/                  # 51 modelos Eloquent
   Services/                # 18 services + Reports/ (8 report services)
-  Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
+  Events/                  # 37 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
   Jobs/                    # ExportPatientFileJob, ClearDashboardCache
 
 resources/js/
   app.js                   # entry + router (guards en router/auth.js)
-  composables/             # 39 composables singleton
+  composables/             # 40 composables singleton
   components/
     ui/                    # 35 primitives (Button, Modal, DataTable, Toast, DentalMotifLayer, UiSectionEmpty, ...)
     layout/                # AppLayout, MobileMenu, FloatingActionButton
     procedures/            # ProcedureQuickPicker, ProcedureCatalogPicker, ImportCsvModal
-  modules/                 # 18 módulos de dominio (ver §5)
+  modules/                 # 19 módulos de dominio (ver §5)
   router/auth.js           # requireAuth, requireGuest (localStorage)
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 117 migraciones
+  migrations/              # 118 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -126,7 +126,7 @@ database/
                            #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 198 rutas API (medido con php artisan route:list --json: uris api/…; 211 totales con web)
+  api.php                  # 201 rutas API (medido con php artisan route:list --json: uris api/…; 214 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -142,11 +142,12 @@ docs/
 
 ---
 
-## 5. Módulos del frontend (18 módulos, 20 páginas)
+## 5. Módulos del frontend (19 módulos, 21 páginas)
 
 | Módulo                    | Ruta                        | Roles                            |
 | ------------------------- | --------------------------- | -------------------------------- |
 | Dashboard                 | `/dashboard`                | todos                            |
+| Mi día                    | `/my-day`                   | admin, todos los clínicos        |
 | Calendario                | `/calendar`                 | todos los clínicos               |
 | Pacientes                 | `/patients`                 | todos                            |
 | Profesionales             | `/professionals`            | admin                            |
@@ -181,7 +182,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 50 modelos, 33 controllers API, 36 eventos (10 listener classes / 13 cableos
+- 51 modelos, 34 controllers API, 37 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 15 modelos con SoftDeletes
 - Multi-rol con middleware `role:`, `cash.session`
@@ -378,7 +379,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 33 controllers API, 50
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 34 controllers API, 51
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -390,6 +391,31 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (custodia: llegada, anuncio y escritorio Mi día, #281)** — La
+  cita deja de usar `in_consultation` para dos actos distintos. `arrived`
+  registra la llegada que marca recepción, con `checked_in_at` y
+  `checked_in_by`; `in_consultation` queda para la atención que inicia el
+  profesional. Cada transición escribe `appointment_custody_logs` (acción,
+  puerta `reception|professional`, estado de origen y destino, autor y hora) y
+  `PATCH /appointments/{id}/status` rechaza con 422 los tres estados de custodia
+  nombrando su puerta real. Las puertas son `POST /appointments/{id}/check-in`
+  (`check_in.appointment`; recepción y respaldo clínico, que queda registrado
+  con puerta `professional`), `POST /appointments/{id}/start-attention`
+  (`start.consultation`, roles clínicos) y `POST /appointments/{id}/complete`
+  (cierre clínico, sin cambios). El anuncio `POST /appointments/{id}/announce`
+  (`announce.patient`) emite `App\Events\PatientReady` como `paciente_listo` en
+  el canal privado `user.{id}` y no crea estado: la cita sigue `arrived`. Nuevo
+  `GET /api/my-day` (`view.my_day`) devuelve `waiting`/`attending`/`upcoming`
+  del profesional autenticado, y la página `/my-day` es su escritorio. Catálogo
+  de permisos: 71. §4 sincronizado: 34 controllers API, 51 modelos, 37 eventos,
+  118 migraciones, 201 rutas API y 214 totales con web; §5: 19 módulos y 21
+  páginas; 40 composables. Tests: `AppointmentCustodyArrivalTest`,
+  `AppointmentCustodyAttentionTest`, `PatientReadyAnnouncementTest`,
+  `MyDayQueueTest`, `AppointmentStatusDoorGuardTest`,
+  `appointmentStatus.test.js`, `myDay.test.js` y el smoke de Mi día;
+  `RoutePermissionMatrixTest` suma `startAttention` a las escrituras clínicas
+  que recepción no alcanza.
 
 - **2026-10-21 (permisos: catálogo `verbo.recurso` y cierre de la grieta**
   **clínica, #280)** — La autorización deja de escribirse en tres fuentes

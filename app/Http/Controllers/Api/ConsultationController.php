@@ -76,25 +76,6 @@ class ConsultationController extends Controller
     }
 
     /**
-     * POST /api/appointments/{id}/check-in.
-     */
-    public function checkIn(Appointment $appointment): JsonResponse
-    {
-        try {
-            $appointment = $this->consultations->checkIn($appointment);
-
-            return response()->json([
-                'data' => (new AppointmentResource($appointment->load([
-                    'patient', 'user', 'appointmentType', 'dentalChair',
-                ])))->resolve(),
-                'meta' => ['message' => 'Paciente registrado en consulta.'],
-            ]);
-        } catch (ConsultationException $e) {
-            return response()->json(['error' => $e->toArray()], $e->httpStatus);
-        }
-    }
-
-    /**
      * POST /api/appointments/{id}/complete.
      */
     public function complete(Request $request, Appointment $appointment): JsonResponse

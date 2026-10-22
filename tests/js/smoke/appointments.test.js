@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-const { patchMock, apiAppointments, deleteMock, getGate } = vi.hoisted(() => ({
+const { patchMock, postMock, apiAppointments, deleteMock, getGate } = vi.hoisted(() => ({
   patchMock: vi.fn(),
+  // #281: each custody action walks its own door (check-in / announce /
+  // start-attention), so the spy pins the exact endpoint per action.
+  postMock: vi.fn().mockResolvedValue({ data: {} }),
   // T7: delete spy so the useConfirm routing test can assert that NO API
   // call happens before the confirm resolves and that the confirmed call
   // hits the exact appointment endpoint.
@@ -44,7 +47,7 @@ vi.mock('../../../resources/js/composables/useApi', () => ({
       }
       return Promise.resolve(payload())
     },
-    post: async () => ({ data: {} }),
+    post: postMock,
     put: async () => ({ data: {} }),
     patch: patchMock,
     // T7: CalendarPage destructures `del` (useApi line 148), not `delete` —
@@ -96,6 +99,7 @@ vi.mock('../../../resources/js/composables/useAuth', async () => {
 })
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/appointments/CalendarPage.vue'
+import { useConsultation } from '../../../resources/js/composables/useConsultation'
 import NewAppointmentModal from '../../../resources/js/components/appointments/NewAppointmentModal.vue'
 import Modal from '../../../resources/js/components/ui/Modal.vue'
 import DentalMotifLayer from '../../../resources/js/components/ui/DentalMotifLayer.vue'
@@ -1084,6 +1088,160 @@ describe('T7 details modal smoke', () => {
 // icon + per-view copy + permission-gated CTA) INSTEAD of the grids, and it
 // never shows while the range is loading. The hooks + copy + ordering are
 // also pinned structurally by CitasCalendarEmptyStateTest.
+// #281 — custody doors from the calendar. Reception marks the arrival, the
+// announcement notifies the professional and the clinic starts the act; each
+// action hits its own endpoint (the generic PATCH /status rejects the custody
+// statuses), shows its own toast and reloads the agenda.
+describe('F1 custody actions smoke (#281)', () => {
+  const custodyAppointment = status => ({
+    id: 1,
+    scheduled_at: '2026-05-13T10:00:00',
+    ends_at: '2026-05-13T10:30:00',
+    duration_minutes: 30,
+    status,
+    notes: null,
+    patient: { id: 7, first_name: 'Ana', last_name: 'Pérez' },
+    user: { id: 2, name: 'Dra. Ruiz' },
+    dental_chair: null,
+    appointment_type: { id: 3, name: 'Limpieza' }
+  })
+
+  const defaultAppointments = apiAppointments.value
+
+  const mounted = []
+  const mountPage = () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const wrapper = mount(Page, { attachTo: host, global: { plugins: [router, uiComponents] } })
+    mounted.push({ wrapper, host })
+    return wrapper
+  }
+
+  const detailsModal = wrapper =>
+    wrapper.findAllComponents(Modal).find(m => m.props('title') === 'Detalles de la Cita')
+
+  const openDetails = async wrapper => {
+    await wrapper.find('[data-calendar-appointment="1"]').trigger('click')
+    await nextTick()
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 4, 13, 7, 0, 0))
+    globalToasts.value.splice(0, globalToasts.value.length)
+    postMock.mockReset()
+    postMock.mockResolvedValue({ data: {} })
+    apiAppointments.value = [custodyAppointment('scheduled')]
+    localStorage.removeItem('user')
+  })
+
+  afterEach(() => {
+    while (mounted.length) {
+      const { wrapper, host } = mounted.pop()
+      try {
+        wrapper.unmount()
+      } catch {
+        // already unmounted
+      }
+      host.remove()
+    }
+    apiAppointments.value = defaultAppointments
+    vi.useRealTimers()
+    localStorage.removeItem('user')
+  })
+
+  it('marks the arrival through POST /check-in and reloads the agenda', async () => {
+    const wrapper = mountPage()
+    await flushPromises()
+    await openDetails(wrapper)
+
+    const arrival = document.querySelector('[data-calendar-action="check-in"]')
+    expect(arrival).not.toBeNull()
+    expect(arrival.textContent).toContain('Marcar llegada')
+
+    arrival.click()
+    await flushPromises()
+
+    expect(postMock).toHaveBeenCalledTimes(1)
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/1/check-in', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Llegada registrada.'
+    })
+
+    // the handler reloads the range and drops the selection: details closed
+    expect(detailsModal(wrapper).props('modelValue')).toBe(false)
+  })
+
+  it('hides the arrival action once the patient is already waiting', async () => {
+    apiAppointments.value = [custodyAppointment('arrived')]
+    const wrapper = mountPage()
+    await flushPromises()
+    await openDetails(wrapper)
+
+    expect(document.querySelector('[data-calendar-detail] [data-status="arrived"]')).not.toBeNull()
+    expect(document.querySelector('[data-calendar-action="check-in"]')).toBeNull()
+  })
+})
+
+// The two doors reception does not own are pinned at the composable contract:
+// can.announcePatient / can.startConsultation are the flags that reveal their
+// buttons, so the endpoint + toast contract is exercised here (the page wiring
+// itself is pinned structurally by CitasCalendarDetailsModalTest).
+describe('useConsultation custody actions (#281)', () => {
+  beforeEach(() => {
+    globalToasts.value.splice(0, globalToasts.value.length)
+    postMock.mockReset()
+    postMock.mockResolvedValue({ data: { id: 1 } })
+  })
+
+  it('announces the patient through POST /announce without touching the status', async () => {
+    const { announcePatient } = useConsultation()
+
+    await announcePatient({ id: 4 })
+
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/4/announce', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Paciente anunciado.'
+    })
+  })
+
+  it('starts the attention through POST /start-attention', async () => {
+    const { startAttention } = useConsultation()
+
+    await startAttention({ id: 4 })
+
+    expect(postMock).toHaveBeenCalledWith('/api/appointments/4/start-attention', {})
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'success',
+      message: 'Atención iniciada.'
+    })
+  })
+
+  it('surfaces the custody rejection message and rethrows (409)', async () => {
+    const { startAttention } = useConsultation()
+    postMock.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          error: {
+            error_code: 'attention_not_allowed',
+            message: 'La atención se inicia desde una cita con llegada registrada.',
+            context: { current_status: 'scheduled' }
+          }
+        }
+      }
+    })
+
+    await expect(startAttention({ id: 4 })).rejects.toBeTruthy()
+    expect(globalToasts.value.at(-1)).toMatchObject({
+      type: 'error',
+      message: 'La atención se inicia desde una cita con llegada registrada.'
+    })
+  })
+})
+
 describe('T7 empty range smoke', () => {
   const t7DefaultAppointments = apiAppointments.value
   const mounted = []

@@ -69,7 +69,10 @@ del login es el `username`** (no el email, no el nombre).
 > La definición normativa vive en `app/Authorization/Permissions.php` (catálogo
 > `verbo.recurso` + matriz rol → permisos, #280). Esta tabla la refleja para
 > operación; si difieren, manda el código. Recepción ya no puede completar
-> consultas: ese endpoint escribe historia clínica.
+> consultas: ese endpoint escribe historia clínica. Desde #281 la custodia del
+> paciente es explícita: recepción registra la llegada y anuncia, el profesional
+> inicia la atención desde su cola, y cada traspaso queda con autor, hora y
+> puerta.
 
 | Funcionalidad                | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ---------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -84,6 +87,10 @@ del login es el `username`** (no el email, no el nombre).
 | Ver citas                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Editar citas                 | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Cancelar citas               | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Registrar llegada            | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Anunciar paciente            | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Iniciar atención             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Escritorio Mi día            | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Completar consulta (clínica) | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | **Reportes/BI**              |
 | Ver reportes                 | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |

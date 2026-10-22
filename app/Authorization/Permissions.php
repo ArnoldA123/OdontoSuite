@@ -68,7 +68,13 @@ final class Permissions
 
     public const CHECK_IN_APPOINTMENT = 'check_in.appointment';
 
+    public const ANNOUNCE_PATIENT = 'announce.patient';
+
+    public const START_CONSULTATION = 'start.consultation';
+
     public const COMPLETE_APPOINTMENT = 'complete.appointment';
+
+    public const VIEW_MY_DAY = 'view.my_day';
 
     public const VIEW_PRODUCT = 'view.product';
 
@@ -258,6 +264,9 @@ final class Permissions
         self::UPDATE_APPOINTMENT_STATUS => self::APPOINTMENT_ROLES,
         self::VIEW_CONSULTATION => self::APPOINTMENT_ROLES,
         self::CHECK_IN_APPOINTMENT => self::APPOINTMENT_ROLES,
+        self::ANNOUNCE_PATIENT => ['administrador', 'recepcionista'],
+        self::START_CONSULTATION => self::MEDICAL_ROLES,
+        self::VIEW_MY_DAY => self::MEDICAL_ROLES,
         // #280: closing a consultation writes clinical records, so reception
         // must not reach it. This is the only deliberate behavior change
         // against the pre-catalog role lists.

@@ -3,6 +3,7 @@
 use App\Authorization\Permissions;
 use App\Http\Controllers\Api\AiImageAnalysisController;
 use App\Http\Controllers\Api\AppointmentController;
+use App\Http\Controllers\Api\AppointmentCustodyController;
 use App\Http\Controllers\Api\AppointmentTypeController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
@@ -193,8 +194,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:'.Permissions::VIEW_CONSULTATION)->group(function () {
         Route::get('appointments/{appointment}/consultation-context', [ConsultationController::class, 'context']);
     });
-    Route::post('appointments/{appointment}/check-in', [ConsultationController::class, 'checkIn'])
+    // F1 (#281): each custody status has one door and one permission.
+    Route::post('appointments/{appointment}/check-in', [AppointmentCustodyController::class, 'checkIn'])
         ->middleware('permission:'.Permissions::CHECK_IN_APPOINTMENT);
+    Route::post('appointments/{appointment}/announce', [AppointmentCustodyController::class, 'announce'])
+        ->middleware('permission:'.Permissions::ANNOUNCE_PATIENT);
+    Route::post('appointments/{appointment}/start-attention', [AppointmentCustodyController::class, 'startAttention'])
+        ->middleware('permission:'.Permissions::START_CONSULTATION);
+    Route::get('my-day', [AppointmentCustodyController::class, 'myDay'])
+        ->middleware('permission:'.Permissions::VIEW_MY_DAY);
     // #280: closing a consultation writes ClinicalEvolution, treatment plan,
     // materials and attachments. Reception must not reach it.
     Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete'])

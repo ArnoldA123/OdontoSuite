@@ -47,19 +47,43 @@ export function useConsultation() {
     }
   }
 
-  const checkIn = async appointment => {
+  const custodyAction = async (appointment, path, successMessage, fallbackMessage) => {
     if (!appointment?.id) return null
     try {
-      const response = await post(`/api/appointments/${appointment.id}/check-in`, {})
-      toast.success('Paciente en consulta')
+      const response = await post(`/api/appointments/${appointment.id}${path}`, {})
+      toast.success(successMessage)
       return response?.data ?? null
     } catch (error) {
       const err = error?.response?.data?.error
-      const msg = err?.message || error?.response?.data?.message || 'No se pudo iniciar la consulta'
+      const msg = err?.message || error?.response?.data?.message || fallbackMessage
       toast.error(msg)
       throw error
     }
   }
+
+  const markArrival = appointment =>
+    custodyAction(
+      appointment,
+      '/check-in',
+      'Llegada registrada.',
+      'No se pudo registrar la llegada'
+    )
+
+  const announcePatient = appointment =>
+    custodyAction(
+      appointment,
+      '/announce',
+      'Paciente anunciado.',
+      'No se pudo anunciar al paciente'
+    )
+
+  const startAttention = appointment =>
+    custodyAction(
+      appointment,
+      '/start-attention',
+      'Atención iniciada.',
+      'No se pudo iniciar la atención'
+    )
 
   const submit = async payload => {
     if (!currentAppointmentId.value) return null
@@ -157,7 +181,9 @@ export function useConsultation() {
     openForAppointment,
     close,
     loadContext,
-    checkIn,
+    markArrival,
+    announcePatient,
+    startAttention,
     submit
   }
 }

@@ -141,38 +141,9 @@ class ConsultationService
     }
 
     /**
-     * Marca la cita como en consulta (in_consultation) si aún no lo está.
-     * Devuelve la cita refrescada.
+     * F1 (#281): the closure only accepts an appointment the professional
+     * already started; the arrival lives in `arrived` and is not enough.
      */
-    public function checkIn(Appointment $appointment): Appointment
-    {
-        if ($appointment->status === 'in_consultation') {
-            return $appointment;
-        }
-
-        $allowedFrom = ['scheduled', 'confirmed'];
-        if (! in_array($appointment->status, $allowedFrom, true)) {
-            throw AppointmentNotInConsultationException::make($appointment->status);
-        }
-
-        $appointment->status = 'in_consultation';
-        $appointment->checked_in_at = now();
-        $appointment->updated_by = Auth::id();
-        $appointment->save();
-
-        try {
-
-            event(new \App\Events\AppointmentCheckedIn($appointment));
-
-        } catch (\Throwable $e) {
-
-            Log::warning('No se pudo emitir evento Event', ['error' => $e->getMessage()]);
-
-        }
-
-        return $appointment->refresh();
-    }
-
     private function guardAppointmentIsInConsultation(Appointment $appointment): void
     {
         if ($appointment->status !== 'in_consultation') {
