@@ -230,11 +230,7 @@
     "manage.treatment_plan",
     "manage.specialty_record",
     "view.dental_piece",
-    "manage.procedure_favorite",
-    "view.ai_analysis",
-    "create.ai_analysis",
-    "review.ai_analysis",
-    "void.ai_analysis"
+    "manage.procedure_favorite"
   ],
   "asistente": [
     "view.profile",

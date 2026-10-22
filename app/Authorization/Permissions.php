@@ -231,6 +231,15 @@ final class Permissions
         'tecnico_dental',
     ];
 
+    /**
+     * #296 (spec S2) — the laboratory desktop does not reach the AI module.
+     *
+     * An analysis is decision support over a diagnosis: it belongs to the
+     * three roles that diagnose, not to `TREATMENT_ROLES`, which the clinical
+     * record and the treatment plan legitimately share with the laboratory.
+     */
+    private const AI_ROLES = ['administrador', 'odontologo', 'implantologo'];
+
     private const CASH_ROLES = ['administrador', 'finanzas', 'recepcionista'];
 
     private const FINANCE_ROLES = ['administrador', 'finanzas'];
@@ -334,10 +343,10 @@ final class Permissions
         self::VIEW_REPORT => self::FINANCE_ROLES,
         self::EXPORT_REPORT => self::FINANCE_ROLES,
 
-        self::VIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::CREATE_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::REVIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::VOID_AI_ANALYSIS => self::TREATMENT_ROLES,
+        self::VIEW_AI_ANALYSIS => self::AI_ROLES,
+        self::CREATE_AI_ANALYSIS => self::AI_ROLES,
+        self::REVIEW_AI_ANALYSIS => self::AI_ROLES,
+        self::VOID_AI_ANALYSIS => self::AI_ROLES,
 
         self::MANAGE_CONFIG => ['administrador'],
         self::MANAGE_CASH_REGISTER => self::FINANCE_ROLES,

@@ -116,7 +116,7 @@ del login es el `username`** (no el email, no el nombre).
 | Historias clínicas           | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Odontogramas                 | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Planes de tratamiento        | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| Análisis IA                  | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Análisis IA                  | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
 | Interconsultas               | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Favoritos de catálogo        | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 
