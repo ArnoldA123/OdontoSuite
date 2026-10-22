@@ -10,6 +10,7 @@ use App\Models\Quotation;
 use App\Models\QuotationApproval;
 use App\Models\QuotationItem;
 use App\Models\TreatmentPlan;
+use App\Support\QuotationTax;
 use App\Support\QuotationText;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +53,7 @@ class QuotationService
                 'subtotal' => $plan->total_cost,
                 'discount_percentage' => $data['discount_percentage'] ?? 0,
                 'discount_amount' => $data['discount_amount'] ?? 0,
-                'tax_percentage' => $data['tax_percentage'] ?? 0,
+                'tax_percentage' => $data['tax_percentage'] ?? QuotationTax::defaultPercentage(),
                 'tax_amount' => 0,
                 'total_amount' => $plan->final_cost,
                 'status' => 'draft',
@@ -146,7 +147,7 @@ class QuotationService
      * F3 (#283, S4/S5): editing a quotation dated inside the accounting lock is
      * refused; the guard runs before the transaction so the blocked attempt (or
      * the registered override) is not rolled back with the rejected write.
-     */
+     *     */
     public function updateQuotation(int $id, array $data): Quotation
     {
         $lockOverrideReason = $data['lock_override_reason'] ?? null;
@@ -166,9 +167,13 @@ class QuotationService
         return DB::transaction(function () use ($id, $data) {
             $quotation = Quotation::findOrFail($id);
 
-            // Calcular totales si se modificaron
-            if (isset($data['discount_percentage']) || isset($data['discount_amount']) || isset($data['tax_percentage'])) {
-                $this->calculateAmounts($data);
+            // Calcular totales si se modificaron. `subtotal` entra en la lista
+            // porque es el importe bruto del que se descompone todo lo demás.
+            if (isset($data['subtotal'])
+                || isset($data['discount_percentage'])
+                || isset($data['discount_amount'])
+                || isset($data['tax_percentage'])) {
+                $this->calculateAmounts($data, $quotation);
             }
 
             $quotation->update($data);
@@ -326,31 +331,46 @@ class QuotationService
     }
 
     /**
-     * Calcular montos del presupuesto.
+     * Calcular los montos del presupuesto.
+     *
+     * #289, S1: `total_amount` es el precio que paga el paciente y el IGV se
+     * descompone de él (`App\Support\QuotationTax`). En una actualización solo
+     * cambian los campos que llegan: el bruto y la tasa caen a lo que el
+     * presupuesto ya tiene, así que un payload parcial ya no puede poner los
+     * importes en cero.
      */
-    private function calculateAmounts(array &$data): void
+    private function calculateAmounts(array &$data, ?Quotation $existing = null): void
     {
-        $subtotal = $data['subtotal'] ?? 0;
-        $discountPercentage = $data['discount_percentage'] ?? 0;
-        $discountAmount = $data['discount_amount'] ?? 0;
-        $taxPercentage = $data['tax_percentage'] ?? 0;
+        $gross = isset($data['subtotal'])
+            ? (float) $data['subtotal']
+            : (float) ($existing->total_amount ?? 0);
 
-        // Calcular descuento
+        $discountPercentage = isset($data['discount_percentage'])
+            ? (float) $data['discount_percentage']
+            : (float) ($existing->discount_percentage ?? 0);
+
+        $discountAmount = isset($data['discount_amount'])
+            ? (float) $data['discount_amount']
+            : (float) ($existing->discount_amount ?? 0);
+
         if ($discountPercentage > 0) {
-            $discountAmount = $subtotal * ($discountPercentage / 100);
+            $discountAmount = round($gross * ($discountPercentage / 100), 2);
         }
 
+        $taxPercentage = isset($data['tax_percentage'])
+            ? (float) $data['tax_percentage']
+            : ($existing !== null
+                ? (float) $existing->tax_percentage
+                : QuotationTax::defaultPercentage());
+
+        $breakdown = QuotationTax::breakDown($gross, $discountAmount, $taxPercentage);
+
+        $data['discount_percentage'] = $discountPercentage;
         $data['discount_amount'] = $discountAmount;
-
-        // Calcular subtotal después de descuento
-        $subtotalAfterDiscount = $subtotal - $discountAmount;
-
-        // Calcular impuestos
-        $taxAmount = $subtotalAfterDiscount * ($taxPercentage / 100);
-        $data['tax_amount'] = $taxAmount;
-
-        // Calcular total
-        $data['total_amount'] = $subtotalAfterDiscount + $taxAmount;
+        $data['tax_percentage'] = $taxPercentage;
+        $data['tax_amount'] = $breakdown['tax_amount'];
+        $data['subtotal'] = $breakdown['subtotal'];
+        $data['total_amount'] = $breakdown['total_amount'];
     }
 
     /**
