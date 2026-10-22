@@ -43,6 +43,21 @@ class EncounterException extends RuntimeException
         );
     }
 
+    /**
+     * The act is documented by a professional. An administrator may attribute
+     * the urgency act to somebody else, but not to a user who cannot start a
+     * consultation: the record would name a professional who never held one.
+     */
+    public static function professionalNotClinical(int $userId): self
+    {
+        return new self(
+            "La atención solo se atribuye a un profesional clínico (usuario {$userId}).",
+            'encounter_professional_not_clinical',
+            422,
+            ['user_id' => $userId],
+        );
+    }
+
     public function toArray(): array
     {
         return [

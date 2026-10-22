@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Authorization\Permissions;
 use App\Exceptions\Encounter\EncounterException;
 use App\Models\Appointment;
 use App\Models\ClinicalEncounter;
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\DB;
  * act is `voided` the next opening creates a new one, because a voided act is
  * history and never reopened.
  *
- * The read surface (`listFor`) belongs to T4 and is deliberately absent here.
+ * The read surface belongs to the controller's read actions and is
+ * deliberately absent here.
  */
 class ClinicalEncounterService
 {
@@ -66,10 +68,19 @@ class ClinicalEncounterService
      */
     public function openUrgent(array $data, User $actor): ClinicalEncounter
     {
+        $professionalId = (int) ($data['user_id'] ?? $actor->id);
+
+        // #282: an administrator may attribute the act to another professional,
+        // but the record must name somebody who can hold a clinical act.
+        $professional = User::find($professionalId);
+        if ($professional === null || ! Permissions::roleHas($professional->role, Permissions::START_CONSULTATION)) {
+            throw EncounterException::professionalNotClinical($professionalId);
+        }
+
         return ClinicalEncounter::create([
             'patient_id' => $data['patient_id'],
             'appointment_id' => null,
-            'user_id' => $data['user_id'] ?? $actor->id,
+            'user_id' => $professionalId,
             'mode' => ClinicalEncounter::MODE_URGENCY,
             'status' => ClinicalEncounter::STATUS_OPEN,
             'opened_at' => now(),

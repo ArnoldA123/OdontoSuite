@@ -62,6 +62,41 @@ class UrgentEncounterTest extends TestCase
         );
     }
 
+    public function test_an_administrator_attributes_the_act_to_a_professional(): void
+    {
+        $admin = $this->staff('administrador');
+        $professional = $this->staff('implantologo');
+        $patient = Patient::factory()->create();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/encounters', [
+                'patient_id' => $patient->id,
+                'user_id' => $professional->id,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.user_id', $professional->id);
+    }
+
+    public function test_the_act_is_never_attributed_to_a_non_clinical_user(): void
+    {
+        $admin = $this->staff('administrador');
+        $receptionist = $this->staff('recepcionista');
+        $finance = $this->staff('finanzas');
+        $patient = Patient::factory()->create();
+
+        foreach ([$receptionist, $finance] as $target) {
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/encounters', [
+                    'patient_id' => $patient->id,
+                    'user_id' => $target->id,
+                ])
+                ->assertStatus(422)
+                ->assertJsonPath('error.error_code', 'encounter_professional_not_clinical');
+        }
+
+        $this->assertSame(0, ClinicalEncounter::count());
+    }
+
     public function test_reception_cannot_open_a_clinical_act(): void
     {
         $reception = $this->staff('recepcionista');
