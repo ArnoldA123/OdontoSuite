@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Exports\CashReportExport;
 use App\Http\Controllers\Controller;
 use App\Services\Reports\CashReportService;
@@ -22,7 +23,10 @@ class CashReportController extends Controller
     public function daily(Request $request): JsonResponse
     {
         $date = $request->input('date', now()->toDateString());
-        $branchId = $request->input('branch_id');
+        $branchId = BranchAccess::effectiveFilter(
+            $request->user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
         $userId = $request->input('user_id');
 
         $report = $this->cashReportService->getDailyReport($date, $branchId, $userId);

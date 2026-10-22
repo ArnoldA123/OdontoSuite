@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreQuotationRequest;
 use App\Http\Requests\UpdateQuotationRequest;
@@ -29,6 +30,13 @@ class QuotationController extends Controller
             $filters = $request->only([
                 'q', 'patient_id', 'status', 'created_by', 'date_from', 'date_to', 'expired', 'branch_id',
             ]);
+
+            // #283 S2: un usuario restringido no enumera otra sede aunque no
+            // envíe el filtro; pedirla explícitamente responde 403.
+            $filters['branch_id'] = BranchAccess::effectiveFilter(
+                $request->user(),
+                isset($filters['branch_id']) && $filters['branch_id'] !== '' ? (int) $filters['branch_id'] : null,
+            );
 
             $result = $this->quotationService->getQuotations($filters);
 

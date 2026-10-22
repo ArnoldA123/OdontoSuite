@@ -229,6 +229,10 @@ class UserController extends Controller
                 'email' => 'sometimes|email|unique:users,email,'.$id,
             ]));
 
+            // #283 L2: la afiliación a sede se registra aparte del resto del
+            // usuario, para que el traslado aprobado por gerencia tenga traza.
+            $oldBranchId = $user->branch_id ? (int) $user->branch_id : null;
+
             // Capture old values for audit (only relevant fields)
             $oldValues = [
                 'name' => $user->name,
@@ -267,6 +271,19 @@ class UserController extends Controller
                     $oldValues,
                     $newValues
                 );
+
+                $newBranchId = $user->branch_id ? (int) $user->branch_id : null;
+
+                if ($oldBranchId !== $newBranchId) {
+                    AuditLog::log(
+                        Auth::user(),
+                        'user_branch_assigned',
+                        $user,
+                        ['branch_id' => $oldBranchId],
+                        ['branch_id' => $newBranchId],
+                        ['reason' => 'branch_reassignment']
+                    );
+                }
             }
 
             // Emitir evento de WebSocket

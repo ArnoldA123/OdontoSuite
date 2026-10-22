@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
@@ -23,7 +24,10 @@ class DashboardController extends Controller
     public function stats(Request $request): JsonResponse
     {
         try {
-            $branchId = $request->input('branch_id');
+            $branchId = BranchAccess::effectiveFilter(
+                $request->user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
             $cacheKey = 'dashboard_stats_'.Auth::id().'_'.($branchId ?? 'all');
 
             $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($branchId) {
@@ -254,7 +258,10 @@ class DashboardController extends Controller
     public function today(Request $request): JsonResponse
     {
         $today = Carbon::today();
-        $branchId = $request->input('branch_id');
+        $branchId = BranchAccess::effectiveFilter(
+                $request->user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
         $cacheKey = 'dashboard_today_'.Auth::id().'_'.$today->toDateString().'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($today, $branchId) {
@@ -282,7 +289,10 @@ class DashboardController extends Controller
         // Today belongs to the agenda; the upcoming strip starts tomorrow at 00:00.
         $startsAt = $now->copy()->addDay()->startOfDay();
         $endOfWeek = $now->copy()->endOfWeek();
-        $branchId = $request->input('branch_id');
+        $branchId = BranchAccess::effectiveFilter(
+                $request->user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
         $cacheKey = 'dashboard_upcoming_'.Auth::id().'_'.$now->format('Y-W').'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($startsAt, $endOfWeek, $branchId) {
@@ -320,7 +330,10 @@ class DashboardController extends Controller
     public function pending(Request $request): JsonResponse
     {
         try {
-            $branchId = $request->input('branch_id');
+            $branchId = BranchAccess::effectiveFilter(
+                $request->user(),
+                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+            );
             $role = $request->user()?->role;
             $cacheKey = 'dashboard_pending_'.Auth::id().'_'.$role.'_'.($branchId ?? 'all');
 

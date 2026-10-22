@@ -279,8 +279,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Branches (administrator only).
+    // #283 S2: la sede administra su sede; el catálogo de sedes es alcance de
+    // grupo (branch.global rechaza 403 a un administrador con sede asignada).
     Route::apiResource('branches', BranchController::class)
-        ->middleware('permission:'.Permissions::MANAGE_BRANCH);
+        ->middleware(['permission:'.Permissions::MANAGE_BRANCH, 'branch.global']);
 
     // Treatment plans (clinical roles and administrator).
     Route::middleware('permission:'.Permissions::MANAGE_TREATMENT_PLAN)->group(function () {

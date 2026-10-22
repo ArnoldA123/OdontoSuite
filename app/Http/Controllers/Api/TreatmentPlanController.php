@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Authorization\BranchAccess;
 use App\Events\TreatmentPlanDeleted;
 use App\Http\Controllers\Controller;
 use App\Services\TreatmentPlanService;
@@ -75,6 +76,13 @@ class TreatmentPlanController extends Controller
             $filters = $request->only([
                 'patient_id', 'patient_name', 'status', 'statuses', 'overdue', 'created_by', 'date_from', 'date_to', 'branch_id',
             ]);
+
+            // #283 S2: el plan es ficha del paciente (S9), pero el filtro por
+            // sede no puede ensancharse por omisión.
+            $filters['branch_id'] = BranchAccess::effectiveFilter(
+                $request->user(),
+                isset($filters['branch_id']) && $filters['branch_id'] !== '' ? (int) $filters['branch_id'] : null,
+            );
 
             $result = $this->treatmentPlanService->getPlans($filters);
 
