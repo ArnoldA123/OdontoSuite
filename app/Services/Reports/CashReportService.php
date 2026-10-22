@@ -34,6 +34,7 @@ class CashReportService
         }
 
         $sessions = $query->get();
+        $paymentMethodSummary = $this->getSummaryByPaymentMethod($sessions);
 
         $report = [
             'date' => $date,
@@ -45,12 +46,43 @@ class CashReportService
             'sessions' => $sessions->map(function ($session) {
                 return $this->getSessionDetails($session);
             }),
-            'summary_by_payment_method' => $this->getSummaryByPaymentMethod($sessions),
+            'summary_by_payment_method' => $paymentMethodSummary,
+            'reconciliation' => $this->getReconciliation($paymentMethodSummary),
             'summary_by_hour' => $this->getSummaryByHour($sessions),
             'top_transactions' => $this->getTopTransactions($sessions),
         ];
 
         return $report;
+    }
+
+    /**
+     * #291, S5 — the day reconciles by family: physical cash is counted in the
+     * drawer, every other family settles against a bank, a POS or a wallet
+     * statement. Both blocks add up to the same mix the method summary shows.
+     *
+     * @param  array<int, array<string, mixed>>  $summary
+     * @return array{cash: array{count: int, total: float}, electronic: array{count: int, total: float}}
+     */
+    private function getReconciliation(array $summary): array
+    {
+        $reconciliation = [
+            'cash' => ['count' => 0, 'total' => 0.0],
+            'electronic' => ['count' => 0, 'total' => 0.0],
+        ];
+
+        foreach ($summary as $row) {
+            $bucket = ($row['type'] ?? PaymentMethod::TYPE_CASH) === PaymentMethod::TYPE_CASH
+                ? 'cash'
+                : 'electronic';
+
+            $reconciliation[$bucket]['count'] += (int) $row['count'];
+            $reconciliation[$bucket]['total'] += (float) $row['total'];
+        }
+
+        $reconciliation['cash']['total'] = round($reconciliation['cash']['total'], 2);
+        $reconciliation['electronic']['total'] = round($reconciliation['electronic']['total'], 2);
+
+        return $reconciliation;
     }
 
     /**
@@ -203,6 +235,7 @@ class CashReportService
 
                 return [
                     'payment_method' => $method->name,
+                    'type' => $method->type,
                     'count' => (int) ($row->aggregate_count ?? 0),
                     'total' => (float) ($row->aggregate_total ?? 0),
                 ];
@@ -440,6 +473,7 @@ class CashReportService
 
                 return [
                     'payment_method' => $group->first()->paymentMethod?->name ?? 'Método no encontrado',
+                    'type' => $group->first()->paymentMethod?->type ?? PaymentMethod::TYPE_CASH,
                     'count' => $group->count(),
                     'total' => $total,
                     'average' => $group->avg('amount'),
