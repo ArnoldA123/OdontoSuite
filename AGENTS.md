@@ -470,14 +470,23 @@ documentada y no bloquea producción.
   conciliación del día separa las familias: `GET /api/cash-reports/daily` añade
   `reconciliation.cash` y `reconciliation.electronic`, y cada fila de
   `summary_by_payment_method` y de `payment_methods_analysis` declara su `type`.
-  La UI admin del método suma el selector de familia y el check de referencia.
-  §4 sincronizado con el valor medido: 125 migraciones. Sin rutas, controllers,
+  Las superficies acompañan el cambio de contrato: el modal de presupuestos
+  descompone el IGV en el preview y deja de inventar una tasa 0, el detalle y el
+  PDF parten del precio de lista (`total + descuento`) porque `subtotal` es la
+  base imponible, la UI admin del método suma el selector de familia y el check
+  de referencia, y en caja el método elegido marca la referencia como
+  obligatoria y el 422 cae en el campo. La verificación independiente encontró
+  dos defectos, ambos cerrados aquí: un `PATCH` parcial descontaba dos veces, y
+  el desglose impreso no llegaba al total en presupuestos con descuento. §4
+  sincronizado con el valor medido: 125 migraciones. Sin rutas, controllers,
   modelos ni primitivas UI nuevas; `scripts/audit/doc-drift.mjs` sigue en verde.
-  Tests: `QuotationTaxPolicyTest` (10), `QuotationImmutabilityTest` (8),
-  `PaymentMethodFamilyTest` (8), `PaymentReferenceRequirementTest` (8),
-  `CashReconciliationByFamilyTest` (6) y `paymentMethodMeta.test.js` extendido.
-  Fuera de alcance, documentado en la issue: comprobante de pago/SUNAT (#289) y
-  pago mixto más el gobierno de `requires_authorization`/`allows_change` (#291).
+  Tests: `QuotationTaxPolicyTest` (12), `QuotationImmutabilityTest` (8),
+  `QuotationDocumentBreakdownTest` (4), `PaymentMethodFamilyTest` (8),
+  `PaymentReferenceRequirementTest` (9), `CashReconciliationByFamilyTest` (6), y
+  los smokes de `paymentMethodMeta`, del formulario de métodos, del modal de
+  presupuesto, del detalle y de `caja-cobros` extendidos. Fuera de alcance,
+  documentado en la issue: comprobante de pago/SUNAT (#289) y pago mixto más el
+  gobierno de `requires_authorization`/`allows_change` (#291).
 
 - **2026-10-22 (la sede autoriza: escritorios, bloqueo contable, tarifario y**
   **consolidado, #283/#290)** — La sede deja de ser un filtro de consulta y pasa
