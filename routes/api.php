@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\CashMovementController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\CashReportController;
+use App\Http\Controllers\Api\ClinicalEncounterController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
@@ -207,6 +208,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // materials and attachments. Reception must not reach it.
     Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete'])
         ->middleware('permission:'.Permissions::COMPLETE_APPOINTMENT);
+    // F2 (#282): the act itself. Opening and voiding are clinical acts; the
+    // urgency door invents no agenda row (S8).
+    Route::post('encounters', [ClinicalEncounterController::class, 'store'])
+        ->middleware('permission:'.Permissions::CREATE_ENCOUNTER);
+    Route::post('encounters/{encounter}/void', [ClinicalEncounterController::class, 'void'])
+        ->middleware('permission:'.Permissions::VOID_ENCOUNTER);
 
     // Product catalog (material autocomplete in the consultation wizard).
     Route::get('products/search', [ProductController::class, 'search'])

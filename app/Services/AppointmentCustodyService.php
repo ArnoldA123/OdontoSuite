@@ -38,6 +38,8 @@ class AppointmentCustodyService
     /** @var list<string> */
     private const CLINICAL_ROLES = ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'];
 
+    public function __construct(private readonly ClinicalEncounterService $encounters) {}
+
     public function markArrival(Appointment $appointment, User $actor): Appointment
     {
         // The status is re-read under a row lock inside the transaction: two
@@ -88,6 +90,8 @@ class AppointmentCustodyService
             $current = $this->lockAppointment($appointment);
 
             if ($current->status === self::STATUS_IN_CONSULTATION) {
+                // Idempotent path: the act is already open and must not be
+                // opened twice (the encounter service would reuse it anyway).
                 return $current;
             }
 
@@ -108,6 +112,11 @@ class AppointmentCustodyService
                 self::STATUS_IN_CONSULTATION,
                 $actor,
             );
+
+            // F2 (#282): the custody transfer and the opening of the act are
+            // one act, so they share the transaction. A failure here rolls the
+            // status back instead of leaving an attention with no encounter.
+            $this->encounters->openForAppointment($current, $actor);
 
             return $current;
         });

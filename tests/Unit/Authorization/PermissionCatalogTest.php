@@ -97,6 +97,24 @@ class PermissionCatalogTest extends TestCase
     }
 
     #[Test]
+    public function the_encounter_doors_are_clinical_only(): void
+    {
+        foreach ([Permissions::CREATE_ENCOUNTER, Permissions::VOID_ENCOUNTER] as $permission) {
+            $this->assertFalse(
+                Permissions::roleHas('recepcionista', $permission),
+                "Reception holds [{$permission}], but opening or voiding a clinical act is not reception's work.",
+            );
+
+            foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+                $this->assertTrue(
+                    Permissions::roleHas($role, $permission),
+                    "Role [{$role}] should hold [{$permission}].",
+                );
+            }
+        }
+    }
+
+    #[Test]
     public function frontend_only_permissions_exist_in_the_catalog(): void
     {
         foreach (Permissions::FRONTEND_ONLY as $permission) {

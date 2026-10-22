@@ -74,6 +74,13 @@ final class Permissions
 
     public const COMPLETE_APPOINTMENT = 'complete.appointment';
 
+    // F2 (#282): the clinical act. Opening and voiding an encounter are
+    // clinical acts, so they follow the same clinical-only grant as the
+    // consultation close.
+    public const CREATE_ENCOUNTER = 'create.encounter';
+
+    public const VOID_ENCOUNTER = 'void.encounter';
+
     public const VIEW_MY_DAY = 'view.my_day';
 
     public const VIEW_PRODUCT = 'view.product';
@@ -271,6 +278,8 @@ final class Permissions
         // must not reach it. This is the only deliberate behavior change
         // against the pre-catalog role lists.
         self::COMPLETE_APPOINTMENT => self::MEDICAL_ROLES,
+        self::CREATE_ENCOUNTER => self::MEDICAL_ROLES,
+        self::VOID_ENCOUNTER => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
         self::MANAGE_REMINDER => self::APPOINTMENT_ROLES,
         self::SEND_REMINDER => self::APPOINTMENT_ROLES,
