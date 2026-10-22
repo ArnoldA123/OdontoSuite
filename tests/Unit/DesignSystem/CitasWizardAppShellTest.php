@@ -257,7 +257,7 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
      * MUST keep the `export function useConsultation()` factory + the canonical
      * return-object shape: `isOpen`, `context`, `contextLoading`, `submitting`,
      * `lastError`, `currentAppointmentId`, `openForAppointment`, `close`,
-     * `loadContext`, `checkIn`, `submit`. The wizard's `<script setup>`
+     * `loadContext`, `markArrival`, `announcePatient`, `startAttention`, `submit`. The wizard's `<script setup>`
      * destructure MUST keep its bindings (the wizard reads `isOpen`,
      * `context`, `contextLoading`, `submitting`, `loadContext`, `submit`,
      * `close`) and MUST keep the `defineEmits(['completed', 'close'])`
@@ -299,7 +299,9 @@ class CitasWizardAppShellTest extends ModuleAppShellTestCase
             'openForAppointment',
             'close',
             'loadContext',
-            'checkIn',
+            'markArrival',
+            'announcePatient',
+            'startAttention',
             'submit',
         ];
         foreach ($requiredComposableKeys as $key) {

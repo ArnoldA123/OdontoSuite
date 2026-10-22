@@ -1,7 +1,9 @@
 // Design decision D2: single source of truth for appointment status
-// presentation. Keys cover the statuses accepted by
-// AppointmentController@updateStatus and the appointment FormRequests, plus the
-// legacy `in_progress` DB enum value kept by
+// presentation. Keys cover every status the API can return: `arrived` is
+// written by POST /appointments/{id}/check-in, `in_consultation` by
+// POST /appointments/{id}/start-attention, and the rest by
+// AppointmentController@updateStatus and the appointment FormRequests. The
+// legacy `in_progress` DB enum value is kept by
 // database/migrations/2025_10_14_123001_fix_appointments_status_enum.php (the
 // app writes `in_consultation`, but serialized rows may still carry it).
 
@@ -24,6 +26,13 @@ export const APPOINTMENT_STATUSES = {
   },
   confirmed: {
     label: 'Confirmada',
+    badgeVariant: 'success',
+    showDot: true,
+    chip: 'border-systemGreen-200 bg-systemGreen-50',
+    tone: 'bg-systemGreen-50 text-systemGreen-700'
+  },
+  arrived: {
+    label: 'En espera',
     badgeVariant: 'success',
     showDot: true,
     chip: 'border-systemGreen-200 bg-systemGreen-50',

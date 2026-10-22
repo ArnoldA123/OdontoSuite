@@ -10,11 +10,14 @@ import {
   statusToneClasses
 } from '../../../resources/js/modules/appointments/appointmentStatus.js'
 
-// Statuses accepted by AppointmentController@updateStatus and the appointment
-// FormRequests (Store/UpdateAppointmentRequest).
+// Statuses the API can return: the ones accepted by
+// AppointmentController@updateStatus and the appointment FormRequests
+// (Store/UpdateAppointmentRequest), plus `arrived` — written by
+// POST /appointments/{id}/check-in since #281, never by the generic PATCH.
 const API_STATUS_KEYS = [
   'scheduled',
   'confirmed',
+  'arrived',
   'in_consultation',
   'completed',
   'cancelled',
@@ -58,6 +61,7 @@ describe('appointmentStatus registry', () => {
   it('keeps the exact Spanish labels currently shown', () => {
     expect(statusLabel('scheduled')).toBe('Programada')
     expect(statusLabel('confirmed')).toBe('Confirmada')
+    expect(statusLabel('arrived')).toBe('En espera')
     expect(statusLabel('in_consultation')).toBe('En Consulta')
     expect(statusLabel('completed')).toBe('Completada')
     expect(statusLabel('cancelled')).toBe('Cancelada')
@@ -68,6 +72,7 @@ describe('appointmentStatus registry', () => {
   it('keeps the exact badge variants and dot flags currently shown', () => {
     expect(statusBadgeProps('scheduled')).toEqual({ variant: 'info', showDot: true })
     expect(statusBadgeProps('confirmed')).toEqual({ variant: 'success', showDot: true })
+    expect(statusBadgeProps('arrived')).toEqual({ variant: 'success', showDot: true })
     expect(statusBadgeProps('in_consultation')).toEqual({ variant: 'warning', showDot: true })
     expect(statusBadgeProps('completed')).toEqual({ variant: 'neutral', showDot: true })
     expect(statusBadgeProps('cancelled')).toEqual({ variant: 'error', showDot: true })
@@ -89,6 +94,7 @@ describe('appointmentStatus registry', () => {
     expect(APPOINTMENT_CHIP_BASE_CLASSES).toBe('border')
     expect(statusChipClasses('scheduled')).toBe('border-accent-200 bg-accent-50')
     expect(statusChipClasses('confirmed')).toBe('border-systemGreen-200 bg-systemGreen-50')
+    expect(statusChipClasses('arrived')).toBe('border-systemGreen-200 bg-systemGreen-50')
     expect(statusChipClasses('in_consultation')).toBe('border-systemYellow-200 bg-systemYellow-50')
     expect(statusChipClasses('completed')).toBe('border-hairline bg-theme-surface')
     expect(statusChipClasses('cancelled')).toBe('border-systemRed-200 bg-systemRed-50')
@@ -99,6 +105,7 @@ describe('appointmentStatus registry', () => {
   it('keeps the exact tone class tokens currently shown', () => {
     expect(statusToneClasses('scheduled')).toBe('bg-accent-50 text-accent-700')
     expect(statusToneClasses('confirmed')).toBe('bg-systemGreen-50 text-systemGreen-700')
+    expect(statusToneClasses('arrived')).toBe('bg-systemGreen-50 text-systemGreen-700')
     expect(statusToneClasses('in_consultation')).toBe('bg-systemYellow-50 text-systemYellow-700')
     expect(statusToneClasses('completed')).toBe('bg-systemGray-100 text-systemGray-700')
     expect(statusToneClasses('cancelled')).toBe('bg-systemRed-50 text-systemRed-700')
