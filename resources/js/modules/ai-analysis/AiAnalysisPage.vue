@@ -28,6 +28,9 @@
             <p class="mt-2 text-sm text-theme-secondary" data-hero-caption>
               Análisis asistido de imágenes clínicas con inteligencia artificial
             </p>
+            <p class="mt-1 text-xs text-theme-secondary" data-ai-assistive-notice>
+              Apoyo a la decisión asistido por IA. No sustituye el diagnóstico profesional.
+            </p>
           </div>
           <div
             class="flex flex-wrap items-center gap-3 md:flex-shrink-0 md:flex-nowrap"
@@ -313,11 +316,11 @@
                 <UiButton
                   variant="ghost"
                   size="sm"
-                  data-row-action="delete"
-                  aria-label="Eliminar análisis"
-                  @click="deleteAnalysis(row.id)"
+                  data-row-action="void"
+                  aria-label="Anular análisis"
+                  @click="viewAnalysis(row)"
                 >
-                  <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                  <NoSymbolIcon class="h-4 w-4" aria-hidden="true" />
                 </UiButton>
               </div>
             </template>
@@ -341,7 +344,7 @@
       :analysis="selectedAnalysis"
       @close="selectedAnalysis = null"
       @review="handleReview"
-      @delete="deleteAnalysis"
+      @void="handleVoid"
     />
 
     <AiAnalysisSheet
@@ -369,12 +372,11 @@ import {
   ExclamationTriangleIcon,
   EyeIcon,
   MagnifyingGlassIcon,
+  NoSymbolIcon,
   PhotoIcon,
-  PlusIcon,
-  TrashIcon
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 import { useAiAnalysis } from '../../composables/useAiAnalysis'
-import { useConfirm } from '../../composables/useConfirm'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -398,13 +400,11 @@ const {
   getAnalyses,
   getStats,
   reviewAnalysis: reviewAnalysisApi,
-  deleteAnalysis: deleteAnalysisApi,
+  voidAnalysis: voidAnalysisApi,
   uploadAndAnalyze,
   getStatusLabel,
   formatDate
 } = useAiAnalysis()
-
-const { confirm } = useConfirm()
 
 const PAGE_SIZE = 15
 
@@ -553,8 +553,19 @@ const handleSheetClose = () => {
   sheetError.value = ''
 }
 
-const handleSheetSubmit = async ({ patientId, file, category, description }) => {
+const handleSheetSubmit = async ({
+  patientId,
+  file,
+  category,
+  description,
+  noticeAcknowledged = false,
+  clinicalEncounterId = null
+}) => {
   if (sheetSubmitting.value) return
+
+  // #296 — the declaration travels with the request and gates it: without it
+  // the professional has not informed the patient the result is assistive.
+  if (!noticeAcknowledged) return
 
   sheetSubmitting.value = true
   sheetError.value = ''
@@ -564,7 +575,13 @@ const handleSheetSubmit = async ({ patientId, file, category, description }) => 
 
   try {
     analysisStatus.value = 'analyzing'
-    const result = await uploadAndAnalyze(patientId, file, description, category)
+    const result = await uploadAndAnalyze(
+      patientId,
+      file,
+      description,
+      category,
+      clinicalEncounterId
+    )
 
     analysisStatus.value = 'completed'
     showAnalyzingModal.value = false
@@ -672,21 +689,13 @@ const viewAnalysis = row => {
   selectedAnalysis.value = row
 }
 
-const deleteAnalysis = async analysisId => {
-  const ok = await confirm({
-    title: 'Eliminar análisis',
-    message: '¿Estás seguro de que quieres eliminar este análisis?',
-    confirmText: 'Eliminar',
-    variant: 'danger'
-  })
-  if (!ok) return
-
+const handleVoid = async (analysisId, reason) => {
   try {
-    await deleteAnalysisApi(analysisId)
+    await voidAnalysisApi(analysisId, reason)
     selectedAnalysis.value = null
     await loadData(paginationMeta.value.current_page || 1)
   } catch (error) {
-    // The composable surfaces the failure; the row stays in the list.
+    // The composable surfaces the failure; the analysis keeps its row.
   }
 }
 

@@ -181,7 +181,7 @@ final class Permissions
 
     public const REVIEW_AI_ANALYSIS = 'review.ai_analysis';
 
-    public const DELETE_AI_ANALYSIS = 'delete.ai_analysis';
+    public const VOID_AI_ANALYSIS = 'void.ai_analysis';
 
     // Capabilities without a dedicated route: consumed by the SPA and backed by
     // a Policy in the service layer. The catalog test keeps this list honest.
@@ -230,6 +230,15 @@ final class Permissions
         'implantologo',
         'tecnico_dental',
     ];
+
+    /**
+     * #296 (spec S2) — the laboratory desktop does not reach the AI module.
+     *
+     * An analysis is decision support over a diagnosis: it belongs to the
+     * three roles that diagnose, not to `TREATMENT_ROLES`, which the clinical
+     * record and the treatment plan legitimately share with the laboratory.
+     */
+    private const AI_ROLES = ['administrador', 'odontologo', 'implantologo'];
 
     private const CASH_ROLES = ['administrador', 'finanzas', 'recepcionista'];
 
@@ -334,10 +343,10 @@ final class Permissions
         self::VIEW_REPORT => self::FINANCE_ROLES,
         self::EXPORT_REPORT => self::FINANCE_ROLES,
 
-        self::VIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::CREATE_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::REVIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::DELETE_AI_ANALYSIS => self::TREATMENT_ROLES,
+        self::VIEW_AI_ANALYSIS => self::AI_ROLES,
+        self::CREATE_AI_ANALYSIS => self::AI_ROLES,
+        self::REVIEW_AI_ANALYSIS => self::AI_ROLES,
+        self::VOID_AI_ANALYSIS => self::AI_ROLES,
 
         self::MANAGE_CONFIG => ['administrador'],
         self::MANAGE_CASH_REGISTER => self::FINANCE_ROLES,

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Http\Resources\AiImageAnalysisResource;
 use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
+use App\Models\ClinicalEncounter;
 use App\Models\User;
 use App\Support\DateFilter;
 use App\Support\PerPage;
@@ -26,8 +27,14 @@ class AiImageAnalysisService
 
     /**
      * Analizar imagen con IA.
+     *
+     * #296 — both creation doors funnel here. The clinical act is the
+     * attachment's own act unless the request names one, and a named act must
+     * belong to the same patient as the attachment. The declaration of the
+     * patient notice is required by both controllers, so the row records its
+     * author and its moment here, once, at creation.
      */
-    public function analyzeImage(int $attachmentId): AiImageAnalysis
+    public function analyzeImage(int $attachmentId, ?int $clinicalEncounterId = null): AiImageAnalysis
     {
         $attachment = ClinicalAttachment::with(['patient'])->findOrFail($attachmentId);
 
@@ -40,6 +47,7 @@ class AiImageAnalysisService
 
         // Verificar si ya existe un análisis
         $existingAnalysis = AiImageAnalysis::where('clinical_attachment_id', $attachmentId)
+            ->active()
             ->where('status', '!=', 'failed')
             ->first();
 
@@ -47,16 +55,25 @@ class AiImageAnalysisService
             return $existingAnalysis;
         }
 
+        // One resolver for both doors: the act the analysis supports is the one
+        // the request names, and it must describe the same patient.
+        $clinicalEncounterId = $this->resolveClinicalEncounterId($attachment, $clinicalEncounterId);
+
+        $this->ensureDailyLimitIsNotReached((int) $attachment->patient_id);
+
         DB::beginTransaction();
 
         try {
             // Crear registro de análisis
             $analysis = AiImageAnalysis::create([
                 'clinical_attachment_id' => $attachmentId,
+                'clinical_encounter_id' => $clinicalEncounterId,
                 'patient_id' => $attachment->patient_id,
                 'requested_by' => Auth::id(),
                 'status' => 'pending',
                 'model_used' => $this->openaiConfig['model'],
+                'notice_acknowledged_at' => now(),
+                'notice_acknowledged_by' => Auth::id(),
             ]);
 
             // Procesar análisis de forma asíncrona
@@ -64,7 +81,13 @@ class AiImageAnalysisService
 
             DB::commit();
 
-            return $analysis->load(['clinicalAttachment', 'patient', 'requestedBy']);
+            return $analysis->load([
+                'clinicalAttachment',
+                'clinicalEncounter',
+                'patient',
+                'requestedBy',
+                'noticeAcknowledgedBy',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating AI analysis', [
@@ -73,6 +96,83 @@ class AiImageAnalysisService
             ]);
 
             throw $e;
+        }
+    }
+
+    /**
+     * #296 — the upload door stores the attachment before analysing it, so the
+     * two refusals that depend only on the patient run first: a rejected upload
+     * must not leave an orphan clinical attachment (and its file) behind.
+     */
+    public function assertAnalysisAllowed(int $patientId, ?int $clinicalEncounterId): void
+    {
+        if ($clinicalEncounterId !== null) {
+            $this->assertEncounterBelongsToPatient($clinicalEncounterId, $patientId);
+        }
+
+        $this->ensureDailyLimitIsNotReached($patientId);
+    }
+
+    /**
+     * Resolve the clinical act of the analysis: the named one when the request
+     * names it, the attachment's own act otherwise.
+     */
+    protected function resolveClinicalEncounterId(
+        ClinicalAttachment $attachment,
+        ?int $clinicalEncounterId
+    ): ?int {
+        if ($clinicalEncounterId === null) {
+            return $attachment->clinical_encounter_id !== null
+                ? (int) $attachment->clinical_encounter_id
+                : null;
+        }
+
+        $this->assertEncounterBelongsToPatient($clinicalEncounterId, (int) $attachment->patient_id);
+
+        return $clinicalEncounterId;
+    }
+
+    /**
+     * One definition of the ownership rule, shared by the pre-flight check of
+     * the upload door and the resolver of the analysis.
+     */
+    protected function assertEncounterBelongsToPatient(int $clinicalEncounterId, int $patientId): void
+    {
+        $belongsToThePatient = ClinicalEncounter::query()
+            ->whereKey($clinicalEncounterId)
+            ->where('patient_id', $patientId)
+            ->exists();
+
+        if (! $belongsToThePatient) {
+            throw ValidationException::withMessages([
+                'clinical_encounter_id' => ['La atención seleccionada no pertenece al paciente.'],
+            ]);
+        }
+    }
+
+    /**
+     * #296 — the daily usage cap is a clinic policy (`0` means no cap). It
+     * counts analyses created today for the same patient; reusing an existing
+     * analysis never reaches this check.
+     */
+    protected function ensureDailyLimitIsNotReached(int $patientId): void
+    {
+        $limit = (int) ($this->openaiConfig['daily_analysis_limit_per_patient'] ?? 0);
+
+        if ($limit <= 0) {
+            return;
+        }
+
+        $today = AiImageAnalysis::query()
+            ->where('patient_id', $patientId)
+            ->active()
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+
+        if ($today >= $limit) {
+            throw ValidationException::withMessages([
+                'patient_id' => ['Se alcanzó el límite diario de análisis para este paciente.'],
+            ]);
         }
     }
 
@@ -290,6 +390,7 @@ Responde únicamente en formato JSON válido.';
     {
         $content = $response['choices'][0]['message']['content'] ?? '';
         $usage = $response['usage'] ?? [];
+        $tokens = isset($usage['total_tokens']) ? (int) $usage['total_tokens'] : null;
 
         // Intentar parsear JSON
         $parsedData = $this->parseResponse($content);
@@ -301,8 +402,25 @@ Responde únicamente en formato JSON válido.';
             'recommendations' => $parsedData['recommendations'] ?? [],
             'confidence_score' => $parsedData['confidence_score'] ?? null,
             'raw_response' => $content,
-            'tokens_used' => $usage['total_tokens'] ?? null,
+            'tokens_used' => $tokens,
+            'estimated_cost' => $this->estimateCost($tokens),
         ]);
+    }
+
+    /**
+     * #296 — the provider cost of one analysis, in USD with four decimals.
+     * Without a token count there is no cost to record; a failed analysis never
+     * reaches this method, so its cost stays empty.
+     */
+    protected function estimateCost(?int $tokens): ?float
+    {
+        if ($tokens === null) {
+            return null;
+        }
+
+        $pricePer1kTokens = (float) ($this->openaiConfig['price_per_1k_tokens'] ?? 0);
+
+        return round(($tokens / 1000) * $pricePer1kTokens, 4);
     }
 
     /**
@@ -384,6 +502,12 @@ Responde únicamente en formato JSON válido.';
     {
         $analysis = AiImageAnalysis::findOrFail($analysisId);
 
+        if ($analysis->isVoided()) {
+            throw ValidationException::withMessages([
+                'analysis' => ['No se puede revisar un análisis anulado.'],
+            ]);
+        }
+
         if ($analysis->reviewed) {
             throw ValidationException::withMessages([
                 'analysis' => ['Este análisis ya ha sido revisado.'],
@@ -396,11 +520,41 @@ Responde únicamente en formato JSON válido.';
     }
 
     /**
+     * #296 — annul an analysis instead of deleting it. The row keeps its review
+     * trace (`reviewed`, `reviewed_by`, `reviewed_at`, `review_decision`,
+     * `review_notes`): that trace is what makes the analysis auditable after it
+     * leaves the working set.
+     */
+    public function voidAnalysis(int $analysisId, string $reason): AiImageAnalysis
+    {
+        $analysis = AiImageAnalysis::findOrFail($analysisId);
+
+        if ($analysis->isVoided()) {
+            throw ValidationException::withMessages([
+                'analysis' => ['Este análisis ya ha sido anulado.'],
+            ]);
+        }
+
+        // #296: an analysis that a clinical document cites is part of the
+        // record; annulling it would leave that document citing nothing.
+        app(AiAnalysisCitationService::class)->assertNotCited($analysis);
+
+        $analysis->update([
+            'voided_at' => now(),
+            'voided_by' => Auth::id(),
+            'void_reason' => $reason,
+        ]);
+
+        return $analysis;
+    }
+
+    /**
      * Obtener análisis por adjunto.
      */
     public function getAnalysisByAttachment(int $attachmentId): ?AiImageAnalysis
     {
         return AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy', 'reviewedBy'])
+            ->active()
             ->where('clinical_attachment_id', $attachmentId)
             ->orderBy('created_at', 'desc')
             ->first();
@@ -412,6 +566,7 @@ Responde únicamente en formato JSON válido.';
     public function getAnalysisByPatient(int $patientId, array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'requestedBy', 'reviewedBy'])
+            ->active()
             ->where('patient_id', $patientId);
 
         if ($viewer) {
@@ -439,6 +594,13 @@ Responde únicamente en formato JSON válido.';
         $analyses = $query->orderBy('created_at', 'desc')
             ->paginate(PerPage::resolve($filters['per_page'] ?? null));
 
+        // The cost and the tokens describe the patient's active population,
+        // not the page being returned; the date and status filters already
+        // applied to the query are the same ones the rows obey.
+        $metrics = $query->clone()->reorder();
+        $totalTokens = (int) $metrics->sum('tokens_used');
+        $estimatedCost = (float) $metrics->sum('estimated_cost');
+
         return [
             'data' => AiImageAnalysisResource::collection($analyses->items())->resolve(),
             'meta' => [
@@ -446,6 +608,8 @@ Responde únicamente en formato JSON válido.';
                 'last_page' => $analyses->lastPage(),
                 'per_page' => $analyses->perPage(),
                 'total' => $analyses->total(),
+                'total_tokens' => $totalTokens,
+                'estimated_cost' => $estimatedCost,
             ],
         ];
     }
@@ -456,6 +620,7 @@ Responde únicamente en formato JSON válido.';
     public function getPendingAnalyses(array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy'])
+            ->active()
             ->where('status', 'completed')
             ->where('reviewed', false);
 
@@ -507,16 +672,27 @@ Responde únicamente en formato JSON válido.';
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $totalAnalyses = $query->count();
-        $completedAnalyses = $query->clone()->where('status', 'completed')->count();
-        $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
-        $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
+        // Annulled rows keep their row but leave the working set; their count
+        // is reported apart so the trace stays visible without inflating the
+        // usage metrics.
+        $voidedAnalyses = $query->clone()->voided()->count();
+        $active = $query->clone()->active();
+
+        $totalAnalyses = $active->count();
+        $completedAnalyses = $active->clone()->where('status', 'completed')->count();
+        $reviewedAnalyses = $active->clone()->where('reviewed', true)->count();
+        $pendingReview = $active->clone()->where('status', 'completed')->where('reviewed', false)->count();
+        $totalTokens = (int) $active->clone()->sum('tokens_used');
+        $estimatedCost = (float) $active->clone()->sum('estimated_cost');
 
         return [
             'total_analyses' => $totalAnalyses,
             'completed_analyses' => $completedAnalyses,
             'reviewed_analyses' => $reviewedAnalyses,
             'pending_review' => $pendingReview,
+            'voided_analyses' => $voidedAnalyses,
+            'total_tokens' => $totalTokens,
+            'estimated_cost' => $estimatedCost,
             'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
             'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
         ];

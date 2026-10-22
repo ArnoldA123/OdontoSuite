@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Authorization\Permissions;
 use App\Models\AiImageAnalysis;
 use App\Models\User;
 use App\Support\ClinicalAccess;
@@ -9,7 +10,7 @@ use App\Support\ClinicalAccess;
 /**
  * Authorization for the AI analysis surface (issue #214).
  *
- * Reading, reviewing and deleting all share one predicate: the analysis is
+ * Reading, reviewing and annulling all share one predicate: the analysis is
  * reachable when the user is an administrator, asked for it, reviewed it, or
  * reaches the patient through the clinical relationship defined in
  * `ClinicalAccess`. Listing a patient's whole history (`byPatient`) and
@@ -18,14 +19,14 @@ use App\Support\ClinicalAccess;
  */
 class AiImageAnalysisPolicy
 {
+    /**
+     * Who may list, read stats and read the pending queue. The catalog is the
+     * only role matrix (#296, spec S2): repeating a role array here let the
+     * policy and the routes disagree about the laboratory desktop.
+     */
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, [
-            'administrador',
-            'odontologo',
-            'implantologo',
-            'tecnico_dental',
-        ], true);
+        return Permissions::roleHas($user->role, Permissions::VIEW_AI_ANALYSIS);
     }
 
     public function view(User $user, AiImageAnalysis $analysis): bool
@@ -38,7 +39,7 @@ class AiImageAnalysisPolicy
         return $this->reachable($user, $analysis);
     }
 
-    public function delete(User $user, AiImageAnalysis $analysis): bool
+    public function void(User $user, AiImageAnalysis $analysis): bool
     {
         return $this->reachable($user, $analysis);
     }

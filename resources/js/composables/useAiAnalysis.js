@@ -10,10 +10,10 @@ import { useToast } from './useToast'
  * block, `uploadAndAnalyze` stays silent because `AiAnalysisSheet` renders the
  * inline message, and `getAnalysisByAttachment` still resolves `null` for "no
  * analysis yet". Only actions with no consumer error surface (`analyzeImage`,
- * `reviewAnalysis`, `deleteAnalysis`) keep the error toast.
+ * `reviewAnalysis`, `voidAnalysis`) keep the error toast.
  */
 export function useAiAnalysis() {
-  const { get, post, delete: del } = useApi()
+  const { get, post } = useApi()
   const { success, error } = useToast()
 
   const loading = ref(false)
@@ -22,12 +22,16 @@ export function useAiAnalysis() {
   const stats = ref(null)
 
   /**
-   * Analizar imagen con IA
+   * Analizar imagen con IA (#296): the patient notice is part of the request
+   * and the clinical act is optional.
    */
-  const analyzeImage = async attachmentId => {
+  const analyzeImage = async (attachmentId, options = {}) => {
     try {
       loading.value = true
-      const response = await post(`/api/ai-analysis/analyze/${attachmentId}`)
+      const response = await post(`/api/ai-analysis/analyze/${attachmentId}`, {
+        notice_acknowledged: true,
+        clinical_encounter_id: options.clinicalEncounterId ?? null
+      })
       analysis.value = response.data
       success('Análisis solicitado exitosamente')
       return response.data
@@ -150,21 +154,23 @@ export function useAiAnalysis() {
   }
 
   /**
-   * Eliminar análisis
+   * Anular análisis conservando la traza (#296)
    */
-  const deleteAnalysis = async id => {
+  const voidAnalysis = async (id, reason) => {
     try {
       loading.value = true
-      await del(`/api/ai-analysis/${id}`)
-      success('Análisis eliminado exitosamente')
+      const response = await post(`/api/ai-analysis/${id}/void`, { reason })
+      success('Análisis anulado exitosamente')
 
-      // Remover de la lista local
+      // El análisis anulado sale de la lista local; su traza queda en el servidor.
       const index = analyses.value.findIndex(a => a.id === id)
       if (index > -1) {
         analyses.value.splice(index, 1)
       }
+
+      return response.data
     } catch (err) {
-      error(err.response?.data?.message || 'Error al eliminar análisis')
+      error(err.response?.data?.message || 'Error al anular análisis')
       throw err
     } finally {
       loading.value = false
@@ -172,9 +178,16 @@ export function useAiAnalysis() {
   }
 
   /**
-   * Subir imagen y analizar en un solo paso
+   * Subir imagen y analizar en un solo paso (#296): the declaration is always
+   * sent and the clinical act travels only when the caller knows it.
    */
-  const uploadAndAnalyze = async (patientId, file, description, category) => {
+  const uploadAndAnalyze = async (
+    patientId,
+    file,
+    description,
+    category,
+    clinicalEncounterId = null
+  ) => {
     try {
       loading.value = true
 
@@ -185,6 +198,11 @@ export function useAiAnalysis() {
       formData.append('image', file)
       formData.append('description', description || '')
       formData.append('category', category)
+      formData.append('notice_acknowledged', '1')
+
+      if (clinicalEncounterId) {
+        formData.append('clinical_encounter_id', clinicalEncounterId)
+      }
 
       // Slice 08 / FF-006: useApi.post() detects FormData and lets the
       // browser set Content-Type automatically. The `options.headers`
@@ -273,7 +291,7 @@ export function useAiAnalysis() {
     getAnalysis,
     reviewAnalysis,
     getStats,
-    deleteAnalysis,
+    voidAnalysis,
     uploadAndAnalyze,
 
     // Computed

@@ -69,7 +69,7 @@
     "view.ai_analysis",
     "create.ai_analysis",
     "review.ai_analysis",
-    "delete.ai_analysis",
+    "void.ai_analysis",
     "manage.config",
     "manage.cash_register",
     "apply.transaction_discount",
@@ -150,7 +150,7 @@
     "view.ai_analysis",
     "create.ai_analysis",
     "review.ai_analysis",
-    "delete.ai_analysis"
+    "void.ai_analysis"
   ],
   "implantologo": [
     "view.profile",
@@ -193,7 +193,7 @@
     "view.ai_analysis",
     "create.ai_analysis",
     "review.ai_analysis",
-    "delete.ai_analysis"
+    "void.ai_analysis"
   ],
   "tecnico_dental": [
     "view.profile",
@@ -230,11 +230,7 @@
     "manage.treatment_plan",
     "manage.specialty_record",
     "view.dental_piece",
-    "manage.procedure_favorite",
-    "view.ai_analysis",
-    "create.ai_analysis",
-    "review.ai_analysis",
-    "delete.ai_analysis"
+    "manage.procedure_favorite"
   ],
   "asistente": [
     "view.profile",

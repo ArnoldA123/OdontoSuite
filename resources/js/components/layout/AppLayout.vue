@@ -972,7 +972,7 @@ const navigation = computed(() => {
       name: 'Análisis IA',
       to: '/ai-analysis',
       icon: CpuChipIcon,
-      roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'],
+      roles: ['administrador', 'odontologo', 'implantologo'],
       badge: null
     }
   ]

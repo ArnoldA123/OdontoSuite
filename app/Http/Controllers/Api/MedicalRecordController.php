@@ -225,6 +225,10 @@ class MedicalRecordController extends Controller
                 'attachments',
                 // F3 (#292): the corrections of each visit travel with it.
                 'addenda.author',
+                // #296: the decision-support material the professional cited.
+                // The reader of the record may not hold view.ai_analysis, so the
+                // citation travels as a decision, not as the whole analysis.
+                'citedAnalyses' => fn ($query) => $query->citationSummary(),
             ])
                 ->where('medical_record_id', $id)
                 ->orderBy('evolution_date', 'desc')

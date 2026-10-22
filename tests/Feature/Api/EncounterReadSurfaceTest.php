@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
 use App\Models\ClinicalEvolution;
@@ -244,6 +245,60 @@ class EncounterReadSurfaceTest extends TestCase
             ->assertJsonPath('data.quotations.0.total_amount', 250);
 
         $this->assertNotNull($response->json('data.attachments.0.created_at'));
+    }
+
+    /**
+     * S4 (#296): the act publishes only reviewed, non-annulled analyses. An
+     * unreviewed analysis has not been incorporated into the decision yet and a
+     * voided one left the record, so neither appears.
+     */
+    public function test_the_detail_lists_only_the_reviewed_and_active_analyses(): void
+    {
+        $professional = $this->staff('odontologo');
+        $patient = Patient::factory()->create();
+        $encounter = $this->encounter($patient, ['user_id' => $professional->id]);
+
+        $reviewed = AiImageAnalysis::factory()->create([
+            'patient_id' => $patient->id,
+            'requested_by' => $professional->id,
+            'clinical_encounter_id' => $encounter->id,
+            'reviewed' => true,
+            'reviewed_by' => $professional->id,
+            'reviewed_at' => '2026-05-01 10:00:00',
+            'review_decision' => 'accepted',
+            'confidence_score' => 88.5,
+        ]);
+        AiImageAnalysis::factory()->create([
+            'patient_id' => $patient->id,
+            'requested_by' => $professional->id,
+            'clinical_encounter_id' => $encounter->id,
+            'reviewed' => false,
+        ]);
+        AiImageAnalysis::factory()->create([
+            'patient_id' => $patient->id,
+            'requested_by' => $professional->id,
+            'clinical_encounter_id' => $encounter->id,
+            'reviewed' => true,
+            'reviewed_by' => $professional->id,
+            'reviewed_at' => '2026-05-02 10:00:00',
+            'review_decision' => 'accepted',
+            'voided_at' => now(),
+            'voided_by' => $professional->id,
+            'void_reason' => 'Duplicado del estudio previo',
+        ]);
+
+        $response = $this->actingAs($professional, 'sanctum')
+            ->getJson("/api/encounters/{$encounter->id}");
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data.ai_analyses')
+            ->assertJsonPath('data.ai_analyses.0.id', $reviewed->id)
+            ->assertJsonPath('data.ai_analyses.0.review_decision', 'accepted')
+            ->assertJsonPath('data.ai_analyses.0.reviewed_by', $professional->name)
+            ->assertJsonPath('data.ai_analyses.0.confidence_score', '88.50');
+
+        $this->assertNotNull($response->json('data.ai_analyses.0.reviewed_at'));
+        $this->assertNotNull($response->json('data.ai_analyses.0.created_at'));
     }
 
     public function test_reading_the_act_is_clinical_only(): void

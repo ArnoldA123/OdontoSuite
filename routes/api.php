@@ -444,6 +444,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::CREATE_AI_ANALYSIS);
     Route::post('ai-analysis/{id}/review', [AiImageAnalysisController::class, 'review'])
         ->middleware('permission:'.Permissions::REVIEW_AI_ANALYSIS);
-    Route::delete('ai-analysis/{id}', [AiImageAnalysisController::class, 'destroy'])
-        ->middleware('permission:'.Permissions::DELETE_AI_ANALYSIS);
+    Route::post('ai-analysis/{id}/void', [AiImageAnalysisController::class, 'void'])
+        ->middleware('permission:'.Permissions::VOID_AI_ANALYSIS);
 });

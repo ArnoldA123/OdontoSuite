@@ -98,7 +98,7 @@ const PERMISSION_BY_KEY = {
   'ai-analysis.analyze': 'create.ai_analysis',
   'ai-analysis.view': 'view.ai_analysis',
   'ai-analysis.review': 'review.ai_analysis',
-  'ai-analysis.delete': 'delete.ai_analysis',
+  'ai-analysis.void': 'void.ai_analysis',
   'ai-analysis.stats': 'view.ai_analysis'
 }
 

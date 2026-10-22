@@ -87,6 +87,10 @@ class StoreEvolutionRequest extends FormRequest
             'clinical_measurements.tooth_mobility' => 'sometimes|nullable|integer|min:0|max:3',
             'requires_follow_up' => 'boolean',
             'follow_up_date' => 'sometimes|nullable|date|after:evolution_date',
+            // #296: only a reviewed analysis can be cited, and the service
+            // checks patient, status and annulment before anything is written.
+            'cited_analysis_ids' => 'sometimes|array|max:20',
+            'cited_analysis_ids.*' => 'integer',
         ];
     }
 

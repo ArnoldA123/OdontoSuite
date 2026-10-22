@@ -7,13 +7,22 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AiImageAnalysis extends Model
 {
     use HasFactory;
 
+    /**
+     * #296 — the wording the professional must be able to declare to the
+     * patient. One source: the API publishes it and the interface prints it.
+     */
+    public const ASSISTIVE_NOTICE = 'Resultado de apoyo a la decisión asistido por inteligencia artificial. '
+        .'No es un diagnóstico y no sustituye la evaluación ni el criterio del profesional.';
+
     protected $fillable = [
         'clinical_attachment_id',
+        'clinical_encounter_id',
         'patient_id',
         'requested_by',
         'status',
@@ -24,6 +33,12 @@ class AiImageAnalysis extends Model
         'raw_response',
         'model_used',
         'tokens_used',
+        'estimated_cost',
+        'voided_at',
+        'voided_by',
+        'void_reason',
+        'notice_acknowledged_at',
+        'notice_acknowledged_by',
         'reviewed',
         'reviewed_by',
         'reviewed_at',
@@ -47,6 +62,9 @@ class AiImageAnalysis extends Model
         'reviewed' => 'boolean',
         'reviewed_at' => 'datetime',
         'tokens_used' => 'integer',
+        'estimated_cost' => 'decimal:4',
+        'voided_at' => 'datetime',
+        'notice_acknowledged_at' => 'datetime',
     ];
 
     /**
@@ -73,6 +91,34 @@ class AiImageAnalysis extends Model
         return $this->belongsTo(ClinicalAttachment::class);
     }
 
+    /**
+     * #296: the clinical act the analysis supports, inherited from its
+     * attachment (F2, #282).
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
+    }
+
+    /**
+     * #296: the documents that cited this analysis. Citations exist only for a
+     * reviewed analysis, so the relation is the proof of incorporation.
+     */
+    public function citations(): HasMany
+    {
+        return $this->hasMany(AiAnalysisCitation::class);
+    }
+
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    public function noticeAcknowledgedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'notice_acknowledged_by');
+    }
+
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
@@ -92,6 +138,37 @@ class AiImageAnalysis extends Model
     public function scopeByStatus($query, $status)
     {
         return $query->where('status', $status);
+    }
+
+    /**
+     * #296 — the payload of a cited analysis.
+     *
+     * A citation travels inside a clinical document whose reader may not hold
+     * `view.ai_analysis` (the clinical matrix of #283 still lets the laboratory
+     * read the record), so the relation carries the decision, not the provider
+     * artifacts: no findings, tokens, cost or review notes.
+     */
+    public function scopeCitationSummary(Builder $query): Builder
+    {
+        return $query->select([
+            'ai_image_analyses.id',
+            'ai_image_analyses.review_decision',
+            'ai_image_analyses.reviewed_at',
+            'ai_image_analyses.confidence_score',
+        ]);
+    }
+
+    /**
+     * #296: annulled analyses leave the working set but keep their row.
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNull('voided_at');
+    }
+
+    public function scopeVoided(Builder $query): Builder
+    {
+        return $query->whereNotNull('voided_at');
     }
 
     public function scopeByPatient($query, $patientId)
@@ -182,6 +259,16 @@ class AiImageAnalysis extends Model
     public function isReviewed(): bool
     {
         return $this->reviewed;
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
+    }
+
+    public function isAssistive(): bool
+    {
+        return true;
     }
 
     public function markAsReviewed(User $user, string $decision, ?string $notes = null): void

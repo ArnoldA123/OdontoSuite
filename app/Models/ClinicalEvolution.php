@@ -6,7 +6,9 @@ use App\Exceptions\Clinical\ClinicalRecordImmutableException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ClinicalEvolution extends Model
 {
@@ -71,6 +73,22 @@ class ClinicalEvolution extends Model
     public function medicalRecord(): BelongsTo
     {
         return $this->belongsTo(MedicalRecord::class);
+    }
+
+    /**
+     * #296: the AI analyses this evolution cites. Only a reviewed analysis can
+     * be cited, so reading this relation reads the decision-support material
+     * that a professional accepted.
+     */
+    public function citedAnalyses(): BelongsToMany
+    {
+        return $this->morphToMany(AiImageAnalysis::class, 'citable', 'ai_analysis_citations')
+            ->withPivot(['cited_by', 'created_at']);
+    }
+
+    public function citations(): MorphMany
+    {
+        return $this->morphMany(AiAnalysisCitation::class, 'citable');
     }
 
     public function createdBy(): BelongsTo

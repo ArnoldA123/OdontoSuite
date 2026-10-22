@@ -6,6 +6,7 @@ use App\Exceptions\Consultation\ConsultationException;
 use App\Exceptions\Encounter\EncounterException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseClinicalEncounterRequest;
+use App\Models\AiImageAnalysis;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
 use App\Models\ClinicalEvolution;
@@ -114,6 +115,7 @@ class ClinicalEncounterController extends Controller
             'procedureMaterials.product',
             'attachments',
             'quotations',
+            'aiImageAnalyses.reviewedBy',
         ]);
 
         return response()->json([
@@ -308,6 +310,21 @@ class ClinicalEncounterController extends Controller
                     'quotation_number' => $quotation->quotation_number,
                     'status' => $quotation->status,
                     'total_amount' => (float) $quotation->total_amount,
+                ])
+                ->values()
+                ->all(),
+            // S4 (#296): an unreviewed analysis has not been incorporated into
+            // the record and a voided one left it, so only reviewed, active
+            // analyses appear in the act.
+            'ai_analyses' => $encounter->aiImageAnalyses
+                ->filter(fn (AiImageAnalysis $analysis): bool => (bool) $analysis->reviewed && ! $analysis->isVoided())
+                ->map(fn (AiImageAnalysis $analysis): array => [
+                    'id' => $analysis->id,
+                    'review_decision' => $analysis->review_decision,
+                    'reviewed_at' => $analysis->reviewed_at?->toIso8601String(),
+                    'reviewed_by' => $analysis->reviewedBy?->name,
+                    'confidence_score' => $analysis->confidence_score,
+                    'created_at' => $analysis->created_at?->toIso8601String(),
                 ])
                 ->values()
                 ->all(),

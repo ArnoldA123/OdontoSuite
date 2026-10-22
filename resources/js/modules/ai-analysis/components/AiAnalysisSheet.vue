@@ -109,6 +109,24 @@
           <p data-description-counter class="text-right text-xs text-theme-secondary">
             {{ description.length }}/500
           </p>
+
+          <div
+            class="flex items-start gap-3 rounded-[var(--radius-control)] bg-theme-surface p-3"
+            style="border: 1px solid var(--color-hairline)"
+          >
+            <input
+              id="ai-analysis-notice"
+              v-model="noticeAcknowledged"
+              data-sheet-notice
+              type="checkbox"
+              class="mt-0.5 h-4 w-4 flex-shrink-0"
+              style="accent-color: var(--color-accent)"
+            />
+            <label for="ai-analysis-notice" class="text-sm leading-6 text-theme-primary">
+              Informé al paciente que el resultado es apoyo asistido por IA y no sustituye el
+              diagnóstico profesional.
+            </label>
+          </div>
         </section>
 
         <p
@@ -171,9 +189,12 @@ const patient = ref(null)
 const file = ref(null)
 const category = ref('radiografia')
 const description = ref('')
+const noticeAcknowledged = ref(false)
 const stepErrors = ref({ patient: '', image: '' })
 
-const canSubmit = computed(() => Boolean(patient.value && file.value) && !props.submitting)
+const canSubmit = computed(
+  () => Boolean(patient.value && file.value && noticeAcknowledged.value) && !props.submitting
+)
 
 const closeSheet = () => {
   emit('update:modelValue', false)
@@ -185,6 +206,7 @@ const resetForm = () => {
   file.value = null
   category.value = 'radiografia'
   description.value = ''
+  noticeAcknowledged.value = false
   stepErrors.value = { patient: '', image: '' }
 }
 
@@ -229,7 +251,8 @@ const handleSubmit = () => {
     patientId: patient.value.id,
     file: file.value,
     category: category.value,
-    description: description.value.trim()
+    description: description.value.trim(),
+    noticeAcknowledged: true
   })
 }
 

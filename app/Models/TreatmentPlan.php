@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TreatmentPlan extends Model
@@ -54,6 +56,22 @@ class TreatmentPlan extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * #296: the AI analyses this plan cites. Only a reviewed analysis can be
+     * cited, so a citation proves the finding was looked at before it reached
+     * the plan.
+     */
+    public function citedAnalyses(): BelongsToMany
+    {
+        return $this->morphToMany(AiImageAnalysis::class, 'citable', 'ai_analysis_citations')
+            ->withPivot(['cited_by', 'created_at']);
+    }
+
+    public function citations(): MorphMany
+    {
+        return $this->morphMany(AiAnalysisCitation::class, 'citable');
     }
 
     public function items(): HasMany

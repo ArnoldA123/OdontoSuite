@@ -22,8 +22,15 @@ use Tests\TestCase;
  * `odd/tasks/ai-analysis-interface-redesign.md`):
  *  - `GET /api/ai-analysis` honours `per_page` (1..100) and `search`, and
  *    ignores blank filter values while keeping the existing filters working.
- *  - `DELETE /api/ai-analysis/{id}` answers 404 for an unknown id instead of 500.
  *  - No controller 500 leaks the exception message in an `error` key.
+ *
+ * #296 — an analysis is annulled, never erased (specs S3 and S5):
+ *  - `DELETE /api/ai-analysis/{id}` is gone (405) and
+ *    `POST /api/ai-analysis/{id}/void` requires a reason.
+ *  - The row survives with `voided_at`, `voided_by` and `void_reason`, and the
+ *    review trace is untouched.
+ *  - List reads exclude annulled rows; `index?voided=1` is the only way to
+ *    consult the trace besides `show`.
  */
 class AiAnalysisContractTest extends TestCase
 {
@@ -53,6 +60,18 @@ class AiAnalysisContractTest extends TestCase
         return AiImageAnalysis::factory()->create(array_merge([
             'patient_id' => $patient->id,
             'requested_by' => $user->id,
+        ], $attributes));
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    protected function voidedAnalysis(Patient $patient, User $user, array $attributes = []): AiImageAnalysis
+    {
+        return $this->analysis($patient, $user, array_merge([
+            'voided_at' => now(),
+            'voided_by' => $user->id,
+            'void_reason' => 'Duplicado del estudio previo',
         ], $attributes));
     }
 
@@ -206,17 +225,218 @@ class AiAnalysisContractTest extends TestCase
         $this->assertDatabaseCount('ai_image_analyses', 3);
     }
 
-    public function test_destroy_missing_analysis_returns_not_found_without_internals(): void
+    public function test_delete_route_is_gone(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->deleteJson('/api/ai-analysis/'.$analysis->id)
+            ->assertStatus(405);
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'voided_at' => null,
+        ]);
+    }
+
+    public function test_void_missing_analysis_returns_not_found_without_internals(): void
     {
         $user = $this->clinician();
 
-        $response = $this->actingAs($user)->deleteJson('/api/ai-analysis/999999');
+        $response = $this->actingAs($user)
+            ->postJson('/api/ai-analysis/999999/void', ['reason' => 'Duplicado']);
 
         $response->assertStatus(404)
             ->assertJsonPath('message', 'Análisis no encontrado')
             ->assertJsonMissingPath('error');
 
         $this->assertStringNotContainsString('No query results', $response->getContent());
+    }
+
+    public function test_void_requires_a_reason(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void')
+            ->assertStatus(422)
+            ->assertJsonPath('errors.reason.0', 'El motivo de la anulación es obligatorio.');
+
+        $this->actingAs($user)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void', ['reason' => str_repeat('a', 256)])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.reason.0', 'El motivo de la anulación no puede exceder los 255 caracteres.');
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'voided_at' => null,
+        ]);
+    }
+
+    public function test_void_keeps_the_row_and_records_the_annulment_trace(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->analysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void', [
+                'reason' => '<b>Duplicado</b> del estudio previo',
+            ])
+            ->assertOk()
+            ->assertJsonPath('meta.message', 'Análisis anulado exitosamente')
+            ->assertJsonPath('data.id', $analysis->id)
+            ->assertJsonPath('data.voided', true)
+            ->assertJsonPath('data.void_reason', 'Duplicado del estudio previo')
+            ->assertJsonPath('data.voided_by.name', $user->name);
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'voided_by' => $user->id,
+            'void_reason' => 'Duplicado del estudio previo',
+        ]);
+        $this->assertNotNull($analysis->fresh()->voided_at);
+    }
+
+    public function test_void_preserves_the_review_trace_of_a_reviewed_analysis(): void
+    {
+        $requester = $this->clinician();
+        $reviewer = $this->clinician();
+        $reviewedAt = now()->subDay()->startOfSecond();
+        $analysis = $this->analysis($this->patient(), $requester, [
+            'reviewed' => true,
+            'reviewed_by' => $reviewer->id,
+            'reviewed_at' => $reviewedAt,
+            'review_decision' => 'accepted',
+            'review_notes' => 'Hallazgo compatible con caries oclusal',
+        ]);
+
+        $this->actingAs($requester)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void', ['reason' => 'Se subió la radiografía equivocada'])
+            ->assertOk()
+            ->assertJsonPath('data.voided', true)
+            ->assertJsonPath('data.reviewed', true)
+            ->assertJsonPath('data.review_decision', 'accepted')
+            ->assertJsonPath('data.review_notes', 'Hallazgo compatible con caries oclusal')
+            ->assertJsonPath('data.reviewed_by.id', $reviewer->id);
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'reviewed' => true,
+            'reviewed_by' => $reviewer->id,
+            'review_decision' => 'accepted',
+            'review_notes' => 'Hallazgo compatible con caries oclusal',
+            'void_reason' => 'Se subió la radiografía equivocada',
+        ]);
+
+        $this->assertSame(
+            $reviewedAt->toDateTimeString(),
+            $analysis->fresh()->reviewed_at->toDateTimeString()
+        );
+    }
+
+    public function test_a_second_void_is_rejected(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->voidedAnalysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void', ['reason' => 'Otra vez'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.analysis.0', 'Este análisis ya ha sido anulado.');
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'void_reason' => 'Duplicado del estudio previo',
+        ]);
+    }
+
+    public function test_voided_analyses_leave_the_working_set_but_stay_reachable_through_show(): void
+    {
+        $user = $this->clinician();
+        $patient = $this->patient();
+
+        Appointment::factory()->create([
+            'user_id' => $user->id,
+            'patient_id' => $patient->id,
+        ]);
+
+        $active = $this->analysis($patient, $user, ['status' => 'completed', 'reviewed' => false]);
+        $voided = $this->voidedAnalysis($patient, $user, ['status' => 'completed', 'reviewed' => false]);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $active->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?voided=0')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $active->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis?voided=1')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $voided->id)
+            ->assertJsonPath('data.0.voided', true)
+            ->assertJsonPath('data.0.void_reason', 'Duplicado del estudio previo')
+            ->assertJsonPath('data.0.voided_by.id', $user->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/pending')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $active->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/patient/'.$patient->id)
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $active->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/attachment/'.$active->clinical_attachment_id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $active->id);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/attachment/'.$voided->clinical_attachment_id)
+            ->assertOk()
+            ->assertJsonPath('data', null);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/stats')
+            ->assertOk()
+            ->assertJsonPath('data.total_analyses', 1)
+            ->assertJsonPath('data.voided_analyses', 1);
+
+        $this->actingAs($user)
+            ->getJson('/api/ai-analysis/'.$voided->id)
+            ->assertOk()
+            ->assertJsonPath('data.id', $voided->id)
+            ->assertJsonPath('data.voided', true)
+            ->assertJsonPath('data.void_reason', 'Duplicado del estudio previo')
+            ->assertJsonPath('data.voided_by.name', $user->name);
+    }
+
+    public function test_reviewing_a_voided_analysis_is_rejected(): void
+    {
+        $user = $this->clinician();
+        $analysis = $this->voidedAnalysis($this->patient(), $user);
+
+        $this->actingAs($user)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/review', ['decision' => 'accepted'])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.analysis.0', 'No se puede revisar un análisis anulado.');
+
+        $this->assertDatabaseHas('ai_image_analyses', [
+            'id' => $analysis->id,
+            'reviewed' => false,
+        ]);
     }
 
     public function test_show_missing_analysis_returns_not_found_without_internals(): void
@@ -230,32 +450,6 @@ class AiAnalysisContractTest extends TestCase
             ->assertJsonMissingPath('error');
 
         $this->assertStringNotContainsString('No query results', $response->getContent());
-    }
-
-    public function test_destroy_rejects_a_reviewed_analysis_and_keeps_it(): void
-    {
-        $user = $this->clinician();
-        $analysis = $this->analysis($this->patient(), $user, ['reviewed' => true]);
-
-        $this->actingAs($user)
-            ->deleteJson('/api/ai-analysis/'.$analysis->id)
-            ->assertStatus(422)
-            ->assertJsonPath('message', 'No se puede eliminar un análisis que ya ha sido revisado');
-
-        $this->assertDatabaseHas('ai_image_analyses', ['id' => $analysis->id]);
-    }
-
-    public function test_destroy_removes_an_unreviewed_analysis(): void
-    {
-        $user = $this->clinician();
-        $analysis = $this->analysis($this->patient(), $user);
-
-        $this->actingAs($user)
-            ->deleteJson('/api/ai-analysis/'.$analysis->id)
-            ->assertOk()
-            ->assertJsonPath('meta.message', 'Análisis eliminado exitosamente');
-
-        $this->assertDatabaseMissing('ai_image_analyses', ['id' => $analysis->id]);
     }
 
     public function test_server_errors_do_not_leak_the_exception_message(): void
@@ -377,17 +571,24 @@ class AiAnalysisContractTest extends TestCase
             ->once()
             ->andReturn($attachment);
 
-        $this->mock(AiImageAnalysisService::class)
-            ->shouldReceive('analyzeImage')
-            ->once()
-            ->with($attachment->id)
-            ->andReturn($analysis);
+        $this->mock(AiImageAnalysisService::class, function ($mock) use ($patient, $attachment, $analysis): void {
+            $mock->shouldReceive('assertAnalysisAllowed')
+                ->once()
+                ->with($patient->id, null)
+                ->andReturnNull();
+
+            $mock->shouldReceive('analyzeImage')
+                ->once()
+                ->with($attachment->id, null)
+                ->andReturn($analysis);
+        });
 
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
 
         $response = $this->actingAs($user)->post('/api/ai-analysis/upload-and-analyze', [
             'patient_id' => $patient->id,
             'category' => 'radiografia',
+            'notice_acknowledged' => '1',
             'image' => UploadedFile::fake()->createWithContent('xray.png', $png),
         ]);
 
@@ -458,12 +659,13 @@ class AiAnalysisContractTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($outsider)
-            ->deleteJson('/api/ai-analysis/'.$analysis->id)
+            ->postJson('/api/ai-analysis/'.$analysis->id.'/void', ['reason' => 'Duplicado'])
             ->assertForbidden();
 
         $this->assertDatabaseHas('ai_image_analyses', [
             'id' => $analysis->id,
             'reviewed' => false,
+            'voided_at' => null,
         ]);
     }
 
