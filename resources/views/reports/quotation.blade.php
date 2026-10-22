@@ -294,10 +294,18 @@
 
     <!-- Totales -->
     <div class="totals-section">
+        @php
+            // #289: the price already includes the IGV, so the list price is the
+            // total plus the discount it absorbed, and the tax rows break that
+            // total down instead of adding to it. `total + discount` holds for
+            // the rows this policy writes (total == base + IGV) and for the
+            // historical rows that declared no tax.
+            $listPrice = (float) $quotation->total_amount + (float) $quotation->discount_amount;
+        @endphp
         <table class="totals-table">
             <tr>
                 <td class="label">Subtotal:</td>
-                <td class="amount">S/ {{ number_format($quotation->subtotal, 2) }}</td>
+                <td class="amount">S/ {{ number_format($listPrice, 2) }}</td>
             </tr>
             @if($quotation->discount_amount > 0)
             <tr>
@@ -306,6 +314,10 @@
             </tr>
             @endif
             @if($quotation->tax_amount > 0)
+            <tr>
+                <td class="label">Base imponible:</td>
+                <td class="amount">S/ {{ number_format($quotation->subtotal, 2) }}</td>
+            </tr>
             <tr>
                 <td class="label">IGV ({{ $quotation->tax_percentage }}%):</td>
                 <td class="amount">S/ {{ number_format($quotation->tax_amount, 2) }}</td>

@@ -369,9 +369,11 @@ class QuotationService
      */
     private function calculateAmounts(array &$data, ?Quotation $existing = null): void
     {
+        // The stored total is already net of the discount, so the gross it came
+        // from is `total + discount`: a partial payload must not discount twice.
         $gross = isset($data['subtotal'])
             ? (float) $data['subtotal']
-            : (float) ($existing->total_amount ?? 0);
+            : (float) ($existing->total_amount ?? 0) + (float) ($existing->discount_amount ?? 0);
 
         $discountPercentage = isset($data['discount_percentage'])
             ? (float) $data['discount_percentage']

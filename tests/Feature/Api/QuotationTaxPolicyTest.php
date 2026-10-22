@@ -112,6 +112,46 @@ class QuotationTaxPolicyTest extends TestCase
         $this->assertSame('106.20', $fresh->total_amount);
     }
 
+    public function test_a_partial_update_of_a_discounted_quotation_does_not_discount_twice(): void
+    {
+        $quotation = app(QuotationService::class)->createQuotation([
+            'patient_id' => Patient::factory()->create()->id,
+            'subtotal' => 200.0,
+            'discount_amount' => 20.0,
+        ]);
+
+        $this->assertSame('180.00', $quotation->total_amount);
+
+        // Only the rate travels: the gross has to be rebuilt from the stored net
+        // plus the discount it already absorbed, not from the net alone.
+        $this->putJson('/api/quotations/'.$quotation->id, ['tax_percentage' => 0])
+            ->assertOk();
+
+        $fresh = $quotation->fresh();
+
+        $this->assertSame('20.00', $fresh->discount_amount);
+        $this->assertSame('180.00', $fresh->subtotal);
+        $this->assertSame('180.00', $fresh->total_amount);
+    }
+
+    public function test_a_partial_update_of_the_discount_uses_the_list_price(): void
+    {
+        $quotation = app(QuotationService::class)->createQuotation([
+            'patient_id' => Patient::factory()->create()->id,
+            'subtotal' => 200.0,
+            'discount_amount' => 20.0,
+        ]);
+
+        $this->putJson('/api/quotations/'.$quotation->id, ['discount_amount' => 30.0])
+            ->assertOk();
+
+        $fresh = $quotation->fresh();
+
+        $this->assertSame('25.93', $fresh->tax_amount);
+        $this->assertSame('144.07', $fresh->subtotal);
+        $this->assertSame('170.00', $fresh->total_amount);
+    }
+
     public function test_declaring_no_tax_on_an_existing_quotation_keeps_the_price(): void
     {
         $quotation = app(QuotationService::class)->generateQuotation($this->planWithPrice(118.0)->id);
