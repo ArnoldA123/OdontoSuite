@@ -259,9 +259,9 @@ class DashboardController extends Controller
     {
         $today = Carbon::today();
         $branchId = BranchAccess::effectiveFilter(
-                $request->user(),
-                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-            );
+            $request->user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
         $cacheKey = 'dashboard_today_'.Auth::id().'_'.$today->toDateString().'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($today, $branchId) {
@@ -290,9 +290,9 @@ class DashboardController extends Controller
         $startsAt = $now->copy()->addDay()->startOfDay();
         $endOfWeek = $now->copy()->endOfWeek();
         $branchId = BranchAccess::effectiveFilter(
-                $request->user(),
-                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-            );
+            $request->user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
         $cacheKey = 'dashboard_upcoming_'.Auth::id().'_'.$now->format('Y-W').'_'.($branchId ?? 'all');
 
         $appointments = Cache::remember($cacheKey, now()->addMinutes(2), function () use ($startsAt, $endOfWeek, $branchId) {

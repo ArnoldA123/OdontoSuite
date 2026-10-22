@@ -76,49 +76,64 @@ del login es el `username`** (no el email, no el nombre).
 > (`clinical_encounters`): abrirlo, cerrarlo y anularlo son actos clínicos, y la
 > atención de urgencia existe sin cita.
 
-| Funcionalidad                | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
-| ---------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
-| **Pacientes**                |
-| Crear pacientes              | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Ver pacientes                | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
-| Editar pacientes             | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Eliminar pacientes           | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Exportar ficha de paciente   | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| **Citas/Agenda**             |
-| Crear citas                  | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Ver citas                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Editar citas                 | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Cancelar citas               | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Registrar llegada            | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Anunciar paciente            | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Iniciar atención             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Escritorio Mi día            | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Completar consulta (clínica) | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Abrir atención de urgencia   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Cerrar atención (sin cita)   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Anular atención abierta      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Ver atenciones clínicas      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| **Reportes/BI**              |
-| Ver reportes                 | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Exportar datos               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| **Finanzas/Caja**            |
-| Abrir/cerrar caja            | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Registrar transacciones      | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Cobrar pagos pendientes      | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Ver presupuestos             | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
-| **Configuración**            |
-| Tipos de cita                | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Ambientes/sillones           | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Profesionales                | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Catálogo de procedimientos   | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Especialidades               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| **Clínica**                  |
-| Historias clínicas           | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Odontogramas                 | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Planes de tratamiento        | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| Análisis IA                  | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
-| Interconsultas               | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Favoritos de catálogo        | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
+| ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
+| **Pacientes**                       |
+| Crear pacientes                     | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Ver pacientes                       | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
+| Editar pacientes                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Eliminar pacientes                  | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Exportar ficha de paciente          | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| **Citas/Agenda**                    |
+| Crear citas                         | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver citas                           | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Editar citas                        | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Cancelar citas                      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Registrar llegada                   | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Anunciar paciente                   | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Iniciar atención                    | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Escritorio Mi día                   | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Completar consulta (clínica)        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Abrir atención de urgencia          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Cerrar atención (sin cita)          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Anular atención abierta             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver atenciones clínicas             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| **Reportes/BI**                     |
+| Ver reportes                        | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Exportar datos                      | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| **Finanzas/Caja**                   |
+| Abrir/cerrar caja                   | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Registrar transacciones             | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Cobrar pagos pendientes             | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Ver presupuestos                    | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
+| **Configuración**                   |
+| Tipos de cita                       | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Ambientes/sillones                  | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Profesionales                       | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Catálogo de procedimientos          | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Especialidades                      | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| **Sedes y dinero cerrado**          |
+| Catálogo de sedes                   | ✅¹           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Tarifario por sede                  | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Fijar bloqueo contable              | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| **Clínica**                         |
+| Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Planes de tratamiento               | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Análisis IA                         | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
+| Interconsultas                      | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Favoritos de catálogo               | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+
+¹ Sólo el administrador **sin sede asignada** (gerencia) crea, renombra o retira
+sedes. Un administrador con `branch_id` es administrador de esa sede: administra
+su sede y su tarifario, y no toca otra.
+
+² El tarifario y el bloqueo de una sede los fija su administrador o gerencia; la
+fila de bloqueo global (`branch_id` nulo) es sólo de gerencia. Editar dinero con
+fecha anterior al bloqueo exige `lock_override_reason` (mínimo 10 caracteres) y
+queda en `audit_logs` como `accounting_lock_overridden`; sin él la respuesta es
+403 con `accounting_lock_blocked`.
 
 ---
 

@@ -96,10 +96,10 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 35 controllers API (34 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 37 controllers API (36 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 54 modelos Eloquent
+  Models/                  # 56 modelos Eloquent
   Services/                # 22 services + Reports/ (8 report services)
   Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
@@ -118,7 +118,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 122 migraciones
+  migrations/              # 124 migraciones
   seeders/                 # 15 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -126,7 +126,7 @@ database/
                            #   CompletedAppointmentsSeeder, DentalPieceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 204 rutas API (medido con php artisan route:list --json: uris api/…; 217 totales con web)
+  api.php                  # 211 rutas API (medido con php artisan route:list --json: uris api/…; 224 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -182,7 +182,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 54 modelos, 35 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 56 modelos, 37 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -296,6 +296,29 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   `->middleware('permission:verbo.recurso')`, nunca `role:...`. El front deriva
   `usePermissions()` de `user.permissions` (login y `/api/auth/me`), sin repetir
   la matriz. NO usar Spatie.
+- Alcance por sede (#283/#290): `users.branch_id` es la afiliación. Con valor,
+  el usuario opera sólo esa sede; sin valor tiene alcance de grupo (gerencia), y
+  un `administrador` con sede es el administrador de esa sede.
+  `App\Authorization\BranchAccess` es la regla única; el trait
+  `App\Models\Concerns\ScopesToBranch` (guarda de escritura + route-model
+  binding acotado) y el middleware `EnforceBranchScope` la aplican, y
+  `RequireGlobalBranchScope` protege el catálogo de sedes. La ficha del paciente
+  y la historia clínica son compartidas entre sedes (ADR-0010); agenda,
+  sillones, caja, personal e inventario no lo son. La matriz escritorio ×
+  permiso vive en `App\Authorization\Desks` y se publica en
+  `docs/architecture/desks.md`.
+- Bloqueo contable (#283): `accounting_locks` guarda `locked_through` por módulo
+  (`cash_transactions`, `cash_movements`, `quotations`, `treatment_plans`) y
+  sede, con la fila de la sede por encima de la global. Mutar dinero con fecha
+  contable anterior o igual responde 403 y deja `accounting_lock_blocked` en
+  `audit_logs`; la autorización registrada viaja como `lock_override_reason`
+  (mínimo 10 caracteres, sólo administrador) y deja
+  `accounting_lock_overridden`. Crear dinero de hoy nunca se bloquea.
+- Tarifario por sede (#290): `procedure_branch_prices` gana sobre
+  `procedure_catalog.default_cost` dentro de su ventana de vigencia. El picker
+  devuelve el precio de la sede en `default_cost` y conserva `list_cost`; las
+  cotizaciones y los planes guardan el precio aplicado como snapshot y no lo
+  recalculan.
 - Roles válidos: `administrador`, `recepcionista`, `odontologo`, `implantologo`,
   `tecnico_dental`, `asistente`, `finanzas`
 - Respuestas JSON: `{data: ..., meta: {message: ...}}` (ver
@@ -402,7 +425,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 35 controllers API, 54
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 37 controllers API, 56
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -414,6 +437,43 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-22 (la sede autoriza: escritorios, bloqueo contable, tarifario y**
+  **consolidado, #283/#290)** — La sede deja de ser un filtro de consulta y pasa
+  a ser una dimensión de autorización (ADR-0010). `users.branch_id` es la
+  afiliación: con valor el usuario opera sólo esa sede, sin valor tiene alcance
+  de grupo; un `administrador` con sede es el administrador de esa sede.
+  `App\Authorization\BranchAccess` es la regla única y se aplica en tres capas:
+  el trait `ScopesToBranch` (guarda de escritura con estampado de sede en altas
+  y binding acotado a 404), el middleware `EnforceBranchScope` (403 de un
+  `branch_id` ajeno, incluida una `{branch}` de ruta) y
+  `RequireGlobalBranchScope` para el catálogo de sedes. La ficha del paciente y
+  la historia clínica siguen compartidas entre sedes; agenda, sillones, caja,
+  personal e inventario no. Los seis escritorios de F0 quedan explícitos en
+  `App\Authorization\Desks` y publicados en `docs/architecture/desks.md`, con
+  guarda de que cada rol vive en un escritorio y cada permiso pertenece a
+  alguno. Bloqueo contable: `accounting_locks` (`locked_through` por módulo y
+  sede, la sede sobre la global) responde 403 y deja `accounting_lock_blocked`
+  al mutar dinero anterior al cierre; la autorización registrada viaja como
+  `lock_override_reason` (≥10 caracteres, sólo administrador) y deja
+  `accounting_lock_overridden`. Tarifario: `procedure_branch_prices` gana sobre
+  `default_cost` dentro de su ventana de vigencia y el picker responde el precio
+  de la sede conservando `list_cost`; cotización y plan guardan el snapshot.
+  Reportes: `GET /api/reports/consolidated` publica `summary`, `by_branch` y
+  `by_professional`, y cada desglose cuadra con el resumen porque el dinero que
+  no resuelve cae en «Sin sede» o «Sin cita asociada». Permisos nuevos:
+  `manage.accounting_lock`, `override.accounting_lock` y `manage.branch_price`
+  (administrador). §4 sincronizado con valores medidos: 37 controllers API, 56
+  modelos, 124 migraciones, 211 rutas API y 224 totales con web. Tests:
+  `BranchAccessTest`, `DeskMatrixTest`, `BranchScopeReadGuardTest`,
+  `BranchScopeWriteGuardTest`, `BranchScopeAdministrationTest`,
+  `AccountingLockServiceTest`, `AccountingLockManagementTest`,
+  `AccountingLockTransactionGuardTest`, `AccountingLockCashMovementGuardTest`,
+  `AccountingLockMoneyGuardTest`, `AccountingLockHttpGuardTest`,
+  `ProcedureBranchPriceTest`, `ConsolidatedReportTest` y
+  `ArchitectureDecisionsIndexTest` con el ADR 0010. Follow-up declarado: filtro
+  por sede en los reportes de citas, pacientes, profesionales, utilización y
+  dashboard, y la UI de tarifario, bloqueo y BI (las issues son `area:backend`).
 
 - **2026-10-22 (análisis IA como apoyo a la decisión: revisión obligatoria,**
   **anulación con traza y costo, #296)** — El análisis deja de ser un documento

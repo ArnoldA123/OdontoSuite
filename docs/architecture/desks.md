@@ -7,7 +7,8 @@ siguen declarando `permission:verbo.recurso` y la matriz se **deriva** del
 catálogo `App\Authorization\Permissions`, de modo que no puede separarse de él.
 
 La fuente es `App\Authorization\Desks`; esta página publica la tabla que el
-código ya obedece. Dos guardas la sostienen (`tests/Unit/Authorization/DeskMatrixTest.php`):
+código ya obedece. Dos guardas la sostienen
+(`tests/Unit/Authorization/DeskMatrixTest.php`):
 
 1. Cada rol de `users.role` pertenece a exactamente un escritorio.
 2. El conjunto de permisos de cada escritorio es exactamente la unión de los
@@ -15,14 +16,14 @@ código ya obedece. Dos guardas la sostienen (`tests/Unit/Authorization/DeskMatr
 
 ## Quién se sienta dónde
 
-| Escritorio | Roles |
-| --- | --- |
-| `recepcion` | `recepcionista` |
-| `clinico` | `odontologo`, `implantologo` |
-| `asistente` | `asistente` |
-| `laboratorio` | `tecnico_dental` |
-| `finanzas` | `finanzas` |
-| `administrador` | `administrador` |
+| Escritorio      | Roles                        |
+| --------------- | ---------------------------- |
+| `recepcion`     | `recepcionista`              |
+| `clinico`       | `odontologo`, `implantologo` |
+| `asistente`     | `asistente`                  |
+| `laboratorio`   | `tecnico_dental`             |
+| `finanzas`      | `finanzas`                   |
+| `administrador` | `administrador`              |
 
 ## Qué hace cada escritorio
 
@@ -30,28 +31,28 @@ La tabla se lee por escritorio y por acto. «Sí» significa que el escritorio
 recibe el permiso; el detalle exacto, permiso por permiso, sale de
 `Desks::permissions($desk)` y no se copia aquí para que no envejezca.
 
-| Acto | recepción | clínico | asistente | laboratorio | finanzas | administración |
-| --- | --- | --- | --- | --- | --- | --- |
-| Solicitud y reserva de agenda | sí | sí | sí | sí | — | sí |
-| Llegada del paciente | sí | sí | sí | sí | — | sí |
-| Anuncio al profesional | sí | — | — | — | — | sí |
-| Inicio y cierre de la atención | — | sí | sí | sí | — | sí |
-| Historia clínica y evoluciones | — | sí | sí | sí | — | sí |
-| Registros de especialidad | — | sí | sí | sí | — | sí |
-| Análisis de IA | — | sí | — | — | — | sí |
-| Planes de tratamiento | — | sí | — | sí | — | sí |
-| Presupuestos (lectura) | sí | sí | — | — | sí | sí |
-| Presupuestos (escritura) | — | sí | — | — | sí | sí |
-| Caja: apertura, cobro y cierre | sí | — | — | — | sí | sí |
-| Caja: movimientos manuales y reportes | — | — | — | — | sí | sí |
-| Anulación de transacción | — | — | — | — | — | sí |
-| Catálogo de procedimientos | — | lectura | lectura | lectura | importa | sí |
-| Productos (venta) | sí | sí | sí | sí | — | sí |
-| Reportes y exportación | — | — | — | — | sí | sí |
-| Usuarios, sedes, configuración | — | — | — | — | — | sí |
+| Acto                                  | recepción | clínico | asistente | laboratorio | finanzas | administración |
+| ------------------------------------- | --------- | ------- | --------- | ----------- | -------- | -------------- |
+| Solicitud y reserva de agenda         | sí        | sí      | sí        | sí          | —        | sí             |
+| Llegada del paciente                  | sí        | sí      | sí        | sí          | —        | sí             |
+| Anuncio al profesional                | sí        | —       | —         | —           | —        | sí             |
+| Inicio y cierre de la atención        | —         | sí      | sí        | sí          | —        | sí             |
+| Historia clínica y evoluciones        | —         | sí      | sí        | sí          | —        | sí             |
+| Registros de especialidad             | —         | sí      | sí        | sí          | —        | sí             |
+| Análisis de IA                        | —         | sí      | —         | —           | —        | sí             |
+| Planes de tratamiento                 | —         | sí      | —         | sí          | —        | sí             |
+| Presupuestos (lectura)                | sí        | sí      | —         | —           | sí       | sí             |
+| Presupuestos (escritura)              | —         | sí      | —         | —           | sí       | sí             |
+| Caja: apertura, cobro y cierre        | sí        | —       | —         | —           | sí       | sí             |
+| Caja: movimientos manuales y reportes | —         | —       | —         | —           | sí       | sí             |
+| Anulación de transacción              | —         | —       | —         | —           | —        | sí             |
+| Catálogo de procedimientos            | —         | lectura | lectura   | lectura     | importa  | sí             |
+| Productos (venta)                     | sí        | sí      | sí        | sí          | —        | sí             |
+| Reportes y exportación                | —         | —       | —         | —           | sí       | sí             |
+| Usuarios, sedes, configuración        | —         | —       | —         | —           | —        | sí             |
 
-Las rayas no son una decisión de estilo: son la consecuencia del catálogo
-(#280 S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
+Las rayas no son una decisión de estilo: son la consecuencia del catálogo (#280
+S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
 incluido el cierre; el escritorio de laboratorio no entra al módulo de análisis
 de IA porque un análisis es apoyo a un diagnóstico; y la anulación de una
 transacción queda en administración porque es el único acto del ledger que
@@ -59,8 +60,8 @@ revierte dinero ya registrado.
 
 ## Sede y escritorio
 
-El escritorio dice **qué** puede hacer un usuario; la sede dice **dónde**
-(#283 S2, #290 S6). Son dimensiones ortogonales:
+El escritorio dice **qué** puede hacer un usuario; la sede dice **dónde** (#283
+S2, #290 S6). Son dimensiones ortogonales:
 
 - Un usuario con `users.branch_id` asignado opera sólo su sede; sin sede
   asignada tiene alcance de grupo (gerencia). El administrador con sede es el
