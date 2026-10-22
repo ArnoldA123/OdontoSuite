@@ -71,6 +71,32 @@ class ConsultationClosureTest extends TestCase
         ], $overrides);
     }
 
+    public function test_the_act_opened_by_start_attention_is_the_one_the_closure_closes(): void
+    {
+        $professional = $this->professional();
+        $appointment = Appointment::factory()->create([
+            'user_id' => $professional->id,
+            'status' => 'arrived',
+            'checked_in_at' => now(),
+        ]);
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/start-attention")
+            ->assertOk();
+
+        $opened = ClinicalEncounter::where('appointment_id', $appointment->id)->sole();
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/complete", $this->payload())
+            ->assertOk();
+
+        // The closure reuses the open act of the custody transfer: one
+        // appointment never ends up with two acts for the same consultation.
+        $this->assertSame(1, ClinicalEncounter::where('appointment_id', $appointment->id)->count());
+        $this->assertSame($opened->id, ClinicalEncounter::where('appointment_id', $appointment->id)->sole()->id);
+        $this->assertTrue($opened->fresh()->isClosed());
+    }
+
     public function test_the_closure_closes_the_encounter_and_projects_it_on_the_appointment(): void
     {
         $professional = $this->professional();
