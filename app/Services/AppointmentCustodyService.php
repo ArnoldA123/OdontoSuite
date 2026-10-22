@@ -40,18 +40,23 @@ class AppointmentCustodyService
 
     public function markArrival(Appointment $appointment, User $actor): Appointment
     {
-        if ($appointment->status === self::STATUS_ARRIVED) {
-            return $appointment;
-        }
+        // The status is re-read under a row lock inside the transaction: two
+        // simultaneous check-ins used to pass the same guard and write two
+        // custody rows for one transfer, which corrupts the trail S7 requires.
+        [$changed, $current] = DB::transaction(function () use ($appointment, $actor) {
+            $current = $this->lockAppointment($appointment);
 
-        if (! in_array($appointment->status, self::ARRIVABLE_FROM, true)) {
-            throw CustodyException::arrivalNotAllowed($appointment->status);
-        }
+            if ($current->status === self::STATUS_ARRIVED) {
+                return [false, $current];
+            }
 
-        DB::transaction(function () use ($appointment, $actor) {
-            $from = $appointment->status;
+            if (! in_array($current->status, self::ARRIVABLE_FROM, true)) {
+                throw CustodyException::arrivalNotAllowed($current->status);
+            }
 
-            $appointment->forceFill([
+            $from = $current->status;
+
+            $current->forceFill([
                 'status' => self::STATUS_ARRIVED,
                 'checked_in_at' => now(),
                 'checked_in_by' => $actor->id,
@@ -59,47 +64,53 @@ class AppointmentCustodyService
             ])->save();
 
             $this->record(
-                $appointment,
+                $current,
                 AppointmentCustodyLog::ACTION_ARRIVAL,
                 $this->doorFor($actor),
                 $from,
                 self::STATUS_ARRIVED,
                 $actor,
             );
+
+            return [true, $current];
         });
 
-        $this->dispatchSafely(new AppointmentCheckedIn($appointment->refresh()));
+        if ($changed) {
+            $this->dispatchSafely(new AppointmentCheckedIn($current));
+        }
 
-        return $appointment->refresh();
+        return $current;
     }
 
     public function startAttention(Appointment $appointment, User $actor): Appointment
     {
-        if ($appointment->status === self::STATUS_IN_CONSULTATION) {
-            return $appointment;
-        }
+        return DB::transaction(function () use ($appointment, $actor) {
+            $current = $this->lockAppointment($appointment);
 
-        if ($appointment->status !== self::STATUS_ARRIVED) {
-            throw CustodyException::attentionNotAllowed($appointment->status);
-        }
+            if ($current->status === self::STATUS_IN_CONSULTATION) {
+                return $current;
+            }
 
-        DB::transaction(function () use ($appointment, $actor) {
-            $appointment->forceFill([
+            if ($current->status !== self::STATUS_ARRIVED) {
+                throw CustodyException::attentionNotAllowed($current->status);
+            }
+
+            $current->forceFill([
                 'status' => self::STATUS_IN_CONSULTATION,
                 'updated_by' => $actor->id,
             ])->save();
 
             $this->record(
-                $appointment,
+                $current,
                 AppointmentCustodyLog::ACTION_ATTENTION_START,
                 AppointmentCustodyLog::DOOR_PROFESSIONAL,
                 self::STATUS_ARRIVED,
                 self::STATUS_IN_CONSULTATION,
                 $actor,
             );
-        });
 
-        return $appointment->refresh();
+            return $current;
+        });
     }
 
     public function announce(Appointment $appointment, User $actor): Appointment
@@ -159,6 +170,19 @@ class AppointmentCustodyService
         return in_array($actor->role, self::CLINICAL_ROLES, true)
             ? AppointmentCustodyLog::DOOR_PROFESSIONAL
             : AppointmentCustodyLog::DOOR_RECEPTION;
+    }
+
+    /**
+     * Serialize the transition on the appointment row. `lockForUpdate` is a
+     * no-op on engines without row locks, and the DB-backed suite runs on
+     * MySQL, where it is the guard that keeps one transfer to one row.
+     */
+    private function lockAppointment(Appointment $appointment): Appointment
+    {
+        return Appointment::query()
+            ->whereKey($appointment->getKey())
+            ->lockForUpdate()
+            ->firstOrFail();
     }
 
     private function record(
