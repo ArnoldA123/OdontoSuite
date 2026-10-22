@@ -181,7 +181,7 @@ final class Permissions
 
     public const REVIEW_AI_ANALYSIS = 'review.ai_analysis';
 
-    public const DELETE_AI_ANALYSIS = 'delete.ai_analysis';
+    public const VOID_AI_ANALYSIS = 'void.ai_analysis';
 
     // Capabilities without a dedicated route: consumed by the SPA and backed by
     // a Policy in the service layer. The catalog test keeps this list honest.
@@ -337,7 +337,7 @@ final class Permissions
         self::VIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
         self::CREATE_AI_ANALYSIS => self::TREATMENT_ROLES,
         self::REVIEW_AI_ANALYSIS => self::TREATMENT_ROLES,
-        self::DELETE_AI_ANALYSIS => self::TREATMENT_ROLES,
+        self::VOID_AI_ANALYSIS => self::TREATMENT_ROLES,
 
         self::MANAGE_CONFIG => ['administrador'],
         self::MANAGE_CASH_REGISTER => self::FINANCE_ROLES,

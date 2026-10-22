@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AiImageAnalysisController extends Controller
 {
@@ -88,6 +89,7 @@ class AiImageAnalysisController extends Controller
                 'patient',
                 'requestedBy',
                 'reviewedBy',
+                'voidedBy',
             ])->find($id);
         } catch (\Exception $e) {
             Log::error('AI analysis lookup failed', ['id' => $id, 'exception' => $e]);
@@ -196,7 +198,7 @@ class AiImageAnalysisController extends Controller
             $analysis = $this->aiAnalysisService->reviewAnalysis(
                 $id,
                 $request->validated()['decision'],
-                $request->validated()['notes']
+                $request->validated()['notes'] ?? null
             );
 
             return response()->json([
@@ -281,7 +283,17 @@ class AiImageAnalysisController extends Controller
                 'patient',
                 'requestedBy',
                 'reviewedBy',
+                'voidedBy',
             ])->visibleTo($request->user());
+
+            // #296 — an annulled analysis keeps its row: it leaves every list
+            // by default and only `?voided=1` lists it, which is the surface
+            // that makes the trace consultable.
+            if ($request->boolean('voided')) {
+                $query->voided();
+            } else {
+                $query->active();
+            }
 
             $status = $request->input('status');
             if (is_string($status) && $status !== '') {
@@ -343,19 +355,18 @@ class AiImageAnalysisController extends Controller
     }
 
     /**
-     * Eliminar análisis.
+     * Anular análisis conservando la traza de revisión (#296).
      */
-    public function destroy(int $id): JsonResponse
+    public function void(Request $request, int $id): JsonResponse
     {
-        try {
-            $analysis = AiImageAnalysis::find($id);
-        } catch (\Exception $e) {
-            Log::error('AI analysis delete failed', ['exception' => $e]);
+        $validated = $request->validate([
+            'reason' => 'required|string|max:255',
+        ], [
+            'reason.required' => 'El motivo de la anulación es obligatorio.',
+            'reason.max' => 'El motivo de la anulación no puede exceder los 255 caracteres.',
+        ]);
 
-            return response()->json([
-                'message' => 'Error al eliminar análisis',
-            ], 500);
-        }
+        $analysis = AiImageAnalysis::find($id);
 
         if (! $analysis) {
             return response()->json([
@@ -363,28 +374,36 @@ class AiImageAnalysisController extends Controller
             ], 404);
         }
 
-        Gate::authorize('delete', $analysis);
+        Gate::authorize('void', $analysis);
 
         try {
-            // Solo permitir eliminar si no ha sido revisado
-            if ($analysis->reviewed) {
-                return response()->json([
-                    'message' => 'No se puede eliminar un análisis que ya ha sido revisado',
-                ], 422);
-            }
-
-            $analysis->delete();
+            $analysis = $this->aiAnalysisService->voidAnalysis(
+                $id,
+                Str::limit(strip_tags($validated['reason']), 255)
+            );
 
             return response()->json([
+                'data' => new AiImageAnalysisResource($analysis->load([
+                    'clinicalAttachment',
+                    'patient',
+                    'requestedBy',
+                    'reviewedBy',
+                    'voidedBy',
+                ])),
                 'meta' => [
-                    'message' => 'Análisis eliminado exitosamente',
+                    'message' => 'Análisis anulado exitosamente',
                 ],
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('AI analysis delete failed', ['exception' => $e]);
+            Log::error('AI analysis void failed', ['id' => $id, 'exception' => $e]);
 
             return response()->json([
-                'message' => 'Error al eliminar análisis',
+                'message' => 'Error al anular análisis',
             ], 500);
         }
     }

@@ -44,6 +44,14 @@ vi.mock('../../../resources/js/composables/useConfirm', async () => {
     confirmVariant: ref('default')
   }
 })
+vi.mock('../../../resources/js/composables/usePermissions', () => ({
+  usePermissions: () => ({
+    can: {
+      'ai-analysis.review': { value: true },
+      'ai-analysis.void': { value: true }
+    }
+  })
+}))
 
 import uiComponents from '../../../resources/js/plugins/ui-components'
 import Page from '../../../resources/js/modules/ai-analysis/AiAnalysisPage.vue'
@@ -87,7 +95,9 @@ const mountPage = async () => {
   })
   await router.push('/ai-analysis')
   await router.isReady()
-  const wrapper = mount(Page, { global: { plugins: [router, uiComponents] } })
+  const wrapper = mount(Page, {
+    global: { plugins: [router, uiComponents], stubs: { teleport: true } }
+  })
   await flushPromises()
   return wrapper
 }
@@ -110,46 +120,80 @@ beforeEach(() => {
 })
 
 describe('ai-analysis page actions', () => {
-  it('deletes a row only after the confirmation resolves true', async () => {
+  it('opens the detail from the annulment row action instead of annulling directly', async () => {
     const wrapper = await mountPage()
 
-    await wrapper.find('[data-row-action="delete"]').trigger('click')
+    const voidAction = wrapper.find('[data-row-action="void"]')
+    expect(voidAction.attributes('aria-label')).toBe('Anular análisis')
+
+    await voidAction.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findComponent(AiAnalysisModal).exists()).toBe(true)
+    expect(confirmMock).not.toHaveBeenCalled()
+    expect(postMock).not.toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('annuls from the detail surface only after the reason is confirmed', async () => {
+    const wrapper = await mountPage()
+
+    await wrapper.find('[data-row-action="void"]').trigger('click')
+    await flushPromises()
+    getMock.mockClear()
+
+    const reason = wrapper.find('[data-ai-void-reason]')
+    await reason.setValue('Duplicado del estudio previo')
+    await wrapper.find('[data-ai-void]').trigger('click')
     await flushPromises()
 
     expect(confirmMock).toHaveBeenCalledTimes(1)
     expect(confirmMock.mock.calls[0][0]).toMatchObject({
-      title: 'Eliminar análisis',
-      message: '¿Estás seguro de que quieres eliminar este análisis?',
-      confirmText: 'Eliminar'
+      title: 'Anular análisis',
+      message:
+        '¿Anular este análisis? Se conserva la traza de revisión y el motivo queda registrado.',
+      confirmText: 'Anular',
+      variant: 'danger'
     })
-    expect(deleteMock).toHaveBeenCalledWith('/api/ai-analysis/1')
+    expect(postMock).toHaveBeenCalledWith('/api/ai-analysis/1/void', {
+      reason: 'Duplicado del estudio previo'
+    })
+    expect(wrapper.findComponent(AiAnalysisModal).exists()).toBe(false)
+    expect(getMock).toHaveBeenCalled()
 
     wrapper.unmount()
   })
 
-  it('keeps the row when the confirmation is cancelled', async () => {
+  it('keeps the analysis when the confirmation is cancelled', async () => {
     confirmMock.mockResolvedValue(false)
     const wrapper = await mountPage()
 
-    await wrapper.find('[data-row-action="delete"]').trigger('click')
+    await wrapper.find('[data-row-action="void"]').trigger('click')
     await flushPromises()
 
-    expect(deleteMock).not.toHaveBeenCalled()
+    await wrapper.find('[data-ai-void-reason]').setValue('Duplicado del estudio previo')
+    await wrapper.find('[data-ai-void]').trigger('click')
+    await flushPromises()
+
+    expect(postMock).not.toHaveBeenCalled()
+    expect(wrapper.findComponent(AiAnalysisModal).exists()).toBe(true)
 
     wrapper.unmount()
   })
 
-  it('wires the detail surface delete event to the same flow', async () => {
+  it('wires the detail surface void event to the annulment API', async () => {
     const wrapper = await mountPage()
 
     await wrapper.find('[data-row-action="view"]').trigger('click')
     await flushPromises()
 
-    wrapper.findComponent(AiAnalysisModal).vm.$emit('delete', 1)
+    wrapper.findComponent(AiAnalysisModal).vm.$emit('void', 1, 'Imagen equivocada')
     await flushPromises()
 
-    expect(confirmMock).toHaveBeenCalledTimes(1)
-    expect(deleteMock).toHaveBeenCalledWith('/api/ai-analysis/1')
+    expect(postMock).toHaveBeenCalledWith('/api/ai-analysis/1/void', {
+      reason: 'Imagen equivocada'
+    })
 
     wrapper.unmount()
   })

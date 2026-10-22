@@ -156,7 +156,8 @@ describe('ai-analysis page shell', () => {
     expect(table.text()).toContain('Sin revisar')
     expect(table.text()).toContain('82.5%')
     expect(wrapper.findAll('[data-row-action="view"]')).toHaveLength(2)
-    expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-row-action="void"]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-row-action="delete"]')).toHaveLength(0)
 
     wrapper.unmount()
   })
@@ -296,5 +297,20 @@ describe('ai-analysis surface hygiene', () => {
     expect(source).not.toContain('systemBlue')
     expect(source).not.toContain('text-[11px]')
     expect(source).not.toContain('border-theme')
+  })
+
+  it('offers annulment instead of deletion copy', () => {
+    const files = [
+      '../../../resources/js/modules/ai-analysis/AiAnalysisPage.vue',
+      '../../../resources/js/modules/ai-analysis/components/AiAnalysisModal.vue'
+    ]
+
+    files.forEach(relative => {
+      const source = readFileSync(fileURLToPath(new NodeURL(relative, import.meta.url)), 'utf8')
+
+      expect(source).not.toContain('Eliminar')
+      expect(source).not.toContain('data-ai-delete')
+      expect(source).not.toContain('data-row-action="delete"')
+    })
   })
 })

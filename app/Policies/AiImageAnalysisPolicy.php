@@ -9,7 +9,7 @@ use App\Support\ClinicalAccess;
 /**
  * Authorization for the AI analysis surface (issue #214).
  *
- * Reading, reviewing and deleting all share one predicate: the analysis is
+ * Reading, reviewing and annulling all share one predicate: the analysis is
  * reachable when the user is an administrator, asked for it, reviewed it, or
  * reaches the patient through the clinical relationship defined in
  * `ClinicalAccess`. Listing a patient's whole history (`byPatient`) and
@@ -38,7 +38,7 @@ class AiImageAnalysisPolicy
         return $this->reachable($user, $analysis);
     }
 
-    public function delete(User $user, AiImageAnalysis $analysis): bool
+    public function void(User $user, AiImageAnalysis $analysis): bool
     {
         return $this->reachable($user, $analysis);
     }

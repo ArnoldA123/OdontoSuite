@@ -40,6 +40,7 @@ class AiImageAnalysisService
 
         // Verificar si ya existe un análisis
         $existingAnalysis = AiImageAnalysis::where('clinical_attachment_id', $attachmentId)
+            ->active()
             ->where('status', '!=', 'failed')
             ->first();
 
@@ -384,6 +385,12 @@ Responde únicamente en formato JSON válido.';
     {
         $analysis = AiImageAnalysis::findOrFail($analysisId);
 
+        if ($analysis->isVoided()) {
+            throw ValidationException::withMessages([
+                'analysis' => ['No se puede revisar un análisis anulado.'],
+            ]);
+        }
+
         if ($analysis->reviewed) {
             throw ValidationException::withMessages([
                 'analysis' => ['Este análisis ya ha sido revisado.'],
@@ -396,11 +403,37 @@ Responde únicamente en formato JSON válido.';
     }
 
     /**
+     * #296 — annul an analysis instead of deleting it. The row keeps its review
+     * trace (`reviewed`, `reviewed_by`, `reviewed_at`, `review_decision`,
+     * `review_notes`): that trace is what makes the analysis auditable after it
+     * leaves the working set.
+     */
+    public function voidAnalysis(int $analysisId, string $reason): AiImageAnalysis
+    {
+        $analysis = AiImageAnalysis::findOrFail($analysisId);
+
+        if ($analysis->isVoided()) {
+            throw ValidationException::withMessages([
+                'analysis' => ['Este análisis ya ha sido anulado.'],
+            ]);
+        }
+
+        $analysis->update([
+            'voided_at' => now(),
+            'voided_by' => Auth::id(),
+            'void_reason' => $reason,
+        ]);
+
+        return $analysis;
+    }
+
+    /**
      * Obtener análisis por adjunto.
      */
     public function getAnalysisByAttachment(int $attachmentId): ?AiImageAnalysis
     {
         return AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy', 'reviewedBy'])
+            ->active()
             ->where('clinical_attachment_id', $attachmentId)
             ->orderBy('created_at', 'desc')
             ->first();
@@ -412,6 +445,7 @@ Responde únicamente en formato JSON válido.';
     public function getAnalysisByPatient(int $patientId, array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'requestedBy', 'reviewedBy'])
+            ->active()
             ->where('patient_id', $patientId);
 
         if ($viewer) {
@@ -456,6 +490,7 @@ Responde únicamente en formato JSON válido.';
     public function getPendingAnalyses(array $filters = [], ?User $viewer = null): array
     {
         $query = AiImageAnalysis::with(['clinicalAttachment', 'patient', 'requestedBy'])
+            ->active()
             ->where('status', 'completed')
             ->where('reviewed', false);
 
@@ -507,16 +542,23 @@ Responde únicamente en formato JSON válido.';
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        $totalAnalyses = $query->count();
-        $completedAnalyses = $query->clone()->where('status', 'completed')->count();
-        $reviewedAnalyses = $query->clone()->where('reviewed', true)->count();
-        $pendingReview = $query->clone()->where('status', 'completed')->where('reviewed', false)->count();
+        // Annulled rows keep their row but leave the working set; their count
+        // is reported apart so the trace stays visible without inflating the
+        // usage metrics.
+        $voidedAnalyses = $query->clone()->voided()->count();
+        $active = $query->clone()->active();
+
+        $totalAnalyses = $active->count();
+        $completedAnalyses = $active->clone()->where('status', 'completed')->count();
+        $reviewedAnalyses = $active->clone()->where('reviewed', true)->count();
+        $pendingReview = $active->clone()->where('status', 'completed')->where('reviewed', false)->count();
 
         return [
             'total_analyses' => $totalAnalyses,
             'completed_analyses' => $completedAnalyses,
             'reviewed_analyses' => $reviewedAnalyses,
             'pending_review' => $pendingReview,
+            'voided_analyses' => $voidedAnalyses,
             'completion_rate' => $totalAnalyses > 0 ? round(($completedAnalyses / $totalAnalyses) * 100, 2) : 0,
             'review_rate' => $completedAnalyses > 0 ? round(($reviewedAnalyses / $completedAnalyses) * 100, 2) : 0,
         ];

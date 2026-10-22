@@ -35,6 +35,9 @@ class AiImageAnalysisResource extends JsonResource
             'review_decision' => $this->review_decision,
             'review_notes' => $this->review_notes,
             'reviewed_at' => $this->reviewed_at?->toISOString(),
+            'voided' => $this->isVoided(),
+            'voided_at' => $this->voided_at?->toISOString(),
+            'void_reason' => $this->void_reason,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
 
@@ -42,6 +45,7 @@ class AiImageAnalysisResource extends JsonResource
             'clinical_attachment' => $this->whenLoaded('clinicalAttachment', fn () => new ClinicalAttachmentSummaryResource($this->clinicalAttachment)),
             'requested_by' => $this->whenLoaded('requestedBy', fn () => new UserSummaryResource($this->requestedBy)),
             'reviewed_by' => $this->whenLoaded('reviewedBy', fn () => $this->reviewedBy ? new UserSummaryResource($this->reviewedBy) : null),
+            'voided_by' => $this->whenLoaded('voidedBy', fn () => $this->voidedBy ? new UserSummaryResource($this->voidedBy) : null),
         ];
     }
 }

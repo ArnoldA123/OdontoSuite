@@ -5,11 +5,11 @@ import { fileURLToPath, URL as NodeURL } from 'node:url'
 
 // AI analysis detail surface (T4): header identity, image with fallback,
 // findings/recommendations/metadata, the gated review form and the recorded
-// outcome, plus deletion behind useConfirm. Permissions and the confirm
-// promise are mocked because the surface only consumes their contracts.
+// outcome, plus annulment with a required reason (#296). Permissions and the
+// confirm promise are mocked because the surface only consumes their contracts.
 const harness = vi.hoisted(() => ({
   reviewAllowed: true,
-  deleteAllowed: true,
+  voidAllowed: true,
   confirm: vi.fn()
 }))
 
@@ -17,7 +17,7 @@ vi.mock('../../../resources/js/composables/usePermissions', () => ({
   usePermissions: () => ({
     can: {
       'ai-analysis.review': { value: harness.reviewAllowed },
-      'ai-analysis.delete': { value: harness.deleteAllowed }
+      'ai-analysis.void': { value: harness.voidAllowed }
     }
   })
 }))
@@ -77,7 +77,7 @@ const mountModal = analysis =>
 
 beforeEach(() => {
   harness.reviewAllowed = true
-  harness.deleteAllowed = true
+  harness.voidAllowed = true
   harness.confirm.mockReset()
 })
 
@@ -218,7 +218,8 @@ describe('ai analysis detail surface', () => {
     expect(wrapper.find('[data-ai-review-notes-value]').text()).toBe('Sin hallazgos adicionales')
     expect(wrapper.find('[data-ai-review-reviewer]').text()).toBe('Dra. Ruiz')
     expect(wrapper.find('[data-ai-review-date]').text()).toContain('2026')
-    expect(wrapper.find('[data-ai-delete]').exists()).toBe(false)
+    // S3: a reviewed analysis is still annulled, and its review trace survives.
+    expect(wrapper.find('[data-ai-void]').exists()).toBe(true)
 
     wrapper.unmount()
   })
@@ -250,40 +251,91 @@ describe('ai analysis detail surface', () => {
     wrapper.unmount()
   })
 
-  it('only emits delete after useConfirm resolves true', async () => {
+  it('requires a reason and confirms before emitting the annulment', async () => {
     harness.confirm.mockResolvedValue(false)
     const wrapper = mountModal(analysisFixture())
 
-    await wrapper.find('[data-ai-delete]').trigger('click')
+    const reason = wrapper.find('[data-ai-void-reason]')
+    const button = wrapper.find('[data-ai-void]')
+
+    expect(reason.attributes('maxlength')).toBe('255')
+    expect(button.text()).toContain('Anular análisis')
+    expect(button.attributes('disabled')).toBeDefined()
+
+    await reason.setValue('Duplicado del estudio previo')
+    expect(button.attributes('disabled')).toBeUndefined()
+
+    await button.trigger('click')
     await flushPromises()
 
     expect(harness.confirm).toHaveBeenCalledWith({
-      title: 'Eliminar análisis',
-      message: '¿Estás seguro de que quieres eliminar este análisis?',
-      confirmText: 'Eliminar',
+      title: 'Anular análisis',
+      message:
+        '¿Anular este análisis? Se conserva la traza de revisión y el motivo queda registrado.',
+      confirmText: 'Anular',
       variant: 'danger'
     })
-    expect(wrapper.emitted('delete')).toBeUndefined()
+    expect(wrapper.emitted('void')).toBeUndefined()
 
     harness.confirm.mockResolvedValue(true)
-    await wrapper.find('[data-ai-delete]').trigger('click')
+    await button.trigger('click')
     await flushPromises()
 
-    expect(wrapper.emitted('delete')).toEqual([[42]])
+    expect(wrapper.emitted('void')).toEqual([[42, 'Duplicado del estudio previo']])
 
     wrapper.unmount()
   })
 
-  it('hides the review form and the delete action without the review permission', () => {
+  it('renders the annulment trace instead of the form for a voided analysis', () => {
+    const wrapper = mountModal(
+      analysisFixture({
+        voided: true,
+        voided_at: '2026-10-03T09:00:00.000000Z',
+        void_reason: 'Se subió la radiografía equivocada',
+        voided_by: { id: 5, name: 'Dra. Ruiz' }
+      })
+    )
+
+    expect(wrapper.find('[data-ai-void-reason]').exists()).toBe(false)
+    expect(wrapper.find('[data-ai-void]').exists()).toBe(false)
+
+    const trace = wrapper.find('[data-ai-void-trace]')
+    expect(trace.exists()).toBe(true)
+    expect(trace.text()).toContain('Anulado por')
+    expect(trace.text()).toContain('Fecha de anulación')
+    expect(trace.text()).toContain('Motivo')
+    expect(wrapper.find('[data-ai-voided-by]').text()).toBe('Dra. Ruiz')
+    expect(wrapper.find('[data-ai-voided-at]').text()).toContain('2026')
+    expect(wrapper.find('[data-ai-void-reason-value]').text()).toBe(
+      'Se subió la radiografía equivocada'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('falls back to placeholders when the annulment trace has no values', () => {
+    const wrapper = mountModal(
+      analysisFixture({ voided: true, voided_at: null, void_reason: null, voided_by: null })
+    )
+
+    expect(wrapper.find('[data-ai-voided-by]').text()).toBe('—')
+    expect(wrapper.find('[data-ai-voided-at]').text()).toBe('—')
+    expect(wrapper.find('[data-ai-void-reason-value]').text()).toBe('—')
+
+    wrapper.unmount()
+  })
+
+  it('hides the review form and the annulment block without their permissions', () => {
     harness.reviewAllowed = false
-    harness.deleteAllowed = false
+    harness.voidAllowed = false
     const wrapper = mountModal(analysisFixture())
 
     expect(wrapper.find('[data-ai-review-form]').exists()).toBe(false)
     expect(wrapper.find('[data-ai-review-denied]').text()).toBe(
       'No tienes permiso para revisar este análisis.'
     )
-    expect(wrapper.find('[data-ai-delete]').exists()).toBe(false)
+    expect(wrapper.find('[data-ai-void]').exists()).toBe(false)
+    expect(wrapper.find('[data-ai-void-reason]').exists()).toBe(false)
 
     wrapper.unmount()
   })

@@ -173,7 +173,7 @@
         </div>
 
         <form
-          v-else-if="canReview"
+          v-else-if="canReview && !isVoided"
           data-ai-review-form
           class="mt-3 space-y-4"
           @submit.prevent="submitReview"
@@ -216,26 +216,92 @@
           </div>
         </form>
 
+        <p v-else-if="isVoided" data-ai-review-voided class="mt-3 text-sm text-theme-secondary">
+          Este análisis está anulado; no admite revisión.
+        </p>
+
         <p v-else data-ai-review-denied class="mt-3 text-sm text-theme-secondary">
           No tienes permiso para revisar este análisis.
         </p>
       </section>
 
-      <div v-if="showDelete" class="flex justify-end">
-        <UiButton variant="danger" size="sm" data-ai-delete @click="requestDelete">
-          <template #icon-left>
-            <TrashIcon class="h-4 w-4" aria-hidden="true" />
-          </template>
-          Eliminar
-        </UiButton>
-      </div>
+      <section
+        v-if="isVoided || canVoid"
+        data-ai-void-section
+        class="rounded-[var(--radius-panel)] border border-[var(--color-hairline)] bg-theme-surface-elevated p-5 shadow-[var(--elevation-2)]"
+      >
+        <h3 class="text-lg font-semibold text-label">Anulación</h3>
+
+        <div
+          v-if="isVoided"
+          data-ai-void-trace
+          class="mt-3 rounded-[var(--radius-control)] bg-theme-surface p-4"
+        >
+          <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                Anulado por
+              </dt>
+              <dd data-ai-voided-by class="mt-1 text-sm text-theme-primary">
+                {{ voidedByName }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                Fecha de anulación
+              </dt>
+              <dd data-ai-voided-at class="mt-1 text-sm text-theme-primary tabular-nums">
+                {{ voidedAt }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium uppercase tracking-wide text-theme-secondary">
+                Motivo
+              </dt>
+              <dd data-ai-void-reason-value class="mt-1 text-sm text-theme-primary">
+                {{ voidReasonText }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div v-else class="mt-3 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium text-theme-primary">Motivo de la anulación</label>
+            <span data-ai-void-reason-count class="text-xs text-theme-secondary tabular-nums">
+              {{ voidForm.reason.length }} / 255
+            </span>
+          </div>
+          <UiTextarea
+            v-model="voidForm.reason"
+            :rows="3"
+            maxlength="255"
+            placeholder="Describe por qué se anula este análisis"
+            data-ai-void-reason
+          />
+          <div class="flex justify-end">
+            <UiButton
+              variant="danger"
+              size="sm"
+              :disabled="!voidForm.reason.trim()"
+              data-ai-void
+              @click="requestVoid"
+            >
+              <template #icon-left>
+                <NoSymbolIcon class="h-4 w-4" aria-hidden="true" />
+              </template>
+              Anular análisis
+            </UiButton>
+          </div>
+        </div>
+      </section>
     </div>
   </UiModal>
 </template>
 
 <script setup>
 import { computed, reactive } from 'vue'
-import { CpuChipIcon, PhotoIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { CpuChipIcon, NoSymbolIcon, PhotoIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useConfirm } from '../../../composables/useConfirm'
 import { usePermissions } from '../../../composables/usePermissions'
 import UiButton from '../../../components/ui/Button.vue'
@@ -251,7 +317,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'review', 'delete'])
+const emit = defineEmits(['close', 'review', 'void'])
 
 const { can } = usePermissions()
 const { confirm } = useConfirm()
@@ -293,8 +359,13 @@ const reviewForm = reactive({
   notes: ''
 })
 
+const voidForm = reactive({
+  reason: ''
+})
+
 const canReview = computed(() => Boolean(can['ai-analysis.review']?.value))
-const canDelete = computed(() => Boolean(can['ai-analysis.delete']?.value))
+const canVoid = computed(() => Boolean(can['ai-analysis.void']?.value))
+const isVoided = computed(() => props.analysis.voided === true)
 
 const attachment = computed(() => props.analysis.clinical_attachment ?? null)
 const patientName = computed(() => {
@@ -367,26 +438,31 @@ const formatDate = value => {
 
 const createdAt = computed(() => formatDate(props.analysis.created_at))
 const reviewedAt = computed(() => formatDate(props.analysis.reviewed_at))
+const voidedAt = computed(() => formatDate(props.analysis.voided_at))
 const reviewDecisionLabel = computed(
   () => REVIEW_DECISION_LABELS[props.analysis.review_decision] || '—'
 )
 const reviewNotesText = computed(() => props.analysis.review_notes || 'Sin notas')
 const reviewerName = computed(() => props.analysis.reviewed_by?.name || '—')
-
-const showDelete = computed(() => !props.analysis.reviewed && canDelete.value)
+const voidedByName = computed(() => props.analysis.voided_by?.name || '—')
+const voidReasonText = computed(() => props.analysis.void_reason || '—')
 
 const submitReview = () => {
   if (!reviewForm.decision) return
   emit('review', props.analysis.id, reviewForm.decision, reviewForm.notes)
 }
 
-const requestDelete = async () => {
+const requestVoid = async () => {
+  const reason = voidForm.reason.trim()
+  if (!reason) return
+
   const confirmed = await confirm({
-    title: 'Eliminar análisis',
-    message: '¿Estás seguro de que quieres eliminar este análisis?',
-    confirmText: 'Eliminar',
+    title: 'Anular análisis',
+    message:
+      '¿Anular este análisis? Se conserva la traza de revisión y el motivo queda registrado.',
+    confirmText: 'Anular',
     variant: 'danger'
   })
-  if (confirmed) emit('delete', props.analysis.id)
+  if (confirmed) emit('void', props.analysis.id, reason)
 }
 </script>

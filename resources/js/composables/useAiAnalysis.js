@@ -10,10 +10,10 @@ import { useToast } from './useToast'
  * block, `uploadAndAnalyze` stays silent because `AiAnalysisSheet` renders the
  * inline message, and `getAnalysisByAttachment` still resolves `null` for "no
  * analysis yet". Only actions with no consumer error surface (`analyzeImage`,
- * `reviewAnalysis`, `deleteAnalysis`) keep the error toast.
+ * `reviewAnalysis`, `voidAnalysis`) keep the error toast.
  */
 export function useAiAnalysis() {
-  const { get, post, delete: del } = useApi()
+  const { get, post } = useApi()
   const { success, error } = useToast()
 
   const loading = ref(false)
@@ -150,21 +150,23 @@ export function useAiAnalysis() {
   }
 
   /**
-   * Eliminar análisis
+   * Anular análisis conservando la traza (#296)
    */
-  const deleteAnalysis = async id => {
+  const voidAnalysis = async (id, reason) => {
     try {
       loading.value = true
-      await del(`/api/ai-analysis/${id}`)
-      success('Análisis eliminado exitosamente')
+      const response = await post(`/api/ai-analysis/${id}/void`, { reason })
+      success('Análisis anulado exitosamente')
 
-      // Remover de la lista local
+      // El análisis anulado sale de la lista local; su traza queda en el servidor.
       const index = analyses.value.findIndex(a => a.id === id)
       if (index > -1) {
         analyses.value.splice(index, 1)
       }
+
+      return response.data
     } catch (err) {
-      error(err.response?.data?.message || 'Error al eliminar análisis')
+      error(err.response?.data?.message || 'Error al anular análisis')
       throw err
     } finally {
       loading.value = false
@@ -273,7 +275,7 @@ export function useAiAnalysis() {
     getAnalysis,
     reviewAnalysis,
     getStats,
-    deleteAnalysis,
+    voidAnalysis,
     uploadAndAnalyze,
 
     // Computed

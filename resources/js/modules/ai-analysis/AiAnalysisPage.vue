@@ -313,11 +313,11 @@
                 <UiButton
                   variant="ghost"
                   size="sm"
-                  data-row-action="delete"
-                  aria-label="Eliminar análisis"
-                  @click="deleteAnalysis(row.id)"
+                  data-row-action="void"
+                  aria-label="Anular análisis"
+                  @click="viewAnalysis(row)"
                 >
-                  <TrashIcon class="h-4 w-4" aria-hidden="true" />
+                  <NoSymbolIcon class="h-4 w-4" aria-hidden="true" />
                 </UiButton>
               </div>
             </template>
@@ -341,7 +341,7 @@
       :analysis="selectedAnalysis"
       @close="selectedAnalysis = null"
       @review="handleReview"
-      @delete="deleteAnalysis"
+      @void="handleVoid"
     />
 
     <AiAnalysisSheet
@@ -369,12 +369,11 @@ import {
   ExclamationTriangleIcon,
   EyeIcon,
   MagnifyingGlassIcon,
+  NoSymbolIcon,
   PhotoIcon,
-  PlusIcon,
-  TrashIcon
+  PlusIcon
 } from '@heroicons/vue/24/outline'
 import { useAiAnalysis } from '../../composables/useAiAnalysis'
-import { useConfirm } from '../../composables/useConfirm'
 import { useSpring } from '../../composables/useSpring'
 import { prefersReducedMotion } from '../../composables/useSpringMath'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -398,13 +397,11 @@ const {
   getAnalyses,
   getStats,
   reviewAnalysis: reviewAnalysisApi,
-  deleteAnalysis: deleteAnalysisApi,
+  voidAnalysis: voidAnalysisApi,
   uploadAndAnalyze,
   getStatusLabel,
   formatDate
 } = useAiAnalysis()
-
-const { confirm } = useConfirm()
 
 const PAGE_SIZE = 15
 
@@ -672,21 +669,13 @@ const viewAnalysis = row => {
   selectedAnalysis.value = row
 }
 
-const deleteAnalysis = async analysisId => {
-  const ok = await confirm({
-    title: 'Eliminar análisis',
-    message: '¿Estás seguro de que quieres eliminar este análisis?',
-    confirmText: 'Eliminar',
-    variant: 'danger'
-  })
-  if (!ok) return
-
+const handleVoid = async (analysisId, reason) => {
   try {
-    await deleteAnalysisApi(analysisId)
+    await voidAnalysisApi(analysisId, reason)
     selectedAnalysis.value = null
     await loadData(paginationMeta.value.current_page || 1)
   } catch (error) {
-    // The composable surfaces the failure; the row stays in the list.
+    // The composable surfaces the failure; the analysis keeps its row.
   }
 }
 
