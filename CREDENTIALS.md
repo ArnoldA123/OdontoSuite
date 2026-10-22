@@ -66,40 +66,46 @@ del login es el `username`** (no el email, no el nombre).
 
 ## Matriz de Permisos por Rol
 
-| Funcionalidad              | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
-| -------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
-| **Pacientes**              |
-| Crear pacientes            | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Ver pacientes              | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
-| Editar pacientes           | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Eliminar pacientes         | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Exportar ficha de paciente | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| **Citas/Agenda**           |
-| Crear citas                | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Ver citas                  | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Editar citas               | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Cancelar citas             | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| **Reportes/BI**            |
-| Ver reportes               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Exportar datos             | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| **Finanzas/Caja**          |
-| Abrir/cerrar caja          | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Registrar transacciones    | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Cobrar pagos pendientes    | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
-| Ver presupuestos           | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
-| **Configuración**          |
-| Tipos de cita              | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Ambientes/sillones         | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Profesionales              | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Catálogo de procedimientos | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| Especialidades             | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
-| **Clínica**                |
-| Historias clínicas         | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Odontogramas               | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Planes de tratamiento      | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| Análisis IA                | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
-| Interconsultas             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Favoritos de catálogo      | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+> La definición normativa vive en `app/Authorization/Permissions.php` (catálogo
+> `verbo.recurso` + matriz rol → permisos, #280). Esta tabla la refleja para
+> operación; si difieren, manda el código. Recepción ya no puede completar
+> consultas: ese endpoint escribe historia clínica.
+
+| Funcionalidad                | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
+| ---------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
+| **Pacientes**                |
+| Crear pacientes              | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Ver pacientes                | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
+| Editar pacientes             | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Eliminar pacientes           | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Exportar ficha de paciente   | ✅            | ✅            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| **Citas/Agenda**             |
+| Crear citas                  | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver citas                    | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Editar citas                 | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Cancelar citas               | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Completar consulta (clínica) | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| **Reportes/BI**              |
+| Ver reportes                 | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Exportar datos               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| **Finanzas/Caja**            |
+| Abrir/cerrar caja            | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Registrar transacciones      | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Cobrar pagos pendientes      | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Ver presupuestos             | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
+| **Configuración**            |
+| Tipos de cita                | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Ambientes/sillones           | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Profesionales                | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Catálogo de procedimientos   | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Especialidades               | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| **Clínica**                  |
+| Historias clínicas           | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Odontogramas                 | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Planes de tratamiento        | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Análisis IA                  | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
+| Interconsultas               | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Favoritos de catálogo        | ❌            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 
 ---
 
