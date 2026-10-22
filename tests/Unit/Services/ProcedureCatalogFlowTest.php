@@ -108,36 +108,46 @@ class ProcedureCatalogFlowTest extends TestCase
     }
 
     #[Test]
-    public function procedure_catalog_routes_have_role_middleware_for_writes(): void
+    public function procedure_catalog_writes_declare_their_permission(): void
     {
-        // POST/PUT/DELETE en procedure-catalog requieren rol administrativo
-        // (admin o finanzas para el endpoint de import).
+        // #280: writes declare a permission, never a role list.
         $writeRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
             ->filter(fn ($r) => in_array('POST', $r->methods()) || in_array('PUT', $r->methods()) || in_array('DELETE', $r->methods()))
             ->filter(fn ($r) => str_contains($r->uri(), 'procedure-catalog') && ! str_contains($r->uri(), 'favorite'));
 
+        $this->assertGreaterThan(0, $writeRoutes->count());
+
         $writeRoutes->each(function ($route) {
             $middleware = implode(',', $route->middleware());
             $this->assertStringContainsString(
-                'role:',
+                'permission:',
                 $middleware,
-                "Writes on procedure-catalog must require some role. Route: {$route->uri()}, middleware: {$middleware}"
+                "Writes on procedure-catalog must declare a permission. Route: {$route->uri()}, middleware: {$middleware}"
             );
+            $this->assertStringNotContainsString('role:', $middleware);
         });
     }
 
     #[Test]
-    public function procedure_catalog_favorite_routes_have_clinical_role_middleware(): void
+    public function procedure_catalog_favorites_are_clinical_only(): void
     {
         $favRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
             ->filter(fn ($r) => str_contains($r->uri(), 'favorite') || str_contains($r->uri(), 'procedure-catalog-favorites'));
 
+        $this->assertGreaterThan(0, $favRoutes->count());
+
         $favRoutes->each(function ($route) {
             $middleware = implode(',', $route->middleware());
-            $this->assertTrue(
-                str_contains($middleware, 'role:') && str_contains($middleware, 'odontologo'),
-                "Favorite routes must require role:odontologo,implantologo,tecnico_dental,asistente. Route: {$route->uri()}, middleware: {$middleware}"
+            $this->assertStringContainsString(
+                'permission:manage.procedure_favorite',
+                $middleware,
+                "Favorite routes must require manage.procedure_favorite. Route: {$route->uri()}, middleware: {$middleware}"
             );
         });
+
+        $this->assertSame(
+            ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'],
+            \App\Authorization\Permissions::rolesFor(\App\Authorization\Permissions::MANAGE_PROCEDURE_FAVORITE)
+        );
     }
 }

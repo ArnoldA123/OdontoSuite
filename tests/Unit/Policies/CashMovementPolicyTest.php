@@ -133,11 +133,17 @@ class CashMovementPolicyTest extends TestCase
             'routes/api.php must still register the cash-movements apiResource'
         );
 
-        // Confirm the role middleware wrapping.
+        // #280: the resource declares its permission; the matrix owns the roles.
         $this->assertStringContainsString(
-            "Route::middleware('role:administrador,finanzas')",
+            'Permissions::MANAGE_CASH_MOVEMENT',
             $source,
-            'cash-movements resource must remain wrapped in role:administrador,finanzas middleware'
+            'cash-movements resource must remain wrapped in manage.cash_movement'
+        );
+
+        $this->assertSame(
+            ['administrador', 'finanzas'],
+            \App\Authorization\Permissions::rolesFor(\App\Authorization\Permissions::MANAGE_CASH_MOVEMENT),
+            'manage.cash_movement must grant exactly the cash movement roles'
         );
 
         // And the policy itself must use the same role set (no drift).

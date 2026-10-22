@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Routes;
 
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 /**
  * Fix live-probes #25/#26 — route registration order for live probes.
@@ -14,8 +14,8 @@ use PHPUnit\Framework\TestCase;
  * route first, tried to resolve `ready-to-bill` as a model bound Appointment,
  * and returned 404 for every role.
  *
- * These tests pin the order and the role protection so a future reordering
- * cannot silently reintroduce the shadowing.
+ * These tests pin the order and the permission protection so a future
+ * reordering cannot silently reintroduce the shadowing.
  */
 class AppointmentsRouteOrderTest extends TestCase
 {
@@ -101,36 +101,26 @@ class AppointmentsRouteOrderTest extends TestCase
         );
     }
 
-    public function test_billing_group_keeps_its_roles(): void
+    public function test_billing_route_keeps_its_permission(): void
     {
-        $source = (string) file_get_contents(self::routesFile());
+        $route = collect(\Illuminate\Support\Facades\Route::getRoutes())
+            ->first(fn ($route) => $route->uri() === 'api/appointments/ready-to-bill');
 
-        // Match every top-level `Route::middleware('role:...')->group(function () { ... });`
-        // block. Nested groups are indented deeper, so the non-greedy body stops at the
-        // block's own 4-space-indented closing brace.
-        $pattern = "/Route::middleware\\('role:([^']+)'\\)->group\\(function \\(\\) \\{(.*?)\\n    \\}\\);/s";
-        preg_match_all($pattern, $source, $matches, PREG_SET_ORDER);
+        $this->assertNotNull($route, 'routes/api.php must keep the ready-to-bill route.');
 
-        $billingBlocks = array_values(array_filter(
-            $matches,
-            static fn (array $match): bool => str_contains($match[2], "'appointments/ready-to-bill'")
-        ));
-
-        $this->assertCount(
-            1,
-            $billingBlocks,
-            'Expected exactly one `role:` group in routes/api.php to contain `appointments/ready-to-bill`.'
+        $middleware = implode(',', $route->middleware());
+        $this->assertStringContainsString(
+            'permission:view.billing',
+            $middleware,
+            'ready-to-bill must be guarded by view.billing. Found: '.$middleware
         );
 
-        $roles = array_map('trim', explode(',', $billingBlocks[0][1]));
-
-        foreach (self::BILLING_ROLES as $role) {
-            $this->assertContains(
-                $role,
-                $roles,
-                'The Billing group containing `appointments/ready-to-bill` must keep role `'.$role.'`. '
-                    .'Found roles: '.implode(',', $roles).'. A reorder must not change this protection.'
-            );
-        }
+        // The permission matrix is the single source of truth (#280): the
+        // roles of view.billing must stay exactly the billing roles.
+        $this->assertSame(
+            self::BILLING_ROLES,
+            \App\Authorization\Permissions::rolesFor(\App\Authorization\Permissions::VIEW_BILLING),
+            'view.billing must grant exactly the billing roles.'
+        );
     }
 }
