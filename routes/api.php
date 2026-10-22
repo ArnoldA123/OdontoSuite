@@ -209,7 +209,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('appointments/{appointment}/complete', [ConsultationController::class, 'complete'])
         ->middleware('permission:'.Permissions::COMPLETE_APPOINTMENT);
     // F2 (#282): the act itself. Opening and voiding are clinical acts; the
-    // urgency door invents no agenda row (S8).
+    // urgency door invents no agenda row (S8). Reading it is clinical too: the
+    // index is the only way to reach an act that has no appointment to be found
+    // by.
+    Route::get('encounters', [ClinicalEncounterController::class, 'index'])
+        ->middleware('permission:'.Permissions::VIEW_ENCOUNTER);
+    Route::get('encounters/{encounter}', [ClinicalEncounterController::class, 'show'])
+        ->middleware('permission:'.Permissions::VIEW_ENCOUNTER);
     Route::post('encounters', [ClinicalEncounterController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_ENCOUNTER);
     Route::post('encounters/{encounter}/complete', [ClinicalEncounterController::class, 'complete'])

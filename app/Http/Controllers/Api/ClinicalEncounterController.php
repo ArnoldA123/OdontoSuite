@@ -6,7 +6,12 @@ use App\Exceptions\Consultation\ConsultationException;
 use App\Exceptions\Encounter\EncounterException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseClinicalEncounterRequest;
+use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
+use App\Models\ClinicalEvolution;
+use App\Models\OdontogramRecord;
+use App\Models\ProcedureMaterial;
+use App\Models\Quotation;
 use App\Services\ClinicalEncounterService;
 use App\Services\ConsultationService;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +25,9 @@ use Illuminate\Support\Facades\Log;
  * hold it (S8). `POST /api/encounters/{id}/complete` closes it with the same
  * engine the appointment door uses — one closure, two doors. `POST
  * /api/encounters/{id}/void` is the way out of a mistaken opening, and it only
- * works while the act is still open. Reading belongs to T4.
+ * works while the act is still open. `GET /api/encounters` and `GET
+ * /api/encounters/{id}` are the read surface of the act itself, which is what
+ * makes an urgency act visible at all (S1/S5).
  */
 class ClinicalEncounterController extends Controller
 {
@@ -28,6 +35,91 @@ class ClinicalEncounterController extends Controller
         private readonly ClinicalEncounterService $encounters,
         private readonly ConsultationService $consultations,
     ) {}
+
+    /**
+     * List the acts. An encounter without an appointment — the urgency act —
+     * has no agenda row to be found by, so this index is its only entry point to
+     * the record (S5).
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'patient_id' => 'sometimes|integer',
+            'appointment_id' => 'sometimes|integer',
+            'status' => 'sometimes|in:open,closed,voided',
+            'from' => 'sometimes|date',
+            'to' => 'sometimes|date',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $query = ClinicalEncounter::query()->with(['patient', 'user', 'appointment']);
+
+        if (isset($data['patient_id'])) {
+            $query->forPatient((int) $data['patient_id']);
+        }
+
+        if (isset($data['appointment_id'])) {
+            $query->where('appointment_id', (int) $data['appointment_id']);
+        }
+
+        if (isset($data['status'])) {
+            $query->where('status', $data['status']);
+        }
+
+        // Both edges of the range are days, so a single-day window returns the
+        // acts of that day instead of an empty set.
+        if (isset($data['from'])) {
+            $query->whereDate('opened_at', '>=', $data['from']);
+        }
+
+        if (isset($data['to'])) {
+            $query->whereDate('opened_at', '<=', $data['to']);
+        }
+
+        $encounters = $query
+            ->orderByDesc('opened_at')
+            ->orderByDesc('id')
+            ->paginate((int) ($data['per_page'] ?? 20));
+
+        return response()->json([
+            'data' => array_map(
+                fn (ClinicalEncounter $encounter): array => $this->resource($encounter),
+                $encounters->items(),
+            ),
+            'meta' => [
+                'current_page' => $encounters->currentPage(),
+                'last_page' => $encounters->lastPage(),
+                'per_page' => $encounters->perPage(),
+                'total' => $encounters->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * The detail of the act: everything the closure produced, read from the
+     * encounter and not through the appointment projection (S3).
+     */
+    public function show(ClinicalEncounter $encounter): JsonResponse
+    {
+        $encounter->loadMissing([
+            'patient',
+            'user',
+            'appointment',
+            'medicalRecord',
+            'treatmentPlan',
+            'closedBy',
+            'voidedBy',
+            'clinicalEvolutions',
+            'odontogramRecords.dentalPiece',
+            'procedureMaterials.product',
+            'attachments',
+            'quotations',
+        ]);
+
+        return response()->json([
+            'data' => array_merge($this->resource($encounter), $this->detail($encounter)),
+        ]);
+    }
 
     public function store(Request $request): JsonResponse
     {
@@ -154,6 +246,71 @@ class ClinicalEncounterController extends Controller
                 'name' => $encounter->user->name,
                 'role' => $encounter->user->role,
             ] : null,
+        ];
+    }
+
+    /**
+     * The extra projection of `show()`. It stays apart from `resource()` so the
+     * three write actions keep their exact response shape.
+     *
+     * @return array<string, mixed>
+     */
+    private function detail(ClinicalEncounter $encounter): array
+    {
+        return [
+            'closed_by_user' => $encounter->closedBy?->name,
+            'evolutions' => $encounter->clinicalEvolutions
+                ->map(fn (ClinicalEvolution $evolution): array => [
+                    'id' => $evolution->id,
+                    'evolution_date' => $evolution->evolution_date?->toDateString(),
+                    'specialty' => $evolution->specialty,
+                    'assessment' => $evolution->assessment,
+                    'plan' => $evolution->plan,
+                ])
+                ->values()
+                ->all(),
+            'odontogram_records' => $encounter->odontogramRecords
+                ->map(fn (OdontogramRecord $record): array => [
+                    'id' => $record->id,
+                    'dental_piece_id' => $record->dental_piece_id,
+                    'dental_piece' => $record->relationLoaded('dentalPiece')
+                        ? $record->dentalPiece?->fdi_number
+                        : null,
+                    'condition_code' => $record->condition_code,
+                    'condition_name' => $record->condition_name,
+                    'diagnosis' => $record->diagnosis,
+                ])
+                ->values()
+                ->all(),
+            'materials' => $encounter->procedureMaterials
+                ->map(fn (ProcedureMaterial $material): array => [
+                    'id' => $material->id,
+                    'product_id' => $material->product_id,
+                    'product' => $material->product?->name,
+                    'quantity_used' => (float) $material->quantity_used,
+                    'total_cost' => $material->total_cost !== null ? (float) $material->total_cost : null,
+                ])
+                ->values()
+                ->all(),
+            'attachments' => $encounter->attachments
+                ->map(fn (ClinicalAttachment $attachment): array => [
+                    'id' => $attachment->id,
+                    'original_name' => $attachment->original_name,
+                    'file_type' => $attachment->file_type,
+                    'category' => $attachment->category,
+                    'created_at' => $attachment->created_at?->toIso8601String(),
+                ])
+                ->values()
+                ->all(),
+            'quotations' => $encounter->quotations
+                ->map(fn (Quotation $quotation): array => [
+                    'id' => $quotation->id,
+                    'quotation_number' => $quotation->quotation_number,
+                    'status' => $quotation->status,
+                    'total_amount' => (float) $quotation->total_amount,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 }

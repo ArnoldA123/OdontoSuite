@@ -115,6 +115,24 @@ class PermissionCatalogTest extends TestCase
     }
 
     #[Test]
+    public function the_encounter_read_is_clinical_only(): void
+    {
+        foreach (['recepcionista', 'finanzas'] as $role) {
+            $this->assertFalse(
+                Permissions::roleHas($role, Permissions::VIEW_ENCOUNTER),
+                "Role [{$role}] holds [view.encounter], but the act carries the clinical record.",
+            );
+        }
+
+        foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::VIEW_ENCOUNTER),
+                "Role [{$role}] should hold [view.encounter].",
+            );
+        }
+    }
+
+    #[Test]
     public function frontend_only_permissions_exist_in_the_catalog(): void
     {
         foreach (Permissions::FRONTEND_ONLY as $permission) {
