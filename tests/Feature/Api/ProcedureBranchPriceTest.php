@@ -3,8 +3,8 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Branch;
-use App\Models\ProcedureBranchPrice;
 use App\Models\ProcedureCatalog;
+use App\Models\ProcedurePrice;
 use App\Models\TreatmentPlan;
 use App\Models\User;
 use App\Services\ProcedurePriceResolver;
@@ -50,11 +50,12 @@ class ProcedureBranchPriceTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function priceRow(ProcedureCatalog $procedure, Branch $branch, float $price, ?string $from = null, ?string $to = null): ProcedureBranchPrice
+    private function priceRow(ProcedureCatalog $procedure, Branch $branch, float $price, ?string $from = null, ?string $to = null): ProcedurePrice
     {
-        return ProcedureBranchPrice::create([
+        return ProcedurePrice::create([
             'procedure_catalog_id' => $procedure->id,
             'branch_id' => $branch->id,
+            'payer_id' => null,
             'price' => $price,
             'valid_from' => $from,
             'valid_to' => $to,
@@ -148,9 +149,10 @@ class ProcedureBranchPriceTest extends TestCase
             ])
             ->assertOk();
 
-        $this->assertDatabaseHas('procedure_branch_prices', [
+        $this->assertDatabaseHas('procedure_prices', [
             'procedure_catalog_id' => $procedure->id,
             'branch_id' => $branch->id,
+            'payer_id' => null,
             'price' => 75.5,
         ]);
 

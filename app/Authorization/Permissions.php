@@ -173,6 +173,13 @@ final class Permissions
     /** #290 S8: the branch tariff agreed for one sede. */
     public const MANAGE_BRANCH_PRICE = 'manage.branch_price';
 
+    // #293 S3: convenios and the tariff agreed with them.
+    public const VIEW_PAYER = 'view.payer';
+
+    public const MANAGE_PAYER = 'manage.payer';
+
+    public const MANAGE_PAYER_PRICE = 'manage.payer_price';
+
     // F3 (#283, S4/S5): administrate the freeze date of a module, and authorise
     // (with a registered reason) a mutation inside it.
     public const MANAGE_ACCOUNTING_LOCK = 'manage.accounting_lock';
@@ -350,6 +357,9 @@ final class Permissions
         self::MANAGE_APPOINTMENT_TYPE => ['administrador'],
         self::MANAGE_BRANCH => ['administrador'],
         self::MANAGE_BRANCH_PRICE => ['administrador'],
+        self::VIEW_PAYER => self::QUOTATION_READERS,
+        self::MANAGE_PAYER => ['administrador'],
+        self::MANAGE_PAYER_PRICE => ['administrador'],
         self::MANAGE_ACCOUNTING_LOCK => ['administrador'],
         self::OVERRIDE_ACCOUNTING_LOCK => ['administrador'],
         self::VIEW_REPORT => self::FINANCE_ROLES,
