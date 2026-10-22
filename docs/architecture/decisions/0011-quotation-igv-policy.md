@@ -16,16 +16,16 @@ declaraba una política:
 
 - `generateQuotation` copiaba la tasa del payload y por defecto ponía `0`, así
   que el IGV nunca aparecía salvo que un cliente lo pidiera.
-- `BillingService` escribía `0` fijo: el presupuesto automático del cierre
-  nacía sin IGV por construcción.
+- `BillingService` escribía `0` fijo: el presupuesto automático del cierre nacía
+  sin IGV por construcción.
 - `calculateAmounts` **sumaba** el impuesto encima del importe:
   `total = subtotal − descuento + IGV`. Con tasa 18% un procedimiento de S/ 118
   pasaba a costar S/ 139.24.
 - `updateQuotation` recalculaba desde `$data['subtotal'] ?? 0`, de modo que un
   `PATCH` que solo cambiaba la tasa o el descuento ponía la cotización en cero.
 
-La pregunta de fondo era de negocio, no de código: ¿el precio del catálogo es
-el precio que paga el paciente, o es un precio neto al que se le agrega IGV?
+La pregunta de fondo era de negocio, no de código: ¿el precio del catálogo es el
+precio que paga el paciente, o es un precio neto al que se le agrega IGV?
 
 ## Decision
 
@@ -33,10 +33,9 @@ el precio que paga el paciente, o es un precio neto al que se le agrega IGV?
 
 1. `total_amount` es el importe que paga el paciente —suma de ítems menos
    descuento— y **nunca** se incrementa por declarar una tasa.
-2. El IGV **se descompone** de ese total:
-   `base = round(neto / (1 + t/100), 2)`, `igv = round(neto − base, 2)`, y
-   `subtotal` guarda la base imponible. `subtotal + tax_amount == total_amount`
-   por construcción.
+2. El IGV **se descompone** de ese total: `base = round(neto / (1 + t/100), 2)`,
+   `igv = round(neto − base, 2)`, y `subtotal` guarda la base imponible.
+   `subtotal + tax_amount == total_amount` por construcción.
 3. El descuento se aplica antes del desglose y también dentro del precio: el
    paciente paga `bruto − descuento`, con su IGV contenido.
 4. La tasa de un presupuesto nuevo que no la declara sale de
