@@ -86,6 +86,10 @@ class StoreTreatmentPlanRequest extends FormRequest
             'items.*.specialty' => 'sometimes|nullable|string|max:50',
             'items.*.phase_number' => 'sometimes|nullable|integer|min:1',
             'items.*.category' => 'sometimes|nullable|string|max:50',
+            // #296: only a reviewed analysis can be cited; the service checks
+            // patient, status and annulment before anything is written.
+            'cited_analysis_ids' => 'sometimes|array|max:20',
+            'cited_analysis_ids.*' => 'integer',
         ];
     }
 

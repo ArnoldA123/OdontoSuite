@@ -535,6 +535,10 @@ Responde únicamente en formato JSON válido.';
             ]);
         }
 
+        // #296: an analysis that a clinical document cites is part of the
+        // record; annulling it would leave that document citing nothing.
+        app(AiAnalysisCitationService::class)->assertNotCited($analysis);
+
         $analysis->update([
             'voided_at' => now(),
             'voided_by' => Auth::id(),

@@ -13,14 +13,27 @@ use Illuminate\Support\Str;
 
 class TreatmentPlanService
 {
+    public function __construct(private readonly AiAnalysisCitationService $citations) {}
+
     public function createPlan(array $data): TreatmentPlan
     {
         return DB::transaction(function () use ($data) {
+            // #296: a cited analysis must be reviewed and belong to the same
+            // patient; the request is refused before the plan is written.
+            $citedAnalysisIds = $data['cited_analysis_ids'] ?? [];
+            unset($data['cited_analysis_ids']);
+
+            $this->citations->assertCitable($citedAnalysisIds, (int) $data['patient_id'], Auth::user());
+
             $data['plan_number'] = $this->generatePlanNumber();
             $data['created_by'] = Auth::id();
             $data['last_activity_at'] = now();
 
             $plan = TreatmentPlan::create($data);
+
+            if ($citedAnalysisIds !== []) {
+                $this->citations->sync($plan, $citedAnalysisIds, Auth::user());
+            }
 
             if (isset($data['items']) && is_array($data['items'])) {
                 foreach ($data['items'] as $itemData) {
@@ -31,7 +44,7 @@ class TreatmentPlanService
             $this->calculateTotals($plan->id);
 
             $plan->refresh();
-            $plan->load(['items', 'patient', 'createdBy']);
+            $plan->load(['items', 'patient', 'createdBy', 'citedAnalyses']);
 
             try {
 
@@ -51,8 +64,20 @@ class TreatmentPlanService
     {
         return DB::transaction(function () use ($id, $data) {
             $plan = TreatmentPlan::findOrFail($id);
+
+            $citedAnalysisIds = $data['cited_analysis_ids'] ?? null;
+            unset($data['cited_analysis_ids']);
+
+            if ($citedAnalysisIds !== null) {
+                $this->citations->assertCitable($citedAnalysisIds, (int) $plan->patient_id, Auth::user());
+            }
+
             $data['last_activity_at'] = now();
             $plan->update($data);
+
+            if ($citedAnalysisIds !== null) {
+                $this->citations->sync($plan, $citedAnalysisIds, Auth::user());
+            }
 
             if (isset($data['items']) && is_array($data['items'])) {
                 // Reemplazar items completos (estrategia simple y consistente con el front)
@@ -65,7 +90,7 @@ class TreatmentPlanService
             $this->calculateTotals($id);
 
             $plan->refresh();
-            $plan->load(['items', 'patient', 'createdBy']);
+            $plan->load(['items', 'patient', 'createdBy', 'citedAnalyses']);
 
             try {
 

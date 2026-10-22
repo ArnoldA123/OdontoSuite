@@ -225,6 +225,8 @@ class MedicalRecordController extends Controller
                 'attachments',
                 // F3 (#292): the corrections of each visit travel with it.
                 'addenda.author',
+                // #296: the decision-support material the professional cited.
+                'citedAnalyses',
             ])
                 ->where('medical_record_id', $id)
                 ->orderBy('evolution_date', 'desc')

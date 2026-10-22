@@ -138,6 +138,8 @@ class TreatmentPlanController extends Controller
                 'items',
                 'quotations',
                 'paymentPlans',
+                // #296: the decision-support material the plan cites.
+                'citedAnalyses',
             ])->findOrFail($id);
 
             return response()->json([
@@ -180,6 +182,9 @@ class TreatmentPlanController extends Controller
                 'items.*.specialty' => 'nullable|string|max:50',
                 'items.*.phase_number' => 'nullable|integer|min:1',
                 'items.*.category' => 'nullable|string|max:50',
+                // #296: only a reviewed analysis can be cited.
+                'cited_analysis_ids' => 'sometimes|array|max:20',
+                'cited_analysis_ids.*' => 'integer',
             ], [
                 'title.required' => 'El título del plan es obligatorio',
                 'items.*.procedure_name.required_with' => 'El nombre del procedimiento es obligatorio',

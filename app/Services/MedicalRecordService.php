@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class MedicalRecordService
 {
+    public function __construct(private readonly AiAnalysisCitationService $citations) {}
+
     /**
      * Crear historia clínica.
      */
@@ -38,6 +40,13 @@ class MedicalRecordService
     {
         $record = MedicalRecord::findOrFail($recordId);
 
+        // #296: an analysis enters the record only through a reviewed citation,
+        // and the whole request is refused before anything is written.
+        $citedAnalysisIds = $data['cited_analysis_ids'] ?? [];
+        unset($data['cited_analysis_ids']);
+
+        $this->citations->assertCitable($citedAnalysisIds, (int) $record->patient_id, Auth::user());
+
         $data['medical_record_id'] = $recordId;
         $data['patient_id'] = $record->patient_id;
         $data['created_by'] = Auth::id();
@@ -46,7 +55,11 @@ class MedicalRecordService
 
         $evolution = ClinicalEvolution::create($data);
 
-        return $evolution->load(['patient', 'appointment', 'createdBy']);
+        if ($citedAnalysisIds !== []) {
+            $this->citations->sync($evolution, $citedAnalysisIds, Auth::user());
+        }
+
+        return $evolution->load(['patient', 'appointment', 'createdBy', 'citedAnalyses']);
     }
 
     /**

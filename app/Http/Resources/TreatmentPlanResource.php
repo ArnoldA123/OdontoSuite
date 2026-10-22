@@ -65,6 +65,14 @@ class TreatmentPlanResource extends JsonResource
                 'requires_anesthesia' => (bool) $i->requires_anesthesia,
                 'is_optional' => (bool) $i->is_optional,
             ])),
+            // #296: the reviewed analyses this plan incorporates. A citation
+            // exists only for a reviewed analysis, so the list is the proof.
+            'cited_analyses' => $this->whenLoaded('citedAnalyses', fn () => $this->citedAnalyses->map(fn ($analysis) => [
+                'id' => $analysis->id,
+                'review_decision' => $analysis->review_decision,
+                'reviewed_at' => $analysis->reviewed_at?->toIso8601String(),
+                'confidence_score' => $analysis->confidence_score,
+            ])->values()->all()),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
