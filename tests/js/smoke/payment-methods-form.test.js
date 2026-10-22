@@ -27,6 +27,8 @@ const systemGatewayMethod = {
   name: 'Efectivo',
   description: 'Pago en efectivo',
   gateway_type: 'mercadopago',
+  type: 'cash',
+  requires_reference: false,
   commission_percentage: 3.5,
   requires_authorization: false,
   allows_change: true,
@@ -62,6 +64,19 @@ const setValue = async (name, value) => {
   await flushPromises()
 }
 
+const chooseOption = async (name, label) => {
+  const trigger = field(name).querySelector('button[aria-haspopup="true"]')
+  expect(trigger, `select "${name}" must render a trigger`).toBeTruthy()
+  trigger.click()
+  await flushPromises()
+  const option = [...field(name).querySelectorAll('[role="listbox"] button')].find(
+    button => button.textContent.trim() === label
+  )
+  expect(option, `option "${label}" must exist in "${name}"`).toBeTruthy()
+  option.click()
+  await flushPromises()
+}
+
 const submit = async () => {
   document.querySelector('[data-modal-submit]').click()
   await flushPromises()
@@ -69,6 +84,8 @@ const submit = async () => {
 }
 
 beforeEach(() => {
+  harness.apiPost.mockClear()
+  harness.apiPut.mockClear()
   harness.apiPost.mockResolvedValue({ data: { id: 11, name: 'Yape' }, meta: {} })
   harness.apiPut.mockResolvedValue({ data: { id: 3, name: 'Efectivo' }, meta: {} })
 })
@@ -177,8 +194,10 @@ describe('PaymentMethodFormModal', () => {
       name: 'Yape',
       description: 'Pago con billetera',
       gateway_type: 'manual',
+      type: 'cash',
       commission_percentage: 2.5,
       requires_authorization: false,
+      requires_reference: false,
       allows_change: true,
       is_active: true
     })
@@ -189,6 +208,29 @@ describe('PaymentMethodFormModal', () => {
 
     expect(wrapper.emitted('saved')).toHaveLength(1)
     expect(wrapper.emitted('saved')[0][0]).toEqual({ id: 11, name: 'Yape' })
+  })
+
+  it('sends the chosen family and the reference rule of a wallet method', async () => {
+    await mountModal()
+
+    await setValue('code', 'plin')
+    await setValue('name', 'Plin')
+    await chooseOption('type', 'Billetera digital')
+    field('requires_reference').querySelector('input').click()
+    await flushPromises()
+    await submit()
+
+    expect(harness.apiPost).toHaveBeenCalledTimes(1)
+    const payload = harness.apiPost.mock.calls[0][1]
+
+    expect(payload.type).toBe('wallet')
+    expect(payload.requires_reference).toBe(true)
+  })
+
+  it('prefills the family of the method being edited', async () => {
+    await mountModal({ ...systemGatewayMethod, type: 'transfer', allows_change: false })
+
+    expect(selectTrigger('type').textContent.trim()).toBe('Transferencia')
   })
 
   it('sends gateway_config on edit only when the access token is filled', async () => {
