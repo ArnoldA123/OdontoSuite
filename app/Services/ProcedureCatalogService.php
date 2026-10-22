@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProcedureCatalogService
 {
+    public function __construct(private readonly ProcedurePriceResolver $prices) {}
+
     public function paginate(array $filters = []): LengthAwarePaginator
     {
         $query = ProcedureCatalog::query()->with('specialty');
@@ -91,7 +93,7 @@ class ProcedureCatalogService
             return [];
         }
 
-        return ProcedureCatalog::query()
+        $procedures = ProcedureCatalog::query()
             ->with('specialty')
             ->active()
             ->where(function (Builder $q) use ($term) {
@@ -101,14 +103,22 @@ class ProcedureCatalogService
             })
             ->orderBy('name')
             ->limit($limit)
-            ->get()
+            ->get();
+
+        $prices = $this->prices->resolveMany($procedures, $this->prices->currentBranchId());
+
+        return $procedures
             ->map(fn (ProcedureCatalog $p) => [
                 'id' => $p->id,
                 'code' => $p->code,
                 'name' => $p->name,
                 'specialty' => $p->specialty?->code,
                 'specialty_name' => $p->specialty?->name,
-                'default_cost' => (float) $p->default_cost,
+                // #290 S8: the picker answers the price of the caller's sede;
+                // list_cost keeps the group agreement visible.
+                'default_cost' => $prices[$p->id]['price'],
+                'list_cost' => (float) $p->default_cost,
+                'price_source' => $prices[$p->id]['source'],
                 'default_duration_minutes' => $p->default_duration_minutes,
                 'materials_needed' => $p->materials_needed,
                 'materials_needed_list' => $p->materialsNeededList(),
@@ -121,18 +131,24 @@ class ProcedureCatalogService
 
     public function activeList(): array
     {
-        return ProcedureCatalog::query()
+        $procedures = ProcedureCatalog::query()
             ->with('specialty')
             ->active()
             ->orderBy('name')
-            ->get(['id', 'code', 'name', 'specialty_id', 'default_cost', 'default_duration_minutes', 'materials_needed'])
+            ->get(['id', 'code', 'name', 'specialty_id', 'default_cost', 'default_duration_minutes', 'materials_needed']);
+
+        $prices = $this->prices->resolveMany($procedures, $this->prices->currentBranchId());
+
+        return $procedures
             ->map(fn (ProcedureCatalog $p) => [
                 'id' => $p->id,
                 'code' => $p->code,
                 'name' => $p->name,
                 'specialty' => $p->specialty?->code,
                 'specialty_name' => $p->specialty?->name,
-                'default_cost' => (float) $p->default_cost,
+                'default_cost' => $prices[$p->id]['price'],
+                'list_cost' => (float) $p->default_cost,
+                'price_source' => $prices[$p->id]['source'],
                 'default_duration_minutes' => $p->default_duration_minutes,
                 'materials_needed' => $p->materials_needed,
                 'label' => "{$p->code} — {$p->name}",

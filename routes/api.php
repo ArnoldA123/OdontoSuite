@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
+use App\Http\Controllers\Api\ProcedureBranchPriceController;
 use App\Http\Controllers\Api\ProcedureCatalogController;
 use App\Http\Controllers\Api\ProcedureCatalogFavoriteController;
 use App\Http\Controllers\Api\ProcedureStatsController;
@@ -282,6 +283,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Branches (administrator only).
     // #283 S2: la sede administra su sede; el catálogo de sedes es alcance de
     // grupo (branch.global rechaza 403 a un administrador con sede asignada).
+    // Branch tariff (#290 S8): the price one sede charges, inside its window.
+    Route::prefix('branches/{branch}/procedure-prices')
+        ->middleware('permission:'.Permissions::MANAGE_BRANCH_PRICE)
+        ->group(function () {
+            Route::get('/', [ProcedureBranchPriceController::class, 'index']);
+            Route::put('/', [ProcedureBranchPriceController::class, 'update']);
+            Route::delete('{priceId}', [ProcedureBranchPriceController::class, 'destroy']);
+        });
+
     Route::apiResource('branches', BranchController::class)
         ->middleware(['permission:'.Permissions::MANAGE_BRANCH, 'branch.global']);
 

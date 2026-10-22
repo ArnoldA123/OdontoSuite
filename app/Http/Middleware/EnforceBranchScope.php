@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Authorization\BranchAccess;
+use App\Models\Branch;
 use App\Models\Concerns\ScopesToBranch;
 use App\Models\User;
 use Closure;
@@ -52,6 +53,14 @@ class EnforceBranchScope
         }
 
         foreach ($request->route()?->parameters() ?? [] as $parameter) {
+            // A sede addressed by the route (tarifario, bloqueo contable) is a
+            // write target of its own.
+            if ($parameter instanceof Branch) {
+                BranchAccess::assertBranch($user, $parameter->id);
+
+                continue;
+            }
+
             if (! $parameter instanceof Model) {
                 continue;
             }
