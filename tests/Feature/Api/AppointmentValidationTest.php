@@ -43,14 +43,17 @@ class AppointmentValidationTest extends TestCase
         $this->assertStringContainsString('branches', $rules['branch_id']);
     }
 
-    public function test_store_appointment_status_canonical_value(): void
+    public function test_store_appointment_status_only_accepts_operational_statuses(): void
     {
         $rules = (new StoreAppointmentRequest)->rules();
         $statusRule = $rules['status'];
 
-        // 'in_consultation' is canonical (post-migration)
-        $this->assertStringContainsString('in_consultation', $statusRule);
-        // 'in_progress' (legacy) should NOT be in the canonical list
+        // F1 (#281): the custody statuses have their own doors; the generic
+        // create/patch keeps the operational ones.
+        $this->assertStringNotContainsString('in_consultation', $statusRule);
+        $this->assertStringNotContainsString('arrived', $statusRule);
+        $this->assertStringNotContainsString('completed', $statusRule);
+        // 'in_progress' (legacy) is not canonical either.
         $this->assertStringNotContainsString('in_progress', $statusRule);
     }
 
@@ -100,20 +103,24 @@ class AppointmentValidationTest extends TestCase
         $this->assertFalse($validator->fails());
     }
 
-    public function test_store_appointment_status_validator_accepts_in_consultation(): void
+    public function test_store_appointment_status_validator_keeps_operational_and_rejects_custody(): void
     {
         $rules = (new StoreAppointmentRequest)->rules();
 
-        $validator = Validator::make(
-            ['status' => 'in_consultation'],
-            ['status' => $rules['status']]
-        );
-        $this->assertFalse($validator->fails());
+        foreach (['scheduled', 'confirmed', 'cancelled', 'no_show', 'rescheduled'] as $operational) {
+            $validator = Validator::make(
+                ['status' => $operational],
+                ['status' => $rules['status']]
+            );
+            $this->assertFalse($validator->fails(), "{$operational} MUST stay accepted by the generic create");
+        }
 
-        $validator2 = Validator::make(
-            ['status' => 'in_progress'],
-            ['status' => $rules['status']]
-        );
-        $this->assertTrue($validator2->fails(), 'in_progress should be rejected as non-canonical');
+        foreach (['arrived', 'in_consultation', 'completed', 'in_progress'] as $custody) {
+            $validator = Validator::make(
+                ['status' => $custody],
+                ['status' => $rules['status']]
+            );
+            $this->assertTrue($validator->fails(), "{$custody} MUST be rejected: it has its own door");
+        }
     }
 }

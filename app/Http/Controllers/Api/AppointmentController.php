@@ -451,9 +451,23 @@ class AppointmentController extends Controller
     public function updateStatus(Request $request, Appointment $appointment): JsonResponse
     {
         $validated = $request->validate([
-            'status' => 'required|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
+            'status' => 'required|in:scheduled,confirmed,arrived,in_consultation,completed,cancelled,no_show,rescheduled',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        // F1 (#281): the custody statuses are not reachable through the generic
+        // status endpoint. Each one has its own door, its own permission and its
+        // own custody record; accepting them here let reception close the
+        // clinical act and erased the difference between arrived and attending.
+        $custodyDoors = [
+            'arrived' => 'La llegada la registra recepción con POST /api/appointments/'.$appointment->id.'/check-in.',
+            'in_consultation' => 'La atención la inicia el profesional con POST /api/appointments/'.$appointment->id.'/start-attention.',
+            'completed' => 'El cierre del acto clínico se registra con POST /api/appointments/'.$appointment->id.'/complete.',
+        ];
+
+        if (isset($custodyDoors[$validated['status']])) {
+            return response()->json(['message' => $custodyDoors[$validated['status']]], 422);
+        }
 
         $oldValues = $appointment->toArray();
         $previousStatus = $appointment->status;

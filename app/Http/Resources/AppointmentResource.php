@@ -31,6 +31,7 @@ class AppointmentResource extends JsonResource
             'final_amount' => $this->final_amount !== null ? (float) $this->final_amount : null,
             'consultation_mode' => $this->consultation_mode,
             'checked_in_at' => $this->checked_in_at?->toIso8601String(),
+            'checked_in_by' => $this->checked_in_by,
             'completed_at' => $this->completed_at?->toIso8601String(),
             'has_payment' => $this->when(
                 $this->relationLoaded('transactions'),
@@ -54,6 +55,12 @@ class AppointmentResource extends JsonResource
                     'email' => $this->patient->email,
                     'phone' => $this->patient->phone,
                     'document_number' => $this->patient->document_number,
+                ];
+            }),
+            'checked_in_by_user' => $this->whenLoaded('checkedInBy', function () {
+                return [
+                    'id' => $this->checkedInBy->id,
+                    'name' => $this->checkedInBy->name,
                 ];
             }),
             'user' => $this->whenLoaded('user', function () {

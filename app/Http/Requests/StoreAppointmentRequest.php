@@ -88,7 +88,7 @@ class StoreAppointmentRequest extends FormRequest
             ],
             'duration_minutes' => 'required|integer|min:15|max:480',
             // BF-008: canonical enum (DB migrated from 'in_progress' to 'in_consultation').
-            'status' => 'sometimes|nullable|in:scheduled,confirmed,in_consultation,completed,cancelled,no_show,rescheduled',
+            'status' => 'sometimes|nullable|in:scheduled,confirmed,cancelled,no_show,rescheduled',
             'notes' => 'sometimes|nullable|string|max:1000',
             'idempotency_key' => 'sometimes|nullable|string|max:255',
         ];

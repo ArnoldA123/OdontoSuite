@@ -30,6 +30,7 @@ class Appointment extends Model
         'final_amount',
         'consultation_mode',
         'checked_in_at',
+        'checked_in_by',
         'completed_at',
         'created_by',
         'updated_by',
@@ -102,6 +103,23 @@ class Appointment extends Model
     public function procedure(): BelongsTo
     {
         return $this->belongsTo(ProcedureCatalog::class, 'procedure_id');
+    }
+
+    /**
+     * F1 (#281): custody trail of this appointment (arrival, attention start).
+     */
+    public function custodyLogs(): HasMany
+    {
+        return $this->hasMany(AppointmentCustodyLog::class);
+    }
+
+    /**
+     * F1 (#281): who registered the arrival (reception or the professional
+     * fallback).
+     */
+    public function checkedInBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_in_by');
     }
 
     /**
