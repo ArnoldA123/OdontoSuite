@@ -171,6 +171,7 @@ class PendingPaymentsController extends Controller
                 'amount' => 'required|numeric|min:0.01',
                 'description' => 'nullable|string|max:255',
                 'notes' => 'nullable|string|max:1000',
+                'reference_number' => 'nullable|string|max:100',
                 'discount_amount' => 'nullable|numeric|min:0',
                 'discount_authorized_by' => 'nullable|integer|exists:users,id',
             ]);
@@ -228,6 +229,7 @@ class PendingPaymentsController extends Controller
                 'description' => $validated['description']
                     ?? "Pago de cita #{$appointment->id} - {$appointment->patient->full_name}",
                 'notes' => $validated['notes'] ?? null,
+                'reference_number' => $validated['reference_number'] ?? null,
                 'discount_amount' => $validated['discount_amount'] ?? 0,
                 'discount_authorized_by' => $validated['discount_authorized_by'] ?? null,
             ]);

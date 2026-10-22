@@ -23,6 +23,8 @@ class PaymentMethodSeeder extends Seeder
         $methods = [
             [
                 'code' => 'cash',
+                'type' => 'cash',
+                'requires_reference' => false,
                 'name' => 'Efectivo',
                 'description' => 'Pago en efectivo en la sede.',
                 'requires_authorization' => false,
@@ -33,6 +35,8 @@ class PaymentMethodSeeder extends Seeder
             ],
             [
                 'code' => 'transfer',
+                'type' => 'transfer',
+                'requires_reference' => true,
                 'name' => 'Transferencia bancaria',
                 'description' => 'Transferencia BCP, Interbank, BBVA u otros. Requiere voucher.',
                 'requires_authorization' => true,
@@ -43,6 +47,8 @@ class PaymentMethodSeeder extends Seeder
             ],
             [
                 'code' => 'credit_card',
+                'type' => 'card',
+                'requires_reference' => true,
                 'name' => 'Tarjeta de credito',
                 'description' => 'Visa, Mastercard, AmEx. Acepta cuotas.',
                 'requires_authorization' => false,
@@ -53,6 +59,8 @@ class PaymentMethodSeeder extends Seeder
             ],
             [
                 'code' => 'debit_card',
+                'type' => 'card',
+                'requires_reference' => true,
                 'name' => 'Tarjeta de debito',
                 'description' => 'Visa debito, Mastercard debito.',
                 'requires_authorization' => false,
@@ -63,6 +71,8 @@ class PaymentMethodSeeder extends Seeder
             ],
             [
                 'code' => 'yape',
+                'type' => 'wallet',
+                'requires_reference' => true,
                 'name' => 'Yape',
                 'description' => 'Pago via Yape (BCP). Requiere codigo de operacion.',
                 'requires_authorization' => true,

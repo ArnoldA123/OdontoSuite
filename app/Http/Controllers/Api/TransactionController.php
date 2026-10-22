@@ -14,6 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class TransactionController extends Controller
 {
@@ -90,6 +91,10 @@ class TransactionController extends Controller
                     'message' => 'Transacción registrada exitosamente',
                 ],
             ], 201);
+        } catch (ValidationException $e) {
+            // #291, S4: the rule of the payment method is a field error, so it
+            // answers the standard 422 envelope instead of the generic one.
+            throw $e;
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al registrar la transacción',
