@@ -10,6 +10,7 @@ use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\ClinicalCompliancePayload;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
  */
 class RequiresMaterialsDerivationTest extends TestCase
 {
+    use ClinicalCompliancePayload;
     use RefreshDatabase;
 
     private function admin(): User
@@ -50,6 +52,7 @@ class RequiresMaterialsDerivationTest extends TestCase
     private function payload(array $overrides = []): array
     {
         return array_merge([
+            ...$this->compliancePayload(),
             'mode' => 'execution',
             'evolution' => [
                 'subjective' => 'Dolor en pieza 16 desde hace tres días.',

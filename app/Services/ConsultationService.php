@@ -7,24 +7,32 @@ use App\Exceptions\Consultation\AppointmentNotInConsultationException;
 use App\Exceptions\Consultation\InvalidConsultationModeException;
 use App\Exceptions\Consultation\InvalidTreatmentPlanException;
 use App\Exceptions\Consultation\MissingClosedEncounterException;
+use App\Exceptions\Consultation\MissingDiagnosisException;
 use App\Exceptions\Consultation\MissingEvolutionException;
 use App\Exceptions\Consultation\MissingMaterialsException;
+use App\Exceptions\Consultation\MissingReasonForConsultationException;
 use App\Exceptions\Consultation\NextAppointmentRequiresAppointmentException;
 use App\Exceptions\Consultation\UnexpectedMaterialsException;
+use App\Exceptions\Encounter\ClinicalSignatureException;
 use App\Exceptions\Encounter\EncounterException;
 use App\Models\Appointment;
 use App\Models\ClinicalAttachment;
 use App\Models\ClinicalEncounter;
 use App\Models\ClinicalEvolution;
+use App\Models\DiagnosisCatalog;
+use App\Models\EncounterDiagnosis;
 use App\Models\MedicalRecord;
 use App\Models\Odontogram;
 use App\Models\OdontogramRecord;
 use App\Models\ProcedureCatalog;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
+use App\Models\User;
+use App\Support\ClinicalRecordSignature;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -105,6 +113,8 @@ class ConsultationService
             $record = $this->medicalRecordFor($current->patient_id, $userId);
             $evolution = $this->persistEvolution($current, $record, $payload['evolution'], $userId);
 
+            $this->persistDiagnoses($current, $payload['diagnoses']);
+
             $this->persistOdontogramRecords($current, $payload['odontogram'] ?? [], $userId);
 
             $planId = $this->resolvePlanId($payload);
@@ -134,6 +144,7 @@ class ConsultationService
                 'medical_record_id' => $record->id,
                 'treatment_plan_id' => $planId,
                 'final_amount' => $finalAmount,
+                'reason_for_consultation' => trim((string) $payload['reason_for_consultation']),
                 'status' => ClinicalEncounter::STATUS_CLOSED,
                 'closed_at' => now(),
                 'closed_by' => $userId,
@@ -145,6 +156,11 @@ class ConsultationService
             }
 
             $this->persistRecall($current, $appointment, $payload, $userId);
+
+            // F6 (#286): the act is signed last, once every clinical row of the
+            // act exists. The hash is computed over the rows read back from the
+            // database, so verifying it later reproduces the same bytes.
+            $current = $this->signClose($current, $user);
 
             $current->refresh()->load([
                 'patient',
@@ -252,6 +268,8 @@ class ConsultationService
             throw new MissingEvolutionException;
         }
 
+        $this->guardComplianceRecord($encounter, $payload);
+
         $skipMaterials = (bool) ($payload['skip_materials'] ?? false);
         $materials = $payload['materials'] ?? [];
         $materialsCount = is_array($materials) ? count($materials) : 0;
@@ -286,6 +304,49 @@ class ConsultationService
         // no way to know here.
         if ($appointment === null && ! empty($payload['next_appointment'])) {
             throw NextAppointmentRequiresAppointmentException::make();
+        }
+    }
+
+    /**
+     * F6 (#286) — what NTS 139 asks of every act and the SPA cannot forget:
+     * the complaint, at least one CIE-10 diagnosis, and the professional's
+     * signature.
+     *
+     * The password is checked against the signer, and the signer must be the
+     * professional the act belongs to. A signature written by somebody else
+     * would name a professional who did not confirm the record.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function guardComplianceRecord(ClinicalEncounter $encounter, array $payload): void
+    {
+        if (trim((string) ($payload['reason_for_consultation'] ?? '')) === '') {
+            throw new MissingReasonForConsultationException;
+        }
+
+        $diagnoses = $payload['diagnoses'] ?? null;
+        if (! is_array($diagnoses) || $diagnoses === []) {
+            throw new MissingDiagnosisException;
+        }
+
+        $signature = $payload['signature'] ?? null;
+        $password = is_array($signature) ? ($signature['password'] ?? null) : null;
+
+        if (! is_string($password) || trim($password) === '') {
+            throw ClinicalSignatureException::missing();
+        }
+
+        $signer = Auth::user();
+
+        if (! $signer instanceof User || (int) $signer->getKey() !== (int) $encounter->user_id) {
+            throw ClinicalSignatureException::notTheProfessional(
+                (int) $encounter->user_id,
+                $signer instanceof User ? (int) $signer->getKey() : null,
+            );
+        }
+
+        if (! Hash::check($password, (string) $signer->password)) {
+            throw ClinicalSignatureException::invalidCredentials();
         }
     }
 
@@ -400,6 +461,61 @@ class ConsultationService
             'requires_follow_up' => (bool) ($evolution['requires_follow_up'] ?? false),
             'follow_up_date' => $evolution['follow_up_date'] ?? null,
         ]);
+    }
+
+    /**
+     * F6 (#286) — persist the coded diagnosis of the act.
+     *
+     * The catalogue entry supplies `cie_code` and `name`; both are frozen in the
+     * row so the signed record never depends on a later edit of the catalogue.
+     *
+     * @param array<int, array<string, mixed>> $diagnoses
+     */
+    private function persistDiagnoses(ClinicalEncounter $encounter, array $diagnoses): void
+    {
+        $catalogue = DiagnosisCatalog::query()
+            ->whereIn('id', array_map(static fn (array $row): int => (int) $row['diagnosis_catalog_id'], $diagnoses))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($diagnoses as $row) {
+            $catalogueId = (int) $row['diagnosis_catalog_id'];
+            $entry = $catalogue->get($catalogueId);
+
+            if ($entry === null) {
+                throw new MissingDiagnosisException;
+            }
+
+            EncounterDiagnosis::create([
+                'clinical_encounter_id' => $encounter->id,
+                'diagnosis_catalog_id' => $entry->id,
+                'cie_code' => $entry->cie_code,
+                'name' => $entry->name,
+                'type' => $row['type'] ?? EncounterDiagnosis::TYPE_DEFINITIVE,
+                'notes' => $row['notes'] ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * F6 (#286) — the signature of the close.
+     *
+     * The encounter is re-read from the database before hashing so the bytes are
+     * the ones stored and not the in-memory ones (`closed_at` is truncated by the
+     * column). The returned model carries the signature block.
+     */
+    private function signClose(ClinicalEncounter $encounter, ?User $signer): ClinicalEncounter
+    {
+        $signed = ClinicalEncounter::query()->findOrFail($encounter->getKey());
+
+        $signed->forceFill([
+            'signed_at' => now(),
+            'signed_by' => $signer?->getKey(),
+            'signer_license' => $signer?->professional_license,
+            'signature_hash' => ClinicalRecordSignature::hash($signed),
+        ])->save();
+
+        return $signed;
     }
 
     /**

@@ -166,8 +166,26 @@
           <section v-if="currentStep === 'evolution'" class="space-y-4">
             <h3 class="text-lg font-semibold text-theme-primary">Evolución clínica (SOAP)</h3>
             <p class="text-sm text-theme-secondary">
-              Los 4 campos son obligatorios para cerrar la consulta.
+              El motivo de consulta y los 4 campos SOAP son obligatorios para cerrar la consulta.
             </p>
+
+            <!-- F6 (#286, NTS 139): el motivo de consulta pertenece al acto, no a la
+                 evolución, y aplica a los tres modos del asistente. -->
+            <div>
+              <label for="cw-reason" class="block text-sm font-medium text-theme-primary mb-1">
+                Motivo de consulta
+              </label>
+              <UiTextarea
+                id="cw-reason"
+                v-model="payload.reason_for_consultation"
+                :rows="2"
+                required
+                placeholder="Lo que el paciente manifiesta como motivo de la atención"
+              />
+              <p class="mt-1 text-xs text-theme-secondary">
+                En palabras del paciente. Se guarda con el acto al firmar el cierre.
+              </p>
+            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -218,6 +236,16 @@
                   placeholder="Tratamiento a seguir, próximas acciones"
                 />
               </div>
+            </div>
+
+            <!-- F6 (#286, NTS 139): diagnóstico codificado contra el catálogo CIE-10. -->
+            <div class="pt-2">
+              <h4 class="text-sm font-semibold text-theme-primary">Diagnóstico (CIE-10)</h4>
+              <p class="text-xs text-theme-secondary mb-2">
+                Al menos un diagnóstico codificado cierra el acto: el registro congela el código y
+                el nombre elegidos.
+              </p>
+              <DiagnosisPicker v-model="payload.diagnoses" />
             </div>
 
             <details class="mt-2">
@@ -557,6 +585,47 @@
               <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
             </div>
           </section>
+
+          <!-- PASO 7: Cierre y firma (F6 #286, NTS 139) -->
+          <section v-if="currentStep === 'signature'" class="space-y-4">
+            <h3 class="text-lg font-semibold text-theme-primary">Cierre y firma del profesional</h3>
+            <p class="text-sm text-theme-secondary">
+              El registro queda firmado por el profesional del acto: la firma sella el motivo de
+              consulta, los diagnósticos y la evolución con la hora y el colegiado del firmante.
+            </p>
+
+            <ul class="text-sm text-theme-secondary space-y-1">
+              <li>Motivo de consulta: {{ reasonStatus }}</li>
+              <li>Diagnósticos codificados: {{ payload.diagnoses.length }}</li>
+            </ul>
+
+            <div>
+              <label for="cw-signature" class="block text-sm font-medium text-theme-primary mb-1">
+                Firma del profesional
+              </label>
+              <UiInput
+                id="cw-signature"
+                v-model="payload.signature.password"
+                type="password"
+                autocomplete="current-password"
+                required
+                placeholder="Tu contraseña"
+                data-closure-signature
+              />
+              <p class="mt-1 text-xs text-theme-secondary">
+                Reingresa tu propia contraseña para firmar el registro. No se guarda ni se registra:
+                el servidor conserva el firmante, la hora y el hash de integridad.
+              </p>
+            </div>
+
+            <p
+              v-if="!canSign"
+              class="p-3 bg-systemYellow-50 border border-systemYellow-200 rounded-lg text-sm text-systemYellow-700"
+            >
+              Faltan datos para firmar: revisa el motivo de consulta y al menos un diagnóstico en el
+              paso de evolución.
+            </p>
+          </section>
         </div>
 
         <!-- Footer -->
@@ -597,6 +666,7 @@ import UiSelect from '@/components/ui/Select.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import DiagnosisPicker from '@/components/procedures/DiagnosisPicker.vue'
 
 const props = defineProps({
   appointment: { type: Object, default: null }
@@ -642,7 +712,10 @@ const steps = [
   { id: 'procedures', label: 'Procedimientos' },
   { id: 'materials', label: 'Materiales' },
   { id: 'attachments', label: 'Adjuntos' },
-  { id: 'next', label: 'Próxima cita' }
+  { id: 'next', label: 'Próxima cita' },
+  // F6 (#286): the close is signed by the professional of the act, so the
+  // signature owns the last step where the submit lives.
+  { id: 'signature', label: 'Cierre y firma' }
 ]
 
 // Additive: maps wizard step id+label into the UiTabs tab shape, with a
@@ -676,6 +749,12 @@ const productSearchTimers = reactive({})
 const payload = ref({
   mode: 'consultation',
   skip_materials: false,
+  // F6 (#286): NTS 139 minimums of the act. `reason_for_consultation` is the
+  // patient's complaint, `diagnoses` the coded diagnoses of the catalogue and
+  // `signature.password` the professional's re-entered password (never stored).
+  reason_for_consultation: '',
+  diagnoses: [],
+  signature: { password: '' },
   evolution: {
     subjective: '',
     objective: '',
@@ -726,10 +805,24 @@ const planOptions = computed(() =>
 const requiresMaterials = computed(() => context.value?.requires_materials ?? false)
 const appointmentType = computed(() => context.value?.appointment_type ?? null)
 
+// F6 (#286): reason, diagnoses and signature gate the submit on their own.
+const hasReason = computed(() => payload.value.reason_for_consultation.trim().length > 0)
+const hasDiagnoses = computed(
+  () =>
+    payload.value.diagnoses.length > 0 &&
+    payload.value.diagnoses.every(row => Boolean(row.diagnosis_catalog_id))
+)
+const hasSignature = computed(() => payload.value.signature.password.trim().length > 0)
+const canSign = computed(() => hasReason.value && hasDiagnoses.value)
+const reasonStatus = computed(() => (hasReason.value ? 'registrado' : 'pendiente'))
+
 const canSubmit = computed(() => {
   const e = payload.value.evolution
   return (
     payload.value.mode &&
+    hasReason.value &&
+    hasDiagnoses.value &&
+    hasSignature.value &&
     e.subjective?.trim() &&
     e.objective?.trim() &&
     e.assessment?.trim() &&
@@ -925,6 +1018,8 @@ const prevStep = () => {
 }
 
 const handleClose = () => {
+  // The password only exists for the request that signs the record.
+  payload.value.signature.password = ''
   closeComposable()
   emit('close')
 }
@@ -933,6 +1028,7 @@ const handleSubmit = async () => {
   if (!canSubmit.value) return
   try {
     const result = await submit(payload.value)
+    payload.value.signature.password = ''
     emit('completed', {
       appointment: result?.data ?? null,
       quotation: result?.quotation ?? null,

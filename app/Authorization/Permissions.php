@@ -87,6 +87,11 @@ final class Permissions
     // findings, materials and amounts of the record.
     public const VIEW_ENCOUNTER = 'view.encounter';
 
+    // F6 (#286): the CIE-10 catalogue the close codes the diagnosis against.
+    // Reading it is part of documenting the act, so it follows the clinical
+    // grant of the encounter.
+    public const VIEW_DIAGNOSIS_CATALOG = 'view.diagnosis_catalog';
+
     public const VIEW_MY_DAY = 'view.my_day';
 
     // F4 (#284): continuity between acts. Reading the pending queue is part of
@@ -329,6 +334,7 @@ final class Permissions
         self::VOID_ENCOUNTER => self::MEDICAL_ROLES,
         self::CLOSE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VIEW_ENCOUNTER => self::MEDICAL_ROLES,
+        self::VIEW_DIAGNOSIS_CATALOG => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
         self::VIEW_INVENTORY => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'],
         self::MANAGE_INVENTORY => ['administrador', 'finanzas', 'asistente'],
