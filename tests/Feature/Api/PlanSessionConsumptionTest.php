@@ -151,6 +151,32 @@ class PlanSessionConsumptionTest extends TestCase
         $this->assertSame(1.0, $item->pendingQuantity());
     }
 
+    public function test_a_proposed_line_becomes_executed_when_the_act_consumes_it(): void
+    {
+        $professional = $this->professional();
+        $patient = Patient::factory()->create();
+        $appointment = $this->inConsultation($professional, $patient);
+        $plan = $this->plan($patient, $professional, [
+            ['procedure_name' => 'Obturación', 'status' => 'proposed', 'quantity' => 1, 'unit_cost' => 100, 'total_cost' => 100],
+        ]);
+        $item = $plan->items->first();
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/complete", $this->sessionPayload($plan, [
+                [
+                    'id' => $item->id,
+                    'procedure_name' => $item->procedure_name,
+                    'quantity' => 1,
+                    'consumed_quantity' => 1,
+                    'status' => 'completed',
+                ],
+            ]))
+            ->assertOk();
+
+        $this->assertSame('completed', $item->fresh()->status);
+        $this->assertSame(1, TreatmentPlanItemConsumption::where('treatment_plan_item_id', $item->id)->count());
+    }
+
     public function test_the_plan_api_rejects_an_executed_status_written_by_hand(): void
     {
         $professional = $this->professional();

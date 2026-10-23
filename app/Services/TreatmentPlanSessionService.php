@@ -92,15 +92,17 @@ class TreatmentPlanSessionService
      */
     public function syncStatus(TreatmentPlanItem $item): string
     {
-        if (in_array($item->status, ['cancelled', 'proposed'], true)) {
+        if ($item->status === 'cancelled') {
             return $item->status;
         }
 
         $executed = $item->executedQuantity();
 
-        $status = $executed <= 0
-            ? 'pending'
-            : ($executed >= (float) $item->quantity ? 'completed' : 'in_progress');
+        if ($executed <= 0) {
+            return $item->status;
+        }
+
+        $status = $executed >= (float) $item->quantity ? 'completed' : 'in_progress';
 
         if ($status !== $item->status) {
             $item->status = $status;
