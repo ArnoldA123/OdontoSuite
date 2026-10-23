@@ -76,15 +76,31 @@ const row = (id, status, patient, type, chair) => ({
   dental_chair: { id: 1, name: chair }
 })
 
+// F5 (#316): a prosthetic case the workshop returned, as `/api/my-day`
+// publishes it under `ready_lab_cases`.
+const labCaseRow = () => ({
+  id: 31,
+  work: 'Corona metal-cerámica',
+  material: 'Zirconia',
+  status: 'delivered',
+  sent_at: '2026-10-18',
+  promised_at: '2026-10-25',
+  delivered_at: '2026-10-21',
+  patient: { id: 300, first_name: 'Rosa', last_name: 'Vega' },
+  technician: { id: 9, name: 'Téc. Mario Vega' },
+  dental_piece: { id: 4, fdi_number: 26 }
+})
+
 const queuePayload = () => ({
   data: {
     waiting: [row(11, 'arrived', 'Ana Torres', 'Limpieza dental', 'Sillón 1')],
     attending: [row(12, 'in_consultation', 'Luis Rojas', 'Endodoncia', 'Sillón 2')],
-    upcoming: [row(13, 'confirmed', 'María Quispe', 'Control', 'Sillón 1')]
+    upcoming: [row(13, 'confirmed', 'María Quispe', 'Control', 'Sillón 1')],
+    ready_lab_cases: [labCaseRow()]
   },
   meta: {
     date: '2026-10-21',
-    counts: { waiting: 1, attending: 1, upcoming: 1 }
+    counts: { waiting: 1, attending: 1, upcoming: 1, ready_lab_cases: 1 }
   }
 })
 
@@ -129,7 +145,7 @@ describe('my-day desk', () => {
     const wrapper = await mountPage()
 
     const headings = wrapper.findAll('[data-my-day-section] h3').map(node => node.text())
-    expect(headings).toEqual(['En espera', 'Atendiendo', 'Próximos'])
+    expect(headings).toEqual(['En espera', 'Atendiendo', 'Próximos', 'Laboratorio listo'])
 
     wrapper.unmount()
   })
@@ -204,6 +220,65 @@ describe('my-day desk', () => {
     const empty = wrapper.find('[data-my-day-empty="upcoming"]')
     expect(empty.exists()).toBe(true)
     expect(empty.text()).toContain('Sin citas pendientes hoy')
+
+    wrapper.unmount()
+  })
+})
+
+describe('my-day ready laboratory cases', () => {
+  it('counts the ready cases in the fourth stat', async () => {
+    const wrapper = await mountPage()
+
+    const stat = wrapper.find('[data-my-day-count="ready_lab_cases"]')
+    expect(stat.exists()).toBe(true)
+    expect(stat.text()).toContain('Laboratorio')
+    expect(stat.text()).toContain('1')
+
+    wrapper.unmount()
+  })
+
+  it('renders the ready case with its patient, piece, promised date and phase', async () => {
+    const wrapper = await mountPage()
+
+    const section = wrapper.find('[data-my-day-section="lab-cases"]')
+    expect(section.exists()).toBe(true)
+    expect(section.find('h3').text()).toBe('Laboratorio listo')
+    expect(section.text()).toContain('El taller devolvió el trabajo y espera colocación.')
+
+    const card = section.find('[data-my-day-lab-case]')
+    expect(card.exists()).toBe(true)
+    expect(card.attributes('data-my-day-lab-case-id')).toBe('31')
+    expect(card.text()).toContain('Corona metal-cerámica')
+    expect(card.text()).toContain('Rosa Vega')
+    expect(card.text()).toContain('Pieza 26')
+    expect(card.text()).toContain('Prometido 25 oct 2026')
+    expect(card.text()).toContain('Recibido del taller')
+
+    wrapper.unmount()
+  })
+
+  it('hides the laboratory block when no case is ready', async () => {
+    const payload = queuePayload()
+    payload.data.ready_lab_cases = []
+    payload.meta.counts.ready_lab_cases = 0
+    harness.get.mockResolvedValue(payload)
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('[data-my-day-section="lab-cases"]').exists()).toBe(false)
+    expect(wrapper.find('[data-my-day-count="ready_lab_cases"]').text()).toContain('0')
+
+    wrapper.unmount()
+  })
+
+  it('opens the laboratory desk from the case', async () => {
+    const wrapper = await mountPage()
+    const push = vi.spyOn(wrapper.vm.$router, 'push')
+
+    await wrapper.find('[data-my-day-lab-case-open]').trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledWith('/lab-cases')
 
     wrapper.unmount()
   })
