@@ -151,6 +151,7 @@ class CashReportService
 
         $sessions = $this->getSessionsWithActivity($start, $end, $branchId);
         $flow = $this->getFlowTotals($start, $end, $branchId);
+        $paymentMethodAnalysis = $this->getPaymentMethodsAnalysis($start, $end, $branchId);
 
         $report = [
             'period' => [
@@ -174,7 +175,17 @@ class CashReportService
             'daily_summary' => $this->getDailySummary($start, $end, $branchId, $sessions),
             'summary_by_branch' => $this->getSummaryByBranch($sessions),
             'summary_by_user' => $this->getSummaryByUser($sessions),
-            'payment_methods_analysis' => $this->getPaymentMethodsAnalysis($start, $end, $branchId),
+            'payment_methods_analysis' => $paymentMethodAnalysis,
+            // #320 (T1, S8/S5) — the same reconciliation the daily report
+            // publishes (#287): cash net of its refunds, the money that settled
+            // electronically, the deposits that reached the bank and the cash
+            // still in the gaveta. Reportes paints the pending deposit from
+            // here, so it is computed by the same helper and never by a second
+            // definition.
+            'reconciliation' => $this->getReconciliation(
+                $paymentMethodAnalysis,
+                $this->getDeposits($start, $end, $branchId, null),
+            ),
         ];
 
         return $report;

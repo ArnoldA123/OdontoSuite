@@ -96,7 +96,7 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 48 controllers API (46 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 48 controllers API (47 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
   Models/                  # 71 modelos Eloquent
@@ -399,13 +399,15 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   (fix C-1 del Sprint 0) ya no existe.
 
 - **#287 declaró fuera de alcance tres cosas y las tres se cerraron después**:
-  la UI de caja para devoluciones, depósitos y estado de cuenta sigue pendiente
-  (las issues son `area:backend`); la imputación de un pago a un cargo existe
-  desde #321 como vista (`patient_charge_allocations`, ADR-0018) y el saldo del
-  paciente sigue siendo la regla de #287, así que la corrección de un cargo va
-  por ajuste; y los movimientos de gaveta electrónicos escritos antes de la
-  regla sólo-efectivo se reparan con `cash:repair-electronic-movements` (#322),
-  que los marca sin reescribir las columnas de la sesión.
+  la UI de caja para devoluciones, depósitos y estado de cuenta se entrega en
+  #320 (devolución con autorizador y motivo, depósito y depósitos del turno en
+  el cierre, cargo manual y tab «Cuenta» en la ficha, y conciliación en
+  Reportes); la imputación de un pago a un cargo existe desde #321 como vista
+  (`patient_charge_allocations`, ADR-0018) y el saldo del paciente sigue siendo
+  la regla de #287, así que la corrección de un cargo va por ajuste; y los
+  movimientos de gaveta electrónicos escritos antes de la regla sólo-efectivo se
+  reparan con `cash:repair-electronic-movements` (#322), que los marca sin
+  reescribir las columnas de la sesión.
 
 ### 🔧 Notas de entorno
 
@@ -578,6 +580,37 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (UI de caja: devoluciones, depósitos, cargos manuales y estado de
+  cuenta, #320)** — La superficie web del dinero que #287 dejó fuera de alcance.
+  **Devolución**: el modal de Caja deja de ofrecer «Egreso» como si fuera un
+  gasto; una devolución pide el administrador que la autoriza (`authorized_by`,
+  cargado de `GET /api/users/active?role=administrador`) y el motivo
+  (`authorization_reason`), bloquea el envío sin ambos y muestra el 422 en su
+  campo. El vocabulario (`moneyMeta.js`) lo comparten el modal y el filtro de
+  transacciones. **Cargo manual**: `POST /api/patient-charges` tiene formulario
+  en la ficha; un rechazo no crea fila y el error cae en su campo. **Depósito**:
+  `POST /api/cash-register/deposits` se registra desde el hero de Caja con el
+  efectivo disponible como tope, referencia bancaria obligatoria y fecha no
+  futura; el cierre muestra los depósitos del turno, que el listado acota con el
+  filtro aditivo `?cash_register_session_id=`. **Estado de cuenta**: la ficha
+  gana la tab «Cuenta» (`view.patient_statement`) con período, saldos de
+  apertura y cierre, los totales del `summary` y las entradas del libro;
+  «Registrar cargo» exige `manage.patient_charge`. **Reportes**: el reporte de
+  período publica `reconciliation` con el mismo helper del diario (`cash`,
+  `electronic`, `deposits`, `pending_deposit`) y la tab pinta los cuatro
+  valores, con `N/D` si el payload no los trae. El lookup de autorizadores es
+  aditivo: sólo el valor exacto `role=administrador` acota la lista; cualquier
+  otro conserva la lista clínica. Roles clínicos no ven la tab ni las acciones
+  de caja. La rama se fusionó con `main` (#321/#322/#323) antes de cerrar. Sin
+  rutas, controladores, modelos ni migraciones nuevas: §4 sigue en 48
+  controllers (47 en `Api/` + 1 en `Api/Reports/`), 71 modelos, 153 migraciones
+  y 261 rutas API (274 con web). Tests: `UserAuthorizersLookupTest` (4),
+  `CashPeriodReconciliationTest` (3), `CashDepositTest` con el filtro por turno,
+  `usePermissions` (6), `moneyMeta` (4), `caja-devoluciones` (6),
+  `caja-depositos` (14), `caja-reportes` (7), `patientStatementMeta` (6),
+  `patients-cuenta` (12) y `patients-detail-redesign` (23). Suite MySQL:
+  `OK (2773 tests, 16948 assertions)`; Vitest: 1178 pruebas en 137 archivos.
 
 - **2026-10-25 (traslado entre sedes: solicitud, aprobación y efecto en el
   alcance, #305)** — El traslado deja de ser un cambio administrativo sin
@@ -868,11 +901,9 @@ n
   `BackfillPatientChargesCommandTest` (4), `PatientStatementTest` (9),
   `CashDepositTest` (13), `CashReportNettingTest` (4), más
   `CashLedgerIntegrityTest`, `CashReportPeriodTest` y `CashReportPopulationTest`
-  ajustados. Follow-ups declarados: la UI de caja para devoluciones, depósitos y
-  estado de cuenta; la imputación de un pago a un cargo concreto (la corrección
-  va por ajuste); y los movimientos electrónicos anteriores a la regla
-  sólo-efectivo, que siguen en las sesiones antiguas porque el ledger no se
-  reescribe.
+  ajustados. La UI de caja quedó entregada en #320; la imputación de un pago a
+  un cargo y la reparación de la gaveta histórica se cerraron en #321/#322
+  (ADR-0018 y `cash:repair-electronic-movements`).
 
 - **2026-10-23 (laboratorio protésico: casos, fases y entregas, #285)** — El
   trabajo de laboratorio deja de vivir en la historia clínica. `lab_cases`

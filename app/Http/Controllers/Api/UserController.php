@@ -410,13 +410,26 @@ class UserController extends Controller
     }
 
     /**
-     * Get active users (professionals only).
+     * Get active users.
+     *
+     * #320 (T1, S8) — the refund modal needs the administrator that authorizes
+     * the money going back (S1), so naming `administrador` narrows this same
+     * lookup instead of adding a route or a permission. Any other value — the
+     * absent one included — keeps exactly the clinical list every professional
+     * picker already consumes.
      */
-    public function active(): JsonResponse
+    public function active(Request $request): JsonResponse
     {
         try {
-            $users = User::query()->visibleToBranch()->where('is_active', true)
-                ->whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente'])
+            $query = User::query()->visibleToBranch()->where('is_active', true);
+
+            if ($request->input('role') === 'administrador') {
+                $query->where('role', 'administrador');
+            } else {
+                $query->whereIn('role', ['odontologo', 'implantologo', 'tecnico_dental', 'asistente']);
+            }
+
+            $users = $query
                 ->select('id', 'name', 'role', 'specialty')
                 ->get();
 

@@ -54,6 +54,17 @@
               </template>
               Cerrar caja
             </UiButton>
+            <UiButton
+              v-if="canDeposit"
+              variant="secondary"
+              data-hero-action="deposit"
+              @click="showDepositModal = true"
+            >
+              <template #icon-left>
+                <BanknotesIcon class="w-4 h-4" aria-hidden="true" />
+              </template>
+              Depositar
+            </UiButton>
           </div>
         </div>
       </header>
@@ -270,7 +281,16 @@
         v-model="showCloseModal"
         :session="currentSession"
         :summary="summary"
+        :deposits-count="depositsCount"
+        :deposits-total="depositsTotal"
         @success="handleCloseSuccess"
+      />
+
+      <CashDepositModal
+        v-model="showDepositModal"
+        :session="currentSession"
+        :available-cash="depositAvailableCash"
+        @success="handleDepositSuccess"
       />
 
       <TransactionModal v-model="showTransactionModal" @success="handleTransactionSuccess" />
@@ -317,10 +337,11 @@ import PendingPaymentsList from './components/PendingPaymentsList.vue'
 import PaymentModal from './components/PaymentModal.vue'
 import OpenCashModal from './components/OpenCashModal.vue'
 import CloseCashModal from './components/CloseCashModal.vue'
+import CashDepositModal from './components/CashDepositModal.vue'
 import TransactionModal from './components/TransactionModal.vue'
 import MovementModal from './components/MovementModal.vue'
 
-import { PlusIcon, LockClosedIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { PlusIcon, LockClosedIcon, BanknotesIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 
 const {
   currentSession,
@@ -349,6 +370,7 @@ const { confirm } = useConfirm()
 const activeTab = ref('transactions')
 const showOpenModal = ref(false)
 const showCloseModal = ref(false)
+const showDepositModal = ref(false)
 const showPaymentModal = ref(false)
 const showTransactionModal = ref(false)
 const showMovementModal = ref(false)
@@ -363,6 +385,7 @@ const sessions = ref([])
 const sessionPagination = ref(null)
 const movements = ref([])
 const movementPagination = ref(null)
+const deposits = ref([])
 
 const canCreateTransaction = computed(() => can.createTransaction.value)
 const canCreateMovement = computed(() => can.createMovement.value)
@@ -398,6 +421,21 @@ const sessionStatusText = computed(() => {
 
 const canOpen = computed(() => !hasActiveSession.value && !sessionLoading.value)
 const canClose = computed(() => isOpen.value && !sessionLoading.value)
+// #320 (S6): registering a deposit is counter work, so the permission decides
+// alone — no clinical desk reaches this button.
+const canDeposit = computed(() => hasActiveSession.value && can.manageCashDeposit.value)
+
+const roundMoney = value => Math.round((Number(value) || 0) * 100) / 100
+
+// The drawer's cash is the deposit ceiling: the modal blocks above it and the
+// service re-reads the locked session, so the number is a hint, not the rule.
+const depositAvailableCash = computed(() => summary.value?.expected_amount ?? null)
+
+const depositsTotal = computed(() =>
+  roundMoney(deposits.value.reduce((sum, deposit) => sum + (Number(deposit?.amount) || 0), 0))
+)
+
+const depositsCount = computed(() => deposits.value.length)
 
 const kpiOpening = computed(() =>
   summary.value ? formatCurrency(summary.value.opening_amount) : 'N/D'
@@ -425,7 +463,9 @@ const pendingPatientsForModal = computed(() => {
 const reloadSession = async () => {
   await loadCurrentSession()
   if (hasActiveSession.value) {
-    await Promise.all([loadTransactions(), loadMovements()])
+    await Promise.all([loadTransactions(), loadMovements(), loadDeposits()])
+  } else {
+    deposits.value = []
   }
 }
 
@@ -468,6 +508,27 @@ const loadMovements = async (filters = {}) => {
   }
 }
 
+const loadDeposits = async () => {
+  if (!hasActiveSession.value) {
+    deposits.value = []
+    return
+  }
+
+  try {
+    const response = await get('/api/cash-register/deposits', {
+      params: {
+        cash_register_session_id: currentSession.value.id,
+        per_page: 100
+      }
+    })
+    const rows = Array.isArray(response?.data) ? response.data : []
+    deposits.value = rows.filter(row => row && typeof row === 'object')
+  } catch {
+    deposits.value = []
+    toast.error('Error al cargar los depósitos del turno')
+  }
+}
+
 const sessionFilters = ref({})
 
 const loadSessions = async (filters = sessionFilters.value) => {
@@ -499,7 +560,15 @@ const handleOpenSuccess = session => {
 const handleCloseSuccess = async () => {
   showCloseModal.value = false
   toast.success('Sesión de caja cerrada exitosamente')
+  // The next session owns its own deposits; the closed one is history.
+  deposits.value = []
   await Promise.all([loadCurrentSession(), loadSessions()])
+}
+
+const handleDepositSuccess = async () => {
+  showDepositModal.value = false
+  toast.success('Depósito registrado exitosamente')
+  await Promise.all([loadCurrentSession(), loadDeposits()])
 }
 
 const handleTransactionSuccess = async () => {
@@ -600,7 +669,7 @@ const downloadReceipt = async transaction => {
 onMounted(async () => {
   await loadCurrentSession()
   if (hasActiveSession.value) {
-    await Promise.all([loadTransactions(), loadMovements()])
+    await Promise.all([loadTransactions(), loadMovements(), loadDeposits()])
   }
   await loadSessions()
 })

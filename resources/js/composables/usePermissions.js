@@ -80,6 +80,10 @@ const PERMISSION_BY_KEY = {
   applyLargeDiscount: 'apply.large_transaction_discount',
   viewCashReports: 'view.cash_report',
   exportCashData: 'export.cash_report',
+  // #320: the patient ledger and the bank deposit complete the cash surface.
+  managePatientCharge: 'manage.patient_charge',
+  viewPatientStatement: 'view.patient_statement',
+  manageCashDeposit: 'manage.cash_deposit',
 
   // Treatment plans
   createTreatmentPlan: 'manage.treatment_plan',

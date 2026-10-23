@@ -171,6 +171,7 @@ import UiInput from '@/components/ui/Input.vue'
 import UiPagination from '@/components/ui/Pagination.vue'
 import UiSelect from '@/components/ui/Select.vue'
 import UiStatusBadge from '@/components/ui/StatusBadge.vue'
+import { TRANSACTION_TYPE_OPTIONS } from '../moneyMeta'
 import { DocumentTextIcon, MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 
 defineProps({
@@ -205,11 +206,7 @@ const filters = ref({
 
 const paymentMethods = ref([])
 
-const typeOptions = [
-  { label: 'Todos', value: '' },
-  { label: 'Ingreso', value: 'payment' },
-  { label: 'Egreso', value: 'refund' }
-]
+const typeOptions = [{ label: 'Todos', value: '' }, ...TRANSACTION_TYPE_OPTIONS]
 
 const paymentMethodOptions = computed(() => [
   { label: 'Todos', value: '' },

@@ -155,6 +155,10 @@ class CashDepositService
     /**
      * Paginated deposit list, scoped to the effective sede.
      *
+     * #320 (T1, S8) — `cash_register_session_id` restricts the list to a single
+     * drawer, so the closure reads the deposits of its own turn. The sede filter
+     * is applied on top: a session of another sede stays out of reach.
+     *
      * @param  array<string, mixed>                                           $filters
      * @return array{data: array<int, CashDeposit>, meta: array<string, int>}
      */
@@ -170,6 +174,10 @@ class CashDepositService
 
         if ($branchId !== null) {
             $query->where('branch_id', $branchId);
+        }
+
+        if (isset($filters['cash_register_session_id']) && $filters['cash_register_session_id'] !== '') {
+            $query->where('cash_register_session_id', (int) $filters['cash_register_session_id']);
         }
 
         if (isset($filters['date_from'])) {

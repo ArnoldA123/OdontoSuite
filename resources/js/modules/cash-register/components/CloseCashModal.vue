@@ -161,7 +161,16 @@
               <span class="text-theme-secondary">Duración de la sesión</span>
               <span class="font-medium text-theme-primary">{{ sessionDuration }}</span>
             </div>
+            <div class="flex justify-between gap-3" data-close-deposits>
+              <span class="text-theme-secondary">Depósitos del turno</span>
+              <span class="font-medium text-theme-primary tabular-nums">
+                {{ depositsCount }} · {{ formatCurrency(depositsTotal) }}
+              </span>
+            </div>
           </div>
+          <p class="mt-3 text-xs text-theme-secondary" data-close-deposits-caption>
+            El saldo esperado ya descuenta los depósitos registrados.
+          </p>
         </UiCard>
 
         <label class="flex items-center gap-2">
@@ -221,6 +230,17 @@ const props = defineProps({
   summary: {
     type: Object,
     default: null
+  },
+  // #320 (S3): the deposits of the shift, as the page read them from
+  // `GET /api/cash-register/deposits`. They already moved cash out of the
+  // drawer, so they are information for the arqueo, not a term of it.
+  depositsCount: {
+    type: Number,
+    default: 0
+  },
+  depositsTotal: {
+    type: Number,
+    default: 0
   }
 })
 
