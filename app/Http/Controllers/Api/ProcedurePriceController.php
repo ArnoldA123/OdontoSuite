@@ -33,6 +33,7 @@ class ProcedurePriceController extends Controller
                 'on' => 'nullable|date',
                 'q' => 'nullable|string|max:100',
                 'price_id' => 'nullable|integer',
+                'procedure_id' => 'nullable|integer|exists:procedure_catalog,id',
             ]);
 
             $date = isset($validated['on']) ? Carbon::parse($validated['on'])->toDateString() : null;
@@ -42,6 +43,10 @@ class ProcedurePriceController extends Controller
                 ->forBranch($branch->id)
                 ->whereNull('payer_id')
                 ->when($date, fn ($q) => $q->inForceOn($date))
+                ->when(
+                    $validated['procedure_id'] ?? null,
+                    fn ($q, $procedureId) => $q->where('procedure_catalog_id', $procedureId),
+                )
                 ->when($validated['q'] ?? null, function ($q, $term) {
                     $q->whereHas('procedure', fn ($p) => $p
                         ->where('name', 'like', "%{$term}%")

@@ -196,6 +196,24 @@ class ProcedureBranchPriceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_the_branch_tariff_can_be_filtered_by_procedure(): void
+    {
+        $branch = Branch::factory()->create();
+        $procedure = $this->procedure(100.0);
+        $other = $this->procedure(200.0);
+
+        $this->priceRow($procedure, $branch, 80.0, now()->subWeek()->toDateString());
+        $this->priceRow($other, $branch, 150.0, now()->subWeek()->toDateString());
+
+        $response = $this->actingAs($this->user(null, 'administrador'), 'sanctum')
+            ->getJson("/api/branches/{$branch->id}/procedure-prices?procedure_id={$procedure->id}")
+            ->assertOk();
+
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.procedure_id', $procedure->id);
+        $response->assertJsonPath('meta.total', 1);
+    }
+
     public function test_a_quotation_keeps_the_applied_price_as_a_snapshot(): void
     {
         $branch = Branch::factory()->create();
