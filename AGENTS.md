@@ -146,29 +146,29 @@ docs/
 
 ## 5. Módulos del frontend (19 módulos, 21 páginas)
 
-| Módulo                    | Ruta                        | Roles                            |
-| ------------------------- | --------------------------- | -------------------------------- |
-| Dashboard                 | `/dashboard`                | todos                            |
-| Mi día                    | `/my-day`                   | admin, todos los clínicos        |
-| Calendario                | `/calendar`                 | todos los clínicos               |
-| Pacientes                 | `/patients`                 | todos                            |
-| Profesionales             | `/professionals`            | admin                            |
-| Ambientes                 | `/environments`             | admin                            |
-| Tipos de cita             | `/appointment-types`        | admin                            |
-| Especialidades (catálogo) | `/specialties`              | admin                            |
-| Sucursales                | `/settings/branches`        | admin                            |
-| Métodos de pago           | `/settings/payment-methods` | admin                            |
-| Caja                      | `/cash-register`            | admin, finanzas, recep           |
-| BI                        | `/business-intelligence`    | admin, finanzas                  |
-| Planes de tratamiento     | `/treatment-plans`          | clínicos                         |
-| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant |
+| Módulo                    | Ruta                        | Roles                                 |
+| ------------------------- | --------------------------- | ------------------------------------- |
+| Dashboard                 | `/dashboard`                | todos                                 |
+| Mi día                    | `/my-day`                   | admin, todos los clínicos             |
+| Calendario                | `/calendar`                 | todos los clínicos                    |
+| Pacientes                 | `/patients`                 | todos                                 |
+| Profesionales             | `/professionals`            | admin                                 |
+| Ambientes                 | `/environments`             | admin                                 |
+| Tipos de cita             | `/appointment-types`        | admin                                 |
+| Especialidades (catálogo) | `/specialties`              | admin                                 |
+| Sucursales                | `/settings/branches`        | admin                                 |
+| Métodos de pago           | `/settings/payment-methods` | admin                                 |
+| Caja                      | `/cash-register`            | admin, finanzas, recep                |
+| BI                        | `/business-intelligence`    | admin, finanzas                       |
+| Planes de tratamiento     | `/treatment-plans`          | clínicos                              |
+| Presupuestos              | `/quotations`               | admin, finanzas, odonto, implant      |
 | Historias clínicas        | `/medical-records`          | odontólogos, implantólogos, asistente |
-| Registros especialidad    | `/specialty-records`        | clínicos                         |
-| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo      |
-| Catálogo procedimientos   | `/procedure-catalog`        | admin                            |
-| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)             |
-| Recepción procedimientos  | `/reception-procedures`     | recep                            |
-| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                  |
+| Registros especialidad    | `/specialty-records`        | clínicos                              |
+| Análisis IA               | `/ai-analysis`              | admin, odonto, implantólogo           |
+| Catálogo procedimientos   | `/procedure-catalog`        | admin                                 |
+| Mis procedimientos        | `/my-procedures`            | clínicos (favoritos)                  |
+| Recepción procedimientos  | `/reception-procedures`     | recep                                 |
+| Estadísticas catálogo     | `/procedure-stats`          | admin, finanzas                       |
 
 **Auth frontend**: el router NO tiene `meta.roles`. La API rechaza con 403 y el
 frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
