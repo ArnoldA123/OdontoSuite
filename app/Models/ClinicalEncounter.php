@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * F2 (#282) — the clinical act.
@@ -156,6 +157,15 @@ class ClinicalEncounter extends Model
     public function continuityRequests(): HasMany
     {
         return $this->hasMany(ContinuityRequest::class);
+    }
+
+    /**
+     * #287 (T2): the debt the closure of this act produced. Exactly one per
+     * act, enforced by the unique index on `patient_charges`.
+     */
+    public function charge(): HasOne
+    {
+        return $this->hasOne(PatientCharge::class);
     }
 
     public function scopeOpen(Builder $query): Builder

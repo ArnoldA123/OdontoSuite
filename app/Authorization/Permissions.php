@@ -163,6 +163,10 @@ final class Permissions
 
     public const PAY_PENDING_PAYMENT = 'pay.pending_payment';
 
+    // #287 (T2, S3/S4): the patient charge ledger. Writing a charge is counter
+    // work like collecting it; reading the statement arrives with T3.
+    public const MANAGE_PATIENT_CHARGE = 'manage.patient_charge';
+
     public const VIEW_CASH_REPORT = 'view.cash_report';
 
     public const EXPORT_CASH_REPORT = 'export.cash_report';
@@ -363,6 +367,7 @@ final class Permissions
         self::VOID_TRANSACTION => ['administrador'],
         self::VIEW_PENDING_PAYMENT => self::CASH_ROLES,
         self::PAY_PENDING_PAYMENT => self::CASH_ROLES,
+        self::MANAGE_PATIENT_CHARGE => self::CASH_ROLES,
         self::VIEW_CASH_REPORT => self::FINANCE_ROLES,
         self::EXPORT_CASH_REPORT => self::FINANCE_ROLES,
         self::MANAGE_PAYMENT_METHOD => ['administrador'],

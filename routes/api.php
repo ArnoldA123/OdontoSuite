@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\DentalPieceController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
+use App\Http\Controllers\Api\PatientChargeController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientRecallController;
 use App\Http\Controllers\Api\PayerController;
@@ -509,6 +510,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::PAY_PENDING_PAYMENT);
     Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index'])
         ->middleware('permission:'.Permissions::VIEW_PENDING_PAYMENT);
+
+    // #287 (T2, S3/S4) — the patient charge ledger. The closure writes the one
+    // the act produced; this door records a charge no act produced. It carries
+    // no `cash.session`: a charge is debt, not money in the drawer.
+    Route::post('patient-charges', [PatientChargeController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_PATIENT_CHARGE);
 
     // Cash movements and reports.
     Route::apiResource('cash-movements', CashMovementController::class)

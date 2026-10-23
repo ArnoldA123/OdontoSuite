@@ -62,6 +62,7 @@ class ConsultationService
         private readonly TreatmentPlanSessionService $sessions,
         private readonly ContinuityService $continuity,
         private readonly RecallService $recalls,
+        private readonly PatientChargeService $charges,
     ) {}
 
     /**
@@ -138,6 +139,12 @@ class ConsultationService
                 'closed_at' => now(),
                 'closed_by' => $userId,
             ])->save();
+
+            // #287 (T2, S3/S4) — el acto escribe su cargo en la misma
+            // transacción: el libro del paciente y el registro clínico no
+            // pueden discrepar del importe. La escritura es idempotente por
+            // `clinical_encounter_id`.
+            $this->charges->chargeForEncounter($current);
 
             if ($appointment !== null) {
                 $this->projectOnAppointment($appointment, $current, $mode, $finalAmount, $payload, $userId);

@@ -163,6 +163,14 @@ class Patient extends Model
     }
 
     /**
+     * #287 (T2): what the patient owes, one row per act plus the manual ones.
+     */
+    public function charges(): HasMany
+    {
+        return $this->hasMany(PatientCharge::class);
+    }
+
+    /**
      * F4 (#284): the recall schedule this patient carries.
      */
     public function recalls(): HasMany
