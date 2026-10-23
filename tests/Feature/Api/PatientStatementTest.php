@@ -409,4 +409,37 @@ class PatientStatementTest extends TestCase
     {
         $this->getJson('/api/patients/999999/statement')->assertNotFound();
     }
+
+    public function test_a_legacy_discount_transaction_reduces_the_balance_instead_of_hiding(): void
+    {
+        $patient = $this->patient();
+
+        $this->at('2026-03-02 10:00:00');
+        PatientCharge::create([
+            'patient_id' => $patient->id,
+            'source' => PatientCharge::SOURCE_MANUAL,
+            'description' => 'Cargo con descuento histórico',
+            'amount' => 100.0,
+            'charged_at' => now(),
+        ]);
+
+        $this->at('2026-03-02 11:00:00');
+        Transaction::create([
+            'patient_id' => $patient->id,
+            'payment_method_id' => $this->method->id,
+            'created_by' => $this->admin->id,
+            'transaction_number' => 'TXN-LEGACY-0001',
+            'type' => MoneyVocabulary::DISCOUNT,
+            'amount' => 30.0,
+            'description' => 'Descuento histórico',
+            'status' => 'completed',
+            'processed_at' => now(),
+        ]);
+
+        $statement = app(PatientStatementService::class)->forPatient($patient, '2026-03-01', '2026-03-31');
+
+        $this->assertSame(['charge', 'discount'], array_column($statement['entries'], 'kind'));
+        $this->assertEqualsWithDelta(30.0, $statement['summary']['discounts'], 0.001);
+        $this->assertEqualsWithDelta(70.0, $statement['closing_balance'], 0.001);
+    }
 }

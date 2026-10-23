@@ -34,12 +34,20 @@ class PatientStatementService
     /** A charge is the only ledger row that is not a transaction. */
     private const CHARGE = 'charge';
 
-    /** The transaction types the statement reads; the legacy ones stay out. */
+    /**
+     * The transaction types the statement reads. `discount` is included even
+     * though it is no longer writable: a historical row of that type is a
+     * discount the patient received, so the statement reads it as such instead
+     * of hiding it and overstating the debt (#287, F-1).
+     *
+     * @var array<int, string>
+     */
     private const TRANSACTION_TYPES = [
         MoneyVocabulary::PAYMENT,
         MoneyVocabulary::REFUND,
         MoneyVocabulary::WRITE_OFF,
         MoneyVocabulary::ADJUSTMENT,
+        MoneyVocabulary::DISCOUNT,
     ];
 
     private const SUMMARY_KEYS = [
