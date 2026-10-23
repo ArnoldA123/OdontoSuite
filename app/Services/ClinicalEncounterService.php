@@ -85,6 +85,9 @@ class ClinicalEncounterService
             'status' => ClinicalEncounter::STATUS_OPEN,
             'opened_at' => now(),
             'notes' => $data['notes'] ?? null,
+            // F6 (#286): the complaint is part of the act from the moment it is
+            // opened, and the close may complete it.
+            'reason_for_consultation' => $data['reason_for_consultation'] ?? null,
         ]);
     }
 

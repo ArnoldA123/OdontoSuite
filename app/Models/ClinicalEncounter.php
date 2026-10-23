@@ -62,6 +62,13 @@ class ClinicalEncounter extends Model
         'void_reason',
         'final_amount',
         'notes',
+        // F6 (#286): the NTS 139 record. The complaint lives on the act, and the
+        // signature block freezes who signed it and over which content.
+        'reason_for_consultation',
+        'signed_at',
+        'signed_by',
+        'signer_license',
+        'signature_hash',
     ];
 
     protected $casts = [
@@ -69,6 +76,7 @@ class ClinicalEncounter extends Model
         'closed_at' => 'datetime',
         'voided_at' => 'datetime',
         'final_amount' => 'decimal:2',
+        'signed_at' => 'datetime',
     ];
 
     public function patient(): BelongsTo
@@ -107,6 +115,23 @@ class ClinicalEncounter extends Model
     public function voidedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'voided_by');
+    }
+
+    /**
+     * F6 (#286): the professional who signed the close.
+     */
+    public function signedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'signed_by');
+    }
+
+    /**
+     * F6 (#286): the CIE-10 diagnoses of the act, in the order they were
+     * recorded. The record is signed over this order, so it never reorders.
+     */
+    public function diagnoses(): HasMany
+    {
+        return $this->hasMany(EncounterDiagnosis::class, 'clinical_encounter_id')->orderBy('id');
     }
 
     public function clinicalEvolutions(): HasMany
@@ -186,6 +211,15 @@ class ClinicalEncounter extends Model
     public function isVoided(): bool
     {
         return $this->status === self::STATUS_VOIDED;
+    }
+
+    /**
+     * F6 (#286): a closed act is signed. Historical acts of #282 predate the
+     * rule, so the absence of a signature is readable instead of assumed.
+     */
+    public function isSigned(): bool
+    {
+        return $this->signed_at !== null && $this->signature_hash !== null;
     }
 
     /**

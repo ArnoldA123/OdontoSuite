@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ContinuityController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\DentalPieceController;
+use App\Http\Controllers\Api\DiagnosisCatalogController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
@@ -243,6 +244,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::VIEW_ENCOUNTER);
     Route::get('encounters/{encounter}', [ClinicalEncounterController::class, 'show'])
         ->middleware('permission:'.Permissions::VIEW_ENCOUNTER);
+    // F6 (#286): the printable record of the closed act (NTS 139) and the CIE-10
+    // catalogue the close codes the diagnosis against.
+    Route::get('encounters/{encounter}/record', [ClinicalEncounterController::class, 'record'])
+        ->middleware('permission:'.Permissions::VIEW_ENCOUNTER);
+    Route::get('diagnoses', [DiagnosisCatalogController::class, 'index'])
+        ->middleware('permission:'.Permissions::VIEW_DIAGNOSIS_CATALOG);
+    Route::get('diagnoses/{diagnosis}', [DiagnosisCatalogController::class, 'show'])
+        ->middleware('permission:'.Permissions::VIEW_DIAGNOSIS_CATALOG);
     Route::post('encounters', [ClinicalEncounterController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_ENCOUNTER);
     Route::post('encounters/{encounter}/complete', [ClinicalEncounterController::class, 'complete'])
