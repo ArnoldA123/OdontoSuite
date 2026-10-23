@@ -199,28 +199,4 @@ class PatientRecallController extends Controller
             return response()->json(['message' => 'Error al obtener las métricas de recalls'], 500);
         }
     }
-
-    public function queue(Request $request): JsonResponse
-    {
-        $request->validate([
-            'branch_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
-        ]);
-
-        try {
-            $branchId = BranchAccess::effectiveFilter(
-                $request->user(),
-                $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
-            );
-
-            return response()->json([
-                'data' => $this->recalls->queue($branchId),
-            ]);
-        } catch (AuthorizationException $e) {
-            throw $e;
-        } catch (\Throwable $e) {
-            Log::error('PatientRecallController@queue: '.$e->getMessage(), ['exception' => $e]);
-
-            return response()->json(['message' => 'Error al obtener la cola de recalls'], 500);
-        }
-    }
 }
