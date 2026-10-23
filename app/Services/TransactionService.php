@@ -222,6 +222,23 @@ class TransactionService
         DB::beginTransaction();
 
         try {
+            // #323 (S7) — the void is the last drawer writer: taking the same
+            // session lock keeps a closure from computing the arqueo while the
+            // reversal is half written, and re-checks the drawer it already
+            // validated outside the transaction.
+            if ($transaction->cash_register_session_id) {
+                $lockedSession = CashRegisterSession::query()
+                    ->whereKey($transaction->cash_register_session_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $lockedSession instanceof CashRegisterSession || $lockedSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'transaction' => ['No se puede anular una transacción de una sesión de caja cerrada.'],
+                    ]);
+                }
+            }
+
             $transaction->update([
                 'status' => 'voided',
                 'notes' => $transaction->notes."\n\nANULADA: ".$reason.' - '.now()->format('d/m/Y H:i:s'),

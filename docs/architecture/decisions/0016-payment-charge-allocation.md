@@ -41,7 +41,8 @@ el saldo del paciente sigue siendo la única autoridad.**
 
 3. **Solo un pago completado cubre un cargo.** Un `write_off` o un `adjustment`
    no imputa —son asientos de ledger, no cobros— y un pago anulado deja de
-   contar sin borrar la fila, porque la vista lee solo pagos `completed`.
+   contar sin borrar la fila, porque la vista y el tope del cargo leen solo
+   pagos `completed`: anular un pago libera lo que reservaba.
 
 4. **Dos puertas de escritura.** El alta del pago acepta `allocations` y las
    escribe dentro de su misma transacción (un rechazo no deja ni el pago ni la

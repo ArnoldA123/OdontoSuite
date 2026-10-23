@@ -109,8 +109,12 @@ class PatientChargeAllocationService
                 ]);
             }
 
+            // Only a completed payment covers a charge, so only its rows
+            // reserve the cap: a voided payment that once covered a charge
+            // must not keep it half-covered forever.
             $allocatedPerCharge = PatientChargeAllocation::query()
                 ->whereIn('patient_charge_id', array_keys($requested))
+                ->whereHas('transaction', fn ($query) => $query->where('status', 'completed'))
                 ->groupBy('patient_charge_id')
                 ->selectRaw('patient_charge_id, SUM(amount) as allocated')
                 ->pluck('allocated', 'patient_charge_id');

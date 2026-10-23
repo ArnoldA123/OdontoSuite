@@ -586,9 +586,14 @@ documentada y no bloquea producción.
   `audit_logs`. §4 sincronizado con valores medidos: 47 controllers API, 70
   modelos, 152 migraciones, 254 rutas API y 267 totales con web; §9 suma
   ADR-0016 y su índice. Sin cambios de UI ni de §5 (las tres issues son
-  `area:backend`). Tests: `PatientChargeAllocationTest` (13),
-  `RepairElectronicCashMovementsCommandTest`, `CashDrawerLockTest` (4),
-  `CashDepositAccountingLockTest` (5) y el guard de índice de ADR.
+  `area:backend`). Tests: `PatientChargeAllocationTest` (16),
+  `RepairElectronicCashMovementsCommandTest` (6), `CashDrawerLockTest` (5),
+  `CashDepositAccountingLockTest` (5) y el guard de índice de ADR. La
+  verificación independiente dejó tres seguimientos, cerrados aquí: el tope de
+  un cargo sólo descuenta imputaciones de pagos completados (anular un pago
+  libera lo reservado), el reparto proporcional de una devolución se hace en
+  centavos con el mayor residuo (ninguna cobertura negativa) y la anulación toma
+  el lock de la sesión, como los otros escritores de gaveta.
 
 - **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
   #287)** — La caja y la deuda del paciente dejan de compartir un solo

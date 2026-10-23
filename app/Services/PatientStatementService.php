@@ -354,18 +354,38 @@ class PatientStatementService
                     ? max(0.0, min(1.0, ($amount - (float) ($refunded[$paymentId] ?? 0)) / $amount))
                     : 0.0;
 
-                $coveredTotal = round((float) $group->sum('amount') * $ratio, 2);
-                $assigned = 0.0;
+                // The coverage is distributed in whole cents: rounding each
+                // share on its own can round four rows up while the total only
+                // rounds one, which used to leave the last row negative. The
+                // largest-remainder method keeps every share non-negative and
+                // the sum exact.
+                $coveredCents = (int) round((float) $group->sum('amount') * $ratio * 100);
                 $rows = $group->values();
+                $amountCents = $rows->map(static fn ($allocation): int => (int) round((float) $allocation->amount * 100));
+                $totalCents = (int) $amountCents->sum();
+                $shares = [];
+                $remainders = [];
+                $assignedCents = 0;
 
                 foreach ($rows as $index => $allocation) {
-                    $share = $index === $rows->count() - 1
-                        ? round($coveredTotal - $assigned, 2)
-                        : round((float) $allocation->amount * $ratio, 2);
+                    $exact = $totalCents > 0
+                        ? $coveredCents * $amountCents[$index] / $totalCents
+                        : 0.0;
+                    $share = (int) floor($exact);
+                    $shares[$index] = $share;
+                    $assignedCents += $share;
+                    $remainders[$index] = $exact - $share;
+                }
 
-                    $assigned = round($assigned + $share, 2);
+                arsort($remainders);
+
+                foreach (array_slice(array_keys($remainders), 0, $coveredCents - $assignedCents) as $index) {
+                    $shares[$index]++;
+                }
+
+                foreach ($rows as $index => $allocation) {
                     $chargeId = (int) $allocation->patient_charge_id;
-                    $covered[$chargeId] = round(($covered[$chargeId] ?? 0.0) + $share, 2);
+                    $covered[$chargeId] = round(($covered[$chargeId] ?? 0.0) + $shares[$index] / 100, 2);
                 }
             }
         }

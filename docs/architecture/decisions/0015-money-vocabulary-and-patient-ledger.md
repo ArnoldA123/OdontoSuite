@@ -152,9 +152,9 @@ en su propio ledger.**
   estado de cuenta (no se migran ni se reescriben), así que un paciente con
   descuentos del modelo anterior no ve su deuda inflada.
 - La ventana entre un depósito y una devolución de la misma sesión queda cerrada
-  (#323): el depósito, el pago, la devolución y el cierre toman el mismo lock de
-  la fila de `cash_register_sessions` antes de leer o escribir la gaveta, así
-  que no pueden calcular el efectivo disponible a la vez.
+  (#323): el depósito, el pago, la devolución, la anulación y el cierre toman el
+  mismo lock de la fila de `cash_register_sessions` antes de leer o escribir la
+  gaveta, así que no pueden calcular el efectivo disponible a la vez.
 - Un depósito con `deposited_at` anterior es un hecho de ese día bancario: el
   bloqueo contable del módulo `cash_movements` se evalúa sobre `deposited_at`
   (#323), no sobre la fecha en que se escribe el movimiento, y la operación

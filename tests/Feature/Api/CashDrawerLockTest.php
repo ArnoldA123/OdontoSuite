@@ -110,9 +110,9 @@ class CashDrawerLockTest extends TestCase
         $this->assertLessThan($write, $lock, 'The drawer must be locked before the first write.');
     }
 
-    private function payment(float $amount, string $description = 'Cobro de prueba'): void
+    private function payment(float $amount, string $description = 'Cobro de prueba'): \App\Models\Transaction
     {
-        app(TransactionService::class)->createTransaction([
+        return app(TransactionService::class)->createTransaction([
             'patient_id' => $this->patient->id,
             'payment_method_id' => $this->cashMethod->id,
             'type' => 'payment',
@@ -162,6 +162,19 @@ class CashDrawerLockTest extends TestCase
         ])->assertCreated());
 
         $this->assertTheDrawerWasLockedBefore($queries, '/^insert into `cash_deposits`/');
+    }
+
+    public function test_a_void_locks_the_drawer_before_it_writes_the_reversal(): void
+    {
+        $payment = $this->payment(50.0);
+
+        $queries = $this->queriesDuring(fn () => app(TransactionService::class)->voidTransaction(
+            $payment->id,
+            'Cobro duplicado',
+        ));
+
+        $this->assertTheDrawerWasLockedBefore($queries, '/^insert into `cash_movements`/');
+        $this->assertSame('voided', $payment->fresh()->status);
     }
 
     public function test_closing_the_drawer_locks_the_session_before_it_reads_the_expected_amount(): void

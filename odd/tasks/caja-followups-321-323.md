@@ -57,6 +57,14 @@ S9 (#323). Los tests cubren ambos lados, bloqueado y permitido.
       assertions)`, Pint `--test` (859 archivos), Prettier `--check` y
       `node scripts/audit/doc-drift.mjs` (14/14). Commit propio.
 
+- [x] T5 — Seguimientos de la verificación independiente (S1, S2, S7): el tope
+      de un cargo descuenta sólo imputaciones de pagos `completed`; el reparto
+      proporcional de una devolución se hace en centavos (mayor residuo); la
+      anulación toma el lock de la sesión. Commit `4d79689`. Evidencia: RED
+      con 3 fallos (21 tests) y después `PatientChargeAllocationTest` (16) +
+      `CashDrawerLockTest` (5) verdes, más la suite completa
+      `OK (2697 tests, 16319 assertions)`.
+
 ### Registro de la rebanada
 
 T1 quedó en un commit de 1044 líneas (445 son su archivo de test). Es una sola
@@ -97,3 +105,13 @@ se hicieron de a una. (c) El padre ejecutó un `pkill -f "phpunit -c
 phpunit.mysql.xml"` para despejar sus propios procesos colgados y ese patrón
 alcanzó las corridas de dos sesiones vecinas; el incidente queda declarado: no
 se repite, y los runs propios se detienen por `job_stop`/PID exacto.
+
+L6. Verificación independiente (`gentle-ai-verify`, read-only), tras escalar el
+item 1 (datos): veredicto «listo con seguimientos», sin bloqueantes, sobre 56 +
+76 tests verdes y los guards de documentación. Sus tres seguimientos Low se
+reprodujeron con RED antes de corregirlos (21 tests, 3 fallos: el tope del cargo
+seguía reservado por un pago anulado, la cobertura podía quedar en `-0.01` al
+centavo, y la anulación no tomaba el lock de la sesión) y se cerraron en T5. Los
+dos avisos informativos: el conteo de tests de `AGENTS.md` §12 (corregido) y que
+`main` avanzó a `53da232` (#324); el merge sólo solapa la entrada de changelog
+de §12 y se resolverá conservando ambas.

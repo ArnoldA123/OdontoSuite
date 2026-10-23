@@ -405,6 +405,77 @@ class PatientChargeAllocationTest extends TestCase
         $this->assertSame(200.0, (float) $statement['closing_balance']);
     }
 
+    public function test_a_voided_payment_releases_the_charge_cap(): void
+    {
+        $patient = $this->patient();
+        $charge = $this->charge($patient, 100.0, 'Consulta');
+        $voided = $this->payment($patient, 100.0);
+
+        $this->postJson("/api/transactions/{$voided->id}/allocations", [
+            'allocations' => [
+                ['patient_charge_id' => $charge->id, 'amount' => 100.0],
+            ],
+        ])->assertCreated();
+
+        app(TransactionService::class)->voidTransaction($voided->id, 'Cobro duplicado');
+
+        $live = $this->payment($patient, 100.0);
+
+        // A voided payment never happened, so it cannot reserve the charge: the
+        // new payment must be able to cover the whole amount.
+        $this->postJson("/api/transactions/{$live->id}/allocations", [
+            'allocations' => [
+                ['patient_charge_id' => $charge->id, 'amount' => 100.0],
+            ],
+        ])->assertCreated();
+
+        $this->assertSame(100.0, (float) $this->statement($patient)['charge_balances'][0]['allocated']);
+        $this->assertSame(0.0, (float) $this->statement($patient)['charge_balances'][0]['balance']);
+    }
+
+    public function test_the_proportional_refund_never_leaves_a_negative_coverage(): void
+    {
+        $patient = $this->patient();
+        $charges = [];
+
+        foreach (['Primer cargo', 'Segundo cargo', 'Tercer cargo', 'Cuarto cargo'] as $description) {
+            $charges[] = $this->charge($patient, 1.0, $description);
+        }
+
+        $payment = $this->payment($patient, 5.0);
+
+        $this->postJson("/api/transactions/{$payment->id}/allocations", [
+            'allocations' => array_map(fn (PatientCharge $charge) => [
+                'patient_charge_id' => $charge->id,
+                'amount' => 1.0,
+            ], $charges),
+        ])->assertCreated();
+
+        // Four allocations of 1.00 at a coverage ratio of 0.006: each one rounds
+        // up to a cent while the total rounds to two, which used to leave the
+        // last charge with a negative coverage.
+        app(TransactionService::class)->createTransaction([
+            'patient_id' => $patient->id,
+            'payment_method_id' => $this->method->id,
+            'type' => 'refund',
+            'parent_transaction_id' => $payment->id,
+            'amount' => 4.97,
+            'description' => 'Devolución casi total',
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Paciente no recibió el tratamiento',
+        ]);
+
+        $statement = $this->statement($patient);
+        $allocated = array_map(fn (array $row): float => (float) $row['allocated'], $statement['charge_balances']);
+
+        foreach ($allocated as $covered) {
+            $this->assertGreaterThanOrEqual(0.0, $covered, 'La cobertura de un cargo no puede ser negativa.');
+        }
+
+        $this->assertSame(0.02, round(array_sum($allocated), 2), 'Las filas suman la cobertura calculada.');
+        $this->assertSame(0.01, (float) $statement['unallocated_payments']);
+    }
+
     public function test_a_clinical_role_cannot_impute_a_payment(): void
     {
         $patient = $this->patient();
