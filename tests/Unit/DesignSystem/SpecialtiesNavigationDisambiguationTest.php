@@ -142,9 +142,11 @@ class SpecialtiesNavigationDisambiguationTest extends TestCase
         $items = self::navigationItems();
 
         $this->assertSame(
-            ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'],
+            ['administrador', 'odontologo', 'implantologo'],
             $items[self::CLINICAL_ROUTE]['roles'],
-            'The clinical records entry MUST keep its clinical roles: issue #210 forbids permission changes.'
+            'The clinical records entry MUST list the desks that hold `manage.specialty_record`: '
+            .'issue #210 froze the label and the path, and issue #313 closed the laboratory desk '
+            .'out of the module because it publishes the surgical narrative.'
         );
         $this->assertSame(
             ['administrador'],

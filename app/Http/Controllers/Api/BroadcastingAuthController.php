@@ -53,12 +53,24 @@ class BroadcastingAuthController extends Controller
     ];
 
     /**
-     * Roles with access to treatment plans and specialty records.
+     * Roles with access to treatment plans.
      *
      * @var string[]
      */
     private const SPECIALIST_ROLES = [
         'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
+    ];
+
+    /**
+     * Roles with access to specialty records (#313, decision D1). The channel
+     * publishes the whole record, surgical narrative included, so the
+     * laboratory desk is out; the prosthetic case carries what the workshop
+     * needs.
+     *
+     * @var string[]
+     */
+    private const SPECIALTY_RECORD_ROLES = [
+        'administrador', 'odontologo', 'implantologo',
     ];
 
     /**
@@ -99,7 +111,7 @@ class BroadcastingAuthController extends Controller
         'appointments' => self::APPOINTMENT_ROLES,
         'reminders' => self::APPOINTMENT_ROLES,
         'medical-records' => self::MEDICAL_RECORD_ROLES,
-        'specialty-records' => self::SPECIALIST_ROLES,
+        'specialty-records' => self::SPECIALTY_RECORD_ROLES,
         'treatment-plans' => self::SPECIALIST_ROLES,
         'cash-register' => self::CASH_ROLES,
         'transactions' => self::CASH_ROLES,

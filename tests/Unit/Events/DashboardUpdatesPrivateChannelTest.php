@@ -8,12 +8,9 @@ use App\Events\AppointmentDeleted;
 use App\Events\AppointmentUpdated;
 use App\Events\CashSessionClosed;
 use App\Events\CashSessionOpened;
-use App\Events\MedicalRecordCreated;
 use App\Events\PatientFileExported;
 use App\Events\PaymentRegistered;
 use App\Events\ProcedureCatalogDeactivated;
-use App\Events\SpecialtyRecordCreated;
-use App\Events\SpecialtyRecordUpdated;
 use App\Events\TransactionCreated;
 use App\Events\TransactionUpdated;
 use App\Events\TreatmentPlanCreated;
@@ -29,13 +26,20 @@ use Tests\TestCase;
 /**
  * Issue #183 — `dashboard-updates` must not be a public channel.
  *
- * It is the widest channel in the project: 18 events publish appointments,
- * patients, transactions, cash sessions, quotations and record changes, and a
- * public channel verifies nothing, so anyone holding the Reverb app key could
- * subscribe and receive live domain payloads. The guard is source-level (no
- * database, no broadcaster) and pins the two properties that make the leak
- * impossible: every publisher instantiates PrivateChannel, and no publisher
- * names the public Channel class for this channel.
+ * It is the widest channel in the project: 14 events publish appointments,
+ * patients, transactions, cash sessions and quotations, and a public channel
+ * verifies nothing, so anyone holding the Reverb app key could subscribe and
+ * receive live domain payloads. The guard is source-level (no database, no
+ * broadcaster) and pins the two properties that make the leak impossible:
+ * every publisher instantiates PrivateChannel, and no publisher names the
+ * public Channel class for this channel.
+ *
+ * F5 (#313/#315, D3): the events whose payload is a clinical document
+ * (`MedicalRecordCreated`, `SpecialtyRecordCreated`, `SpecialtyRecordUpdated`)
+ * left this fan-out on purpose. A channel cannot vary its payload per role and
+ * `dashboard-updates` authorizes the seven roles, so those events travel only
+ * on their own clinical channel — the boundary is pinned by
+ * ClinicalEventsChannelBoundaryTest.
  */
 class DashboardUpdatesPrivateChannelTest extends TestCase
 {
@@ -53,12 +57,9 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
             AppointmentUpdated::class,
             CashSessionClosed::class,
             CashSessionOpened::class,
-            MedicalRecordCreated::class,
             PatientFileExported::class,
             PaymentRegistered::class,
             ProcedureCatalogDeactivated::class,
-            SpecialtyRecordCreated::class,
-            SpecialtyRecordUpdated::class,
             TransactionCreated::class,
             TransactionUpdated::class,
             TreatmentPlanCreated::class,
@@ -114,9 +115,9 @@ class DashboardUpdatesPrivateChannelTest extends TestCase
     public function the_event_set_still_covers_the_project_domain(): void
     {
         $this->assertCount(
-            17,
+            14,
             self::dashboardEvents(),
-            'The dashboard fan-out MUST keep all 17 publishers; add new ones to this provider so they inherit the private guard.'
+            'The dashboard fan-out MUST keep all 14 publishers; add new ones to this provider so they inherit the private guard.'
         );
     }
 }

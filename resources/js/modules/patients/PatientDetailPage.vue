@@ -771,6 +771,14 @@ export default {
       }
     ]
 
+    // #313 (decision D1): el registro de especialidad es un acto clínico con
+    // narrativa quirúrgica, así que su tab sólo se ofrece al escritorio que lo
+    // lee (administración y clínicos). Sin el permiso tampoco se consulta ni se
+    // abre el canal de difusión.
+    const visibleTabs = computed(() =>
+      tabs.filter(tab => tab.id !== 'specialties' || can.viewSpecialtyRecord?.value)
+    )
+
     // Methods
     const loadPatient = async () => {
       patientLoading.value = true
@@ -829,7 +837,7 @@ export default {
     }
 
     const loadSpecialtyRecords = async () => {
-      if (!patient.value) return
+      if (!patient.value || !can.viewSpecialtyRecord?.value) return
       specialtyRecordsLoading.value = true
       specialtyRecordsError.value = false
       try {
@@ -1215,28 +1223,31 @@ export default {
               })
           }
 
-          // Canal de registros de especialidades
-          specialtyRecordsChannel = privateChannel('specialty-records')
-          if (specialtyRecordsChannel) {
-            specialtyRecordsChannel
-              .listen('.specialty-record.created', async e => {
-                if (e.record.patient_id === patientId) {
-                  await loadSpecialtyRecords()
-                  if (activeTab.value === 'specialties') {
-                    toast.success('Nuevo registro de especialidad creado')
-                  }
-                }
-              })
-              .listen('.specialty-record.updated', async e => {
-                if (e.record.patient_id === patientId) {
-                  const index = specialtyRecords.value.findIndex(r => r.id === e.record.id)
-                  if (index !== -1) {
-                    specialtyRecords.value[index] = e.record
-                  } else {
+          // Canal de registros de especialidades. #313: sin `manage.specialty_record`
+          // el registro no se lee y el canal no se abre.
+          if (can.viewSpecialtyRecord?.value) {
+            specialtyRecordsChannel = privateChannel('specialty-records')
+            if (specialtyRecordsChannel) {
+              specialtyRecordsChannel
+                .listen('.specialty-record.created', async e => {
+                  if (e.record.patient_id === patientId) {
                     await loadSpecialtyRecords()
+                    if (activeTab.value === 'specialties') {
+                      toast.success('Nuevo registro de especialidad creado')
+                    }
                   }
-                }
-              })
+                })
+                .listen('.specialty-record.updated', async e => {
+                  if (e.record.patient_id === patientId) {
+                    const index = specialtyRecords.value.findIndex(r => r.id === e.record.id)
+                    if (index !== -1) {
+                      specialtyRecords.value[index] = e.record
+                    } else {
+                      await loadSpecialtyRecords()
+                    }
+                  }
+                })
+            }
           }
         } catch (error) {
           // Sin WebSocket la ficha sigue operativa vía fetch inicial
@@ -1266,7 +1277,7 @@ export default {
       patientAge,
       breadcrumbs,
       activeTab,
-      tabs,
+      tabs: visibleTabs,
       treatmentPlans,
       quotations,
       medicalRecords,

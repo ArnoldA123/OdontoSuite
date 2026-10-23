@@ -111,7 +111,25 @@ class DeskMatrixTest extends TestCase
         $laboratory = Desks::permissions(Desks::LABORATORY);
 
         $this->assertNotContains(Permissions::VIEW_AI_ANALYSIS, $laboratory);
-        $this->assertContains(Permissions::MANAGE_SPECIALTY_RECORD, $laboratory);
+    }
+
+    /**
+     * #313 (decision D1) — the specialty record carries the surgical narrative
+     * the laboratory does not need. Reading and writing are the same permission,
+     * so the desk leaves the module whole while keeping its prosthetic case and
+     * its treatment plans.
+     */
+    #[Test]
+    public function the_laboratory_desk_does_not_reach_the_specialty_record(): void
+    {
+        $this->assertNotContains(
+            Permissions::MANAGE_SPECIALTY_RECORD,
+            Desks::permissions(Desks::LABORATORY),
+        );
+        $this->assertContains(
+            Permissions::MANAGE_SPECIALTY_RECORD,
+            Desks::permissions(Desks::CLINICIAN),
+        );
     }
 
     #[Test]
