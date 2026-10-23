@@ -212,6 +212,24 @@ const routes = [
     component: () => import('./modules/ai-analysis/AiAnalysisPage.vue'),
     beforeEnter: requireAuth
   },
+  // F4 (#310): the reception desk of continuity. The API gates the read on
+  // `view.continuity` and the two writes on `manage.continuity`; the route only
+  // requires a session, exactly like the rest of the shell.
+  {
+    path: '/continuity',
+    name: 'continuity',
+    component: () => import('./modules/continuity/ContinuityPage.vue'),
+    beforeEnter: requireAuth
+  },
+  // F5 (#316): the prosthetic laboratory desk. The work order is read with
+  // `view.lab_case` and its phase moves with `manage.lab_case`; reception reads
+  // and does not write.
+  {
+    path: '/lab-cases',
+    name: 'lab-cases',
+    component: () => import('./modules/lab-cases/LabCasesPage.vue'),
+    beforeEnter: requireAuth
+  },
   // Sprint 1 (B-CASH-3): modulo de sucursales (solo administrador).
   // El role gate se hace en backend (Route::middleware('role:administrador'))
   // y en frontend con usePermissions().isAdministrador en la pagina.

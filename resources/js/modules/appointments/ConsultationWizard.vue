@@ -584,6 +584,32 @@
               </label>
               <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
             </div>
+
+            <!--
+              F5 (#316): el trabajo del taller es una entidad propia. Se abre su
+              formulario con el paciente de la cita y no toca el payload del
+              cierre: el caso se registra por POST /api/lab-cases.
+            -->
+            <div
+              v-if="can.manageLabCase?.value"
+              class="pt-4 border-t"
+              style="border-color: var(--color-hairline)"
+              data-wizard-lab-case
+            >
+              <h4 class="text-sm font-semibold text-theme-primary">Laboratorio protésico</h4>
+              <p class="mt-1 text-sm text-theme-secondary">
+                Si esta atención deja un trabajo en el taller, regístralo como caso de laboratorio.
+              </p>
+              <UiButton
+                variant="secondary"
+                size="sm"
+                class="mt-3"
+                data-wizard-lab-case-new
+                @click="labCaseFormOpen = true"
+              >
+                Registrar caso de laboratorio
+              </UiButton>
+            </div>
           </section>
 
           <!-- PASO 7: Cierre y firma (F6 #286, NTS 139) -->
@@ -651,6 +677,12 @@
           </div>
         </div>
       </div>
+
+      <LabCaseFormModal
+        v-model="labCaseFormOpen"
+        :patient-id="closurePatientId"
+        :patient-name="closurePatientName"
+      />
     </div>
   </Teleport>
 </template>
@@ -667,6 +699,8 @@ import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import DiagnosisPicker from '@/components/procedures/DiagnosisPicker.vue'
+import LabCaseFormModal from '../lab-cases/LabCaseFormModal.vue'
+import { usePermissions } from '../../composables/usePermissions'
 
 const props = defineProps({
   appointment: { type: Object, default: null }
@@ -684,6 +718,21 @@ const {
 } = useConsultation()
 
 const { get: apiGet } = useApi()
+const { can } = usePermissions()
+
+const labCaseFormOpen = ref(false)
+
+// The case is opened for the patient of the act; `patient_id` may travel only
+// as the relation on some payloads, so both shapes resolve here.
+const closurePatientId = computed(
+  () => props.appointment?.patient_id ?? props.appointment?.patient?.id ?? null
+)
+
+const closurePatientName = computed(() => {
+  const patient = props.appointment?.patient
+  if (!patient) return ''
+  return [patient.first_name, patient.last_name].filter(Boolean).join(' ')
+})
 
 const modeOptions = [
   {
