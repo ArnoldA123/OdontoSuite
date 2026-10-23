@@ -87,6 +87,7 @@ describe('topbar title ownership (issue #208)', () => {
     '/specialties',
     '/appointment-types',
     '/settings/payment-methods',
+    '/settings/accounting-locks',
     '/settings/branches',
     '/settings/branches/3',
     '/environments',
