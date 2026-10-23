@@ -308,12 +308,16 @@ class EncounterReadSurfaceTest extends TestCase
         $this->assertNotNull($response->json('data.ai_analyses.0.created_at'));
     }
 
+    /**
+     * F5 (#285) — the laboratory desk left the read of the act too: the act
+     * carries the evolution, the findings and the amounts.
+     */
     public function test_reading_the_act_is_clinical_only(): void
     {
         $professional = $this->staff('odontologo');
         $encounter = $this->encounter(Patient::factory()->create(), ['user_id' => $professional->id]);
 
-        foreach (['recepcionista', 'finanzas'] as $role) {
+        foreach (['recepcionista', 'finanzas', 'tecnico_dental'] as $role) {
             $user = $this->staff($role);
 
             $this->actingAs($user, 'sanctum')
@@ -325,7 +329,7 @@ class EncounterReadSurfaceTest extends TestCase
                 ->assertForbidden();
         }
 
-        foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+        foreach (['administrador', 'odontologo', 'implantologo', 'asistente'] as $role) {
             $user = $this->staff($role);
 
             $this->actingAs($user, 'sanctum')

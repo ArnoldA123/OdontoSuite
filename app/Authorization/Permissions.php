@@ -259,6 +259,24 @@ final class Permissions
         'asistente',
     ];
 
+    /**
+     * #285 (S3/S5) — the clinical record leaves the laboratory desk.
+     *
+     * The prosthetic case is the laboratory's work order, so `tecnico_dental`
+     * no longer reads the history, its evolutions, its attachments, its
+     * statistics or the act that carries them. `MEDICAL_ROLES` stays whole for
+     * the clinical workflow F1/F2 granted — start and close an attention, open
+     * or void an act — because the issue closes the record's read, not the
+     * workflow. Specialty records and treatment plans are the prosthetic
+     * input, not the history, and are untouched.
+     */
+    private const RECORD_ROLES = [
+        'administrador',
+        'odontologo',
+        'implantologo',
+        'asistente',
+    ];
+
     private const TREATMENT_ROLES = [
         'administrador',
         'odontologo',
@@ -333,7 +351,7 @@ final class Permissions
         self::CREATE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VOID_ENCOUNTER => self::MEDICAL_ROLES,
         self::CLOSE_ENCOUNTER => self::MEDICAL_ROLES,
-        self::VIEW_ENCOUNTER => self::MEDICAL_ROLES,
+        self::VIEW_ENCOUNTER => self::RECORD_ROLES,
         self::VIEW_DIAGNOSIS_CATALOG => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
         self::VIEW_INVENTORY => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'],
@@ -342,10 +360,10 @@ final class Permissions
         self::SEND_REMINDER => self::APPOINTMENT_ROLES,
         self::MANAGE_REMINDER_TEMPLATE => ['administrador'],
 
-        self::MANAGE_MEDICAL_RECORD => self::MEDICAL_ROLES,
-        self::MANAGE_EVOLUTION => self::MEDICAL_ROLES,
-        self::MANAGE_ATTACHMENT => self::MEDICAL_ROLES,
-        self::VIEW_MEDICAL_RECORD_STATS => self::MEDICAL_ROLES,
+        self::MANAGE_MEDICAL_RECORD => self::RECORD_ROLES,
+        self::MANAGE_EVOLUTION => self::RECORD_ROLES,
+        self::MANAGE_ATTACHMENT => self::RECORD_ROLES,
+        self::VIEW_MEDICAL_RECORD_STATS => self::RECORD_ROLES,
 
         self::MANAGE_TREATMENT_PLAN => self::TREATMENT_ROLES,
         self::VIEW_QUOTATION => self::QUOTATION_READERS,

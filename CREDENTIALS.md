@@ -77,7 +77,8 @@ del login es el `username`** (no el email, no el nombre).
 > atención de urgencia existe sin cita. Desde #295 el cierre descuenta stock
 > real: un material sin stock suficiente responde 422 con el nombre del insumo y
 > la transacción no escribe nada; el inventario se recibe por compra y se ajusta
-> por conteo.
+> por conteo. Desde #285 el escritorio de laboratorio no lee la historia clínica
+> ni el acto clínico: el técnico trabaja desde el caso protésico.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -100,7 +101,7 @@ del login es el `username`** (no el email, no el nombre).
 | Abrir atención de urgencia          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Cerrar atención (sin cita)          | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Anular atención abierta             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
-| Ver atenciones clínicas             | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Ver atenciones clínicas             | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | **Reportes/BI**                     |
 | Ver reportes                        | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Exportar datos                      | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ✅       |
@@ -121,7 +122,7 @@ del login es el `username`** (no el email, no el nombre).
 | Fijar bloqueo contable              | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
-| Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
+| Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Planes de tratamiento               | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Análisis IA                         | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
