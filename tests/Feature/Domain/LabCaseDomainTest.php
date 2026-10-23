@@ -31,8 +31,7 @@ class LabCaseDomainTest extends TestCase
 
     private function piece(): DentalPiece
     {
-        return DentalPiece::create([
-            'fdi_number' => '36',
+        return DentalPiece::firstOrCreate(['fdi_number' => '36'], [
             'name' => 'Primer molar inferior izquierdo',
             'type' => 'molar',
             'quadrant' => 'inferior_izquierdo',
