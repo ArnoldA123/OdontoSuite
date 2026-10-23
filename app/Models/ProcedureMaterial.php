@@ -25,6 +25,8 @@ class ProcedureMaterial extends Model
     ];
 
     protected $casts = [
+        // #295 S8: el consumo tambien es una cantidad, no un contador.
+        'quantity_used' => 'decimal:3',
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'expiry_date' => 'date',

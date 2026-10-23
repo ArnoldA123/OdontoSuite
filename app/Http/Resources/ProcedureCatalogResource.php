@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\ProcedureCatalogMaterial;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,6 +37,20 @@ class ProcedureCatalogResource extends JsonResource
             'requirements' => $this->requirements,
             'materials_needed' => $this->materials_needed,
             'materials_needed_list' => $this->materialsNeededList(),
+            // #295 S4: recetario de insumos del procedimiento. Solo se publica
+            // cuando la relacion viene cargada (detalle, alta y edicion); el
+            // indice no paga una consulta por fila.
+            'material_recipe' => $this->whenLoaded('materialRecipe', fn (): array => $this->materialRecipe
+                ->map(fn (ProcedureCatalogMaterial $line): array => [
+                    'product_id' => (int) $line->product_id,
+                    'product_name' => $line->product?->name,
+                    'unit' => $line->product?->unit,
+                    'cost_price' => (float) ($line->product?->cost_price ?? 0),
+                    'stock_quantity' => (float) ($line->product?->stock_quantity ?? 0),
+                    'quantity' => (float) $line->quantity,
+                ])
+                ->values()
+                ->all()),
             'requires_anesthesia' => (bool) $this->requires_anesthesia,
             'requires_radiographs' => (bool) $this->requires_radiographs,
             'steps' => $this->steps,
