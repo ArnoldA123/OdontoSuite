@@ -158,7 +158,7 @@ class ConsultationService
             $this->charges->chargeForEncounter($current);
 
             if ($appointment !== null) {
-                $this->projectOnAppointment($appointment, $current, $mode, $finalAmount, $payload, $userId);
+                $this->projectOnAppointment($appointment, $current, $mode, $finalAmount, $userId);
                 $this->persistContinuity($current, $appointment, $payload, $userId);
             }
 
@@ -749,17 +749,18 @@ class ConsultationService
 
     /**
      * The appointment is the projection of the act, and this is its only pen
-     * (S4): status, close time, amount and mode come from the encounter that
-     * was just closed in this transaction.
+     * (S4): status, close time, amount, mode and the plan it points at come
+     * from the encounter that was just closed in this transaction.
      *
-     * @param array<string, mixed> $payload
+     * The conduct is not copied here (F5 #314, D2): it lives in the evolution
+     * and in the continuity request, so the agenda row keeps only its own
+     * `notes`.
      */
     private function projectOnAppointment(
         Appointment $appointment,
         ClinicalEncounter $encounter,
         string $mode,
         float $finalAmount,
-        array $payload,
         ?int $userId,
     ): void {
         // S7: an appointment is `completed` only with a closed act. The check
@@ -775,7 +776,6 @@ class ConsultationService
             'final_amount' => $finalAmount,
             'status' => 'completed',
             'completed_at' => now(),
-            'treatment_notes' => $payload['evolution']['plan'] ?? $appointment->treatment_notes,
             'updated_by' => $userId,
         ])->save();
     }
