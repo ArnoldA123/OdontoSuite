@@ -68,15 +68,17 @@ continuidad y recepción la materializa por la puerta que ya valida conflictos.
   alternativas) porque un commit intermedio no compilaría. Supera la guía de
   ~400 líneas por esa dependencia mutua; queda registrado como límite de slice.
 - S2 — `9af74d0` — tests de F4 y fixture de permisos.
+- S2b — commit de cobertura — tests HTTP de la cola/métricas y limpieza del
+  método no enrutado.
 - S3 — `1d9b857` — tests de #288.
 - S4 — commit de documentos — AGENTS.md, ADR-0013 y estos documentos.
 
 ## Evidence
 
-- `RecallServiceTest` (11), `ContinuityTest` (6) y
+- `RecallServiceTest` (11), `ContinuityTest` (9) y
   `PlanSessionConsumptionTest` (9): verdes en MySQL.
-- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2525 tests,
-  15122 assertions, `OK`.
+- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2529 tests,
+  15140 assertions, `OK`.
 - Regresiones de citas, presupuestos, permisos y planes: 199 + 31 verdes.
 - Vitest: 114 archivos, 946 tests. `pnpm build`, ESLint (0 errores),
   Prettier, Pint y `doc-drift` (14/14) en verde.

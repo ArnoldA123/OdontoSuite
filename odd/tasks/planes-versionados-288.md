@@ -83,8 +83,8 @@ rechazado.»
 
 - `TreatmentPlanPriorityTest` (4), `TreatmentPlanVersioningTest` (9) y
   `TreatmentPlanAlternativesTest` (6): verdes en MySQL.
-- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2525 tests,
-  15122 assertions, `OK`.
+- Suite completa `vendor/bin/phpunit -c phpunit.mysql.xml`: 2529 tests,
+  15140 assertions, `OK`.
 - `doc-drift` 14/14, Pint, Prettier, ESLint (0 errores), Vitest 946 tests y
   `pnpm build` en verde.
 
