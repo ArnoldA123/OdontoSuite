@@ -524,7 +524,7 @@ documentada y no bloquea producción.
   sincronizado con valores medidos: 39 controllers API, 59 modelos, 25 services,
   136 migraciones, 224 rutas API y 237 totales con web. Tests:
   `InventorySchemaTest` (5), `ProcedureCatalogMaterialRecipeTest` (8),
-  `EncounterMaterialConsumptionTest` (7), `InventoryReadSurfaceTest` (10),
+  `EncounterMaterialConsumptionTest` (10), `InventoryReadSurfaceTest` (10),
   `InventoryWriteSurfaceTest` (9), `RequiresMaterialsDerivationTest` (6), más
   `ConsultationClosureTest`, `EncounterReadSurfaceTest` y
   `AppointmentTypeCrudContractTest` ajustados a la regla nueva. Fuera de

@@ -292,4 +292,86 @@ class EncounterMaterialConsumptionTest extends TestCase
         $this->assertSame($branch->id, StockMovement::sole()->branch_id);
         $this->assertSame(19.0, (float) $resin->fresh()->stock_quantity);
     }
+
+    public function test_two_lots_of_the_same_product_chain_the_balance_and_freeze_each_cost(): void
+    {
+        $professional = $this->professional();
+        $appointment = $this->inConsultation($professional);
+        $resin = $this->product(5);
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/complete", $this->payload([
+                [
+                    'product_id' => $resin->id,
+                    'quantity_used' => 2,
+                    'unit_cost' => 10,
+                    'batch_number' => 'L-001',
+                ],
+                [
+                    'product_id' => $resin->id,
+                    'quantity_used' => 1,
+                    'unit_cost' => 25,
+                    'batch_number' => 'L-002',
+                ],
+            ]))
+            ->assertOk();
+
+        $movements = StockMovement::orderBy('id')->get();
+
+        // S5: one movement per lot, each with the cost frozen when it was
+        // consumed, and the balance chained from line to line.
+        $this->assertCount(2, $movements);
+        $this->assertSame(5.0, (float) $movements[0]->previous_stock);
+        $this->assertSame(3.0, (float) $movements[0]->new_stock);
+        $this->assertSame(10.0, (float) $movements[0]->unit_cost);
+        $this->assertSame(20.0, (float) $movements[0]->total_cost);
+        $this->assertSame(3.0, (float) $movements[1]->previous_stock);
+        $this->assertSame(2.0, (float) $movements[1]->new_stock);
+        $this->assertSame(25.0, (float) $movements[1]->unit_cost);
+        $this->assertSame(25.0, (float) $movements[1]->total_cost);
+        $this->assertSame(2.0, (float) $resin->fresh()->stock_quantity);
+    }
+
+    public function test_an_insufficient_second_product_writes_nothing_at_all(): void
+    {
+        $professional = $this->professional();
+        $appointment = $this->inConsultation($professional);
+        $resin = $this->product(10);
+        $anesthetic = $this->product(1, ['name' => 'Anestésico']);
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/complete", $this->payload([
+                ['product_id' => $resin->id, 'quantity_used' => 1],
+                ['product_id' => $anesthetic->id, 'quantity_used' => 3],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonPath('error.message', 'Stock insuficiente para «Anestésico»: disponible 1, solicitado 3.');
+
+        // S2: the guard runs before any write, so the first line does not
+        // survive either.
+        $this->assertSame(10.0, (float) $resin->fresh()->stock_quantity);
+        $this->assertSame(1.0, (float) $anesthetic->fresh()->stock_quantity);
+        $this->assertSame(0, StockMovement::count());
+        $this->assertSame(0, ProcedureMaterial::count());
+        $this->assertSame(0, ClinicalEvolution::count());
+        $this->assertSame(0, ClinicalEncounter::count());
+        $this->assertSame('in_consultation', $appointment->fresh()->status);
+    }
+
+    public function test_a_negative_unit_cost_is_refused_by_the_door(): void
+    {
+        $professional = $this->professional();
+        $appointment = $this->inConsultation($professional);
+        $resin = $this->product(10);
+
+        $this->actingAs($professional, 'sanctum')
+            ->postJson("/api/appointments/{$appointment->id}/complete", $this->payload([
+                ['product_id' => $resin->id, 'quantity_used' => 1, 'unit_cost' => -5],
+            ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['materials.0.unit_cost']);
+
+        $this->assertSame(10.0, (float) $resin->fresh()->stock_quantity);
+        $this->assertSame(0, StockMovement::count());
+    }
 }
