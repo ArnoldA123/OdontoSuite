@@ -96,11 +96,11 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 38 controllers API (37 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 39 controllers API (38 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 58 modelos Eloquent
-  Services/                # 22 services + Reports/ (8 report services)
+  Models/                  # 59 modelos Eloquent
+  Services/                # 25 services + Reports/ (8 report services)
   Events/                  # 35 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 133 migraciones
+  migrations/              # 136 migraciones
   seeders/                 # 16 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, AppointmentTypeSeeder,
                            #   EnvironmentSeeder, ProcedureCatalogSeeder, PatientSeeder,
@@ -128,7 +128,7 @@ database/
                            #   SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 218 rutas API (medido con php artisan route:list --json: uris api/…; 231 totales con web)
+  api.php                  # 224 rutas API (medido con php artisan route:list --json: uris api/…; 237 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 58 modelos, 38 controllers API, 35 eventos (10 listener classes / 13 cableos
+- 59 modelos, 39 controllers API, 35 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -226,6 +226,18 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Atención clínica como entidad propia (#282): `clinical_encounters` con estado
   `open → closed | voided`, cierre único, proyección de la cita y urgencia sin
   cita
+- `composer dev` usa `pnpm dev`
+- Materiales e inventario con stock real (#295): el procedimiento declara los
+  insumos que consume (`procedure_catalog_materials`, editado como
+  `material_recipe` en el catálogo) y el cierre de la atención los descuenta:
+  `InventoryService::consumeForEncounter` congela el costo unitario, escribe un
+  `ProcedureMaterial` y un `StockMovement` `out` por lote y baja
+  `products.stock_quantity`. Un material sin stock suficiente es 422 y no deja
+  nada escrito. El almacén se opera por `GET /api/inventory/products`,
+  `/products/{id}`, `/movements`, `/alerts` (`view.inventory`) y por
+  `POST /api/inventory/receipts` y `/adjustments` (`manage.inventory`), y
+  `requires_materials` se deriva del recetario del procedimiento en vez de un
+  flag manual. Las cantidades de stock y consumo son `decimal(12,3)`.
 - `composer dev` usa `pnpm dev`
 - CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
   frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
@@ -454,7 +466,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 38 controllers API, 58
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 39 controllers API, 59
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -466,6 +478,58 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (materiales e inventario: consumo desde la atención y stock
+  real,** **#295)** — El almacén deja de ser un catálogo congelado. El
+  procedimiento declara lo que consume (`procedure_catalog_materials`: insumo +
+  cantidad estimada, editado como `material_recipe` en el alta y la edición del
+  catálogo, con reemplazo completo al enviarlo y publicado en el detalle), y el
+  cierre de la atención lo descuenta. `InventoryService::consumeForEncounter`
+  bloquea los productos en orden de `id`, evalúa la guarda sobre la demanda
+  **agregada** por insumo —dos lotes del mismo material son una sola demanda—,
+  congela el costo unitario de cada línea y escribe un `ProcedureMaterial` y un
+  `StockMovement` `out` por lote, con lote, vencimiento y
+  `clinical_encounter_id`. `products.stock_quantity` sigue siendo la única
+  verdad del saldo y baja una sola vez por producto, dentro de la transacción
+  del cierre. Un material que el almacén no cubre rechaza el cierre con 422
+  (`Stock insuficiente para «Resina A2»: disponible 2, solicitado 5.`) y no
+  escribe nada: ni evolución, ni material, ni movimiento, ni saldo. Un
+  `product_id` inexistente pasa de omisión silenciosa con warning a 422
+  (`materials.*.product_id` gana `exists:products,id`). Las cantidades dejan de
+  ser enteras —`products.stock_quantity`/`minimum_stock`/`maximum_stock`,
+  `stock_movements.quantity`/`previous_stock`/`new_stock` y
+  `procedure_materials.quantity_used` pasan a `decimal(12,3)`— porque 0.5
+  jeringa entraba como 1 y el libro no podía representar lo que hay en el
+  estante. Superficie de almacén, seis rutas y dos permisos:
+  `GET /api/inventory/products` (stock, mínimo, vencimiento y KPIs sobre la
+  población sin filtros), `GET /api/inventory/products/{id}` (con sus últimos
+  movimientos), `GET /api/inventory/movements` y `GET /api/inventory/alerts`
+  bajo `view.inventory`; `POST /api/inventory/receipts` y
+  `POST /api/inventory/adjustments` bajo `manage.inventory`. La recepción
+  escribe un movimiento `in` con lote, vencimiento y referencia y no reprecifica
+  el catálogo; el ajuste por conteo fija el saldo en lo contado, con la magnitud
+  positiva en el libro y la dirección en `previous_stock`/`new_stock`, y
+  responde 422 si el conteo coincide con el saldo. El movimiento se estampa con
+  la sede del actor cuando la tiene y queda sin sede en alcance de grupo
+  (ADR-0010); `stock_movements.branch_id` pasa a nullable. `requires_materials`
+  deja de ser un flag manual: un acto exige materiales cuando alguno de los
+  procedimientos que documenta declara receta —el procedimiento por defecto del
+  tipo de cita, los ítems que el cierre declara o los del plan del acto—, con
+  una sola consulta; la columna legacy se sigue aceptando al escribir pero ya no
+  decide y las respuestas publican el valor derivado. El cierre ahora persiste
+  `procedure_catalog_id` en los ítems del plan que crea y el request valida ese
+  campo: sin ambos, la regla no era alcanzable por HTTP. `consultation-context`
+  publica además `material_recipe`, la receta agregada de los procedimientos
+  implicados con el stock de cada insumo, que es la precarga del asistente. §4
+  sincronizado con valores medidos: 39 controllers API, 59 modelos, 25 services,
+  136 migraciones, 224 rutas API y 237 totales con web. Tests:
+  `InventorySchemaTest` (5), `ProcedureCatalogMaterialRecipeTest` (8),
+  `EncounterMaterialConsumptionTest` (10), `InventoryReadSurfaceTest` (10),
+  `InventoryWriteSurfaceTest` (9), `RequiresMaterialsDerivationTest` (6), más
+  `ConsultationClosureTest`, `EncounterReadSurfaceTest` y
+  `AppointmentTypeCrudContractTest` ajustados a la regla nueva. Fuera de
+  alcance, documentado: saldo por lote (el lote es trazabilidad, no FIFO), orden
+  de compra formal y UI del módulo (la issue es `area:backend`).
 
 - **2026-10-22 (catálogo: aplicabilidad, tarifario y vigencia, #293)** — El
   catálogo deja de ser un nomenclador a medias. `procedure_catalog.site_type`

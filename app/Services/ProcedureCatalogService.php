@@ -179,7 +179,7 @@ class ProcedureCatalogService
 
     public function findOrFail(int $id): ProcedureCatalog
     {
-        return ProcedureCatalog::with('externalCodes')->findOrFail($id);
+        return ProcedureCatalog::with(['externalCodes', 'materialRecipe.product'])->findOrFail($id);
     }
 
     /**
@@ -257,16 +257,24 @@ class ProcedureCatalogService
     {
         $externalCodes = $data['external_codes'] ?? null;
         $replacesCodes = array_key_exists('external_codes', $data);
+        // #295 S4: enviar la receta la reemplaza completa.
+        $recipe = array_key_exists('material_recipe', $data) ? ($data['material_recipe'] ?? []) : null;
 
-        $procedure = DB::transaction(function () use ($data, $externalCodes, $replacesCodes) {
+        $procedure = DB::transaction(function () use ($data, $externalCodes, $replacesCodes, $recipe) {
             $procedure = ProcedureCatalog::create($this->normalize($data));
 
             if ($replacesCodes) {
                 $this->syncExternalCodes($procedure, $externalCodes);
             }
 
+            if ($recipe !== null) {
+                $this->syncMaterialRecipe($procedure, $recipe);
+            }
+
             return $procedure;
         });
+
+        $procedure->load('materialRecipe.product');
 
         $this->fireUpdatedEvent($procedure, 'created', $procedure->getAttributes());
 
@@ -278,16 +286,22 @@ class ProcedureCatalogService
         $before = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
         $replacesCodes = array_key_exists('external_codes', $data);
         $externalCodes = $data['external_codes'] ?? null;
+        $recipe = array_key_exists('material_recipe', $data) ? ($data['material_recipe'] ?? []) : null;
 
-        DB::transaction(function () use ($procedure, $data, $replacesCodes, $externalCodes) {
+        DB::transaction(function () use ($procedure, $data, $replacesCodes, $externalCodes, $recipe) {
             $procedure->update($this->normalize($data, isUpdate: true));
 
             if ($replacesCodes) {
                 $this->syncExternalCodes($procedure, $externalCodes);
             }
+
+            if ($recipe !== null) {
+                $this->syncMaterialRecipe($procedure, $recipe);
+            }
         });
 
         $procedure->refresh();
+        $procedure->unsetRelation('materialRecipe')->load('materialRecipe.product');
         $after = $procedure->only(['default_cost', 'name', 'code', 'is_active']);
 
         $changed = array_diff_assoc($after, $before);
@@ -373,6 +387,35 @@ class ProcedureCatalogService
         }
 
         $procedure->unsetRelation('externalCodes');
+    }
+
+    /**
+     * #295 S4: el alta y la edicion reemplazan la receta completa. `null` o `[]`
+     * la deja vacia, y omitir la clave no la toca.
+     *
+     * @param array<int, array<string, mixed>>|null $lines
+     */
+    private function syncMaterialRecipe(ProcedureCatalog $procedure, ?array $lines): void
+    {
+        $procedure->materialRecipe()->delete();
+
+        $rows = [];
+        foreach ($lines ?? [] as $line) {
+            if (! is_array($line) || ! isset($line['product_id'], $line['quantity'])) {
+                continue;
+            }
+
+            $rows[] = [
+                'product_id' => (int) $line['product_id'],
+                'quantity' => (float) $line['quantity'],
+            ];
+        }
+
+        if ($rows !== []) {
+            $procedure->materialRecipe()->createMany($rows);
+        }
+
+        $procedure->unsetRelation('materialRecipe');
     }
 
     /**

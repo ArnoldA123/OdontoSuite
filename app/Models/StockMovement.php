@@ -12,6 +12,7 @@ class StockMovement extends Model
 
     protected $fillable = [
         'product_id',
+        'clinical_encounter_id',
         'branch_id',
         'created_by',
         'type',
@@ -29,6 +30,10 @@ class StockMovement extends Model
     ];
 
     protected $casts = [
+        // #295 S8: el libro de stock guarda cantidades con tres decimales.
+        'quantity' => 'decimal:3',
+        'previous_stock' => 'decimal:3',
+        'new_stock' => 'decimal:3',
         'unit_cost' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'movement_date' => 'date',
@@ -39,6 +44,15 @@ class StockMovement extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * #295 S5: el acto clinico que consumio el material. Nullable porque un
+     * movimiento de recepcion o de conteo no cuelga de ninguna atencion.
+     */
+    public function clinicalEncounter(): BelongsTo
+    {
+        return $this->belongsTo(ClinicalEncounter::class);
     }
 
     public function branch(): BelongsTo

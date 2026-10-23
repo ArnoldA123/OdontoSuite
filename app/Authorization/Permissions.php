@@ -91,6 +91,13 @@ final class Permissions
 
     public const VIEW_PRODUCT = 'view.product';
 
+    // #295 (S6): the warehouse. Reading what is on the shelf is clinical and
+    // financial work; receiving a purchase or counting a shelf is not, so the
+    // write capability keeps its own list.
+    public const VIEW_INVENTORY = 'view.inventory';
+
+    public const MANAGE_INVENTORY = 'manage.inventory';
+
     public const MANAGE_REMINDER = 'manage.reminder';
 
     public const SEND_REMINDER = 'send.reminder';
@@ -314,6 +321,8 @@ final class Permissions
         self::CLOSE_ENCOUNTER => self::MEDICAL_ROLES,
         self::VIEW_ENCOUNTER => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
+        self::VIEW_INVENTORY => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'],
+        self::MANAGE_INVENTORY => ['administrador', 'finanzas', 'asistente'],
         self::MANAGE_REMINDER => self::APPOINTMENT_ROLES,
         self::SEND_REMINDER => self::APPOINTMENT_ROLES,
         self::MANAGE_REMINDER_TEMPLATE => ['administrador'],

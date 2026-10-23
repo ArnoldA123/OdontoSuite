@@ -48,6 +48,8 @@ recibe el permiso; el detalle exacto, permiso por permiso, sale de
 | Anulación de transacción              | —         | —       | —         | —           | —        | sí             |
 | Catálogo de procedimientos            | —         | lectura | lectura   | lectura     | importa  | sí             |
 | Productos (venta)                     | sí        | sí      | sí        | sí          | —        | sí             |
+| Inventario (consulta y alertas)       | —         | sí      | sí        | sí          | sí       | sí             |
+| Inventario (recepción y ajuste)       | —         | —       | sí        | —           | sí       | sí             |
 | Reportes y exportación                | —         | —       | —         | —           | sí       | sí             |
 | Usuarios, sedes, configuración        | —         | —       | —         | —           | —        | sí             |
 
@@ -56,7 +58,10 @@ S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
 incluido el cierre; el escritorio de laboratorio no entra al módulo de análisis
 de IA porque un análisis es apoyo a un diagnóstico; y la anulación de una
 transacción queda en administración porque es el único acto del ledger que
-revierte dinero ya registrado.
+revierte dinero ya registrado. El almacén sigue la misma lógica: consultar stock
+y alertas es parte del trabajo clínico y financiero, pero recibir por compra y
+ajustar por conteo mueve el saldo del que depende el costo del acto, y queda en
+asistente, finanzas y administración.
 
 ## Sede y escritorio
 

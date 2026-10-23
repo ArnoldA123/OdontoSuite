@@ -63,6 +63,10 @@ class CloseClinicalEncounterRequest extends FormRequest
             'treatment_plan.items' => 'sometimes|array',
             'treatment_plan.items.*.id' => 'sometimes|integer',
             'treatment_plan.items.*.procedure_name' => 'required_with:items|string',
+            // #295 S7: el item declara de que procedimiento del catalogo sale.
+            // Sin esta regla `validated()` lo descartaba y el acto no podia
+            // derivar la exigencia de materiales desde sus propios items.
+            'treatment_plan.items.*.procedure_catalog_id' => 'sometimes|nullable|integer|exists:procedure_catalog,id',
             'treatment_plan.items.*.dental_piece_id' => 'nullable|integer',
             'treatment_plan.items.*.specialty' => 'nullable|string',
             'treatment_plan.items.*.unit_cost' => 'nullable|numeric|min:0',
@@ -74,7 +78,7 @@ class CloseClinicalEncounterRequest extends FormRequest
             'treatment_plan.items.*.requires_anesthesia' => 'sometimes|boolean',
             'treatment_plan.items.*.is_optional' => 'sometimes|boolean',
             'materials' => 'sometimes|array',
-            'materials.*.product_id' => 'required_with:materials|integer',
+            'materials.*.product_id' => 'required_with:materials|integer|exists:products,id',
             'materials.*.quantity_used' => 'required_with:materials|numeric|min:0.01',
             'materials.*.unit_cost' => 'nullable|numeric|min:0',
             'materials.*.treatment_plan_item_id' => 'nullable|integer',

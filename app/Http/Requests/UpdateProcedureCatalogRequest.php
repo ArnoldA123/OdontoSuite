@@ -44,6 +44,10 @@ class UpdateProcedureCatalogRequest extends FormRequest
             'external_codes.*.system' => ['required_with:external_codes', 'string', 'max:40', 'regex:/^[a-z0-9_.-]+$/'],
             'external_codes.*.code' => 'required_with:external_codes|string|max:40',
             'external_codes.*.description' => 'sometimes|nullable|string|max:200',
+            // #295 S4: enviar la receta la reemplaza completa, igual que las equivalencias.
+            'material_recipe' => 'sometimes|nullable|array|max:50',
+            'material_recipe.*.product_id' => 'required_with:material_recipe|integer|distinct|exists:products,id',
+            'material_recipe.*.quantity' => 'required_with:material_recipe|numeric|gt:0|max:999999999.999',
         ];
     }
 
@@ -63,6 +67,13 @@ class UpdateProcedureCatalogRequest extends FormRequest
             'external_codes.*.system.required_with' => 'Cada equivalencia debe declarar su sistema (por ejemplo minsa_rm550_2023 o sis).',
             'external_codes.*.code.required_with' => 'Cada equivalencia debe declarar su codigo.',
             'external_codes.*.system.regex' => 'El sistema de la equivalencia solo admite minusculas, numeros, punto, guion y guion bajo.',
+            'material_recipe.array' => 'La receta de insumos debe enviarse como lista.',
+            'material_recipe.max' => 'Un procedimiento no puede declarar mas de 50 insumos.',
+            'material_recipe.*.product_id.required_with' => 'Cada linea de la receta debe declarar su insumo.',
+            'material_recipe.*.product_id.exists' => 'El insumo seleccionado no existe.',
+            'material_recipe.*.product_id.distinct' => 'El insumo esta repetido en la receta.',
+            'material_recipe.*.quantity.required_with' => 'Cada linea de la receta debe declarar su cantidad estimada.',
+            'material_recipe.*.quantity.gt' => 'La cantidad estimada debe ser mayor a cero.',
         ];
     }
 

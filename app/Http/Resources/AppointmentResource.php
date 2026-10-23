@@ -84,7 +84,9 @@ class AppointmentResource extends JsonResource
                     'default_duration_minutes' => $this->appointmentType->default_duration_minutes,
                     'price' => $this->appointmentType->price,
                     'color' => $this->appointmentType->color,
-                    'requires_materials' => (bool) $this->appointmentType->requires_materials,
+                    // #295 (S7): valor derivado del recetario del procedimiento
+                    // por defecto; la columna legacy ya no decide.
+                    'requires_materials' => $this->appointmentType->requiresMaterialsFromCatalog(),
                     'is_consultation_mode' => (bool) $this->appointmentType->is_consultation_mode,
                 ];
             }),

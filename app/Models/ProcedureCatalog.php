@@ -119,6 +119,47 @@ class ProcedureCatalog extends Model
     }
 
     /**
+     * #295 S4: insumos que el procedimiento consume, con cantidad estimada.
+     *
+     * La receta es dato de catalogo. El acto clinico la copia como punto de
+     * partida y guarda sus propios numeros; editar la receta nunca reescribe un
+     * acto ya documentado.
+     */
+    public function materialRecipe(): HasMany
+    {
+        return $this->hasMany(ProcedureCatalogMaterial::class, 'procedure_catalog_id')
+            ->orderBy('id');
+    }
+
+    /**
+     * #295 S7: un procedimiento exige materiales cuando declara receta.
+     *
+     * Es la unica fuente de la regla: `appointment_types.requires_materials`
+     * dejo de decidir (queda como columna legacy).
+     */
+    public function hasMaterialRecipe(): bool
+    {
+        return $this->materialRecipe()->exists();
+    }
+
+    /**
+     * #295 S4: la receta como lista plana, para precargar la atencion.
+     *
+     * @return list<array{product_id: int, quantity: float}>
+     */
+    public function materialRecipeList(): array
+    {
+        return $this->materialRecipe()
+            ->get(['product_id', 'quantity'])
+            ->map(fn (ProcedureCatalogMaterial $line): array => [
+                'product_id' => (int) $line->product_id,
+                'quantity' => (float) $line->quantity,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Sprint 4 fix (IM-8): resuelve un campo traducido para un locale dado.
      *
      * Si existe traduccion para $locale y el campo $field no es null en la

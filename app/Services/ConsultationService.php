@@ -19,8 +19,7 @@ use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Odontogram;
 use App\Models\OdontogramRecord;
-use App\Models\ProcedureMaterial;
-use App\Models\Product;
+use App\Models\ProcedureCatalog;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Http\UploadedFile;
@@ -60,6 +59,7 @@ class ConsultationService
     public function __construct(
         private readonly BillingService $billing,
         private readonly ClinicalEncounterService $encounters,
+        private readonly InventoryService $inventory,
     ) {}
 
     /**
@@ -256,10 +256,9 @@ class ConsultationService
             throw new UnexpectedMaterialsException;
         }
 
-        // Only an appointment type can demand materials; an urgency act has no
-        // type to ask, so it never requires them.
-        $requiresMaterials = (bool) ($appointment?->appointmentType?->requires_materials ?? false);
-        if ($requiresMaterials && $materialsCount === 0 && ! $skipMaterials) {
+        // #295 (S7): la exigencia sale del recetario de los procedimientos que
+        // el acto documenta, no del flag manual del tipo de cita.
+        if ($materialsCount === 0 && ! $skipMaterials && $this->requiresMaterials($encounter, $appointment, $payload)) {
             throw new MissingMaterialsException(
                 'el tipo de cita requiere registrar materiales o confirmar "skip_materials"'
             );
@@ -284,6 +283,74 @@ class ConsultationService
         if ($appointment === null && ! empty($payload['next_appointment'])) {
             throw NextAppointmentRequiresAppointmentException::make();
         }
+    }
+
+    /**
+     * #295 (S7): un acto exige materiales cuando alguno de los procedimientos
+     * que documenta declara recetario. Una sola consulta resuelve la receta de
+     * los ids implicados; un acto sin procedimientos no exige nada.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function requiresMaterials(ClinicalEncounter $encounter, ?Appointment $appointment, array $payload): bool
+    {
+        $procedureIds = $this->implicatedProcedureIds($encounter, $appointment, $payload);
+
+        if ($procedureIds === []) {
+            return false;
+        }
+
+        return ProcedureCatalog::query()
+            ->whereIn('id', $procedureIds)
+            ->whereHas('materialRecipe')
+            ->exists();
+    }
+
+    /**
+     * Procedimientos que el acto documenta: el del tipo de cita, los ítems que
+     * trae el payload y los del plan que el acto ya tiene guardado.
+     *
+     * @param  array<string, mixed> $payload
+     * @return list<int>
+     */
+    private function implicatedProcedureIds(
+        ClinicalEncounter $encounter,
+        ?Appointment $appointment,
+        array $payload,
+    ): array {
+        $ids = [];
+
+        $defaultProcedureId = $appointment?->appointmentType?->default_procedure_catalog_id;
+        if ($defaultProcedureId !== null) {
+            $ids[] = (int) $defaultProcedureId;
+        }
+
+        $planData = $payload['treatment_plan'] ?? null;
+        if (is_array($planData)) {
+            foreach ($planData['items'] ?? [] as $item) {
+                if (is_array($item) && ! empty($item['procedure_catalog_id'])) {
+                    $ids[] = (int) $item['procedure_catalog_id'];
+                }
+            }
+        }
+
+        $planIds = array_values(array_filter([
+            $encounter->treatment_plan_id,
+            is_array($planData) ? ($planData['id'] ?? null) : null,
+        ]));
+
+        if ($planIds !== []) {
+            $stored = TreatmentPlanItem::query()
+                ->whereIn('treatment_plan_id', array_map('intval', $planIds))
+                ->whereNotNull('procedure_catalog_id')
+                ->pluck('procedure_catalog_id');
+
+            foreach ($stored as $procedureId) {
+                $ids[] = (int) $procedureId;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function medicalRecordFor(int $patientId, ?int $userId): MedicalRecord
@@ -414,6 +481,7 @@ class ConsultationService
             foreach ($items as $item) {
                 TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
+                    'procedure_catalog_id' => $item['procedure_catalog_id'] ?? null,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
                     'procedure_description' => $item['procedure_description'] ?? null,
                     'dental_piece_id' => $item['dental_piece_id'] ?? null,
@@ -452,6 +520,7 @@ class ConsultationService
             foreach ($items as $item) {
                 TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
+                    'procedure_catalog_id' => $item['procedure_catalog_id'] ?? null,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
                     'dental_piece_id' => $item['dental_piece_id'] ?? null,
                     'specialty' => $item['specialty'] ?? null,
@@ -473,6 +542,9 @@ class ConsultationService
     }
 
     /**
+     * El consumo —descuento de stock, guarda y salida por lote— vive en el
+     * servicio de almacén (#295 S1/S2/S5): una sola implementación para el acto.
+     *
      * @param array<string, mixed> $payload
      */
     private function persistProcedureMaterials(
@@ -486,50 +558,17 @@ class ConsultationService
             return;
         }
 
-        $planItemIds = $this->resolvePlanItemIds($planId);
+        // El acto conoce su plan antes de persistirse y el cierre lo escribe
+        // después; adelantarlo en memoria permite que el consumo enlace cada
+        // línea con el ítem del plan que documenta el acto.
+        $encounter->treatment_plan_id = $planId;
 
-        foreach ($materials as $idx => $m) {
-            $productId = $m['product_id'] ?? null;
-            if (! $productId) {
-                continue;
-            }
-
-            // Defensive: si el product_id no existe (BD vacia, FK rota, typo del usuario),
-            // saltamos este material y logueamos en vez de tirar 500 con FK 1452.
-            // El controlador ya valida `exists:products,id` cuando el cliente envia
-            // materiales, pero esta salvaguarda cubre el caso de products table vacia
-            // (catalogo no poblado) sin abortar la consulta completa.
-            $product = Product::find($productId);
-            if (! $product) {
-                Log::warning('Consultation: material con product_id inexistente, se omite', [
-                    'encounter_id' => $encounter->id,
-                    'material_index' => $idx,
-                    'product_id' => $productId,
-                ]);
-
-                continue;
-            }
-
-            $unitCost = $m['unit_cost'] ?? (float) ($product->cost_price ?? 0);
-            $qty = (float) ($m['quantity_used'] ?? 1);
-
-            ProcedureMaterial::create([
-                'appointment_id' => $encounter->appointment_id,
-                'clinical_encounter_id' => $encounter->id,
-                'treatment_plan_item_id' => $this->guessPlanItemId(
-                    $m,
-                    $planItemIds,
-                ),
-                'product_id' => $product->id,
-                'created_by' => $userId,
-                'quantity_used' => $qty,
-                'unit_cost' => $unitCost,
-                'total_cost' => round($qty * (float) $unitCost, 2),
-                'batch_number' => $m['batch_number'] ?? null,
-                'expiry_date' => $m['expiry_date'] ?? null,
-                'notes' => $m['notes'] ?? null,
-            ]);
-        }
+        $this->inventory->consumeForEncounter(
+            $encounter,
+            array_values($materials),
+            $userId,
+            Auth::user()?->branch_id,
+        );
     }
 
     /**
@@ -637,41 +676,6 @@ class ConsultationService
         $planData = $payload['treatment_plan'] ?? null;
         if (is_array($planData) && ! empty($planData['id'])) {
             return (int) $planData['id'];
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function resolvePlanItemIds(?int $planId): array
-    {
-        if (! $planId) {
-            return [];
-        }
-
-        return TreatmentPlanItem::where('treatment_plan_id', $planId)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
-
-    /**
-     * @param array<string, mixed> $material
-     * @param array<int, int>      $planItemIds
-     */
-    private function guessPlanItemId(array $material, array $planItemIds): ?int
-    {
-        if (empty($planItemIds)) {
-            return null;
-        }
-
-        if (! empty($material['treatment_plan_item_id'])) {
-            $candidate = (int) $material['treatment_plan_item_id'];
-            if (in_array($candidate, $planItemIds, true)) {
-                return $candidate;
-            }
         }
 
         return null;

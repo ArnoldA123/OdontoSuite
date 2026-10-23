@@ -69,7 +69,7 @@ class AppointmentTypeController extends Controller
         try {
             $status = $request->query('status', 'active');
 
-            $query = AppointmentType::query();
+            $query = AppointmentType::with('defaultProcedureCatalog.materialRecipe');
 
             if ($status === 'inactive') {
                 $query->where('is_active', false);
@@ -80,7 +80,9 @@ class AppointmentTypeController extends Controller
             $types = $query->get();
 
             return response()->json([
-                'data' => $types,
+                // #295 (S7): el eager loading de la receta evita una consulta
+                // por fila al publicar `requires_materials` derivado.
+                'data' => $types->map(fn (AppointmentType $type) => $type->toResponseArray())->all(),
                 'meta' => [
                     'total' => $types->count(),
                 ],
@@ -139,7 +141,7 @@ class AppointmentTypeController extends Controller
             }
 
             return response()->json([
-                'data' => $type,
+                'data' => $type->toResponseArray(),
                 'meta' => [
                     'message' => 'Tipo de cita creado exitosamente',
                 ],
@@ -163,6 +165,7 @@ class AppointmentTypeController extends Controller
     public function show(string $id): JsonResponse
     {
         $type = AppointmentType::with([
+            'defaultProcedureCatalog.materialRecipe',
             'auditLogs' => function ($query) {
                 $query->with('user:id,name,email')
                     ->orderBy('created_at', 'desc')
@@ -175,7 +178,7 @@ class AppointmentTypeController extends Controller
         }
 
         return response()->json([
-            'data' => $type,
+            'data' => $type->toResponseArray(),
         ]);
     }
 
@@ -244,7 +247,7 @@ class AppointmentTypeController extends Controller
             }
 
             return response()->json([
-                'data' => $type,
+                'data' => $type->toResponseArray(),
                 'meta' => [
                     'message' => 'Tipo de cita actualizado exitosamente',
                 ],
