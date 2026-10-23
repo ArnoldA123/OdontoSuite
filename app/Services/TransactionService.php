@@ -22,7 +22,10 @@ use Illuminate\Validation\ValidationException;
 
 class TransactionService
 {
-    public function __construct(private readonly AccountingLockService $accountingLocks) {}
+    public function __construct(
+        private readonly AccountingLockService $accountingLocks,
+        private readonly PatientStatementService $statements,
+    ) {}
 
     /**
      * Create a new transaction.
@@ -69,6 +72,14 @@ class TransactionService
             if ($type === MoneyVocabulary::REFUND) {
                 Patient::query()->whereKey($data['patient_id'])->lockForUpdate()->first();
                 $this->assertRefundable($data);
+            }
+
+            // #287 (T3, D3) — a write-off forgives debt, so it can never forgive
+            // more than the patient still owes: without the cap the row invents
+            // a pardon bigger than the ledger it is supposed to close.
+            if ($type === MoneyVocabulary::WRITE_OFF) {
+                $patient = Patient::query()->whereKey($data['patient_id'])->lockForUpdate()->first();
+                $this->assertWriteOffWithinBalance($data, $patient);
             }
 
             // Calculate amounts
@@ -521,6 +532,29 @@ class TransactionService
         if ($amount > $available + 0.001) {
             throw ValidationException::withMessages([
                 'amount' => ['La devolución no puede superar el dinero cobrado no devuelto del paciente ('.number_format($available, 2, '.', '').').'],
+            ]);
+        }
+    }
+
+    /**
+     * #287 (T3, D3): a write-off closes debt that exists. It is capped by the
+     * patient's outstanding balance, so forgiving more than what is owed is
+     * refused before anything is written.
+     */
+    private function assertWriteOffWithinBalance(array $data, ?Patient $patient): void
+    {
+        if (! $patient instanceof Patient) {
+            throw ValidationException::withMessages([
+                'patient_id' => ['El paciente seleccionado no es válido.'],
+            ]);
+        }
+
+        $amount = round((float) $data['amount'], 2);
+        $outstanding = round($this->statements->outstandingBalance($patient), 2);
+
+        if ($amount > $outstanding + 0.001) {
+            throw ValidationException::withMessages([
+                'amount' => ['La condonación no puede superar el saldo pendiente del paciente ('.number_format($outstanding, 2, '.', '').').'],
             ]);
         }
     }

@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
 use App\Models\Patient;
+use App\Models\PatientCharge;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
@@ -88,6 +89,20 @@ class MoneyVocabularyTest extends TestCase
             ->getSessionSummary($session->fresh())['expected_amount'];
     }
 
+    /**
+     * Debt the patient owes, so a write-off has something to forgive (#287, T3).
+     */
+    private function charge(Patient $patient, float $amount = 200.0): PatientCharge
+    {
+        return PatientCharge::create([
+            'patient_id' => $patient->id,
+            'source' => PatientCharge::SOURCE_MANUAL,
+            'description' => 'Cargo de prueba',
+            'amount' => $amount,
+            'charged_at' => now(),
+        ]);
+    }
+
     private function dailyIncome(): float
     {
         $report = $this->getJson('/api/cash-reports/daily')->assertOk()->json('data');
@@ -108,7 +123,11 @@ class MoneyVocabularyTest extends TestCase
 
     public function test_a_write_off_is_created_without_a_drawer_and_without_a_method(): void
     {
+        $patient = Patient::factory()->create();
+        $this->charge($patient);
+
         $response = $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
             'type' => 'write_off',
             'authorized_by' => $this->admin->id,
             'authorization_reason' => 'Paciente sin recursos',
@@ -129,8 +148,11 @@ class MoneyVocabularyTest extends TestCase
     public function test_a_write_off_adds_no_daily_income_and_never_touches_the_drawer(): void
     {
         $session = $this->openSession();
+        $patient = Patient::factory()->create();
+        $this->charge($patient);
 
         $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
             'payment_method_id' => $this->method()->id,
             'amount' => 50.0,
         ]))->assertCreated();
@@ -139,6 +161,7 @@ class MoneyVocabularyTest extends TestCase
         $incomeBefore = $this->dailyIncome();
 
         $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
             'type' => 'write_off',
             'amount' => 30.0,
             'authorized_by' => $this->admin->id,
@@ -362,5 +385,57 @@ class MoneyVocabularyTest extends TestCase
             ->assertJsonValidationErrors('payment_method_id');
 
         $this->assertSame(0, Transaction::count());
+    }
+
+    public function test_a_write_off_cannot_forgive_more_than_the_patient_owes(): void
+    {
+        $patient = Patient::factory()->create();
+        $this->charge($patient, 40.0);
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
+            'type' => 'write_off',
+            'amount' => 40.5,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Condonación que inventa deuda',
+        ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('amount');
+
+        $this->assertSame(0, Transaction::count());
+        $this->assertSame(0, CashMovement::count());
+    }
+
+    public function test_a_write_off_within_the_outstanding_balance_is_created(): void
+    {
+        $patient = Patient::factory()->create();
+        $this->charge($patient, 200.0);
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
+            'type' => 'write_off',
+            'amount' => 200.0,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Condonación total del saldo',
+        ]))->assertCreated();
+
+        $transaction = Transaction::sole();
+
+        $this->assertSame('write_off', $transaction->type);
+        $this->assertEqualsWithDelta(200.0, (float) $transaction->amount, 0.001);
+        $this->assertSame(0, CashMovement::count());
+
+        // The forgiven debt left the balance at zero, so nothing else is forgivable.
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
+            'type' => 'write_off',
+            'amount' => 1.0,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Condonación sobre un saldo ya saldado',
+        ]))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('amount');
+
+        $this->assertSame(1, Transaction::count());
     }
 }

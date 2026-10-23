@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientChargeController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientRecallController;
+use App\Http\Controllers\Api\PatientStatementController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
@@ -153,6 +154,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('patients/{patient}/export', [PatientController::class, 'export'])
         ->middleware('permission:'.Permissions::EXPORT_PATIENT);
+
+    // #287 (T3, S3/S9) — the patient statement. It reads the ledger of the
+    // patient, which is shared between sedes (ADR-0010), so it carries no
+    // `cash.session`: there is no drawer involved in reading a balance.
+    Route::get('patients/{patient}/statement', [PatientStatementController::class, 'show'])
+        ->middleware('permission:'.Permissions::VIEW_PATIENT_STATEMENT);
     Route::post('patients', [PatientController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_PATIENT);
     Route::put('patients/{patient}', [PatientController::class, 'update'])

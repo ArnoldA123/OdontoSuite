@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
 use App\Models\Patient;
+use App\Models\PatientCharge;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
@@ -84,7 +85,16 @@ class CashLedgerIntegrityTest extends TestCase
     public function test_voiding_a_write_off_changes_no_cash(): void
     {
         $session = $this->openSession(100.0);
+        $patient = Patient::factory()->create();
+        PatientCharge::create([
+            'patient_id' => $patient->id,
+            'source' => PatientCharge::SOURCE_MANUAL,
+            'description' => 'Cargo de prueba',
+            'amount' => 30,
+            'charged_at' => now(),
+        ]);
         $transaction = $this->transaction('write_off', 30.0, [
+            'patient_id' => $patient->id,
             'payment_method_id' => null,
             'authorized_by' => $this->admin->id,
             'authorization_reason' => 'Condonación aprobada',

@@ -59,6 +59,7 @@
     "view.pending_payment",
     "pay.pending_payment",
     "manage.patient_charge",
+    "view.patient_statement",
     "view.cash_report",
     "export.cash_report",
     "manage.payment_method",
@@ -122,6 +123,7 @@
     "view.pending_payment",
     "pay.pending_payment",
     "manage.patient_charge",
+    "view.patient_statement",
     "view.payer"
   ],
   "odontologo": [
@@ -322,6 +324,7 @@
     "view.pending_payment",
     "pay.pending_payment",
     "manage.patient_charge",
+    "view.patient_statement",
     "view.cash_report",
     "export.cash_report",
     "manage.payment_mercadopago",
