@@ -1,0 +1,38 @@
+# Secret-scanning gate (`.github/workflows/ci.yml`, job `security`).
+#
+# gitleaks ships its default rule set plus the two project rules below. The
+# defaults know provider tokens and key material; they do not know a database
+# password written as a value in an env file or a YAML service block, nor the
+# `root/<password>` shorthand the ODD notes use.
+#
+# Documented placeholders are allowlisted by value, so a real credential in the
+# same position still fails.
+#
+# The gate scans the commits a run publishes, never the whole history: the leak
+# SECURITY.md records is already public and would turn every run red.
+
+title = "OdontoSuite secret-scanning gate"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "project-db-password"
+description = "Database password written as a literal value"
+# Env style (no space after the separator) and YAML style (a colon). A space
+# after `=` is a command, not a value, so it is deliberately not matched.
+regex = '''(?i)\b(?:DB_PASSWORD|MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD)(?:=|:[ \t]*)["']?([^\s"'<>*]{3,})'''
+secretGroup = 1
+keywords = ["db_password", "mysql_password", "mysql_root_password"]
+
+[[rules]]
+id = "project-xampp-root-password"
+description = "XAMPP MariaDB root password in the root/<password> shorthand"
+regex = '''\broot/[0-9]{4,}\b'''
+keywords = ["root/"]
+
+[allowlist]
+description = "Documented development and demo placeholders"
+regexes = [
+  '''(?i)^(<[^>]*>|\*{2,}|secret|root|password123|testing-app-[a-z]+|your[_-][a-z_-]+|tu_[a-z_]+|local-key)$'''
+]

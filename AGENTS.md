@@ -139,7 +139,7 @@ docs/
   architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0015
 
 .github/workflows/
-  ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
+  ci.yml                   # CI con 4 jobs: quality (lint), backend-tests (MySQL), frontend-build, security (gitleaks)
 ```
 
 ---
@@ -285,8 +285,8 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   diagnóstico codificado contra el catálogo CIE-10 y firma del profesional; el
   acto firmado publica su hash de integridad y `GET /api/encounters/{id}/record`
   emite el registro imprimible de la norma.
-- CI/CD con GitHub Actions (3 jobs desacoplados: quality, backend-tests MySQL,
-  frontend-build; ver §10 para qué bloquea y qué es aviso explícito)
+- CI/CD con GitHub Actions (4 jobs desacoplados: quality, backend-tests MySQL,
+  frontend-build y security; ver §10 para qué bloquea y qué es aviso explícito)
 - CREDENTIALS.md sincronizado (tests automáticos lo validan)
 - Catálogo con aplicabilidad (#293): `procedure_catalog.site_type`
   (`none|tooth|surface|quadrant|arch`) y `procedure_external_codes` con los
@@ -513,15 +513,16 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ## 10. CI/CD
 
-`.github/workflows/ci.yml` con 3 jobs desacoplados (ninguno bloquea a otro: un
+`.github/workflows/ci.yml` con 4 jobs desacoplados (ninguno bloquea a otro: un
 lint en rojo nunca esconde si los tests pasan). El workflow es la fuente de
 verdad; esta tabla lo resume sin repetir su contenido.
 
-| Job              | Qué verifica                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`). |
-| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                       |
-| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                |
+| Job              | Qué verifica                                                                                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quality`        | Bloqueantes: PHP syntax, validación JSON, Pint (`vendor/bin/pint --test`), ESLint, Vitest smoke (`pnpm test:js`) y Prettier (`pnpm format:check`).                                                                     |
+| `backend-tests`  | MySQL 8.0 real como service: `php artisan migrate --force` + suite completa.                                                                                                                                           |
+| `frontend-build` | `pnpm build` + upload del artifact.                                                                                                                                                                                    |
+| `security`       | Bloqueante: `gitleaks` fijado y verificado por checksum sobre los commits que publica el run (rango del PR o del push), con las reglas de `.gitleaks.toml`; la credencial histórica de `SECURITY.md` no se re-escanea. |
 
 **Triggers**: push a `main`/`fix/*`/`feat/*`/`chore/*`/`refactor/*` + PRs a
 `main`.
@@ -542,6 +543,22 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (seguridad: credencial local redactada y gate de secretos)** — La
+  nota ODD de la interfaz de métodos de pago publicaba en su log la contraseña
+  del MariaDB local de XAMPP; la misma clave aparecía en una nota de auditoría
+  sin versionar. Se redactaron las dos, junto con las rutas absolutas de otras
+  cinco notas. El valor sigue recuperable en la historia (`b914f45`, `2fd17a2`)
+  y en cuatro cabeceras de PR cerradas: la decisión de aceptar el riesgo, sus
+  condiciones (base local, `skip-networking`, phpMyAdmin bajo `Require local`,
+  sin datos reales) y sus disparadores de rotación viven en `SECURITY.md`. Nuevo
+  job `security` en CI: `gitleaks` 8.30.1 fijado y verificado contra el checksum
+  publicado, corriendo sobre los commits que publica cada run (rango del PR o
+  del push) con las reglas de `.gitleaks.toml` (contraseña de base escrita como
+  valor, forma `root/<clave>` y allowlist de marcadores documentados). No
+  re-escanea la historia: el hallazgo conocido ya está publicado. Guard
+  `SecretScanGateTest` (3). Sin rutas, modelos, migraciones ni primitivas UI
+  nuevas: los conteos de §4 no cambian.
 
 - **2026-10-23 (asistente de cierre: el formulario se rearma entre atenciones,
   #311)** — `ConsultationWizard` vive montado en `/my-day` y `/calendar` y sólo

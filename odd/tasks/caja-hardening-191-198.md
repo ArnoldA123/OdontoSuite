@@ -1,6 +1,6 @@
 # Caja hardening — issues #191, #193, #194, #196, #198
 
-Rama `fix/caja-hardening`, worktree `/home/chomb/proyectos/odontosuite-caja`.
+Rama `fix/caja-hardening`, worktree `~/proyectos/odontosuite-caja`.
 Endpoint family: `pending-payments` + `cash-register-sessions` (lectura y RBAC).
 
 ## Specs
