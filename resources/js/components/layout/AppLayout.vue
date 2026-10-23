@@ -967,7 +967,10 @@ const navigation = computed(() => {
       name: 'Registros de Especialidad',
       to: '/specialty-records',
       icon: AcademicCapIcon,
-      roles: ['administrador', 'odontologo', 'implantologo', 'tecnico_dental'],
+      // #313 (decision D1): el registro de especialidad es un acto clínico con
+      // narrativa quirúrgica; el escritorio de laboratorio trabaja desde el
+      // caso protésico, no desde este módulo.
+      roles: ['administrador', 'odontologo', 'implantologo'],
       badge: null
     },
     {

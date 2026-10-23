@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Authorization\Permissions;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,6 +15,17 @@ class AppointmentResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // F5 (#314, D2): the conduct the closure used to copy from the
+        // evolution is clinical content, so only the desk that reads the
+        // record receives the key. It is cut from the array instead of
+        // resolved as a conditional value because `my-day` serializes the
+        // resource with `toArray()`, where an omitted conditional still
+        // leaves the key behind.
+        $readsClinicalRecord = Permissions::roleHas(
+            $request->user()?->role,
+            Permissions::MANAGE_MEDICAL_RECORD,
+        );
+
         return [
             'id' => $this->id,
             'patient_id' => $this->patient_id,
@@ -25,7 +37,7 @@ class AppointmentResource extends JsonResource
             'duration_minutes' => $this->duration_minutes,
             'status' => $this->status,
             'notes' => $this->notes,
-            'treatment_notes' => $this->treatment_notes,
+            ...($readsClinicalRecord ? ['treatment_notes' => $this->treatment_notes] : []),
             'idempotency_key' => $this->idempotency_key,
             'treatment_plan_id' => $this->treatment_plan_id,
             'final_amount' => $this->final_amount !== null ? (float) $this->final_amount : null,
