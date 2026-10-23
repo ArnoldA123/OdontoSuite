@@ -3,9 +3,9 @@
 namespace Tests\Feature\Domain;
 
 use App\Models\ClinicalEncounter;
-use App\Models\Product;
 use App\Models\ProcedureCatalog;
 use App\Models\ProcedureMaterial;
+use App\Models\Product;
 use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
