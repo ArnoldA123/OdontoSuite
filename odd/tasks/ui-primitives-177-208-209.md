@@ -1,7 +1,7 @@
 # UI primitives polish — #177 / #208 / #209
 
 Rama: `fix/ui-primitives-177-208-209` (desde `origin/main` @ 3cc3bd9)
-Worktree: `/home/chomb/proyectos/odontosuite-ui-primitives`
+Worktree: `~/proyectos/odontosuite-ui-primitives`
 Creado: 2026-10-21 · Orquestador: el Gentleman
 
 ## Specs

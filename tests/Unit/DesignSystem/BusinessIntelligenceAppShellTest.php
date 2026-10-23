@@ -673,17 +673,37 @@ class BusinessIntelligenceAppShellTest extends ModuleAppShellTestCase
         );
 
         $appliedParams = $this->extractBlock(
-            '~const appliedParams = \(\) => \(\{[\s\S]*?\}\)~',
+            '~const appliedParams = \(\) => (?:\(\{[\s\S]*?\}\)|buildAppliedParams\(applied\.value\))~',
             $src,
             'BusinessIntelligencePage.vue must keep the appliedParams() builder (T9).'
         );
+
+        // #303: the applied-filter rule became a pure helper with its own unit
+        // tests, so the page may delegate the builder. The period rule then
+        // lives in the helper, never in the draft filters.
+        if (str_contains($appliedParams, 'buildAppliedParams')) {
+            $appliedParams = $this->readSource(
+                '/resources/js/modules/business-intelligence/reportScope.js'
+            );
+            $this->assertStringContainsString(
+                'export function buildAppliedParams(applied)',
+                $appliedParams,
+                'reportScope.js must own the applied-filter builder when the page delegates it (T9).'
+            );
+            $from = 'applied.from';
+            $to = 'applied.to';
+        } else {
+            $from = 'applied.value.from';
+            $to = 'applied.value.to';
+        }
+
         $this->assertStringContainsString(
-            'applied.value.from',
+            $from,
             $appliedParams,
             'The export period must use the applied `from` date (T9).'
         );
         $this->assertStringContainsString(
-            'applied.value.to',
+            $to,
             $appliedParams,
             'The export period must use the applied `to` date (T9).'
         );

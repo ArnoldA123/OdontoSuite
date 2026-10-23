@@ -13,7 +13,14 @@ import { readFileSync } from 'node:fs'
 // (loading via LoadingSpinner, empty/error via UiSectionEmpty), the edit
 // form consolidated into the shared PatientFormModal, and a
 // heroicons-only icon budget.
-const harness = vi.hoisted(() => ({ apiGet: vi.fn() }))
+const harness = vi.hoisted(() => {
+  const privateChannel = vi.fn(() => {
+    const channel = { listen: () => channel }
+    return channel
+  })
+
+  return { apiGet: vi.fn(), privateChannel }
+})
 
 vi.mock('../../../resources/js/composables/useApi', () => ({
   useApi: () => ({
@@ -33,6 +40,7 @@ vi.mock('../../../resources/js/composables/useEcho', () => ({
       const channel = { listen: () => channel }
       return channel
     },
+    privateChannel: harness.privateChannel,
     connectionStatus: { value: 'connected' }
   })
 }))
@@ -113,7 +121,15 @@ const mountPage = async () => {
   return wrapper
 }
 
-const TAB_IDS = ['data', 'treatment-plans', 'quotations', 'medical-records', 'specialties', 'audit']
+const TAB_IDS = [
+  'data',
+  'treatment-plans',
+  'quotations',
+  'medical-records',
+  'specialties',
+  'laboratorio',
+  'audit'
+]
 
 describe('patient detail hero band (login language)', () => {
   beforeEach(() => {
@@ -291,7 +307,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     document.body.innerHTML = ''
   })
 
-  it('renders the six UiTabs panels through ONE shared component', async () => {
+  it('renders the seven UiTabs panels through ONE shared component', async () => {
     const wrapper = await mountPage()
 
     // UiTabs is resolved as a real component (not an unknown element).
@@ -303,6 +319,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
       'Presupuestos',
       'Historia Clínica',
       'Especialidades',
+      'Laboratorio',
       'Historial'
     ])
 
@@ -312,7 +329,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     // The page renders the shared component exactly once per tab and
     // never writes the panel hook itself (the component owns it).
     expect(pageSource).toContain("import PatientTabPanel from './PatientTabPanel.vue'")
-    expect(pageSource.match(/<PatientTabPanel/g) || []).toHaveLength(6)
+    expect(pageSource.match(/<PatientTabPanel/g) || []).toHaveLength(7)
     expect(pageSource.match(/data-patient-tab-panel/g) || []).toHaveLength(0)
 
     wrapper.unmount()
@@ -344,6 +361,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
       ['quotations', 'No hay presupuestos'],
       ['medical-records', 'No hay historias clínicas'],
       ['specialties', 'No hay registros de especialidades'],
+      ['laboratorio', 'Sin casos de laboratorio'],
       ['audit', 'No hay historial de auditoría']
     ]) {
       const empties = wrapper.findAll(`[data-patient-tab-panel="${state}"] [data-section-empty]`)
@@ -363,7 +381,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
       wrapper.findAll('[data-patient-tab-panel="audit"] [data-section-empty] button')
     ).toHaveLength(0)
 
-    expect(wrapper.findAllComponents(UiSectionEmpty)).toHaveLength(5)
+    expect(wrapper.findAllComponents(UiSectionEmpty)).toHaveLength(6)
 
     wrapper.unmount()
   })
@@ -394,7 +412,7 @@ describe('patient detail tab anatomy (one shared PatientTabPanel)', () => {
     expect(wrapper.find('.animate-spin').exists()).toBe(false)
 
     // Activating the audit tab streams its own load through the panel.
-    const auditTab = wrapper.findAll('[role="tab"]')[5]
+    const auditTab = wrapper.find('#tab-audit')
     await auditTab.trigger('click')
     expect(wrapper.find('[data-patient-tab-panel="audit"]').find('.loading-spinner').exists()).toBe(
       true
@@ -552,7 +570,217 @@ describe('patient detail motion + icon budget', () => {
     const hero = wrapper.find('[data-patient-detail-hero]')
     expect(hero.find('[data-edit-patient-button] svg').exists()).toBe(true)
     expect(hero.find('[data-export-button] svg').exists()).toBe(true)
-    expect(wrapper.findAll('[role="tab"] svg')).toHaveLength(6)
+    expect(wrapper.findAll('[role="tab"] svg')).toHaveLength(7)
+
+    wrapper.unmount()
+  })
+})
+
+// F5 (#316) — the prosthetic laboratory is dispatch work: the tab exists only
+// with `view.lab_case`, it loads the patient's work orders when it becomes
+// active and it writes only with `manage.lab_case` (reception reads the work
+// order, it does not open one).
+const LAB_CASE = {
+  id: 11,
+  patient_id: 7,
+  professional_id: 2,
+  technician_id: 9,
+  dental_piece_id: 4,
+  work: 'Corona metal-cerámica',
+  material: 'Zirconio',
+  sent_at: '2026-10-20T00:00:00.000000Z',
+  promised_at: '2026-10-24T00:00:00.000000Z',
+  status: 'in_laboratory',
+  notes: 'Pieza 16, ajuste oclusal',
+  patient: { id: 7, first_name: 'Ana', last_name: 'Torres' },
+  technician: { id: 9, name: 'Tec. Marco Díaz' },
+  dental_piece: { id: 4, fdi_number: '16' }
+}
+
+const LAB_URL = '/api/lab-cases?patient_id=7&per_page=50'
+
+const installWithLabCase = () => {
+  installGet(async url => {
+    if (url === URLS.patient) return { data: patient }
+    if (url === LAB_URL) {
+      return { data: [LAB_CASE], meta: { current_page: 1, last_page: 1, per_page: 50, total: 1 } }
+    }
+    return { data: [] }
+  })
+}
+
+const openLaboratorio = async wrapper => {
+  await wrapper.find('#tab-laboratorio').trigger('click')
+  await flushPromises()
+}
+
+describe('patient detail laboratory tab (F5 #316)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('shows the patient work orders in the laboratory tab and loads them on activation', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installWithLabCase()
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('#tab-laboratorio').text()).toBe('Laboratorio')
+    // The panel is lazy: nothing is fetched before the tab is opened.
+    expect(harness.apiGet.mock.calls.map(([url]) => url)).not.toContain(LAB_URL)
+
+    await openLaboratorio(wrapper)
+
+    expect(harness.apiGet).toHaveBeenCalledWith(LAB_URL)
+
+    const table = wrapper.get('[data-patient-lab-cases-table]')
+    expect(table.text()).toContain('Corona metal-cerámica')
+    expect(table.text()).toContain('16')
+    expect(table.text()).toContain('24 oct 2026')
+    expect(table.text()).toContain('Tec. Marco Díaz')
+    expect(table.text()).toContain('En laboratorio')
+    expect(wrapper.find('[data-patient-lab-cases-empty]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('opens the create form from the tab and the edit form from the row', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installWithLabCase()
+
+    const wrapper = await mountPage()
+    await openLaboratorio(wrapper)
+
+    await wrapper.get('[data-patient-lab-case-new]').trigger('click')
+    await flushPromises()
+
+    expect(document.querySelector('[data-lab-case-form]')).toBeTruthy()
+    expect(document.querySelector('[data-lab-case-form-patient-fixed]').textContent).toContain(
+      'Ana Torres'
+    )
+    expect(document.querySelector('[data-lab-case-form-patient]')).toBeNull()
+
+    wrapper.unmount()
+  })
+
+  it('prefills the edit form with the row that was opened', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installWithLabCase()
+
+    const wrapper = await mountPage()
+    await openLaboratorio(wrapper)
+
+    await wrapper.get('[data-patient-lab-case-edit]').trigger('click')
+    await flushPromises()
+
+    expect(document.querySelector('#lab-case-work').value).toBe('Corona metal-cerámica')
+    expect(document.querySelector('#lab-case-material').value).toBe('Zirconio')
+    expect(document.querySelector('#lab-case-sent-at').value).toBe('2026-10-20')
+
+    wrapper.unmount()
+  })
+
+  it('renders the empty state when the patient has no work orders', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 1, role: 'administrador' }))
+    installGet(happyGet)
+
+    const wrapper = await mountPage()
+    await openLaboratorio(wrapper)
+
+    expect(wrapper.find('[data-patient-lab-cases-empty]').exists()).toBe(true)
+    expect(wrapper.find('[data-patient-lab-cases-table]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('lets reception read the tab but not open or edit a case', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 2, role: 'recepcionista' }))
+    installWithLabCase()
+
+    const wrapper = await mountPage()
+    await openLaboratorio(wrapper)
+
+    expect(wrapper.find('#tab-laboratorio').exists()).toBe(true)
+    expect(wrapper.find('[data-patient-lab-cases-table]').exists()).toBe(true)
+    expect(wrapper.find('[data-patient-lab-case-new]').exists()).toBe(false)
+    expect(wrapper.find('[data-patient-lab-case-edit]').exists()).toBe(false)
+
+    wrapper.unmount()
+  })
+
+  it('hides the tab from a profile without the laboratory module', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 3, role: 'finanzas' }))
+    installGet(happyGet)
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.find('#tab-laboratorio').exists()).toBe(false)
+    // Finanzas holds neither `view.lab_case` nor `manage.specialty_record`, so
+    // the drawer keeps the five tabs it always had for that desk.
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(5)
+
+    wrapper.unmount()
+  })
+})
+
+// #313 (decision D1) — the specialty record is a clinical act with surgical
+// narrative, so the desk that cannot read it neither offers it nor asks for it.
+// The two cases pin both sides of the same boundary on the patient drawer: the
+// technician never sees the tab, never calls the aggregate endpoint and never
+// opens the broadcast channel; a role that holds `manage.specialty_record`
+// keeps all three.
+describe('patient detail specialty tab boundary (#313)', () => {
+  beforeEach(() => {
+    harness.apiGet.mockReset()
+    harness.privateChannel.mockClear()
+    installGet(happyGet)
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.body.innerHTML = ''
+  })
+
+  it('hides the specialty tab, its read and its channel from the laboratory desk', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 30, role: 'tecnico_dental' }))
+
+    const wrapper = await mountPage()
+
+    const tabs = wrapper.findAll('[role="tab"]').map(tab => tab.text())
+    expect(tabs).not.toContain('Especialidades')
+    expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(false)
+    expect(
+      wrapper.findAll('[data-patient-tab-panel]').map(panel => panel.attributes('data-tab'))
+    ).toEqual(['data', 'treatment-plans', 'quotations', 'medical-records', 'laboratorio', 'audit'])
+
+    // The absence is a gate, not a failed mount: the other reads still run.
+    const requested = harness.apiGet.mock.calls.map(([url]) => url)
+    expect(requested).toContain(URLS.treatment)
+    expect(requested).not.toContain(URLS.specialty)
+
+    // Same for the realtime pipe: the channel is never opened, the others are.
+    const channels = harness.privateChannel.mock.calls.map(([name]) => name)
+    expect(channels).toContain('patients')
+    expect(channels).not.toContain('specialty-records')
+
+    wrapper.unmount()
+  })
+
+  it('keeps the specialty tab, its read and its channel for a clinician role', async () => {
+    localStorage.setItem('user', JSON.stringify({ id: 31, role: 'odontologo' }))
+
+    const wrapper = await mountPage()
+
+    expect(wrapper.findAll('[role="tab"]').map(tab => tab.text())).toContain('Especialidades')
+    expect(wrapper.find('[data-patient-tab-panel="specialties"]').exists()).toBe(true)
+
+    expect(harness.apiGet.mock.calls.map(([url]) => url)).toContain(URLS.specialty)
+    expect(harness.privateChannel.mock.calls.map(([name]) => name)).toContain('specialty-records')
 
     wrapper.unmount()
   })

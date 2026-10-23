@@ -584,6 +584,32 @@
               </label>
               <UiTextarea id="cw-next-notes" v-model="payload.next_appointment.notes" :rows="2" />
             </div>
+
+            <!--
+              F5 (#316): el trabajo del taller es una entidad propia. Se abre su
+              formulario con el paciente de la cita y no toca el payload del
+              cierre: el caso se registra por POST /api/lab-cases.
+            -->
+            <div
+              v-if="can.manageLabCase?.value"
+              class="pt-4 border-t"
+              style="border-color: var(--color-hairline)"
+              data-wizard-lab-case
+            >
+              <h4 class="text-sm font-semibold text-theme-primary">Laboratorio protésico</h4>
+              <p class="mt-1 text-sm text-theme-secondary">
+                Si esta atención deja un trabajo en el taller, regístralo como caso de laboratorio.
+              </p>
+              <UiButton
+                variant="secondary"
+                size="sm"
+                class="mt-3"
+                data-wizard-lab-case-new
+                @click="labCaseFormOpen = true"
+              >
+                Registrar caso de laboratorio
+              </UiButton>
+            </div>
           </section>
 
           <!-- PASO 7: Cierre y firma (F6 #286, NTS 139) -->
@@ -651,6 +677,12 @@
           </div>
         </div>
       </div>
+
+      <LabCaseFormModal
+        v-model="labCaseFormOpen"
+        :patient-id="closurePatientId"
+        :patient-name="closurePatientName"
+      />
     </div>
   </Teleport>
 </template>
@@ -667,6 +699,8 @@ import UiStatusBadge from '@/components/ui/StatusBadge.vue'
 import UiButton from '@/components/ui/Button.vue'
 import UiLoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import DiagnosisPicker from '@/components/procedures/DiagnosisPicker.vue'
+import LabCaseFormModal from '../lab-cases/LabCaseFormModal.vue'
+import { usePermissions } from '../../composables/usePermissions'
 
 const props = defineProps({
   appointment: { type: Object, default: null }
@@ -684,6 +718,21 @@ const {
 } = useConsultation()
 
 const { get: apiGet } = useApi()
+const { can } = usePermissions()
+
+const labCaseFormOpen = ref(false)
+
+// The case is opened for the patient of the act; `patient_id` may travel only
+// as the relation on some payloads, so both shapes resolve here.
+const closurePatientId = computed(
+  () => props.appointment?.patient_id ?? props.appointment?.patient?.id ?? null
+)
+
+const closurePatientName = computed(() => {
+  const patient = props.appointment?.patient
+  if (!patient) return ''
+  return [patient.first_name, patient.last_name].filter(Boolean).join(' ')
+})
 
 const modeOptions = [
   {
@@ -746,7 +795,10 @@ const catalogSearchTimers = reactive({})
 const productResults = reactive({})
 const productSearchTimers = reactive({})
 
-const payload = ref({
+// #311: el payload se construye desde una fábrica para poder rearmarlo entre
+// actos. El asistente vive montado en /my-day y /calendar y sólo alterna su
+// visibilidad, así que este objeto es el único estado que sobrevive al cierre.
+const createInitialPayload = () => ({
   mode: 'consultation',
   skip_materials: false,
   // F6 (#286): NTS 139 minimums of the act. `reason_for_consultation` is the
@@ -784,6 +836,24 @@ const payload = ref({
     notes: ''
   }
 })
+
+const payload = ref(createInitialPayload())
+
+// #311: rearma el formulario completo y descarta las búsquedas en vuelo. Un
+// acto clínico no hereda el contenido documentado de otro paciente ni los
+// resultados de un catálogo buscado para el anterior.
+const resetForm = () => {
+  payload.value = createInitialPayload()
+  currentStep.value = 'mode'
+  executedItemIds.value = []
+  for (const timers of [catalogSearchTimers, productSearchTimers]) {
+    Object.values(timers).forEach(id => clearTimeout(id))
+    Object.keys(timers).forEach(key => delete timers[key])
+  }
+  for (const results of [catalogResults, productResults]) {
+    Object.keys(results).forEach(key => delete results[key])
+  }
+}
 
 const currentStepIndex = computed(() => steps.findIndex(s => s.id === currentStep.value))
 const isLastStep = computed(() => currentStepIndex.value === steps.length - 1)
@@ -847,12 +917,19 @@ watch(
 // F6 (#286): la contraseña firma un acto, no la sesión del asistente. Abrir el
 // cierre de otra cita exige una re-autenticación propia; si el acto anterior
 // dejó la clave en el formulario, no puede viajar al siguiente registro.
+// #311: el resto del contenido clínico tampoco, así que cambiar de cita rearma
+// el formulario entero.
 watch(
   () => props.appointment?.id,
-  () => {
-    payload.value.signature.password = ''
-  }
+  () => resetForm()
 )
+
+// #311: la visibilidad es el otro disparador. La página abre el asistente con
+// `openForAppointment()`, así que al abrirlo el acto arranca vacío aunque sea
+// la misma cita que se canceló antes.
+watch(isOpen, open => {
+  if (open) resetForm()
+})
 
 watch(
   selectedPlan,

@@ -45,15 +45,31 @@ const appointment = (id, status = 'arrived') => ({
   dental_chair: { id: 1, name: 'Sillón 1' }
 })
 
+// F5 (#316): the prosthetic cases the workshop returned. The API scopes them to
+// the authenticated professional, so the composable only buckets and counts.
+const labCase = (id = 31) => ({
+  id,
+  work: 'Corona metal-cerámica',
+  material: 'Zirconia',
+  status: 'delivered',
+  sent_at: '2026-10-18',
+  promised_at: '2026-10-25',
+  delivered_at: '2026-10-21',
+  patient: { id: 300, first_name: 'Ana', last_name: 'Torres' },
+  technician: { id: 9, name: 'Téc. Mario Vega' },
+  dental_piece: { id: 4, fdi_number: 26 }
+})
+
 const payload = () => ({
   data: {
     waiting: [appointment(11)],
     attending: [appointment(12, 'in_consultation')],
-    upcoming: [appointment(13, 'confirmed'), appointment(14, 'scheduled')]
+    upcoming: [appointment(13, 'confirmed'), appointment(14, 'scheduled')],
+    ready_lab_cases: [labCase()]
   },
   meta: {
     date: '2026-10-21',
-    counts: { waiting: 1, attending: 1, upcoming: 2 }
+    counts: { waiting: 1, attending: 1, upcoming: 2, ready_lab_cases: 1 }
   }
 })
 
@@ -80,7 +96,7 @@ describe('useMyDay maps the three buckets', () => {
     expect(queue.value.waiting).toHaveLength(1)
     expect(queue.value.attending).toHaveLength(1)
     expect(queue.value.upcoming).toHaveLength(2)
-    expect(counts.value).toEqual({ waiting: 1, attending: 1, upcoming: 2 })
+    expect(counts.value).toEqual({ waiting: 1, attending: 1, upcoming: 2, ready_lab_cases: 1 })
   })
 
   it('falls back to the bucket length when the payload carries no counts', async () => {
@@ -89,7 +105,46 @@ describe('useMyDay maps the three buckets', () => {
     const { counts, load } = useMyDay()
     await load()
 
-    expect(counts.value).toEqual({ waiting: 1, attending: 0, upcoming: 0 })
+    expect(counts.value).toEqual({ waiting: 1, attending: 0, upcoming: 0, ready_lab_cases: 0 })
+  })
+})
+
+describe('useMyDay maps the ready laboratory cases', () => {
+  it('buckets the ready prosthetic cases and their count', async () => {
+    api.get.mockResolvedValue(payload())
+
+    const { queue, counts, load } = useMyDay()
+    await load()
+
+    expect(queue.value.ready_lab_cases).toHaveLength(1)
+    expect(queue.value.ready_lab_cases[0]).toMatchObject({
+      id: 31,
+      work: 'Corona metal-cerámica',
+      status: 'delivered',
+      promised_at: '2026-10-25'
+    })
+    expect(counts.value.ready_lab_cases).toBe(1)
+  })
+
+  it('falls back to the bucket length when the counts omit the lab bucket', async () => {
+    const fixture = payload()
+    delete fixture.meta.counts.ready_lab_cases
+    api.get.mockResolvedValue(fixture)
+
+    const { counts, load } = useMyDay()
+    await load()
+
+    expect(counts.value.ready_lab_cases).toBe(1)
+  })
+
+  it('leaves the lab bucket empty and counted at zero without cases', async () => {
+    api.get.mockResolvedValue({ data: { waiting: [appointment(21)] } })
+
+    const { queue, counts, load } = useMyDay()
+    await load()
+
+    expect(queue.value.ready_lab_cases).toEqual([])
+    expect(counts.value.ready_lab_cases).toBe(0)
   })
 })
 

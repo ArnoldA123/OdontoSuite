@@ -53,8 +53,11 @@ class DomainChannelsAuthorizationTest extends TestCase
             'medical-records' => [
                 'administrador', 'odontologo', 'implantologo', 'asistente',
             ],
+            // #313 (decision D1): the channel publishes the whole specialty
+            // record, surgical narrative included, so the laboratory desk is
+            // out of it too.
             'specialty-records' => [
-                'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
+                'administrador', 'odontologo', 'implantologo',
             ],
             'treatment-plans' => [
                 'administrador', 'odontologo', 'implantologo', 'tecnico_dental',
@@ -64,6 +67,10 @@ class DomainChannelsAuthorizationTest extends TestCase
             // The per-session channel publishes payments and ledger
             // movements; it used to accept any authenticated user.
             'cash-session.7' => ['administrador', 'finanzas', 'recepcionista'],
+            // The dashboard channel authorizes the seven roles and carries the
+            // operational counters; #315 keeps clinical documents off it, so a
+            // new role must still be added here deliberately.
+            'dashboard-updates' => self::ROLES,
             'procedure-catalog' => self::ROLES,
             'users' => ['administrador'],
             // F5 (#285, S4): the laboratory channel carries the case, the

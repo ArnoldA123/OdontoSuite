@@ -85,7 +85,14 @@ del login es el `username`** (no el email, no el nombre).
 > autorización registrada de un administrador (`authorized_by` + motivo), y el
 > descuento es un campo del cobro, no un tipo de transacción. El cargo que el
 > cierre escribe en `patient_charges` y el cargo manual se leen en el estado de
-> cuenta del paciente, que es del paciente y no de la sede.
+> cuenta del paciente, que es del paciente y no de la sede. Desde #313 el
+> registro de especialidad es un acto clínico con narrativa quirúrgica: el
+> escritorio de laboratorio no lo lee ni lo escribe, y su canal de difusión dejó
+> de autorizarlo. Desde #314 la conducta clínica no se copia en la cita: el
+> cierre ya no escribe `treatment_notes` y el campo sólo se publica al
+> escritorio que lee la historia clínica. Desde #315 los eventos de documentos
+> clínicos no viajan por `dashboard-updates`, que autoriza a los siete roles. La
+> frontera completa vive en ADR-0016.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -131,8 +138,12 @@ del login es el `username`** (no el email, no el nombre).
 | Tarifario por sede                  | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Fijar bloqueo contable              | ✅²           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | Autorizar edición antes del bloqueo | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
+| Pedir traslado de sede              | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ✅       |
+| Decidir traslado de sede            | ✅³           | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |
 | **Clínica**                         |
 | Historias clínicas                  | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
+| Registros de especialidad           | ✅            | ❌            | ✅         | ✅           | ❌      | ❌        | ❌       |
+| Notas de tratamiento de la cita     | ✅            | ❌            | ✅         | ✅           | ❌      | ✅        | ❌       |
 | Casos de laboratorio (lectura)      | ✅            | ✅            | ✅         | ✅           | ✅      | ✅        | ❌       |
 | Casos de laboratorio (alta y fases) | ✅            | ❌            | ✅         | ✅           | ✅      | ❌        | ❌       |
 | Odontogramas                        | ✅            | ❌            | ✅         | ✅           | ✅      | ✅        | ❌       |
@@ -153,6 +164,14 @@ fila de bloqueo global (`branch_id` nulo) es sólo de gerencia. Editar dinero co
 fecha anterior al bloqueo exige `lock_override_reason` (mínimo 10 caracteres) y
 queda en `audit_logs` como `accounting_lock_overridden`; sin él la respuesta es
 403 con `accounting_lock_blocked`.
+
+³ Pedir el traslado es autoservicio: cada usuario solicita el suyo con motivo, y
+sólo una solicitud abierta a la vez. Decidirlo exige alcance de grupo: un
+administrador con sede ve las solicitudes que entran o salen de su sede pero no
+las aprueba ni las rechaza. La aprobación es la única escritura de
+`users.branch_id` fuera de la edición administrativa, ocurre en la misma
+transacción que el cambio de estado y deja `user_branch_assigned` con el valor
+anterior y el nuevo. Una solicitud pendiente no habilita nada.
 
 ---
 

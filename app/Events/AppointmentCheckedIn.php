@@ -3,6 +3,7 @@
 namespace App\Events;
 
 use App\Models\Appointment;
+use App\Support\AppointmentBroadcastPayload;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -35,7 +36,7 @@ class AppointmentCheckedIn implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'appointment' => $this->appointment->loadMissing('patient', 'user', 'appointmentType', 'dentalChair'),
+            'appointment' => AppointmentBroadcastPayload::for($this->appointment),
             'checked_in_at' => $this->appointment->checked_in_at?->toIso8601String(),
         ];
     }

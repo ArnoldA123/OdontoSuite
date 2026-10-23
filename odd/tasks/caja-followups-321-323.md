@@ -52,7 +52,7 @@ S9 (#323). Los tests cubren ambos lados, bloqueado y permitido.
       `CashDepositAccountingLockTest` (5) verdes en el run combinado
       `PatientChargeAllocationTest|CashDrawerLockTest|CashDepositAccountingLockTest`
       (22 tests, 116 aserciones).
-- [x] T4 — Documentación (ADR-0016, ADR-0015, AGENTS.md §4/§6/§9/§11/§12) y
+- [x] T4 — Documentación (ADR-0018, ADR-0015, AGENTS.md §4/§6/§9/§11/§12) y
       verificación final. Evidencia: suite MySQL completa `OK (2694 tests, 16297
       assertions)`, Pint `--test` (859 archivos), Prettier `--check` y
       `node scripts/audit/doc-drift.mjs` (14/14). Commit propio.

@@ -75,6 +75,8 @@
     "manage.appointment_type",
     "manage.branch",
     "manage.branch_price",
+    "request.branch_transfer",
+    "decide.branch_transfer",
     "view.payer",
     "manage.payer",
     "manage.payer_price",
@@ -130,6 +132,7 @@
     "pay.pending_payment",
     "manage.patient_charge",
     "view.patient_statement",
+    "request.branch_transfer",
     "view.payer"
   ],
   "odontologo": [
@@ -175,6 +178,7 @@
     "manage.specialty_record",
     "view.dental_piece",
     "manage.procedure_favorite",
+    "request.branch_transfer",
     "view.payer",
     "view.ai_analysis",
     "create.ai_analysis",
@@ -224,6 +228,7 @@
     "manage.specialty_record",
     "view.dental_piece",
     "manage.procedure_favorite",
+    "request.branch_transfer",
     "view.payer",
     "view.ai_analysis",
     "create.ai_analysis",
@@ -262,9 +267,9 @@
     "manage.reminder",
     "send.reminder",
     "manage.treatment_plan",
-    "manage.specialty_record",
     "view.dental_piece",
-    "manage.procedure_favorite"
+    "manage.procedure_favorite",
+    "request.branch_transfer"
   ],
   "asistente": [
     "view.profile",
@@ -303,7 +308,8 @@
     "manage.evolution",
     "manage.attachment",
     "view.medical_record_stats",
-    "manage.procedure_favorite"
+    "manage.procedure_favorite",
+    "request.branch_transfer"
   ],
   "finanzas": [
     "view.profile",
@@ -340,6 +346,7 @@
     "view.cash_report",
     "export.cash_report",
     "manage.payment_mercadopago",
+    "request.branch_transfer",
     "view.payer",
     "view.report",
     "export.report",

@@ -163,7 +163,7 @@ en su propio ledger.**
   qué fecha decide el bloqueo.
 - La imputación de un pago a un cargo concreto existe desde #321, pero como
   vista: `patient_charge_allocations` dice qué cargo pagó un pago y el saldo
-  sigue siendo la regla de esta decisión. Ver ADR-0016.
+  sigue siendo la regla de esta decisión. Ver ADR-0018.
 - Permisos nuevos, los tres con `CASH_ROLES` (administrador, finanzas,
   recepcionista): `manage.patient_charge`, `view.patient_statement` y
   `manage.cash_deposit`; el listado de depósitos conserva `view.cash_register`.

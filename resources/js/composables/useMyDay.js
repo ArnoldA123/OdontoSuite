@@ -7,8 +7,8 @@ import { useToast } from './useToast'
 // queue to the authenticated professional, so this composable never filters by
 // user: it only buckets, acts, and refreshes. State lives at module scope
 // because the desk and its realtime subscription are one singleton.
-const emptyQueue = () => ({ waiting: [], attending: [], upcoming: [] })
-const emptyCounts = () => ({ waiting: 0, attending: 0, upcoming: 0 })
+const emptyQueue = () => ({ waiting: [], attending: [], upcoming: [], ready_lab_cases: [] })
+const emptyCounts = () => ({ waiting: 0, attending: 0, upcoming: 0, ready_lab_cases: 0 })
 
 const queue = ref(emptyQueue())
 const counts = ref(emptyCounts())
@@ -34,7 +34,7 @@ const messageFor = (thrown, fallback) =>
 
 export function useMyDay() {
   /**
-   * Replace the three buckets and their counts. A failed refresh keeps the
+   * Replace the queue buckets and their counts. A failed refresh keeps the
    * previous queue mounted and only records `error`, so a dropped connection
    * never blanks the desk the professional is working from.
    */
@@ -46,14 +46,16 @@ export function useMyDay() {
       const next = {
         waiting: asList(response?.data?.waiting),
         attending: asList(response?.data?.attending),
-        upcoming: asList(response?.data?.upcoming)
+        upcoming: asList(response?.data?.upcoming),
+        ready_lab_cases: asList(response?.data?.ready_lab_cases)
       }
       const meta = response?.meta?.counts || {}
       queue.value = next
       counts.value = {
         waiting: meta.waiting ?? next.waiting.length,
         attending: meta.attending ?? next.attending.length,
-        upcoming: meta.upcoming ?? next.upcoming.length
+        upcoming: meta.upcoming ?? next.upcoming.length,
+        ready_lab_cases: meta.ready_lab_cases ?? next.ready_lab_cases.length
       }
       error.value = null
     } catch (thrown) {

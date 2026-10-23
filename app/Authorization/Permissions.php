@@ -215,6 +215,16 @@ final class Permissions
     /** #290 S8: the branch tariff agreed for one sede. */
     public const MANAGE_BRANCH_PRICE = 'manage.branch_price';
 
+    /**
+     * #305: moving a user between sedes. Asking is self-service for every role
+     * — the professional requests their own transfer — and deciding is group
+     * scope. The two decision doors also carry `branch.global`, so a sede
+     * administrator sees the requests of their sede but cannot decide them.
+     */
+    public const REQUEST_BRANCH_TRANSFER = 'request.branch_transfer';
+
+    public const DECIDE_BRANCH_TRANSFER = 'decide.branch_transfer';
+
     // #293 S3: convenios and the tariff agreed with them.
     public const VIEW_PAYER = 'view.payer';
 
@@ -290,8 +300,8 @@ final class Permissions
      * statistics or the act that carries them. `MEDICAL_ROLES` stays whole for
      * the clinical workflow F1/F2 granted — start and close an attention, open
      * or void an act — because the issue closes the record's read, not the
-     * workflow. Specialty records and treatment plans are the prosthetic
-     * input, not the history, and are untouched.
+     * workflow. Treatment plans stay as prosthetic input; the specialty record
+     * is no longer one (#313).
      */
     private const RECORD_ROLES = [
         'administrador',
@@ -322,6 +332,23 @@ final class Permissions
         'odontologo',
         'implantologo',
         'tecnico_dental',
+    ];
+
+    /**
+     * #313 (decision D1) — the specialty record is a clinical act.
+     *
+     * `surgical_notes`, `post_surgical_notes`, `complications`,
+     * `follow_up_notes` and their equivalents are the surgical narrative, not
+     * prosthetic input: the laboratory works from the case (`lab_cases`), which
+     * already publishes the piece, the work, the material, the dates and the
+     * technician. Reading and writing are the same permission, so the grant
+     * belongs to administration and the two clinician roles only, and
+     * `TREATMENT_ROLES` is not reused here.
+     */
+    private const SPECIALTY_RECORD_ROLES = [
+        'administrador',
+        'odontologo',
+        'implantologo',
     ];
 
     /**
@@ -433,7 +460,7 @@ final class Permissions
         self::MANAGE_TREATMENT_PLAN => self::TREATMENT_ROLES,
         self::VIEW_QUOTATION => self::QUOTATION_READERS,
         self::MANAGE_QUOTATION => self::QUOTATION_WRITERS,
-        self::MANAGE_SPECIALTY_RECORD => self::TREATMENT_ROLES,
+        self::MANAGE_SPECIALTY_RECORD => self::SPECIALTY_RECORD_ROLES,
         self::VIEW_DENTAL_PIECE => self::TREATMENT_ROLES,
 
         self::MANAGE_PROCEDURE_CATALOG => ['administrador'],
@@ -467,6 +494,8 @@ final class Permissions
         self::MANAGE_APPOINTMENT_TYPE => ['administrador'],
         self::MANAGE_BRANCH => ['administrador'],
         self::MANAGE_BRANCH_PRICE => ['administrador'],
+        self::REQUEST_BRANCH_TRANSFER => self::ALL_ROLES,
+        self::DECIDE_BRANCH_TRANSFER => ['administrador'],
         self::VIEW_PAYER => self::QUOTATION_READERS,
         self::MANAGE_PAYER => ['administrador'],
         self::MANAGE_PAYER_PRICE => ['administrador'],

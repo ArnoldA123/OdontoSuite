@@ -1,4 +1,4 @@
-# ADR-0016 — La imputación de un pago a un cargo es una vista, no una segunda contabilidad
+# ADR-0018 — La imputación de un pago a un cargo es una vista, no una segunda contabilidad
 
 - **Status:** Accepted
 - **Decided:** 2026-10-23 (issue #321, specs S1-S4 de

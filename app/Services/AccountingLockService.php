@@ -3,11 +3,11 @@
 namespace App\Services;
 
 use App\Authorization\Permissions;
+use App\Exceptions\AccountingLockBlockedException;
 use App\Models\AccountingLock;
 use App\Models\AuditLog;
 use App\Models\User;
 use Carbon\CarbonInterface;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -118,8 +118,8 @@ class AccountingLockService
      * Must be called before the caller opens its transaction: the blocked
      * audit entry is evidence of the attempt, not part of the rejected write.
      *
-     * @throws ValidationException    when an attempted override states a reason shorter than the minimum
-     * @throws AuthorizationException when the actor cannot override the lock
+     * @throws ValidationException            when an attempted override states a reason shorter than the minimum
+     * @throws AccountingLockBlockedException when the actor cannot override the lock
      */
     public function guard(
         string $module,
@@ -181,7 +181,7 @@ class AccountingLockService
             ]);
         }
 
-        throw new AuthorizationException(sprintf(
+        throw new AccountingLockBlockedException(sprintf(
             'El módulo [%s] está bloqueado contablemente hasta el %s: la operación [%s] sobre un registro de esa fecha requiere autorización registrada.',
             $module,
             $lockedThrough,
