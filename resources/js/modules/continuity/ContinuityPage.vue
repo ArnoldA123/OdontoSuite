@@ -168,17 +168,58 @@
               <span>{{ originLabel(row) }}</span>
             </template>
 
-            <!-- Unit A2 renders the schedule and dismiss actions here. -->
-            <template #actions></template>
+            <!-- S9 — the row actions exist only with `manage.continuity`: a
+                 clinician reads the queue but never materialises it. -->
+            <template #actions="{ row }">
+              <template v-if="canManageContinuity">
+                <UiButton
+                  v-if="section.key === 'recalls'"
+                  size="sm"
+                  variant="primary"
+                  data-continuity-schedule="recall"
+                  @click.stop="openSchedule('recall', row)"
+                >
+                  Agendar
+                </UiButton>
+                <template v-else>
+                  <UiButton
+                    size="sm"
+                    variant="primary"
+                    data-continuity-schedule="request"
+                    @click.stop="openSchedule('request', row)"
+                  >
+                    Agendar
+                  </UiButton>
+                  <UiButton
+                    size="sm"
+                    variant="secondary"
+                    data-continuity-dismiss
+                    @click.stop="openDismiss(row)"
+                  >
+                    Descartar
+                  </UiButton>
+                </template>
+              </template>
+            </template>
           </UiDataTable>
         </section>
       </template>
     </div>
+
+    <!-- Both writes live at page level: they close on success and the
+         composable already refreshed the queue behind them. -->
+    <ScheduleContinuityModal
+      v-model="scheduleOpen"
+      :kind="actionKind"
+      :row="selected"
+      @scheduled="closeActions"
+    />
+    <DismissContinuityModal v-model="dismissOpen" :row="selected" @dismissed="closeActions" />
   </AppLayout>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import UiButton from '../../components/ui/Button.vue'
@@ -186,7 +227,10 @@ import UiCard from '../../components/ui/Card.vue'
 import UiDataTable from '../../components/ui/DataTable.vue'
 import UiSectionEmpty from '../../components/ui/UiSectionEmpty.vue'
 import UiSkeleton from '../../components/ui/Skeleton.vue'
+import DismissContinuityModal from './DismissContinuityModal.vue'
+import ScheduleContinuityModal from './ScheduleContinuityModal.vue'
 import { useContinuity } from '../../composables/useContinuity'
+import { usePermissions } from '../../composables/usePermissions'
 import {
   compliancePercent,
   formatDate,
@@ -198,6 +242,32 @@ import {
 } from './continuityMeta'
 
 const { queue, metrics, loading, error, load } = useContinuity()
+const { can } = usePermissions()
+
+const canManageContinuity = computed(() => Boolean(can.manageContinuity?.value))
+
+// The selected row and the door it opens. `actionKind` survives a dismissal
+// because the schedule modal stays closed until its own button opens it.
+const selected = ref(null)
+const actionKind = ref('request')
+const scheduleOpen = ref(false)
+const dismissOpen = ref(false)
+
+const openSchedule = (kind, row) => {
+  actionKind.value = kind
+  selected.value = row
+  scheduleOpen.value = true
+}
+
+const openDismiss = row => {
+  selected.value = row
+  dismissOpen.value = true
+}
+
+const closeActions = () => {
+  scheduleOpen.value = false
+  dismissOpen.value = false
+}
 
 const RECALL_COLUMNS = [
   { key: 'patient', label: 'Paciente' },

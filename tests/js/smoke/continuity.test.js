@@ -9,6 +9,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 const harness = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
+  canManageContinuity: true,
   channelStub: { listen: vi.fn() },
   privateChannel: vi.fn(),
   leave: vi.fn(),
@@ -44,6 +45,17 @@ vi.mock('../../../resources/js/composables/useAuth', () => ({
   useAuth: () => ({
     user: { value: { id: 4, name: 'Rosa Recepción', role: 'recepcionista' } },
     isAuthenticated: { value: true }
+  })
+}))
+
+// S9 — the two write actions are gated on `manage.continuity`. A mutable handle
+// lets one test mount the same page as a clinician who may only read it.
+vi.mock('../../../resources/js/composables/usePermissions', () => ({
+  usePermissions: () => ({
+    can: {
+      viewContinuity: { value: true },
+      manageContinuity: { value: harness.canManageContinuity }
+    }
   })
 }))
 
@@ -122,10 +134,29 @@ const metricsPayload = rate => ({
   }
 })
 
+// Lookups the schedule modal reads on open; the two writes validate the very
+// same professional and chair (S10).
+const lookups = {
+  '/api/users/active': [
+    { id: 7, name: 'Dra. Elena Paredes', role: 'odontologo' },
+    { id: 9, name: 'Dr. Iván Ríos', role: 'implantologo' }
+  ],
+  '/api/dental-chairs/active': [
+    { id: 1, name: 'Sillón 1', code: 'S1', status: 'active' },
+    { id: 2, name: 'Sillón 2', code: 'S2', status: 'active' }
+  ],
+  '/api/appointment-types/active': [
+    { id: 2, name: 'Control', default_duration_minutes: 30 },
+    { id: 5, name: 'Revisión', default_duration_minutes: 45 }
+  ]
+}
+
 const mockApi = (queueResponse, rate = 0.6667) => {
-  harness.get.mockImplementation(async url =>
-    url === '/api/patient-recalls/metrics' ? metricsPayload(rate) : queueResponse
-  )
+  harness.get.mockImplementation(async url => {
+    if (url === '/api/patient-recalls/metrics') return metricsPayload(rate)
+    if (lookups[url]) return { data: lookups[url] }
+    return queueResponse
+  })
 }
 
 const mountPage = async () => {
@@ -144,12 +175,46 @@ const mountPage = async () => {
 const queueCalls = () =>
   harness.get.mock.calls.filter(([url]) => url === '/api/continuity/queue').length
 
+// Modals teleport to <body>, so their fields are queried from the document.
+const bodyField = selector => document.body.querySelector(selector)
+
+const chooseOption = async (selector, label) => {
+  const container = bodyField(selector)
+  expect(container, `field "${selector}" must render`).toBeTruthy()
+
+  const trigger = container.querySelector('button[aria-haspopup="true"]')
+  expect(trigger, `field "${selector}" must render a select`).toBeTruthy()
+  trigger.click()
+  await flushPromises()
+
+  const option = [...container.querySelectorAll('[role="listbox"] button')].find(
+    button => button.textContent.trim() === label
+  )
+  expect(option, `option "${label}" must exist`).toBeTruthy()
+  option.click()
+  await flushPromises()
+}
+
+const openSchedule = async (wrapper, kind) => {
+  await wrapper.find(`[data-continuity-schedule="${kind}"]`).trigger('click')
+  await flushPromises()
+}
+
+const submitSchedule = async () => {
+  const button = bodyField('[data-schedule-submit]')
+  expect(button).toBeTruthy()
+  button.click()
+  await flushPromises()
+}
+
 beforeEach(() => {
   localStorage.setItem('auth_token', 'test-token')
   localStorage.setItem(
     'user',
     JSON.stringify({ id: 4, name: 'Rosa Recepción', role: 'recepcionista' })
   )
+  document.body.innerHTML = ''
+  harness.canManageContinuity = true
   harness.get.mockReset()
   harness.post.mockReset()
   harness.toast.success.mockReset()
@@ -262,6 +327,157 @@ describe('continuity desk', () => {
     expect(wrapper.find('[data-continuity-error]').exists()).toBe(false)
     expect(wrapper.find('[data-continuity-table="recalls"]').exists()).toBe(true)
 
+    wrapper.unmount()
+  })
+})
+
+describe('continuity desk actions', () => {
+  it('gates both row actions on manage.continuity', async () => {
+    mockApi(fullPayload())
+
+    harness.canManageContinuity = false
+    const readOnly = await mountPage()
+
+    expect(readOnly.findAll('[data-continuity-schedule]')).toHaveLength(0)
+    expect(readOnly.findAll('[data-continuity-dismiss]')).toHaveLength(0)
+    readOnly.unmount()
+
+    harness.canManageContinuity = true
+    const manager = await mountPage()
+
+    expect(manager.findAll('[data-continuity-schedule="recall"]')).toHaveLength(2)
+    expect(manager.findAll('[data-continuity-schedule="request"]')).toHaveLength(1)
+    expect(manager.findAll('[data-continuity-dismiss]')).toHaveLength(1)
+    manager.unmount()
+  })
+
+  it('schedules a continuity request with the preferred date and the chosen slot', async () => {
+    mockApi(fullPayload())
+    harness.post.mockResolvedValue({ data: { request: request(41), appointment: { id: 90 } } })
+
+    const wrapper = await mountPage()
+    const before = queueCalls()
+
+    await openSchedule(wrapper, 'request')
+
+    expect(bodyField('[data-schedule-title]').textContent).toContain('Agendar cita de continuidad')
+    expect(bodyField('[data-schedule-patient]').textContent).toContain('Luis Rojas')
+    expect(bodyField('[data-sc-scheduled-at] input').value).toBe('2026-11-02T09:00')
+
+    await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
+    await chooseOption('[data-sc-chair]', 'Sillón 1')
+    await submitSchedule()
+
+    expect(harness.post).toHaveBeenCalledTimes(1)
+    const [url, payload] = harness.post.mock.calls[0]
+    expect(url).toBe('/api/continuity-requests/41/schedule')
+    expect(payload.scheduled_at).toBe('2026-11-02 09:00:00')
+    expect(payload.user_id).toBe(7)
+    expect(payload.dental_chair_id).toBe(1)
+    expect(payload.duration_minutes).toBe(30)
+    expect(payload.appointment_type_id).toBe(2)
+
+    expect(queueCalls()).toBe(before + 1)
+    wrapper.unmount()
+  })
+
+  it('schedules an overdue recall through its own door', async () => {
+    mockApi(fullPayload())
+    harness.post.mockResolvedValue({
+      data: {
+        recall: recall(31, ['Ana', 'Torres'], 'Control semestral', '2026-10-01', 6),
+        appointment: { id: 91 }
+      }
+    })
+
+    const wrapper = await mountPage()
+    const before = queueCalls()
+
+    await openSchedule(wrapper, 'recall')
+
+    expect(bodyField('[data-schedule-title]').textContent).toContain('Agendar cita de control')
+    expect(bodyField('[data-sc-scheduled-at] input').value).toMatch(/^\d{4}-\d{2}-\d{2}T09:00$/)
+
+    await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
+    await chooseOption('[data-sc-chair]', 'Sillón 1')
+    await chooseOption('[data-sc-type]', 'Control')
+    await submitSchedule()
+
+    const [url, payload] = harness.post.mock.calls[0]
+    expect(url).toBe('/api/patient-recalls/31/schedule')
+    expect(payload.user_id).toBe(7)
+    expect(payload.dental_chair_id).toBe(1)
+    expect(payload.appointment_type_id).toBe(2)
+    expect(payload.scheduled_at).toMatch(/^\d{4}-\d{2}-\d{2} 09:00:00$/)
+
+    expect(queueCalls()).toBe(before + 1)
+    wrapper.unmount()
+  })
+
+  it('maps a slot conflict onto the chair field and keeps the row in the queue', async () => {
+    mockApi(fullPayload())
+    harness.post.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          message: 'The given data was invalid.',
+          errors: { dental_chair_id: ['El sillón ya está reservado en ese horario.'] }
+        }
+      }
+    })
+
+    const wrapper = await mountPage()
+    const before = queueCalls()
+
+    await openSchedule(wrapper, 'request')
+    await chooseOption('[data-sc-user]', 'Dra. Elena Paredes')
+    await chooseOption('[data-sc-chair]', 'Sillón 1')
+    await submitSchedule()
+
+    const fieldError = bodyField('[data-schedule-error="dental_chair_id"]')
+    expect(fieldError).toBeTruthy()
+    expect(fieldError.textContent).toContain('El sillón ya está reservado en ese horario.')
+
+    // The composable only reloads on success, so the row never left the desk.
+    expect(queueCalls()).toBe(before)
+    expect(wrapper.find('[data-continuity-table="requests"]').text()).toContain('Luis Rojas')
+    expect(bodyField('[data-schedule-modal]')).toBeTruthy()
+
+    wrapper.unmount()
+  })
+
+  it('refuses a dismissal without a reason and posts the reason once written', async () => {
+    mockApi(fullPayload())
+    harness.post.mockResolvedValue({ data: request(41, { status: 'dismissed' }) })
+
+    const wrapper = await mountPage()
+    const before = queueCalls()
+
+    await wrapper.find('[data-continuity-dismiss]').trigger('click')
+    await flushPromises()
+
+    expect(bodyField('[data-dismiss-submit]').disabled).toBe(true)
+
+    bodyField('[data-dismiss-form]').dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true })
+    )
+    await flushPromises()
+
+    expect(harness.post).not.toHaveBeenCalled()
+    expect(bodyField('[data-dismiss-error]').textContent).toContain('El motivo es obligatorio.')
+
+    const reason = bodyField('[data-dismiss-reason]')
+    reason.value = '  El paciente ya agendó por su cuenta.  '
+    reason.dispatchEvent(new Event('input', { bubbles: true }))
+    await flushPromises()
+
+    bodyField('[data-dismiss-submit]').click()
+    await flushPromises()
+
+    expect(harness.post).toHaveBeenCalledWith('/api/continuity-requests/41/dismiss', {
+      reason: 'El paciente ya agendó por su cuenta.'
+    })
+    expect(queueCalls()).toBe(before + 1)
     wrapper.unmount()
   })
 })

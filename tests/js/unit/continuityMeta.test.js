@@ -4,12 +4,15 @@ import { describe, it, expect } from 'vitest'
 // only formats what the API publishes: the rate belongs to the backend.
 import {
   compliancePercent,
+  defaultRecallSlot,
   formatDate,
   intervalLabel,
   kindLabel,
   originLabel,
   patientFullName,
-  preferredWindow
+  preferredWindow,
+  toApiDateTime,
+  toDateTimeLocal
 } from '../../../resources/js/modules/continuity/continuityMeta'
 
 describe('continuityMeta patientFullName', () => {
@@ -100,5 +103,46 @@ describe('continuityMeta formatDate', () => {
   it('shows a dash for an empty value', () => {
     expect(formatDate(null)).toBe('—')
     expect(formatDate('')).toBe('—')
+  })
+})
+
+describe('continuityMeta schedule transport', () => {
+  it('slices the naive preferred window into the datetime-local shape', () => {
+    expect(toDateTimeLocal('2026-11-02T09:00:00')).toBe('2026-11-02T09:00')
+    expect(toDateTimeLocal('2026-11-02 09:00:00')).toBe('2026-11-02T09:00')
+    expect(toDateTimeLocal('2026-11-02T09:00')).toBe('2026-11-02T09:00')
+  })
+
+  it('converts an offset timestamp to the session wall clock', () => {
+    const local = new Date('2026-11-02T14:00:00Z')
+    const hours = String(local.getHours()).padStart(2, '0')
+    expect(toDateTimeLocal('2026-11-02T14:00:00Z')).toBe(`2026-11-02T${hours}:00`)
+  })
+
+  it('shows nothing for an empty or unparseable value', () => {
+    expect(toDateTimeLocal(null)).toBe('')
+    expect(toDateTimeLocal('')).toBe('')
+    expect(toDateTimeLocal('mañana')).toBe('')
+  })
+
+  it('hands the API the seconds the doors validate', () => {
+    expect(toApiDateTime('2026-11-02T09:00')).toBe('2026-11-02 09:00:00')
+    expect(toApiDateTime('2026-11-02T09:00:42')).toBe('2026-11-02 09:00:42')
+    expect(toApiDateTime('')).toBe('')
+    expect(toApiDateTime(null)).toBe('')
+  })
+})
+
+describe('continuityMeta defaultRecallSlot', () => {
+  const now = new Date(2026, 9, 23, 14, 0, 0)
+
+  it('offers the due date at 09:00 when that instant is still ahead', () => {
+    expect(defaultRecallSlot('2026-12-01', now)).toBe('2026-12-01T09:00')
+  })
+
+  it('moves an already past due date to tomorrow at 09:00', () => {
+    expect(defaultRecallSlot('2026-10-01', now)).toBe('2026-10-24T09:00')
+    expect(defaultRecallSlot('2026-10-23', now)).toBe('2026-10-24T09:00')
+    expect(defaultRecallSlot(null, now)).toBe('2026-10-24T09:00')
   })
 })

@@ -98,3 +98,49 @@ export function formatDate(value) {
   const date = toDate(value)
   return date ? dateLabel(date) : '—'
 }
+
+// `datetime-local` speaks the session's wall clock (`YYYY-MM-DDTHH:mm`) while
+// both schedule doors take `YYYY-MM-DD HH:mm:ss`. These two helpers are the only
+// bridge between the form and the API, so the conversion lives here instead of
+// in the modal.
+const pad = value => String(value).padStart(2, '0')
+
+const localInput = date =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+
+const NAIVE_DATETIME = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/
+
+// A naive `YYYY-MM-DDTHH:mm[:ss]` is already the wall clock the API stored, so
+// it is sliced instead of parsed: `new Date()` would shift it through the
+// session's timezone. Anything carrying an offset is converted to local time.
+export function toDateTimeLocal(value) {
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : localInput(value)
+  if (value === null || value === undefined || value === '') return ''
+
+  const naive = NAIVE_DATETIME.exec(String(value))
+  if (naive) return `${naive[1]}T${naive[2]}`
+
+  const date = toDate(value)
+  return date ? localInput(date) : ''
+}
+
+export function toApiDateTime(value) {
+  if (value === null || value === undefined || value === '') return ''
+
+  const matched = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/.exec(String(value))
+  if (!matched) return ''
+
+  return `${matched[1]} ${matched[2]}:${matched[3] || '00'}`
+}
+
+// A recall has no preferred time, only an overdue due date. Reception is
+// offered that date at 09:00; when the instant is already past, tomorrow at
+// 09:00 keeps the prefilled form submittable.
+export function defaultRecallSlot(dueDate, now = new Date()) {
+  const due = toDate(dueDate)
+  const dueStart = due ? new Date(due.getFullYear(), due.getMonth(), due.getDate(), 9, 0, 0) : null
+
+  if (dueStart && dueStart.getTime() > now.getTime()) return localInput(dueStart)
+
+  return localInput(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0))
+}
