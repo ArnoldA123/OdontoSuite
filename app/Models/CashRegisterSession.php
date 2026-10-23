@@ -59,6 +59,14 @@ class CashRegisterSession extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * #287 (T4, S5/S7) — the deposits registered against this drawer.
+     */
+    public function deposits(): HasMany
+    {
+        return $this->hasMany(CashDeposit::class);
+    }
+
     // Scopes
     public function scopeByStatus($query, $status)
     {

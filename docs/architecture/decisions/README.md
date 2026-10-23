@@ -15,6 +15,7 @@ material architectural decision, its context, and its consequences.
 | [0012](./0012-catalog-applicability-and-tariff.md)    | El catálogo declara sobre qué se hace y a qué precio, con vigencia         | Accepted                        |
 | [0013](./0013-plan-versioning-and-continuity.md)      | El plan aceptado es una versión inmutable; la continuidad es una solicitud | Accepted                        |
 | [0014](./0014-clinical-record-signature-and-cie10.md) | El registro de atención es un documento firmado: motivo, CIE-10 y firma    | Accepted                        |
+| [0015](./0015-money-vocabulary-and-patient-ledger.md) | El dinero tiene vocabulario cerrado y el paciente tiene ledger propio      | Accepted                        |
 
 0009 has no separate body yet. Its decision is enforced by
 `tests/Unit/SddCheckMigrationsTest.php`, which scans `database/migrations/` and

@@ -79,7 +79,13 @@ del login es el `username`** (no el email, no el nombre).
 > la transacción no escribe nada; el inventario se recibe por compra y se ajusta
 > por conteo. Desde #285 el escritorio de laboratorio no lee la historia clínica
 > ni el acto clínico, no exporta la ficha del paciente y no se suscribe al canal
-> de la historia: el técnico trabaja desde el caso protésico.
+> de la historia: el técnico trabaja desde el caso protésico. Desde #287 el
+> dinero tiene vocabulario cerrado: pago y devolución mueven la gaveta (sólo si
+> el método es efectivo), condonación y ajuste son asientos de ledger que exigen
+> autorización registrada de un administrador (`authorized_by` + motivo), y el
+> descuento es un campo del cobro, no un tipo de transacción. El cargo que el
+> cierre escribe en `patient_charges` y el cargo manual se leen en el estado de
+> cuenta del paciente, que es del paciente y no de la sede.
 
 | Funcionalidad                       | Administrador | Recepcionista | Odontólogo | Implantólogo | Técnico | Asistente | Finanzas |
 | ----------------------------------- | ------------- | ------------- | ---------- | ------------ | ------- | --------- | -------- |
@@ -110,6 +116,9 @@ del login es el `username`** (no el email, no el nombre).
 | Abrir/cerrar caja                   | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Registrar transacciones             | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Cobrar pagos pendientes             | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Registrar cargo manual              | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Ver estado de cuenta                | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
+| Registrar depósito bancario         | ✅            | ✅            | ❌         | ❌           | ❌      | ❌        | ✅       |
 | Ver presupuestos                    | ✅            | ✅            | ✅         | ✅           | ❌      | ❌        | ✅       |
 | **Configuración**                   |
 | Tipos de cita                       | ✅            | ❌            | ❌         | ❌           | ❌      | ❌        | ❌       |

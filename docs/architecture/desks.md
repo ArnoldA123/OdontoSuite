@@ -48,6 +48,9 @@ recibe el permiso; el detalle exacto, permiso por permiso, sale de
 | Caja: apertura, cobro y cierre        | sí        | —       | —         | —           | sí       | sí             |
 | Caja: movimientos manuales y reportes | —         | —       | —         | —           | sí       | sí             |
 | Anulación de transacción              | —         | —       | —         | —           | —        | sí             |
+| Cargo manual al paciente              | sí        | —       | —         | —           | sí       | sí             |
+| Estado de cuenta del paciente         | sí        | —       | —         | —           | sí       | sí             |
+| Caja: depósito bancario               | sí        | —       | —         | —           | sí       | sí             |
 | Catálogo de procedimientos            | —         | lectura | lectura   | lectura     | importa  | sí             |
 | Productos (venta)                     | sí        | sí      | sí        | sí          | —        | sí             |
 | Inventario (consulta y alertas)       | —         | sí      | sí        | sí          | sí       | sí             |
@@ -60,12 +63,14 @@ S9 y #296 S2). Recepción no escribe historia clínica por ninguna puerta,
 incluido el cierre; el escritorio de laboratorio no entra al módulo de análisis
 de IA porque un análisis es apoyo a un diagnóstico; el escritorio de laboratorio
 no lee la historia clínica ni el acto que la publica, porque su trabajo llega en
-el caso protésico (#285); y la anulación de una transacción queda en
-administración porque es el único acto del ledger que revierte dinero ya
-registrado. El almacén sigue la misma lógica: consultar stock y alertas es parte
-del trabajo clínico y financiero, pero recibir por compra y ajustar por conteo
-mueve el saldo del que depende el costo del acto, y queda en asistente, finanzas
-y administración.
+el caso protésico (#285); el cargo manual, su estado de cuenta y el depósito son
+trabajo de mostrador y de finanzas (#287): recepción los opera, el cargo no
+reemplaza al acto que lo produjo y el depósito sólo mueve efectivo que la gaveta
+realmente tiene; y la anulación de una transacción queda en administración
+porque es el único acto del ledger que revierte dinero ya registrado. El almacén
+sigue la misma lógica: consultar stock y alertas es parte del trabajo clínico y
+financiero, pero recibir por compra y ajustar por conteo mueve el saldo del que
+depende el costo del acto, y queda en asistente, finanzas y administración.
 
 ## Sede y escritorio
 

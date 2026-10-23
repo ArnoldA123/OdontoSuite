@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\CashDepositController;
 use App\Http\Controllers\Api\CashMovementController;
 use App\Http\Controllers\Api\CashRegisterController;
 use App\Http\Controllers\Api\CashReportController;
@@ -24,8 +25,10 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
+use App\Http\Controllers\Api\PatientChargeController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PatientRecallController;
+use App\Http\Controllers\Api\PatientStatementController;
 use App\Http\Controllers\Api\PayerController;
 use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PendingPaymentsController;
@@ -154,6 +157,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('patients/{patient}/export', [PatientController::class, 'export'])
         ->middleware('permission:'.Permissions::EXPORT_PATIENT);
+
+    // #287 (T3, S3/S9) — the patient statement. It reads the ledger of the
+    // patient, which is shared between sedes (ADR-0010), so it carries no
+    // `cash.session`: there is no drawer involved in reading a balance.
+    Route::get('patients/{patient}/statement', [PatientStatementController::class, 'show'])
+        ->middleware('permission:'.Permissions::VIEW_PATIENT_STATEMENT);
     Route::post('patients', [PatientController::class, 'store'])
         ->middleware('permission:'.Permissions::CREATE_PATIENT);
     Route::put('patients/{patient}', [PatientController::class, 'update'])
@@ -475,19 +484,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // stays routed (RoutePermissionMatrixTest). The OR is inert today, because
     // both permissions are administrator-only, and the guard remains the only
     // place that decides whether a lock can be overridden.
+    // #287, D7 — only a payment and its refund need an open drawer, and the
+    // rule lives in TransactionService: a write-off or an adjustment is a
+    // ledger entry and cannot demand a session it never writes to. A void keeps
+    // its own drawer guard in the service (the session of the transaction must
+    // still be open).
     Route::post('transactions/{transaction}/void', [TransactionController::class, 'void'])
-        ->middleware([
-            'permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK,
-            'cash.session',
-        ]);
+        ->middleware('permission:'.Permissions::VOID_TRANSACTION.','.Permissions::OVERRIDE_ACCOUNTING_LOCK);
 
-    // Transactions require an open cash session (slice 01 / T-01.1 registers
-    // `transactions/list` and `receipt` BEFORE apiResource so the fixed
-    // segments are not swallowed by `{transaction}` model binding).
+    // `receipt` keeps the drawer gate: it is a cash-register operation over a
+    // transaction that already belongs to a session (slice 01 / T-01.1
+    // registers it BEFORE apiResource so the fixed segment is not swallowed by
+    // `{transaction}` model binding).
     Route::middleware(['permission:'.Permissions::CREATE_TRANSACTION, 'cash.session'])->group(function () {
         Route::post('transactions/{transaction}/receipt', [TransactionController::class, 'generateReceipt']);
-        Route::post('transactions', [TransactionController::class, 'store']);
     });
+    Route::post('transactions', [TransactionController::class, 'store'])
+        ->middleware('permission:'.Permissions::CREATE_TRANSACTION);
     Route::middleware(['permission:'.Permissions::MANAGE_TRANSACTION, 'cash.session'])->group(function () {
         Route::get('transactions/list', [TransactionController::class, 'list']);
         Route::get('transactions', [TransactionController::class, 'index']);
@@ -520,6 +533,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('cash-register/close', [CashRegisterController::class, 'close'])
         ->middleware('permission:'.Permissions::CLOSE_CASH_REGISTER);
 
+    // #287 (T4, S5/S7) — the bank deposit. Registering one moves money out of
+    // the gaveta, so it is counter work (`manage.cash_deposit`); reading the
+    // list keeps the register grant. It carries no `cash.session` on the list:
+    // reading what was deposited is not a drawer operation. The service checks
+    // the sede of the session and that the drawer is still open before writing.
+    Route::post('cash-register/deposits', [CashDepositController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_CASH_DEPOSIT);
+    Route::get('cash-register/deposits', [CashDepositController::class, 'index'])
+        ->middleware('permission:'.Permissions::VIEW_CASH_REGISTER);
+
     // Pending payments (issue #191). The alias is consumed by the frontend
     // Cobros tab.
     Route::get('pending-payments', [PendingPaymentsController::class, 'index'])
@@ -528,6 +551,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:'.Permissions::PAY_PENDING_PAYMENT);
     Route::get('cash-register/pending-payments', [PendingPaymentsController::class, 'index'])
         ->middleware('permission:'.Permissions::VIEW_PENDING_PAYMENT);
+
+    // #287 (T2, S3/S4) — the patient charge ledger. The closure writes the one
+    // the act produced; this door records a charge no act produced. It carries
+    // no `cash.session`: a charge is debt, not money in the drawer.
+    Route::post('patient-charges', [PatientChargeController::class, 'store'])
+        ->middleware('permission:'.Permissions::MANAGE_PATIENT_CHARGE);
 
     // Cash movements and reports.
     Route::apiResource('cash-movements', CashMovementController::class)

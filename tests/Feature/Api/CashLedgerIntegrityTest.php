@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\CashMovement;
 use App\Models\CashRegisterSession;
 use App\Models\Patient;
+use App\Models\PatientCharge;
 use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
@@ -28,6 +29,9 @@ use Tests\TestCase;
  *     the second;
  *   - a discount can never exceed the amount it discounts, or the ledger row
  *     turns negative.
+ *
+ * #287, D4: a write-off is a ledger entry, not a drawer flow, so creating and
+ * voiding one must leave the cash position exactly where it was.
  *
  * Must run against the MySQL harness (AGENTS.md §6).
  */
@@ -78,37 +82,67 @@ class CashLedgerIntegrityTest extends TestCase
         return app(CashRegisterService::class)->getSessionSummary($session->fresh());
     }
 
-    public function test_voiding_a_discount_transaction_reverses_its_expense_once(): void
+    public function test_voiding_a_write_off_changes_no_cash(): void
     {
         $session = $this->openSession(100.0);
-        $transaction = $this->transaction('discount', 30.0);
+        $patient = Patient::factory()->create();
+        PatientCharge::create([
+            'patient_id' => $patient->id,
+            'source' => PatientCharge::SOURCE_MANUAL,
+            'description' => 'Cargo de prueba',
+            'amount' => 30,
+            'charged_at' => now(),
+        ]);
+        $transaction = $this->transaction('write_off', 30.0, [
+            'patient_id' => $patient->id,
+            'payment_method_id' => null,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Condonación aprobada',
+        ]);
 
-        $this->assertEqualsWithDelta(70.0, $this->summary($session)['expected_amount'], 0.001);
+        $this->assertSame(
+            0,
+            CashMovement::where('transaction_id', $transaction->id)->count(),
+            'A write-off never moves the drawer.'
+        );
+        $this->assertEqualsWithDelta(100.0, $this->summary($session)['expected_amount'], 0.001);
 
         app(TransactionService::class)->voidTransaction($transaction->id, 'Prueba');
 
         $summary = $this->summary($session);
 
-        $this->assertEqualsWithDelta(30.0, $summary['cash_out'], 0.001);
-        $this->assertEqualsWithDelta(30.0, $summary['cash_in'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $summary['cash_out'], 0.001);
+        $this->assertEqualsWithDelta(0.0, $summary['cash_in'], 0.001);
         $this->assertEqualsWithDelta(
             100.0,
             $summary['expected_amount'],
             0.001,
-            'A voided discount must restore the drawer position, not double the expense.'
+            'Voiding a write-off is a ledger correction: the drawer must not move.'
         );
     }
 
     public function test_voiding_a_refund_returns_the_cash_once(): void
     {
         $session = $this->openSession(100.0);
-        $transaction = $this->transaction('refund', 20.0);
+        $patient = Patient::factory()->create();
+        $method = PaymentMethod::factory()->create();
 
-        $this->assertEqualsWithDelta(80.0, $this->summary($session)['expected_amount'], 0.001);
+        $this->transaction('payment', 50.0, [
+            'patient_id' => $patient->id,
+            'payment_method_id' => $method->id,
+        ]);
+        $transaction = $this->transaction('refund', 20.0, [
+            'patient_id' => $patient->id,
+            'payment_method_id' => $method->id,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución aprobada',
+        ]);
+
+        $this->assertEqualsWithDelta(130.0, $this->summary($session)['expected_amount'], 0.001);
 
         app(TransactionService::class)->voidTransaction($transaction->id, 'Prueba');
 
-        $this->assertEqualsWithDelta(100.0, $this->summary($session)['expected_amount'], 0.001);
+        $this->assertEqualsWithDelta(150.0, $this->summary($session)['expected_amount'], 0.001);
     }
 
     public function test_the_opening_snapshot_cannot_be_edited(): void

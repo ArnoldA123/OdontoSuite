@@ -168,6 +168,11 @@ final class Permissions
 
     public const MANAGE_CASH_MOVEMENT = 'manage.cash_movement';
 
+    // #287 (T4, S5/S7): the bank deposit. Registering one is counter work like
+    // the withdraw it performs on the drawer; reading the list follows the
+    // same grant as the rest of the register.
+    public const MANAGE_CASH_DEPOSIT = 'manage.cash_deposit';
+
     public const MANAGE_TRANSACTION = 'manage.transaction';
 
     public const CREATE_TRANSACTION = 'create.transaction';
@@ -177,6 +182,14 @@ final class Permissions
     public const VIEW_PENDING_PAYMENT = 'view.pending_payment';
 
     public const PAY_PENDING_PAYMENT = 'pay.pending_payment';
+
+    // #287 (T2, S3/S4): the patient charge ledger. Writing a charge is counter
+    // work like collecting it.
+    public const MANAGE_PATIENT_CHARGE = 'manage.patient_charge';
+
+    // #287 (T3, S3/S9): the patient statement — the ledger walked in order and
+    // reconciled. Reading it is counter and finance work, like the charge.
+    public const VIEW_PATIENT_STATEMENT = 'view.patient_statement';
 
     public const VIEW_CASH_REPORT = 'view.cash_report';
 
@@ -434,11 +447,14 @@ final class Permissions
         self::OPEN_CASH_REGISTER => self::CASH_ROLES,
         self::CLOSE_CASH_REGISTER => self::CASH_ROLES,
         self::MANAGE_CASH_MOVEMENT => self::FINANCE_ROLES,
+        self::MANAGE_CASH_DEPOSIT => self::CASH_ROLES,
         self::MANAGE_TRANSACTION => self::CASH_ROLES,
         self::CREATE_TRANSACTION => self::CASH_ROLES,
         self::VOID_TRANSACTION => ['administrador'],
         self::VIEW_PENDING_PAYMENT => self::CASH_ROLES,
         self::PAY_PENDING_PAYMENT => self::CASH_ROLES,
+        self::MANAGE_PATIENT_CHARGE => self::CASH_ROLES,
+        self::VIEW_PATIENT_STATEMENT => self::CASH_ROLES,
         self::VIEW_CASH_REPORT => self::FINANCE_ROLES,
         self::EXPORT_CASH_REPORT => self::FINANCE_ROLES,
         self::MANAGE_PAYMENT_METHOD => ['administrador'],

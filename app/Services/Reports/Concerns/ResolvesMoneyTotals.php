@@ -3,6 +3,7 @@
 namespace App\Services\Reports\Concerns;
 
 use App\Models\Transaction;
+use App\Support\MoneyVocabulary;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,11 @@ use Illuminate\Support\Facades\DB;
  * [startOfDay(start_date), endOfDay(end_date)]. The refunded amount is always
  * reported next to the net figure, so `net + refunds` is the gross collected and
  * can never be negative.
+ *
+ * #287 (D4/D8) — the two types are read from `MoneyVocabulary` instead of being
+ * spelled again here: a write-off or an adjustment is a ledger entry and never
+ * enters a money total, and the vocabulary is the only place that knows which
+ * types move money.
  *
  * The SQL fragments are alias-free on purpose: each report aliases them to the
  * key its own contract exposes, and every column is prefixed with
@@ -28,7 +34,7 @@ trait ResolvesMoneyTotals
      */
     protected function moneyTypes(): array
     {
-        return ['payment', 'refund'];
+        return array_merge(MoneyVocabulary::CASH_IN, MoneyVocabulary::CASH_OUT);
     }
 
     /**
@@ -36,8 +42,8 @@ trait ResolvesMoneyTotals
      */
     protected function netTotalsSql(): string
     {
-        return "COALESCE(SUM(CASE WHEN transactions.type = 'payment' THEN transactions.amount"
-            ." WHEN transactions.type = 'refund' THEN -transactions.amount ELSE 0 END), 0)";
+        return 'COALESCE(SUM(CASE WHEN transactions.type IN ('.$this->sqlTypeList(MoneyVocabulary::CASH_IN).') THEN transactions.amount'
+            .' WHEN transactions.type IN ('.$this->sqlTypeList(MoneyVocabulary::CASH_OUT).') THEN -transactions.amount ELSE 0 END), 0)';
     }
 
     /**
@@ -45,7 +51,7 @@ trait ResolvesMoneyTotals
      */
     protected function refundTotalsSql(): string
     {
-        return "COALESCE(SUM(CASE WHEN transactions.type = 'refund' THEN transactions.amount ELSE 0 END), 0)";
+        return 'COALESCE(SUM(CASE WHEN transactions.type IN ('.$this->sqlTypeList(MoneyVocabulary::CASH_OUT).') THEN transactions.amount ELSE 0 END), 0)';
     }
 
     /**
@@ -55,7 +61,7 @@ trait ResolvesMoneyTotals
      */
     protected function paidAppointmentsSql(): string
     {
-        return "COUNT(DISTINCT CASE WHEN transactions.type = 'payment' THEN transactions.appointment_id END)";
+        return 'COUNT(DISTINCT CASE WHEN transactions.type = '.$this->sqlTypeList([MoneyVocabulary::PAYMENT]).' THEN transactions.appointment_id END)';
     }
 
     /**
@@ -88,5 +94,21 @@ trait ResolvesMoneyTotals
             'net' => round((float) ($row->net ?? 0), 2),
             'refunds' => round((float) ($row->refunds ?? 0), 2),
         ];
+    }
+
+    /**
+     * Quote a list of vocabulary types for a SQL fragment.
+     *
+     * The values come from a closed catalog written in code, never from input,
+     * so they are safe to inline.
+     *
+     * @param array<int, string> $types
+     */
+    private function sqlTypeList(array $types): string
+    {
+        return implode(', ', array_map(
+            static fn (string $type): string => "'".$type."'",
+            $types,
+        ));
     }
 }

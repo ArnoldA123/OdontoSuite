@@ -96,11 +96,11 @@ composer dev                      # concurrently: server + reverb + queue + pail
 
 ```
 app/
-  Http/Controllers/Api/    # 43 controllers API (42 en Api/ + 1 en Api/Reports/)
+  Http/Controllers/Api/    # 46 controllers API (45 en Api/ + 1 en Api/Reports/)
   Http/Middleware/         # CheckRole (alias 'role'), ThrottleLoginAttempts,
                            # RequireActiveCashSession (alias 'cash.session')
-  Models/                  # 67 modelos Eloquent
-  Services/                # 30 services + Reports/ (8 report services)
+  Models/                  # 69 modelos Eloquent
+  Services/                # 34 services + Reports/ (9 report services)
   Events/                  # 36 eventos (10 listener classes, 13 cableos en AppServiceProvider)
   Listeners/               # 10 listener classes; 13 cableos en AppServiceProvider::boot
   Mail/                    # PasswordResetMail (Mailable para forgot-password)
@@ -119,7 +119,7 @@ resources/js/
   design-system/tokens.js  # design tokens
 
 database/
-  migrations/              # 148 migraciones
+  migrations/              # 151 migraciones
   seeders/                 # 17 activos (RoleBasedUsersSeeder, BranchSeeder, PaymentMethodSeeder,
                            #   SpecialtySeeder, UserSpecialtySeeder, DiagnosisCatalogSeeder,
                            #   AppointmentTypeSeeder, EnvironmentSeeder, ProcedureCatalogSeeder,
@@ -128,7 +128,7 @@ database/
                            #   ToothSurfaceSeeder, SpecialtyRecordSeeder)
 
 routes/
-  api.php                  # 249 rutas API (medido con php artisan route:list --json: uris api/…; 262 totales con web)
+  api.php                  # 253 rutas API (medido con php artisan route:list --json: uris api/…; 266 totales con web)
   web.php                  # catch-all que retorna view('app')
 
 tests/
@@ -136,7 +136,7 @@ tests/
   Feature/Api/             # AuthTest (rate limiting, login)
 docs/
   mejoras/                 # 3 planes cerrados (ver §9)
-  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0012
+  architecture/decisions/  # índice de ADRs (README.md) + cuerpos 0007, 0008 y 0010-0015
 
 .github/workflows/
   ci.yml                   # CI con 3 jobs: quality (lint), backend-tests (MySQL 8.0 service), frontend-build
@@ -184,7 +184,7 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 - Auth Sanctum completo (login/logout/me/refresh/forgot/reset con email real vía
   MAIL_MAILER=log)
-- 67 modelos, 43 controllers API, 36 eventos (10 listener classes / 13 cableos
+- 69 modelos, 46 controllers API, 36 eventos (10 listener classes / 13 cableos
   en AppServiceProvider)
 - 13 modelos con SoftDeletes (la historia clínica y sus evoluciones ya no lo
   usan: #292)
@@ -208,6 +208,38 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 - Multi-sede parcial (filtros en 6 controllers)
 - Calendario con FullCalendar, bloques, waiting list
 - Caja completa (apertura/cierre, movimientos, arqueos, PDF)
+- Vocabulario del dinero y ledger del paciente (#287):
+  `App\Support\MoneyVocabulary` es la única fuente de los cuatro tipos
+  escribibles (`payment|refund|write_off|adjustment`), de su efecto en el saldo
+  y de si mueven efectivo. `discount` deja de ser un tipo de transacción —el
+  descuento vive en el cobro (`discount_amount`/`discount_type`)— y
+  `income`/`expense` quedan como valores legacy de la columna, sin puerta de
+  escritura. Sólo pago y devolución exigen método y caja abierta y escriben
+  `cash_movements`; la condonación (`write_off`) y el ajuste (`adjustment`,
+  firmado) son asientos de ledger con autorización de administrador registrada
+  (`authorized_by` + `authorization_reason`) que no exigen método, no exigen
+  gaveta abierta y no cuentan como ingreso ni como cobro. El cierre de la
+  atención escribe exactamente un cargo en `patient_charges` (único por
+  `clinical_encounter_id`, importe `final_amount`, fecha `closed_at`) y la
+  puerta manual es `POST /api/patient-charges` (`manage.patient_charge`); el
+  libro es inmutable —un cargo equivocado se corrige con un ajuste— y
+  `charges:backfill` (`--dry-run`, idempotente) da su cargo a las atenciones
+  cerradas históricas. `GET /api/patients/{patient}/statement`
+  (`view.patient_statement`) publica el estado de cuenta del período con saldo
+  de apertura y de cierre según
+  `cargos − descuentos − pagos + devoluciones − condonaciones + ajustes`; sólo
+  cuentan las transacciones `completed`. La devolución exige autorización de
+  administrador y está topada por lo cobrado no devuelto del paciente y por su
+  pago padre; la condonación, por el saldo pendiente. Los depósitos
+  (`cash_deposits`, con su `CashMovement` `withdrawal` en la misma transacción)
+  cuadran la gaveta: el reporte diario añade `reconciliation.deposits` y
+  `pending_deposit = cash − deposits`, y los agregados por método netean
+  devoluciones y excluyen los asientos sin efectivo. Un cobro o una devolución
+  con tarjeta, transferencia o billetera queda en `transactions` y en el estado
+  de cuenta pero no escribe movimiento de gaveta. Como consecuencia de D7, la
+  guarda `cash.session` deja de estar en las rutas de creación y anulación de
+  transacciones: la regla vive en `TransactionService`, que sigue exigiendo la
+  sesión de la transacción abierta para anular.
 - BI (8 report services) + export
 - Catálogo de procedimientos con favoritos (admin/clínico/recep)
 - Estadísticas del catálogo (`/api/admin/procedure-stats`)
@@ -336,6 +368,13 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
   desde `treatment_plan_id`, así que el bloqueo del path `generateQuotation`
   (fix C-1 del Sprint 0) ya no existe.
 
+- **#287 declaró fuera de alcance tres cosas**: la UI de caja para devoluciones,
+  depósitos y estado de cuenta (la issue es `area:backend`); la imputación de un
+  pago a un cargo concreto —no hay abono por cargo, así que la corrección de un
+  cargo va por ajuste—; y los movimientos de gaveta electrónicos escritos antes
+  de la regla sólo-efectivo, que siguen contando en las sesiones antiguas porque
+  el ledger no se reescribe.
+
 ### 🔧 Notas de entorno
 
 - El `.env` tiene `BROADCAST_CONNECTION=reverb`. Para tests locales sin servidor
@@ -454,17 +493,18 @@ frontend muestra toast. El control de visibilidad es por `AppLayout` (computed
 
 ### Decisiones de diseño (ADRs)
 
-| ADR                                                                       | Contenido                                                                                                                      |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.    |
-| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.    |
-| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                            |
-| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                 |
-| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.             |
-| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda. |
-| `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.             |
+| ADR                                                                       | Contenido                                                                                                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `docs/architecture/decisions/0007-user-specialty-source-of-truth.md`      | `User::specialty` (string) es legacy, `user_specialties` (pivote) es source-of-truth. Accessor `specialty_code` sincroniza.                      |
+| `docs/architecture/decisions/0008-procedure-catalog-legacy-specialty.md`  | `procedure_catalog.legacy_specialty` es legacy, `specialty_id` (FK) es source-of-truth. Drop futuro con script de backfill.                      |
+| `docs/architecture/decisions/0010-branch-scope-authorization.md`          | La sede es una dimensión de autorización, no un filtro de consulta.                                                                              |
+| `docs/architecture/decisions/0011-quotation-igv-policy.md`                | El IGV de un presupuesto se descompone del precio, no se suma.                                                                                   |
+| `docs/architecture/decisions/0012-catalog-applicability-and-tariff.md`    | El catálogo declara sobre qué se hace (pieza/superficie/cuadrante/arcada) y a qué precio, con vigencia y convenio.                               |
+| `docs/architecture/decisions/0013-plan-versioning-and-continuity.md`      | El plan aceptado es una versión inmutable; la continuidad es una solicitud que recepción materializa con validación de agenda.                   |
+| `docs/architecture/decisions/0014-clinical-record-signature-and-cie10.md` | El registro de atención es un documento firmado: motivo, CIE-10 y firma electrónica simple con hash de integridad.                               |
+| `docs/architecture/decisions/0015-money-vocabulary-and-patient-ledger.md` | Pago, descuento, condonación, devolución y ajuste son conceptos distintos; el cargo es un libro del paciente y sólo el efectivo mueve la gaveta. |
 
-> **Estado**: los siete cuerpos de la tabla están escritos y el índice resuelve
+> **Estado**: los ocho cuerpos de la tabla están escritos y el índice resuelve
 > sus enlaces. El índice vive en `docs/architecture/decisions/README.md` y su
 > integridad la fija
 > `tests/Unit/Documentation/ArchitectureDecisionsIndexTest.php`.
@@ -490,7 +530,7 @@ verdad; esta tabla lo resume sin repetir su contenido.
 
 ## 11. Resumen ejecutivo
 
-OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 43 controllers API, 67
+OdontoSuite es una app fullstack Laravel 12 + Vue 3 con 46 controllers API, 69
 modelos, 7 roles, sistema de caja completo, BI, IA, multi-sede parcial y
 broadcasting. Auth Sanctum con tokens bearer. Estado global via composables.
 Stack maduro para capstone: los 3 planes de mejoras están cerrados (66 hallazgos
@@ -502,6 +542,72 @@ documentada y no bloquea producción.
 ---
 
 ## 12. Changelog de AGENTS.md
+
+- **2026-10-23 (caja: vocabulario del dinero y estado de cuenta del paciente,
+  #287)** — La caja y la deuda del paciente dejan de compartir un solo
+  vocabulario. `App\Support\MoneyVocabulary` es la única fuente de los cuatro
+  tipos escribibles (`payment|refund|write_off|adjustment`), de su efecto en el
+  saldo y de si mueven efectivo: **pago y devolución** exigen método y caja
+  abierta y escriben `cash_movements` (`income`/`expense`); **condonación y
+  ajuste** son asientos de ledger con autorización registrada de administrador
+  (`authorized_by` + `authorization_reason`, con motivo obligatorio) que no
+  exigen método, no exigen gaveta abierta y no cuentan como ingreso ni como
+  cobro; **descuento** deja de ser un tipo de transacción y vive en el cobro
+  (`discount_amount`/`discount_type`), donde reduce lo que el paciente debe sin
+  mover plata. `income`/`expense` quedan como valores legacy de la columna, sin
+  puerta de escritura (`discount` responde 422). La devolución está topada por
+  lo cobrado no devuelto del paciente y, si declara `parent_transaction_id`, por
+  lo devolvible de ese pago; la condonación, por el saldo pendiente. La guarda
+  `cash.session` sale de las rutas de creación y anulación de transacciones
+  (D7): la regla vive en `TransactionService`, que sigue exigiendo la sesión de
+  la transacción abierta para anular. **Ledger de cargos**: nace
+  `patient_charges` (`patient_id`, `clinical_encounter_id` único y nullable,
+  `source = encounter|manual`, `description`, `amount` decimal(12,2),
+  `charged_at`, `created_by`). El cierre de la atención escribe exactamente un
+  cargo por acto dentro de su transacción (importe `final_amount`, fecha
+  `closed_at`, descripción tomada del tipo de cita o del `mode`), la puerta
+  manual es `POST /api/patient-charges` (`manage.patient_charge`, `CASH_ROLES`)
+  y `charges:backfill` (`--dry-run`, idempotente) cubre las atenciones cerradas
+  históricas con el mismo escritor. El libro es inmutable: el modelo rechaza
+  `updating`/`deleting` y un cargo equivocado se corrige con un ajuste. **Estado
+  de cuenta**: `GET /api/patients/{patient}/statement`
+  (`view.patient_statement`) devuelve paciente, período (por omisión el mes
+  actual hasta hoy), saldos de apertura y cierre, resumen y entradas
+  cronológicas, con la regla única
+  `cargos − descuentos − pagos + devoluciones − condonaciones + ajustes` y sólo
+  transacciones `completed`. El saldo de apertura aplica la misma regla a todo
+  lo anterior al período, así que el cierre de un período es la apertura del
+  siguiente. **Depósitos y conciliación**: `cash_deposits` (`branch_id`,
+  `cash_register_session_id`, `cash_movement_id`, `amount`, `deposited_at`,
+  `reference`, `notes`) registra el depósito bancario por
+  `POST /api/cash-register/deposits` (`manage.cash_deposit`) con sesión abierta,
+  monto > 0 y ≤ efectivo disponible, referencia obligatoria y su `CashMovement`
+  `withdrawal` en la misma transacción; `GET /api/cash-register/deposits` pagina
+  y filtra por rango y sede efectiva con `view.cash_register`. El reporte diario
+  añade `reconciliation.deposits.{count,total}` y
+  `pending_deposit = cash.total − deposits.total`, y los agregados por método
+  (`summary_by_payment_method`, `payment_methods_analysis`,
+  `transactions_total`, `summary_by_hour`, `top_transactions`) netean
+  devoluciones y excluyen los asientos sin efectivo. **Gaveta sólo-efectivo**:
+  un cobro o una devolución con tarjeta, transferencia o billetera queda en
+  `transactions` (y en el mix y el estado de cuenta) pero no crea
+  `CashMovement`; anularlo tampoco mueve la gaveta. El ledger es del paciente
+  (la ficha es compartida, ADR-0010); la gaveta, sus movimientos, los depósitos
+  y la conciliación siguen acotados por sede. Permisos nuevos (los tres con
+  `CASH_ROLES`): `manage.patient_charge`, `view.patient_statement` y
+  `manage.cash_deposit`. Decisión en ADR-0015. §4 sincronizado con valores
+  medidos: 46 controllers API, 69 modelos, 34 services + 9 report services, 151
+  migraciones, 253 rutas API y 266 totales con web; sin cambios de UI ni de §5
+  (la issue es `area:backend`). Tests: `MoneyVocabularyTest` unitario (8),
+  `MoneyVocabularyTest` de API (18), `PatientChargeLedgerTest` (12),
+  `BackfillPatientChargesCommandTest` (4), `PatientStatementTest` (9),
+  `CashDepositTest` (13), `CashReportNettingTest` (4), más
+  `CashLedgerIntegrityTest`, `CashReportPeriodTest` y `CashReportPopulationTest`
+  ajustados. Follow-ups declarados: la UI de caja para devoluciones, depósitos y
+  estado de cuenta; la imputación de un pago a un cargo concreto (la corrección
+  va por ajuste); y los movimientos electrónicos anteriores a la regla
+  sólo-efectivo, que siguen en las sesiones antiguas porque el ledger no se
+  reescribe.
 
 - **2026-10-23 (laboratorio protésico: casos, fases y entregas, #285)** — El
   trabajo de laboratorio deja de vivir en la historia clínica. `lab_cases`

@@ -225,4 +225,20 @@ class PermissionCatalogTest extends TestCase
             $this->assertTrue(Permissions::exists($permission), "Frontend permission [{$permission}] is missing.");
         }
     }
+
+    #[Test]
+    public function the_patient_ledger_permissions_belong_to_the_cash_desk(): void
+    {
+        foreach ([
+            Permissions::VIEW_PATIENT_STATEMENT,
+            Permissions::MANAGE_PATIENT_CHARGE,
+            Permissions::MANAGE_CASH_DEPOSIT,
+        ] as $permission) {
+            $this->assertSame(
+                ['administrador', 'finanzas', 'recepcionista'],
+                Permissions::rolesFor($permission),
+                "Permission [{$permission}] must belong to the cash desk only.",
+            );
+        }
+    }
 }
