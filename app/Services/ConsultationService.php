@@ -19,6 +19,7 @@ use App\Models\ClinicalEvolution;
 use App\Models\MedicalRecord;
 use App\Models\Odontogram;
 use App\Models\OdontogramRecord;
+use App\Models\ProcedureCatalog;
 use App\Models\TreatmentPlan;
 use App\Models\TreatmentPlanItem;
 use Illuminate\Http\UploadedFile;
@@ -255,10 +256,9 @@ class ConsultationService
             throw new UnexpectedMaterialsException;
         }
 
-        // Only an appointment type can demand materials; an urgency act has no
-        // type to ask, so it never requires them.
-        $requiresMaterials = (bool) ($appointment?->appointmentType?->requires_materials ?? false);
-        if ($requiresMaterials && $materialsCount === 0 && ! $skipMaterials) {
+        // #295 (S7): la exigencia sale del recetario de los procedimientos que
+        // el acto documenta, no del flag manual del tipo de cita.
+        if ($materialsCount === 0 && ! $skipMaterials && $this->requiresMaterials($encounter, $appointment, $payload)) {
             throw new MissingMaterialsException(
                 'el tipo de cita requiere registrar materiales o confirmar "skip_materials"'
             );
@@ -283,6 +283,74 @@ class ConsultationService
         if ($appointment === null && ! empty($payload['next_appointment'])) {
             throw NextAppointmentRequiresAppointmentException::make();
         }
+    }
+
+    /**
+     * #295 (S7): un acto exige materiales cuando alguno de los procedimientos
+     * que documenta declara recetario. Una sola consulta resuelve la receta de
+     * los ids implicados; un acto sin procedimientos no exige nada.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function requiresMaterials(ClinicalEncounter $encounter, ?Appointment $appointment, array $payload): bool
+    {
+        $procedureIds = $this->implicatedProcedureIds($encounter, $appointment, $payload);
+
+        if ($procedureIds === []) {
+            return false;
+        }
+
+        return ProcedureCatalog::query()
+            ->whereIn('id', $procedureIds)
+            ->whereHas('materialRecipe')
+            ->exists();
+    }
+
+    /**
+     * Procedimientos que el acto documenta: el del tipo de cita, los ítems que
+     * trae el payload y los del plan que el acto ya tiene guardado.
+     *
+     * @param  array<string, mixed> $payload
+     * @return list<int>
+     */
+    private function implicatedProcedureIds(
+        ClinicalEncounter $encounter,
+        ?Appointment $appointment,
+        array $payload,
+    ): array {
+        $ids = [];
+
+        $defaultProcedureId = $appointment?->appointmentType?->default_procedure_catalog_id;
+        if ($defaultProcedureId !== null) {
+            $ids[] = (int) $defaultProcedureId;
+        }
+
+        $planData = $payload['treatment_plan'] ?? null;
+        if (is_array($planData)) {
+            foreach ($planData['items'] ?? [] as $item) {
+                if (is_array($item) && ! empty($item['procedure_catalog_id'])) {
+                    $ids[] = (int) $item['procedure_catalog_id'];
+                }
+            }
+        }
+
+        $planIds = array_values(array_filter([
+            $encounter->treatment_plan_id,
+            is_array($planData) ? ($planData['id'] ?? null) : null,
+        ]));
+
+        if ($planIds !== []) {
+            $stored = TreatmentPlanItem::query()
+                ->whereIn('treatment_plan_id', array_map('intval', $planIds))
+                ->whereNotNull('procedure_catalog_id')
+                ->pluck('procedure_catalog_id');
+
+            foreach ($stored as $procedureId) {
+                $ids[] = (int) $procedureId;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function medicalRecordFor(int $patientId, ?int $userId): MedicalRecord
@@ -413,6 +481,7 @@ class ConsultationService
             foreach ($items as $item) {
                 TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
+                    'procedure_catalog_id' => $item['procedure_catalog_id'] ?? null,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
                     'procedure_description' => $item['procedure_description'] ?? null,
                     'dental_piece_id' => $item['dental_piece_id'] ?? null,
@@ -451,6 +520,7 @@ class ConsultationService
             foreach ($items as $item) {
                 TreatmentPlanItem::create([
                     'treatment_plan_id' => $plan->id,
+                    'procedure_catalog_id' => $item['procedure_catalog_id'] ?? null,
                     'procedure_name' => $item['procedure_name'] ?? 'Procedimiento',
                     'dental_piece_id' => $item['dental_piece_id'] ?? null,
                     'specialty' => $item['specialty'] ?? null,

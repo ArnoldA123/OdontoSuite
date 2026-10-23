@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\ProcedureCatalog;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -22,6 +23,9 @@ use Tests\TestCase;
  *    writable through the documented contract (`default_duration_minutes` is
  *    the resource field, so an echoed resource must not be a silent no-op).
  *  - `color` is a hex triplet, not any string up to seven characters.
+ *  - `requires_materials` (#295 S7) is published derived from the recipe of the
+ *    default procedure. The column keeps accepting the flag the form sends, but
+ *    the response no longer echoes it.
  */
 class AppointmentTypeCrudContractTest extends TestCase
 {
@@ -156,9 +160,11 @@ class AppointmentTypeCrudContractTest extends TestCase
             'is_consultation_mode' => true,
         ]);
 
+        // El flag legacy se acepta y se guarda, pero la respuesta publica el
+        // valor derivado: sin procedimiento por defecto no hay recetario.
         $response->assertCreated()
             ->assertJsonPath('data.requires_confirmation', true)
-            ->assertJsonPath('data.requires_materials', true)
+            ->assertJsonPath('data.requires_materials', false)
             ->assertJsonPath('data.is_consultation_mode', true);
 
         $this->assertDatabaseHas('appointment_types', [
@@ -166,6 +172,60 @@ class AppointmentTypeCrudContractTest extends TestCase
             'requires_confirmation' => true,
             'requires_materials' => true,
             'is_consultation_mode' => true,
+        ]);
+    }
+
+    public function test_store_publishes_the_derived_requirement_of_the_default_procedure(): void
+    {
+        $product = Product::factory()->create();
+        $procedure = ProcedureCatalog::factory()->create();
+        $procedure->materialRecipe()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $response = $this->actingAs($this->admin(), 'sanctum')->postJson('/api/appointment-types', [
+            'name' => 'Obturacion',
+            'duration_minutes' => 45,
+            'color' => '#10B981',
+            'default_procedure_catalog_id' => $procedure->id,
+            'requires_materials' => false,
+        ]);
+
+        $response->assertCreated()->assertJsonPath('data.requires_materials', true);
+        $this->assertDatabaseHas('appointment_types', [
+            'name' => 'Obturacion',
+            'requires_materials' => false,
+        ]);
+    }
+
+    public function test_update_accepts_the_legacy_materials_flag_and_publishes_the_derived_value(): void
+    {
+        $product = Product::factory()->create();
+        $procedure = ProcedureCatalog::factory()->create();
+        $procedure->materialRecipe()->create(['product_id' => $product->id, 'quantity' => 2]);
+
+        $type = AppointmentType::factory()->create(['requires_materials' => false]);
+
+        $response = $this->actingAs($this->admin(), 'sanctum')
+            ->putJson("/api/appointment-types/{$type->id}", [
+                'default_procedure_catalog_id' => $procedure->id,
+                'requires_materials' => false,
+            ]);
+
+        $response->assertOk()->assertJsonPath('data.requires_materials', true);
+
+        // Quitar el procedimiento por defecto apaga la exigencia, sin importar
+        // lo que diga la columna legacy.
+        $this->actingAs($this->admin(), 'sanctum')
+            ->putJson("/api/appointment-types/{$type->id}", [
+                'default_procedure_catalog_id' => null,
+                'requires_materials' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.requires_materials', false);
+
+        $this->assertDatabaseHas('appointment_types', [
+            'id' => $type->id,
+            'default_procedure_catalog_id' => null,
+            'requires_materials' => true,
         ]);
     }
 

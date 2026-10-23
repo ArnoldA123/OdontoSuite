@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CloseClinicalEncounterRequest;
 use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
+use App\Models\ProcedureCatalogMaterial;
+use App\Models\Product;
 use App\Models\TreatmentPlan;
 use App\Services\ConsultationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class ConsultationController extends Controller
@@ -22,6 +25,11 @@ class ConsultationController extends Controller
      *
      * Devuelve el contexto que el wizard necesita para renderizarse:
      * la cita, la HC del paciente, planes activos, y datos auxiliares.
+     *
+     * #295 (S7): `requires_materials` es el valor derivado del procedimiento por
+     * defecto, y `material_recipe` la precarga del acto —la receta de los
+     * procedimientos implicados agregada por insumo— para que el profesional
+     * solo ajuste cantidades.
      */
     public function context(Appointment $appointment): JsonResponse
     {
@@ -40,31 +48,31 @@ class ConsultationController extends Controller
             ->where('patient_id', $appointment->patient_id)
             ->whereIn('status', ['draft', 'proposed', 'approved', 'in_progress'])
             ->orderByDesc('updated_at')
-            ->get()
-            ->map(fn ($plan) => [
-                'id' => $plan->id,
-                'plan_number' => $plan->plan_number,
-                'title' => $plan->title,
-                'status' => $plan->status,
-                'progress' => $plan->progressMetrics(),
-                'items' => $plan->items->map(fn ($i) => [
-                    'id' => $i->id,
-                    'procedure_name' => $i->procedure_name,
-                    'specialty' => $i->specialty,
-                    'dental_piece_id' => $i->dental_piece_id,
-                    'phase_number' => $i->phase_number,
-                    'unit_cost' => (float) $i->unit_cost,
-                    'total_cost' => (float) $i->total_cost,
-                    'status' => $i->status,
-                    'materials_required' => $i->requiredMaterialsList(),
-                ]),
-            ]);
+            ->get();
 
         return response()->json([
             'data' => [
                 'appointment' => (new AppointmentResource($appointment))->resolve(),
-                'active_plans' => $activePlans,
-                'requires_materials' => (bool) $appointment->appointmentType?->requires_materials,
+                'active_plans' => $activePlans->map(fn ($plan) => [
+                    'id' => $plan->id,
+                    'plan_number' => $plan->plan_number,
+                    'title' => $plan->title,
+                    'status' => $plan->status,
+                    'progress' => $plan->progressMetrics(),
+                    'items' => $plan->items->map(fn ($i) => [
+                        'id' => $i->id,
+                        'procedure_name' => $i->procedure_name,
+                        'specialty' => $i->specialty,
+                        'dental_piece_id' => $i->dental_piece_id,
+                        'phase_number' => $i->phase_number,
+                        'unit_cost' => (float) $i->unit_cost,
+                        'total_cost' => (float) $i->total_cost,
+                        'status' => $i->status,
+                        'materials_required' => $i->requiredMaterialsList(),
+                    ]),
+                ]),
+                'requires_materials' => (bool) $appointment->appointmentType?->requiresMaterialsFromCatalog(),
+                'material_recipe' => $this->materialRecipe($appointment, $activePlans),
                 'appointment_type' => [
                     'id' => $appointment->appointmentType?->id,
                     'name' => $appointment->appointmentType?->name,
@@ -74,6 +82,63 @@ class ConsultationController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Receta del acto: los procedimientos implicados en el tipo de cita y en los
+     * planes del paciente, agregados por insumo. Un insumo que aparece en dos
+     * procedimientos llega con la suma, y la lista se ordena por nombre.
+     *
+     * @param  Collection<int, TreatmentPlan> $activePlans
+     * @return list<array<string, mixed>>
+     */
+    private function materialRecipe(Appointment $appointment, Collection $activePlans): array
+    {
+        $procedureIds = [];
+
+        $defaultProcedureId = $appointment->appointmentType?->default_procedure_catalog_id;
+        if ($defaultProcedureId !== null) {
+            $procedureIds[] = (int) $defaultProcedureId;
+        }
+
+        foreach ([...$activePlans->all(), $appointment->treatmentPlan] as $plan) {
+            if ($plan === null) {
+                continue;
+            }
+
+            foreach ($plan->items as $item) {
+                if ($item->procedure_catalog_id !== null) {
+                    $procedureIds[] = (int) $item->procedure_catalog_id;
+                }
+            }
+        }
+
+        $procedureIds = array_values(array_unique($procedureIds));
+
+        if ($procedureIds === []) {
+            return [];
+        }
+
+        $quantities = ProcedureCatalogMaterial::query()
+            ->whereIn('procedure_catalog_id', $procedureIds)
+            ->groupBy('product_id')
+            ->selectRaw('product_id, SUM(quantity) as quantity')
+            ->pluck('quantity', 'product_id');
+
+        return Product::query()
+            ->whereIn('id', $quantities->keys()->all())
+            ->orderBy('name')
+            ->get(['id', 'name', 'unit', 'cost_price', 'stock_quantity'])
+            ->map(fn (Product $product) => [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'unit' => $product->unit,
+                'cost_price' => (float) $product->cost_price,
+                'stock_quantity' => (float) $product->stock_quantity,
+                'quantity' => round((float) $quantities->get($product->id), 3),
+            ])
+            ->values()
+            ->all();
     }
 
     /**
