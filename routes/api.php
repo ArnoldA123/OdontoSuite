@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\DentalChairController;
 use App\Http\Controllers\Api\DentalPieceController;
 use App\Http\Controllers\Api\DiagnosisCatalogController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\LabCaseController;
 use App\Http\Controllers\Api\MedicalRecordController;
 use App\Http\Controllers\Api\MercadoPagoController;
 use App\Http\Controllers\Api\PatientController;
@@ -231,6 +232,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('patient-recalls/{recall}/cancel', [PatientRecallController::class, 'cancel']);
         Route::post('continuity-requests/{continuityRequest}/schedule', [ContinuityController::class, 'schedule']);
         Route::post('continuity-requests/{continuityRequest}/dismiss', [ContinuityController::class, 'dismiss']);
+    });
+
+    // F5 (#285): the prosthetic laboratory case. The work order is read by the
+    // desks that answer for it (reception included) and its phase moves only
+    // through the phase door, which owns the ready notification (S2/S4).
+    Route::middleware('permission:'.Permissions::VIEW_LAB_CASE)->group(function () {
+        Route::get('lab-cases', [LabCaseController::class, 'index']);
+        Route::get('lab-cases/{labCase}', [LabCaseController::class, 'show']);
+    });
+    Route::middleware('permission:'.Permissions::MANAGE_LAB_CASE)->group(function () {
+        Route::post('lab-cases', [LabCaseController::class, 'store']);
+        Route::put('lab-cases/{labCase}', [LabCaseController::class, 'update']);
+        Route::post('lab-cases/{labCase}/phase', [LabCaseController::class, 'transition']);
     });
     // #280: closing a consultation writes ClinicalEvolution, treatment plan,
     // materials and attachments. Reception must not reach it.

@@ -103,6 +103,16 @@ final class Permissions
 
     public const VIEW_PRODUCT = 'view.product';
 
+    /**
+     * #285 (S1/S3/S6) — the prosthetic laboratory case. Reading the work order
+     * is dispatch work and belongs to the desks that answer for it; moving the
+     * phases is the laboratory's own desk. These two permissions are the only
+     * door to the case, so the laboratory never needs the clinical record.
+     */
+    public const VIEW_LAB_CASE = 'view.lab_case';
+
+    public const MANAGE_LAB_CASE = 'manage.lab_case';
+
     // #295 (S6): the warehouse. Reading what is on the shelf is clinical and
     // financial work; receiving a purchase or counting a shelf is not, so the
     // write capability keeps its own list.
@@ -295,6 +305,29 @@ final class Permissions
 
     private const CASH_ROLES = ['administrador', 'finanzas', 'recepcionista'];
 
+    /**
+     * #285 (S1/S3): who answers for a prosthetic case.
+     *
+     * Reading the work order is dispatch, reception and clinical work; the
+     * laboratory desk that moves the phases is the same grant that already
+     * writes treatment plans and specialty records. Finance is outside both.
+     */
+    private const LAB_CASE_READERS = [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente',
+    ];
+
+    private const LAB_CASE_WRITERS = [
+        'administrador',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+    ];
+
     private const FINANCE_ROLES = ['administrador', 'finanzas'];
 
     private const QUOTATION_READERS = [
@@ -354,6 +387,8 @@ final class Permissions
         self::VIEW_ENCOUNTER => self::RECORD_ROLES,
         self::VIEW_DIAGNOSIS_CATALOG => self::MEDICAL_ROLES,
         self::VIEW_PRODUCT => self::APPOINTMENT_ROLES,
+        self::VIEW_LAB_CASE => self::LAB_CASE_READERS,
+        self::MANAGE_LAB_CASE => self::LAB_CASE_WRITERS,
         self::VIEW_INVENTORY => ['administrador', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente', 'finanzas'],
         self::MANAGE_INVENTORY => ['administrador', 'finanzas', 'asistente'],
         self::MANAGE_REMINDER => self::APPOINTMENT_ROLES,

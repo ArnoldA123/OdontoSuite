@@ -183,6 +183,41 @@ class PermissionCatalogTest extends TestCase
         }
     }
 
+    /**
+     * #285 (S1/S3) — the case is the laboratory's work order, not the record.
+     * Reception reads it to answer for the patient, finance is outside, and the
+     * phase stays with the desks that carry the work.
+     */
+    #[Test]
+    public function the_laboratory_case_grants_read_and_write_separately(): void
+    {
+        foreach (['administrador', 'recepcionista', 'odontologo', 'implantologo', 'tecnico_dental', 'asistente'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::VIEW_LAB_CASE),
+                "Role [{$role}] should read the prosthetic case.",
+            );
+        }
+
+        $this->assertFalse(
+            Permissions::roleHas('finanzas', Permissions::VIEW_LAB_CASE),
+            'Finance holds [view.lab_case], but the case is not a financial surface.',
+        );
+
+        foreach (['administrador', 'odontologo', 'implantologo', 'tecnico_dental'] as $role) {
+            $this->assertTrue(
+                Permissions::roleHas($role, Permissions::MANAGE_LAB_CASE),
+                "Role [{$role}] should move the case through its phases.",
+            );
+        }
+
+        foreach (['recepcionista', 'asistente', 'finanzas'] as $role) {
+            $this->assertFalse(
+                Permissions::roleHas($role, Permissions::MANAGE_LAB_CASE),
+                "Role [{$role}] holds [manage.lab_case], but it does not move the phase.",
+            );
+        }
+    }
+
     #[Test]
     public function frontend_only_permissions_exist_in_the_catalog(): void
     {
