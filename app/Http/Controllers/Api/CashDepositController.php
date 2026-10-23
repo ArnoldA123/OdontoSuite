@@ -24,13 +24,16 @@ class CashDepositController extends Controller
     public function __construct(private readonly CashDepositService $deposits) {}
 
     /**
-     * Paginated deposit list, filtered by date range and effective sede.
+     * Paginated deposit list, filtered by drawer, date range and effective sede.
+     *
+     * #320 (T1, S8) — `cash_register_session_id` narrows the list to one drawer,
+     * which is what the closure needs to show the deposits of its own turn.
      */
     public function index(Request $request): JsonResponse
     {
         try {
             return response()->json($this->deposits->index($request->only([
-                'branch_id', 'date_from', 'date_to', 'per_page',
+                'branch_id', 'cash_register_session_id', 'date_from', 'date_to', 'per_page',
             ])));
         } catch (AuthorizationException|ValidationException $e) {
             throw $e;

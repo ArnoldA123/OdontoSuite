@@ -86,4 +86,30 @@ describe('usePermissions derives every flag from the permission payload (#280)',
     expect(can.manageAccountingLock.value).toBe(true)
     expect(can.overrideAccountingLock.value).toBe(false)
   })
+
+  // #320 D3: the patient ledger and the bank deposit complete the cash
+  // surface. The flags are membership checks on the payload, never a role list.
+  it('derives the patient ledger and deposit flags from the permission payload', () => {
+    authState.ref.value = {
+      role: 'recepcionista',
+      permissions: ['manage.patient_charge', 'view.patient_statement', 'manage.cash_deposit']
+    }
+
+    const reception = usePermissions()
+
+    expect(reception.can.managePatientCharge.value).toBe(true)
+    expect(reception.can.viewPatientStatement.value).toBe(true)
+    expect(reception.can.manageCashDeposit.value).toBe(true)
+
+    authState.ref.value = {
+      role: 'odontologo',
+      permissions: ['complete.appointment', 'manage.medical_record']
+    }
+
+    const clinical = usePermissions()
+
+    expect(clinical.can.managePatientCharge.value).toBe(false)
+    expect(clinical.can.viewPatientStatement.value).toBe(false)
+    expect(clinical.can.manageCashDeposit.value).toBe(false)
+  })
 })

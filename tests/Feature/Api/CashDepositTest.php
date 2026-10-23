@@ -237,6 +237,54 @@ class CashDepositTest extends TestCase
             ->assertJsonPath('meta.per_page', 100);
     }
 
+    public function test_the_deposit_list_filters_by_drawer(): void
+    {
+        $this->postJson('/api/cash-register/deposits', $this->payload([
+            'amount' => 40,
+            'reference' => 'BCP-TURNO-1',
+        ]))->assertCreated();
+
+        $secondOperator = User::factory()->create([
+            'role' => 'finanzas',
+            'is_active' => true,
+            'branch_id' => $this->branch->id,
+        ]);
+
+        $this->actingAs($secondOperator, 'sanctum');
+
+        $secondSession = app(CashRegisterService::class)->openSession([
+            'branch_id' => $this->branch->id,
+            'opening_amount' => 200.0,
+        ]);
+
+        $this->actingAs($this->admin, 'sanctum');
+
+        $this->postJson('/api/cash-register/deposits', [
+            'cash_register_session_id' => $secondSession->id,
+            'amount' => 30,
+            'reference' => 'BCP-TURNO-2',
+        ])->assertCreated();
+
+        // Without the filter the list keeps every drawer of the effective sede.
+        $this->getJson('/api/cash-register/deposits')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 2);
+
+        // The closure needs the deposits of its own drawer, and only those.
+        $this->getJson('/api/cash-register/deposits?cash_register_session_id='.$this->session->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.reference', 'BCP-TURNO-1')
+            ->assertJsonPath('data.0.cash_register_session_id', $this->session->id);
+
+        $this->getJson('/api/cash-register/deposits?cash_register_session_id='.$secondSession->id)
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'BCP-TURNO-2');
+    }
+
     public function test_the_deposit_list_is_scoped_to_the_effective_branch(): void
     {
         $this->postJson('/api/cash-register/deposits', $this->payload())->assertCreated();
@@ -270,6 +318,13 @@ class CashDepositTest extends TestCase
 
         $this->getJson('/api/cash-register/deposits?branch_id='.$this->branch->id)
             ->assertForbidden();
+
+        // #320: the drawer filter never widens the sede; a drawer of another
+        // branch stays invisible even when it is named.
+        $this->getJson('/api/cash-register/deposits?cash_register_session_id='.$this->session->id)
+            ->assertOk()
+            ->assertJsonCount(0, 'data')
+            ->assertJsonPath('meta.total', 0);
     }
 
     public function test_a_restricted_user_cannot_deposit_into_another_branch(): void
