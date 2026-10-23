@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\DentalChair;
 use App\Models\Patient;
 use App\Models\User;
+use App\Services\Reports\Concerns\ResolvesBranchFilter;
 use App\Services\Reports\Concerns\ResolvesMoneyTotals;
 use App\Services\Reports\Concerns\ResolvesReportPeriod;
 use Carbon\Carbon;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
+    use ResolvesBranchFilter;
     use ResolvesMoneyTotals;
     use ResolvesReportPeriod;
 
@@ -36,27 +38,29 @@ class DashboardService
         [$startDate, $endDate] = $this->resolvePeriod($filters, 30, 60);
         $professionalId = $filters['professional_id'] ?? null;
         $environmentId = $filters['environment_id'] ?? null;
+        $branchId = $this->branchFilter($filters);
 
         $cacheKey = 'dashboard_data_'.md5(serialize([
             'start_date' => $startDate->toDateString(),
             'end_date' => $endDate->toDateString(),
             'professional_id' => $professionalId,
             'environment_id' => $environmentId,
+            'branch_id' => $branchId,
         ]));
 
-        $build = function () use ($startDate, $endDate, $professionalId, $environmentId) {
+        $build = function () use ($startDate, $endDate, $professionalId, $environmentId, $branchId) {
             return [
-                'totalAppointments' => $this->getTotalAppointments($startDate, $endDate, $professionalId, $environmentId),
-                'totalPatients' => $this->getTotalPatients($startDate, $endDate, $professionalId, $environmentId),
-                'newPatients' => $this->getNewPatients($startDate, $endDate),
-                'totalRevenue' => $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId),
-                'totalRefunds' => $this->getTotalRefunds($startDate, $endDate, $professionalId, $environmentId),
-                'occupancyRate' => $this->getOccupancyRate($startDate, $endDate, $professionalId, $environmentId),
-                'usedHours' => round($this->getUsedHours($startDate, $endDate, $professionalId, $environmentId), 2),
-                'availableHours' => $this->getTotalAvailableHours($startDate, $endDate, $environmentId),
-                'appointmentsByDay' => $this->getAppointmentsByDay($startDate, $endDate, $professionalId, $environmentId),
-                'revenueByMonth' => $this->getRevenueByMonth($startDate, $endDate, $professionalId, $environmentId),
-                'professionalPerformance' => $this->getProfessionalPerformance($startDate, $endDate, $professionalId, $environmentId),
+                'totalAppointments' => $this->getTotalAppointments($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'totalPatients' => $this->getTotalPatients($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'newPatients' => $this->getNewPatients($startDate, $endDate, $branchId),
+                'totalRevenue' => $this->getTotalRevenue($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'totalRefunds' => $this->getTotalRefunds($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'occupancyRate' => $this->getOccupancyRate($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'usedHours' => round($this->getUsedHours($startDate, $endDate, $professionalId, $environmentId, $branchId), 2),
+                'availableHours' => $this->getTotalAvailableHours($startDate, $endDate, $environmentId, $branchId),
+                'appointmentsByDay' => $this->getAppointmentsByDay($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'revenueByMonth' => $this->getRevenueByMonth($startDate, $endDate, $professionalId, $environmentId, $branchId),
+                'professionalPerformance' => $this->getProfessionalPerformance($startDate, $endDate, $professionalId, $environmentId, $branchId),
             ];
         };
 
@@ -85,6 +89,7 @@ class DashboardService
             'end_date' => $endDate->toDateString(),
             'professional_id' => $filters['professional_id'] ?? null,
             'environment_id' => $filters['environment_id'] ?? null,
+            'branch_id' => $this->branchFilter($filters),
         ]));
 
         Cache::forget($cacheKey);
@@ -150,7 +155,7 @@ class DashboardService
     /**
      * Appointments scheduled inside the period, every status.
      */
-    private function getTotalAppointments(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): int
+    private function getTotalAppointments(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): int
     {
         $query = Appointment::whereBetween('scheduled_at', [$startDate, $endDate]);
 
@@ -162,15 +167,18 @@ class DashboardService
             $query->where('dental_chair_id', $environmentId);
         }
 
-        return $query->count();
+        return $this->filterBranch($query, 'branch_id', $branchId)->count();
     }
 
     /**
      * Distinct patients seen inside the period (D6).
+     *
+     * With a sede filter the population is the patients treated there, which is
+     * the same population the patients report publishes (#303, L2).
      */
-    private function getTotalPatients(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): int
+    private function getTotalPatients(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): int
     {
-        return Patient::whereHas('appointments', function ($q) use ($startDate, $endDate, $professionalId, $environmentId) {
+        return Patient::whereHas('appointments', function ($q) use ($startDate, $endDate, $professionalId, $environmentId, $branchId) {
             $q->whereBetween('scheduled_at', [$startDate, $endDate]);
 
             if ($professionalId) {
@@ -180,34 +188,40 @@ class DashboardService
             if ($environmentId) {
                 $q->where('dental_chair_id', $environmentId);
             }
+
+            $this->filterBranch($q, 'branch_id', $branchId);
         })->count();
     }
 
     /**
-     * Patients registered inside the period.
+     * Patients registered inside the period, by the sede of the file.
      */
-    private function getNewPatients(Carbon $startDate, Carbon $endDate): int
+    private function getNewPatients(Carbon $startDate, Carbon $endDate, ?int $branchId): int
     {
-        return Patient::whereBetween('created_at', [$startDate, $endDate])->count();
+        return $this->filterBranch(
+            Patient::whereBetween('created_at', [$startDate, $endDate]),
+            'branch_id',
+            $branchId
+        )->count();
     }
 
     /**
      * Net money of the period: completed payments minus completed refunds (D1, S4).
      */
-    private function getTotalRevenue(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
+    private function getTotalRevenue(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): float
     {
-        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId))['net'];
+        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId, $branchId))['net'];
     }
 
     /**
      * Refunded money of the period as a positive amount (S4).
      */
-    private function getTotalRefunds(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
+    private function getTotalRefunds(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): float
     {
-        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId))['refunds'];
+        return $this->moneyTotals($this->revenueQuery($startDate, $endDate, $professionalId, $environmentId, $branchId))['refunds'];
     }
 
-    private function revenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): Builder
+    private function revenueQuery(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): Builder
     {
         $query = $this->moneyTransactions($startDate, $endDate);
 
@@ -223,16 +237,16 @@ class DashboardService
             });
         }
 
-        return $query;
+        return $this->filterByDrawerBranch($query, $branchId);
     }
 
     /**
      * Get occupancy rate.
      */
-    private function getOccupancyRate(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
+    private function getOccupancyRate(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): float
     {
-        $totalHours = $this->getTotalAvailableHours($startDate, $endDate, $environmentId);
-        $usedHours = $this->getUsedHours($startDate, $endDate, $professionalId, $environmentId);
+        $totalHours = $this->getTotalAvailableHours($startDate, $endDate, $environmentId, $branchId);
+        $usedHours = $this->getUsedHours($startDate, $endDate, $professionalId, $environmentId, $branchId);
 
         if ($totalHours <= 0) {
             return 0;
@@ -244,11 +258,17 @@ class DashboardService
     /**
      * Physical availability: active chairs times working days (D4).
      */
-    private function getTotalAvailableHours(Carbon $startDate, Carbon $endDate, ?int $environmentId): float
+    private function getTotalAvailableHours(Carbon $startDate, Carbon $endDate, ?int $environmentId, ?int $branchId): float
     {
-        $chairs = $environmentId
-            ? DentalChair::where('id', $environmentId)->count()
-            : DentalChair::where('is_active', true)->count();
+        $query = DentalChair::query();
+
+        if ($environmentId) {
+            $query->where('id', $environmentId);
+        } else {
+            $query->where('is_active', true);
+        }
+
+        $chairs = $this->filterBranch($query, 'branch_id', $branchId)->count();
 
         return $this->availableHours($startDate, $endDate, $chairs);
     }
@@ -256,7 +276,7 @@ class DashboardService
     /**
      * Hours the chairs were actually reserved: no cancelled, no no-show (D5).
      */
-    private function getUsedHours(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): float
+    private function getUsedHours(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): float
     {
         $query = Appointment::whereBetween('scheduled_at', [$startDate, $endDate])
             ->whereNotIn('status', ['cancelled', 'no_show']);
@@ -269,13 +289,13 @@ class DashboardService
             $query->where('dental_chair_id', $environmentId);
         }
 
-        return (float) $query->sum('duration_minutes') / 60;
+        return (float) $this->filterBranch($query, 'branch_id', $branchId)->sum('duration_minutes') / 60;
     }
 
     /**
      * Appointments per day for the period chart.
      */
-    private function getAppointmentsByDay(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
+    private function getAppointmentsByDay(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): array
     {
         $query = Appointment::select(
             DB::raw('DATE(scheduled_at) as date'),
@@ -293,6 +313,8 @@ class DashboardService
             $query->where('dental_chair_id', $environmentId);
         }
 
+        $query = $this->filterBranch($query, 'branch_id', $branchId);
+
         return $query->get()->map(function ($item) {
             return [
                 'date' => is_string($item->date) ? $item->date : Carbon::parse($item->date)->format('Y-m-d'),
@@ -304,7 +326,7 @@ class DashboardService
     /**
      * Net money per month for the period chart, refunds reported next to it (S4).
      */
-    private function getRevenueByMonth(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
+    private function getRevenueByMonth(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): array
     {
         $query = $this->moneyTransactions($startDate, $endDate)
             ->select(
@@ -329,6 +351,8 @@ class DashboardService
             });
         }
 
+        $query = $this->filterByDrawerBranch($query, $branchId);
+
         return $query->get()->map(function ($item) {
             return [
                 'month' => Carbon::create($item->year, $item->month)->format('M Y'),
@@ -347,7 +371,7 @@ class DashboardService
      * redistributed, so the sum of this column cannot exceed the clinic's net
      * revenue (S4).
      */
-    private function getProfessionalPerformance(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId): array
+    private function getProfessionalPerformance(Carbon $startDate, Carbon $endDate, ?int $professionalId, ?int $environmentId, ?int $branchId): array
     {
         // No is_active filter: a professional who worked in the period appears
         // even after being deactivated, and the population matches the
@@ -356,6 +380,16 @@ class DashboardService
 
         if ($professionalId) {
             $query->where('id', $professionalId);
+        }
+
+        if ($branchId !== null) {
+            // Same population rule as the professionals report: activity in the
+            // sede during the period (#303, L2).
+            $query->whereHas('appointments', function ($subQ) use ($startDate, $endDate, $branchId) {
+                $subQ->whereBetween('scheduled_at', [$startDate, $endDate]);
+
+                $this->filterBranch($subQ, 'branch_id', $branchId);
+            });
         }
 
         $professionals = $query->orderBy('name')->get();
@@ -370,6 +404,7 @@ class DashboardService
             ->whereBetween('scheduled_at', [$startDate, $endDate])
             ->whereIn('user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('dental_chair_id', $environmentId))
+            ->when($branchId !== null, fn ($q) => $q->where('branch_id', $branchId))
             ->groupBy('user_id')
             ->pluck('total', 'user_id');
 
@@ -377,6 +412,7 @@ class DashboardService
             ->join('appointments', 'appointments.id', '=', 'transactions.appointment_id')
             ->whereIn('appointments.user_id', $ids)
             ->when($environmentId, fn ($q) => $q->where('appointments.dental_chair_id', $environmentId))
+            ->when($branchId !== null, fn ($q) => $q->where('appointments.branch_id', $branchId))
             ->groupBy('appointments.user_id')
             ->select(
                 'appointments.user_id',

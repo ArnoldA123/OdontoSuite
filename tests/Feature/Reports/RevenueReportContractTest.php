@@ -76,7 +76,7 @@ class RevenueReportContractTest extends ReportContractTestCase
             $summary['period']
         );
 
-        $allowedTypes = ['Por Tipo de Cita', 'Por Profesional', 'Por Ambiente', 'Por Día', 'Sin cita asociada'];
+        $allowedTypes = ['Por Tipo de Cita', 'Por Profesional', 'Por Ambiente', 'Por Día', 'Por Sede', 'Sin cita asociada'];
         $types = array_values(array_unique(array_column($data, 'type')));
 
         foreach ($types as $rowType) {

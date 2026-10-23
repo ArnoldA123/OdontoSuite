@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Reports;
 
+use App\Authorization\BranchAccess;
 use App\Http\Controllers\Controller;
 use App\Services\Reports\AppointmentReportService;
 use App\Services\Reports\ConsolidatedReportService;
@@ -73,8 +74,10 @@ class ReportController extends Controller
             return $invalid;
         }
 
+        $filters = $this->reportFilters($request);
+
         try {
-            $data = $this->dashboardService->getDashboardData($request->all(), false);
+            $data = $this->dashboardService->getDashboardData($filters, false);
 
             return response()->json([
                 'data' => $data,
@@ -120,8 +123,10 @@ class ReportController extends Controller
             return $invalid;
         }
 
+        $filters = $this->reportFilters($request);
+
         try {
-            $data = $this->revenueReportService->getReportData($request->all());
+            $data = $this->revenueReportService->getReportData($filters);
 
             return response()->json([
                 'data' => $data['data'],
@@ -199,6 +204,7 @@ class ReportController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'professional_id' => 'nullable|exists:users,id',
             'environment_id' => 'nullable|exists:dental_chairs,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         if ($validator->fails()) {
@@ -208,9 +214,14 @@ class ReportController extends Controller
             ], 422);
         }
 
+        $branchId = $this->effectiveBranchId($request);
+
         try {
             $format = $request->input('format');
-            $filters = $request->only(['start_date', 'end_date', 'professional_id', 'environment_id']);
+            $filters = array_merge(
+                $request->only(['start_date', 'end_date', 'professional_id', 'environment_id']),
+                ['branch_id' => $branchId]
+            );
             $data = $this->getServiceByReportType($reportType)->getReportData($filters);
 
             $filename = $reportType.'_report_'.now()->format('Y-m-d_H-i-s');
@@ -235,8 +246,10 @@ class ReportController extends Controller
             return $invalid;
         }
 
+        $filters = $this->reportFilters($request);
+
         try {
-            $data = $service->getReportData($request->all());
+            $data = $service->getReportData($filters);
 
             return response()->json([
                 'data' => $data['data'],
@@ -260,6 +273,7 @@ class ReportController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'professional_id' => 'nullable|exists:users,id',
             'environment_id' => 'nullable|exists:dental_chairs,id',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         if ($validator->fails()) {
@@ -269,6 +283,36 @@ class ReportController extends Controller
             ], 422);
         }
 
+    }
+
+    /**
+     * Filters as the services read them, with the sede already resolved.
+     *
+     * The resolution happens outside the report try/catch on purpose: a foreign
+     * sede is an AuthorizationException and must surface as a 403, never as the
+     * generic 500 that catches every Throwable.
+     *
+     * @return array<string, mixed>
+     */
+    private function reportFilters(Request $request): array
+    {
+        return array_merge($request->all(), [
+            'branch_id' => $this->effectiveBranchId($request),
+        ]);
+    }
+
+    /**
+     * The sede the report must answer: the one asked for, or the user's own
+     * when the request names none and the user is restricted to a sede.
+     *
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    private function effectiveBranchId(Request $request): ?int
+    {
+        return BranchAccess::effectiveFilter(
+            $request->user(),
+            $request->filled('branch_id') ? (int) $request->input('branch_id') : null,
+        );
     }
 
     /**
