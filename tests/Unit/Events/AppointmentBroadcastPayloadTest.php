@@ -6,10 +6,13 @@ use App\Events\AppointmentCheckedIn;
 use App\Events\AppointmentCompleted;
 use App\Events\AppointmentCreated;
 use App\Events\AppointmentUpdated;
+use App\Events\ReminderSent;
 use App\Models\Appointment;
 use App\Models\AppointmentType;
 use App\Models\DentalChair;
 use App\Models\Patient;
+use App\Models\ReminderSchedule;
+use App\Models\ReminderTemplate;
 use App\Models\TreatmentPlan;
 use App\Models\User;
 use PHPUnit\Framework\Attributes\Test;
@@ -157,5 +160,37 @@ class AppointmentBroadcastPayloadTest extends TestCase
             $appointment->checked_in_at?->toIso8601String(),
             $payload['checked_in_at']
         );
+    }
+
+    /**
+     * The reminder travels on `reminders` and `appointments`, both authorized
+     * to reception and the laboratory, and it embeds the appointment. The
+     * conduct never rides along, even when the row was written before the
+     * closure stopped copying it.
+     */
+    #[Test]
+    public function the_reminder_event_drops_the_conduct_of_the_embedded_appointment(): void
+    {
+        $reminder = new ReminderSchedule;
+        $reminder->forceFill([
+            'id' => 5,
+            'appointment_id' => 42,
+            'hours_before' => 24,
+            'scheduled_at' => now(),
+            'sent_at' => now(),
+            'channel' => 'email',
+            'status' => 'sent',
+        ]);
+        $reminder->setRelation('appointment', $this->appointment());
+        $reminder->setRelation('reminderTemplate', new ReminderTemplate);
+
+        $payload = (new ReminderSent($reminder))->broadcastWith();
+
+        $this->assertSame(['reminder'], array_keys($payload));
+        $this->assertPublishedAppointment(
+            $payload['reminder']['appointment'],
+            'ReminderSent'
+        );
+        $this->assertSame(5, $payload['reminder']['id']);
     }
 }

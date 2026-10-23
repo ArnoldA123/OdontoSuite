@@ -99,9 +99,12 @@ Ninguno de los tres eventos tenía consumidor en `dashboard-updates`:
 `useWebSocketNotifications` ya escucha `medical-record.created` y
 `specialty-record.*` en sus canales clínicos, y `DashboardPage` no los escucha.
 
-L6 (fuera de alcance, declarado): `ReminderSent` embebe la cita de un
-recordatorio futuro (24/48/72 h antes), que no tiene conducta porque el cierre
-la deja nula; queda como follow-up si el payload se reutilizara. La escritura
+L6 (revisado tras la verificación independiente): `ReminderSent` embebía la cita
+cruda de un recordatorio futuro (24/48/72 h antes) y publicaba por `reminders` y
+`appointments`, canales de recepción y laboratorio. La premisa «la cita futura no
+tiene conducta» dependía de que nadie escribiera `treatment_notes` a mano, así
+que el payload del recordatorio también recorta el campo
+(`Arr::except(..., ['appointment.treatment_notes'])`), con test. La escritura
 manual de `treatment_notes` por `PUT/PATCH /api/appointments/{id}` sigue
 abierta: la issue pide cerrar la publicación, no el contrato de escritura. El
 intento de suscripción del rol sin permiso a `specialty-records` en
@@ -114,19 +117,19 @@ Decidido por el usuario (2026-10-23) al pasar el presupuesto de revisión de
 ~400 líneas autoradas. Una sola pasada de slicing; el presupuesto no recorta
 código ni tests.
 
-| Slice | Branch | Commits | Contenido |
+| Slice | Branch | Commits (asunto) | Contenido |
 | --- | --- | --- | --- |
-| 1 | `fix/f5-313-315-clinical-channel` | `aab999a`, `3e467d1` | Eventos clínicos fuera de `dashboard-updates` (#313, #315) y registro de especialidad cerrado al laboratorio (#313) |
-| 2 | `fix/f5-314-appointment-conduct` | `3bfd470`, `04595ec` + cierre | Cita sin la conducta clínica (#314), ADR-0016 y documentos de la frontera |
+| 1 | `fix/f5-313-315-clinical-channel` | `fix(313,315): keep clinical documents off dashboard-updates` · `fix(313): close the specialty record to the laboratory desk` | Eventos clínicos fuera de `dashboard-updates` (#313, #315) y registro de especialidad cerrado al laboratorio (#313) |
+| 2 | `fix/f5-314-appointment-conduct` | `fix(314): stop publishing the clinical conduct on the appointment` · `fix(314): keep the reminder payload free of the conduct` · `docs(313,314,315): record ADR-0016…` · `docs(f5): record the close evidence` | Cita sin la conducta clínica (#314), recordatorio sin la cita cruda, ADR-0016 y documentos de la frontera |
 
 - **Tracker:** `fix/f5-clinical-narrative-boundary`, en `main`, PR draft/no-merge
   que recibe los slices en orden.
 - **Dependencia:** el slice 2 arranca en el tip del slice 1; su PR apunta a la
   branch del slice 1.
 - **Fuera de alcance declarado:** escritura manual de `treatment_notes` por
-  `PUT/PATCH /api/appointments/{id}`; `ReminderSent` (cita de un recordatorio
-  futuro, sin conducta); intento de suscripción del rol sin permiso en
-  `useWebSocketNotifications` (patrón preexistente de #285).
+  `PUT/PATCH /api/appointments/{id}` (el campo ya no se publica fuera del
+  escritorio clínico ni por socket); intento de suscripción del rol sin permiso
+  en `useWebSocketNotifications` (patrón preexistente de #285).
 
 ## Verification record
 
@@ -134,6 +137,7 @@ código ni tests.
 | --- | --- | --- |
 | Permisos, canal, SPA y dos lados | `--filter 'PermissionCatalogTest\|DeskMatrixTest\|SpecialtiesNavigationDisambiguationTest\|TechnicianClinicalRecordScopeTest\|DomainChannelsAuthorizationTest\|FrontendPermissionContractTest'` | OK (76 tests, 1242 assertions) |
 | Eventos clínicos | `--filter 'DashboardUpdatesPrivateChannelTest\|ClinicalEventsChannelBoundaryTest\|DomainChannelsPrivateTest'` | OK (54 tests, 142 assertions) |
+| Recordatorio sin la cita cruda | `--filter 'AppointmentBroadcastPayloadTest'` | OK (5 tests, 48 assertions) |
 | Cita y difusión | `--filter 'AppointmentTreatmentNotesDeskTest\|ConsultationClosureTest\|AppointmentBroadcastPayloadTest'` | OK (17 tests, 157 assertions) |
 | Detalle de paciente (JS) | `pnpm vitest run tests/js/smoke/patients-detail-redesign.test.js` | 14 passed |
 | Guardas de docs | `ArchitectureDecisionsIndexTest`, `AgentsDocsSyncTest`, `doc-drift.mjs` | OK (9 tests) y 14/14 |
