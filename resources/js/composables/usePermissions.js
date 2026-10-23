@@ -31,6 +31,14 @@ const PERMISSION_BY_KEY = {
   startConsultation: 'start.consultation',
   announcePatient: 'announce.patient',
 
+  // F4 (#310) / F5 (#316): the continuity queue and the prosthetic laboratory.
+  // Reading each desk is dispatch work; writing it belongs to the desk that
+  // answers for it, so the two grants stay separate.
+  viewContinuity: 'view.continuity',
+  manageContinuity: 'manage.continuity',
+  viewLabCase: 'view.lab_case',
+  manageLabCase: 'manage.lab_case',
+
   // Reports and business intelligence
   viewReports: 'view.report',
   exportData: 'export.report',

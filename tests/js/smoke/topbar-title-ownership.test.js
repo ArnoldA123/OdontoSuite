@@ -101,7 +101,9 @@ describe('topbar title ownership (issue #208)', () => {
     '/business-intelligence',
     '/ai-analysis',
     '/cash-register',
-    '/cash-register/ready-to-bill'
+    '/cash-register/ready-to-bill',
+    '/continuity',
+    '/lab-cases'
   ]
 
   it.each(pageOwnedRoutes)('leaves the visible title to the page on %s', async path => {

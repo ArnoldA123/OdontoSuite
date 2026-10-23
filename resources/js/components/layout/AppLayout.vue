@@ -555,6 +555,13 @@ const canvasRoutes = [
   // Operación
   '/my-day',
   '/calendar',
+  // Continuidad (#310) y laboratorio (#316): superficies nuevas, añadidas
+  // después del congelamiento de PR0. La guarda
+  // (AppLayoutCanvasRoutesTest) exige que el arreglo contenga cada ruta
+  // esperada, así que ampliarlo es seguro y evita que estas páginas se pinten
+  // sobre el fondo de sistema en vez del lienzo.
+  '/continuity',
+  '/lab-cases',
   // Clínico
   '/patients',
   '/medical-records',
@@ -798,6 +805,24 @@ const CpuChipIcon = {
   `
 }
 
+// F4 (#310): the reception desk of continuity.
+const ArrowPathIcon = {
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  `
+}
+
+// F5 (#316): the prosthetic laboratory desk.
+const BeakerIcon = {
+  template: `
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+    </svg>
+  `
+}
+
 // Navegación dinámica basada en permisos
 const navigation = computed(() => {
   const allItems = [
@@ -821,6 +846,24 @@ const navigation = computed(() => {
       name: 'Calendario',
       to: '/calendar',
       icon: CalendarIcon,
+      roles: [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente'
+      ],
+      badge: null
+    },
+    {
+      // F4 (#310): the reception desk of continuity — overdue recalls and the
+      // conduct the professional left at a closure. The API gates the read on
+      // `view.continuity`; the list below only decides who is worth offering it
+      // (the same desks that read the agenda).
+      name: 'Continuidad',
+      to: '/continuity',
+      icon: ArrowPathIcon,
       roles: [
         'administrador',
         'recepcionista',
@@ -971,6 +1014,23 @@ const navigation = computed(() => {
       badge: null
     },
     {
+      // F5 (#316): the prosthetic laboratory desk and the work orders the
+      // clinical desks read. Reception sees the ready cases and cannot write;
+      // the API answers 403 outside `manage.lab_case`.
+      name: 'Laboratorio',
+      to: '/lab-cases',
+      icon: BeakerIcon,
+      roles: [
+        'administrador',
+        'recepcionista',
+        'odontologo',
+        'implantologo',
+        'tecnico_dental',
+        'asistente'
+      ],
+      badge: null
+    },
+    {
       name: 'Análisis IA',
       to: '/ai-analysis',
       icon: CpuChipIcon,
@@ -1056,7 +1116,9 @@ const pageTitledRoutes = [
   '/business-intelligence',
   '/cash-register',
   '/cash-register/ready-to-bill',
+  '/continuity',
   '/environments',
+  '/lab-cases',
   '/my-day',
   '/my-procedures',
   '/procedure-catalog',
@@ -1105,7 +1167,9 @@ const getPageDescription = () => {
     '/quotations': 'Presupuestos y cotizaciones',
     '/medical-records': 'Historias clínicas de pacientes',
     '/medical-records/': 'Historia clínica del paciente',
-    '/specialty-records': 'Registros de especialidades odontológicas'
+    '/specialty-records': 'Registros de especialidades odontológicas',
+    '/continuity': 'Recalls vencidos y solicitudes de continuidad',
+    '/lab-cases': 'Casos del laboratorio protésico'
   }
   const exact = descriptions[route.path]
 
