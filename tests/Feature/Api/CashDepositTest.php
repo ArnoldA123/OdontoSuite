@@ -397,4 +397,34 @@ class CashDepositTest extends TestCase
         $this->assertEqualsWithDelta(0.0, $summary['cash_out'], 0.001);
         $this->assertEqualsWithDelta(200.0, $summary['expected_amount'], 0.001);
     }
+
+    public function test_a_card_refund_does_not_move_the_drawer_either(): void
+    {
+        $card = PaymentMethod::factory()->create([
+            'name' => 'Tarjeta',
+            'type' => PaymentMethod::TYPE_CARD,
+            'requires_reference' => false,
+        ]);
+
+        $refund = app(TransactionService::class)->createTransaction([
+            'patient_id' => $this->patient->id,
+            'payment_method_id' => $card->id,
+            'amount' => 40.0,
+            'type' => 'refund',
+            'description' => 'Devolución con tarjeta',
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución de una venta con tarjeta',
+        ]);
+
+        $this->assertSame(
+            0,
+            CashMovement::where('transaction_id', $refund->id)->count(),
+            'A card refund is money returned to the card, not cash leaving the drawer.'
+        );
+
+        $summary = app(CashRegisterService::class)->getSessionSummary($this->session->fresh());
+
+        $this->assertEqualsWithDelta(0.0, $summary['cash_out'], 0.001);
+        $this->assertEqualsWithDelta(200.0, $summary['expected_amount'], 0.001);
+    }
 }

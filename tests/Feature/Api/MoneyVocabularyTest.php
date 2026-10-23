@@ -11,6 +11,7 @@ use App\Models\PaymentMethod;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\CashRegisterService;
+use App\Services\TransactionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Group;
 use Tests\TestCase;
@@ -437,5 +438,107 @@ class MoneyVocabularyTest extends TestCase
             ->assertJsonValidationErrors('amount');
 
         $this->assertSame(1, Transaction::count());
+    }
+
+    public function test_a_refund_parent_must_be_a_completed_payment_of_the_same_patient(): void
+    {
+        $this->openSession();
+        $method = $this->method();
+        $payer = Patient::factory()->create();
+        $other = Patient::factory()->create();
+
+        $payment = $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $payer->id,
+            'payment_method_id' => $method->id,
+            'amount' => 100.0,
+        ]))->assertCreated()->json('data');
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $other->id,
+            'type' => 'refund',
+            'amount' => 10.0,
+            'payment_method_id' => $method->id,
+            'parent_transaction_id' => $payment['id'],
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución de otro paciente',
+        ]))->assertStatus(422)->assertJsonValidationErrors('parent_transaction_id');
+
+        $refund = $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $payer->id,
+            'type' => 'refund',
+            'amount' => 10.0,
+            'payment_method_id' => $method->id,
+            'parent_transaction_id' => $payment['id'],
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución válida',
+        ]))->assertCreated()->json('data');
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $payer->id,
+            'type' => 'refund',
+            'amount' => 5.0,
+            'payment_method_id' => $method->id,
+            'parent_transaction_id' => $refund['id'],
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución de una devolución',
+        ]))->assertStatus(422)->assertJsonValidationErrors('parent_transaction_id');
+
+        app(TransactionService::class)->voidTransaction((int) $payment['id'], 'Prueba');
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $payer->id,
+            'type' => 'refund',
+            'amount' => 5.0,
+            'payment_method_id' => $method->id,
+            'parent_transaction_id' => $payment['id'],
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Devolución de un pago anulado',
+        ]))->assertStatus(422)->assertJsonValidationErrors('parent_transaction_id');
+
+        $this->assertSame(1, Transaction::where('type', 'refund')->count());
+    }
+
+    public function test_a_write_off_authorized_by_a_non_administrator_is_refused(): void
+    {
+        $receptionist = User::factory()->create(['role' => 'recepcionista', 'is_active' => true]);
+        $patient = Patient::factory()->create();
+        $this->charge($patient, 100.0);
+
+        $this->postJson('/api/transactions', $this->payload([
+            'patient_id' => $patient->id,
+            'type' => 'write_off',
+            'amount' => 10.0,
+            'authorized_by' => $receptionist->id,
+            'authorization_reason' => 'Condonación de recepción',
+        ]))->assertStatus(422)->assertJsonValidationErrors('authorized_by');
+
+        $this->assertSame(0, Transaction::count());
+    }
+
+    public function test_an_adjustment_authorized_by_a_non_administrator_is_refused(): void
+    {
+        $receptionist = User::factory()->create(['role' => 'recepcionista', 'is_active' => true]);
+
+        $this->postJson('/api/transactions', $this->payload([
+            'type' => 'adjustment',
+            'amount' => 10.0,
+            'authorized_by' => $receptionist->id,
+            'authorization_reason' => 'Ajuste de recepción',
+        ]))->assertStatus(422)->assertJsonValidationErrors('authorized_by');
+
+        $this->assertSame(0, Transaction::count());
+    }
+
+    public function test_a_non_payment_cannot_declare_a_discount(): void
+    {
+        $this->postJson('/api/transactions', $this->payload([
+            'type' => 'adjustment',
+            'amount' => 10.0,
+            'discount_amount' => 5.0,
+            'authorized_by' => $this->admin->id,
+            'authorization_reason' => 'Ajuste con descuento',
+        ]))->assertStatus(422)->assertJsonValidationErrors('discount_amount');
+
+        $this->assertSame(0, Transaction::count());
     }
 }
